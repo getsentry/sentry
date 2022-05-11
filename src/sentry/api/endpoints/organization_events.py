@@ -17,7 +17,8 @@ METRICS_ENHANCED_REFERRERS = {
     "api.performance.landing-table",
 }
 
-ALLOWED_EVENTS_V2_REFERRERS = {
+ALLOWED_EVENTS_REFERRERS = {
+    "api.organization-events",
     "api.organization-events-v2",
     "api.dashboards.tablewidget",
     "api.dashboards.bignumberwidget",
@@ -73,8 +74,81 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
         referrer = (
-            referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
+            referrer if referrer in ALLOWED_EVENTS_REFERRERS else "api.organization-events-v2"
         )
+
+        def data_fn(offset, limit):
+            query_details = {
+                "selected_columns": self.get_field_list(organization, request),
+                "query": request.GET.get("query"),
+                "params": params,
+                "equations": self.get_equation_list(organization, request),
+                "orderby": self.get_orderby(request),
+                "offset": offset,
+                "limit": limit,
+                "referrer": referrer,
+                "auto_fields": True,
+                "auto_aggregations": True,
+                "use_aggregate_conditions": True,
+                "allow_metric_aggregates": allow_metric_aggregates,
+            }
+            if not metrics_enhanced and performance_dry_run_mep:
+                sentry_sdk.set_tag("query.mep_compatible", False)
+                metrics_enhanced_performance.query(dry_run=True, **query_details)
+            return dataset.query(**query_details)
+
+        with self.handle_query_errors():
+            # Don't include cursor headers if the client won't be using them
+            if request.GET.get("noPagination"):
+                return Response(
+                    self.handle_results_with_meta(
+                        request,
+                        organization,
+                        params["project_id"],
+                        data_fn(0, self.get_per_page(request)),
+                    )
+                )
+            else:
+                return self.paginate(
+                    request=request,
+                    paginator=GenericOffsetPaginator(data_fn=data_fn),
+                    on_results=lambda results: self.handle_results_with_meta(
+                        request, organization, params["project_id"], results
+                    ),
+                )
+
+
+class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
+    def get(self, request: Request, organization) -> Response:
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        try:
+            params = self.get_snuba_params(request, organization)
+        except NoProjects:
+            return Response([])
+
+        referrer = request.GET.get("referrer")
+        use_metrics = features.has(
+            "organizations:performance-use-metrics", organization=organization, actor=request.user
+        ) or features.has(
+            "organizations:dashboards-mep", organization=organization, actor=request.user
+        )
+        performance_dry_run_mep = features.has(
+            "organizations:performance-dry-run-mep", organization=organization, actor=request.user
+        )
+
+        # This param will be deprecated in favour of dataset
+        if "metricsEnhanced" in request.GET:
+            metrics_enhanced = request.GET.get("metricsEnhanced") == "1" and use_metrics
+            dataset = discover if not metrics_enhanced else metrics_enhanced_performance
+        else:
+            dataset = self.get_dataset(request) if use_metrics else discover
+            metrics_enhanced = dataset != discover
+
+        sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+        allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
+        referrer = referrer if referrer in ALLOWED_EVENTS_REFERRERS else "api.organization-events"
 
         def data_fn(offset, limit):
             query_details = {
