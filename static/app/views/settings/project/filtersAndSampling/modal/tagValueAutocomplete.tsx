@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {components, MultiValueProps, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -28,49 +28,27 @@ type Props = {
     | DynamicSamplingInnerName.EVENT_OS_VERSION
     | DynamicSamplingInnerName.EVENT_DEVICE_FAMILY
     | DynamicSamplingInnerName.EVENT_DEVICE_NAME
+    | DynamicSamplingInnerName.EVENT_CUSTOM_TAG
     | DynamicSamplingInnerName.TRACE_ENVIRONMENT
     | DynamicSamplingInnerName.TRACE_RELEASE
     | DynamicSamplingInnerName.TRACE_TRANSACTION;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
+  tagKey?: string;
   value?: string;
 };
 
-function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
+function TagValueAutocomplete({
+  orgSlug,
+  projectId,
+  category,
+  onChange,
+  value,
+  tagKey,
+}: Props) {
   const api = useApi();
   const [tagValues, setTagValues] = useState<Tag[]>([]);
-
-  useEffect(() => {
-    tagValueLoader();
-  }, []);
-
-  function getTagKey() {
-    switch (category) {
-      case DynamicSamplingInnerName.TRACE_RELEASE:
-      case DynamicSamplingInnerName.EVENT_RELEASE:
-        return 'release';
-      case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
-      case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
-        return 'environment';
-      case DynamicSamplingInnerName.TRACE_TRANSACTION:
-      case DynamicSamplingInnerName.EVENT_TRANSACTION:
-        return 'transaction';
-      case DynamicSamplingInnerName.EVENT_OS_NAME:
-        return 'os.name';
-      case DynamicSamplingInnerName.EVENT_OS_VERSION:
-        return 'os.version';
-      case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
-        return 'device.family';
-      case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
-        return 'device.name';
-      default:
-        Sentry.captureException(
-          new Error('Unknown dynamic sampling condition inner name')
-        );
-        return ''; // this shall never happen
-    }
-  }
 
   function getAriaLabel() {
     switch (category) {
@@ -91,6 +69,8 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
         return t('Search or add a device family');
       case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
         return t('Search or add a device name');
+      case DynamicSamplingInnerName.EVENT_CUSTOM_TAG:
+        return t('Search or add tag values');
       default:
         Sentry.captureException(
           new Error('Unknown dynamic sampling condition inner name')
@@ -99,20 +79,22 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
     }
   }
 
-  const key = getTagKey();
-
-  async function tagValueLoader() {
-    if (!key) {
+  const tagValueLoader = useCallback(async () => {
+    if (!tagKey) {
       return;
     }
 
     try {
-      const response = await fetchTagValues(api, orgSlug, key, null, [projectId]);
+      const response = await fetchTagValues(api, orgSlug, tagKey, null, [projectId]);
       setTagValues(response);
     } catch {
       // Do nothing. No results will be suggested
     }
-  }
+  }, [tagKey, api, orgSlug, projectId]);
+
+  useEffect(() => {
+    tagValueLoader();
+  }, [tagValueLoader]);
 
   // react-select doesn't seem to work very well when its value contains
   // a created item that isn't listed in the options
@@ -148,7 +130,7 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
             innerProps={
               {
                 ...containerProps.innerProps,
-                'data-test-id': `autocomplete-${key}`,
+                'data-test-id': `autocomplete-${tagKey}`,
               } as ContainerProps['innerProps']
             }
           />
@@ -185,8 +167,8 @@ function AutoComplete({orgSlug, projectId, category, onChange, value}: Props) {
   );
 }
 
-export default AutoComplete;
-
 const StyledSelectField = styled(SelectField)`
   width: 100%;
 `;
+
+export {TagValueAutocomplete};
