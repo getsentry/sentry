@@ -143,27 +143,29 @@ function renderMeasurements(
 export function SpanGroupBar(props: Props) {
   const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
 
-  const handleWheel = (event: WheelEvent) => {
-    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-    const {onWheel} = props;
-    onWheel(event.deltaX);
-  };
-
   useEffect(() => {
-    if (spanTitleRef.current) {
-      spanTitleRef.current.addEventListener('wheel', handleWheel, {
+    const handleWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      const {onWheel} = props;
+      onWheel(event.deltaX);
+    };
+
+    const currentRef = spanTitleRef.current;
+
+    if (currentRef) {
+      currentRef.addEventListener('wheel', handleWheel, {
         passive: false,
       });
     }
 
     return () => {
-      if (spanTitleRef.current) {
-        spanTitleRef.current.removeEventListener('wheel', handleWheel);
+      if (currentRef) {
+        currentRef.removeEventListener('wheel', handleWheel);
       }
     };
   }, []);
