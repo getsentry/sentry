@@ -165,7 +165,7 @@ class Onboarding extends Component<Props, State> {
     // way to create framer-motion controls than by using the `useAnimation`
     // hook.
 
-    useEffect(updateCornerVariant, []);
+    useEffect(updateCornerVariant, [cornerVariantControl]);
 
     return (
       <Container>
