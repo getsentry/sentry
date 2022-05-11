@@ -19,7 +19,7 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
-        group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
+        group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
     )
 
     def get(self, request: Request, project) -> Response:
