@@ -3,7 +3,9 @@ import {useMemo} from 'react';
 import EventEntry from 'sentry/components/events/eventEntry';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TagsTable from 'sentry/components/tagsTable';
-import type {Entry, Event} from 'sentry/types/event';
+import type {BreadcrumbTypeDefault, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import isErrorCrumb from 'sentry/utils/replays/isErrorCrumb';
 import ReplayReader from 'sentry/utils/replays/replayReader';
@@ -20,10 +22,14 @@ type Props = {
   replay: ReplayReader;
 };
 
-function getBreadcrumbsForConsole(breadcrumbEntry: Entry) {
-  return breadcrumbEntry.data.values.filter(
-    breadcrumb => breadcrumb.category === 'console' || isErrorCrumb(breadcrumb)
-  );
+function isBreadcrumbTypeDefault(crumb: RawCrumb): crumb is BreadcrumbTypeDefault {
+  return crumb.type !== BreadcrumbType.HTTP && crumb.type !== BreadcrumbType.NAVIGATION;
+}
+
+function getBreadcrumbsForConsole(breadcrumbs: RawCrumb[]) {
+  return breadcrumbs
+    .filter(isBreadcrumbTypeDefault)
+    .filter(breadcrumb => breadcrumb.category === 'console' || isErrorCrumb(breadcrumb));
 }
 
 function FocusArea({replay}: Props) {
@@ -44,8 +50,8 @@ function FocusArea({replay}: Props) {
 
   switch (active) {
     case 'console':
-      const breadcrumbEntry = replay.getEntryType(EntryType.BREADCRUMBS);
-      const consoleMessages = getBreadcrumbsForConsole(breadcrumbEntry);
+      const breadcrumbs = replay.getRawCrumbs();
+      const consoleMessages = getBreadcrumbsForConsole(breadcrumbs);
 
       return (
         <div id="console">
