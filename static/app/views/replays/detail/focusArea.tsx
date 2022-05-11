@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -7,23 +7,18 @@ import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import isErrorCrumb from 'sentry/utils/replays/isErrorCrumb';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-import {isReplayTab, ReplayTabs} from '../types';
-
 import Console from './console';
-import FocusTabs from './focusTabs';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 import Trace from './trace';
+import useActiveTabFromLocation from './useActiveTabFromLocation';
 
 type Props = {
   replay: ReplayReader;
 };
-
-const DEFAULT_TAB = ReplayTabs.PERFORMANCE;
 
 function getBreadcrumbsForConsole(breadcrumbEntry: Entry) {
   return breadcrumbEntry.data.values.filter(
@@ -31,20 +26,8 @@ function getBreadcrumbsForConsole(breadcrumbEntry: Entry) {
   );
 }
 
-function FocusArea(props: Props) {
-  const location = useLocation();
-  const hash = location.hash.replace(/^#/, '');
-  const tabFromHash = isReplayTab(hash) ? hash : DEFAULT_TAB;
-
-  return (
-    <Fragment>
-      <FocusTabs active={tabFromHash} />
-      <ActiveTab active={tabFromHash} {...props} />
-    </Fragment>
-  );
-}
-
-function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
+function FocusArea({replay}: Props) {
+  const active = useActiveTabFromLocation();
   const {routes, router} = useRouteContext();
   const {currentTime, currentHoverTime, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
