@@ -7,6 +7,7 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import UserBadge, {StyledName} from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
 import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -25,17 +26,6 @@ type Props = {
 
 function DetailLayout({children, event, orgId, crumbs}: Props) {
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
-
-  const eventRow = event ? (
-    <React.Fragment>
-      <Layout.HeaderContent>
-        <EventHeader event={event} />
-      </Layout.HeaderContent>
-      <MetaDataColumn>
-        <EventMetaData event={event} crumbs={crumbs} />
-      </MetaDataColumn>
-    </React.Fragment>
-  ) : null;
 
   return (
     <SentryDocumentTitle title={title}>
@@ -70,7 +60,14 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
               ]}
             />
           </FeedbackButtonWrapper>
-          {eventRow}
+          <React.Fragment>
+            <Layout.HeaderContent>
+              <EventHeader event={event} />
+            </Layout.HeaderContent>
+            <MetaDataColumn>
+              <EventMetaData event={event} crumbs={crumbs} />
+            </MetaDataColumn>
+          </React.Fragment>
         </Layout.Header>
         {children}
       </React.Fragment>
@@ -78,9 +75,17 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
   );
 }
 
+const HeaderPlaceholder = styled(function HeaderPlaceholder(
+  props: React.ComponentProps<typeof Placeholder>
+) {
+  return <Placeholder width="100%" height="19px" {...props} />;
+})`
+  background-color: ${p => p.theme.background};
+`;
+
 function EventHeader({event}: Pick<Props, 'event'>) {
   if (!event) {
-    return null;
+    return <HeaderPlaceholder width="500px" height="48px" />;
   }
 
   const urlTag = event.tags.find(({key}) => key === 'url');
@@ -109,29 +114,29 @@ const MetaDataColumn = styled(Layout.HeaderActions)`
 function EventMetaData({event, crumbs}: Pick<Props, 'event' | 'crumbs'>) {
   const {duration} = useReplayContext();
 
-  if (!event) {
-    return null;
-  }
-
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
 
   return (
     <KeyMetrics>
       <KeyMetricData
         keyName={t('Timestamp')}
-        value={<TimeSince date={event.dateReceived} />}
+        value={event ? <TimeSince date={event.dateReceived} /> : <HeaderPlaceholder />}
       />
       <KeyMetricData
         keyName={t('Duration')}
         value={
-          <Duration
-            seconds={Math.floor(msToSec(duration || 0)) || 1}
-            abbreviation
-            exact
-          />
+          duration !== undefined ? (
+            <Duration
+              seconds={Math.floor(msToSec(duration || 0)) || 1}
+              abbreviation
+              exact
+            />
+          ) : (
+            <HeaderPlaceholder />
+          )
         }
       />
-      <KeyMetricData keyName={t('Errors')} value={errors} />
+      <KeyMetricData keyName={t('Errors')} value={errors ?? <HeaderPlaceholder />} />
     </KeyMetrics>
   );
 }
