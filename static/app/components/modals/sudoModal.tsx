@@ -141,7 +141,7 @@ class SudoModal extends Component<Props, State> {
     } catch {
       // ignore errors
     }
-    window.location.assign('/auth/login/');
+    window.location.assign(`/auth/login/?next=${encodeURIComponent(location.pathname)}`);
   };
 
   async getAuthenticators() {
