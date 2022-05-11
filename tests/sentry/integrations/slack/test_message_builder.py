@@ -218,32 +218,31 @@ class BuildIncidentAttachmentTest(TestCase):
 
 class BuildMetricAlertAttachmentTest(TestCase):
     def test_metric_alert_without_incidents(self):
-        logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         title = f"Resolved: {alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
+        )
         assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
-            "fallback": title,
-            "title": title,
-            "title_link": absolute_uri(
-                reverse(
-                    "sentry-metric-alert-details",
-                    kwargs={
-                        "organization_slug": alert_rule.organization.slug,
-                        "alert_rule_id": alert_rule.id,
-                    },
-                )
-            ),
-            "text": "",
-            "fields": [],
-            "mrkdwn_in": ["text"],
-            "footer_icon": logo_url,
-            "footer": "Metric Alert",
             "color": LEVEL_TO_COLOR["_incident_resolved"],
-            "actions": [],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
         }
 
     def test_metric_alert_with_selected_incident(self):
-        logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
@@ -251,15 +250,8 @@ class BuildMetricAlertAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Resolved: {alert_rule.name}"
-        incident_footer_ts = (
-            "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
-                to_timestamp(incident.date_started), "{date_pretty}", "{time}"
-            )
-        )
-        assert SlackMetricAlertMessageBuilder(alert_rule, incident).build() == {
-            "fallback": title,
-            "title": title,
-            "title_link": absolute_uri(
+        link = (
+            absolute_uri(
                 reverse(
                     "sentry-metric-alert-details",
                     kwargs={
@@ -268,18 +260,24 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}",
-            "text": "0 events in the last 10 minutes\nFilter: level:error",
-            "fields": [],
-            "mrkdwn_in": ["text"],
-            "footer_icon": logo_url,
-            "footer": incident_footer_ts,
+            + f"?alert={incident.identifier}"
+        )
+        assert SlackMetricAlertMessageBuilder(alert_rule, incident).build() == {
             "color": LEVEL_TO_COLOR["_incident_resolved"],
-            "actions": [],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n"
+                        "0 events in the last 10 minutes\n"
+                        "Filter: level:error",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
         }
 
     def test_metric_alert_with_active_incident(self):
-        logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
@@ -287,30 +285,28 @@ class BuildMetricAlertAttachmentTest(TestCase):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
         title = f"Critical: {alert_rule.name}"
-        incident_footer_ts = (
-            "<!date^{:.0f}^Metric Alert - Last Triggered {} at {} | Metric Alert>".format(
-                to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
             )
         )
         assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
-            "fallback": title,
-            "title": title,
-            "title_link": absolute_uri(
-                reverse(
-                    "sentry-metric-alert-details",
-                    kwargs={
-                        "organization_slug": alert_rule.organization.slug,
-                        "alert_rule_id": alert_rule.id,
-                    },
-                )
-            ),
-            "text": "0 events in the last 10 minutes\nFilter: level:error",
-            "fields": [],
-            "mrkdwn_in": ["text"],
-            "footer_icon": logo_url,
-            "footer": incident_footer_ts,
             "color": LEVEL_TO_COLOR["fatal"],
-            "actions": [],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n"
+                        "0 events in the last 10 minutes\n"
+                        "Filter: level:error",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
         }
 
     def test_metric_value(self):
@@ -347,6 +343,5 @@ class BuildMetricAlertAttachmentTest(TestCase):
                     },
                     "type": "section",
                 },
-                {"alt_text": "Metric Alert Chart", "image_url": None, "type": "image"},
             ],
         }
