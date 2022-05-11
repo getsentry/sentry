@@ -8,7 +8,6 @@ import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
-import Tag from 'sentry/components/tag';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -64,19 +63,17 @@ export function VisualizationStep({
     };
   }, [widget, previousWidget]);
 
-  const displayOptions = Object.keys(displayTypes).map(value => ({
-    label:
-      organization.features.includes('new-widget-builder-experience-design') &&
-      value === DisplayType.TOP_N ? (
-        <DisplayOptionLabel>
-          {displayTypes[value]}
-          <Tag type="info">{t('deprecated')}</Tag>
-        </DisplayOptionLabel>
-      ) : (
-        displayTypes[value]
-      ),
-    value,
-  }));
+  const displayOptions = Object.keys(displayTypes)
+    .filter(
+      key =>
+        !organization.features.includes('new-widget-builder-experience-design') ||
+        (organization.features.includes('new-widget-builder-experience-design') &&
+          key !== DisplayType.TOP_N)
+    )
+    .map(value => ({
+      label: displayTypes[value],
+      value,
+    }));
 
   return (
     <BuildStep
@@ -141,10 +138,4 @@ const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
         height: 301px;
       }
     `};
-`;
-
-const DisplayOptionLabel = styled('span')`
-  display: flex;
-  justify-content: space-between;
-  width: calc(100% - ${space(1)});
 `;
