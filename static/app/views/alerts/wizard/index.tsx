@@ -49,10 +49,17 @@ const DEFAULT_ALERT_OPTION = 'issues';
 
 class AlertWizard extends Component<Props, State> {
   state: State = {
-    alertOption: DEFAULT_ALERT_OPTION,
+    alertOption:
+      this.props.location.query.alert_option in AlertWizardAlertNames
+        ? this.props.location.query.alert_option
+        : DEFAULT_ALERT_OPTION,
   };
 
   componentDidMount() {
+    // const {alert_option: alertOption} = this.props.location.query;
+    // this.state = {
+    //   alertOption: alertOption ?? DEFAULT_ALERT_OPTION,
+    // };
     // capture landing on the alert wizard page and viewing the issue alert by default
     this.trackView();
   }
