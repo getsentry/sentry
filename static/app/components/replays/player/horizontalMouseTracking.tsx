@@ -12,9 +12,12 @@ class AbortError extends Error {}
 /**
  * Replace `elem.getBoundingClientRect()` which is too laggy for onMouseMove
  */
-function getBoundingRect(elem: Element, {signal}): Promise<DOMRectReadOnly> {
+function getBoundingRect(
+  elem: Element,
+  {signal}: {signal: AbortSignal}
+): Promise<DOMRectReadOnly> {
   return new Promise((resolve, reject) => {
-    if (signal.abort) {
+    if (signal.aborted) {
       reject(new AbortError());
     }
 
@@ -50,7 +53,7 @@ function HorizontalMouseTracking({children}: Props) {
 
       try {
         const rect = await getBoundingRect(elem.current, {
-          signal: controller.current?.signal,
+          signal: controller.current.signal,
         });
         const left = e.clientX - rect.left;
         if (left >= 0) {
