@@ -3,8 +3,6 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
-import Button from 'sentry/components/button';
 import {MenuActions} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import HeaderItem from 'sentry/components/organizations/headerItem';
@@ -13,12 +11,11 @@ import Tooltip from 'sentry/components/tooltip';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {growIn} from 'sentry/styles/animations';
-import space from 'sentry/styles/space';
 import {MinimalProject, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 
+import ProjectSelectorFooter from './projectSelector/footer';
 import ProjectSelector from './projectSelector';
 
 type Props = WithRouterProps & {
@@ -268,7 +265,7 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
               display: flex;
             `}
             menuFooter={({actions}) => (
-              <SelectorFooterControls
+              <ProjectSelectorFooter
                 selected={selectedProjectIds}
                 disableMultipleProjectSelection={disableMultipleProjectSelection}
                 organization={organization}
@@ -341,120 +338,7 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
   }
 }
 
-type FeatureRenderProps = {
-  hasFeature: boolean;
-  renderShowAllButton?: (p: {
-    canShowAllProjects: boolean;
-    onButtonClick: () => void;
-  }) => React.ReactNode;
-};
-
-type ControlProps = {
-  onApply: () => void;
-  onShowAllProjects: () => void;
-  onShowMyProjects: () => void;
-  organization: Organization;
-  disableMultipleProjectSelection?: boolean;
-  hasChanges?: boolean;
-  message?: React.ReactNode;
-  selected?: Set<number>;
-};
-
-const SelectorFooterControls = ({
-  selected,
-  disableMultipleProjectSelection,
-  hasChanges,
-  onApply,
-  onShowAllProjects,
-  onShowMyProjects,
-  organization,
-  message,
-}: ControlProps) => {
-  // Nothing to show.
-  if (disableMultipleProjectSelection && !hasChanges && !message) {
-    return null;
-  }
-
-  // see if we should show "All Projects" or "My Projects" if disableMultipleProjectSelection isn't true
-  const hasGlobalRole = organization.role === 'owner' || organization.role === 'manager';
-  const hasOpenMembership = organization.features.includes('open-membership');
-  const allSelected = selected && selected.has(ALL_ACCESS_PROJECTS);
-
-  const canShowAllProjects = (hasGlobalRole || hasOpenMembership) && !allSelected;
-  const onProjectClick = canShowAllProjects ? onShowAllProjects : onShowMyProjects;
-  const buttonText = canShowAllProjects
-    ? t('Select All Projects')
-    : t('Select My Projects');
-
-  return (
-    <FooterContainer hasMessage={!!message}>
-      {message && <FooterMessage>{message}</FooterMessage>}
-      <FooterActions>
-        {!disableMultipleProjectSelection && (
-          <Feature
-            features={['organizations:global-views']}
-            organization={organization}
-            hookName="feature-disabled:project-selector-all-projects"
-            renderDisabled={false}
-          >
-            {({renderShowAllButton, hasFeature}: FeatureRenderProps) => {
-              // if our hook is adding renderShowAllButton, render that
-              if (renderShowAllButton) {
-                return renderShowAllButton({
-                  onButtonClick: onProjectClick,
-                  canShowAllProjects,
-                });
-              }
-              // if no hook, render null if feature is disabled
-              if (!hasFeature) {
-                return null;
-              }
-              // otherwise render the buton
-              return (
-                <Button priority="default" size="xsmall" onClick={onProjectClick}>
-                  {buttonText}
-                </Button>
-              );
-            }}
-          </Feature>
-        )}
-
-        {hasChanges && (
-          <SubmitButton onClick={onApply} size="xsmall" priority="primary">
-            {t('Apply Filter')}
-          </SubmitButton>
-        )}
-      </FooterActions>
-    </FooterContainer>
-  );
-};
-
 export default withRouter(MultipleProjectSelector);
-
-const FooterContainer = styled('div')<{hasMessage: boolean}>`
-  display: flex;
-  justify-content: ${p => (p.hasMessage ? 'space-between' : 'flex-end')};
-`;
-
-const FooterActions = styled('div')`
-  padding: ${space(1)} 0;
-  display: flex;
-  justify-content: flex-end;
-  & > * {
-    margin-left: ${space(0.5)};
-  }
-  &:empty {
-    display: none;
-  }
-`;
-const SubmitButton = styled(Button)`
-  animation: 0.1s ${growIn} ease-in;
-`;
-
-const FooterMessage = styled('div')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  padding: ${space(1)} ${space(0.5)};
-`;
 
 const StyledProjectSelector = styled(ProjectSelector)`
   background-color: ${p => p.theme.background};

@@ -6,8 +6,9 @@ import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
-import ReplayBreadcrumbOverview from 'sentry/components/replays/breadcrumbs/replayBreadcrumbOverview';
-import Scrubber from 'sentry/components/replays/player/scrubber';
+import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
+import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
+import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
@@ -16,7 +17,6 @@ import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {EntryType} from 'sentry/types/event';
 import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
@@ -86,7 +86,7 @@ function ReplayDetails() {
       <DetailLayout
         event={replay.getEvent()}
         orgId={orgId}
-        crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
+        crumbs={replay.getRawCrumbs()}
       >
         <Layout.Body>
           <ReplayLayout ref={fullscreenRef}>
@@ -99,7 +99,9 @@ function ReplayDetails() {
                   <ReplayPlayer />
                 </ManualResize>
               </PanelHeader>
-              <Scrubber />
+              <HorizontalMouseTracking>
+                <PlayerScrubber />
+              </HorizontalMouseTracking>
               <PanelBody withPadding>
                 <ReplayController toggleFullscreen={toggleFullscreen} />
               </PanelBody>
@@ -107,15 +109,13 @@ function ReplayDetails() {
           </ReplayLayout>
           <Side>
             <UserActionsNavigator
-              crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
+              crumbs={replay.getRawCrumbs()}
               event={replay.getEvent()}
             />
           </Side>
           <Layout.Main fullWidth>
             <Panel>
-              <BreadcrumbTimeline
-                crumbs={replay.getEntryType(EntryType.BREADCRUMBS)?.data.values || []}
-              />
+              <ReplayTimeline />
             </Panel>
             <FocusArea replay={replay} />
           </Layout.Main>
@@ -154,10 +154,6 @@ const ReplayLayout = styled(Layout.Main)`
 
 const Side = styled(Layout.Side)`
   padding-bottom: ${space(2)};
-`;
-
-const BreadcrumbTimeline = styled(ReplayBreadcrumbOverview)`
-  max-height: 5em;
 `;
 
 export default ReplayDetails;

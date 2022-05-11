@@ -28,6 +28,10 @@ type Props<T> = Pick<
     style?: React.CSSProperties;
   };
 
+function scrollRowItem(element: HTMLDivElement) {
+  element?.scrollIntoView?.({block: 'nearest'});
+}
+
 function Row<T extends Item>({
   item,
   style,
@@ -60,6 +64,7 @@ function Row<T extends Item>({
       disabled={item.disabled}
       isHighlighted={isActive}
       style={style}
+      ref={isActive ? scrollRowItem : undefined}
       {...itemProps}
     >
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
