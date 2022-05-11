@@ -58,7 +58,6 @@ import {
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './constants';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
@@ -108,9 +107,11 @@ type SpanBarProps = {
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isEmbeddedTransactionTimeAdjusted: boolean;
   numOfSpanChildren: number;
   numOfSpans: number;
+  onWheel: (deltaX: number) => void;
   organization: Organization;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
@@ -148,7 +149,9 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     }
 
     if (this.spanTitleRef.current) {
-      this.spanTitleRef.current.addEventListener('wheel', this.preventDefault);
+      this.spanTitleRef.current.addEventListener('wheel', this.handleWheel, {
+        passive: false,
+      });
     }
   }
 
@@ -157,7 +160,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     this.disconnectObservers();
 
     if (this.spanTitleRef.current) {
-      this.spanTitleRef.current.removeEventListener('wheel', this.preventDefault);
+      this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
     }
   }
 
@@ -167,13 +170,17 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
 
-  preventDefault = (event: WheelEvent) => {
+  handleWheel = (event: WheelEvent) => {
     // https://stackoverflow.com/q/57358640
     // https://github.com/facebook/react/issues/14856
     if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
       return;
     }
+
     event.preventDefault();
+    event.stopPropagation();
+    const {onWheel} = this.props;
+    onWheel(event.deltaX);
   };
 
   toggleDisplayDetail = () => {
@@ -443,11 +450,8 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderTitle(
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps,
-    errors: TraceError[] | null
-  ) {
-    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
+  renderTitle(errors: TraceError[] | null) {
+    const {generateContentSpanBarRef} = this.props;
     const {
       span,
       treeDepth,
@@ -850,14 +854,12 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }
 
   renderHeader({
-    scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
     errors,
     transactions,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     errors: TraceError[] | null;
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
     transactions: QuickTraceEvent[] | null;
   }) {
     const {span, spanBarColor, spanBarHatch, spanNumber} = this.props;
@@ -882,15 +884,9 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           onClick={() => {
             this.toggleDisplayDetail();
           }}
-          onWheel={event => {
-            event.preventDefault();
-            event.stopPropagation();
-            const {onWheel} = scrollbarManagerChildrenProps;
-            onWheel(event.deltaX);
-          }}
           ref={this.spanTitleRef}
         >
-          {this.renderTitle(scrollbarManagerChildrenProps, errors)}
+          {this.renderTitle(errors)}
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
@@ -998,22 +994,18 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               const transactions = this.getChildTransactions(quickTrace);
               return (
                 <Fragment>
-                  <ScrollbarManager.Consumer>
-                    {scrollbarManagerChildrenProps => (
-                      <DividerHandlerManager.Consumer>
-                        {(
-                          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                        ) =>
-                          this.renderHeader({
-                            dividerHandlerChildrenProps,
-                            scrollbarManagerChildrenProps,
-                            errors,
-                            transactions,
-                          })
-                        }
-                      </DividerHandlerManager.Consumer>
-                    )}
-                  </ScrollbarManager.Consumer>
+                  <DividerHandlerManager.Consumer>
+                    {(
+                      dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                    ) =>
+                      this.renderHeader({
+                        dividerHandlerChildrenProps,
+                        errors,
+                        transactions,
+                      })
+                    }
+                  </DividerHandlerManager.Consumer>
+
                   {this.renderDetail({
                     isVisible: isSpanVisibleInView,
                     transactions,

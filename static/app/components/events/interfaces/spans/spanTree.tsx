@@ -150,7 +150,14 @@ class SpanTree extends Component<PropType> {
   };
 
   render() {
-    const {waterfallModel, spans, organization, dragProps} = this.props;
+    const {
+      waterfallModel,
+      spans,
+      organization,
+      dragProps,
+      onWheel,
+      generateContentSpanBarRef,
+    } = this.props;
     const generateBounds = waterfallModel.generateBounds({
       viewStart: dragProps.viewWindowStart,
       viewEnd: dragProps.viewWindowEnd,
@@ -304,6 +311,8 @@ class SpanTree extends Component<PropType> {
             groupType={groupType}
             groupOccurrence={payload.groupOccurrence}
             isEmbeddedTransactionTimeAdjusted={payload.isEmbeddedTransactionTimeAdjusted}
+            onWheel={onWheel}
+            generateContentSpanBarRef={generateContentSpanBarRef}
           />
         );
 
