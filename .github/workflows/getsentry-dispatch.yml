@@ -31,6 +31,10 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
+      - name: debug
+        run: |
+          cat .github/workflows/scripts/getsentry-dispatch.js
+
       - name: Dispatch getsentry tests
         uses: actions/github-script@v3
         with:
