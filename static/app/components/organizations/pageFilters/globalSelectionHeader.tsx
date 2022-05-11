@@ -12,7 +12,7 @@ import BackToIssues from 'sentry/components/organizations/backToIssues';
 import HeaderItemPosition from 'sentry/components/organizations/headerItemPosition';
 import HeaderSeparator from 'sentry/components/organizations/headerSeparator';
 import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
-import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
+import MultipleProjectSelector from 'sentry/components/organizations/projectSelector/multiple';
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
