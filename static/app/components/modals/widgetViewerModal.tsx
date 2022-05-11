@@ -37,11 +37,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  getAggregateAlias,
-  isAggregateField,
-  isEquation,
-} from 'sentry/utils/discover/fields';
+import {isAggregateField, isEquation} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -341,7 +337,7 @@ function WidgetViewerModal(props: Props) {
       case WidgetType.DISCOVER:
         if (fields.length === 1) {
           tableWidget.queries[0].orderby =
-            tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
+            tableWidget.queries[0].orderby || `-${fields[0]}`;
         }
         fields.unshift('title');
         columns.unshift('title');
@@ -417,7 +413,10 @@ function WidgetViewerModal(props: Props) {
       }
     };
     getDiscoverTotals();
-  }, [api, eventView, location, organization, selectedQueryIndex, widget.widgetType]);
+    // Disabling this for now since this effect should only run on initial load and query index changes
+    // Including all exhaustive deps would cause fetchDiscoverTotal on nearly every update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedQueryIndex]);
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
     setDisabledLegends(selected);

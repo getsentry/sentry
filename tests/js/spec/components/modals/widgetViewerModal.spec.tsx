@@ -187,7 +187,7 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(eventsv2Mock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
         expect.objectContaining({
-          query: expect.objectContaining({sort: ['-count']}),
+          query: expect.objectContaining({sort: ['-count()']}),
         })
       );
     });
@@ -511,7 +511,7 @@ describe('Modals -> WidgetViewerModal', function () {
         query: {sort: ['-count()']},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {sort: ['-count']};
+      initialData.router.location.query = {sort: ['-count()']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -528,13 +528,13 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
         expect.objectContaining({
-          query: expect.objectContaining({sort: ['-count']}),
+          query: expect.objectContaining({sort: ['-count()']}),
         })
       );
       expect(eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({orderby: '-count'}),
+          query: expect.objectContaining({orderby: '-count()'}),
         })
       );
     });
