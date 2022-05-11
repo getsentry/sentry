@@ -300,16 +300,36 @@ function WidgetBuilder({
 
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
+      const newDisplayType =
+        widgetBuilderNewDesign && widgetFromDashboard.displayType === DisplayType.TOP_N
+          ? DisplayType.AREA
+          : widgetFromDashboard.displayType;
+      let queries = normalizeQueries({
+        displayType: newDisplayType,
+        queries: widgetFromDashboard.queries,
+        widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+        widgetBuilderNewDesign,
+      });
+      let newLimit = widgetFromDashboard.limit;
+
+      if (
+        widgetBuilderNewDesign &&
+        widgetFromDashboard.displayType === DisplayType.TOP_N
+      ) {
+        newLimit = DEFAULT_RESULTS_LIMIT;
+
+        // Truncate queries to the last one
+        queries = queries.map(query => ({
+          ...query,
+          aggregates: [query.aggregates[query.aggregates.length - 1]],
+        }));
+      }
+
       setState({
         title: widgetFromDashboard.title,
-        displayType: widgetFromDashboard.displayType,
+        displayType: newDisplayType,
         interval: widgetFromDashboard.interval,
-        queries: normalizeQueries({
-          displayType: widgetFromDashboard.displayType,
-          queries: widgetFromDashboard.queries,
-          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
-          widgetBuilderNewDesign,
-        }),
+        queries,
         errors: undefined,
         loading: false,
         dashboards: [],
@@ -317,7 +337,7 @@ function WidgetBuilder({
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
-        limit: widgetFromDashboard.limit,
+        limit: newLimit,
       });
       setWidgetToBeUpdated(widgetFromDashboard);
     }
