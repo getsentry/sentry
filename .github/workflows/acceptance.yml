@@ -309,7 +309,7 @@ jobs:
         if: needs.files-changed.outputs.backend == 'true'
 
   visual-diff:
-    if: needs.files-changed.outputs.backend_any_type == 'true'
+    if: needs.files-changed.outputs.acceptance == 'true'
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [acceptance, frontend, chartcuterie]
@@ -337,7 +337,7 @@ jobs:
   fake-visual-snapshot:
     name: Visual Snapshot
     # Opposite condition to "triggers visual snapshot" required check
-    if: needs.files-changed.outputs.backend_any_type != 'true'
+    if: needs.files-changed.outputs.acceptance != 'true'
     runs-on: ubuntu-20.04
     steps:
       - name: Sentaur attack
