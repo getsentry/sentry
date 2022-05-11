@@ -97,7 +97,7 @@ class BaseTestReleaseMonitor:
         )
 
     def tearDown(self):
-        self.backend.__exit__()
+        self.backend.__exit__(None, None, None)
 
     def test_simple(self):
         self.bulk_store_sessions([self.build_session(project_id=self.project1) for _ in range(11)])
