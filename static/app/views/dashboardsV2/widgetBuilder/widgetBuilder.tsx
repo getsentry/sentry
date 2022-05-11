@@ -235,7 +235,10 @@ function WidgetBuilder({
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
-      displayType: displayType ?? DisplayType.TABLE,
+      displayType:
+        (widgetBuilderNewDesign && displayType === DisplayType.TOP_N
+          ? DisplayType.AREA
+          : displayType) ?? DisplayType.TABLE,
       interval: '5m',
       queries: [],
       limit,
@@ -265,7 +268,13 @@ function WidgetBuilder({
         defaultState.queries = [{...defaultWidgetQuery}];
       }
 
-      if (![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType)) {
+      if (
+        ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) &&
+        !(
+          getIsTimeseriesChart(defaultState.displayType) &&
+          defaultState.queries[0].columns.length
+        )
+      ) {
         defaultState.queries[0].orderby = '';
       }
     } else {

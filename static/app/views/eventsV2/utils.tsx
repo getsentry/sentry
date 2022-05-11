@@ -41,6 +41,7 @@ import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboardsV2/types';
+import {DEFAULT_RESULTS_LIMIT} from '../dashboardsV2/widgetBuilder/utils';
 
 import {displayModeToDisplayType} from './savedQuery/utils';
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
@@ -574,7 +575,7 @@ export function eventViewToWidgetQuery({
   let orderby = '';
   // The orderby should only be set to sort.field if it is a Top N query
   // since the query uses all of the fields, or if the ordering is used in the y-axis
-  if (sort) {
+  if (sort && displayType !== DisplayType.WORLD_MAP) {
     let orderbyFunction = '';
     const aggregateFields = [...queryYAxis, ...aggregates];
     for (let i = 0; i < aggregateFields.length; i++) {
@@ -589,9 +590,15 @@ export function eventViewToWidgetQuery({
       orderby = `${sort.kind === 'desc' ? '-' : ''}${bareOrderby}`;
     }
   }
+  let newAggregates = aggregates;
+
+  if (displayType !== DisplayType.TABLE) {
+    newAggregates = queryYAxis;
+  }
+
   const widgetQuery: WidgetQuery = {
     name: '',
-    aggregates: [...(displayType === DisplayType.TOP_N ? aggregates : []), ...queryYAxis],
+    aggregates: newAggregates,
     columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
     fields: [...(displayType === DisplayType.TOP_N ? fields : []), ...queryYAxis],
     conditions: eventView.query,
@@ -645,9 +652,15 @@ export function handleAddQueryToDashboard({
       },
       widget: {
         title: query?.name ?? eventView.name,
-        displayType,
-        queries: [defaultWidgetQuery],
+        displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+        queries: [
+          {
+            ...defaultWidgetQuery,
+            aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? [])],
+          },
+        ],
         interval: eventView.interval,
+        limit: displayType === DisplayType.TOP_N ? DEFAULT_RESULTS_LIMIT : undefined,
       },
       router,
       widgetAsQueryParams,
