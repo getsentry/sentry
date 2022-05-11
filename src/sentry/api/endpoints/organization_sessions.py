@@ -23,8 +23,15 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
                 with sentry_sdk.start_span(
                     op="sessions.endpoint", description="build_sessions_query"
                 ):
+                    request_limit = None
+                    if request.GET.get("per_page") is not None:
+                        request_limit = limit
+                    request_offset = None
+                    if request.GET.get("cursor") is not None:
+                        request_offset = offset
+
                     query = self.build_sessions_query(
-                        request, organization, offset=offset, limit=limit
+                        request, organization, offset=request_offset, limit=request_limit
                     )
 
                 return release_health.run_sessions_query(

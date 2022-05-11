@@ -8,7 +8,7 @@ from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
 
-from .utils import MAX_POINTS, MetricOperationType
+from .utils import MAX_POINTS, MetricOperationType, get_intervals
 
 # TODO: Add __all__ to be consistent with sibling modules
 
@@ -54,7 +54,7 @@ class QueryDefinition:
 
     def __post_init__(self):
         # Validate series limit
-        if self.limit:
+        if self.limit is not None:
             if self.limit.limit > MAX_POINTS:
                 raise InvalidParams(
                     f"Requested limit exceeds the maximum allowed limit of {MAX_POINTS}"
@@ -70,3 +70,20 @@ class QueryDefinition:
                         f"{self.limit.limit} elements. Increase your interval, decrease your "
                         f"statsPeriod, or decrease your per_page parameter."
                     )
+        else:
+            totals_limit = MAX_POINTS
+            if self.include_series:
+                # In a series query, we also need to factor in the len of the intervals
+                # array. The number of totals should never get so large that the
+                # intervals exceed MAX_POINTS, however at least a single group.
+                intervals_len = len(
+                    list(
+                        get_intervals(
+                            self.start,
+                            self.end,
+                            self.granularity.granularity,
+                        )
+                    )
+                )
+                totals_limit = max(totals_limit // intervals_len, 1)
+            object.__setattr__(self, "limit", Limit(totals_limit))

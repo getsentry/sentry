@@ -3,7 +3,6 @@ __all__ = (
     "SnubaQueryBuilder",
     "SnubaResultConverter",
     "get_date_range",
-    "get_intervals",
     "parse_field",
     "parse_query",
     "resolve_tags",
@@ -50,6 +49,7 @@ from sentry.snuba.metrics.utils import (
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistException,
+    get_intervals,
 )
 from sentry.snuba.sessions_v2 import ONE_DAY  # TODO: unite metrics and sessions_v2
 from sentry.snuba.sessions_v2 import AllowedResolution, InvalidField, finite_or_none
@@ -296,14 +296,6 @@ class APIQueryDefinition:
         return Offset(paginator_kwargs["offset"])
 
 
-def get_intervals(start: datetime, end: datetime, granularity: int):
-    assert granularity > 0
-    delta = timedelta(seconds=granularity)
-    while start < end:
-        yield start
-        start += delta
-
-
 def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     """Get start, end, rollup for the given parameters.
 
@@ -409,30 +401,13 @@ class SnubaQueryBuilder:
     def __build_totals_and_series_queries(
         self, entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
     ):
-        series_limit = None
-        if limit is None:
-            totals_limit = MAX_POINTS
-            if self._query_definition.include_series:
-                # In a series query, we also need to factor in the len of the intervals
-                # array. The number of totals should never get so large that the
-                # intervals exceed MAX_POINTS, however at least a single group.
-                totals_limit = max(totals_limit // intervals_len, 1)
-
-                # Ensure the series limit is a multiple of totals, but never exceeds
-                # MAX_POINTS if the number of intervals is very large.
-                series_limit = totals_limit * intervals_len
-        else:
-            totals_limit = limit.limit
-            if self._query_definition.include_series:
-                series_limit = totals_limit * intervals_len
-
         rv = {}
         totals_query = Query(
             match=Entity(entity),
             groupby=groupby,
             select=select,
             where=where,
-            limit=Limit(totals_limit),
+            limit=limit,
             offset=offset or Offset(0),
             granularity=rollup,
             orderby=orderby,
@@ -442,7 +417,7 @@ class SnubaQueryBuilder:
             rv["totals"] = totals_query
 
         if self._query_definition.include_series:
-            assert series_limit is not None
+            series_limit = limit.limit * intervals_len
             rv["series"] = totals_query.set_limit(series_limit).set_groupby(
                 list(totals_query.groupby or []) + [Column(TS_COL_GROUP)]
             )

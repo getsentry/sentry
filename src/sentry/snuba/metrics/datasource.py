@@ -30,7 +30,6 @@ from sentry.snuba.metrics.query_builder import (
     ALLOWED_GROUPBY_COLUMNS,
     SnubaQueryBuilder,
     SnubaResultConverter,
-    get_intervals,
 )
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
@@ -44,6 +43,7 @@ from sentry.snuba.metrics.utils import (
     NotSupportedOverCompositeEntityException,
     Tag,
     TagValue,
+    get_intervals,
 )
 from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.snuba import raw_snql_query
