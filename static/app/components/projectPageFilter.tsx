@@ -7,9 +7,9 @@ import partition from 'lodash/partition';
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
-import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
+import MultipleProjectSelector from 'sentry/components/organizations/projectSelector/multiple';
 import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
@@ -86,11 +86,17 @@ function ProjectPageFilter({
   const organization = useOrganization();
   const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
 
-  useEffect(() => {
-    if (!isEqual(selection.projects, currentSelectedProjects)) {
-      setCurrentSelectedProjects(selection.projects);
-    }
-  }, [selection.projects]);
+  useEffect(
+    () => {
+      if (!isEqual(selection.projects, currentSelectedProjects)) {
+        setCurrentSelectedProjects(selection.projects);
+      }
+    },
+    // We only care to update the currentSelectedProjects when the project
+    // selection has changed
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selection.projects]
+  );
 
   const handleChangeProjects = (newProjects: number[]) => {
     setCurrentSelectedProjects(newProjects);

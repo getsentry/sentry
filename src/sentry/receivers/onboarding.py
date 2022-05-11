@@ -14,7 +14,6 @@ from sentry.models import (
     Project,
 )
 from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
-from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -344,9 +343,6 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
     if isinstance(plugin, IssueTrackingPlugin) or isinstance(plugin, IssueTrackingPlugin2):
         task = OnboardingTask.ISSUE_TRACKER
         status = OnboardingTaskStatus.PENDING
-    elif isinstance(plugin, NotificationPlugin):
-        task = OnboardingTask.ALERT_RULE
-        status = OnboardingTaskStatus.COMPLETE
     else:
         return
 
@@ -371,10 +367,11 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, **kwargs):
+def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
+    task = OnboardingTask.METRIC_ALERT if rule_type == "metric" else OnboardingTask.ALERT_RULE
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,
-        task=OnboardingTask.ALERT_RULE,
+        task=task,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
             "user": user,
