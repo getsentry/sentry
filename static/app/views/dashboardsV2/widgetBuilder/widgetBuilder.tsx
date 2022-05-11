@@ -232,7 +232,33 @@ function WidgetBuilder({
 
   const api = useApi();
 
+  const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
+
   const [state, setState] = useState<State>(() => {
+    if (isEditing && isValidWidgetIndex) {
+      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
+      setWidgetToBeUpdated(widgetFromDashboard);
+      return {
+        title: widgetFromDashboard.title,
+        displayType: widgetFromDashboard.displayType,
+        interval: widgetFromDashboard.interval,
+        queries: normalizeQueries({
+          displayType: widgetFromDashboard.displayType,
+          queries: widgetFromDashboard.queries,
+          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+        }),
+        errors: undefined,
+        loading: false,
+        dashboards: [],
+        userHasModified: false,
+        dataSet: widgetFromDashboard.widgetType
+          ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
+          : DataSet.EVENTS,
+        limit: widgetFromDashboard.limit,
+      };
+    }
+
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
       displayType: displayType ?? DisplayType.TABLE,
@@ -277,44 +303,41 @@ function WidgetBuilder({
     return defaultState;
   });
 
-  const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
-
   useEffect(() => {
     trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
       organization,
       new_widget: !isEditing,
     });
+  }, [isEditing, organization]);
 
-    if (objectIsEmpty(tags)) {
+  const requiresTagFetch = objectIsEmpty(tags);
+  useEffect(() => {
+    if (requiresTagFetch) {
       loadOrganizationTags(api, organization.slug, selection);
     }
-
-    if (isEditing && isValidWidgetIndex) {
-      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
-      setState({
-        title: widgetFromDashboard.title,
-        displayType: widgetFromDashboard.displayType,
-        interval: widgetFromDashboard.interval,
-        queries: normalizeQueries({
-          displayType: widgetFromDashboard.displayType,
-          queries: widgetFromDashboard.queries,
-          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
-          widgetBuilderNewDesign,
-        }),
-        errors: undefined,
-        loading: false,
-        dashboards: [],
-        userHasModified: false,
-        dataSet: widgetFromDashboard.widgetType
-          ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
-          : DataSet.EVENTS,
-        limit: widgetFromDashboard.limit,
-      });
-      setWidgetToBeUpdated(widgetFromDashboard);
-    }
-  }, []);
+  }, [organization.slug, selection, requiresTagFetch, api]);
 
   useEffect(() => {
+    async function fetchDashboards() {
+      const promise: Promise<DashboardListItem[]> = api.requestPromise(
+        `/organizations/${organization.slug}/dashboards/`,
+        {
+          method: 'GET',
+          query: {sort: 'myDashboardsAndRecentlyViewed'},
+        }
+      );
+
+      try {
+        const dashboards = await promise;
+        setState(prevState => ({...prevState, dashboards, loading: false}));
+      } catch (error) {
+        const errorMessage = t('Unable to fetch dashboards');
+        addErrorMessage(errorMessage);
+        handleXhrErrorResponse(errorMessage)(error);
+        setState(prevState => ({...prevState, loading: false}));
+      }
+    }
+
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
@@ -328,11 +351,19 @@ function WidgetBuilder({
         },
       }));
     }
-  }, [source]);
+  }, [
+    api,
+    dashboard.id,
+    dashboard.title,
+    notDashboardsOrigin,
+    organization.slug,
+    source,
+    widgetBuilderNewDesign,
+  ]);
 
   useEffect(() => {
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
-  }, [selection.projects]);
+  }, [selection.projects, organization.slug, api]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -890,26 +921,6 @@ function WidgetBuilder({
         errors: {...state.errors, ...mapErrors(error?.responseJSON ?? {}, {})},
       });
       return false;
-    }
-  }
-
-  async function fetchDashboards() {
-    const promise: Promise<DashboardListItem[]> = api.requestPromise(
-      `/organizations/${organization.slug}/dashboards/`,
-      {
-        method: 'GET',
-        query: {sort: 'myDashboardsAndRecentlyViewed'},
-      }
-    );
-
-    try {
-      const dashboards = await promise;
-      setState(prevState => ({...prevState, dashboards, loading: false}));
-    } catch (error) {
-      const errorMessage = t('Unable to fetch dashboards');
-      addErrorMessage(errorMessage);
-      handleXhrErrorResponse(errorMessage)(error);
-      setState(prevState => ({...prevState, loading: false}));
     }
   }
 

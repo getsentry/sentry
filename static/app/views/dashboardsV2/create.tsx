@@ -42,7 +42,7 @@ function CreateDashboard(props: Props) {
     if (constructedWidget) {
       browserHistory.replace(location.pathname);
     }
-  }, [location.pathname]);
+  }, [location.query, location.pathname]);
   return (
     <Feature
       features={['dashboards-edit']}
