@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from functools import reduce
 from typing import Any, Dict, Optional
 
 from django.utils import timezone
@@ -84,28 +85,44 @@ def fetch_metric_alert_sessions_data(
         return None
 
 
-def fetch_metric_alert_events(
+def fetch_metric_alert_events_timeseries(
     organization: Organization,
     alert_rule: AlertRule,
     time_period: Dict[str, Any],
     user: Optional["User"] = None,
 ):
     env = alert_rule.snuba_query.environment
+    env_params = {"environment": env} if env else {}
     aggregate = translate_aggregate_field(alert_rule.snuba_query.aggregate, reverse=True)
+    project_id = alert_rule.snuba_query.subscriptions.select_related("project").first().project.id
     try:
         resp = client.get(
             auth=ApiKey(organization=organization, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/events-stats/",
             params={
-                "environment": env.name if env else None,
                 "query": alert_rule.snuba_query.query,
                 "interval": f"{alert_rule.snuba_query.time_window}m",
                 "yAxis": aggregate,
+                "project": str(project_id),
+                **env_params,
                 **time_period,
             },
         )
-        return resp.data
+        # Format the data into a timeseries object for charts
+        data = [
+            {
+                "seriesName": aggregate,
+                "data": [
+                    {
+                        "name": point[0] * 1000,
+                        "value": reduce(lambda a, b: a + b["count"], point[1]),
+                    }
+                    for point in resp.data["data"]
+                ],
+            }
+        ]
+        return data
     except Exception as exc:
         logger.error(
             f"Failed to load events-stats for chart: {exc}",
@@ -189,7 +206,7 @@ def build_metric_alert_chart(
             user,
         )
     else:
-        chart_data["timeseriesData"] = fetch_metric_alert_events(
+        chart_data["timeseriesData"] = fetch_metric_alert_events_timeseries(
             organization,
             alert_rule,
             time_period,

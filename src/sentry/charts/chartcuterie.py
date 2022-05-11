@@ -10,6 +10,7 @@ from django.conf import settings
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.models.file import get_storage
+from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import ChartRenderer, logger
@@ -67,7 +68,8 @@ class Chartcuterie(ChartRenderer):
 
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
-                json=data,
+                data=json.dumps(data, cls=json._default_encoder),
+                headers={"Content-Type": "application/json"},
             )
 
             if resp.status_code == 503 and settings.DEBUG:
