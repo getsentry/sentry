@@ -15,6 +15,7 @@ import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
+import FocusTabs from './detail/focusTabs';
 import UserActionsNavigator from './detail/userActionsNavigator';
 
 function ReplayDetails() {
@@ -94,6 +95,7 @@ function ReplayDetails() {
           </Layout.Side>
           <Layout.Main fullWidth>
             <ReplayTimeline />
+            <FocusTabs />
             <FocusArea replay={replay} />
           </Layout.Main>
         </Layout.Body>
