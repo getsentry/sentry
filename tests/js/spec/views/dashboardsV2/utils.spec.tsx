@@ -44,7 +44,7 @@ describe('Dashboards util', () => {
       expect(widget?.queries).toEqual([
         {
           name: '1',
-          fields: ['count()', 'failure_count()'],
+          fields: [],
           aggregates: ['count()', 'failure_count()'],
           columns: [],
           conditions: 'title:test',
@@ -52,7 +52,7 @@ describe('Dashboards util', () => {
         },
         {
           name: '2',
-          fields: ['count()', 'failure_count()'],
+          fields: [],
           aggregates: ['count()', 'failure_count()'],
           columns: [],
           conditions: 'event.type:test',
@@ -87,7 +87,7 @@ describe('Dashboards util', () => {
       expect(widget?.queries).toEqual([
         {
           name: '1',
-          fields: ['count()'],
+          fields: [],
           aggregates: ['count()'],
           columns: [],
           conditions: 'title:test',
@@ -108,7 +108,7 @@ describe('Dashboards util', () => {
           {
             name: '',
             conditions: '',
-            fields: ['count()'],
+            fields: [],
             aggregates: ['count()'],
             columns: [],
             orderby: '',
@@ -170,7 +170,7 @@ describe('Dashboards util', () => {
           {
             name: '',
             conditions: '',
-            fields: ['count()'],
+            fields: [],
             aggregates: ['count()'],
             columns: [],
             orderby: '',
@@ -193,7 +193,7 @@ describe('Dashboards util', () => {
             {
               name: '',
               conditions: 'error.unhandled:true',
-              fields: ['error.type', 'count()'],
+              fields: [],
               aggregates: ['count()'],
               columns: ['error.type'],
               orderby: '-count',

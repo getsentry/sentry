@@ -506,12 +506,16 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.queries[0]).toMatchObject({
       name: 'Transactions',
       conditions: 'event.type:transaction',
-      fields: ['count()'],
+      fields: [],
+      aggregates: ['count()'],
+      columns: [],
     });
     expect(widget.queries[1]).toMatchObject({
       name: 'Errors',
       conditions: 'event.type:error',
-      fields: ['count()'],
+      fields: [],
+      aggregates: ['count()'],
+      columns: [],
     });
     wrapper.unmount();
   });
@@ -741,7 +745,8 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     await clickSubmit(wrapper);
 
     expect(widget.queries).toHaveLength(1);
-    expect(widget.queries[0].fields).toEqual(['count()']);
+    expect(widget.queries[0].fields).toEqual([]);
+    expect(widget.queries[0].aggregates).toEqual(['count()']);
     wrapper.unmount();
   });
 
@@ -799,7 +804,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     await clickSubmit(wrapper);
 
     expect(widget.queries).toHaveLength(1);
-    expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    expect(widget.queries[0].fields).toEqual([]);
     expect(widget.queries[0].aggregates).toEqual(['p95(transaction.duration)']);
     expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();
@@ -995,7 +1000,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
-    expect(widget.queries[0].fields).toEqual(['count()']);
+    expect(widget.queries[0].fields).toEqual([]);
     expect(widget.queries[0].aggregates).toEqual(['count()']);
     expect(widget.queries[0].columns).toEqual([]);
     wrapper.unmount();

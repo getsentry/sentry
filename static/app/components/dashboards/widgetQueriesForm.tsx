@@ -188,9 +188,10 @@ class WidgetQueriesForm extends Component<Props> {
 
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
     const query = queries[0];
-    const explodedFields = defined(query.fields)
-      ? query.fields.map(field => explodeField({field}))
-      : [...query.columns, ...query.aggregates].map(field => explodeField({field}));
+    const explodedFields =
+      defined(query.fields) && query.fields.length
+        ? query.fields.map(field => explodeField({field}))
+        : [...query.columns, ...query.aggregates].map(field => explodeField({field}));
 
     return (
       <QueryWrapper>

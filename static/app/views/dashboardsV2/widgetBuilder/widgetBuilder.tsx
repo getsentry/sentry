@@ -630,11 +630,7 @@ function WidgetBuilder({
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
-      if (
-        !widgetBuilderNewDesign &&
-        !fieldStrings.includes(rawOrderby) &&
-        query.orderby !== ''
-      ) {
+      if (!fieldStrings.includes(rawOrderby) && query.orderby !== '') {
         if (
           prevAggregateFieldStrings.length === newFields.length &&
           prevAggregateFieldStrings.includes(rawOrderby)
