@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import {components, createFilter} from 'react-select';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -8,7 +9,9 @@ import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import NumberField from 'sentry/components/forms/numberField';
+import Option from 'sentry/components/forms/selectOption';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {IconAdd} from 'sentry/icons';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -22,7 +25,7 @@ import {defined} from 'sentry/utils';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import Conditions from './conditions';
-import {getErrorMessage, isLegacyBrowser} from './utils';
+import {getErrorMessage, isInnerCustomTag, isLegacyBrowser} from './utils';
 
 type ConditionsProps = React.ComponentProps<typeof Conditions>['conditions'];
 
@@ -91,7 +94,9 @@ function RuleModal({
       const {inner} = conditions;
 
       return {
-        conditions: inner.map(({name, value}) => {
+        conditions: inner.map(innerItem => {
+          const {name, value} = innerItem;
+
           if (Array.isArray(value)) {
             if (isLegacyBrowser(value)) {
               return {
@@ -102,6 +107,7 @@ function RuleModal({
             return {
               category: name,
               match: value.join('\n'),
+              ...(isInnerCustomTag(innerItem) && {tagKey: innerItem.tagKey ?? ''}),
             };
           }
           return {category: name};
@@ -156,7 +162,11 @@ function RuleModal({
   function handleAddCondition(selectedOptions: SelectValue<DynamicSamplingInnerName>[]) {
     const previousCategories = conditions.map(({category}) => category);
     const addedCategories = selectedOptions
-      .filter(({value}) => !previousCategories.includes(value))
+      .filter(
+        ({value}) =>
+          value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG || // We can have more than 1 custom tag rules
+          !previousCategories.includes(value)
+      )
       .map(({value}) => value);
     setData({
       ...data,
@@ -180,6 +190,12 @@ function RuleModal({
   ) {
     const newConditions = [...conditions];
     newConditions[index][field] = value;
+
+    // If custom tag key changes, reset the value
+    if (field === 'tagKey') {
+      newConditions[index].match = '';
+    }
+
     setData({...data, conditions: newConditions});
   }
 
@@ -218,9 +234,11 @@ function RuleModal({
                 placeholder={t('Filter conditions')}
                 isOptionDisabled={opt => opt.disabled}
                 options={conditionCategories.map(([value, label]) => {
-                  const disabled = conditions.some(
-                    condition => condition.category === value
-                  );
+                  // Never disable the "Add Custom Tag" option, you can add more of those
+                  const disabled =
+                    value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+                      ? false
+                      : conditions.some(condition => condition.category === value);
                   return {
                     value,
                     label,
@@ -230,10 +248,38 @@ function RuleModal({
                       : undefined,
                   };
                 })}
-                value={conditions.map(({category}) => category)}
+                value={conditions
+                  // We need to filter our custom tag option so that it can be selected multiple times without being unselected every other time
+                  .filter(
+                    ({category}) => category !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+                  )
+                  .map(({category}) => category)}
                 onChange={handleAddCondition}
                 isSearchable
                 multiple
+                filterOption={(candidate, input) => {
+                  // Always offer the "Add Custom Tag" option in the autocomplete
+                  if (candidate.value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG) {
+                    return true;
+                  }
+                  return createFilter(null)(candidate, input);
+                }}
+                components={{
+                  Option: containerProps => {
+                    if (
+                      containerProps.value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+                    ) {
+                      return (
+                        <components.Option className="select-option" {...containerProps}>
+                          <AddCustomTag isFocused={containerProps.isFocused}>
+                            <IconAdd isCircled /> {t('Add Custom Tag')}
+                          </AddCustomTag>
+                        </components.Option>
+                      );
+                    }
+                    return <Option {...containerProps} />;
+                  },
+                }}
               />
             </StyledPanelHeader>
             <PanelBody>
@@ -248,6 +294,7 @@ function RuleModal({
                   onChange={handleChangeCondition}
                   orgSlug={organization.slug}
                   projectId={project.id}
+                  projectSlug={project.slug}
                 />
               )}
             </PanelBody>
@@ -304,4 +351,14 @@ const StyledPanelHeader = styled(PanelHeader)`
 
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
+`;
+
+const AddCustomTag = styled('div')<{isFocused: boolean}>`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
+  gap: ${space(1)};
+  line-height: 1.4;
+  border-radius: ${p => p.theme.borderRadius};
+  ${p => p.isFocused && `background: ${p.theme.hover};`};
 `;

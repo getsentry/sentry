@@ -81,10 +81,16 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName) {
       return t('Device Family');
     case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
       return t('Device Name');
+    case DynamicSamplingInnerName.EVENT_CUSTOM_TAG:
+      return t('Custom Tag');
 
     default: {
       Sentry.captureException(new Error('Unknown dynamic sampling condition inner name'));
       return ''; // this shall never happen
     }
   }
+}
+
+export function getCustomTagLabel(tagKey: string) {
+  return `${tagKey} - ${t('Custom')}`;
 }
