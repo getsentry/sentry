@@ -222,8 +222,8 @@ class APIQueryDefinition:
             self.fields.append(parse_field(key, query_params))
 
         self.orderby = self._parse_orderby(query_params)
-        self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
-        self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
+        self.limit: Optional[Limit] = self._parse_limit(query_params, paginator_kwargs)
+        self.offset: Optional[Offset] = self._parse_offset(query_params, paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -243,10 +243,6 @@ class APIQueryDefinition:
 
         if not (self.include_series or self.include_totals):
             raise InvalidParams("Cannot omit both series and totals")
-
-        if self.include_series:
-            # Validates that time series limit will not exceed the snuba limit of 10,000
-            self._validate_series_limit(query_params)
 
     def to_query_definition(self) -> QueryDefinition:
         return QueryDefinition(
@@ -289,25 +285,15 @@ class APIQueryDefinition:
 
         return MetricsOrderBy(field, direction)
 
-    def _parse_limit(self, paginator_kwargs):
-        limit = paginator_kwargs.get("limit")
-        return Limit(limit) if limit else None
+    def _parse_limit(self, query_params, paginator_kwargs):
+        if query_params.get("per_page") is None:
+            return
+        return Limit(paginator_kwargs["limit"])
 
-    def _parse_offset(self, paginator_kwargs):
-        offset = paginator_kwargs.get("offset")
-        return Offset(offset) if offset else None
-
-    def _validate_series_limit(self, query_params):
-        if self.limit and query_params.get("per_page") is not None:
-            if (
-                self.end - self.start
-            ).total_seconds() / self.rollup * self.limit.limit > MAX_POINTS:
-                raise InvalidParams(
-                    f"Requested interval of {query_params.get('interval', '1h')} with statsPeriod of "
-                    f"{self.end-self.start} is too granular for a per_page of "
-                    f"{self.limit.limit} elements. Increase your interval, decrease your statsPeriod, "
-                    f"or decrease your per_page parameter."
-                )
+    def _parse_offset(self, query_params, paginator_kwargs):
+        if query_params.get("cursor") is None:
+            return
+        return Offset(paginator_kwargs["offset"])
 
 
 def get_intervals(start: datetime, end: datetime, granularity: int):
@@ -348,6 +334,12 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     date_range = end - start
 
     date_range = timedelta(seconds=int(interval * math.ceil(date_range.total_seconds() / interval)))
+
+    if date_range.total_seconds() / interval > MAX_POINTS:
+        raise InvalidParams(
+            "Your interval and date range would create too many results. "
+            "Use a larger interval, or a smaller date range."
+        )
 
     end_ts = int(interval * math.ceil(to_timestamp(end) / interval))
     end = to_datetime(end_ts)
@@ -418,25 +410,21 @@ class SnubaQueryBuilder:
         self, entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len
     ):
         series_limit = None
-        if self._query_definition.include_series:
-            # In a series query, we also need to factor in the len of the intervals
-            # array. The number of totals should never get so large that the
-            # intervals exceed MAX_POINTS, however at least a single group.
-            totals_limit = max(MAX_POINTS // intervals_len, 1)
-            if limit and limit.limit < totals_limit:
-                totals_limit = limit.limit
+        if limit is None:
+            totals_limit = MAX_POINTS
+            if self._query_definition.include_series:
+                # In a series query, we also need to factor in the len of the intervals
+                # array. The number of totals should never get so large that the
+                # intervals exceed MAX_POINTS, however at least a single group.
+                totals_limit = max(totals_limit // intervals_len, 1)
 
-            # We want to make sure that the totals limit when multiplied byt intervals len always
-            # yields a number that is less than max points to ensure that we get full series of a
-            # group and it is not cut off because it exceeds snuba limit
-            while totals_limit * intervals_len > MAX_POINTS:
-                totals_limit -= 1
-
-            # Ensure the series limit is a multiple of totals, but never exceeds
-            # MAX_POINTS if the number of intervals is very large.
-            series_limit = totals_limit * intervals_len
+                # Ensure the series limit is a multiple of totals, but never exceeds
+                # MAX_POINTS if the number of intervals is very large.
+                series_limit = totals_limit * intervals_len
         else:
             totals_limit = limit.limit
+            if self._query_definition.include_series:
+                series_limit = totals_limit * intervals_len
 
         rv = {}
         totals_query = Query(
@@ -454,7 +442,8 @@ class SnubaQueryBuilder:
         if self._query_definition.include_totals:
             rv["totals"] = totals_query
 
-        if self._query_definition.include_series and series_limit:
+        if self._query_definition.include_series:
+            assert series_limit is not None
             rv["series"] = totals_query.set_limit(series_limit).set_groupby(
                 list(totals_query.groupby or []) + [Column(TS_COL_GROUP)]
             )

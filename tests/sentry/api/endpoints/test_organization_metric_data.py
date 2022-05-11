@@ -1006,7 +1006,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert response.json()["detail"] == (
-            f"Requested interval of 5m with statsPeriod of {timedelta(hours=24)} is too granular "
+            f"Requested interval of timedelta of {timedelta(minutes=5)} with statsPeriod "
+            f"timedelta of {timedelta(hours=24)} is too granular "
             f"for a per_page of 51 elements. Increase your interval, decrease your statsPeriod, "
             f"or decrease your per_page parameter."
         )

@@ -335,7 +335,9 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                 ),
                 Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, get_mri(metric_name))]),
             ],
-            limit=Limit(MAX_POINTS),
+            # totals: MAX_POINTS // (90d * 24h)
+            # series: totals * (90d * 24h)
+            limit=Limit(4) if not extra_groupby else Limit(8640),
             offset=Offset(0),
             granularity=query_definition.granularity,
         )
@@ -483,7 +485,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         [resolve_weak(org_id, SessionMRI.SESSION.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS),
+                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
                 offset=Offset(0),
                 granularity=Granularity(query_definition.rollup),
             )
@@ -514,7 +516,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         [resolve_weak(org_id, SessionMRI.ERROR.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS),
+                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
                 offset=Offset(0),
                 granularity=Granularity(query_definition.rollup),
             )
@@ -535,6 +537,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
                 "sum(sentry.sessions.session)",
             ],
             "orderBy": ["-sum(sentry.sessions.session)"],
+            "per_page": [2],
         }
     )
     query_definition = APIQueryDefinition(
@@ -622,6 +625,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             "field": [
                 "p95(session.duration)",
             ],
+            "per_page": [2],
         }
     )
     query_definition = APIQueryDefinition(
@@ -678,7 +682,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             ),
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, SessionMRI.RAW_DURATION.value)]),
         ],
-        limit=Limit(MAX_POINTS),
+        limit=Limit(3),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
@@ -702,7 +706,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             ),
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, SessionMRI.RAW_DURATION.value)]),
         ],
-        limit=Limit(MAX_POINTS),
+        limit=Limit(6480),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
