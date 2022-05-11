@@ -14,7 +14,7 @@ const DISPATCHES = [
     pathFilterName: 'frontend',
   },
   {
-    workflow: 'backend-test.yml',
+    workflow: 'backend.yml',
     pathFilterName: 'backend_dependencies',
   },
 ];
