@@ -1,10 +1,11 @@
 import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {mat3, vec2} from 'gl-matrix';
+import {vec2} from 'gl-matrix';
 
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {getContext, measureText, Rect} from 'sentry/utils/profiling/gl/utils';
-import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 
 const useCachedMeasure = (string: string, font: string): Rect => {
   const cache = useRef<Record<string, Rect>>({});
@@ -32,15 +33,17 @@ const useCachedMeasure = (string: string, font: string): Rect => {
 
 interface BoundTooltipProps {
   bounds: Rect;
-  configViewToPhysicalSpace: mat3;
+  canvas: FlamegraphCanvas;
   cursor: vec2 | null;
+  view: FlamegraphView;
   children?: React.ReactNode;
 }
 
 function BoundTooltip({
   bounds,
-  configViewToPhysicalSpace,
+  canvas,
   cursor,
+  view,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -49,17 +52,6 @@ function BoundTooltip({
     tooltipRef.current?.textContent ?? '',
     `${flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE}px ${flamegraphTheme.FONTS.FONT}`
   );
-  const devicePixelRatio = useDevicePixelRatio();
-
-  const physicalToLogicalSpace = useMemo(
-    () =>
-      mat3.fromScaling(
-        mat3.create(),
-        vec2.fromValues(1 / devicePixelRatio, 1 / devicePixelRatio)
-      ),
-    [devicePixelRatio]
-  );
-
   const [tooltipBounds, setTooltipBounds] = useState<Rect>(Rect.Empty());
 
   useLayoutEffect(() => {
@@ -87,14 +79,13 @@ function BoundTooltip({
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     cursor,
-
-    configViewToPhysicalSpace
+    view.fromConfigView(canvas.physicalSpace)
   );
 
   const logicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     physicalSpaceCursor,
-    physicalToLogicalSpace
+    canvas.physicalToLogicalSpace
   );
 
   let cursorHorizontalPosition = logicalSpaceCursor[0];
@@ -110,7 +101,7 @@ function BoundTooltip({
     cursorHorizontalPosition -= tooltipBounds.width;
   }
 
-  return children ? (
+  return (
     <Tooltip
       ref={tooltipRef}
       style={{
@@ -123,7 +114,7 @@ function BoundTooltip({
     >
       {children}
     </Tooltip>
-  ) : null;
+  );
 }
 
 const Tooltip = styled('div')`
