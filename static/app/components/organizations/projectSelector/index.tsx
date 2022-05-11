@@ -110,7 +110,7 @@ type State = {
   hasChanges: boolean;
 };
 
-class MultipleProjectSelector extends PureComponent<Props, State> {
+class ProjectSelector extends PureComponent<Props, State> {
   static defaultProps = {
     lockedMessageSubject: t('page'),
   };
@@ -510,7 +510,7 @@ class MultipleProjectSelector extends PureComponent<Props, State> {
   }
 }
 
-export default withRouter(MultipleProjectSelector);
+export default withRouter(ProjectSelector);
 
 const StyledDropdownAutocomplete = styled(DropdownAutoComplete)`
   background-color: ${p => p.theme.background};
