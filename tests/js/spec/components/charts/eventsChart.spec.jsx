@@ -20,6 +20,8 @@ jest.mock(
         tableData: [],
       })
 );
+// Mocking worldMapChart to avoid act warnings
+jest.mock('sentry/components/charts/worldMapChart');
 
 describe('EventsChart', function () {
   const {router, routerContext, org} = initializeOrg();

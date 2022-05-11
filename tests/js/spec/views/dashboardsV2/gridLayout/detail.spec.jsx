@@ -12,6 +12,9 @@ import * as types from 'sentry/views/dashboardsV2/types';
 import ViewEditDashboard from 'sentry/views/dashboardsV2/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
+// Mocking worldMapChart to avoid act warnings
+jest.mock('sentry/components/charts/worldMapChart');
+
 describe('Dashboards > Detail', function () {
   enforceActOnUseLegacyStoreHook();
 
