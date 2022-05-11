@@ -11,23 +11,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
 from sentry.models import Activity, Environment, Release, ReleaseStatus
 from sentry.plugins.interfaces.releasehook import ReleaseHook
-from sentry.ratelimits.config import RateLimitConfig
 from sentry.signals import release_created
-from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
 class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
     permission_classes = (ProjectReleasePermission,)
-    rate_limits = RateLimitConfig(
-        group="cli",
-        limit_overrides={
-            "GET": {
-                RateLimitCategory.USER: RateLimit(200, 1, 200),
-                RateLimitCategory.ORGANIZATION: RateLimit(200, 1, 200),
-            }
-        },
-    )
 
     def get(self, request: Request, project) -> Response:
         """
