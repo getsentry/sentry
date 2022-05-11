@@ -52,7 +52,7 @@ class QueryDefinition:
     histogram_from: Optional[float] = None
     histogram_to: Optional[float] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # Validate series limit
         if self.limit is not None:
             if self.limit.limit > MAX_POINTS:
