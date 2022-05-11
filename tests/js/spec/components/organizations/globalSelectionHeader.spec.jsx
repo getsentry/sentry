@@ -55,16 +55,6 @@ describe('GlobalSelectionHeader', function () {
     },
   });
 
-  const mountWithThemeAndOrg = (component, opts) =>
-    mountWithTheme(component, {
-      ...opts,
-      wrappingComponent: ({children}) => (
-        <OrganizationContext.Provider value={organization}>
-          {children}
-        </OrganizationContext.Provider>
-      ),
-    });
-
   beforeAll(function () {
     jest.spyOn(globalActions, 'updateDateTime');
     jest.spyOn(globalActions, 'updateEnvironments');
@@ -91,7 +81,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('does not update router if there is custom routing', function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={organization} hasCustomRouting />,
       routerContext
     );
@@ -99,7 +89,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('does not update router if org in URL params is different than org in context/props', function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={organization} hasCustomRouting />,
       {
         ...routerContext,
@@ -113,7 +103,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('does not replace URL with values from store when mounted with no query params', function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={organization} />,
       routerContext
     );
@@ -122,7 +112,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('only updates GlobalSelection store when mounted with query params', async function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer
         organization={organization}
         params={{orgId: organization.slug}}
@@ -149,7 +139,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('can change environments with a project selected', async function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer
         organization={organization}
         projects={organization.projects}
@@ -200,7 +190,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('updates environments when switching projects', async function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer
         organization={organization}
         projects={organization.projects}
@@ -289,7 +279,7 @@ describe('GlobalSelectionHeader', function () {
     });
     ProjectsStore.loadInitialData(initialData.projects);
 
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer
         router={initialData.router}
         organization={initialData.organization}
@@ -309,7 +299,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('updates GlobalSelection store with default period', async function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={organization} />,
       changeQuery(routerContext, {
         environment: 'prod',
@@ -338,7 +328,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('updates GlobalSelection store with empty dates in URL', async function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: null,
@@ -365,7 +355,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('resets start&end if showAbsolute prop is false', async function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={organization} showAbsolute={false} />,
       changeQuery(routerContext, {
         start: '2020-05-05T07:26:53.000',
@@ -396,7 +386,7 @@ describe('GlobalSelectionHeader', function () {
    * I don't think this test is really applicable anymore
    */
   it('does not update store if url params have not changed', async function () {
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
@@ -454,7 +444,7 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
@@ -491,7 +481,7 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
@@ -517,7 +507,7 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
@@ -543,7 +533,7 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <PageFiltersContainer organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
@@ -579,7 +569,7 @@ describe('GlobalSelectionHeader', function () {
 
     OrganizationActions.update(initializationObj.organization);
 
-    wrapper = mountWithThemeAndOrg(
+    wrapper = mountWithTheme(
       <OrganizationContext.Provider value={initializationObj.organization}>
         <PageFiltersContainer
           organization={initializationObj.organization}
@@ -652,7 +642,7 @@ describe('GlobalSelectionHeader', function () {
 
       // This can happen when you switch organization so params.orgId !== the
       // current org in context In this case params.orgId = 'org-slug'
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer organization={initialData.organization} />,
         initialData.routerContext
       );
@@ -702,7 +692,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer organization={initializationObj.organization} />,
         initializationObj.routerContext
       );
@@ -728,7 +718,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer organization={initializationObj.organization} />,
         initializationObj.routerContext
       );
@@ -761,7 +751,7 @@ describe('GlobalSelectionHeader', function () {
 
       ProjectsStore.loadInitialData(initialData.projects);
 
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           organization={initialData.organization}
           shouldForceProject
@@ -816,7 +806,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('does not add forced project to URL', async function () {
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           skipInitializeUrlParams
           shouldForceProject
@@ -849,7 +839,7 @@ describe('GlobalSelectionHeader', function () {
 
       ProjectsStore.loadInitialData(initialData.projects);
 
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           organization={initialData.organization}
           shouldForceProject
@@ -885,7 +875,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       const createWrapper = props => {
-        wrapper = mountWithThemeAndOrg(
+        wrapper = mountWithTheme(
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -992,7 +982,7 @@ describe('GlobalSelectionHeader', function () {
       ProjectsStore.loadInitialData(initialData.projects);
 
       const createWrapper = props => {
-        wrapper = mountWithThemeAndOrg(
+        wrapper = mountWithTheme(
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -1041,7 +1031,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       const createWrapper = (props, ctx) => {
-        wrapper = mountWithThemeAndOrg(
+        wrapper = mountWithTheme(
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -1145,7 +1135,7 @@ describe('GlobalSelectionHeader', function () {
 
       ProjectsStore.loadInitialData(initialData.projects);
 
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer organization={initialData.organization} />,
         initialData.routerContext
       );
@@ -1167,7 +1157,7 @@ describe('GlobalSelectionHeader', function () {
         },
       };
 
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer organization={initialData.organization} />,
         initialData.routerContext
       );
@@ -1186,7 +1176,7 @@ describe('GlobalSelectionHeader', function () {
 
     it('shows "My Projects" button', async function () {
       initialData.organization.features.push('global-views');
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           organization={initialData.organization}
           projects={initialData.projects}
@@ -1212,7 +1202,7 @@ describe('GlobalSelectionHeader', function () {
     it('shows "All Projects" button based on features', async function () {
       initialData.organization.features.push('global-views');
       initialData.organization.features.push('open-membership');
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           organization={initialData.organization}
           projects={initialData.projects}
@@ -1237,7 +1227,7 @@ describe('GlobalSelectionHeader', function () {
     it('shows "All Projects" button based on role', async function () {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           organization={initialData.organization}
           projects={initialData.projects}
@@ -1263,7 +1253,7 @@ describe('GlobalSelectionHeader', function () {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
 
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           organization={initialData.organization}
           projects={initialData.projects}
@@ -1304,7 +1294,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('shows IconProject when no projects are selected', async function () {
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           organization={initialData.organization}
           projects={initialData.projects}
@@ -1324,7 +1314,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('shows PlatformIcon when one project is selected', async function () {
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           organization={initialData.organization}
           projects={initialData.projects}
@@ -1345,7 +1335,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('shows multiple PlatformIcons when multiple projects are selected, no more than 5', async function () {
-      wrapper = mountWithThemeAndOrg(
+      wrapper = mountWithTheme(
         <PageFiltersContainer
           organization={initialData.organization}
           projects={initialData.projects}
