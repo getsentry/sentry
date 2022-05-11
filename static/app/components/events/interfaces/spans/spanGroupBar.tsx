@@ -142,6 +142,7 @@ function renderMeasurements(
 
 export function SpanGroupBar(props: Props) {
   const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
+  const {onWheel} = props;
 
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
@@ -151,7 +152,6 @@ export function SpanGroupBar(props: Props) {
 
       event.preventDefault();
       event.stopPropagation();
-      const {onWheel} = props;
       onWheel(event.deltaX);
     };
 
