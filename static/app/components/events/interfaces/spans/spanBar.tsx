@@ -170,7 +170,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   preventDefault = (event: WheelEvent) => {
     // https://stackoverflow.com/q/57358640
     // https://github.com/facebook/react/issues/14856
-    if (Math.abs(event.deltaY) >= Math.abs(event.deltaX)) {
+    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
       return;
     }
     event.preventDefault();
@@ -881,6 +881,12 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           }}
           onClick={() => {
             this.toggleDisplayDetail();
+          }}
+          onWheel={event => {
+            event.preventDefault();
+            event.stopPropagation();
+            const {onWheel} = scrollbarManagerChildrenProps;
+            onWheel(event.deltaX);
           }}
           ref={this.spanTitleRef}
         >

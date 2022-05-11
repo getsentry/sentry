@@ -1,5 +1,4 @@
 import {createRef, PureComponent} from 'react';
-import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -94,45 +93,24 @@ class TraceView extends PureComponent<Props> {
                             <Observer>
                               {() => {
                                 return (
-                                  <ScrollbarManager.Consumer>
-                                    {scrollbarManagerChildrenProps => (
-                                      <CustomerProfiler id="SpanTree">
-                                        <ScrollPane
-                                          onWheel={event => {
-                                            if (
-                                              Math.abs(event.deltaY) >
-                                              Math.abs(event.deltaX)
-                                            ) {
-                                              return;
-                                            }
-
-                                            event.preventDefault();
-                                            event.stopPropagation();
-                                            const {onWheel} =
-                                              scrollbarManagerChildrenProps;
-                                            onWheel(event.deltaX);
-                                          }}
-                                        >
-                                          <SpanTree
-                                            traceViewRef={this.traceViewRef}
-                                            dragProps={dragProps}
-                                            organization={organization}
-                                            waterfallModel={waterfallModel}
-                                            filterSpans={waterfallModel.filterSpans}
-                                            spans={waterfallModel.getWaterfall(
-                                              {
-                                                viewStart: dragProps.viewWindowStart,
-                                                viewEnd: dragProps.viewWindowEnd,
-                                              },
-                                              organization.features.includes(
-                                                'performance-autogroup-sibling-spans'
-                                              )
-                                            )}
-                                          />
-                                        </ScrollPane>
-                                      </CustomerProfiler>
-                                    )}
-                                  </ScrollbarManager.Consumer>
+                                  <CustomerProfiler id="SpanTree">
+                                    <SpanTree
+                                      traceViewRef={this.traceViewRef}
+                                      dragProps={dragProps}
+                                      organization={organization}
+                                      waterfallModel={waterfallModel}
+                                      filterSpans={waterfallModel.filterSpans}
+                                      spans={waterfallModel.getWaterfall(
+                                        {
+                                          viewStart: dragProps.viewWindowStart,
+                                          viewEnd: dragProps.viewWindowEnd,
+                                        },
+                                        organization.features.includes(
+                                          'performance-autogroup-sibling-spans'
+                                        )
+                                      )}
+                                    />
+                                  </CustomerProfiler>
                                 );
                               }}
                             </Observer>
@@ -150,9 +128,5 @@ class TraceView extends PureComponent<Props> {
     );
   }
 }
-
-const ScrollPane = styled('div')`
-  overscroll-behavior-x: none;
-`;
 
 export default TraceView;

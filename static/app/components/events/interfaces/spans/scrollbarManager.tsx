@@ -107,8 +107,6 @@ export class Provider extends Component<Props, State> {
   virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   isDragging: boolean = false;
-  isWheeling: boolean = false;
-  wheelTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
 
   getReferenceSpanBar() {
@@ -242,15 +240,6 @@ export class Provider extends Component<Props, State> {
       return;
     }
 
-    // Setting this here is necessary, since updating the virtual scrollbar position will also trigger the onScroll function
-    this.isWheeling = true;
-
-    if (this.wheelTimeout) {
-      clearTimeout(this.wheelTimeout);
-    }
-
-    this.wheelTimeout = setTimeout(() => (this.isWheeling = false), 200);
-
     const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
 
     const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
@@ -294,7 +283,7 @@ export class Provider extends Component<Props, State> {
   };
 
   onScroll = () => {
-    if (this.isDragging || this.isWheeling || !this.hasInteractiveLayer()) {
+    if (this.isDragging || !this.hasInteractiveLayer()) {
       return;
     }
 
