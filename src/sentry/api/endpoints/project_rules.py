@@ -113,6 +113,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             RuleActivity.objects.create(
                 rule=rule, user=request.user, type=RuleActivityType.CREATED.value
             )
+            duplicate_rule = request.query_params.get("duplicateRule")
 
             self.create_audit_entry(
                 request=request,
@@ -126,6 +127,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 project=project,
                 rule=rule,
                 rule_type="issue",
+                duplicate_rule=duplicate_rule,
                 sender=self,
                 is_api_token=request.auth is not None,
                 alert_rule_ui_component=created_alert_rule_ui_component,

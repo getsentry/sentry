@@ -287,6 +287,7 @@ def record_alert_rule_created(
     project,
     rule,
     rule_type,
+    duplicate_rule,
     is_api_token,
     referrer=None,
     session_id=None,
@@ -318,6 +319,7 @@ def record_alert_rule_created(
         session_id=session_id,
         is_api_token=is_api_token,
         alert_rule_ui_component=alert_rule_ui_component,
+        duplicate_rule=duplicate_rule,
     )
 
 

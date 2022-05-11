@@ -295,6 +295,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project=self.project,
             user=self.user,
             rule_type="issue",
+            duplicate_rule="false",
             sender=type(Rule),
             is_api_token=False,
         )
@@ -311,6 +312,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project=self.project,
             user=self.user,
             rule_type="metric",
+            duplicate_rule="false",
             sender=type(Rule),
             is_api_token=False,
         )
@@ -397,6 +399,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project=self.project,
             user=self.user,
             rule_type="issue",
+            duplicate_rule="false",
             sender=type(Rule),
             is_api_token=False,
         )
@@ -405,6 +408,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             project=self.project,
             user=self.user,
             rule_type="metric",
+            duplicate_rule="false",
             sender=type(Rule),
             is_api_token=False,
         )
