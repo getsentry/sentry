@@ -1,6 +1,7 @@
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import * as OrganizationsActionCreator from 'sentry/actionCreators/organizations';
 import OrganizationActions from 'sentry/actions/organizationActions';
+import PageFiltersActions from 'sentry/actions/pageFiltersActions';
 import ProjectActions from 'sentry/actions/projectActions';
 import TeamActions from 'sentry/actions/teamActions';
 import OrganizationStore from 'sentry/stores/organizationStore';
@@ -18,7 +19,10 @@ describe('OrganizationActionCreator', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     jest.spyOn(TeamActions, 'loadTeams');
+    jest.spyOn(TeamActions, 'reset');
+    jest.spyOn(PageFiltersActions, 'reset');
     jest.spyOn(ProjectActions, 'loadProjects');
+    jest.spyOn(ProjectActions, 'reset');
     jest.spyOn(OrganizationActions, 'reset');
     jest.spyOn(OrganizationActions, 'update');
     jest.spyOn(OrganizationActions, 'fetchOrgError');
@@ -48,6 +52,9 @@ describe('OrganizationActionCreator', function () {
     await tick();
     await tick();
     expect(OrganizationActions.reset).toHaveBeenCalled();
+    expect(PageFiltersActions.reset).toHaveBeenCalled();
+    expect(ProjectActions.reset).toHaveBeenCalled();
+    expect(TeamActions.reset).toHaveBeenCalled();
 
     expect(getOrgMock).toHaveBeenCalledWith(
       `/organizations/${org.slug}/`,
@@ -87,6 +94,9 @@ describe('OrganizationActionCreator', function () {
     fetchOrganizationDetails(api, org.slug, true, true);
     await tick();
     expect(OrganizationActions.reset).not.toHaveBeenCalled();
+    expect(PageFiltersActions.reset).not.toHaveBeenCalled();
+    expect(ProjectActions.reset).not.toHaveBeenCalled();
+    expect(TeamActions.reset).not.toHaveBeenCalled();
 
     expect(getOrgMock).toHaveBeenCalledWith(
       `/organizations/${org.slug}/`,
@@ -117,6 +127,9 @@ describe('OrganizationActionCreator', function () {
     fetchOrganizationDetails(api, org.slug, false);
     await tick();
     expect(OrganizationActions.reset).toHaveBeenCalled();
+    expect(PageFiltersActions.reset).toHaveBeenCalled();
+    expect(ProjectActions.reset).toHaveBeenCalled();
+    expect(TeamActions.reset).toHaveBeenCalled();
     expect(getOrgMock).toHaveBeenCalledWith(
       `/organizations/${org.slug}/`,
       expect.anything()
