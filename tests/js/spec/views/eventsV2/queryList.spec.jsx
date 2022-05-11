@@ -283,6 +283,7 @@ describe('EventsV2 > QueryList', function () {
               display: DisplayModes.TOP5,
               orderby: 'test',
               fields: ['test', 'count()'],
+              yAxis: ['count()'],
             }),
           ]}
           pageLinks=""
@@ -315,10 +316,11 @@ describe('EventsV2 > QueryList', function () {
         expect.objectContaining({
           widget: {
             title: 'Saved query #1',
-            displayType: DisplayType.TOP_N,
+            displayType: DisplayType.AREA,
+            limit: 5,
             queries: [
               {
-                aggregates: ['count()', 'count()'],
+                aggregates: ['count()'],
                 columns: ['test'],
                 conditions: '',
                 fields: ['test', 'count()', 'count()'],
@@ -331,7 +333,7 @@ describe('EventsV2 > QueryList', function () {
             defaultTableColumns: ['test', 'count()'],
             defaultTitle: 'Saved query #1',
             defaultWidgetQuery:
-              'name=&aggregates=count()%2Ccount()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
+              'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
             displayType: DisplayType.TOP_N,
             source: DashboardWidgetSource.DISCOVERV2,
           }),

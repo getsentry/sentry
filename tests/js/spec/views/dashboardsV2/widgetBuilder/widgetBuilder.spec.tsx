@@ -1650,16 +1650,6 @@ describe('WidgetBuilder', function () {
 
       // SortBy step shall no longer be visible
       expect(screen.queryByText('Sort by a y-axis')).not.toBeInTheDocument();
-
-      // Update visualization to be "Top 5 Events"
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Top 5 Events'));
-
-      // Tabular visualizations display "Choose your columns" step
-      expect(await screen.findByText('Choose your columns')).toBeInTheDocument();
-
-      // SortBy step shall be visible
-      expect(screen.getByText('Sort by a y-axis')).toBeInTheDocument();
     });
 
     it('allows for sorting by a custom equation', async function () {
@@ -2209,7 +2199,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  it('opens top-N widgets as top-N display', async function () {
+  it('opens top-N widgets as area display', async function () {
     const widget: Widget = {
       id: '1',
       title: 'Errors over time',
@@ -2243,7 +2233,7 @@ describe('WidgetBuilder', function () {
       },
     });
 
-    expect(await screen.findByText('Top 5 Events')).toBeInTheDocument();
+    expect(await screen.findByText('Area Chart')).toBeInTheDocument();
   });
 
   it('Update table header values (field alias)', async function () {
