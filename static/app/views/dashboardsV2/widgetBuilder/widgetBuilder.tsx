@@ -341,9 +341,31 @@ function WidgetBuilder({
       });
       setWidgetToBeUpdated(widgetFromDashboard);
     }
+    // This should only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    async function fetchDashboards() {
+      const promise: Promise<DashboardListItem[]> = api.requestPromise(
+        `/organizations/${organization.slug}/dashboards/`,
+        {
+          method: 'GET',
+          query: {sort: 'myDashboardsAndRecentlyViewed'},
+        }
+      );
+
+      try {
+        const dashboards = await promise;
+        setState(prevState => ({...prevState, dashboards, loading: false}));
+      } catch (error) {
+        const errorMessage = t('Unable to fetch dashboards');
+        addErrorMessage(errorMessage);
+        handleXhrErrorResponse(errorMessage)(error);
+        setState(prevState => ({...prevState, loading: false}));
+      }
+    }
+
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
@@ -357,11 +379,19 @@ function WidgetBuilder({
         },
       }));
     }
-  }, [source]);
+  }, [
+    api,
+    dashboard.id,
+    dashboard.title,
+    notDashboardsOrigin,
+    organization.slug,
+    source,
+    widgetBuilderNewDesign,
+  ]);
 
   useEffect(() => {
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
-  }, [selection.projects]);
+  }, [selection.projects, api, organization.slug]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -919,26 +949,6 @@ function WidgetBuilder({
         errors: {...state.errors, ...mapErrors(error?.responseJSON ?? {}, {})},
       });
       return false;
-    }
-  }
-
-  async function fetchDashboards() {
-    const promise: Promise<DashboardListItem[]> = api.requestPromise(
-      `/organizations/${organization.slug}/dashboards/`,
-      {
-        method: 'GET',
-        query: {sort: 'myDashboardsAndRecentlyViewed'},
-      }
-    );
-
-    try {
-      const dashboards = await promise;
-      setState(prevState => ({...prevState, dashboards, loading: false}));
-    } catch (error) {
-      const errorMessage = t('Unable to fetch dashboards');
-      addErrorMessage(errorMessage);
-      handleXhrErrorResponse(errorMessage)(error);
-      setState(prevState => ({...prevState, loading: false}));
     }
   }
 
