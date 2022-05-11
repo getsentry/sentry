@@ -169,6 +169,7 @@ const getMargin = ({size}: {size: Size}) => {
 };
 
 const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
+  font-size: ${p => p.theme.fontSizeLarge};
   line-height: 1;
   ${getMargin};
   & em {
