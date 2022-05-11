@@ -5,6 +5,7 @@ from django.conf import settings
 
 from sentry.utils.types import Any, type_from_value
 
+# FOO
 # Prevent ourselves from clobbering the builtin
 _type = type
 
