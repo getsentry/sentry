@@ -230,6 +230,8 @@ class SpanTree extends Component<PropType> {
               spanNumber={spanNumber}
               spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
               toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
+              onWheel={onWheel}
+              generateContentSpanBarRef={generateContentSpanBarRef}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -250,6 +252,8 @@ class SpanTree extends Component<PropType> {
               toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
               isLastSibling={payload.isLastSibling ?? false}
               occurrence={payload.occurrence}
+              onWheel={onWheel}
+              generateContentSpanBarRef={generateContentSpanBarRef}
             />
           );
           acc.spanNumber = spanNumber + 1;
