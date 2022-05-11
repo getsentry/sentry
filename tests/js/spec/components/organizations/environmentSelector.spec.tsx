@@ -1,10 +1,10 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
+import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import ConfigStore from 'sentry/stores/configStore';
 
-describe('MultipleEnvironmentSelector', function () {
+describe('EnvironmentSelector', function () {
   const onUpdate = jest.fn();
 
   const projects = [
@@ -53,9 +53,9 @@ describe('MultipleEnvironmentSelector', function () {
   };
 
   function renderSelector(
-    props?: Partial<React.ComponentProps<typeof MultipleEnvironmentSelector>>
+    props?: Partial<React.ComponentProps<typeof EnvironmentSelector>>
   ) {
-    return render(<MultipleEnvironmentSelector {...selectorProps} {...props} />, {
+    return render(<EnvironmentSelector {...selectorProps} {...props} />, {
       context: routerContext,
     });
   }
@@ -106,7 +106,7 @@ describe('MultipleEnvironmentSelector', function () {
     await clickMenu();
 
     // Changing projects will unselect environments. Project 2 has 1 environment
-    rerender(<MultipleEnvironmentSelector {...selectorProps} selectedProjects={[2]} />);
+    rerender(<EnvironmentSelector {...selectorProps} selectedProjects={[2]} />);
 
     // There should just be 1 environment now
     await clickMenu();
