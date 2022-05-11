@@ -20,6 +20,7 @@ from sentry.signals import (
     first_event_pending,
     first_event_received,
     first_transaction_received,
+    integration_added,
     issue_tracker_used,
     member_invited,
     member_joined,
@@ -422,3 +423,29 @@ def record_issue_tracker_used(plugin, project, user, **kwargs):
         project_id=project.id,
         issue_tracker=plugin.slug,
     )
+
+
+@integration_added.connect(weak=False)
+def record_integration_added(integration, organization, user, **kwargs):
+    task = OrganizationOnboardingTask.objects.filter(
+        organization_id=organization.id,
+        task=OnboardingTask.INTEGRATIONS,
+    ).first()
+
+    if task:
+        providers = task.data.get("providers", [])
+        if integration.provider not in providers:
+            providers.append(integration.provider)
+        task.data["providers"] = providers
+        if task.status != OnboardingTaskStatus.COMPLETE:
+            task.status = OnboardingTaskStatus.COMPLETE
+            task.user = user
+            task.date_completed = timezone.now()
+        task.save()
+    else:
+        task = OrganizationOnboardingTask.objects.create(
+            organization_id=organization.id,
+            task=OnboardingTask.INTEGRATIONS,
+            status=OnboardingTaskStatus.COMPLETE,
+            data={"providers": [integration.provider]},
+        )
