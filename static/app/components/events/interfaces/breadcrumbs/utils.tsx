@@ -134,29 +134,17 @@ function getCrumbDescriptionAndColor(
   }
 }
 
-export function transformCrumbs(breadcrumbs: Array<RawCrumb>): Crumb[] {
-  return breadcrumbs.map((breadcrumb, index) => {
-    const convertedCrumbType = convertCrumbType(breadcrumb);
-    const {color, description} = getCrumbDescriptionAndColor(convertedCrumbType.type);
-    return {
-      ...convertedCrumbType,
-      id: index,
-      color,
-      description,
-      level: convertedCrumbType.level ?? BreadcrumbLevelType.UNDEFINED,
-    };
-  });
+export function transformCrumb(breadcrumb: RawCrumb, index: number): Crumb {
+  const convertedCrumbType = convertCrumbType(breadcrumb);
+  const {color, description} = getCrumbDescriptionAndColor(convertedCrumbType.type);
+  return {
+    ...convertedCrumbType,
+    id: index,
+    color,
+    description,
+    level: convertedCrumbType.level ?? BreadcrumbLevelType.UNDEFINED,
+  };
 }
-
-// In the future if we want to show more items at
-// the EventChapter, we should add to this array.
-const USER_ACTIONS = [
-  BreadcrumbType.USER,
-  BreadcrumbType.UI,
-  BreadcrumbType.ERROR,
-  BreadcrumbType.NAVIGATION,
-];
-
-export function onlyUserActions(crumbs: Crumb[]): Crumb[] {
-  return crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
+export function transformCrumbs(breadcrumbs: Array<RawCrumb>): Crumb[] {
+  return breadcrumbs.map(transformCrumb);
 }

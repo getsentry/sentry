@@ -2,10 +2,7 @@ import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import {
-  onlyUserActions,
-  transformCrumbs,
-} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import {transformCrumb} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {
   Panel as BasePanel,
   PanelBody as BasePanelBody,
@@ -18,13 +15,47 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import type {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
+import isErrorCrumb from 'sentry/utils/replays/isErrorCrumb';
 
 type Props = {
   crumbs: Array<RawCrumb>;
   event: EventTransaction;
 };
+
+// In the future if we want to show more items at
+// the EventChapter, we should add to this array.
+const USER_ACTIONS = [
+  BreadcrumbType.USER,
+  BreadcrumbType.UI,
+  BreadcrumbType.EXCEPTION,
+  BreadcrumbType.NAVIGATION,
+];
+
+/**
+ * We want to treat the raw crumb of "category:sentry.event,level:error" as an exception when transforming
+ */
+function transformCrumbs(breadcrumbs: Array<RawCrumb>): Crumb[] {
+  return breadcrumbs.map((breadcrumb, index) => {
+    if (isErrorCrumb(breadcrumb)) {
+      return transformCrumb(
+        {
+          ...breadcrumb,
+          type: BreadcrumbType.EXCEPTION,
+        },
+        index
+      );
+    }
+
+    return transformCrumb(breadcrumb, index);
+  });
+}
+
+function onlyUserActions(crumbs: Crumb[]): Crumb[] {
+  return crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
+}
 
 function UserActionsNavigator({event, crumbs}: Props) {
   const {setCurrentTime} = useReplayContext();

@@ -28,7 +28,6 @@ export enum BreadcrumbType {
   SYSTEM = 'system',
   SESSION = 'session',
   TRANSACTION = 'transaction',
-  CONSOLE = 'console',
 }
 
 type BreadcrumbTypeBase = {
@@ -77,14 +76,6 @@ export type BreadcrumbTypeHTTP = {
     status_code?: number;
     url?: string;
   };
-} & BreadcrumbTypeBase;
-
-export type BreadcrumbTypeConsole = {
-  data: {
-    arguments: any[];
-    logger: string;
-  };
-  type: BreadcrumbType.CONSOLE;
 } & BreadcrumbTypeBase;
 
 export type BreadcrumbTypeDefault = {

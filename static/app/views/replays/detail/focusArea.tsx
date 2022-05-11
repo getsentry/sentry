@@ -5,6 +5,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TagsTable from 'sentry/components/tagsTable';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import isErrorCrumb from 'sentry/utils/replays/isErrorCrumb';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,9 +25,9 @@ type Props = {
 
 const DEFAULT_TAB = ReplayTabs.PERFORMANCE;
 
-function getBreadcrumbsByCategory(breadcrumbEntry: Entry, categories: string[]) {
-  return breadcrumbEntry.data.values.filter(breadcrumb =>
-    categories.includes(breadcrumb.category)
+function getBreadcrumbsForConsole(breadcrumbEntry: Entry) {
+  return breadcrumbEntry.data.values.filter(
+    breadcrumb => breadcrumb.category === 'console' || isErrorCrumb(breadcrumb)
   );
 }
 
@@ -61,10 +62,8 @@ function ActiveTab({active, replay}: Props & {active: ReplayTabs}) {
   switch (active) {
     case 'console':
       const breadcrumbEntry = replay.getEntryType(EntryType.BREADCRUMBS);
-      const consoleMessages = getBreadcrumbsByCategory(breadcrumbEntry, [
-        'console',
-        'error',
-      ]);
+      const consoleMessages = getBreadcrumbsForConsole(breadcrumbEntry);
+
       return (
         <div id="console">
           <Console breadcrumbs={consoleMessages ?? []} orgSlug={organization.slug} />
