@@ -621,37 +621,37 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         return attrs
 
     def serialize(self, obj, attrs, user) -> OrganizationProjectResponseDict:  # type: ignore
-        context: OrganizationProjectResponseDict = {
-            "team": attrs["teams"][0] if attrs["teams"] else None,
-            "teams": attrs["teams"],
-            "id": str(obj.id),
-            "name": obj.name,
-            "slug": obj.slug,
-            "isBookmarked": attrs["is_bookmarked"],
-            "isMember": attrs["is_member"],
-            "hasAccess": attrs["has_access"],
-            "dateCreated": obj.date_added,
-            "environments": attrs["environments"],
-            "eventProcessing": {
+        context = OrganizationProjectResponseDict(
+            team=attrs["teams"][0] if attrs["teams"] else None,
+            teams=attrs["teams"],
+            id=str(obj.id),
+            name=obj.name,
+            slug=obj.slug,
+            isBookmarked=attrs["is_bookmarked"],
+            isMember=attrs["is_member"],
+            hasAccess=attrs["has_access"],
+            dateCreated=obj.date_added,
+            environments=attrs["environments"],
+            eventProcessing={
                 "symbolicationDegraded": should_demote_symbolication(obj.id),
             },
-            "features": attrs["features"],
-            "firstEvent": obj.first_event,
-            "firstTransactionEvent": bool(obj.flags.has_transactions),
-            "hasSessions": bool(obj.flags.has_sessions),
-            "platform": obj.platform,
-            "platforms": attrs["platforms"],
-            "latestRelease": attrs["latest_release"],
-            "hasUserReports": attrs["has_user_reports"],
-        }
+            features=attrs["features"],
+            firstEvent=obj.first_event,
+            firstTransactionEvent=bool(obj.flags.has_transactions),
+            hasSessions=bool(obj.flags.has_sessions),
+            platform=obj.platform,
+            platforms=attrs["platforms"],
+            latestRelease=attrs["latest_release"],
+            hasUserReports=attrs["has_user_reports"],
+        )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
         if "stats" in attrs:
-            context["stats"] = attrs["stats"]
+            context.update(stats=attrs["stats"])
         if "transactionStats" in attrs:
-            context["transactionStats"] = attrs["transactionStats"]
+            context.update(transactionStats=attrs["transactionStats"])
         if "sessionStats" in attrs:
-            context["sessionStats"] = attrs["sessionStats"]
+            context.update(sessionStats=attrs["sessionStats"])
 
         return context
 
