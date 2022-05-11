@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator
 from collections import defaultdict
 from functools import reduce
@@ -130,7 +132,7 @@ def _match_commits_path(
 
 
 class AuthorCommits(TypedDict):
-    author: Author
+    author: Union[Author, None]
     commits: Sequence[Tuple[Commit, int]]
 
 
@@ -164,16 +166,15 @@ def _get_committers(
             if limit == 0:
                 break
 
-    author_users = get_users_for_commits([c for c, _ in commits])
+    author_users: Mapping[str, Author] = get_users_for_commits([c for c, _ in commits])
     return [
         {
-            "author": author_users[str(author_id)],
+            "author": author_users.get(str(author_id)),
             "commits": [
                 (commit, score) for (commit, score) in commits if commit.author_id == author_id
             ],
         }
         for author_id, _ in sorted(committers.items(), key=operator.itemgetter(1))
-        if author_users.get(str(author_id))
     ]
 
 
