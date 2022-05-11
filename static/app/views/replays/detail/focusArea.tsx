@@ -50,7 +50,7 @@ function FocusArea({replay}: Props) {
       ]);
       return (
         <div id="console">
-          <Console breadcrumbs={consoleMessages ?? []} orgSlug={organization.slug} />
+          <Console breadcrumbs={consoleMessages ?? []} />
         </div>
       );
     case 'performance': {
