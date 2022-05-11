@@ -56,10 +56,6 @@ class AlertWizard extends Component<Props, State> {
   };
 
   componentDidMount() {
-    // const {alert_option: alertOption} = this.props.location.query;
-    // this.state = {
-    //   alertOption: alertOption ?? DEFAULT_ALERT_OPTION,
-    // };
     // capture landing on the alert wizard page and viewing the issue alert by default
     this.trackView();
   }
