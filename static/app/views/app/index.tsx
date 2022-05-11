@@ -150,11 +150,12 @@ function App({children}: Props) {
 
   // Used to restore focus to the container after closing the modal
   const mainContainerRef = useRef<HTMLDivElement>(null);
+  const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
       <MainContainer tabIndex={-1} ref={mainContainerRef}>
-        <GlobalModal onClose={() => mainContainerRef.current?.focus?.()} />
+        <GlobalModal onClose={handleModalClose} />
         <SystemAlerts className="messages-container" />
         <Indicators className="indicators-container" />
         <ErrorBoundary>{renderBody()}</ErrorBoundary>
