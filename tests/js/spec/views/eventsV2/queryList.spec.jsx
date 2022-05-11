@@ -334,7 +334,7 @@ describe('EventsV2 > QueryList', function () {
             defaultTitle: 'Saved query #1',
             defaultWidgetQuery:
               'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
-            displayType: DisplayType.TOP_N,
+            displayType: DisplayType.AREA,
             source: DashboardWidgetSource.DISCOVERV2,
           }),
         })

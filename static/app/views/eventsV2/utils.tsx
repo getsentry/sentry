@@ -720,7 +720,11 @@ export function constructAddQueryToDashboardLink({
       defaultWidgetQuery: urlEncode(defaultWidgetQuery),
       defaultTableColumns: defaultTableFields,
       defaultTitle,
-      displayType,
+      displayType:
+        organization.features.includes('new-widget-builder-experience-design') &&
+        displayType === DisplayType.TOP_N
+          ? DisplayType.AREA
+          : displayType,
     },
   };
 }
