@@ -720,7 +720,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     const ownerId = rule.owner?.split(':')[1];
     const canEdit =
-      isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
+      isActiveSuperuser() ||
+      organization.access.includes('alerts:write') ||
+      (ownerId ? userTeamIds.includes(ownerId) : true);
 
     const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 

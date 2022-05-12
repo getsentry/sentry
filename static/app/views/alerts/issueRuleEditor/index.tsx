@@ -800,7 +800,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const ownerId = rule?.owner?.split(':')[1];
     // check if superuser or if user is on the alert's team
     const canEdit =
-      isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
+      isActiveSuperuser() ||
+      organization.access.includes('alerts:write') ||
+      (ownerId ? userTeamIds.includes(ownerId) : true);
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
