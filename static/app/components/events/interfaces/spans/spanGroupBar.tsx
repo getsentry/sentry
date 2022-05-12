@@ -1,4 +1,4 @@
-import {Fragment, LegacyRef, useCallback, useEffect, useRef} from 'react';
+import {Fragment, LegacyRef, useEffect, useRef} from 'react';
 
 import Count from 'sentry/components/count';
 import {
