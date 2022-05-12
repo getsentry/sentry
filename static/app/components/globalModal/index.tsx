@@ -108,7 +108,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
 
     // GlobalModal onClose prop callback
     onClose?.();
-  }, [options]);
+  }, [options, onClose]);
 
   const handleEscapeClose = useCallback(
     (e: KeyboardEvent) => e.key === 'Escape' && closeModal(),

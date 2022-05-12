@@ -25,7 +25,7 @@ function useScrollToTop({location, disable}: Options) {
     }
 
     window.scrollTo(0, 0);
-  }, [location]);
+  }, [location, disable]);
 }
 
 export default useScrollToTop;
