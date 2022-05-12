@@ -123,6 +123,7 @@ const FooterContainer = styled('div')<{hasMessage: boolean}>`
 const FooterActions = styled('div')`
   display: grid;
   grid-auto-flow: column dense;
+  justify-items: end;
   padding: ${space(1)} 0;
   gap: ${space(1)};
 
