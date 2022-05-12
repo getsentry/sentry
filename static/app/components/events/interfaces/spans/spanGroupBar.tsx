@@ -144,8 +144,9 @@ export function SpanGroupBar(props: Props) {
   const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
   const {onWheel} = props;
 
-  const handleWheel = useCallback(
-    (event: WheelEvent) => {
+  useEffect(() => {
+    const currentRef = spanTitleRef.current;
+    const handleWheel = (event: WheelEvent) => {
       if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
         return;
       }
@@ -154,12 +155,7 @@ export function SpanGroupBar(props: Props) {
       event.stopPropagation();
 
       onWheel(event.deltaX);
-    },
-    [onWheel]
-  );
-
-  useEffect(() => {
-    const currentRef = spanTitleRef.current;
+    };
 
     if (currentRef) {
       currentRef.addEventListener('wheel', handleWheel, {
@@ -172,7 +168,7 @@ export function SpanGroupBar(props: Props) {
         currentRef.removeEventListener('wheel', handleWheel);
       }
     };
-  }, [handleWheel]);
+  }, [onWheel]);
 
   return (
     <DividerHandlerManager.Consumer>
