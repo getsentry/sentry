@@ -109,6 +109,7 @@ describe('WidgetBuilder', function () {
   let eventsStatsMock: jest.Mock | undefined;
   let eventsv2Mock: jest.Mock | undefined;
   let sessionsDataMock: jest.Mock | undefined;
+  let metricsDataMock: jest.Mock | undefined;
   let tagsMock: jest.Mock | undefined;
 
   beforeEach(function () {
@@ -183,9 +184,17 @@ describe('WidgetBuilder', function () {
 
     sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/sessions/`,
+      url: '/organizations/org-slug/sessions/',
       body: TestStubs.SessionsField({
         field: `sum(session)`,
+      }),
+    });
+
+    metricsDataMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({
+        field: 'sum(sentry.sessions.session)',
       }),
     });
 
@@ -2637,12 +2646,12 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
 
       await waitFor(() =>
-        expect(sessionsDataMock).toHaveBeenLastCalledWith(
-          `/organizations/org-slug/sessions/`,
+        expect(metricsDataMock).toHaveBeenLastCalledWith(
+          `/organizations/org-slug/metrics/data/`,
           expect.objectContaining({
             query: expect.objectContaining({
               environment: [],
-              field: [`sum(session)`],
+              field: [`sum(sentry.sessions.session)`],
               groupBy: [],
               interval: '5m',
               project: [],
@@ -2672,16 +2681,51 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
       await waitFor(() =>
+        expect(metricsDataMock).toHaveBeenLastCalledWith(
+          `/organizations/org-slug/metrics/data/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              environment: [],
+              field: ['sum(sentry.sessions.session)'],
+              groupBy: ['project_id'],
+              interval: '5m',
+              orderBy: '-sum_session',
+              per_page: 5,
+              project: [],
+              statsPeriod: '24h',
+            }),
+          })
+        )
+      );
+    });
+
+    it('calls sessions api when session.status is selected as a groupby', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      await selectEvent.select(await screen.findByText('Select group'), 'session.status');
+
+      expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
+
+      await waitFor(() =>
         expect(sessionsDataMock).toHaveBeenLastCalledWith(
           `/organizations/org-slug/sessions/`,
           expect.objectContaining({
             query: expect.objectContaining({
               environment: [],
               field: ['sum(session)'],
-              groupBy: ['project'],
+              groupBy: ['session.status'],
               interval: '5m',
-              orderBy: '-sum_session',
-              per_page: 5,
               project: [],
               statsPeriod: '24h',
             }),
