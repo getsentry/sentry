@@ -183,13 +183,6 @@ class GlobalSelectionHeader extends Component<Props, State> {
     resetParams: this.props.resetParamsOnChange,
   });
 
-  handleChangeProjects = (projects: State['projects']) => {
-    this.setState({
-      projects,
-    });
-    callIfFunction(this.props.onChangeProjects, projects);
-  };
-
   handleChangeTime = ({start, end, relative: period, utc}: ChangeData) => {
     callIfFunction(this.props.onChangeTime, {start, end, period, utc});
   };
@@ -216,9 +209,12 @@ class GlobalSelectionHeader extends Component<Props, State> {
     callIfFunction(this.props.onUpdateEnvironments, environments);
   };
 
-  handleUpdateProjects = () => {
-    const {projects} = this.state;
+  handleChangeProjects = (projects: State['projects']) => {
+    this.setState({projects});
+    callIfFunction(this.props.onChangeProjects, projects);
+  };
 
+  handleUpdateProjects = (projects: State['projects']) => {
     // Clear environments when switching projects
     updateProjects(projects || [], this.props.router, {
       ...this.getUpdateOptions(),
