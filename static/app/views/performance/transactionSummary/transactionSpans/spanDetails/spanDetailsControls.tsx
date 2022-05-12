@@ -53,7 +53,7 @@ export default function SpanDetailsControls({
     <FilterActions>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter alignDropdown="left" />
       </PageFilterBar>
       <SearchBar
         placeholder={t('Filter Transactions')}

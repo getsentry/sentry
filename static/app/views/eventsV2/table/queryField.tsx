@@ -191,6 +191,13 @@ class QueryField extends Component<Props> {
           };
         }
         break;
+      case FieldValueKind.EQUATION:
+        fieldValue = {
+          kind: 'equation',
+          field: value.meta.name,
+          alias: value.meta.name,
+        };
+        break;
       default:
         throw new Error('Invalid field type found in column picker');
     }
@@ -299,6 +306,11 @@ class QueryField extends Component<Props> {
     const spanOperationBreakdownName = `span_op_breakdown:${name}`;
     if (fieldOptions[spanOperationBreakdownName]) {
       return fieldOptions[spanOperationBreakdownName].value;
+    }
+
+    const equationName = `equation:${name}`;
+    if (fieldOptions[equationName]) {
+      return fieldOptions[equationName].value;
     }
 
     const tagName =
@@ -441,6 +453,7 @@ class QueryField extends Component<Props> {
           <SelectControl
             key="select"
             name="parameter"
+            menuPlacement="auto"
             placeholder={t('Select value')}
             options={aggregateParameters}
             value={descriptor.value}
@@ -500,6 +513,7 @@ class QueryField extends Component<Props> {
           <SelectControl
             key="dropdown"
             name="dropdown"
+            menuPlacement="auto"
             placeholder={t('Select value')}
             options={descriptor.options}
             value={descriptor.value}
@@ -599,6 +613,7 @@ class QueryField extends Component<Props> {
       inFieldLabel: inFieldLabels ? t('Function: ') : undefined,
       disabled,
       noOptionsMessage: () => noFieldsMessage,
+      menuPlacement: 'auto',
     };
     if (takeFocus && field === null) {
       selectProps.autoFocus = true;
