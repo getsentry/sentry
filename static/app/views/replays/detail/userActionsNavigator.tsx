@@ -135,7 +135,7 @@ const PanelItemCenter = styled(PanelItem)`
   cursor: pointer;
 `;
 
-const Container = styled('div')<PanelItemCenterProps>`
+const Container = styled('div')<ContainerProps>`
   display: flex;
   justify-content: space-between;
   align-items: center;
