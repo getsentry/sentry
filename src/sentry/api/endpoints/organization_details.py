@@ -188,7 +188,7 @@ class OrganizationSerializer(serializers.Serializer):
         if qs.exists():
             raise serializers.ValidationError(f'The slug "{value}" is already in use.')
 
-        contains_whitespace = any(c in self.initial_data["slug"] for c in string.whitespace)
+        contains_whitespace = any(c.isspace() for c in self.initial_data["slug"])
         if contains_whitespace:
             raise serializers.ValidationError(
                 f'The slug "{value}" should not contain any whitespace.'
