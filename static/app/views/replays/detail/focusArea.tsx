@@ -48,11 +48,7 @@ function FocusArea({replay}: Props) {
         'console',
         'error',
       ]);
-      return (
-        <div id="console">
-          <Console breadcrumbs={consoleMessages ?? []} orgSlug={organization.slug} />
-        </div>
-      );
+      return <Console breadcrumbs={consoleMessages ?? []} orgSlug={organization.slug} />;
     case 'performance': {
       const nonMemorySpansEntry = {
         ...spansEntry,
@@ -63,37 +59,23 @@ function FocusArea({replay}: Props) {
         entries: [nonMemorySpansEntry],
       } as Event;
       return (
-        <div id="performance">
-          <EventEntry
-            projectSlug={getProjectSlug(performanceEvent)}
-            // group={group}
-            organization={organization}
-            event={performanceEvent}
-            entry={nonMemorySpansEntry}
-            route={routes[routes.length - 1]}
-            router={router}
-          />
-        </div>
+        <EventEntry
+          projectSlug={getProjectSlug(performanceEvent)}
+          // group={group}
+          organization={organization}
+          event={performanceEvent}
+          entry={nonMemorySpansEntry}
+          route={routes[routes.length - 1]}
+          router={router}
+        />
       );
     }
     case 'trace':
-      return (
-        <div id="trace">
-          <Trace organization={organization} event={event} />
-        </div>
-      );
+      return <Trace organization={organization} event={event} />;
     case 'issues':
-      return (
-        <div id="issues">
-          <IssueList replayId={event.id} projectId={event.projectID} />
-        </div>
-      );
+      return <IssueList replayId={event.id} projectId={event.projectID} />;
     case 'tags':
-      return (
-        <div id="tags">
-          <TagsTable generateUrl={() => ''} event={event} query="" />
-        </div>
-      );
+      return <TagsTable generateUrl={() => ''} event={event} query="" />;
     case 'memory':
       return (
         <MemoryChart
