@@ -10,6 +10,7 @@ describe('SampledProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'sampled',
       weights: [],
       samples: [],
@@ -19,6 +20,7 @@ describe('SampledProfile', () => {
 
     expect(profile.duration).toBe(1000);
     expect(profile.name).toBe(trace.name);
+    expect(profile.threadId).toBe(trace.threadID);
     expect(profile.startedAt).toBe(0);
     expect(profile.endedAt).toBe(1000);
   });
@@ -29,6 +31,7 @@ describe('SampledProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'sampled',
       weights: [1, 1],
       samples: [
@@ -70,6 +73,7 @@ describe('SampledProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'sampled',
       weights: [1],
       samples: [[0, 0]],
@@ -89,6 +93,7 @@ describe('SampledProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'sampled',
       weights: [1],
       samples: [[0, 1, 0]],
@@ -110,6 +115,7 @@ describe('SampledProfile', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'sampled',
       weights: [0.5, 2],
       samples: [
