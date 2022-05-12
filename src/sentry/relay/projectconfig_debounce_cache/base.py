@@ -22,13 +22,22 @@ class ProjectConfigDebounceCache(Service):
 
     def check_is_debounced(self, public_key, project_id, organization_id):
         """
-        Check if the given project/organization should be debounced.
+        Check if the given project/organization should be debounced, and
+        debounces when it isn't.
 
         It's fine to erroneously return false, it's not fine to erroneously
         return true.
         """
 
         return False
+
+    def is_debounced(self, public_key, project_id, organization_id):
+        """Checks if the given project/organization should be debounced."""
+
+    def debounce(self, public_key, project_id, organization_id):
+        """
+        Debounces the given project/organization, without performing any checks.
+        """
 
     def mark_task_done(self, public_key, project_id, organization_id):
         """
