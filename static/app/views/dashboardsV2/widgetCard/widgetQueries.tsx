@@ -17,7 +17,7 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {isEquation} from 'sentry/utils/discover/fields';
+import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
@@ -452,11 +452,14 @@ class WidgetQueries extends Component<Props, State> {
 
           // Compare field and orderby as aliases to ensure requestData has
           // the orderby selected
+          // If the orderby is an equation alias, do not inject it
+          const orderby = trimStart(query.orderby, '-');
           if (
             query.orderby &&
-            !requestData.field.includes(trimStart(query.orderby, '-'))
+            !isEquationAlias(orderby) &&
+            !requestData.field.includes(orderby)
           ) {
-            requestData.field.push(trimStart(query.orderby, '-'));
+            requestData.field.push(orderby);
           }
 
           // The "Other" series is only included when there is one
