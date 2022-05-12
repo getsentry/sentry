@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -66,16 +66,6 @@ function FrameRow({
     initialOpen ?? false
   );
 
-  const color = flamegraphRenderer.getColorForFrame(frame);
-
-  const colorString =
-    color.length === 4
-      ? `rgba(${color
-          .slice(0, 3)
-          .map(n => n * 255)
-          .join(',')}, ${color[3]})`
-      : `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
-
   const handleClick = useCallback(
     (evt: React.MouseEvent<HTMLTableRowElement>) => {
       if (evt.metaKey) {
@@ -88,6 +78,19 @@ function FrameRow({
     },
     [open, forceOpenChildren]
   );
+
+  const colorString = useMemo(() => {
+    const color = flamegraphRenderer.getColorForFrame(frame);
+
+    if (color.length === 4) {
+      return `rgba(${color
+        .slice(0, 3)
+        .map(n => n * 255)
+        .join(',')}, ${color[3]})`;
+    }
+
+    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+  }, [frame, flamegraphRenderer]);
 
   return (
     <Fragment>
