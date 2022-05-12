@@ -78,14 +78,18 @@ function RuleModal({
   const [data, setData] = useState<State>(getInitialState());
 
   useEffect(() => {
-    if (!!data.errors.sampleRate) {
-      setData({...data, errors: {...data.errors, sampleRate: undefined}});
-    }
+    setData(d => {
+      if (!!d.errors.sampleRate) {
+        return {...d, errors: {...d.errors, sampleRate: undefined}};
+      }
+
+      return d;
+    });
   }, [data.sampleRate]);
 
   useEffect(() => {
     onChange?.(data);
-  }, [data]);
+  }, [data, onChange]);
 
   function getInitialState(): State {
     if (rule) {
