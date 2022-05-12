@@ -26,6 +26,7 @@ class OnboardingTask:
     ALERT_RULE = 10
     FIRST_TRANSACTION = 11
     METRIC_ALERT = 12
+    INTEGRATIONS = 13
 
 
 class OnboardingTaskStatus:
@@ -89,6 +90,7 @@ class OrganizationOnboardingTask(Model):
         (OnboardingTask.ALERT_RULE, "setup_alert_rules"),
         (OnboardingTask.FIRST_TRANSACTION, "setup_transactions"),
         (OnboardingTask.METRIC_ALERT, "setup_metric_alert_rules"),
+        (OnboardingTask.INTEGRATIONS, "setup_integrations"),
     )
 
     STATUS_CHOICES = (
@@ -120,6 +122,7 @@ class OrganizationOnboardingTask(Model):
             OnboardingTask.ALERT_RULE,
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.METRIC_ALERT,
+            OnboardingTask.INTEGRATIONS,
         ]
     )
 
@@ -135,6 +138,7 @@ class OrganizationOnboardingTask(Model):
             OnboardingTask.ALERT_RULE,
             OnboardingTask.FIRST_TRANSACTION,
             OnboardingTask.METRIC_ALERT,
+            OnboardingTask.INTEGRATIONS,
         ]
     )
 
