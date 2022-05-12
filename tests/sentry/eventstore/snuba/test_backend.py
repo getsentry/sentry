@@ -167,6 +167,23 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert self.eventstore.get_prev_event_id(None, filter=_filter) is None
         assert self.eventstore.get_next_event_id(None, filter=_filter) is None
 
+    def test_next_prev_event_id_same_timestamp(self):
+        _filter = Filter(project_ids=[self.project2.id])
+
+        event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
+
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
+        assert prev_event is None
+        assert next_event == (str(self.project2.id), "c" * 32)
+
+        event = self.eventstore.get_event_by_id(self.project2.id, "c" * 32)
+
+        prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
+        next_event = self.eventstore.get_next_event_id(event, filter=_filter)
+        assert prev_event == (str(self.project2.id), "b" * 32)
+        assert next_event == (str(self.project2.id), "d" * 32)
+
     def test_get_latest_or_oldest_event_id(self):
         # Returns a latest/oldest event
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
