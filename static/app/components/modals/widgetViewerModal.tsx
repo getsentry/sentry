@@ -46,6 +46,7 @@ import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   eventViewFromWidget,
   getFieldsFromEquations,
+  getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
 } from 'sentry/views/dashboardsV2/utils';
@@ -281,17 +282,9 @@ function WidgetViewerModal(props: Props) {
   // Need to set the orderby of the eventsv2 query to equation[index] format
   // since eventsv2 does not accept the raw equation as a valid sort payload
   if (isEquation(rawOrderby) && tableWidget.queries[0].orderby === orderby) {
-    let equationIndex = 0;
-    fields.find(field => {
-      if (rawOrderby === field) {
-        return field;
-      }
-      if (isEquation(field)) {
-        equationIndex++;
-      }
-      return undefined;
-    });
-    tableWidget.queries[0].orderby = `${order ? '-' : ''}equation[${equationIndex}]`;
+    tableWidget.queries[0].orderby = `${order ? '-' : ''}equation[${
+      getNumEquations(fields) - 1
+    }]`;
   }
 
   // World Map view should always have geo.country in the table chart
@@ -363,7 +356,7 @@ function WidgetViewerModal(props: Props) {
   let columnOrder = decodeColumnOrder(
     fields.map(field => ({
       field,
-    })) ?? []
+    }))
   );
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
