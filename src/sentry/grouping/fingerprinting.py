@@ -110,8 +110,6 @@ class EventAccess:
         return self._exceptions
 
     def _push_frame(self, frame):
-        if isinstance(frame, str):
-            raise NotImplementedError("@gilbert fix this")
         platform = frame.get("platform") or self.event.get("platform")
         func = get_function_name_for_frame(frame, platform)
         self._frames.append(
