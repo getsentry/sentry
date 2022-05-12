@@ -1,3 +1,4 @@
+import first from 'lodash/first';
 import last from 'lodash/last';
 import memoize from 'lodash/memoize';
 import type {eventWithTime} from 'rrweb/typings/types';
@@ -48,31 +49,48 @@ export default class ReplayReader {
    * The original `this._event.startTimestamp` and `this._event.endTimestamp`
    * are the same. It's because the root replay event is re-purposing the
    * `transaction` type, but it is not a real span occuring over time.
-   * So we need to figure out the real end time, in milliseconds.
+   * So we need to figure out the real start and end timestamps based on when
+   * first and last bits of data were collected. In milliseconds.
    */
-  private _getEndTimestampMS() {
+  private _getTimestampsMS = memoize(() => {
     const crumbs = this.getRawCrumbs();
     const spans = this.getRawSpans();
 
-    const lastRRweb = last(this._rrwebEvents);
-    const lastBreadcrumb = last(crumbs);
-    const lastSpan = last(spans);
-
-    return Math.max(
-      lastRRweb?.timestamp || 0,
-      +new Date(lastBreadcrumb?.timestamp || 0),
-      (lastSpan?.timestamp || 0) * 1000
+    // Sort our data so we know we're getting the first or last record from the array.
+    const sortedRRwebEvents = Array.from(this._rrwebEvents).sort(
+      (a, b) => a.timestamp - b.timestamp
     );
-  }
+    const sortedCrumbs = Array.from(crumbs).sort(
+      (a, b) => +new Date(a?.timestamp || 0) - +new Date(b?.timestamp || 0)
+    );
+    const startSortedSpans = Array.from(spans).sort(
+      (a, b) => a.start_timestamp - b.start_timestamp
+    );
+    const endSortedSpans = Array.from(spans).sort((a, b) => a.timestamp - b.timestamp);
+
+    return {
+      startTimestsampMS: Math.min(
+        first(sortedRRwebEvents)?.timestamp || 0,
+        +new Date(first(sortedCrumbs)?.timestamp || 0),
+        (first(startSortedSpans)?.start_timestamp || 0) * 1000
+      ),
+      endTimestampMS: Math.max(
+        last(sortedRRwebEvents)?.timestamp || 0,
+        +new Date(last(sortedCrumbs)?.timestamp || 0),
+        (first(endSortedSpans)?.timestamp || 0) * 1000
+      ),
+    };
+  });
 
   getEvent = memoize(() => {
     const breadcrumbEntry = this.getEntryType(EntryType.BREADCRUMBS);
     const spansEntry = this.getEntryType(EntryType.SPANS);
-    const endTimestampMS = this._getEndTimestampMS();
+    const {startTimestsampMS, endTimestampMS} = this._getTimestampsMS();
 
     return {
       ...this._event,
       entries: [breadcrumbEntry, spansEntry],
+      startTimestamp: startTimestsampMS / 1000,
       endTimestamp: endTimestampMS / 1000,
     } as EventTransaction;
   });
@@ -83,14 +101,27 @@ export default class ReplayReader {
     // Find LCP spans that have a valid replay node id, this will be used to
     const highlights = createHighlightEvents(spans);
 
-    // Create a final event so that rrweb has the same internal duration as the
+    // Init bookend event so that rrweb has the same internal duration as the
     // root event.
-    // This allows the scrubber to view timestamps after the last captured
-    // rrweb event, like if a memory span was captured after the last mouse-move,
-    // but before page unload.
+    // This allows the scrubber to view timestamps before and after the last
+    // captured rrweb event, like if a memory span was captured after the last
+    // mouse-move, but before page unload.
+    const {startTimestsampMS, endTimestampMS} = this._getTimestampsMS();
+
+    const sortedRRwebEvents = this._rrwebEvents.sort((a, b) => a.timestamp - b.timestamp);
+    const firstRRWebEvent = first(sortedRRwebEvents);
+    if (firstRRWebEvent) {
+      firstRRWebEvent.timestamp = startTimestsampMS;
+    }
+
+    // TODO(replay): We start rendering at `startTimestsampMS`, and then the
+    // first rrweb data comes later at `this._rrwebEvents[0].timestamp`.
+    // Can/should we inject an rrweb event, like `FullSnapshot` so that
+    // there is something to render in that inbetween time?
+
     const endEvent = {
-      type: 5, // EventType.Custom
-      timestamp: this._getEndTimestampMS(),
+      type: 5, // EventType.Custom,
+      timestamp: endTimestampMS,
       data: {
         tag: 'replay-end',
       },
