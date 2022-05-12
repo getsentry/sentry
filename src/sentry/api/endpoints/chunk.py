@@ -13,6 +13,7 @@ from rest_framework.response import Response
 from sentry import options
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.models import FileBlob
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.compat import zip
 from sentry.utils.files import get_max_file_size
 
@@ -41,6 +42,7 @@ class GzipChunk(BytesIO):
 
 class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
+    rate_limits = RateLimitConfig(group="CLI")
 
     def get(self, request: Request, organization) -> Response:
         """
