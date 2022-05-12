@@ -35,13 +35,13 @@ type Props = WithRouterProps & {
    */
   nonMemberProjects: Project[];
   /**
+   * Triggered when the selection changes are applied
+   */
+  onApplyChange: (newProjects?: number[]) => void;
+  /**
    * Triggers any time a selection is changed, but the menu has not yet been closed or "applied"
    */
   onChange: (selected: number[]) => void;
-  /**
-   * Triggered when the selection changes are applied
-   */
-  onUpdate: (newProjects?: number[]) => void;
   organization: Organization;
   /**
    * The selected projects
@@ -132,11 +132,12 @@ class ProjectSelector extends PureComponent<Props, State> {
   }
 
   /**
-   * Reset "hasChanges" state and call `onUpdate` callback
-   * @param value optional parameter that will be passed to onUpdate callback
+   * Reset "hasChanges" state and call `onApplyChange` callback
+   *
+   * @param value optional parameter that will be passed to onApplyChange callback
    */
-  doUpdate = (value?: number[]) => {
-    this.setState({hasChanges: false}, () => this.props.onUpdate(value));
+  doApplyChange = (value?: number[]) => {
+    this.setState({hasChanges: false}, () => this.props.onApplyChange(value));
   };
 
   /**
@@ -147,7 +148,7 @@ class ProjectSelector extends PureComponent<Props, State> {
    */
   handleUpdate = (actions: {close: () => void}) => {
     actions.close();
-    this.doUpdate();
+    this.doApplyChange();
   };
 
   /**
@@ -162,7 +163,7 @@ class ProjectSelector extends PureComponent<Props, State> {
     });
     const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
     this.props.onChange(value);
-    this.doUpdate(value);
+    this.doApplyChange(value);
   };
 
   /**
@@ -185,7 +186,7 @@ class ProjectSelector extends PureComponent<Props, State> {
       multi: this.multi,
     });
 
-    this.doUpdate();
+    this.doApplyChange();
     this.lastSelected = value;
   };
 
@@ -201,9 +202,7 @@ class ProjectSelector extends PureComponent<Props, State> {
     });
 
     this.props.onChange([]);
-
-    // Update on clear
-    this.doUpdate();
+    this.doApplyChange();
   };
 
   /**
