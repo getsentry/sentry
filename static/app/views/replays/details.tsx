@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
@@ -10,6 +11,7 @@ import ReplayView from 'sentry/components/replays/replayView';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import space from 'sentry/styles/space';
 import useReplayData from 'sentry/utils/replays/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
@@ -93,9 +95,13 @@ function ReplayDetails() {
               event={replay.getEvent()}
             />
           </Layout.Side>
-          <Layout.Main fullWidth>
+
+          <StickyMain fullWidth>
             <ReplayTimeline />
             <FocusTabs />
+          </StickyMain>
+
+          <Layout.Main fullWidth>
             <FocusArea replay={replay} />
           </Layout.Main>
         </Layout.Body>
@@ -103,5 +109,17 @@ function ReplayDetails() {
     </ReplayContextProvider>
   );
 }
+
+const StickyMain = styled(Layout.Main)`
+  position: sticky;
+  top: 0;
+  z-index: ${p => p.theme.zIndex.header};
+
+  /* Make this component full-bleed, so the background covers everything underneath it */
+  margin: -${space(1.5)} -${space(4)} -${space(3)};
+  padding: ${space(1.5)} ${space(4)} 0;
+  max-width: none;
+  background: ${p => p.theme.background};
+`;
 
 export default ReplayDetails;
