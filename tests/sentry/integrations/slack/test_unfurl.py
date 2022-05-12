@@ -210,7 +210,11 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["rule"]["id"] == str(alert_rule.id)
         assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
-        assert len(chart_data["timeseriesData"][0]["data"]) == 2
+        series_data = chart_data["timeseriesData"][0]["data"]
+        assert len(series_data) > 0
+        # Validate format of timeseries
+        assert type(series_data[0]["name"]) is int
+        assert type(series_data[0]["value"]) is int
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch("sentry.charts.metric_alerts.generate_chart", return_value="chart-url")
@@ -257,7 +261,7 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["rule"]["id"] == str(alert_rule.id)
         assert chart_data["selectedIncident"] is None
-        assert len(chart_data["sessionResponse"]["groups"]) == 4
+        assert len(chart_data["sessionResponse"]["groups"]) >= 2
         assert len(chart_data["incidents"]) == 0
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
