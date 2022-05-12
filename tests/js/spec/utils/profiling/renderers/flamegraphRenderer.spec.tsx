@@ -3,7 +3,6 @@ import {mat3, vec2} from 'gl-matrix';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Frame} from 'sentry/utils/profiling/frame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
@@ -313,12 +312,21 @@ describe('flamegraphRenderer', () => {
       vec2.fromValues(0, 0)
     );
 
-    expect(renderer.getColorForFrame(flamegraph.frames[0].frame)).toEqual([
+    expect(renderer.getColorForFrame(flamegraph.frames[0])).toEqual([
       0.9750000000000001, 0.7250000000000001, 0.7250000000000001,
     ]);
-    expect(renderer.getColorForFrame(new Frame({key: 20, name: 'Unknown'}))).toEqual(
-      LightFlamegraphTheme.COLORS.FRAME_FALLBACK_COLOR
-    );
+    expect(
+      renderer.getColorForFrame({
+        key: 20,
+        frame: flamegraph.frames[0].frame,
+        node: flamegraph.frames[0].node,
+        parent: null,
+        children: [],
+        depth: 0,
+        start: 0,
+        end: 0,
+      })
+    ).toEqual(LightFlamegraphTheme.COLORS.FRAME_FALLBACK_COLOR);
   });
   describe('getConfigSpaceCursor', () => {
     it('when view is not zoomed', () => {

@@ -3,7 +3,6 @@ import {mat3, vec2} from 'gl-matrix';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
-import {Frame} from '../frame';
 import {
   computeClampedConfigView,
   createProgram,
@@ -105,6 +104,7 @@ class FlamegraphRenderer {
       this.theme.COLORS.COLOR_MAP,
       this.theme.COLORS.COLOR_BUCKET
     );
+
     this.colorMap = colorMap;
     this.colors = colorBuffer;
 
@@ -510,9 +510,9 @@ class FlamegraphRenderer {
     return this.configView;
   }
 
-  getColorForFrame(frame: Frame): number[] {
+  getColorForFrame = (frame: FlamegraphFrame): number[] => {
     return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
-  }
+  };
 
   getConfigSpaceCursor(
     logicalSpaceCursor: vec2,
