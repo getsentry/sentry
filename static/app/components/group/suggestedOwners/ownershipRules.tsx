@@ -7,7 +7,7 @@ import Access from 'sentry/components/acl/access';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureBadge from 'sentry/components/featureBadge';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels';
 import {IconClose, IconQuestion} from 'sentry/icons';
@@ -26,6 +26,26 @@ type Props = {
   organization: Organization;
   project: Project;
 };
+
+const CodeOwnersCTA = HookOrDefault({
+  hookName: 'component:codeowners-cta',
+  defaultComponent: ({organization, project}) => (
+    <SetupButton
+      size="xsmall"
+      priority="primary"
+      to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
+      onClick={() =>
+        trackIntegrationAnalytics('integrations.code_owners_cta_setup_clicked', {
+          view: 'stacktrace_issue_details',
+          project_id: project.id,
+          organization,
+        })
+      }
+    >
+      {t('Setup')}
+    </SetupButton>
+  ),
+});
 
 const OwnershipRules = ({
   project,
@@ -62,7 +82,6 @@ const OwnershipRules = ({
     <Container dashedBorder>
       <HeaderContainer>
         <Header>{t('Codeowners sync')}</Header>{' '}
-        <FeatureBadge style={{top: -3}} type="new" noTooltip />
         <DismissButton
           icon={<IconClose size="xs" />}
           priority="link"
@@ -76,20 +95,7 @@ const OwnershipRules = ({
         )}
       </Content>
       <ButtonBar gap={1}>
-        <SetupButton
-          size="xsmall"
-          priority="primary"
-          to={`/settings/${organization.slug}/projects/${project.slug}/ownership/`}
-          onClick={() =>
-            trackIntegrationAnalytics('integrations.code_owners_cta_setup_clicked', {
-              view: 'stacktrace_issue_details',
-              project_id: project.id,
-              organization,
-            })
-          }
-        >
-          {t('Setup')}
-        </SetupButton>
+        <CodeOwnersCTA organization={organization} project={project} />
         <Button
           size="xsmall"
           external

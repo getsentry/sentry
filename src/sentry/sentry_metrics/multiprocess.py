@@ -431,8 +431,9 @@ def process_messages(
 
     with metrics.timer("metrics_consumer.bulk_record"):
         record_result = indexer.bulk_record(org_strings)
-        mapping = record_result.get_mapped_results()
-        bulk_record_meta = record_result.get_fetch_metadata()
+
+    mapping = record_result.get_mapped_results()
+    bulk_record_meta = record_result.get_fetch_metadata()
 
     new_messages: List[Message[KafkaPayload]] = []
 

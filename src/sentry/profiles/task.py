@@ -1,3 +1,4 @@
+from time import sleep, time
 from typing import Any, MutableMapping
 
 from django.conf import settings
@@ -7,6 +8,7 @@ from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config
 from sentry.utils.pubsub import KafkaPublisher
 
@@ -22,8 +24,6 @@ processed_profiles_publisher = None
 )
 def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
     if profile["platform"] == "cocoa":
-        if not _validate_ios_profile(profile=profile):
-            return None
         profile = _symbolicate(profile=profile)
     elif profile["platform"] == "android":
         profile = _deobfuscate(profile=profile)
@@ -45,28 +45,6 @@ def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
 
 
 def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-    normalized_profile = {
-        "device_locale": profile["device_locale"],
-        "device_manufacturer": profile["device_manufacturer"],
-        "device_model": profile["device_model"],
-        "device_os_name": profile["device_os_name"],
-        "device_os_version": profile["device_os_version"],
-        "duration_ns": int(profile["duration_ns"]),
-        "environment": profile.get("environment"),
-        "organization_id": profile["organization_id"],
-        "platform": profile["platform"],
-        "profile": json.dumps(profile["profile"]),
-        "profile_id": profile["profile_id"],
-        "project_id": profile["project_id"],
-        "received": profile["received"],
-        "retention_days": 30,
-        "trace_id": profile["trace_id"],
-        "transaction_id": profile["transaction_id"],
-        "transaction_name": profile["transaction_name"],
-        "version_code": profile["version_code"],
-        "version_name": profile["version_name"],
-    }
-
     classification_options = {
         "model": profile["device_model"],
         "os_name": profile["device_os_name"],
@@ -74,52 +52,27 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     }
 
     if profile["platform"] == "android":
-        normalized_profile.update(
-            {
-                "android_api_level": profile["android_api_level"],
-            }
-        )
         classification_options.update(
             {
                 "cpu_frequencies": profile["device_cpu_frequencies"],
-                "physical_memory_bytes": int(profile["device_physical_memory_bytes"]),
-            }
-        )
-    elif profile["platform"] == "cocoa":
-        normalized_profile.update(
-            {
-                "device_os_build_number": profile["device_os_build_number"],
+                "physical_memory_bytes": profile["device_physical_memory_bytes"],
             }
         )
 
-    normalized_profile["device_classification"] = str(classify_device(**classification_options))
+    profile.update(
+        {
+            "device_classification": str(classify_device(**classification_options)),
+            "profile": json.dumps(profile["profile"]),
+            "retention_days": 30,
+        }
+    )
 
-    return normalized_profile
-
-
-def _validate_ios_profile(profile: MutableMapping[str, Any]) -> bool:
-    return "samples" in profile.get("sampled_profile", {})
+    return profile
 
 
 def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     project = Project.objects.get_from_cache(id=profile["project_id"])
     symbolicator = Symbolicator(project=project, event_id=profile["profile_id"])
-
-    for i in profile["debug_meta"]["images"]:
-        if i["type"] == "apple":
-            i.update(
-                {
-                    "type": "macho",
-                    "debug_file": i["name"],
-                    "debug_id": i["uuid"],
-                }
-            )
-
-    for s in profile["sampled_profile"]["samples"]:
-        for f in s["frames"]:
-            # https://github.com/microsoft/plcrashreporter/blob/748087386cfc517936315c107f722b146b0ad1ab/Source/PLCrashAsyncThread_arm.c#L84
-            f["instruction_addr"] = hex(int(f["instruction_addr"], 16) & 0x0000000FFFFFFFFF)
-
     modules = profile["debug_meta"]["images"]
     stacktraces = [
         {
@@ -129,12 +82,37 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         for s in profile["sampled_profile"]["samples"]
     ]
 
-    response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
-    for original, symbolicated in zip(
-        profile["sampled_profile"]["samples"], response["stacktraces"]
-    ):
-        for original_frame, symbolicated_frame in zip(original["frames"], symbolicated["frames"]):
-            original_frame.update(symbolicated_frame)
+    symbolication_start_time = time()
+
+    while True:
+        try:
+            response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+            for original, symbolicated in zip(
+                profile["sampled_profile"]["samples"], response["stacktraces"]
+            ):
+                for original_frame, symbolicated_frame in zip(
+                    original["frames"], symbolicated["frames"]
+                ):
+                    original_frame.update(symbolicated_frame)
+            break
+        except RetrySymbolication as e:
+            if (
+                time() - symbolication_start_time
+            ) > settings.SYMBOLICATOR_PROCESS_EVENT_HARD_TIMEOUT:
+                break
+            else:
+                sleep_time = (
+                    settings.SYMBOLICATOR_MAX_RETRY_AFTER
+                    if e.retry_after is None
+                    else min(e.retry_after, settings.SYMBOLICATOR_MAX_RETRY_AFTER)
+                )
+                sleep(sleep_time)
+                continue
+        except Exception:
+            break
+
+    # remove debug information we don't need anymore
+    profile.pop("debug_meta")
 
     # save the symbolicated frames on the profile
     profile["profile"] = profile["sampled_profile"]
@@ -144,7 +122,7 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
 
 def _deobfuscate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     debug_file_id = profile.get("build_id")
-    if debug_file_id == "" or debug_file_id is None:
+    if debug_file_id is None or debug_file_id == "":
         return profile
 
     project = Project.objects.get_from_cache(id=profile["project_id"])

@@ -130,15 +130,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     const wrapper = mountModal({initialData, widget: mockWidget});
     await tick();
     expect(wrapper.find('QueryContainer').find('Link').props().to).toEqual(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/discover/results/',
-        query: expect.objectContaining({
-          field: ['count()', 'failure_count()'],
-          name: 'Test Widget',
-          query: 'title:/organizations/:orgId/performance/summary/',
-          yAxis: ['count()', 'failure_count()'],
-        }),
-      })
+      '/organizations/org-slug/discover/results/?field=count%28%29&field=failure_count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
     wrapper.unmount();
   });
@@ -149,15 +141,9 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     mockWidget.displayType = DisplayType.WORLD_MAP;
     const wrapper = mountModal({initialData, widget: mockWidget});
     await tick();
-    expect(wrapper.find('QueryContainer').find('Link').props().to).toEqual({
-      pathname: '/organizations/org-slug/discover/results/',
-      query: expect.objectContaining({
-        field: ['geo.country_code', 'count()'],
-        name: 'Test Widget',
-        query: 'title:/organizations/:orgId/performance/summary/ has:geo.country_code',
-        yAxis: ['count()'],
-      }),
-    });
+    expect(wrapper.find('QueryContainer').find('Link').props().to).toEqual(
+      '/organizations/org-slug/discover/results/?display=worldmap&field=geo.country_code&field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F%20has%3Ageo.country_code&statsPeriod=14d&yAxis=count%28%29'
+    );
     wrapper.unmount();
   });
 });

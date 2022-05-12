@@ -2,7 +2,10 @@ import last from 'lodash/last';
 import memoize from 'lodash/memoize';
 import type {eventWithTime} from 'rrweb/typings/types';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {
+  MemorySpanType,
+  RawSpanType,
+} from 'sentry/components/events/interfaces/spans/types';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -122,7 +125,7 @@ export default class ReplayReader {
     return this.getEntryType(EntryType.SPANS)?.data as RawSpanType[];
   };
 
-  isMemorySpan = (span: RawSpanType) => {
+  isMemorySpan = (span: RawSpanType): span is MemorySpanType => {
     return span.op === 'memory';
   };
 
