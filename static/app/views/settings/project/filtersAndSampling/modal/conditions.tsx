@@ -65,7 +65,6 @@ function Conditions({
           category === DynamicSamplingInnerName.EVENT_RELEASE ||
           category === DynamicSamplingInnerName.EVENT_TRANSACTION ||
           category === DynamicSamplingInnerName.EVENT_OS_NAME ||
-          category === DynamicSamplingInnerName.EVENT_OS_VERSION ||
           category === DynamicSamplingInnerName.EVENT_DEVICE_FAMILY ||
           category === DynamicSamplingInnerName.EVENT_DEVICE_NAME ||
           category === DynamicSamplingInnerName.EVENT_CUSTOM_TAG ||
