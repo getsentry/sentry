@@ -301,6 +301,7 @@ invalid_payloads = [
             "project_id": 3,
         },
         "invalid_tags",
+        True,
     ),
     (
         {
@@ -316,24 +317,50 @@ invalid_payloads = [
             "project_id": 3,
         },
         "invalid_metric_name",
+        True,
+    ),
+    (
+        b"invalid_json_payload",
+        "invalid_json",
+        False,
     ),
 ]
 
 
-@pytest.mark.parametrize("invalid_payload, error_text", invalid_payloads)
-def test_process_messages_invalid_messages(invalid_payload, error_text, caplog) -> None:
+@pytest.mark.parametrize("invalid_payload, error_text, format_payload", invalid_payloads)
+def test_process_messages_invalid_messages(
+    invalid_payload, error_text, format_payload, caplog
+) -> None:
     """
-    Invalid messages
+    Test the following kinds of invalid payloads:
+        * tag key > 200 char
+        * metric name > 200 char
+        * invalid json
+
+    Each outer_message that is passed into process_messages is a batch of messages. If
+    there is an invalid payload for one of the messages, we just drop that message,
+    not the entire batch.
+
+    The `counter_payload` in these tests is always a valid payload, and the test arg
+    `invalid_payload` has a payload that fits the scenarios outlined above.
+
     """
-    message_payloads = [counter_payload, invalid_payload]
+    formatted_payload = (
+        json.dumps(invalid_payload).encode("utf-8") if format_payload else invalid_payload
+    )
     message_batch = [
         Message(
             Partition(Topic("topic"), 0),
-            i + 1,
-            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+            0,
+            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
             datetime.now(),
-        )
-        for i, payload in enumerate(message_payloads)
+        ),
+        Message(
+            Partition(Topic("topic"), 0),
+            1,
+            KafkaPayload(None, formatted_payload, []),
+            datetime.now(),
+        ),
     ]
     # the outer message uses the last message's partition, offset, and timestamp
     last = message_batch[-1]
