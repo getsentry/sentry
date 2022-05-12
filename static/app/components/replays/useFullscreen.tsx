@@ -44,17 +44,15 @@ interface FullscreenHook {
 
 // TODO(replay): move into app/utils/*
 export default function useFullscreen(): FullscreenHook {
-  const ref = useRef(null) as MutableRefObject<null | HTMLDivElement>;
+  const ref = useRef<null | HTMLDivElement>(null);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  const enter = useCallback(
-    async (opts: FullscreenOptions = {navigationUI: 'auto'}) => {
-      if (screenfull.isEnabled && ref.current) {
-        await screenfull.request(ref.current, opts);
-      }
-    },
-    [ref.current]
-  );
+  const enter = useCallback(async (opts: FullscreenOptions = {navigationUI: 'auto'}) => {
+    if (screenfull.isEnabled && ref.current) {
+      await screenfull.request(ref.current, opts);
+    }
+  }, []);
 
   const exit = useCallback(async () => {
     if (screenfull.isEnabled) {
@@ -74,7 +72,7 @@ export default function useFullscreen(): FullscreenHook {
   useEffect(() => {
     screenfull.on('change', onChange);
     return () => screenfull.off('change', onChange);
-  }, [screenfull]);
+  }, []);
 
   return {
     enter,
