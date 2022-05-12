@@ -24,7 +24,6 @@ class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
     notification_setting_type: NotificationSettingTypes | None = None
-    metrics_key: str = ""
     analytics_event: str = ""
     referrer_base: str = ""
 
@@ -35,8 +34,14 @@ class BaseNotification(abc.ABC):
     def from_email(self) -> str | None:
         return None
 
-    def get_category(self) -> str:
-        raise NotImplementedError
+    @property
+    @abc.abstractmethod
+    def metrics_key(self) -> str:
+        """
+        When we want to collect analytics about this type of notification, we
+        will use this key. This MUST be snake_case.
+        """
+        pass
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {}
@@ -91,9 +96,6 @@ class BaseNotification(abc.ABC):
     def get_message_description(self, recipient: Team | User) -> Any:
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
-
-    def get_type(self) -> str:
-        raise NotImplementedError
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
