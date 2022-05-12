@@ -165,23 +165,32 @@ def get_features_for_projects(
     return features_by_project
 
 
-class ProjectSerializerResponse(TypedDict):
+class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
+    stats: Any
+    transactionStats: Any
+    sessionStats: Any
+
+
+class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     id: str
-    slug: str
     name: str  # TODO: add deprecation about this field (not used in app)
-    isPublic: bool
+    slug: str
     isBookmarked: bool
-    color: str
-    dateCreated: datetime
-    firstEvent: datetime
-    firstTransactionEvent: bool
-    hasSessions: bool
-    features: List[str]
-    status: str  # TODO enum/literal
-    platform: str
-    isInternal: bool
     isMember: bool
     hasAccess: bool
+    dateCreated: datetime
+    features: List[str]
+    firstTransactionEvent: bool
+    hasSessions: bool
+    platform: Optional[str]
+    firstEvent: Optional[datetime]
+
+
+class ProjectSerializerResponse(ProjectSerializerBaseResponse):
+    isPublic: bool
+    color: str
+    status: str  # TODO enum/literal
+    isInternal: bool
     avatar: Any  # TODO: use Avatar type from other serializers
 
 
@@ -494,31 +503,18 @@ class LatestReleaseDict(TypedDict):
     version: str
 
 
-class _OrganizationProjectResponseDictOptional(TypedDict, total=False):
+class _OrganizationProjectOptionalResponse(TypedDict, total=False):
     latestDeploys: Optional[Dict[str, Dict[str, str]]]
-    stats: Any
-    transactionStats: Any
-    sessionStats: Any
 
 
-class OrganizationProjectResponseDict(_OrganizationProjectResponseDictOptional):
+class OrganizationProjectResponse(
+    _OrganizationProjectOptionalResponse, ProjectSerializerBaseResponse
+):
     team: Optional[TeamResponseDict]
     teams: List[TeamResponseDict]
-    id: str
-    name: str
-    slug: str
-    isBookmarked: bool
-    isMember: bool
-    hasAccess: bool
-    dateCreated: str
     eventProcessing: EventProcessingDict
-    features: List[str]
-    firstTransactionEvent: bool
-    hasSessions: bool
-    platform: Optional[str]
     platforms: List[str]
     hasUserReports: bool
-    firstEvent: Optional[str]
     environments: List[str]
     latestRelease: Optional[LatestReleaseDict]
 
@@ -620,8 +616,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user) -> OrganizationProjectResponseDict:  # type: ignore
-        context = OrganizationProjectResponseDict(
+    def serialize(self, obj, attrs, user) -> OrganizationProjectResponse:  # type: ignore
+        context = OrganizationProjectResponse(
             team=attrs["teams"][0] if attrs["teams"] else None,
             teams=attrs["teams"],
             id=str(obj.id),
