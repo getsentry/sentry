@@ -393,5 +393,5 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 register("kafka.send-project-events-to-random-partitions", default=[])
 
 # Mechanism for dialing up the last-seen-updater, which isn't needed outside
-# of SaaS
+# of SaaS (last_seen is a marker for deleting stale customer data)
 register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
