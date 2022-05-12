@@ -87,6 +87,11 @@ function Conditions({
                     onChange(index, 'category', addCustomTagPrefix(value))
                   }
                   value={stripCustomTagPrefix(category)}
+                  disabledOptions={conditions
+                    .filter(
+                      cond => isCustomTagName(cond.category) && cond.category !== category
+                    )
+                    .map(cond => stripCustomTagPrefix(cond.category))}
                 />
               ) : (
                 <span>

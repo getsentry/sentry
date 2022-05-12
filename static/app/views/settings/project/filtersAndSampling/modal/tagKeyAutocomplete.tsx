@@ -8,6 +8,7 @@ import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
+  disabledOptions: string[];
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
@@ -17,7 +18,13 @@ type Props = {
 /**
  * This component is used for the autocomplete of custom tag key
  */
-function TagKeyAutocomplete({onChange, orgSlug, projectSlug, value}: Props) {
+function TagKeyAutocomplete({
+  onChange,
+  orgSlug,
+  projectSlug,
+  value,
+  disabledOptions,
+}: Props) {
   const [tags, setTags] = useState<Tag[]>([]);
   const api = useApi();
 
@@ -52,6 +59,7 @@ function TagKeyAutocomplete({onChange, orgSlug, projectSlug, value}: Props) {
       <SelectField
         name="customTagKey"
         options={options}
+        isOptionDisabled={option => disabledOptions.includes(option.value)}
         inline={false}
         stacked
         hideControlState
