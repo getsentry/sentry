@@ -304,7 +304,18 @@ def test_process_messages_invalid_messages(
     invalid_payload, error_text, format_payload, caplog
 ) -> None:
     """
-    Invalid messages
+    Test the following kinds of invalid payloads:
+        * tag key > 200 char
+        * metric name > 200 char
+        * invalid json
+
+    Each outer_message that is passed into process_messages is a batch of messages. If
+    there is an invalid payload for one of the messages, we just drop that message,
+    not the entire batch.
+
+    The `counter_payload` in these tests is always a valid payload, and the test arg
+    `invalid_payload` has a payload that fits the scenarios outlined above.
+
     """
     formatted_payload = (
         json.dumps(invalid_payload).encode("utf-8") if format_payload else invalid_payload

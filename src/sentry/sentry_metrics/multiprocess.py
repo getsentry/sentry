@@ -395,6 +395,7 @@ def process_messages(
                 skipped_offsets.add(msg.offset)
                 logger.error(
                     "process_messages.invalid_json",
+                    extra={"payload_value": str(msg.payload.value)},
                     exc_info=True,
                 )
                 continue
