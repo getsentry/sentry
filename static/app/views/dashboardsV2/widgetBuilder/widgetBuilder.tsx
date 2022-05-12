@@ -318,10 +318,12 @@ function WidgetBuilder({
       ) {
         newLimit = DEFAULT_RESULTS_LIMIT;
 
-        // Truncate queries to the last one
+        // Use the last aggregate because that's where the y-axis is stored
         queries = queries.map(query => ({
           ...query,
-          aggregates: [query.aggregates[query.aggregates.length - 1]],
+          aggregates: query.aggregates.length
+            ? [query.aggregates[query.aggregates.length - 1]]
+            : [],
         }));
       }
 
