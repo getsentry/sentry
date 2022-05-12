@@ -170,6 +170,7 @@ def build_metric_alert_chart(
     end: Optional[str] = None,
     user: Optional["User"] = None,
 ):
+    """Builds the dataset required for metric alert chart the same way the frontend would"""
     is_crash_free_alert = alert_rule.snuba_query.dataset in {
         Dataset.Sessions.value,
         Dataset.Metrics.value,

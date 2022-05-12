@@ -1,5 +1,16 @@
 from abc import ABC
-from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple, TypedDict
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    TypedDict,
+    cast,
+)
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -58,12 +69,12 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def _build_blocks(*args: SlackBlock, color: Optional[str] = None) -> SlackBody:
-        blocks: SlackBody = {"blocks": list(args)}
+        blocks: MutableMapping[str, Any] = {"blocks": list(args)}
 
         if color:
             blocks["color"] = color
 
-        return blocks
+        return cast(SlackBody, blocks)
 
     def as_payload(self) -> Mapping[str, Any]:
         return self.build()  # type: ignore

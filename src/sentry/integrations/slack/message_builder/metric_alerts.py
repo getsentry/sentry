@@ -49,7 +49,7 @@ class SlackMetricAlertMessageBuilder(BlockSlackMessageBuilder):
         if self.chart_url:
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
 
-        color = LEVEL_TO_COLOR[INCIDENT_COLOR_MAPPING.get(data["status"])]
+        color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
         return self._build_blocks(
             *blocks,
             color=color,
