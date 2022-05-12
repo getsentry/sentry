@@ -25,8 +25,10 @@ type Props = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isLastSibling: boolean;
   occurrence: number;
+  onWheel: (deltaX: number) => void;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
@@ -45,6 +47,8 @@ export default function SpanSiblingGroupBar(props: Props) {
     spanNumber,
     occurrence,
     toggleSiblingSpanGroup,
+    onWheel,
+    generateContentSpanBarRef,
   } = props;
 
   function renderGroupSpansTitle(): React.ReactNode {
@@ -135,6 +139,8 @@ export default function SpanSiblingGroupBar(props: Props) {
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}
       renderSpanRectangles={renderSpanRectangles}
+      onWheel={onWheel}
+      generateContentSpanBarRef={generateContentSpanBarRef}
     />
   );
 }
