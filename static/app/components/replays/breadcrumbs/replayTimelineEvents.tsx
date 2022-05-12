@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from '@emotion/styled';
+import first from 'lodash/first';
 
 import Icon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
@@ -34,7 +35,7 @@ function ReplayTimelineEvents({
     <EventColumns className={className} totalColumns={totalColumns} remainder={0}>
       {Array.from(eventsByCol.entries()).map(([column, breadcrumbs]) => (
         <EventColumn key={column} column={column}>
-          <Icons crumbs={breadcrumbs} />
+          <Event crumbs={breadcrumbs} />
         </EventColumn>
       ))}
     </EventColumns>
@@ -50,32 +51,41 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
   grid-column: ${p => Math.floor(p.column)};
   place-items: stretch;
   display: grid;
+
+  &:hover {
+    z-index: ${p => p.theme.zIndex.initial};
+  }
 `;
 
-function ColumnIcons({crumbs, className}: {crumbs: Crumb[]; className?: string}) {
+function Event({crumbs}: {crumbs: Crumb[]; className?: string}) {
+  const breadcrumb = first(crumbs);
+  if (!breadcrumb) {
+    return null;
+  }
+
+  const icon = crumbs.length === 1 ? <Icon type={breadcrumb.type} /> : crumbs.length;
+
   return (
-    <div className={className}>
-      {crumbs.map(breadcrumb => (
-        <Tooltip
-          key={breadcrumb.id}
-          title={`${breadcrumb.category}: ${breadcrumb.message}`}
-          skipWrapper
-          disableForVisualTest
-        >
-          <IconWrapper color={breadcrumb.color}>
-            <Icon type={breadcrumb.type} />
-          </IconWrapper>
-        </Tooltip>
-      ))}
-    </div>
+    <IconPosition>
+      <Tooltip
+        key={breadcrumb.id}
+        title={`${breadcrumb.category}: ${breadcrumb.message}`}
+        skipWrapper
+        disableForVisualTest
+      >
+        <IconNode color={breadcrumb.color}>{icon}</IconNode>
+      </Tooltip>
+    </IconPosition>
   );
 }
 
-const Icons = styled(ColumnIcons)`
+const IconPosition = styled('div')`
   position: absolute;
   transform: translate(-50%);
 `;
-const IconWrapper = styled('div')<{color: Color}>`
+
+const IconNode = styled('div')<{color: Color}>`
+  font-size: ${p => p.theme.fontSizeSmall};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -86,7 +96,6 @@ const IconWrapper = styled('div')<{color: Color}>`
   background: ${p => p.theme[p.color] ?? p.color};
   border: 1px solid ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowLightest};
-  position: relative;
 `;
 
 export default ReplayTimelineEvents;
