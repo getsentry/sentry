@@ -11,7 +11,7 @@ from sentry.utils.kafka_config import (
 )
 
 settings.KAFKA_CLUSTERS["default"] = {
-    "common": {"bootstrap.servers": os.environ.get("SENTRY_KAFKA_HOSTS", "localhost:9092")},
+    "common": {"bootstrap.servers": os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")},
 }
 
 
