@@ -3,7 +3,11 @@ import {transformSessionsResponseToTable} from 'sentry/views/dashboardsV2/widget
 describe('transformSessionsResponseToTable', function () {
   it('transforms sessions into table', () => {
     expect(
-      transformSessionsResponseToTable(TestStubs.SessionUserCountByStatusByRelease())
+      transformSessionsResponseToTable(
+        TestStubs.SessionUserCountByStatusByRelease(),
+        [],
+        []
+      )
     ).toEqual({
       data: [
         {

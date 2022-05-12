@@ -3,7 +3,11 @@ import {transformSessionsResponseToSeries} from 'sentry/views/dashboardsV2/widge
 describe('transformSessionsResponseToSeries', function () {
   it('transforms sessions into series', () => {
     expect(
-      transformSessionsResponseToSeries(TestStubs.SessionUserCountByStatusByRelease())
+      transformSessionsResponseToSeries(
+        TestStubs.SessionUserCountByStatusByRelease(),
+        [],
+        []
+      )
     ).toEqual([
       {
         seriesName: 'crashed, 1 : sum(session)',
@@ -316,6 +320,8 @@ describe('transformSessionsResponseToSeries', function () {
     expect(
       transformSessionsResponseToSeries(
         TestStubs.SessionUserCountByStatusByRelease(),
+        [],
+        [],
         'Lorem'
       )[0]
     ).toEqual(
