@@ -118,17 +118,12 @@ class GroupTags extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const hasPageFilters =
-      this.props.organization.features.includes('selection-filters-v2');
-
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          {hasPageFilters && (
-            <FilterSection>
-              <EnvironmentPageFilter />
-            </FilterSection>
-          )}
+          <FilterSection>
+            <EnvironmentPageFilter />
+          </FilterSection>
           <Alert type="info">
             {tct(
               'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
