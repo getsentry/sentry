@@ -6,12 +6,12 @@ import sentry_sdk
 from django.utils import timezone
 from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError
+from snuba_sdk import Flags, Request
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, BooleanCondition, Condition, Op, Or
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity, Limit, Offset
-from snuba_sdk.flags import Turbo
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
@@ -129,7 +129,7 @@ class QueryBuilder:
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
-        self.turbo = Turbo(turbo)
+        self.turbo = turbo
         self.sample_rate = sample_rate
 
         (
@@ -1124,22 +1124,25 @@ class QueryBuilder:
         """
         return self.function_alias_map[function.alias].field  # type: ignore
 
-    def get_snql_query(self) -> Query:
+    def get_snql_query(self) -> Request:
         self.validate_having_clause()
 
-        return Query(
+        return Request(
             dataset=self.dataset.value,
-            match=Entity(self.dataset.value, sample=self.sample_rate),
-            select=self.columns,
-            array_join=self.array_join,
-            where=self.where,
-            having=self.having,
-            groupby=self.groupby,
-            orderby=self.orderby,
-            limit=self.limit,
-            offset=self.offset,
-            limitby=self.limitby,
-            turbo=self.turbo,
+            app_id="default",
+            query=Query(
+                match=Entity(self.dataset.value, sample=self.sample_rate),
+                select=self.columns,
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=self.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                limitby=self.limitby,
+            ),
+            flags=Flags(turbo=self.turbo),
         )
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
@@ -1248,17 +1251,20 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         # Casting for now since QueryFields/QueryFilter are only partially typed
         return self.aggregates
 
-    def get_snql_query(self) -> Query:
-        return Query(
+    def get_snql_query(self) -> Request:
+        return Request(
             dataset=self.dataset.value,
-            match=Entity(self.dataset.value),
-            select=self.select,
-            where=self.where,
-            having=self.having,
-            groupby=self.groupby,
-            orderby=[OrderBy(self.time_column, Direction.ASC)],
-            granularity=self.granularity,
-            limit=self.limit,
+            app_id="default",
+            query=Query(
+                match=Entity(self.dataset.value),
+                select=self.select,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=[OrderBy(self.time_column, Direction.ASC)],
+                granularity=self.granularity,
+                limit=self.limit,
+            ),
         )
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
@@ -1883,7 +1889,6 @@ class MetricsQueryBuilder(QueryBuilder):
                     referrer_suffix = "primary"
 
                 query = Query(
-                    dataset=self.dataset.value,
                     match=query_details.entity,
                     select=select,
                     array_join=self.array_join,
@@ -1894,10 +1899,15 @@ class MetricsQueryBuilder(QueryBuilder):
                     limit=self.limit,
                     offset=offset,
                     limitby=self.limitby,
-                    turbo=self.turbo,
+                )
+                request = Request(
+                    dataset=self.dataset.value,
+                    app_id="default",
+                    query=query,
+                    flags=Flags(turbo=self.turbo),
                 )
                 current_result = raw_snql_query(
-                    query,
+                    request,
                     f"{referrer}.{referrer_suffix}",
                     use_cache,
                 )
@@ -2011,7 +2021,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             self.time_alias,
         )
 
-    def get_snql_query(self) -> List[Query]:
+    def get_snql_query(self) -> List[Request]:
         """Because of the way metrics are structured a single request can result in >1 snql query
 
         This is because different functions will use different entities
@@ -2019,20 +2029,23 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         # No need for primary from the query framework since there's no orderby to worry about
         _, query_framework = self._create_query_framework()
 
-        queries: List[Query] = []
+        queries: List[Request] = []
         for query_details in query_framework.values():
             if len(query_details.functions) > 0:
                 queries.append(
-                    Query(
+                    Request(
                         dataset=self.dataset.value,
-                        match=query_details.entity,
-                        select=query_details.functions,
-                        where=self.where,
-                        having=self.having,
-                        groupby=self.groupby,
-                        orderby=[OrderBy(self.time_column, Direction.ASC)],
-                        granularity=self.granularity,
-                        limit=self.limit,
+                        app_id="default",
+                        query=Query(
+                            match=query_details.entity,
+                            select=query_details.functions,
+                            where=self.where,
+                            having=self.having,
+                            groupby=self.groupby,
+                            orderby=[OrderBy(self.time_column, Direction.ASC)],
+                            granularity=self.granularity,
+                            limit=self.limit,
+                        ),
                     )
                 )
 

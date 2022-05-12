@@ -654,7 +654,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           fields: ['sdk.name', 'count()'],
           aggregates: ['count()'],
           columns: ['sdk.name'],
-          orderby: 'count',
+          orderby: 'count()',
         },
       ],
     };

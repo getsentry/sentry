@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest.mock import patch
 from urllib.parse import urlencode
 
+import pytest
 import pytz
 
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
@@ -87,6 +88,7 @@ class PerformanceSpanSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
         return self.store_event(data, project_id=self.project.id)
 
+    @pytest.mark.skip(reason="Has been flaky lately.")
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
         mock_now.return_value = before_now().replace(tzinfo=pytz.utc)

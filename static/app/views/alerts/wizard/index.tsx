@@ -49,7 +49,10 @@ const DEFAULT_ALERT_OPTION = 'issues';
 
 class AlertWizard extends Component<Props, State> {
   state: State = {
-    alertOption: DEFAULT_ALERT_OPTION,
+    alertOption:
+      this.props.location.query.alert_option in AlertWizardAlertNames
+        ? this.props.location.query.alert_option
+        : DEFAULT_ALERT_OPTION,
   };
 
   componentDidMount() {
