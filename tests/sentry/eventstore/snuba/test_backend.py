@@ -168,21 +168,48 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert self.eventstore.get_next_event_id(None, filter=_filter) is None
 
     def test_next_prev_event_id_same_timestamp(self):
-        _filter = Filter(project_ids=[self.project2.id])
+        project = self.create_project()
 
-        event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
+        # the two events are in the same group and have the same timestamp
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group"],
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        _filter = Filter(
+            project_ids=[project.id],
+            conditions=[["event.type", "!=", "transaction"]],
+            group_ids=[event.group_id],
+        )
+
+        event = self.eventstore.get_event_by_id(project.id, "a" * 32)
 
         prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
         next_event = self.eventstore.get_next_event_id(event, filter=_filter)
         assert prev_event is None
-        assert next_event == (str(self.project2.id), "c" * 32)
+        assert next_event == (str(project.id), "b" * 32)
 
-        event = self.eventstore.get_event_by_id(self.project2.id, "c" * 32)
+        event = self.eventstore.get_event_by_id(project.id, "b" * 32)
 
         prev_event = self.eventstore.get_prev_event_id(event, filter=_filter)
         next_event = self.eventstore.get_next_event_id(event, filter=_filter)
-        assert prev_event == (str(self.project2.id), "b" * 32)
-        assert next_event == (str(self.project2.id), "d" * 32)
+        assert prev_event == (str(project.id), "a" * 32)
+        assert next_event is None
 
     def test_get_latest_or_oldest_event_id(self):
         # Returns a latest/oldest event
