@@ -146,19 +146,27 @@ function useReplayData({eventSlug, orgId}: Options): Result {
       setState(INITIAL_STATE);
 
       try {
-        const [event, rrwebEvents, replayEvents] = await Promise.all([
-          fetchEvent(),
-          fetchRRWebEvents(),
-          fetchReplayEvents(),
+        const promises = Promise.all([
+          fetchEvent().then((event: EventTransaction) => {
+            setState(prev => ({...prev, event}));
+          }),
+
+          fetchReplayEvents().then((replayEvents: Event[]) => {
+            setState(prev => ({...prev, replayEvents}));
+          }),
+
+          fetchRRWebEvents().then((rrwebEvents: eventWithTime[]) => {
+            setState(prev => ({...prev, rrwebEvents}));
+          }),
         ]);
 
-        setState({
-          event,
+        await promises;
+
+        setState(prev => ({
+          ...prev,
           fetchError: undefined,
           fetching: false,
-          replayEvents,
-          rrwebEvents,
-        });
+        }));
       } catch (error) {
         Sentry.captureException(error);
         setState({

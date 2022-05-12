@@ -20,9 +20,9 @@ export default class ReplayReader {
     rrwebEvents: eventWithTime[] | undefined,
     replayEvents: Event[] | undefined
   ) {
-    if (!event || !rrwebEvents || !replayEvents) {
-      return null;
-    }
+    // if (!event || !rrwebEvents || !replayEvents) {
+    // return null;
+    // }
     return new ReplayReader(event, rrwebEvents, replayEvents);
   }
 
@@ -30,18 +30,18 @@ export default class ReplayReader {
     /**
      * The root Replay event, created at the start of the browser session.
      */
-    private _event: EventTransaction,
+    private _event: EventTransaction | undefined,
 
     /**
      * The captured data from rrweb.
      * Saved as N attachments that belong to the root Replay event.
      */
-    private _rrwebEvents: eventWithTime[],
+    private _rrwebEvents: eventWithTime[] | undefined,
 
     /**
      * Regular Sentry SDK events that occurred during the rrweb session.
      */
-    private _replayEvents: Event[]
+    private _replayEvents: Event[] | undefined
   ) {}
 
   /**
@@ -80,6 +80,10 @@ export default class ReplayReader {
   getRRWebEvents = memoize(() => {
     const spans = this.getRawSpans();
 
+    if (!spans || !this._rrwebEvents) {
+      return null;
+    }
+
     // Find LCP spans that have a valid replay node id, this will be used to
     const highlights = createHighlightEvents(spans);
 
@@ -105,6 +109,10 @@ export default class ReplayReader {
   });
 
   getEntryType = memoize((type: EntryType) => {
+    if (!this._replayEvents) {
+      return null;
+    }
+
     switch (type) {
       case EntryType.BREADCRUMBS:
         return mergeBreadcrumbEntries(this._replayEvents);

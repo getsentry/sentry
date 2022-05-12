@@ -48,7 +48,8 @@ function ReplayDetails() {
     );
   }
 
-  if (!fetching && replay && replay.getRRWebEvents().length < 2) {
+  const rrwebEvents = replay && replay.getRRWebEvents();
+  if (!fetching && rrwebEvents && rrwebEvents.length < 2) {
     return (
       <DetailLayout event={replay.getEvent()} orgId={orgId}>
         <DetailedError

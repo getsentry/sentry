@@ -181,7 +181,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
 
   const initRoot = useCallback(
     (root: RootElem) => {
-      if (events === undefined) {
+      if (!events) {
         return;
       }
 
@@ -348,7 +348,10 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   }
 
   const event = replay?.getEvent();
-  const duration = event ? (event.endTimestamp - event.startTimestamp) * 1000 : -1;
+  const duration =
+    event?.endTimestamp && event?.startTimestamp
+      ? (event.endTimestamp - event.startTimestamp) * 1000
+      : undefined;
 
   return (
     <ReplayPlayerContext.Provider

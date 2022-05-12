@@ -84,7 +84,7 @@ const HeaderPlaceholder = styled(function HeaderPlaceholder(
 `;
 
 function EventHeader({event}: Pick<Props, 'event'>) {
-  if (!event) {
+  if (!event || !event.tags) {
     return <HeaderPlaceholder width="500px" height="48px" />;
   }
 

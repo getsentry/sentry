@@ -21,7 +21,7 @@ type Props = {
 };
 
 function getBreadcrumbsByCategory(breadcrumbEntry: Entry, categories: string[]) {
-  return breadcrumbEntry.data.values.filter(breadcrumb =>
+  return breadcrumbEntry?.data.values.filter(breadcrumb =>
     categories.includes(breadcrumb.category)
   );
 }
@@ -36,7 +36,7 @@ function FocusArea({replay}: Props) {
   // Memoize this because re-renders will interfere with the mouse state of the
   // chart (e.g. on mouse over and out)
   const memorySpans = useMemo(() => {
-    return replay?.getRawSpans().filter(replay.isMemorySpan);
+    return replay && replay.getRawSpans()?.filter(replay.isMemorySpan);
   }, [replay]);
 
   if (!replay || !memorySpans) {
@@ -49,16 +49,24 @@ function FocusArea({replay}: Props) {
   switch (active) {
     case 'console':
       const breadcrumbEntry = replay?.getEntryType(EntryType.BREADCRUMBS);
-      const consoleMessages = getBreadcrumbsByCategory(breadcrumbEntry, [
-        'console',
-        'error',
-      ]);
+      const consoleMessages =
+        breadcrumbEntry &&
+        getBreadcrumbsByCategory(breadcrumbEntry, ['console', 'error']);
+
+      if (!consoleMessages) {
+        return <Placeholder height="150px" />;
+      }
+
       return (
         <div id="console">
           <Console breadcrumbs={consoleMessages ?? []} orgSlug={organization.slug} />
         </div>
       );
     case 'performance': {
+      if (!spansEntry) {
+        return <Placeholder height="150px" />;
+      }
+
       const nonMemorySpansEntry = {
         ...spansEntry,
         data: spansEntry.data.filter(replay.isNotMemorySpan),

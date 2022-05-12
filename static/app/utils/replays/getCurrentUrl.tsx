@@ -13,6 +13,10 @@ function getCurrentUrl(replay: ReplayReader, currentTime: number) {
   const event = replay.getEvent();
   const crumbs = replay.getRawCrumbs();
 
+  if (!event || !crumbs) {
+    return '';
+  }
+
   const currentOffsetMs = Math.floor(currentTime);
   const startTimestampMs = event.startTimestamp * 1000;
   const currentTimeMs = startTimestampMs + currentOffsetMs;
