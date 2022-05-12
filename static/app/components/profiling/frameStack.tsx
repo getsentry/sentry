@@ -66,7 +66,7 @@ function FrameRow({
     initialOpen ?? false
   );
 
-  const color = flamegraphRenderer.getColorForFrame(frame.frame);
+  const color = flamegraphRenderer.getColorForFrame(frame);
 
   const colorString =
     color.length === 4

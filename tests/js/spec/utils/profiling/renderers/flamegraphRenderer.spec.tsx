@@ -6,11 +6,13 @@ import {
   makeFlamegraph,
 } from 'sentry-test/profiling/utils';
 
-import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {
+  LightFlamegraphTheme,
+  LightFlamegraphTheme as theme,
+} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Frame} from 'sentry/utils/profiling/frame';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
@@ -123,12 +125,21 @@ describe('flamegraphRenderer', () => {
       theme
     );
 
-    expect(renderer.getColorForFrame(flamegraph.frames[0].frame)).toEqual([
+    expect(renderer.getColorForFrame(flamegraph.frames[0])).toEqual([
       0.9750000000000001, 0.7250000000000001, 0.7250000000000001,
     ]);
-    expect(renderer.getColorForFrame(new Frame({key: 20, name: 'Unknown'}))).toEqual(
-      theme.COLORS.FRAME_FALLBACK_COLOR
-    );
+    expect(
+      renderer.getColorForFrame({
+        key: 20,
+        frame: flamegraph.frames[0].frame,
+        node: flamegraph.frames[0].node,
+        parent: null,
+        children: [],
+        depth: 0,
+        start: 0,
+        end: 0,
+      })
+    ).toEqual(LightFlamegraphTheme.COLORS.FRAME_FALLBACK_COLOR);
   });
 
   it('getHoveredNode', () => {
