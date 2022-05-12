@@ -170,8 +170,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def test_next_prev_event_id_same_timestamp(self):
         project = self.create_project()
 
-        # the two events are in the same group and have the same timestamp
-        event = self.store_event(
+        event1 = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "type": "default",
@@ -181,7 +180,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
             },
             project_id=project.id,
         )
-        self.store_event(
+        event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
                 "type": "default",
@@ -191,10 +190,16 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
             },
             project_id=project.id,
         )
+
+        # the 2 events should be in the same group
+        assert event1.group_id == event2.group_id
+        # the 2 events should have the same timestamp
+        assert event1.datetime == event2.datetime
+
         _filter = Filter(
             project_ids=[project.id],
             conditions=[["event.type", "!=", "transaction"]],
-            group_ids=[event.group_id],
+            group_ids=[event1.group_id],
         )
 
         event = self.eventstore.get_event_by_id(project.id, "a" * 32)
