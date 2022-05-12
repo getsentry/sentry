@@ -165,9 +165,7 @@ class UnfurlTest(TestCase):
             == SlackMetricAlertMessageBuilder(incident.alert_rule, incident).build()
         )
 
-    @patch(
-        "sentry.integrations.slack.unfurl.metric_alerts.generate_chart", return_value="chart-url"
-    )
+    @patch("sentry.charts.metric_alerts.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart(self, mock_generate_chart):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
@@ -204,12 +202,15 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
 
-        assert unfurls[links[0].url] == SlackMetricAlertMessageBuilder(alert_rule, incident).build()
+        assert (
+            unfurls[links[0].url]
+            == SlackMetricAlertMessageBuilder(alert_rule, incident, chart_url="chart-url").build()
+        )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["rule"]["id"] == str(alert_rule.id)
         assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
-        assert chart_data["timeseriesData"]["data"] == []
+        assert len(chart_data["timeseriesData"][0]["data"]) == 2
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch("sentry.charts.metric_alerts.generate_chart", return_value="chart-url")
@@ -248,7 +249,10 @@ class UnfurlTest(TestCase):
         ):
             unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
 
-        assert unfurls[links[0].url] == SlackMetricAlertMessageBuilder(alert_rule).build()
+        assert (
+            unfurls[links[0].url]
+            == SlackMetricAlertMessageBuilder(alert_rule, chart_url="chart-url").build()
+        )
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["rule"]["id"] == str(alert_rule.id)
