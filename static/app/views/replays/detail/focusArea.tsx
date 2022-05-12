@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
+import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TagsTable from 'sentry/components/tagsTable';
 import type {Entry, Event} from 'sentry/types/event';
@@ -16,7 +17,7 @@ import Trace from './trace';
 import useActiveTabFromLocation from './useActiveTabFromLocation';
 
 type Props = {
-  replay: ReplayReader;
+  replay: ReplayReader | null;
 };
 
 function getBreadcrumbsByCategory(breadcrumbEntry: Entry, categories: string[]) {
@@ -32,18 +33,22 @@ function FocusArea({replay}: Props) {
     useReplayContext();
   const organization = useOrganization();
 
-  const event = replay.getEvent();
-  const spansEntry = replay.getEntryType(EntryType.SPANS);
-
   // Memoize this because re-renders will interfere with the mouse state of the
   // chart (e.g. on mouse over and out)
   const memorySpans = useMemo(() => {
-    return replay.getRawSpans().filter(replay.isMemorySpan);
+    return replay?.getRawSpans().filter(replay.isMemorySpan);
   }, [replay]);
+
+  if (!replay || !memorySpans) {
+    return <Placeholder height="150px" />;
+  }
+
+  const event = replay.getEvent();
+  const spansEntry = replay.getEntryType(EntryType.SPANS);
 
   switch (active) {
     case 'console':
-      const breadcrumbEntry = replay.getEntryType(EntryType.BREADCRUMBS);
+      const breadcrumbEntry = replay?.getEntryType(EntryType.BREADCRUMBS);
       const consoleMessages = getBreadcrumbsByCategory(breadcrumbEntry, [
         'console',
         'error',
@@ -102,7 +107,7 @@ function FocusArea({replay}: Props) {
           memorySpans={memorySpans}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
-          startTimestamp={event.startTimestamp}
+          startTimestamp={event?.startTimestamp}
         />
       );
     default:
