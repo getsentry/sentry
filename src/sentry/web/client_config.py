@@ -3,7 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from django.core.cache import cache
 from django.db.models import F
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 import sentry
 from sentry import features, options
