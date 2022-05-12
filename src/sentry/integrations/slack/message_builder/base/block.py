@@ -58,7 +58,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def _build_blocks(*args: SlackBlock, color: Optional[str] = None) -> SlackBody:
-        blocks = {"blocks": list(args)}
+        blocks: SlackBody = {"blocks": list(args)}
 
         if color:
             blocks["color"] = color

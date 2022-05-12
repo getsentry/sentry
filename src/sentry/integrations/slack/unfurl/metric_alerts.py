@@ -75,7 +75,7 @@ def unfurl_metric_alerts(
 
     orgs_by_slug: Dict[str, Organization] = {org.slug: org for org in all_integration_orgs}
 
-    result: UnfurledUrl = {}
+    result: Mapping[Any, Any] = {}
     for link in links:
         if link.args["alert_rule_id"] not in alert_rule_map:
             continue
