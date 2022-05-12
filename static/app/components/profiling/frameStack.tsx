@@ -1,6 +1,8 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/button';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
@@ -8,21 +10,14 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
-interface FrameStackProps {
-  canvasPoolManager: CanvasPoolManager;
+interface FrameCallTreeStackProps {
   flamegraphRenderer: FlamegraphRenderer;
+  roots: FlamegraphFrame[];
 }
 
-function FrameStack({flamegraphRenderer}: FrameStackProps) {
-  const theme = useFlamegraphTheme();
-  const {selectedNode} = useFlamegraphProfilesValue();
-
-  return selectedNode ? (
-    <FrameBar
-      style={{
-        height: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET * theme.SIZES.BAR_HEIGHT,
-      }}
-    >
+function FrameCallTreeStack({flamegraphRenderer, roots}: FrameCallTreeStackProps) {
+  return (
+    <FrameBar>
       <FrameCallersTable>
         <FrameCallersTableHeader>
           <tr>
@@ -32,12 +27,16 @@ function FrameStack({flamegraphRenderer}: FrameStackProps) {
           </tr>
         </FrameCallersTableHeader>
         <tbody>
-          <FrameRow
-            key={selectedNode?.frame?.key}
-            depth={0}
-            frame={selectedNode}
-            flamegraphRenderer={flamegraphRenderer}
-          />
+          {roots.map(r => {
+            return (
+              <FrameRow
+                key={r.key}
+                depth={0}
+                frame={r}
+                flamegraphRenderer={flamegraphRenderer}
+              />
+            );
+          })}
           {/* We add a row at the end with rowSpan so that we can have that nice border-right stretched over the entire table */}
           <tr>
             <FrameCallersTableCell rowSpan={100} />
@@ -47,7 +46,7 @@ function FrameStack({flamegraphRenderer}: FrameStackProps) {
         </tbody>
       </FrameCallersTable>
     </FrameBar>
-  ) : null;
+  );
 }
 
 function FrameRow({
@@ -115,7 +114,7 @@ function FrameRow({
       {open
         ? frame.children.map(c => (
             <FrameRow
-              key={c.frame.key}
+              key={c.key}
               initialOpen={forceOpenChildren ? open : undefined}
               frame={c}
               flamegraphRenderer={flamegraphRenderer}
@@ -127,12 +126,96 @@ function FrameRow({
   );
 }
 
+interface FrameStackProps {
+  canvasPoolManager: CanvasPoolManager;
+  flamegraphRenderer: FlamegraphRenderer;
+}
+
+function FrameStack(props: FrameStackProps) {
+  const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
+  const theme = useFlamegraphTheme();
+  const {selectedNode} = useFlamegraphProfilesValue();
+
+  const selectedNodeRoots = useMemo(() => {
+    return selectedNode ? [selectedNode] : [];
+  }, [selectedNode]);
+
+  return selectedNode ? (
+    <FrameDrawer
+      style={{
+        height: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT,
+      }}
+    >
+      <FrameTabs>
+        {/* <li className={tab === 'bottom up' ? 'active' : undefined}>
+          <Button priority="link" size="zero" onClick={() => setTab('bottom up')}>
+            {t('Bottom Up')}
+          </Button>
+        </li> */}
+        <li
+          onClick={() => setTab('call order')}
+          className={tab === 'call order' ? 'active' : undefined}
+        >
+          <Button priority="link" size="zero">
+            {t('Call Order')}
+          </Button>
+        </li>
+      </FrameTabs>
+
+      {tab === 'call order' ? (
+        <FrameCallTreeStack {...props} roots={selectedNodeRoots} />
+      ) : (
+        <FrameCallTreeStack {...props} roots={selectedNodeRoots} />
+      )}
+    </FrameDrawer>
+  ) : null;
+}
+
+const FrameDrawer = styled('div')`
+  display: flex;
+  flex-shrink: 0;
+  flex-direction: column;
+`;
+
+const FrameTabs = styled('ul')`
+  display: flex;
+  list-style-type: none;
+  padding: 0 ${space(1)};
+  margin: 0;
+  border-top: 1px solid ${prop => prop.theme.border};
+
+  > li {
+    font-size: ${p => p.theme.fontSizeSmall};
+    font-weight: bold;
+    margin-right: ${space(1)};
+
+    button {
+      border: none;
+      border-top: 2px solid transparent;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      margin: 0;
+      padding: ${space(0.5)} 0;
+      color: ${p => p.theme.textColor};
+
+      &:hover {
+        color: ${p => p.theme.textColor};
+      }
+    }
+
+    &.active button {
+      border-bottom: 2px solid ${prop => prop.theme.active};
+    }
+  }
+`;
+
 const FrameBar = styled('div')`
   overflow: auto;
   width: 100%;
   position: relative;
   background-color: ${p => p.theme.surface100};
   border-top: 1px solid ${p => p.theme.border};
+  flex: 1 1 100%;
 `;
 
 const FrameCallersTable = styled('table')`
