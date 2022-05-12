@@ -225,9 +225,9 @@ function WidgetViewerModal(props: Props) {
 
   // Get table sort settings from location
   const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
-  const sortedQueries = sort
-    ? widget.queries.map(query => ({...query, orderby: sort}))
-    : widget.queries;
+  const sortedQueries = cloneDeep(
+    sort ? widget.queries.map(query => ({...query, orderby: sort})) : widget.queries
+  );
 
   // Top N widget charts (including widgets with limits) results rely on the sorting of the query
   // Set the orderby of the widget chart to match the location query params
@@ -262,7 +262,7 @@ function WidgetViewerModal(props: Props) {
   ) {
     fields.push(rawOrderby);
     [tableWidget, primaryWidget].forEach(aggregatesAndColumns => {
-      if (isAggregateField(rawOrderby)) {
+      if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
         aggregatesAndColumns.queries.forEach(query => {
           if (!query.aggregates.includes(rawOrderby)) {
             query.aggregates.push(rawOrderby);
@@ -281,15 +281,17 @@ function WidgetViewerModal(props: Props) {
   // Need to set the orderby of the eventsv2 query to equation[index] format
   // since eventsv2 does not accept the raw equation as a valid sort payload
   if (isEquation(rawOrderby) && tableWidget.queries[0].orderby === orderby) {
-    const orderbyEquationIndex = fields.reduce((acc, field) => {
-      if (isEquation(field)) {
-        return acc + 1;
+    let equationIndex = 0;
+    fields.find(field => {
+      if (rawOrderby === field) {
+        return field;
       }
-      return acc;
-    }, 0);
-    tableWidget.queries[0].orderby = `${order ? '-' : ''}equation[${
-      orderbyEquationIndex - 1
-    }]`;
+      if (isEquation(field)) {
+        equationIndex++;
+      }
+      return undefined;
+    });
+    tableWidget.queries[0].orderby = `${order ? '-' : ''}equation[${equationIndex}]`;
   }
 
   // World Map view should always have geo.country in the table chart
