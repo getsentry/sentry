@@ -1,7 +1,5 @@
-import {InjectedRouter, withRouter} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
 import findKey from 'lodash/findKey';
 
 import FormField from 'sentry/components/forms/formField';
@@ -25,9 +23,7 @@ import {getFieldOptionConfig} from './metricField';
 type MenuOption = {label: string; value: AlertType};
 
 type Props = Omit<FormField['props'], 'children'> & {
-  location: Location;
   organization: Organization;
-  router: InjectedRouter;
   alertType?: AlertType;
   /**
    * Optionally set a width for each column of selector
@@ -110,28 +106,28 @@ const menuOptions: {label: string; options: Array<MenuOption>}[] = [
   },
 ];
 
-function WizardField({
-  location,
-  router,
+export default function WizardField({
   organization,
   columnWidth,
   inFieldLabels,
   alertType,
   ...fieldProps
 }: Props) {
-  const selectedTemplate =
-    findKey(
-      AlertWizardRuleTemplates,
-      template =>
-        template.aggregate === location.query.aggregate &&
-        template.dataset === location.query.dataset &&
-        template.eventTypes === location.query.eventTypes
-    ) || 'num_errors';
-
   return (
     <FormField {...fieldProps}>
       {({onChange, value, model, disabled}) => {
+        const aggregate = model.getValue('aggregate');
         const dataset = model.getValue('dataset');
+        const eventTypes = [...(model.getValue('eventTypes') ?? [])];
+
+        const selectedTemplate =
+          findKey(
+            AlertWizardRuleTemplates,
+            template =>
+              template.aggregate === aggregate &&
+              template.dataset === dataset &&
+              eventTypes.includes(template.eventTypes)
+          ) || 'num_errors';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
@@ -169,13 +165,6 @@ function WizardField({
                 model.setValue('aggregate', template.aggregate);
                 model.setValue('dataset', template.dataset);
                 model.setValue('eventTypes', [template.eventTypes]);
-                router.replace({
-                  ...location,
-                  query: {
-                    ...location.query,
-                    ...template,
-                  },
-                });
               }}
             />
             <StyledQueryField
@@ -199,8 +188,6 @@ function WizardField({
     </FormField>
   );
 }
-
-export default withRouter(WizardField);
 
 const Container = styled('div')<{hideGap: boolean}>`
   display: grid;

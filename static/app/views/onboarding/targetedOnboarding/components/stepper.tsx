@@ -1,16 +1,16 @@
-import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
-import {animate, motion, useMotionValue} from 'framer-motion';
+import {motion} from 'framer-motion';
 
-const StepperWrapper = styled('div')`
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-`;
+import space from 'sentry/styles/space';
+import testableTransition from 'sentry/utils/testableTransition';
+
 const StepperContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: 8px;
+  gap: ${space(1)};
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
 `;
 
 const StepperIndicator = styled('span')<{clickable?: boolean}>`
@@ -26,6 +26,14 @@ const StepperTransitionIndicator = styled(motion.span)`
   background-color: ${p => p.theme.progressBar};
   position: absolute;
 `;
+StepperTransitionIndicator.defaultProps = {
+  layout: true,
+  transition: testableTransition({
+    type: 'spring',
+    stiffness: 175,
+    damping: 18,
+  }),
+};
 
 type Props = React.HTMLAttributes<HTMLDivElement> & {
   currentStepIndex: number;
@@ -33,40 +41,24 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   onClick: (stepIndex: number) => void;
 };
 
-export default function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
-  const stepperContainerRef = useRef<HTMLDivElement>(null);
-  const stepperX = useMotionValue<null | number>(null);
-
-  // Set initial value of stepperX
-  useEffect(() => {
-    const parentRect = stepperContainerRef.current?.getBoundingClientRect();
-    const rect =
-      stepperContainerRef.current?.children[currentStepIndex].getBoundingClientRect();
-    if (!rect || !parentRect) {
-      return;
-    }
-    if (stepperX.get() === null) {
-      stepperX.set(rect.x - parentRect.x);
-    } else {
-      animate(stepperX, rect.x - parentRect.x, {
-        type: 'tween',
-        duration: 1,
-      });
-    }
-  }, [currentStepIndex]);
-
+function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
   return (
-    <StepperWrapper {...props}>
-      <StepperTransitionIndicator key="animation" style={{x: stepperX}} />
-      <StepperContainer ref={stepperContainerRef}>
-        {Array.from(Array(numSteps).keys()).map((_, i) => (
+    <StepperContainer {...props}>
+      {Array(numSteps)
+        .fill(0)
+        .map((_, i) => (
           <StepperIndicator
             key={i}
             onClick={() => i < currentStepIndex && onClick(i)}
             clickable={i < currentStepIndex}
-          />
+          >
+            {currentStepIndex === i && (
+              <StepperTransitionIndicator initial={false} layoutId="animation" />
+            )}
+          </StepperIndicator>
         ))}
-      </StepperContainer>
-    </StepperWrapper>
+    </StepperContainer>
   );
 }
+
+export default Stepper;

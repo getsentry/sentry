@@ -1,6 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -136,7 +136,7 @@ type SpanBarState = {
   showDetail: boolean;
 };
 
-class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
+class SpanBar extends Component<SpanBarProps, SpanBarState> {
   state: SpanBarState = {
     showDetail: false,
   };
@@ -153,7 +153,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     this.disconnectObservers();
   }
 
-  spanRowDOMRef = React.createRef<HTMLDivElement>();
+  spanRowDOMRef = createRef<HTMLDivElement>();
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
@@ -189,7 +189,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       <AnchorLinkManager.Consumer>
         {({registerScrollFn, scrollToHash}) => {
           if (!isGapSpan(span)) {
-            registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView);
+            registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView, false);
           }
 
           if (!this.state.showDetail || !isVisible) {
@@ -285,11 +285,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const measurements = getMeasurements(event);
+    const measurements = getMeasurements(event, generateBounds);
 
     return (
-      <React.Fragment>
-        {Array.from(measurements).map(([timestamp, verticalMark]) => {
+      <Fragment>
+        {Array.from(measurements.values()).map(verticalMark => {
+          const mark = Object.values(verticalMark.marks)[0];
+          const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -308,7 +310,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             />
           );
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -960,7 +962,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const {isSpanVisibleInView} = bounds;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Row
           ref={this.spanRowDOMRef}
           visible={isSpanVisibleInView}
@@ -972,7 +974,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               const errors = this.getRelatedErrors(quickTrace);
               const transactions = this.getChildTransactions(quickTrace);
               return (
-                <React.Fragment>
+                <Fragment>
                   <ScrollbarManager.Consumer>
                     {scrollbarManagerChildrenProps => (
                       <DividerHandlerManager.Consumer>
@@ -994,13 +996,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                     transactions,
                     errors,
                   })}
-                </React.Fragment>
+                </Fragment>
               );
             }}
           </QuickTraceContext.Consumer>
         </Row>
         {this.renderEmbeddedChildrenState()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

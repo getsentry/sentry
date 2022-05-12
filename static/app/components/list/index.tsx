@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Children, cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -37,11 +37,11 @@ const List = styled(
       <Wrapper className={className} {...props}>
         {!symbol || typeof symbol === 'string'
           ? children
-          : React.Children.map(children, child => {
-              if (!React.isValidElement(child)) {
+          : Children.map(children, child => {
+              if (!isValidElement(child)) {
                 return child;
               }
-              return React.cloneElement(child as React.ReactElement, {
+              return cloneElement(child as React.ReactElement, {
                 symbol,
               });
             })}

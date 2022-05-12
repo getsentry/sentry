@@ -1,7 +1,7 @@
+from sentry import audit_log
 from sentry.models import (
     ApiKey,
     AuditLogEntry,
-    AuditLogEntryEvent,
     DeletedOrganization,
     DeletedProject,
     DeletedTeam,
@@ -30,13 +30,13 @@ def create_audit_entry_from_user(
     if entry.event is not None:
         entry.save()
 
-    if entry.event == AuditLogEntryEvent.ORG_REMOVE:
+    if entry.event == audit_log.get_event_id("ORG_REMOVE"):
         create_org_delete_log(entry)
 
-    elif entry.event == AuditLogEntryEvent.PROJECT_REMOVE:
+    elif entry.event == audit_log.get_event_id("PROJECT_REMOVE"):
         create_project_delete_log(entry)
 
-    elif entry.event == AuditLogEntryEvent.TEAM_REMOVE:
+    elif entry.event == audit_log.get_event_id("TEAM_REMOVE"):
         create_team_delete_log(entry)
 
     extra = {
@@ -54,7 +54,12 @@ def create_audit_entry_from_user(
         extra["transaction_id"] = transaction_id
 
     if logger:
-        logger.info(entry.get_event_display(), extra=extra)
+        # Only use the api_name for the logger message when the entry
+        # is a real AuditLogEntry record
+        if entry.event is not None:
+            logger.info(audit_log.get(entry.event).api_name, extra=extra)
+        else:
+            logger.info(entry, extra=extra)
 
     return entry
 

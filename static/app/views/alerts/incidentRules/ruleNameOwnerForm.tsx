@@ -19,6 +19,7 @@ type Props = {
 export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}: Props) {
   const renderRuleName = () => (
     <StyledTextField
+      data-test-id="alert-name"
       hasAlertWizardV3={hasAlertWizardV3}
       disabled={disabled}
       name="name"
@@ -49,10 +50,7 @@ export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}:
           <TeamSelector
             value={ownerId}
             project={project}
-            onChange={({value}) => {
-              const ownerValue = value && `team:${value}`;
-              model.setValue('owner', ownerValue);
-            }}
+            onChange={({value}) => model.setValue('owner', value && `team:${value}`)}
             teamFilter={(team: Team) => team.isMember || team.id === ownerId}
             useId
             includeUnassigned

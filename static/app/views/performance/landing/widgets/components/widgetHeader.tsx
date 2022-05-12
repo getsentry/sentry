@@ -47,10 +47,12 @@ const TitleContainer = styled('div')`
 const WidgetHeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: ${space(1)};
 `;
 
 const HeaderActionsContainer = styled('div')`
   display: flex;
+  align-items: center;
   gap: ${space(1)};
 `;

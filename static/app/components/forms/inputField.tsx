@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
 

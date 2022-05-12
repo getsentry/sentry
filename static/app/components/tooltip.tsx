@@ -9,6 +9,7 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
+import isPropValid from '@emotion/is-prop-valid';
 import {SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, MotionStyle} from 'framer-motion';
@@ -17,6 +18,7 @@ import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
 import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import testableTransition from 'sentry/utils/testableTransition';
+import {ColorOrAlias} from 'sentry/utils/theme';
 
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
 
@@ -105,6 +107,11 @@ export interface InternalTooltipProps {
    * If child node supports ref forwarding, you can skip apply a wrapper
    */
   skipWrapper?: boolean;
+
+  /**
+   * Color of the dotted underline, if available. See also: showUnderline.
+   */
+  underlineColor?: ColorOrAlias;
 }
 
 /**
@@ -143,6 +150,7 @@ export function DO_NOT_USE_TOOLTIP({
   isHoverable,
   popperStyle,
   showUnderline,
+  underlineColor,
   showOnlyOnOverflow,
   skipWrapper,
   title,
@@ -216,19 +224,20 @@ export function DO_NOT_USE_TOOLTIP({
   }, []);
 
   function renderTrigger(triggerChildren: React.ReactNode, ref: React.Ref<HTMLElement>) {
-    const containerProps: Partial<React.ComponentProps<typeof Container>> = {
-      'aria-describedby': tooltipId,
-      onFocus: handleMouseEnter,
-      onBlur: handleMouseLeave,
-      onPointerEnter: handleMouseEnter,
-      onPointerLeave: handleMouseLeave,
-    };
-
     const setRef = (el: HTMLElement) => {
       if (typeof ref === 'function') {
         ref(el);
       }
       triggerRef.current = el;
+    };
+
+    const props = {
+      'aria-describedby': tooltipId,
+      onFocus: handleMouseEnter,
+      onBlur: handleMouseLeave,
+      onPointerEnter: handleMouseEnter,
+      onPointerLeave: handleMouseLeave,
+      ref: setRef,
     };
 
     // Use the `type` property of the react instance to detect whether we have
@@ -240,29 +249,25 @@ export function DO_NOT_USE_TOOLTIP({
       isValidElement(triggerChildren) &&
       (skipWrapper || typeof triggerChildren.type === 'string')
     ) {
+      const styles = {
+        ...triggerChildren.props.style,
+        ...(showUnderline && theme.tooltipUnderline(underlineColor)),
+      };
       // Basic DOM nodes can be cloned and have more props applied.
       return cloneElement(triggerChildren, {
-        ...containerProps,
-        style: {
-          ...triggerChildren.props.style,
-          ...(showUnderline && theme.tooltipUnderline),
-        },
-        ref: setRef,
+        ...props,
+        style: styles,
       });
     }
 
-    containerProps.containerDisplayMode = containerDisplayMode;
+    const ourContainerProps = {
+      ...props,
+      containerDisplayMode,
+      style: showUnderline ? theme.tooltipUnderline(underlineColor) : undefined,
+      className,
+    };
 
-    return (
-      <Container
-        {...containerProps}
-        style={showUnderline ? theme.tooltipUnderline : undefined}
-        className={className}
-        ref={setRef}
-      >
-        {triggerChildren}
-      </Container>
-    );
+    return <Container {...ourContainerProps}>{triggerChildren}</Container>;
   }
 
   if (disabled || !title) {
@@ -310,11 +315,13 @@ export function DO_NOT_USE_TOOLTIP({
   );
 }
 
+interface ContainerProps {
+  containerDisplayMode?: React.CSSProperties['display'];
+}
+
 // Using an inline-block solves the container being smaller
 // than the elements it is wrapping
-const Container = styled('span')<{
-  containerDisplayMode?: React.CSSProperties['display'];
-}>`
+const Container = styled('span')<ContainerProps>`
   ${p => p.containerDisplayMode && `display: ${p.containerDisplayMode}`};
   max-width: 100%;
 `;
@@ -323,7 +330,12 @@ const PositionWrapper = styled('div')`
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const TooltipContent = styled(motion.div)<{
+const animationProps = Object.keys(TOOLTIP_ANIMATION);
+
+const TooltipContent = styled(motion.div, {
+  shouldForwardProp: (prop: string) =>
+    typeof prop === 'string' && (animationProps.includes(prop) || isPropValid(prop)),
+})<{
   popperStyle: InternalTooltipProps['popperStyle'];
 }>`
   will-change: transform, opacity;

@@ -964,13 +964,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
     expect(setRowChartSettings).toHaveBeenCalledTimes(0);
 
-    userEvent.click(await screen.findByTestId('context-menu'));
-
-    const menuItems = await screen.findAllByTestId('performance-widget-menu-item');
-
-    expect(menuItems[2]).toHaveTextContent('User Misery');
-
-    userEvent.click(menuItems[2]);
+    userEvent.click(await screen.findByLabelText('More'));
+    userEvent.click(await screen.findByText('User Misery'));
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'User Misery'
@@ -1000,14 +995,15 @@ describe('Performance > Widgets > WidgetContainer', function () {
       'Failure Rate'
     );
 
-    userEvent.click(await screen.findByTestId('context-menu'));
+    // Open context menu
+    userEvent.click(await screen.findByLabelText('More'));
 
-    const menuItems = await screen.findAllByTestId('performance-widget-menu-item');
-
-    expect(menuItems[1]).toHaveTextContent('Failure Rate');
-    expect(menuItems[1]).toBeEnabled();
-
-    expect(menuItems[2]).toHaveTextContent('User Misery');
-    expect(menuItems[2]).toHaveAttribute('disabled');
+    // Check that the the "User Misery" option is disabled by clicking on it,
+    // expecting that the selected option doesn't change
+    const userMiseryOption = await screen.findByTestId('user_misery_area');
+    userEvent.click(userMiseryOption);
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Failure Rate'
+    );
   });
 });

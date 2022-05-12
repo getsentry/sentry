@@ -76,14 +76,11 @@ def test_merge_mappings():
 
 
 def test_merge_mappings_custom_operator():
-    assert (
-        merge_mappings(
-            {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
-            {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
-            lambda left, right: merge_mappings(left, right),
-        )
-        == {"a": {"x": 2, "y": 2}, "b": {"x": 4, "y": 4}}
-    )
+    assert merge_mappings(
+        {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
+        {"a": {"x": 1, "y": 1}, "b": {"x": 2, "y": 2}},
+        lambda left, right: merge_mappings(left, right),
+    ) == {"a": {"x": 2, "y": 2}, "b": {"x": 4, "y": 4}}
 
 
 def test_merge_mapping_different_keys():
@@ -96,14 +93,11 @@ def test_merge_sequences():
 
 
 def test_merge_sequences_custom_operator():
-    assert (
-        merge_sequences(
-            [{chr(65 + i): i} for i in range(0, 26)],
-            [{chr(65 + i): i} for i in range(0, 26)],
-            merge_mappings,
-        )
-        == [{chr(65 + i): i * 2} for i in range(0, 26)]
-    )
+    assert merge_sequences(
+        [{chr(65 + i): i} for i in range(0, 26)],
+        [{chr(65 + i): i} for i in range(0, 26)],
+        merge_mappings,
+    ) == [{chr(65 + i): i * 2} for i in range(0, 26)]
 
 
 def test_merge_series():
@@ -113,14 +107,11 @@ def test_merge_series():
 
 
 def test_merge_series_custom_operator():
-    assert (
-        merge_series(
-            [(i, {chr(65 + i): i}) for i in range(0, 26)],
-            [(i, {chr(65 + i): i}) for i in range(0, 26)],
-            merge_mappings,
-        )
-        == [(i, {chr(65 + i): i * 2}) for i in range(0, 26)]
-    )
+    assert merge_series(
+        [(i, {chr(65 + i): i}) for i in range(0, 26)],
+        [(i, {chr(65 + i): i}) for i in range(0, 26)],
+        merge_mappings,
+    ) == [(i, {chr(65 + i): i * 2}) for i in range(0, 26)]
 
 
 def test_merge_series_offset_timestamps():
@@ -168,7 +159,7 @@ def test_has_valid_aggregates(interval):
     project = None  # parameter is unused
 
     def make_report(aggregates):
-        return Report(None, aggregates, None, None, None, None, None)
+        return Report(None, aggregates, None, None, None, None)
 
     assert has_valid_aggregates(interval, (project, make_report([None] * 4))) is False
 
@@ -433,7 +424,7 @@ class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):
         )
 
         assert any(
-            map(lambda x: x[1] == (2, 0, 10), response)
+            map(lambda x: x[1] == (2, 10), response)
         ), "must show two issues resolved in one rollup window"
 
 

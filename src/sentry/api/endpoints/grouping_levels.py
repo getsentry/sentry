@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from snuba_sdk import Request as SnubaRequest
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import features
@@ -111,7 +112,7 @@ class LevelsOverview:
 
 def get_levels_overview(group):
     query = (
-        Query("events", Entity("events"))
+        Query(Entity("events"))
         .set_select(
             [
                 Column("primary_hash"),
@@ -124,8 +125,8 @@ def get_levels_overview(group):
         .set_where(_get_group_filters(group))
         .set_groupby([Column("primary_hash")])
     )
-
-    res = snuba.raw_snql_query(query, referrer="api.group_hashes_levels.get_levels_overview")
+    request = SnubaRequest(dataset="events", app_id="grouping", query=query)
+    res = snuba.raw_snql_query(request, referrer="api.group_hashes_levels.get_levels_overview")
 
     if not res["data"]:
         raise NoEvents()

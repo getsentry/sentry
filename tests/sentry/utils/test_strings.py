@@ -1,5 +1,7 @@
 import functools
 
+import pytest
+
 from sentry.utils.strings import (
     codec_lookup,
     is_valid_dot_atom,
@@ -15,42 +17,34 @@ ZWSP = "\u200b"  # zero width space
 SHY = "\u00ad"  # soft hyphen
 
 
-def test_unescape_string():
-    # For raw string literals, python escapes any backslash,
-    # regardless if it's part of a recognized escape sequence or not.
-    value = r"\x80"
-    assert r"\x80" == "\\x80"
-
-    # We want to unescape that.
-    assert unescape_string(value) == "\x80"
-    assert r"\x80" != "\x80"
-
-    # For string literals, python leaves recognized escape sequences alone,
-    # and we should as well.
-    assert unescape_string("\x80") == "\x80"
-
-    # Essentially, we want the resulting str to
-    # have the same number of backslashes as the raw string.
-    assert unescape_string(r"\\x80") == "\\x80"
-    assert unescape_string(r"\\\x80") == "\\\x80"
-    assert unescape_string(r"\\\\x80") == "\\\\x80"
-
-    # Now for a real world example.
-    # If we specify this value as a string literal, we'll get a DeprecationWarning
-    # because \* is not a recognized escape sequence.
-    # This raw string literal reflects what was read off disk from our grouping
-    # enhancement config text files, before they were corrected to be \\**.
-    value = r"C:/WINDOWS/system32/DriverStore\**"
-    assert value == "C:/WINDOWS/system32/DriverStore\\**"
-
-    # This string should remain unchanged after unescape_string,
-    # because there are no recognized escape sequences to unescape.
-    # From 3.6 to 3.8 a DeprecationWarning which we suppress will
-    # be emitted during .decode("unicode-escape", "unicode-escape-recovery"),
-    # because \* isn't a recognized escape sequence.
-    # We just want this to be a reminder if the warning is upgraded to a
-    # behavior change in 3.9+.
-    assert unescape_string(value) == "C:/WINDOWS/system32/DriverStore\\**"
+@pytest.mark.parametrize(
+    ("s", "expected"),
+    (
+        # the literal \x escape sequence is converted to the character
+        (r"\x80", "\x80"),
+        # the result should have the same number of backslashes as the raw string
+        (r"\\x80", "\\x80"),
+        (r"\\\x80", "\\\x80"),
+        (r"\\\\x80", "\\\\x80"),
+        # this string has an invalid escape sequence: \*
+        (r"C:/WINDOWS/system32/DriverStore\**", "C:/WINDOWS/system32/DriverStore\\**"),
+        # this string has an unterminated invalid escape sequence: \x
+        (r"\x", "\\x"),
+        (r"\\\x", "\\\\x"),
+        # decodes character escapes
+        (r"\t", "\t"),
+        (r"\0", "\0"),
+        (r"\11", "\11"),
+        (r"\111", "\111"),
+        (r"\u2603", "☃"),
+        (r"\U0001f643", "🙃"),
+        # probably a mistake in the configuration but it allows quoted strings
+        # with embedded newlines
+        ("hello\nworld", "hello\nworld"),
+    ),
+)
+def test_unescape_string(s, expected):
+    assert unescape_string(s) == expected
 
 
 def test_codec_lookup():

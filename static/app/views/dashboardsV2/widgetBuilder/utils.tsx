@@ -7,7 +7,6 @@ import {Organization, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
-  getAggregateAlias,
   isEquation,
   isLegalYAxisType,
   stripDerivedMetricsPrefix,
@@ -37,7 +36,7 @@ export const NEW_DASHBOARD_ID = 'new';
 export enum DataSet {
   EVENTS = 'events',
   ISSUES = 'issues',
-  RELEASE = 'release',
+  RELEASES = 'releases',
 }
 
 export enum SortDirection {
@@ -123,17 +122,32 @@ export function normalizeQueries({
         query.fields = fields.filter(field => !columns.includes(field));
       }
 
+      if (
+        getIsTimeseriesChart(displayType) &&
+        !query.columns.filter(column => !!column).length
+      ) {
+        // The orderby is only applicable for timeseries charts when there's a
+        // grouping selected, if all fields are empty then we also reset the orderby
+        query.orderby = '';
+        return query;
+      }
+
       const queryOrderBy =
-        widgetType === WidgetType.METRICS
+        widgetType === WidgetType.RELEASE
           ? stripDerivedMetricsPrefix(queries[0].orderby)
           : queries[0].orderby;
 
       // Ignore the orderby if it is a raw equation and we're switching to a table
       // or Top-N chart, a custom equation should be reset since it only applies when
       // grouping in timeseries charts
-      const ignoreOrderBy = isEquation(trimStart(queryOrderBy, '-')) && isTabularChart;
+      const resetOrderBy =
+        isTabularChart &&
+        (isEquation(trimStart(queryOrderBy, '-')) ||
+          ![...query.columns, ...query.aggregates].includes(
+            trimStart(queryOrderBy, '-')
+          ));
       const orderBy =
-        (!ignoreOrderBy && getAggregateAlias(queryOrderBy)) ||
+        (!resetOrderBy && trimStart(queryOrderBy, '-')) ||
         (widgetType === WidgetType.ISSUE
           ? IssueSortOptions.DATE
           : generateOrderOptions({
@@ -143,11 +157,15 @@ export function normalizeQueries({
               aggregates: queries[0].aggregates,
             })[0].value);
 
-      // Issues data set doesn't support order by descending
-      query.orderby =
-        widgetType === WidgetType.DISCOVER && !orderBy.startsWith('-')
-          ? `-${String(orderBy)}`
-          : String(orderBy);
+      // A widget should be descending if:
+      // - There is no orderby, so we're defaulting to desc
+      // - Not an issues widget since issues doesn't support descending and
+      //   the original ordering was descending
+      const isDescending =
+        !query.orderby ||
+        (widgetType !== WidgetType.ISSUE && queryOrderBy.startsWith('-'));
+
+      query.orderby = isDescending ? `-${String(orderBy)}` : String(orderBy);
 
       return query;
     });
@@ -312,7 +330,7 @@ export function filterPrimaryOptions({
   option: FieldValueOption;
   widgetType?: WidgetType;
 }) {
-  if (widgetType === WidgetType.METRICS) {
+  if (widgetType === WidgetType.RELEASE) {
     if (displayType === DisplayType.TABLE) {
       return [
         FieldValueKind.FUNCTION,
@@ -340,7 +358,7 @@ export function filterPrimaryOptions({
   );
 }
 
-export function getResultsLimit(numQueries, numYAxes) {
+export function getResultsLimit(numQueries: number, numYAxes: number) {
   if (numQueries === 0 || numYAxes === 0) {
     return DEFAULT_RESULTS_LIMIT;
   }

@@ -1,13 +1,13 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import tagstore
+from sentry import audit_log, tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.constants import PROTECTED_TAG_KEYS
-from sentry.models import AuditLogEntryEvent, Environment
+from sentry.models import Environment
 
 
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
@@ -60,7 +60,7 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 request=request,
                 organization=project.organization,
                 target_object=getattr(tagkey, "id", None),
-                event=AuditLogEntryEvent.TAGKEY_REMOVE,
+                event=audit_log.get_event_id("TAGKEY_REMOVE"),
                 data=tagkey.get_audit_log_data(),
             )
 

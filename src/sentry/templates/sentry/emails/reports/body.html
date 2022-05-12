@@ -10,7 +10,7 @@
   <style type="text/css">
 
     .container {
-      padding-top: 10px;
+      padding-top: 18px;
       padding-bottom: 10px;
     }
 
@@ -47,75 +47,38 @@
       line-height: 0;
     }
 
-    .issue-graph {
-      table-layout: fixed;
-    }
-
-    .issue-graph .graph > td,
-    .issue-graph .labels > td {
-      padding-right: 5px;
-    }
-
-    .issue-graph .labels td {
-      padding-top: 3px;
-      font-size: 10px;
-      text-align: center;
-      color: #848296;
-    }
-
-    #events-seen .legend .all,
-    #events-seen .bar .all {
-      background-color: #ebe9f7;
-    }
-
-    #events-seen .legend .resolved,
-    #events-seen .bar .resolved {
-      background-color: #6C5FC7;
-    }
-
-    .issues-resolved .issues-resolved-column {
-      text-align: right;
-    }
-
-    .issues-resolved .empty {
-      display: block;
-      text-align: center;
-    }
-
-    .issues-resolved .issues-resolved-column-left {
-      padding-right: 15px;
-      vertical-align: bottom;
-    }
-
-    .issues-resolved .issues-resolved-column-middle {
-      padding-left: 20px;
-      padding-right: 20px;
-    }
-
-    .issues-resolved .issues-resolved-column .stat {
-      font-size: 35px;
-      margin-top: 5px;
-      margin-bottom: 5px;
-    }
-
-    .issues-resolved .issues-resolved-column .stat img {
-      vertical-align: middle;
-    }
-
-    .issue-graph, .issue-graph .bar {
-      margin-bottom: 0;
-    }
-
-    .issue-graph .bar td {
-      font-size: 0;
-    }
-
     .project-breakdown {
       margin-bottom: 20px;
+    }
+    .project-breakdown table.project-breakdown-graph-deck {
+      table-layout: fixed;
+      border-collapse: collapse;
+      border-spacing: 3px;
+      border-style: hidden;
+      width: 100%;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.errors {
+      padding-right: 10px;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions {
+      padding-left: 10px;
+      border: 1px solid #C4C4C4;
+    }
+    .project-breakdown table.project-breakdown-graph-deck td.project-breakdown-graph-cell.transactions-empty {
+      padding-left: 10px;
+    }
+    .project-breakdown .total-count-title {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+    .project-breakdown .total-count {
+      margin-top: 5px;
+      margin-bottom: 18px;
     }
 
     .project-breakdown .graph {
       table-layout: fixed;
+      margin: 0;
     }
 
     .project-breakdown .graph td {
@@ -159,111 +122,9 @@
     .project-breakdown .col-errors-dropped {
       padding-right: 2rem;
     }
-
-    td.spectrum {  /* XXX: td qualifier is a hack */
-      margin: 0;
-      padding: 0;
-      font-size: 12px;
-      text-align: right;
-      color: #555;
-    }
-
-    .spectrum .range {
-      font-size: 0px;
-      display: inline-block;
-      vertical-align: middle;
-      margin: 0 6px;
-    }
-
-    .spectrum .range span {
-      display: inline-block;
-      height: 5px;
-      width: 5px;
-    }
-
-    .calendar {
-      vertical-align: top;
-      padding-right: 10px;
-    }
-
-    .calendar table {
-      table-layout: fixed;
-    }
-
-    .calendar:last-child {
-      padding-right: 0;
-    }
-
-    .calendar h5 {
-      font-size: 14px;
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
-    .calendar th {
-      font-size: 12px;
-      color: #848296;
-      text-align: center;
-      padding: 0 0 10px 0;
-    }
-
-    .calendar .day {
-      width: 14.2%;
-      padding: 0 5px 5px 0;
-    }
-
-    .calendar .day span,
-    .calendar .day a {
-      display: inline-block;
-      width: 100%;
-      height: 20px;
-    }
-
-    .user-impact-stat table {
-      width: 90px;
-      height: 90px;
-      margin: 0 18px 0 0;
-    }
-
-    .user-impact-stat td {
-      margin: 0;
-      padding: 0;
-    }
-
-    .user-impact-stat img {
-      display: block;
-    }
-
-    .user-impact-stat td.count {
-      text-align: center;
-      line-height: 1;
-      font-size: 32px;
-      vertical-align: middle;
-      color: #6C5FC7;
-      width: 64px;
-      max-width: 64px;
-      overflow: hidden;
-    }
-
-    .user-impact-text {
-      font-size: 18px;
-      font-weight: 500;
-      padding-right: 20px;
-    }
-
-    #history-calendars h4 {
-      margin-bottom: 0px;
-    }
-
   </style>
 
   <style type="text/css" inline="false">
-
-    .issues-resolved .issues-resolved-column-middle {
-      border-left: 1px solid #D6DBE4;
-      border-right: 1px solid #D6DBE4;
-    }
-
     @media only screen and (max-device-width: 480px) {
 
       .mobile-full-width > th,
@@ -280,20 +141,8 @@
         text-align: center !important;
       }
 
-      #events-seen .bar .all {
-        background-color: #6C5FC7 !important;
-      }
-
       .project-breakdown .col-dropped {
         display: none;
-      }
-
-      #events-seen .legend {
-        display: none;
-      }
-
-      #events-seen .issue-graph {
-        margin-bottom: 10px !important;
       }
 
       #events-by-issue-type .legend {
@@ -304,35 +153,6 @@
       #events-by-issue-type .quantity {
         display: none;
       }
-
-      .issues-resolved .issues-resolved-column-middle {
-        border-left: none;
-        border-right: none;
-      }
-
-      .issues-resolved .issues-resolved-column-middle,
-      .issues-resolved .issues-resolved-column-right {
-        text-align: center !important;
-        vertical-align: top !important;
-        padding: 0 !important;
-      }
-
-      .issues-resolved .issues-resolved-column-middle .stat,
-      .issues-resolved .issues-resolved-column-right .stat {
-        font-size: 24px !important;
-      }
-
-      .issues-resolved .issues-resolved-column-middle .stat img,
-      .issues-resolved .issues-resolved-column-right .stat img {
-        width: 16px !important;
-        height: 8px !important;
-      }
-
-      .spectrum {
-        margin: 20px 0 0 !important;
-        text-align: center !important;
-      }
-
     }
 
   </style>
@@ -362,8 +182,13 @@
   <div class="project-breakdown">
 
     {% with series=report.projects.series height=110 %}
+    <table class="project-breakdown-graph-deck"><tbody><tr>
 
-    <h4>Errors by Project</h4>
+    <td class="project-breakdown-graph-cell errors">
+    <h4 class="total-count-title">Total Project Errors</h4>
+    <h1 style="margin: 0;" class="total-count">{{ series.legend.total.data.accepted_errors|small_count:1 }}</h1>
+    {% url 'sentry-organization-issue-list' organization.slug as issue_list%}
+    <a href="{% absolute_uri issue_list %}?referrer=weekly-email" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
 
     <table class="graph">
       <tr>
@@ -391,6 +216,52 @@
         {% endfor %}
       </tr>
     </table>
+    </td>
+
+    {% if series.legend.total.data.accepted_transactions > 0 %}
+    <td class="project-breakdown-graph-cell transactions">
+      <h4 class="total-count-title">Total Project Transactions</h4>
+      <h1 style="margin: 0;" class="total-count">{{ series.legend.total.data.accepted_transactions|small_count:1 }}</h1>
+      <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_view_all' organization.slug %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>
+      <table class="graph">
+        <tr>
+          {% for timestamp, values in series.transaction_points %}
+          <td valign="bottom" class="bar" style="height: {{ height }}px; width: {% widthratio 1 series.points|length 100 %}%">
+              <table class="bar">
+                {% for key, count in values %}
+                  <tr>
+                    <td height="{% widthratio count series.transaction_maximum height %}" style="background-color: {{ key.color }};">&nbsp;</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td height="1" style="background-color: #ebe9f7;"></td>
+                  </tr>
+                {% endfor %}
+              </table>
+            </td>
+          {% endfor %}
+        </tr>
+        <tr>
+          {% for timestamp, values in series.transaction_points %}
+            <td class="label" style="width: {% widthratio 1 series.points|length 100 %}%">
+              {{ timestamp|date:duration.date_format }}
+            </td>
+          {% endfor %}
+        </tr>
+      </table>
+      </td>
+    {% else %}
+      <td class="project-breakdown-graph-cell transactions-empty">
+        <div style="border: 1px solid #c4c4cc; border-radius: 4px; padding: 24px 16px; text-align: center; height: 170px;">
+          <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px" alt="Sentry">
+          <h1 style="font-weight: bold; font-size: 17px;">Something slow?</h1>
+          <p style="font-size: 11px;">Trace those 10-second page loads to poor-performing API calls.</p>
+          <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_upsell' organization.slug %}" class="btn" style="margin-top: 8px;">Set Up Performance</a>
+        </div>
+      </td>
+    {% endif %}
+
+    </tr></tbody></table>
 
     <table class="summary">
       <thead>
@@ -442,82 +313,6 @@
 
   </div>
 
-  <div id="events-seen">
-
-    <table style="margin-bottom: 10px">
-      <tr>
-        <td>
-            <h4>Errors Seen {{ duration.noun|title }}</h4>
-        </td>
-        <td class="legend">
-            <span class="swatch all"></span> All: {{ report.error_series.all|small_count }}
-            <span class="swatch resolved"></span> Resolved: {{ report.error_series.resolved|small_count }}
-        </td>
-      </tr>
-    </table>
-
-    <table class="issues-resolved">
-      <tr class="mobile-full-width">
-        <td width="33%" class="issues-resolved-column issues-resolved-column-left">
-          <table class="issue-graph">
-            <tr class="graph">
-            {% with report.error_series.maximum as max %}
-            {% for timestamp, metrics in report.error_series.points %}
-              <td valign="bottom" style="width: {% widthratio 1 report.error_series.points|length 100 %}%">
-                <table class="bar">
-                  {% if metrics.resolved or metrics.unresolved %}
-                    <tr>
-                      <td class="all" height="{% widthratio metrics.unresolved max 52 %}px" title="{{ metrics.unresolved }}">&nbsp;</td>
-                    </tr>
-                    <tr>
-                      <td class="resolved" height="{% widthratio metrics.resolved max 52 %}px" title="{{ metrics.resolved }}">&nbsp;</td>
-                    </tr>
-                  {% else %}
-                    <tr><td></td></tr>
-                    <tr><td class="all baseline" height="1px">&nbsp;</td></tr>
-                  {% endif %}
-                </table>
-              </td>
-            {% endfor %}
-            {% endwith %}
-            </tr>
-            <tr class="labels">
-              {% for timestamp, metrics in report.error_series.points %}
-                <td title="{{ timestamp }}" style="width: {% widthratio 1 report.error_series.points|length 100 %}%">{{ timestamp|date:duration.date_format|first }}</td>
-              {% endfor %}
-            </tr>
-          </table>
-        </td>
-        <td width="66%">
-          <table width="100%" style="margin: 0;">
-            <tr>
-              {% for label, change in report.comparisons %}
-                <td width="50%" class="issues-resolved-column issues-resolved-column-{% if not forloop.last %}middle{% else %}right{% endif %}">
-                  {% if change %}
-                    <div class="stat">
-                    {% if change >= 0 %}
-                        <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-increase.png' %}" width="20px" height="10px">
-                    {% else %}
-                        <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-decrease.png' %}" width="20px" height="10px">
-                    {% endif %}
-                    {% with change|multiply:"100"|absolute_value as percentage %}
-                        {% if percentage >= 1000 %}{{ percentage|floatformat:"0" }}{% else %}{{ percentage|floatformat:"-1" }}{% endif %}%
-                    {% endwith %}
-                    </div>
-                    <small>{% if change >= 0 %}more{% else %}fewer{% endif %} than {{ label }}</small>
-                  {% else %}
-                    <small class="empty">There is not enough data to compare to {{ label }}.</small>
-                  {% endif %}
-                </td>
-              {% endfor %}
-          </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-
-  </div>
-
   <div id="events-by-issue-type">
 
     {% with report.distribution.total as total %}
@@ -550,161 +345,47 @@
 
   </div>
 
-  {% if report.calendar %}
-
-  <div id="history-calendars">
-
-    <table style="margin-bottom: 25px;">
-      <tr class="mobile-full-width">
-        <th style="width: 300px;">
-          <h4>3 Month History</h4>
-        </th>
-        <td class="spectrum" style="vertical-align: bottom;">
-          Fewer Errors
-          <div class="range">{% for color in report.calendar.legend %}<span style="background-color: {{ color }}">&nbsp;</span>{% endfor %}</div>
-          More Errors
-        </td>
-      </tr>
-    </table>
-
-    <div>
-      <table>
-        <tr class="mobile-full-width">
-          {% for first_date, weeks in report.calendar.sheets %}
-            <td class="calendar">
-              <h5>{{ first_date|date:"F Y" }}</h5>
-              <table>
-                <tr>
-                  <th>S</th>
-                  <th>M</th>
-                  <th>T</th>
-                  <th>W</th>
-                  <th>T</th>
-                  <th>F</th>
-                  <th>S</th>
-                </tr>
-                {% for week in weeks %}
-                  <tr>
-                    {% for day, data in week %}
-                    {% if day.month == first_date.month %}
-                      <td class="day" title="{{ day|date:"F jS, Y" }}: {{ data.value }}">
-                        {% if data.url %}
-                          <a href="{{ data.url }}" style="background-color: {{ data.color }}">&nbsp;</a>
-                        {% else %}
-                          <span  style="background-color: {{ data.color }}">&nbsp;</span>
-                        {% endif %}
-                      </td>
-                    {% else %}
-                      <td class="day">&nbsp;</td>
-                    {% endif %}
-                    {% endfor %}
-                  </tr>
-                {% endfor %}
-              </table>
-            </td>
-          {% endfor %}
-        </tr>
-      </table>
+  {%if report.key_errors|length > 0 %}
+  <div id="key-errors">
+    {% with report.key_errors as errors %}
+    <h4>Issues with the most errors</h4>
+    {% for a in errors %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 65%;">
+        {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px; height: 24px;" href="{% absolute_uri issue_detail %}?referrer=weekly-email">{{a.group.message}}</a>
+        <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
+      </div>
+      <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
     </div>
-
+    {% endfor %}
+    {% endwith %}
   </div>
-
   {% endif %}
 
-  {% if personal.resolved and personal.users %}
-    <h4>Your impact</h4>
-    <table class="user-impact">
-      <tr class="mobile-full-width">
-        <td width="50%">
-          <table>
-            <tr>
-              <td class="user-impact-stat">
-                <table>
-                  <tr>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
-                    </td>
-                    <td width="64px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
-                    </td>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
-                    </td>
-                    <td class="count">
-                      {{ personal.resolved|small_count:0 }}
-                    </td>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
-                    </td>
-                    <td width="64px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
-                    </td>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
-                    </td>
-                  </tr>
-                </table>
-              </td>
-              <td class="user-impact-text">Issue{{ personal.resolved|pluralize }} resolved this week by you.</td>
-            </tr>
-          </table>
-        </td>
-        <td width="50%">
-          <table>
-            <tr>
-              <td class="user-impact-stat">
-                <table>
-                  <tr>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-left.png' %}" width="11px" height="28px">
-                    </td>
-                    <td>
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-center.png' %}" width="68px" height="28px">
-                    </td>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-top-right.png' %}" width="11px" height="28px">
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-left.png' %}" width="11px" height="34px">
-                    </td>
-                    <td class="count">
-                      {{ personal.users|small_count:0 }}
-                    </td>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-middle-right.png' %}" width="11px" height="34px">
-                    </td>
-                  </tr>
-                  <tr>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-left.png' %}" width="11px" height="28px">
-                    </td>
-                    <td>
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-center.png' %}" width="68px" height="28px">
-                    </td>
-                    <td width="11px">
-                      <img src="{% absolute_asset_url 'sentry' 'images/email/circle-bottom-right.png' %}" width="11px" height="28px">
-                    </td>
-                  </tr>
-                </table>
-              </td>
-              <td class="user-impact-text">User{{ personal.users|pluralize }} rejoicing because of it.</td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
+  {%if report.key_transactions|length > 0 %}
+  <div id="key-transactions">
+    {% with report.key_transactions as transactions %}
+    <h4>Most frequent transactions</h4>
+    {% for a in transactions %}
+    <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
+      <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
+      <div style="width: 65%;">
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% absolute_uri '/organizations/{}/performance/summary/?project={}&transaction={}&referrer=weekly_report' organization.slug a.project.id a.name %}">{{a.name}}</a>
+        <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
+      </div>
+      <div style="font-size: 14px; margin-left: auto; display: flex;">
+        {% if a.p95_prev_week %}
+        <span>{{a.p95_prev_week | duration}}</span>
+        <img src="{% absolute_asset_url 'sentry' 'images/email/arrow-right.png' %}" width="16px" height="16px" style="margin: 0 8px;">
+        {% endif %}
+        <span>{{a.p95 | duration}}</span>
+      </div>
+    </div>
+    {% endfor %}
+    {% endwith %}
+  </div>
   {% endif %}
 </div>
 {% endblock %}

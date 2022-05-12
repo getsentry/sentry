@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import ActivityAvatar from 'sentry/components/activity/item/avatar';
@@ -23,7 +23,7 @@ type Props = {
   title?: string;
 };
 
-class QueryCard extends React.PureComponent<Props> {
+class QueryCard extends PureComponent<Props> {
   handleClick = () => {
     const {onEventClick} = this.props;
     callIfFunction(onEventClick);
@@ -140,7 +140,7 @@ const DateSelected = styled('div')`
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.subText};
   padding-left: ${space(1)};
 `;
 

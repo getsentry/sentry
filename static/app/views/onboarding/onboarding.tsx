@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, useEffect} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
@@ -57,7 +57,7 @@ type Props = RouteComponentProps<RouteParams, {}> &
 
 type State = StepData;
 
-class Onboarding extends React.Component<Props, State> {
+class Onboarding extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     steps: ONBOARDING_STEPS,
   };
@@ -165,7 +165,7 @@ class Onboarding extends React.Component<Props, State> {
     // way to create framer-motion controls than by using the `useAnimation`
     // hook.
 
-    React.useEffect(updateCornerVariant, []);
+    useEffect(updateCornerVariant, [cornerVariantControl]);
 
     return (
       <Container>

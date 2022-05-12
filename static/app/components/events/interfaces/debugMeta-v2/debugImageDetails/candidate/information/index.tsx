@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 import moment from 'moment-timezone';
@@ -79,7 +79,7 @@ function Information({
       if (hasReprocessWarning) {
         return {
           tooltipDesc: (
-            <React.Fragment>
+            <Fragment>
               {tct(
                 'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
                 {
@@ -87,7 +87,7 @@ function Information({
                 }
               )}
               <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-            </React.Fragment>
+            </Fragment>
           ),
           displayIcon: true,
         };
@@ -104,7 +104,7 @@ function Information({
 
       return {
         tooltipDesc: (
-          <React.Fragment>
+          <Fragment>
             {tct(
               'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
               {
@@ -112,7 +112,7 @@ function Information({
               }
             )}
             <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-          </React.Fragment>
+          </Fragment>
         ),
         displayIcon: true,
       };
@@ -121,7 +121,7 @@ function Information({
     if (hasReprocessWarning) {
       return {
         tooltipDesc: (
-          <React.Fragment>
+          <Fragment>
             {tct(
               'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
               {
@@ -129,7 +129,7 @@ function Information({
               }
             )}
             <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-          </React.Fragment>
+          </Fragment>
         ),
         displayIcon: true,
       };
@@ -137,12 +137,12 @@ function Information({
 
     return {
       tooltipDesc: (
-        <React.Fragment>
+        <Fragment>
           {tct('This debug file was uploaded [when] after this event.', {
             when: moment(eventDateReceived).from(dateCreated, true),
           })}
           <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-        </React.Fragment>
+        </Fragment>
       ),
       displayIcon: true,
     };
@@ -185,10 +185,10 @@ function Information({
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledProcessingList items={items} />
         <Divider />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -208,7 +208,7 @@ function Information({
     const {tooltipDesc, displayIcon} = getTimeSinceData(dateCreated);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Tooltip title={tooltipDesc}>
           <TimeSinceWrapper>
             {displayIcon && <IconWarning color="red300" size="xs" />}
@@ -226,7 +226,7 @@ function Information({
             : `${symbolType}${fileType ? ` ${fileType}` : ''}`}
         </span>
         <Divider />
-      </React.Fragment>
+      </Fragment>
     );
   }
 

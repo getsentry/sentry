@@ -22,18 +22,7 @@ type Props = {
   org: Organization;
 };
 
-// Warning: OnboardingViewTask and InternalOnboardingViewTask were split into two because useProjects
-// hook was being conditionally called. This is no longer allowed and we need to lift the return into
-// a separate component higher in the tree.
-function OnboardingViewTask(props: Props) {
-  if (!props.org?.experiments.TargetedOnboardingMultiSelectExperiment) {
-    return null;
-  }
-
-  return <InternalOnboardingViewTask {...props} />;
-}
-
-function InternalOnboardingViewTask({org}: Props) {
+function OnboardingViewTask({org}: Props) {
   const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
   const {projects: allProjects} = useProjects({orgId: org.id});
 

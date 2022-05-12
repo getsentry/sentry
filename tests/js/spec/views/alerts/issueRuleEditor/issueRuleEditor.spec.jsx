@@ -80,13 +80,17 @@ const projectAlertRuleDetailsRoutes = [
 
 const createWrapper = (props = {}) => {
   const {organization, project, routerContext, router} = initializeOrg(props);
-  const params = {orgId: organization.slug, projectId: project.slug, ruleId: '1'};
+  const params = {
+    orgId: organization.slug,
+    projectId: project.slug,
+    ruleId: router.location.query.createFromDuplicate ? undefined : '1',
+  };
   const onChangeTitleMock = jest.fn();
   const wrapper = render(
     <ProjectAlerts organization={organization} params={params}>
       <IssueRuleEditor
         params={params}
-        location={{pathname: ''}}
+        location={router.location}
         routes={projectAlertRuleDetailsRoutes}
         router={router}
         onChangeTitle={onChangeTitleMock}
@@ -161,9 +165,9 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
         body: {},
       });
       createWrapper();
+      renderGlobalModal();
       userEvent.click(screen.getByLabelText('Delete Rule'));
 
-      renderGlobalModal();
       expect(
         await screen.findByText('Are you sure you want to delete this rule?')
       ).toBeInTheDocument();
@@ -295,6 +299,39 @@ describe('ProjectAlerts -> IssueRuleEditor', function () {
       await waitFor(() => expect(mockFailed).toHaveBeenCalledTimes(1));
       expect(screen.getByText('An error occurred')).toBeInTheDocument();
       expect(addErrorMessage).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('Duplicate Rule', function () {
+    let mock;
+    const rule = TestStubs.ProjectAlertRule();
+    const endpoint = `/projects/org-slug/project-slug/rules/${rule.id}/`;
+
+    beforeEach(function () {
+      mock = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'GET',
+        body: rule,
+      });
+    });
+
+    it('gets correct rule to duplicate and renders fields correctly', function () {
+      createWrapper({
+        organization: {
+          access: ['alerts:write'],
+          features: ['alert-wizard-v3', 'duplicate-alert-rule'],
+        },
+        router: {
+          location: {
+            query: {
+              createFromDuplicate: true,
+              duplicateRuleId: `${rule.id}`,
+            },
+          },
+        },
+      });
+      expect(mock).toHaveBeenCalled();
+      expect(screen.getByTestId('alert-name')).toHaveValue(`${rule.name} copy`);
     });
   });
 });

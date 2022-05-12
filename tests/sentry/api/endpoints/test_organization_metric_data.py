@@ -1,5 +1,5 @@
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 from unittest import mock
 from unittest.mock import patch
@@ -945,6 +945,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             "per_page parameter."
         )
 
+    @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_include_series(self):
         indexer.record(self.organization.id, "session.status")
         self.store_session(self.build_session(project_id=self.project.id, started=time.time() - 60))
@@ -1590,7 +1591,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         response = self.get_success_response(
             self.organization.slug,
-            field=["session.crash_free_user_rate", "session.crash_free_rate"],
+            field=[
+                "session.crash_free_user_rate",
+                "session.crash_free_rate",
+                "session.crash_user_rate",
+                "session.crash_rate",
+            ],
             statsPeriod="1h",
             interval="1h",
             groupBy="release",
@@ -1600,11 +1606,15 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["by"]["release"] == "foobar@1.0"
         assert group["totals"]["session.crash_free_rate"] == 0.75
         assert group["totals"]["session.crash_free_user_rate"] == 0.5
+        assert group["totals"]["session.crash_rate"] == 0.25
+        assert group["totals"]["session.crash_user_rate"] == 0.5
 
         group = response.data["groups"][1]
         assert group["by"]["release"] == "foobar@2.0"
         assert group["totals"]["session.crash_free_rate"] == 0.25
         assert group["totals"]["session.crash_free_user_rate"] == 1.0
+        assert group["totals"]["session.crash_rate"] == 0.75
+        assert group["totals"]["session.crash_user_rate"] == 0.0
 
     def test_healthy_sessions(self):
         user_ts = time.time()
@@ -1667,6 +1677,54 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         group = response.data["groups"][0]
         assert group["totals"]["session.healthy"] == 3
         assert group["series"]["session.healthy"] == [3]
+
+    def test_healthy_sessions_preaggr(self):
+        """Healthy sessions works also when there are no individual errors"""
+        user_ts = time.time()
+        org_id = self.organization.id
+        self._send_buckets(
+            [
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": (user_ts // 60) * 60,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "errored_preaggr"),
+                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 4,
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": org_id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "init"),
+                        self.release_tag: indexer.record(org_id, "foo"),
+                    },
+                    "type": "c",
+                    "value": 10,
+                    "retention_days": 90,
+                },
+            ],
+            entity="metrics_counters",
+        )
+        # Can get session healthy even before all components exist
+        # (projects that send errored_preaggr usually do not send individual errors)
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.healthy"],
+            statsPeriod="6m",
+            interval="6m",
+        )
+        print(response.data["groups"])
+        group = response.data["groups"][0]
+        assert group["totals"]["session.healthy"] == 6
+        assert group["series"]["session.healthy"] == [6]
 
     def test_errored_user_sessions(self):
         org_id = self.organization.id
@@ -1976,7 +2034,13 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             interval="1m",
         )
 
-        assert response.data["groups"] == []
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "series": {"transaction.failure_rate": [None]},
+                "totals": {"transaction.failure_rate": None},
+            },
+        ]
 
     def test_request_private_derived_metric(self):
         for private_name in [

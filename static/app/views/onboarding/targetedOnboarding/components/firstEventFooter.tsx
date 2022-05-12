@@ -1,7 +1,13 @@
 import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion, Variants} from 'framer-motion';
 
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Link from 'sentry/components/links/link';
@@ -12,8 +18,12 @@ import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import isMobile from 'sentry/utils/isMobile';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
 import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
+
+import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';
 
@@ -35,6 +45,8 @@ export default function FirstEventFooter({
   handleFirstIssueReceived,
 }: FirstEventFooterProps) {
   const source = 'targeted_onboarding_first_event_footer';
+  const [clientState, setClientState] = usePersistedOnboardingState();
+  const client = useApi();
 
   const getSecondaryCta = () => {
     // if hasn't sent first event, allow skiping.
@@ -46,6 +58,42 @@ export default function FirstEventFooter({
   };
 
   const getPrimaryCta = ({firstIssue}: {firstIssue: null | true | Group}) => {
+    if (
+      isMobile() &&
+      organization.experiments.TargetedOnboardingMobileRedirectExperiment === 'email-cta'
+    ) {
+      return (
+        <Button
+          priority="primary"
+          onClick={async () => {
+            if (!clientState) {
+              // client state not yet loaded.
+              return;
+            }
+            addLoadingMessage(t('Sending you an email to continue onboarding...'));
+            await client
+              .requestPromise(
+                `/organizations/${organization.slug}/onboarding-continuation-email/`,
+                {
+                  method: 'POST',
+                  data: {
+                    platforms: clientState.selectedPlatforms,
+                  },
+                }
+              )
+              .then(() => {
+                addSuccessMessage(t('Onboarding remainder email sent to your inbox!'));
+              })
+              .catch(() => {
+                addErrorMessage(t('Unable to send onboarding email'));
+              });
+            browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
+          }}
+        >
+          {t('Setup on Computer')}
+        </Button>
+      );
+    }
     // if hasn't sent first event, allow creation of sample error
     if (!hasFirstEvent) {
       return (
@@ -74,12 +122,18 @@ export default function FirstEventFooter({
   return (
     <GridFooter>
       <SkipOnboardingLink
-        onClick={() =>
+        onClick={() => {
           trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
             organization,
             source,
-          })
-        }
+          });
+          if (clientState) {
+            setClientState({
+              ...clientState,
+              state: 'skipped',
+            });
+          }
+        }}
         to={`/organizations/${organization.slug}/issues/`}
       >
         {t('Skip Onboarding')}
@@ -115,14 +169,14 @@ export default function FirstEventFooter({
 const OnboardingButtonBar = styled(ButtonBar)`
   margin: ${space(2)} ${space(4)};
   justify-self: end;
+  margin-left: auto;
 `;
 
 const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${space(1)};
-  color: ${p =>
-    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink300)};
 `;
 
 const indicatorAnimation: Variants = {
@@ -138,7 +192,7 @@ AnimatedText.defaultProps = {
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
+  background-color: ${p => p.theme.pink300};
 `;
 
 WaitingIndicator.defaultProps = {
@@ -151,6 +205,10 @@ const StatusWrapper = styled(motion.div)`
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};
   justify-content: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 StatusWrapper.defaultProps = {
@@ -170,9 +228,18 @@ StatusWrapper.defaultProps = {
 
 const SkipOnboardingLink = styled(Link)`
   margin: auto ${space(4)};
+  white-space: nowrap;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: none;
+  }
 `;
 
 const GridFooter = styled(GenericFooter)`
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+  }
 `;

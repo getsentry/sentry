@@ -4,6 +4,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
+import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/actionCreators/serviceIncidents');
 
@@ -19,7 +21,12 @@ describe('Sidebar', function () {
     <SidebarContainer organization={organization} location={location} {...props} />
   );
 
-  const renderSidebar = props => render(getElement(props));
+  const renderSidebar = props =>
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <PersistedStoreProvider>{getElement(props)}</PersistedStoreProvider>
+      </OrganizationContext.Provider>
+    );
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
@@ -34,10 +41,15 @@ describe('Sidebar', function () {
       url: `/organizations/${organization.slug}/sdk-updates/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/client-state/`,
+      body: {},
+    });
   });
 
-  it('renders', function () {
-    renderSidebar();
+  it('renders', async function () {
+    const {container} = renderSidebar();
+    await waitFor(() => container);
     expect(screen.getByTestId('sidebar-dropdown')).toBeInTheDocument();
   });
 
@@ -73,8 +85,9 @@ describe('Sidebar', function () {
     window.location.assign.mockRestore();
   });
 
-  it('can toggle help menu', function () {
+  it('can toggle help menu', async function () {
     const {container} = renderSidebar();
+    await waitFor(() => container);
 
     userEvent.click(screen.getByText('Help'));
 
@@ -83,8 +96,9 @@ describe('Sidebar', function () {
   });
 
   describe('SidebarDropdown', function () {
-    it('can open Sidebar org/name dropdown menu', function () {
+    it('can open Sidebar org/name dropdown menu', async function () {
       const {container} = renderSidebar();
+      await waitFor(() => container);
 
       userEvent.click(screen.getByTestId('sidebar-dropdown'));
 
@@ -92,21 +106,22 @@ describe('Sidebar', function () {
       expect(orgSettingsLink).toBeInTheDocument();
       expect(container).toSnapshot();
     });
-
-    it('has link to Members settings with `member:write`', function () {
-      renderSidebar({
+    it('has link to Members settings with `member:write`', async function () {
+      const {container} = renderSidebar({
         organization: TestStubs.Organization({access: ['member:read']}),
       });
+      await waitFor(() => container);
 
       userEvent.click(screen.getByTestId('sidebar-dropdown'));
 
       expect(screen.getByText('Members')).toBeInTheDocument();
     });
 
-    it('can open "Switch Organization" sub-menu', function () {
+    it('can open "Switch Organization" sub-menu', async function () {
       act(() => void ConfigStore.set('features', new Set(['organizations:create'])));
 
       const {container} = renderSidebar();
+      await waitFor(() => container);
 
       userEvent.click(screen.getByTestId('sidebar-dropdown'));
 
@@ -133,6 +148,7 @@ describe('Sidebar', function () {
       rerender(getElement({location: {...router.location, pathname: 'new-path-name'}}));
 
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
+      await tick();
     });
 
     it('can have onboarding feature', async function () {
@@ -147,6 +163,10 @@ describe('Sidebar', function () {
 
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText('Capture your first error')).toBeInTheDocument();
+
+      userEvent.click(quickStart);
+      expect(screen.queryByText('Capture your first error')).not.toBeInTheDocument();
+      await tick();
     });
 
     it('displays empty panel when there are no Broadcasts', async function () {
@@ -167,6 +187,7 @@ describe('Sidebar', function () {
       // Close the sidebar
       userEvent.click(screen.getByText("What's new"));
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
+      await tick();
     });
 
     it('can display Broadcasts panel and mark as seen', async function () {
@@ -199,6 +220,7 @@ describe('Sidebar', function () {
       // Close the sidebar
       userEvent.click(screen.getByText("What's new"));
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
+      await tick();
     });
 
     it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
@@ -235,7 +257,8 @@ describe('Sidebar', function () {
   });
 
   it('can toggle collapsed state', async function () {
-    renderSidebar();
+    const container = renderSidebar();
+    await waitFor(() => container);
 
     expect(screen.getByText(user.name)).toBeInTheDocument();
     expect(screen.getByText(organization.name)).toBeInTheDocument();

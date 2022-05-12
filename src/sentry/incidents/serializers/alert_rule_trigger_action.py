@@ -15,7 +15,6 @@ from sentry.incidents.serializers import (
     STRING_TO_ACTION_TYPE,
 )
 from sentry.integrations.slack.utils import validate_channel_id
-from sentry.mediators import alert_rule_actions
 from sentry.models import OrganizationMember, SentryAppInstallation, Team, User
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 
@@ -102,7 +101,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     team = Team.objects.get(id=identifier)
                 except Team.DoesNotExist:
                     raise serializers.ValidationError("Team does not exist")
-                if not access.has_team(team):
+                if not access.has_team_access(team):
                     raise serializers.ValidationError("Team does not exist")
             elif target_type == AlertRuleTriggerAction.TargetType.USER:
                 try:
@@ -134,19 +133,14 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     )
 
                 try:
-                    install = SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid)
+                    SentryAppInstallation.objects.get(uuid=sentry_app_installation_uuid)
                 except SentryAppInstallation.DoesNotExist:
                     raise serializers.ValidationError(
                         {"sentry_app": "The installation does not exist."}
                     )
-                # Check response from creator and bubble up errors from providers as a ValidationError
-                result = alert_rule_actions.AlertRuleActionCreator.run(
-                    install=install,
-                    fields=attrs.get("sentry_app_config"),
-                )
 
-                if not result["success"]:
-                    raise serializers.ValidationError({"sentry_app": result["message"]})
+            # TODO(Ecosystem): Validate fields on schema config if alert-rule-action component exists
+            # See NotifyEventSentryAppAction::self_validate for more details
 
         attrs["use_async_lookup"] = self.context.get("use_async_lookup")
         attrs["input_channel_id"] = self.context.get("input_channel_id")

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {clamp, rectOfContent} from 'sentry/components/performance/waterfall/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
@@ -70,7 +70,7 @@ type DragManagerState = {
   windowSelectionSize: number;
 };
 
-class DragManager extends React.Component<DragManagerProps, DragManagerState> {
+class DragManager extends Component<DragManagerProps, DragManagerState> {
   state: DragManagerState = {
     // draggable handles
 

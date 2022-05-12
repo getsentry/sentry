@@ -12,7 +12,12 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('AlertRulesList', () => {
-  const {routerContext, organization, router} = initializeOrg();
+  const {routerContext, organization, router} = initializeOrg({
+    organization: {
+      access: ['alerts:write'],
+      features: ['duplicate-alert-rule'],
+    },
+  });
   TeamStore.loadInitialData([], false, null);
   let rulesMock;
   let projectMock;
@@ -111,6 +116,41 @@ describe('AlertRulesList', () => {
     expect(rulesMock).toHaveBeenCalledTimes(0);
   });
 
+  it('displays dropdown context menu with actions', async () => {
+    createWrapper();
+    const actions = (await screen.findAllByTestId('alert-row-actions'))[0];
+    expect(actions).toBeInTheDocument();
+
+    userEvent.click(actions);
+
+    expect(screen.getByText('Edit')).toBeInTheDocument();
+    expect(screen.getByText('Delete')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate')).toBeInTheDocument();
+  });
+
+  it('sends user to new alert page on duplicate action', async () => {
+    createWrapper();
+    const actions = (await screen.findAllByTestId('alert-row-actions'))[0];
+    expect(actions).toBeInTheDocument();
+
+    userEvent.click(actions);
+
+    const duplicate = await screen.findByText('Duplicate');
+    expect(duplicate).toBeInTheDocument();
+
+    userEvent.click(duplicate);
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/alerts/new/issue/',
+      query: {
+        createFromDuplicate: true,
+        duplicateRuleId: '123',
+        project: 'earth',
+        referrer: 'alert_stream',
+      },
+    });
+  });
+
   it('sorts by date created', async () => {
     const {rerender} = createWrapper();
 
@@ -198,7 +238,7 @@ describe('AlertRulesList', () => {
       expect.objectContaining({
         query: {
           name: testQuery,
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
         },
@@ -224,7 +264,7 @@ describe('AlertRulesList', () => {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: '',
         },
@@ -253,7 +293,7 @@ describe('AlertRulesList', () => {
       '/organizations/org-slug/combined-rules/',
       expect.objectContaining({
         query: {
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: ['myteams', 'unassigned'],
         },
@@ -273,7 +313,7 @@ describe('AlertRulesList', () => {
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {
-          expand: ['latestIncident'],
+          expand: ['latestIncident', 'lastTriggered'],
           sort: ['incident_status', 'date_triggered'],
           team: '',
           cursor: '0:100:0',

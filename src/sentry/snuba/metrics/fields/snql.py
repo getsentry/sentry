@@ -258,10 +258,6 @@ def miserable_users(org_id, metric_ids, alias=None):
     )
 
 
-def percentage(arg1_snql, arg2_snql, alias=None):
-    return Function("minus", [1, Function("divide", [arg1_snql, arg2_snql])], alias)
-
-
 def subtraction(arg1_snql, arg2_snql, alias=None):
     return Function("minus", [arg1_snql, arg2_snql], alias)
 
@@ -278,6 +274,11 @@ def division_float(arg1_snql, arg2_snql, alias=None):
         [arg1_snql, arg2_snql],
         alias=alias,
     )
+
+
+def complement(arg1_snql, alias=None):
+    """(x) -> (1 - x)"""
+    return Function("minus", [1.0, arg1_snql], alias=alias)
 
 
 def session_duration_filters(org_id):

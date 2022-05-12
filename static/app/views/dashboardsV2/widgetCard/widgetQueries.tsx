@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -175,7 +175,7 @@ type State = {
   timeseriesResults?: Series[];
 };
 
-class WidgetQueries extends React.Component<Props, State> {
+class WidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
     queryFetchID: undefined,
@@ -301,6 +301,11 @@ class WidgetQueries extends React.Component<Props, State> {
         cursor,
         ...getDashboardsMEPQueryParams(this.isMEPEnabled),
       };
+
+      if (query.orderby) {
+        params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
+      }
+
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;
         params.referrer = 'api.dashboards.tablewidget';
@@ -443,8 +448,16 @@ class WidgetQueries extends React.Component<Props, State> {
           query.columns?.length !== 0
         ) {
           requestData.topEvents = widget.limit ?? TOP_N;
-          // Aggregates need to be in fields as well
           requestData.field = [...query.columns, ...query.aggregates];
+
+          // Compare field and orderby as aliases to ensure requestData has
+          // the orderby selected
+          if (
+            query.orderby &&
+            !requestData.field.includes(trimStart(query.orderby, '-'))
+          ) {
+            requestData.field.push(trimStart(query.orderby, '-'));
+          }
 
           // The "Other" series is only included when there is one
           // y-axis and one query
