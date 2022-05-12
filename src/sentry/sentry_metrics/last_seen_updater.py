@@ -74,10 +74,11 @@ class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
         keys_to_pass_to_update = len(self.__seen_ints)
         logger.debug(f"{keys_to_pass_to_update} unique keys seen")
         self.__metrics.incr(
-            "last_seen_updater.unique-update-candidate-keys", amount=keys_to_pass_to_update
+            "last_seen_updater.unique_update_candidate_keys", amount=keys_to_pass_to_update
         )
-        update_count = _update_stale_last_seen(self.__seen_ints)
-        self.__metrics.incr("last_seen_updater.updated-rows-count", amount=update_count)
+        with self.__metrics.timer("last_seen_updater.postgres_time"):
+            update_count = _update_stale_last_seen(self.__seen_ints)
+        self.__metrics.incr("last_seen_updater.updated_rows_count", amount=update_count)
         logger.debug(f"{update_count} keys updated")
         self.__seen_ints = set()
 
