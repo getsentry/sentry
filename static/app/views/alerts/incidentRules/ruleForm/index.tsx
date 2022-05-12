@@ -664,7 +664,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization, ruleId, rule, onSubmitSuccess, userTeamIds, router} = this.props;
+    const {organization, ruleId, rule, onSubmitSuccess, router} = this.props;
     const {
       query,
       project,
@@ -718,17 +718,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
-    const ownerId = rule.owner?.split(':')[1];
-    const canEdit =
-      isActiveSuperuser() ||
-      organization.access.includes('alerts:write') ||
-      (ownerId ? userTeamIds.includes(ownerId) : true);
-
     const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
-    const triggerForm = (hasAccess: boolean) => (
+    const triggerForm = (disabled: boolean) => (
       <Triggers
-        disabled={!hasAccess || !canEdit}
+        disabled={disabled}
         projects={[project]}
         errors={this.state.triggerErrors}
         triggers={triggers}
@@ -749,19 +743,19 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
-    const ruleNameOwnerForm = (hasAccess: boolean) => (
+    const ruleNameOwnerForm = (disabled: boolean) => (
       <RuleNameOwnerForm
-        disabled={!hasAccess || !canEdit}
+        disabled={disabled}
         project={project}
         hasAlertWizardV3={hasAlertWizardV3}
       />
     );
 
-    const thresholdTypeForm = (hasAccess: boolean) => (
+    const thresholdTypeForm = (disabled: boolean) => (
       <ThresholdTypeForm
         comparisonType={comparisonType}
         dataset={dataset}
-        disabled={!hasAccess || !canEdit}
+        disabled={disabled}
         onComparisonDeltaChange={value =>
           this.handleFieldChange('comparisonDelta', value)
         }
@@ -774,82 +768,88 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
     return (
       <Access access={['alerts:write']}>
-        {({hasAccess}) => (
-          <Form
-            apiMethod={ruleId ? 'PUT' : 'POST'}
-            apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
-              ruleId ? `${ruleId}/` : ''
-            }`}
-            submitDisabled={!hasAccess || loading || !canEdit}
-            initialData={{
-              name: rule.name || '',
-              dataset,
-              eventTypes,
-              aggregate,
-              query: rule.query || '',
-              timeWindow: rule.timeWindow,
-              environment: rule.environment || null,
-              owner: rule.owner,
-              projectId: project.id,
-            }}
-            saveOnBlur={false}
-            onSubmit={this.handleSubmit}
-            onSubmitSuccess={onSubmitSuccess}
-            onCancel={this.handleCancel}
-            onFieldChange={this.handleFieldChange}
-            extraButton={
-              !!rule.id ? (
-                <Confirm
-                  disabled={!hasAccess || !canEdit}
-                  message={t('Are you sure you want to delete this alert rule?')}
-                  header={t('Delete Alert Rule?')}
-                  priority="danger"
-                  confirmText={t('Delete Rule')}
-                  onConfirm={this.handleDeleteRule}
-                >
-                  <Button type="button" priority="danger">
-                    {t('Delete Rule')}
-                  </Button>
-                </Confirm>
-              ) : null
-            }
-            submitLabel={t('Save Rule')}
-          >
-            <List symbol="colored-numeric">
-              <RuleConditionsForm
-                api={this.api}
-                project={project}
-                organization={organization}
-                router={router}
-                disabled={!hasAccess || !canEdit}
-                thresholdChart={wizardBuilderChart}
-                onFilterSearch={this.handleFilterUpdate}
-                allowChangeEventTypes={
-                  alertType === 'custom' || dataset === Dataset.ERRORS
-                }
-                alertType={alertType}
-                hasAlertWizardV3={hasAlertWizardV3}
-                dataset={dataset}
-                timeWindow={timeWindow}
-                comparisonType={comparisonType}
-                comparisonDelta={comparisonDelta}
-                onComparisonDeltaChange={value =>
-                  this.handleFieldChange('comparisonDelta', value)
-                }
-                onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
-              />
-              {!hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
-              <AlertListItem>
-                {hasAlertWizardV3
-                  ? t('Set thresholds')
-                  : t('Set thresholds to trigger alert')}
-              </AlertListItem>
-              {hasAlertWizardV3 && thresholdTypeForm(hasAccess)}
-              {triggerForm(hasAccess)}
-              {ruleNameOwnerForm(hasAccess)}
-            </List>
-          </Form>
-        )}
+        {({hasAccess}) => {
+          const disabled = loading || !(isActiveSuperuser() || hasAccess);
+
+          return (
+            <Form
+              apiMethod={ruleId ? 'PUT' : 'POST'}
+              apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
+                ruleId ? `${ruleId}/` : ''
+              }`}
+              submitDisabled={disabled}
+              initialData={{
+                name: rule.name || '',
+                dataset,
+                eventTypes,
+                aggregate,
+                query: rule.query || '',
+                timeWindow: rule.timeWindow,
+                environment: rule.environment || null,
+                owner: rule.owner,
+                projectId: project.id,
+              }}
+              saveOnBlur={false}
+              onSubmit={this.handleSubmit}
+              onSubmitSuccess={onSubmitSuccess}
+              onCancel={this.handleCancel}
+              onFieldChange={this.handleFieldChange}
+              extraButton={
+                !!rule.id ? (
+                  <Confirm
+                    disabled={disabled}
+                    message={t('Are you sure you want to delete this alert rule?')}
+                    header={t('Delete Alert Rule?')}
+                    priority="danger"
+                    confirmText={t('Delete Rule')}
+                    onConfirm={this.handleDeleteRule}
+                  >
+                    <Button type="button" priority="danger">
+                      {t('Delete Rule')}
+                    </Button>
+                  </Confirm>
+                ) : null
+              }
+              submitLabel={t('Save Rule')}
+            >
+              <List symbol="colored-numeric">
+                <RuleConditionsForm
+                  api={this.api}
+                  project={project}
+                  organization={organization}
+                  router={router}
+                  disabled={disabled}
+                  thresholdChart={wizardBuilderChart}
+                  onFilterSearch={this.handleFilterUpdate}
+                  allowChangeEventTypes={
+                    alertType === 'custom' || dataset === Dataset.ERRORS
+                  }
+                  alertType={alertType}
+                  hasAlertWizardV3={hasAlertWizardV3}
+                  dataset={dataset}
+                  timeWindow={timeWindow}
+                  comparisonType={comparisonType}
+                  comparisonDelta={comparisonDelta}
+                  onComparisonDeltaChange={value =>
+                    this.handleFieldChange('comparisonDelta', value)
+                  }
+                  onTimeWindowChange={value =>
+                    this.handleFieldChange('timeWindow', value)
+                  }
+                />
+                {!hasAlertWizardV3 && thresholdTypeForm(disabled)}
+                <AlertListItem>
+                  {hasAlertWizardV3
+                    ? t('Set thresholds')
+                    : t('Set thresholds to trigger alert')}
+                </AlertListItem>
+                {hasAlertWizardV3 && thresholdTypeForm(disabled)}
+                {triggerForm(disabled)}
+                {ruleNameOwnerForm(disabled)}
+              </List>
+            </Form>
+          );
+        }}
       </Access>
     );
   }
