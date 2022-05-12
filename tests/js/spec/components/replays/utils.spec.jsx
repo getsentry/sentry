@@ -1,5 +1,6 @@
 import {
   countColumns,
+  flattenSpans,
   formatTime,
   getCrumbsByColumn,
 } from 'sentry/components/replays/utils';
@@ -112,5 +113,132 @@ describe('getCrumbsByColumn', () => {
       [6, [CRUMB_5]],
     ];
     expect(columns).toEqual(new Map(expectedEntries));
+  });
+});
+
+describe('flattenSpans', () => {
+  it('should return an empty array if there ar eno spans', () => {
+    expect(flattenSpans([])).toStrictEqual([]);
+  });
+
+  it('should return the FlattenedSpanRange for a single span', () => {
+    const span = {
+      data: {},
+      span_id: 'abc',
+      start_timestamp: 10,
+      timestamp: 30,
+      trace_id: '',
+    };
+    expect(flattenSpans([span])).toStrictEqual([
+      {
+        duration: 20000,
+        endTimestamp: 30000,
+        spanCount: 1,
+        spanId: 'abc',
+        startTimestamp: 10000,
+      },
+    ]);
+  });
+
+  it('should return two non-overlapping spans', () => {
+    const span1 = {
+      data: {},
+      span_id: 'abc',
+      start_timestamp: 10,
+      timestamp: 30,
+      trace_id: '',
+    };
+    const span2 = {
+      data: {},
+      span_id: 'yzx',
+      start_timestamp: 60,
+      timestamp: 90,
+      trace_id: '',
+    };
+
+    expect(flattenSpans([span1, span2])).toStrictEqual([
+      {
+        duration: 20000,
+        endTimestamp: 30000,
+        spanCount: 1,
+        spanId: 'abc',
+        startTimestamp: 10000,
+      },
+      {
+        duration: 30000,
+        endTimestamp: 90000,
+        spanCount: 1,
+        spanId: 'yzx',
+        startTimestamp: 60000,
+      },
+    ]);
+  });
+
+  it('should merge two overlapping spans', () => {
+    const span1 = {
+      data: {},
+      span_id: 'abc',
+      start_timestamp: 10,
+      timestamp: 30,
+      trace_id: '',
+    };
+    const span2 = {
+      data: {},
+      span_id: 'def',
+      start_timestamp: 20,
+      timestamp: 40,
+      trace_id: '',
+    };
+
+    expect(flattenSpans([span1, span2])).toStrictEqual([
+      {
+        duration: 30000,
+        endTimestamp: 40000,
+        spanCount: 2,
+        spanId: 'abc',
+        startTimestamp: 10000,
+      },
+    ]);
+  });
+
+  it('should merge overlapping spans that are not first in the list', () => {
+    const span0 = {
+      data: {},
+      span_id: 'aaa',
+      start_timestamp: 0,
+      timestamp: 1,
+      trace_id: '',
+    };
+    const span1 = {
+      data: {},
+      span_id: 'abc',
+      start_timestamp: 10,
+      timestamp: 30,
+      trace_id: '',
+    };
+    const span2 = {
+      data: {},
+      span_id: 'def',
+      start_timestamp: 20,
+      timestamp: 40,
+      trace_id: '',
+    };
+
+    expect(flattenSpans([span0, span1, span2])).toStrictEqual([
+      {
+        duration: 1000,
+        endTimestamp: 1000,
+        spanCount: 1,
+        spanId: 'aaa',
+        startTimestamp: 0,
+      },
+      {
+        duration: 30000,
+        endTimestamp: 40000,
+        spanCount: 2,
+        spanId: 'abc',
+        startTimestamp: 10000,
+      },
+    ]);
   });
 });

@@ -1,23 +1,44 @@
-from collections.abc import Sequence
+from __future__ import annotations
+
+from typing import Any, Callable, Iterator, Protocol, Sequence, Tuple, TypeVar, Union
+
+from sentry.utils.json import JSONData
+
+T = TypeVar("T")
+CursorValue = Union[float, int, str]
+
+
+class KeyCallable(Protocol):
+    def __call__(self, value: T, for_prev: bool = ...) -> CursorValue:
+        ...
+
+
+OnResultCallable = Callable[[Sequence[T]], JSONData]
 
 
 class Cursor:
-    def __init__(self, value, offset=0, is_prev=False, has_results=None):
-        self.value = value
+    def __init__(
+        self,
+        value: CursorValue,
+        offset: int = 0,
+        is_prev: bool | int = False,
+        has_results: bool | None = None,
+    ):
+        self.value: CursorValue = value
         self.offset = int(offset)
         self.is_prev = bool(is_prev)
         self.has_results = has_results
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.value}:{self.offset}:{int(self.is_prev)}"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return all(
             getattr(self, attr) == getattr(other, attr)
             for attr in ("value", "offset", "is_prev", "has_results")
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "<{}: value={} offset={} is_prev={}>".format(
             type(self).__name__,
             self.value,
@@ -25,68 +46,75 @@ class Cursor:
             int(self.is_prev),
         )
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return bool(self.has_results)
 
     # python2 compatibility
     __nonzero__ = __bool__
 
     @classmethod
-    def from_string(cls, value):
-        bits = value.split(":")
+    def from_string(cls, cursor_str: str) -> Cursor:
+        bits = cursor_str.split(":")
         if len(bits) != 3:
             raise ValueError
         try:
             value = float(bits[0]) if "." in bits[0] else int(bits[0])
-            bits = value, int(bits[1]), int(bits[2])
+            return Cursor(value, int(bits[1]), int(bits[2]))
         except (TypeError, ValueError):
             raise ValueError
-        return cls(*bits)
 
 
 class SCIMCursor(Cursor):
     @classmethod
-    def from_string(cls, value):
+    def from_string(cls, value: str) -> SCIMCursor:
         # SCIM cursors are 1 indexed
-        return cls(0, int(value) - 1, 0)
+        return SCIMCursor(0, int(value) - 1, 0)
 
 
 class StringCursor(Cursor):
     @classmethod
-    def from_string(cls, value):
-        bits = value.rsplit(":", 2)
+    def from_string(cls, cursor_str: str) -> StringCursor:
+        bits = cursor_str.rsplit(":", 2)
         if len(bits) != 3:
             raise ValueError
         try:
             value = bits[0]
-            bits = value, int(bits[1]), int(bits[2])
+            return StringCursor(value, int(bits[1]), int(bits[2]))
         except (TypeError, ValueError):
             raise ValueError
-        return cls(*bits)
 
 
-class CursorResult(Sequence):
-    def __init__(self, results, next, prev, hits=None, max_hits=None):
+class CursorResult(Sequence[T]):
+    def __init__(
+        self,
+        results: Sequence[T],
+        next: Cursor,
+        prev: Cursor,
+        hits: int | None = None,
+        max_hits: int | None = None,
+    ):
         self.results = results
         self.next = next
         self.prev = prev
         self.hits = hits
         self.max_hits = max_hits
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.results)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[T]:
         return iter(self.results)
 
-    def __getitem__(self, key):
-        return self.results[key]
-
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{type(self).__name__}: results={len(self.results)}>"
 
+    def __getitem__(self, key: Any) -> Any:
+        return self.results[key]
 
-def _build_next_values(cursor, results, key, limit, is_desc):
+
+def _build_next_values(
+    cursor: Cursor, results: Sequence[T], key: KeyCallable, limit: int, is_desc: bool
+) -> Tuple[CursorValue, int, bool]:
     value = cursor.value
     offset = cursor.offset
     is_prev = cursor.is_prev
@@ -114,7 +142,7 @@ def _build_next_values(cursor, results, key, limit, is_desc):
     # value has not changed, page forward by adjusting the offset
     if next_value == value:
         next_offset = offset + limit
-        return (next_value, next_offset, has_next)
+        return next_value, next_offset, has_next
 
     # We have an absolute value to page from. If any of the items in
     # the current result set come *after* or *before* (depending on the
@@ -134,18 +162,20 @@ def _build_next_values(cursor, results, key, limit, is_desc):
     for result in result_iter:
         result_value = key(result)
 
-        is_larger = result_value >= next_value
-        is_smaller = result_value <= next_value
+        is_larger = result_value >= next_value  # type: ignore
+        is_smaller = result_value <= next_value  # type: ignore
 
         if (is_desc and is_smaller) or (not is_desc and is_larger):
             next_offset += 1
         else:
             break
 
-    return (next_value, next_offset, has_next)
+    return next_value, next_offset, has_next
 
 
-def _build_prev_values(cursor, results, key, limit, is_desc):
+def _build_prev_values(
+    cursor: Cursor, results: Sequence[T], key: KeyCallable, limit: int, is_desc: bool
+) -> Tuple[CursorValue, int, bool]:
     value = cursor.value
     offset = cursor.offset
     is_prev = cursor.is_prev
@@ -157,7 +187,7 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     else:
         # It's likely that there's a previous page if they passed us either
         # offset values
-        has_prev = value or offset
+        has_prev = bool(value or offset)
 
     # If the cursor contains previous results, the first item is the item that
     # indicates if we have more items later, and is *not* the first item in the
@@ -174,12 +204,12 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     prev_offset = offset if is_prev else 0
 
     if not (is_prev and num_results):
-        return (prev_value, prev_offset, has_prev)
+        return prev_value, prev_offset, has_prev
 
     # Value has not changed, page back by adjusting the offset
     if prev_value == value:
         prev_offset = offset + limit
-        return (prev_value, prev_offset, has_prev)
+        return prev_value, prev_offset, has_prev
 
     # Just as in the next cursor builder, we may need to add an offset
     # if any of the results at the beginning are *before* or *after*
@@ -201,8 +231,8 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
     for result in result_iter:
         result_value = key(result, for_prev=True)
 
-        is_larger = result_value >= prev_value
-        is_smaller = result_value <= prev_value
+        is_larger = result_value >= prev_value  # type: ignore
+        is_smaller = result_value <= prev_value  # type: ignore
 
         # Note that the checks are reversed here as a prev query has
         # it's ordering reversed.
@@ -211,12 +241,19 @@ def _build_prev_values(cursor, results, key, limit, is_desc):
         else:
             break
 
-    return (prev_value, prev_offset, has_prev)
+    return prev_value, prev_offset, has_prev
 
 
 def build_cursor(
-    results, key, limit=100, is_desc=False, cursor=None, hits=None, max_hits=None, on_results=None
-):
+    results: Sequence[T],
+    key: KeyCallable,
+    limit: int = 100,
+    is_desc: bool = False,
+    cursor: Cursor | None = None,
+    hits: int | None = None,
+    max_hits: int | None = None,
+    on_results: None | OnResultCallable[T] = None,
+) -> CursorResult[T | JSONData]:
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 

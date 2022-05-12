@@ -38,6 +38,9 @@ SHY = "\u00ad"  # soft hyphen
         (r"\111", "\111"),
         (r"\u2603", "☃"),
         (r"\U0001f643", "🙃"),
+        # probably a mistake in the configuration but it allows quoted strings
+        # with embedded newlines
+        ("hello\nworld", "hello\nworld"),
     ),
 )
 def test_unescape_string(s, expected):

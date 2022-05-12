@@ -34,11 +34,11 @@ class OrganizationAbstractDetailViewPage(BasePage):
 
 class OrganizationIntegrationDetailViewPage(OrganizationAbstractDetailViewPage):
     def click_through_integration_setup(self, setup_window_cls, installation_data):
-        self.driver.switch_to_window(self.driver.window_handles[1])
+        self.driver.switch_to.window(self.driver.window_handles[1])
         integration_setup_window = setup_window_cls(element=self.browser)
         integration_setup_window.fill_in_setup_form(installation_data)
         integration_setup_window.continue_button.click()
-        self.driver.switch_to_window(self.driver.window_handles[0])
+        self.driver.switch_to.window(self.driver.window_handles[0])
 
 
 class OrganizationSentryAppDetailViewPage(OrganizationAbstractDetailViewPage):

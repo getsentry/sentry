@@ -5,15 +5,21 @@ import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import {ReplayTabs} from '../types';
+import useActiveTabFromLocation from './useActiveTabFromLocation';
 
-type Props = {
-  active: ReplayTabs;
-};
+type Props = {};
 
-const TABS = [t('Console'), t('Performance'), t('Issues'), t('Tags'), t('Memory')];
+const TABS = [
+  t('Console'),
+  t('Performance'),
+  t('Trace'),
+  t('Issues'),
+  t('Tags'),
+  t('Memory'),
+];
 
-function FocusTabs({active}: Props) {
+function FocusTabs({}: Props) {
+  const active = useActiveTabFromLocation();
   return (
     <FullBleedNavTabs underlined>
       {TABS.map(tab => (
