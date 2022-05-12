@@ -8,19 +8,20 @@ interface FullscreenOptions {
 
 interface FullscreenHook {
   /**
-   * Render, in fullscreen, the `ref` that this instance relates to.
-   * If `ref` is unset, then `<html>` will be used.
+   * Render, in fullscreen, the `ref` that this instance relates to. If `ref`
+   * is unset, then `<html>` will be used.
    */
   enter: (options?: FullscreenOptions) => void;
 
   /**
-   * Bring the browser out of fullscreen, regardless of which DOM element is currently active.
+   * Bring the browser out of fullscreen, regardless of which DOM element is
+   * currently active.
    */
   exit: () => void;
 
   /**
-   * If the browser supports going fullscreen or not.
-   * iPhone Safari won't do it. https://caniuse.com/fullscreen
+   * If the browser supports going fullscreen or not. iPhone Safari won't do
+   * it. https://caniuse.com/fullscreen
    */
   isEnabled: boolean;
 
@@ -31,13 +32,14 @@ interface FullscreenHook {
 
   /**
    * The element that this instance of `enter()` will use to go fullscreen.
-   * Calling `useFullscreen()` a second time will create a different instance of `ref` and `enter.
+   * Calling `useFullscreen()` a second time will create a different instance of
+   * `ref` and `enter.
    */
   ref: MutableRefObject<null | HTMLDivElement>;
 
   /**
-   * Toggle fullscreen mode on and off, for the `ref` that this instance relates to.
-   *
+   * Toggle fullscreen mode on and off, for the `ref` that this instance
+   * relates to.
    */
   toggle: () => void;
 }
