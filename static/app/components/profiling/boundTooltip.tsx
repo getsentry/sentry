@@ -33,17 +33,17 @@ const useCachedMeasure = (string: string, font: string): Rect => {
 
 interface BoundTooltipProps {
   bounds: Rect;
-  canvas: FlamegraphCanvas;
   cursor: vec2 | null;
-  view: FlamegraphView;
+  flamegraphCanvas: FlamegraphCanvas;
+  flamegraphView: FlamegraphView;
   children?: React.ReactNode;
 }
 
 function BoundTooltip({
   bounds,
-  canvas,
+  flamegraphCanvas,
   cursor,
-  view,
+  flamegraphView,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -79,13 +79,13 @@ function BoundTooltip({
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     cursor,
-    view.fromConfigView(canvas.physicalSpace)
+    flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
   );
 
   const logicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     physicalSpaceCursor,
-    canvas.physicalToLogicalSpace
+    flamegraphCanvas.physicalToLogicalSpace
   );
 
   let cursorHorizontalPosition = logicalSpaceCursor[0];

@@ -193,26 +193,32 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       return undefined;
     }
 
-    const observer = watchForResize(
-      [
-        flamegraphCanvasRef,
-        flamegraphOverlayCanvasRef,
-        flamegraphMiniMapCanvasRef,
-        flamegraphMiniMapOverlayCanvasRef,
-      ],
+    const flamegraphObserver = watchForResize(
+      [flamegraphCanvasRef, flamegraphOverlayCanvasRef],
       () => {
         const bounds = flamegraphCanvasRef.getBoundingClientRect();
         setCanvasBounds(new Rect(bounds.x, bounds.y, bounds.width, bounds.height));
 
-        flamegraphCanvas.resizePhysicalSpace();
-        flamegraphMiniMapCanvas.resizePhysicalSpace();
+        flamegraphCanvas.initPhysicalSpace();
         flamegraphView.resizeConfigSpace(flamegraphCanvas);
 
         canvasPoolManager.drawSync();
       }
     );
 
-    return () => observer.disconnect();
+    const flamegraphMiniMapObserver = watchForResize(
+      [flamegraphMiniMapCanvasRef, flamegraphMiniMapOverlayCanvasRef],
+      () => {
+        flamegraphMiniMapCanvas.initPhysicalSpace();
+
+        canvasPoolManager.drawSync();
+      }
+    );
+
+    return () => {
+      flamegraphObserver.disconnect();
+      flamegraphMiniMapObserver.disconnect();
+    };
   }, [
     canvasPoolManager,
     flamegraphCanvas,
@@ -254,28 +260,28 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
 
       <FlamegraphZoomViewMinimapContainer height={flamegraphTheme.SIZES.MINIMAP_HEIGHT}>
         <FlamegraphZoomViewMinimap
-          canvas={flamegraphMiniMapCanvas}
           canvasPoolManager={canvasPoolManager}
           flamegraph={flamegraph}
+          flamegraphMiniMapCanvas={flamegraphMiniMapCanvas}
           flamegraphMiniMapCanvasRef={flamegraphMiniMapCanvasRef}
           flamegraphMiniMapOverlayCanvasRef={flamegraphMiniMapOverlayCanvasRef}
+          flamegraphMiniMapView={flamegraphView}
           setFlamegraphMiniMapCanvasRef={setFlamegraphMiniMapCanvasRef}
           setFlamegraphMiniMapOverlayCanvasRef={setFlamegraphMiniMapOverlayCanvasRef}
-          view={flamegraphView}
         />
       </FlamegraphZoomViewMinimapContainer>
       <FlamegraphZoomViewContainer>
         <ProfileDragDropImport onImport={props.onImport}>
           <FlamegraphZoomView
-            canvas={flamegraphCanvas}
             canvasBounds={canvasBounds}
             canvasPoolManager={canvasPoolManager}
             flamegraph={flamegraph}
+            flamegraphCanvas={flamegraphCanvas}
             flamegraphCanvasRef={flamegraphCanvasRef}
             flamegraphOverlayCanvasRef={flamegraphOverlayCanvasRef}
+            flamegraphView={flamegraphView}
             setFlamegraphCanvasRef={setFlamegraphCanvasRef}
             setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
-            view={flamegraphView}
           />
         </ProfileDragDropImport>
       </FlamegraphZoomViewContainer>

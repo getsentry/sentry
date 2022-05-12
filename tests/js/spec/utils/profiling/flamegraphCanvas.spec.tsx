@@ -52,6 +52,21 @@ describe('flamegraphCanvas', () => {
     );
   });
 
+  it('initializes physicalToLogicalSpace', () => {
+    window.devicePixelRatio = 2;
+    // @ts-ignore partial mock
+    const context = makeContextMock({canvas: {width: 100, height: 100}});
+    const canvas = makeCanvasMock({
+      getContext: jest.fn().mockReturnValue(context),
+    });
+
+    const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(10, 10));
+
+    expect(flamegraphCanvas.physicalToLogicalSpace).toEqual(
+      mat3.fromScaling(mat3.create(), vec2.fromValues(0.5, 0.5))
+    );
+  });
+
   it('handles resize events by updating space', () => {
     // @ts-ignore partial canvas mock
     const canvas = makeCanvasMock({
@@ -62,10 +77,11 @@ describe('flamegraphCanvas', () => {
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
 
     expect(flamegraphCanvas.physicalSpace).toEqual(new Rect(0, 0, 100, 100));
+
     canvas.width = 200;
     canvas.height = 200;
+    flamegraphCanvas.initPhysicalSpace();
 
-    flamegraphCanvas.resizePhysicalSpace();
     expect(flamegraphCanvas.physicalSpace).toEqual(new Rect(0, 0, 200, 200));
   });
 });

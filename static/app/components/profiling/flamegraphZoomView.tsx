@@ -27,29 +27,29 @@ import {
 } from './flamegraphOptionsContextMenu';
 
 interface FlamegraphZoomViewProps {
-  canvas: FlamegraphCanvas | null;
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
   flamegraph: Flamegraph | DifferentialFlamegraph;
+  flamegraphCanvas: FlamegraphCanvas | null;
   flamegraphCanvasRef: HTMLCanvasElement | null;
   flamegraphOverlayCanvasRef: HTMLCanvasElement | null;
+  flamegraphView: FlamegraphView | null;
   setFlamegraphCanvasRef: React.Dispatch<React.SetStateAction<HTMLCanvasElement | null>>;
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
   >;
-  view: FlamegraphView | null;
 }
 
 function FlamegraphZoomView({
-  canvas,
   canvasPoolManager,
   canvasBounds,
   flamegraph,
+  flamegraphCanvas,
   flamegraphCanvasRef,
   flamegraphOverlayCanvasRef,
+  flamegraphView,
   setFlamegraphCanvasRef,
   setFlamegraphOverlayCanvasRef,
-  view,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
 
@@ -109,7 +109,7 @@ function FlamegraphZoomView({
 
   useEffect(() => {
     const onKeyDown = (evt: KeyboardEvent) => {
-      if (!view) {
+      if (!flamegraphView) {
         return;
       }
 
@@ -122,13 +122,16 @@ function FlamegraphZoomView({
           // If previous position is empty, reset the view to it's max
           if (previousPosition?.isEmpty()) {
             canvasPoolManager.dispatch('resetZoom', []);
-          } else if (previousPosition && !previousPosition?.equals(view.configView)) {
+          } else if (
+            previousPosition &&
+            !previousPosition?.equals(flamegraphView.configView)
+          ) {
             // We need to always dispatch with the height of the current view,
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
             canvasPoolManager.dispatch('setConfigView', [
-              previousPosition.withHeight(view.configView.height),
+              previousPosition.withHeight(flamegraphView.configView.height),
             ]);
           }
         }
@@ -136,13 +139,13 @@ function FlamegraphZoomView({
         if (action === 'redo') {
           const nextPosition = nextState?.position?.view;
 
-          if (nextPosition && !nextPosition.equals(view.configView)) {
+          if (nextPosition && !nextPosition.equals(flamegraphView.configView)) {
             // We need to always dispatch with the height of the current view,
             // because the height may have changed due to window resizing and
             // calling it with the old height may result in the flamegraph
             // being drawn into a very small or very large area.
             canvasPoolManager.dispatch('setConfigView', [
-              nextPosition.withHeight(view.configView.height),
+              nextPosition.withHeight(flamegraphView.configView.height),
             ]);
           }
         }
@@ -156,38 +159,44 @@ function FlamegraphZoomView({
     return () => {
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [canvasPoolManager, dispatchFlamegraphState, nextState, previousState, view]);
+  }, [
+    canvasPoolManager,
+    dispatchFlamegraphState,
+    nextState,
+    previousState,
+    flamegraphView,
+  ]);
 
   const previousInteraction = usePrevious(lastInteraction);
   const beforeInteractionConfigView = useRef<Rect | null>(null);
 
   useEffect(() => {
-    if (!view) {
+    if (!flamegraphView) {
       return;
     }
 
     // Check if we are starting a new interaction
     if (previousInteraction === null && lastInteraction) {
-      beforeInteractionConfigView.current = view.configView.clone();
+      beforeInteractionConfigView.current = flamegraphView.configView.clone();
       return;
     }
 
     if (
       beforeInteractionConfigView.current &&
-      !beforeInteractionConfigView.current.equals(view.configView)
+      !beforeInteractionConfigView.current.equals(flamegraphView.configView)
     ) {
-      dispatch({type: 'checkpoint', payload: view.configView.clone()});
+      dispatch({type: 'checkpoint', payload: flamegraphView.configView.clone()});
     }
-  }, [dispatch, lastInteraction, previousInteraction, view]);
+  }, [dispatch, lastInteraction, previousInteraction, flamegraphView]);
 
   useEffect(() => {
-    if (!canvas || !view || !flamegraphRenderer) {
+    if (!flamegraphCanvas || !flamegraphView || !flamegraphRenderer) {
       return undefined;
     }
 
     const drawRectangles = () => {
       flamegraphRenderer.draw(
-        view.fromConfigView(canvas.physicalSpace),
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
         flamegraphState.search.results
       );
     };
@@ -198,10 +207,22 @@ function FlamegraphZoomView({
     return () => {
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
     };
-  }, [canvas, flamegraphRenderer, flamegraphState.search.results, scheduler, view]);
+  }, [
+    flamegraphCanvas,
+    flamegraphRenderer,
+    flamegraphState.search.results,
+    scheduler,
+    flamegraphView,
+  ]);
 
   useEffect(() => {
-    if (!canvas || !view || !textRenderer || !gridRenderer || !selectedFrameRenderer) {
+    if (
+      !flamegraphCanvas ||
+      !flamegraphView ||
+      !textRenderer ||
+      !gridRenderer ||
+      !selectedFrameRenderer
+    ) {
       return undefined;
     }
 
@@ -228,7 +249,7 @@ function FlamegraphZoomView({
             BORDER_COLOR: flamegraphTheme.COLORS.SELECTED_FRAME_BORDER_COLOR,
             BORDER_WIDTH: flamegraphTheme.SIZES.FRAME_BORDER_WIDTH,
           },
-          view.fromConfigView(canvas.physicalSpace)
+          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
         );
       }
 
@@ -244,21 +265,24 @@ function FlamegraphZoomView({
             BORDER_COLOR: flamegraphTheme.COLORS.HOVERED_FRAME_BORDER_COLOR,
             BORDER_WIDTH: flamegraphTheme.SIZES.HOVERED_FRAME_BORDER_WIDTH,
           },
-          view.fromConfigView(canvas.physicalSpace)
+          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
         );
       }
     };
 
     const drawText = () => {
-      textRenderer.draw(view.configView, view.fromConfigView(canvas.physicalSpace));
+      textRenderer.draw(
+        flamegraphView.configView,
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+      );
     };
 
     const drawGrid = () => {
       gridRenderer.draw(
-        view.configView,
-        canvas.physicalSpace,
-        view.fromConfigView(canvas.physicalSpace),
-        view.toConfigView(canvas.logicalSpace)
+        flamegraphView.configView,
+        flamegraphCanvas.physicalSpace,
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+        flamegraphView.toConfigView(flamegraphCanvas.logicalSpace)
       );
     };
 
@@ -276,8 +300,8 @@ function FlamegraphZoomView({
       scheduler.unregisterAfterFrameCallback(drawGrid);
     };
   }, [
-    canvas,
-    view,
+    flamegraphCanvas,
+    flamegraphView,
     scheduler,
     flamegraph,
     flamegraphTheme,
@@ -289,7 +313,7 @@ function FlamegraphZoomView({
   ]);
 
   useEffect(() => {
-    if (!canvas || !view) {
+    if (!flamegraphCanvas || !flamegraphView) {
       return undefined;
     }
 
@@ -309,7 +333,13 @@ function FlamegraphZoomView({
       scheduler.off('resetZoom', onResetZoom);
       scheduler.off('zoomIntoFrame', onZoomIntoFrame);
     };
-  }, [canvas, canvasPoolManager, dispatchFlamegraphState, scheduler, view]);
+  }, [
+    flamegraphCanvas,
+    canvasPoolManager,
+    dispatchFlamegraphState,
+    scheduler,
+    flamegraphView,
+  ]);
 
   useEffect(() => {
     canvasPoolManager.registerScheduler(scheduler);
@@ -372,7 +402,7 @@ function FlamegraphZoomView({
 
   const onMouseDrag = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!canvas || !view || !startPanVector) {
+      if (!flamegraphCanvas || !flamegraphView || !startPanVector) {
         return;
       }
 
@@ -399,7 +429,7 @@ function FlamegraphZoomView({
 
       const physicalToConfig = mat3.invert(
         mat3.create(),
-        view.fromConfigView(canvas.physicalSpace)
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
       );
       const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
@@ -421,18 +451,18 @@ function FlamegraphZoomView({
 
       setStartPanVector(physicalMousePos);
     },
-    [canvas, view, startPanVector, canvasPoolManager]
+    [flamegraphCanvas, flamegraphView, startPanVector, canvasPoolManager]
   );
 
   const onCanvasMouseMove = useCallback(
     (evt: React.MouseEvent<HTMLCanvasElement>) => {
-      if (!canvas || !view) {
+      if (!flamegraphCanvas || !flamegraphView) {
         return;
       }
 
-      const configSpaceMouse = view.getConfigViewCursor(
+      const configSpaceMouse = flamegraphView.getConfigViewCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
-        canvas
+        flamegraphCanvas
       );
 
       setConfigSpaceCursor(configSpaceMouse);
@@ -444,7 +474,7 @@ function FlamegraphZoomView({
         setLastInteraction(null);
       }
     },
-    [canvas, view, setConfigSpaceCursor, onMouseDrag, startPanVector]
+    [flamegraphCanvas, flamegraphView, setConfigSpaceCursor, onMouseDrag, startPanVector]
   );
 
   const onCanvasMouseLeave = useCallback(() => {
@@ -455,19 +485,22 @@ function FlamegraphZoomView({
 
   const zoom = useCallback(
     (evt: WheelEvent) => {
-      if (!canvas || !view) {
+      if (!flamegraphCanvas || !flamegraphView) {
         return;
       }
 
       const identity = mat3.identity(mat3.create());
       const scale = 1 - evt.deltaY * 0.01 * -1; // -1 to invert scale
 
-      const mouseInConfigView = view.getConfigViewCursor(
+      const mouseInConfigView = flamegraphView.getConfigViewCursor(
         vec2.fromValues(evt.offsetX, evt.offsetY),
-        canvas
+        flamegraphCanvas
       );
 
-      const configCenter = vec2.fromValues(mouseInConfigView[0], view.configView.y);
+      const configCenter = vec2.fromValues(
+        mouseInConfigView[0],
+        flamegraphView.configView.y
+      );
 
       const invertedConfigCenter = vec2.multiply(
         vec2.create(),
@@ -481,19 +514,19 @@ function FlamegraphZoomView({
 
       canvasPoolManager.dispatch('transformConfigView', [translatedBack]);
     },
-    [canvas, view, canvasPoolManager]
+    [flamegraphCanvas, flamegraphView, canvasPoolManager]
   );
 
   const scroll = useCallback(
     (evt: WheelEvent) => {
-      if (!canvas || !view) {
+      if (!flamegraphCanvas || !flamegraphView) {
         return;
       }
 
       const physicalDelta = vec2.fromValues(evt.deltaX, evt.deltaY);
       const physicalToConfig = mat3.invert(
         mat3.create(),
-        view.fromConfigView(canvas.physicalSpace)
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
       );
       const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
 
@@ -512,7 +545,7 @@ function FlamegraphZoomView({
       const translate = mat3.fromTranslation(mat3.create(), configDelta);
       canvasPoolManager.dispatch('transformConfigView', [translate]);
     },
-    [canvas, view, canvasPoolManager]
+    [flamegraphCanvas, flamegraphView, canvasPoolManager]
   );
 
   useEffect(() => {
@@ -530,7 +563,7 @@ function FlamegraphZoomView({
       evt.preventDefault();
 
       // When we zoom, we want to clear cursor so that any tooltips
-      // rendered on the flamegraph are removed from the view
+      // rendered on the flamegraph are removed from the flamegraphView
       setConfigSpaceCursor(null);
 
       if (evt.metaKey) {
@@ -601,12 +634,12 @@ function FlamegraphZoomView({
           contextMenuProps={contextMenuProps}
         />
       ) : null}
-      {canvas && view && hoveredNode?.frame?.name ? (
+      {flamegraphCanvas && flamegraphView && hoveredNode?.frame?.name ? (
         <BoundTooltip
           bounds={canvasBounds}
           cursor={configSpaceCursor}
-          canvas={canvas}
-          view={view}
+          flamegraphCanvas={flamegraphCanvas}
+          flamegraphView={flamegraphView}
         >
           {hoveredNode.frame.name}
         </BoundTooltip>

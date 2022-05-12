@@ -41,7 +41,4 @@ export class FlamegraphCanvas {
       this.logicalSpace
     );
   }
-
-  // alias provided for convenience
-  resizePhysicalSpace = this.initPhysicalSpace;
 }
