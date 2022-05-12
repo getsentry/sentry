@@ -14,7 +14,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
-from sentry.utils.event_frames import find_stack_frames
+from sentry.utils.event_frames import find_stack_frames, supplement_filename
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import PathSearchable, get_path
 
@@ -147,7 +147,12 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             glob_match(val, pattern, ignorecase=True, path_normalize=True)
         ),
     ) -> bool:
-        for frame in (f for f in find_stack_frames(data) if isinstance(f, Mapping)):
+        platform = data.get("platform")
+        frames = find_stack_frames(data)
+        if platform:
+            supplement_filename(platform, frames)
+
+        for frame in (f for f in frames if isinstance(f, Mapping)):
             for key in keys:
                 value = frame.get(key)
                 if not value:
