@@ -23,6 +23,7 @@ import {TOP_N} from 'sentry/utils/discover/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
 import {
+  DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
   DISABLED_SORT,
   FIELD_TO_METRICS_EXPRESSION,
@@ -31,8 +32,6 @@ import {
 
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
-
-const PATTERN = /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
 
 type Props = {
   api: Client;
@@ -84,7 +83,7 @@ function resolveDerivedStatusFields(fields: string[]): {
 
   const injectedFields: string[] = [];
   derivedStatusFields.forEach(field => {
-    const result = field.match(PATTERN);
+    const result = field.match(DERIVED_STATUS_METRICS_PATTERN);
     if (result) {
       if (result[2] === 'user' && !!!aggregates.includes('count_unique(user)')) {
         injectedFields.push('count_unique(user)');

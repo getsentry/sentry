@@ -3,7 +3,10 @@ import omit from 'lodash/omit';
 import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {SESSIONS_TAGS} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {
+  DERIVED_STATUS_METRICS_PATTERN,
+  SESSIONS_TAGS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 
 import {derivedMetricsToField} from './releaseWidgetQueries';
 
@@ -24,8 +27,6 @@ function mapDerivedMetricsToFields(results: Record<string, number | null>) {
   return mappedResults;
 }
 
-const PATTERN = /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
-
 export function getDerivedMetrics(groupBy, totals, requestedStatusMetrics) {
   const derivedTotals = {};
   if (!requestedStatusMetrics.length) {
@@ -35,7 +36,7 @@ export function getDerivedMetrics(groupBy, totals, requestedStatusMetrics) {
     return derivedTotals;
   }
   requestedStatusMetrics.forEach(status => {
-    const result = status.match(PATTERN);
+    const result = status.match(DERIVED_STATUS_METRICS_PATTERN);
     if (result) {
       if (groupBy['session.status'] === result[1]) {
         if (result[2] === 'session') {

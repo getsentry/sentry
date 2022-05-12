@@ -2,9 +2,9 @@ import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 
-import {derivedMetricsToField} from './releaseWidgetQueries';
+import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
 
-const PATTERN = /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
+import {derivedMetricsToField} from './releaseWidgetQueries';
 
 function getSeriesName(
   field: string,
@@ -46,7 +46,7 @@ export function transformSessionsResponseToSeries(
     });
     if (requestedStatusMetrics.length && defined(group.by['session.status'])) {
       requestedStatusMetrics.forEach(status => {
-        const result = status.match(PATTERN);
+        const result = status.match(DERIVED_STATUS_METRICS_PATTERN);
         if (result) {
           let metricField: string | undefined = undefined;
           if (group.by['session.status'] === result[1]) {

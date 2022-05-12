@@ -9,6 +9,9 @@ import {
 import {defined} from 'sentry/utils';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
+export const DERIVED_STATUS_METRICS_PATTERN =
+  /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
+
 export enum DerivedStatusFields {
   HEALTHY_SESSIONS = 'count_healthy(session)',
   HEALTHY_USERS = 'count_healthy(user)',
@@ -21,14 +24,14 @@ export enum DerivedStatusFields {
 }
 
 export const FIELD_TO_METRICS_EXPRESSION = {
-  [DerivedStatusFields.HEALTHY_SESSIONS]: 'session.healthy',
-  [DerivedStatusFields.HEALTHY_USERS]: 'session.healthy_user',
-  [DerivedStatusFields.ABNORMAL_SESSIONS]: 'session.abnormal',
-  [DerivedStatusFields.ABNORMAL_USERS]: 'session.abnormal_user',
-  [DerivedStatusFields.CRASHED_SESSIONS]: 'session.crashed',
-  [DerivedStatusFields.CRASHED_USERS]: 'session.crashed_user',
-  [DerivedStatusFields.ERRORED_SESSIONS]: 'session.errored',
-  [DerivedStatusFields.ERRORED_USERS]: 'session.errored_user',
+  'count_healthy(session)': 'session.healthy',
+  'count_healthy(user)': 'session.healthy_user',
+  'count_abnormal(session)': 'session.abnormal',
+  'count_abnormal(user)': 'session.abnormal_user',
+  'count_crashed(session)': 'session.crashed',
+  'count_crashed(user)': 'session.crashed_user',
+  'count_errored(session)': 'session.errored',
+  'count_errored(user)': 'session.errored_user',
   'count_unique(user)': 'count_unique(sentry.sessions.user)',
   'sum(session)': 'sum(sentry.sessions.session)',
   'crash_free_rate(session)': 'session.crash_free_rate',
@@ -39,14 +42,14 @@ export const FIELD_TO_METRICS_EXPRESSION = {
 };
 
 export const METRICS_EXPRESSION_TO_FIELD = {
-  'session.healthy': [DerivedStatusFields.HEALTHY_SESSIONS],
-  'session.healthy_user': [DerivedStatusFields.HEALTHY_USERS],
-  'session.abnormal': [DerivedStatusFields.ABNORMAL_SESSIONS],
-  'session.abnormal_user': [DerivedStatusFields.ABNORMAL_USERS],
-  'session.crashed': [DerivedStatusFields.CRASHED_SESSIONS],
-  'session.crashed_user': [DerivedStatusFields.CRASHED_USERS],
-  'session.errored': [DerivedStatusFields.ERRORED_SESSIONS],
-  'session.errored_user': [DerivedStatusFields.ERRORED_USERS],
+  'session.healthy': 'count_healthy(session)',
+  'session.healthy_user': 'count_healthy(user)',
+  'session.abnormal': 'count_abnormal(session)',
+  'session.abnormal_user': 'count_abnormal(user)',
+  'session.crashed': 'count_crashed(session)',
+  'session.crashed_user': 'count_crashed(user)',
+  'session.errored': 'count_errored(session)',
+  'session.errored_user': 'count_errored(user)',
   'count_unique(sentry.sessions.user)': 'count_unique(user)',
   'sum(sentry.sessions.session)': 'sum(session)',
   'session.crash_free_rate': 'crash_free_rate(session)',
