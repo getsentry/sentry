@@ -7,7 +7,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const {organization, router, routerContext} = initializeOrg({
-  organization: {features: ['global-views', 'selection-filters-v2']},
+  organization: {features: ['global-views']},
   project: undefined,
   projects: [
     {
