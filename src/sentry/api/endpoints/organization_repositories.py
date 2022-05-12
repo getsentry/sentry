@@ -8,6 +8,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, Repository
 from sentry.plugins.base import bindings
+from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.utils.sdk import capture_exception
 
 UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
@@ -15,6 +16,9 @@ UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
+    rate_limits = RateLimitConfig(
+        group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
+    )
 
     def get(self, request: Request, organization) -> Response:
         """

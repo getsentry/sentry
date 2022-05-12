@@ -6,9 +6,12 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release
+from sentry.ratelimits.config import RateLimitConfig
 
 
 class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoint):
+    rate_limits = RateLimitConfig(group="CLI")
+
     def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve an Organization's Most Recent Release with Commits
