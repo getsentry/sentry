@@ -222,6 +222,7 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import (
+    OrganizationEventsEndpoint,
     OrganizationEventsGeoEndpoint,
     OrganizationEventsV2Endpoint,
 )
@@ -1087,6 +1088,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
                     OrganizationEventsV2Endpoint.as_view(),
                     name="sentry-api-0-organization-eventsv2",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events/$",
+                    OrganizationEventsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
