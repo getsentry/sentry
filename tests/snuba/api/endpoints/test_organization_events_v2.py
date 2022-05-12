@@ -29,6 +29,9 @@ MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
+    viewname = "sentry-api-0-organization-eventsv2"
+    referrer = "api.organization-events-v2"
+
     def setUp(self):
         super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
@@ -42,7 +45,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         features.update(self.features)
         self.login_as(user=self.user)
         url = reverse(
-            "sentry-api-0-organization-eventsv2",
+            self.viewname,
             kwargs={"organization_slug": self.organization.slug},
         )
         with self.feature(features):
@@ -67,7 +70,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {"field": ["project.name", "environment"], "project": [project.id]}
 
         url = reverse(
-            "sentry-api-0-organization-eventsv2",
+            self.viewname,
             kwargs={"organization_slug": self.organization.slug},
         )
         response = self.client.get(
@@ -3853,7 +3856,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
         self.do_request(query)
         _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.organization-events-v2")
+        self.assertEqual(kwargs["referrer"], self.referrer)
 
     @mock.patch("sentry.snuba.discover.query")
     def test_empty_referrer(self, mock):
@@ -3867,7 +3870,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
         self.do_request(query)
         _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.organization-events-v2")
+        self.assertEqual(kwargs["referrer"], self.referrer)
 
     def test_limit_number_of_fields(self):
         self.create_project()
@@ -4981,7 +4984,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["p95"] == "<5k"
 
 
-class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):
+class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
+    MetricsEnhancedPerformanceTestCase
+):
+    viewname = "sentry-api-0-organization-eventsv2"
+
     # Poor intentionally omitted for test_measurement_rating_that_does_not_exist
     METRIC_STRINGS = [
         "foo_transaction",
@@ -5008,7 +5015,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         features.update(self.features)
         self.login_as(user=self.user)
         url = reverse(
-            "sentry-api-0-organization-eventsv2",
+            self.viewname,
             kwargs={"organization_slug": self.organization.slug},
         )
         with self.feature(features):
@@ -5947,3 +5954,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[1]["transaction"] == "bar_transaction"
         assert data[1]["count_unique_user"] == 0
         assert meta["isMetricsData"]
+
+
+class OrganizationEventsEndpointTest(OrganizationEventsV2EndpointTest):
+    viewname = "sentry-api-0-organization-events"
+    referrer = "api.organization-events"
+
+
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(
+    OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest
+):
+    viewname = "sentry-api-0-organization-events"
