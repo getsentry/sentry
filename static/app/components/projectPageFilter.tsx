@@ -102,7 +102,7 @@ function ProjectPageFilter({
     setCurrentSelectedProjects(newProjects);
   };
 
-  const handleUpdateProjects = (newProjects?: number[]) => {
+  const handleApplyChange = (newProjects?: number[]) => {
     // Use newProjects if provided otherwise fallback to current selection
     updateProjects(newProjects ?? (currentSelectedProjects || []), router, {
       save: true,
@@ -195,7 +195,7 @@ function ProjectPageFilter({
       nonMemberProjects={nonMemberProjects}
       value={currentSelectedProjects || selection.projects}
       onChange={handleChangeProjects}
-      onUpdate={handleUpdateProjects}
+      onApplyChange={handleApplyChange}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
       detached
