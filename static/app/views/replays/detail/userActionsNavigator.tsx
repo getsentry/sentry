@@ -77,7 +77,6 @@ function UserActionsNavigator({event, crumbs}: Props) {
                 : '';
             }}
           >
-            {/* Create a Container div to avoid messing with PanelItem inherited styled */}
             <Container
               isHovered={closestUserAction?.id === item.id}
               isSelected={currentUserAction?.id === item.id}
