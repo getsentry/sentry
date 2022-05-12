@@ -240,7 +240,7 @@ class TrendsContent extends Component<Props, State> {
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter />
+                  <DatePageFilter alignDropdown="left" />
                 </PageFilterBar>
                 <StyledSearchBar
                   searchSource="trends"

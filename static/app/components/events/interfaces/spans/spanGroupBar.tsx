@@ -112,7 +112,7 @@ function renderMeasurements(
   event: Readonly<EventTransaction>,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ) {
-  const measurements = getMeasurements(event);
+  const measurements = getMeasurements(event, generateBounds);
 
   return (
     <Fragment>
