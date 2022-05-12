@@ -9,10 +9,10 @@ import {
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import BackToIssues from 'sentry/components/organizations/backToIssues';
+import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import HeaderItemPosition from 'sentry/components/organizations/headerItemPosition';
 import HeaderSeparator from 'sentry/components/organizations/headerSeparator';
-import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
-import MultipleProjectSelector from 'sentry/components/organizations/projectSelector/multiple';
+import ProjectSelector from 'sentry/components/organizations/projectSelector';
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
@@ -331,7 +331,7 @@ class GlobalSelectionHeader extends Component<Props, State> {
                 paginated: true,
               };
               return (
-                <MultipleProjectSelector
+                <ProjectSelector
                   organization={organization}
                   shouldForceProject={shouldForceProject}
                   forceProject={forceProject}
@@ -342,7 +342,7 @@ class GlobalSelectionHeader extends Component<Props, State> {
                   nonMemberProjects={nonMemberProjects}
                   value={this.state.projects || this.props.selection.projects}
                   onChange={this.handleChangeProjects}
-                  onUpdate={this.handleUpdateProjects}
+                  onApplyChange={this.handleUpdateProjects}
                   disableMultipleProjectSelection={disableMultipleProjectSelection}
                   {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
                   showIssueStreamLink={showIssueStreamLink}
@@ -359,7 +359,7 @@ class GlobalSelectionHeader extends Component<Props, State> {
           <Fragment>
             <HeaderSeparator />
             <HeaderItemPosition>
-              <MultipleEnvironmentSelector
+              <EnvironmentSelector
                 organization={organization}
                 projects={this.props.projects}
                 loadingProjects={loadingProjects}
