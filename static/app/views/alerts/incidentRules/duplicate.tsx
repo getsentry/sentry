@@ -5,9 +5,6 @@ import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import {
-  createDefaultRule,
-  createRuleFromEventView,
-  createRuleFromWizardTemplate,
   DuplicateActionFields,
   DuplicateMetricFields,
   DuplicateTriggerFields,
@@ -32,7 +29,6 @@ type Props = {
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
-  defaultRule: IncidentRule;
   duplicateTargetRule?: IncidentRule;
 } & AsyncView['state'];
 
@@ -41,53 +37,18 @@ type State = {
  */
 
 class IncidentRulesDuplicate extends AsyncView<Props, State> {
-  get isDuplicateRule() {
-    const {
-      location: {query},
-      organization,
-    } = this.props;
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
-    return hasDuplicateAlertRules && query.createFromDuplicate && query.duplicateRuleId;
-  }
-
-  getDefaultState() {
-    const {project, eventView, wizardTemplate, userTeamIds} = this.props;
-    const defaultRule = eventView
-      ? createRuleFromEventView(eventView)
-      : wizardTemplate
-      ? createRuleFromWizardTemplate(wizardTemplate)
-      : createDefaultRule();
-
-    const projectTeamIds = new Set(project.teams.map(({id}) => id));
-    const defaultOwnerId = userTeamIds.find(id => projectTeamIds.has(id)) ?? null;
-    const owner = defaultOwnerId && `team:${defaultOwnerId}`;
-
-    return {
-      ...super.getDefaultState(),
-      defaultRule: {
-        ...defaultRule,
-        owner,
-        projects: [project.slug],
-      },
-    };
-  }
-
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
       params: {orgId},
       location: {query},
     } = this.props;
 
-    if (this.isDuplicateRule) {
-      return [
-        [
-          'duplicateTargetRule',
-          `/organizations/${orgId}/alert-rules/${query.duplicateRuleId}/`,
-        ],
-      ];
-    }
-
-    return [];
+    return [
+      [
+        'duplicateTargetRule',
+        `/organizations/${orgId}/alert-rules/${query.duplicateRuleId}/`,
+      ],
+    ];
   }
 
   handleSubmitSuccess = (data: any) => {
@@ -112,21 +73,19 @@ class IncidentRulesDuplicate extends AsyncView<Props, State> {
 
   renderBody() {
     const {project, sessionId, userTeamIds, ...otherProps} = this.props;
-    const {defaultRule, duplicateTargetRule} = this.state;
+    const {duplicateTargetRule} = this.state;
 
-    if (this.isDuplicateRule && !duplicateTargetRule) {
+    if (!duplicateTargetRule) {
       return this.renderLoading();
     }
-
-    const rule = duplicateTargetRule ?? defaultRule;
 
     return (
       <RuleForm
         onSubmitSuccess={this.handleSubmitSuccess}
         rule={
           {
-            ...pick(rule, DuplicateMetricFields),
-            triggers: rule.triggers.map(trigger => ({
+            ...pick(duplicateTargetRule, DuplicateMetricFields),
+            triggers: duplicateTargetRule.triggers.map(trigger => ({
               ...pick(trigger, DuplicateTriggerFields),
               actions: trigger.actions.map(action => ({
                 inputChannelId: null,
@@ -138,12 +97,13 @@ class IncidentRulesDuplicate extends AsyncView<Props, State> {
                 ...pick(action, DuplicateActionFields),
               })),
             })),
-            name: rule.name + ' copy',
+            name: duplicateTargetRule.name + ' copy',
           } as IncidentRule
         }
         sessionId={sessionId}
         project={project}
         userTeamIds={userTeamIds}
+        isDuplicateRule
         {...otherProps}
       />
     );

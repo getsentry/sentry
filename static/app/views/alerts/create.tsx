@@ -95,36 +95,39 @@ class Create extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, project} = this.props;
+
     trackAdvancedAnalyticsEvent('new_alert_rule.viewed', {
       organization,
       project_id: project.id,
       session_id: this.sessionId,
       alert_type: this.state.alertType,
+      duplicate_rule: this.isDuplicateRule ? 'true' : 'false',
     });
   }
 
   /** Used to track analytics within one visit to the creation page */
   sessionId = uniqueId();
 
+  get isDuplicateRule(): boolean {
+    const {location, organization} = this.props;
+    const createFromDuplicate = location?.query.createFromDuplicate === 'true';
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
+    return (
+      hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
+    );
+  }
+
   render() {
     const {hasMetricAlerts, organization, project, location, routes} = this.props;
     const {alertType} = this.state;
-    const {
-      aggregate,
-      dataset,
-      eventTypes,
-      createFromWizard,
-      createFromDiscover,
-      createFromDuplicate,
-    } = location?.query ?? {};
+    const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
+      location?.query ?? {};
     const wizardTemplate: WizardRuleTemplate = {
       aggregate: aggregate ?? DEFAULT_WIZARD_TEMPLATE.aggregate,
       dataset: dataset ?? DEFAULT_WIZARD_TEMPLATE.dataset,
       eventTypes: eventTypes ?? DEFAULT_WIZARD_TEMPLATE.eventTypes,
     };
     const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
-
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     let wizardAlertType: undefined | WizardAlertType;
     if (createFromWizard && alertType === AlertRuleType.METRIC) {
@@ -174,7 +177,7 @@ class Create extends Component<Props, State> {
 
                     {hasMetricAlerts &&
                       alertType === AlertRuleType.METRIC &&
-                      (createFromDuplicate && hasDuplicateAlertRules ? (
+                      (this.isDuplicateRule ? (
                         <IncidentRulesDuplicate
                           {...this.props}
                           eventView={eventView}

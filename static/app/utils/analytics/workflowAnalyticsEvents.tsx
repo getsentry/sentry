@@ -47,6 +47,7 @@ export type TeamInsightsEventParameters = {
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.viewed': IssueDetailsWithAlert;
   'new_alert_rule.viewed': RuleViewed & {
+    duplicate_rule: string;
     session_id: string;
   };
   'team_insights.viewed': {};
