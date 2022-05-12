@@ -36,6 +36,7 @@ function FrameStack({flamegraphRenderer}: FrameStackProps) {
             key={selectedNode?.frame?.key}
             depth={0}
             frame={selectedNode}
+            referenceNode={selectedNode}
             flamegraphRenderer={flamegraphRenderer}
           />
           {/* We add a row at the end with rowSpan so that we can have that nice border-right stretched over the entire table */}
@@ -50,17 +51,29 @@ function FrameStack({flamegraphRenderer}: FrameStackProps) {
   ) : null;
 }
 
+interface FrameRowProps {
+  depth: number;
+  flamegraphRenderer: FlamegraphRenderer;
+  frame: FlamegraphFrame;
+  referenceNode: FlamegraphFrame;
+  initialOpen?: boolean;
+}
+
+function computeRelativeWeight(base: number, value: number) {
+  // Make sure we dont divide by zero
+  if (!base || !value) {
+    return 0;
+  }
+  return (value / base) * 100;
+}
+
 function FrameRow({
   depth,
   frame,
   flamegraphRenderer,
+  referenceNode,
   initialOpen,
-}: {
-  depth: number;
-  flamegraphRenderer: FlamegraphRenderer;
-  frame: FlamegraphFrame;
-  initialOpen?: boolean;
-}) {
+}: FrameRowProps) {
   const [open, setOpen] = useState<boolean>(initialOpen ?? false);
   const [forceOpenChildren, setForceOpenChildren] = useState<boolean>(
     initialOpen ?? false
@@ -97,9 +110,21 @@ function FrameRow({
       <FrameCallersRow onClick={handleClick}>
         <FrameCallersTableCell textAlign="right">
           {flamegraphRenderer.flamegraph.formatter(frame.frame.selfWeight)}
+          <Weight
+            weight={computeRelativeWeight(
+              referenceNode.frame.selfWeight,
+              frame.frame.selfWeight
+            )}
+          />
         </FrameCallersTableCell>
         <FrameCallersTableCell textAlign="right">
           {flamegraphRenderer.flamegraph.formatter(frame.frame.totalWeight)}
+          <Weight
+            weight={computeRelativeWeight(
+              referenceNode.frame.totalWeight,
+              frame.frame.totalWeight
+            )}
+          />
         </FrameCallersTableCell>
         <FrameCallersTableCell
           // We stretch this table to 100% width.
@@ -118,9 +143,10 @@ function FrameRow({
       {open
         ? frame.children.map(c => (
             <FrameRow
-              key={c.frame.key}
-              initialOpen={forceOpenChildren ? open : undefined}
               frame={c}
+              key={c.frame.key}
+              referenceNode={referenceNode}
+              initialOpen={forceOpenChildren ? open : undefined}
               flamegraphRenderer={flamegraphRenderer}
               depth={depth + 1}
             />
@@ -129,6 +155,32 @@ function FrameRow({
     </Fragment>
   );
 }
+
+const Weight = styled((props: {weight: number}) => {
+  const {weight, ...rest} = props;
+  return (
+    <div {...rest}>
+      {weight.toFixed(2)}%
+      <BackgroundWeightBar style={{transform: `scaleX(${weight / 100})`}} />
+    </div>
+  );
+})`
+  display: inline-block;
+  min-width: 7ch;
+  color: ${props => props.theme.subText};
+`;
+
+const BackgroundWeightBar = styled('div')`
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  background-color: ${props => props.theme.yellow100};
+  border-bottom: 1px solid ${props => props.theme.yellow200};
+  transform-origin: center right;
+  height: 100%;
+  width: 100%;
+`;
 
 const FrameBar = styled('div')`
   overflow: auto;
@@ -190,7 +242,7 @@ const FrameCallersTableHeader = styled('thead')`
 
     &:first-child,
     &:nth-child(2) {
-      min-width: 100px;
+      min-width: 140px;
     }
 
     &:not(:last-child) {
@@ -202,6 +254,8 @@ const FrameCallersTableHeader = styled('thead')`
 const FrameCallersTableCell = styled('td')<{
   textAlign?: React.CSSProperties['textAlign'];
 }>`
+  position: relative;
+  white-space: nowrap;
   padding: 0 ${space(1)};
   text-align: ${p => p.textAlign ?? 'initial'};
 
