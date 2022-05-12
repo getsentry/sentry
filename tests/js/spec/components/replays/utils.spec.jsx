@@ -77,22 +77,29 @@ describe('countColumns', () => {
 });
 
 describe('getCrumbsByColumn', () => {
+  const startTimestamp = 1649945987.326; // seconds
+  const duration = 25710; // milliseconds
   const CRUMB_1 = {timestamp: '2022-04-14T14:19:47.326000Z'};
   const CRUMB_2 = {timestamp: '2022-04-14T14:19:49.249000Z'};
   const CRUMB_3 = {timestamp: '2022-04-14T14:19:51.512000Z'};
   const CRUMB_4 = {timestamp: '2022-04-14T14:19:57.326000Z'};
   const CRUMB_5 = {timestamp: '2022-04-14T14:20:13.036000Z'};
 
-  it('should return a map of buckets', () => {
+  it('should return an empty list when no crumbs exist', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn([], columnCount);
-    const expectedEntries = [[0, []]];
+    const columns = getCrumbsByColumn(startTimestamp, duration, [], columnCount);
+    const expectedEntries = [];
     expect(columns).toEqual(new Map(expectedEntries));
   });
 
   it('should put a crumbs in the first and last buckets', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn([CRUMB_1, CRUMB_5], columnCount);
+    const columns = getCrumbsByColumn(
+      startTimestamp,
+      duration,
+      [CRUMB_1, CRUMB_5],
+      columnCount
+    );
     const expectedEntries = [
       [1, [CRUMB_1]],
       [3, [CRUMB_5]],
@@ -104,6 +111,8 @@ describe('getCrumbsByColumn', () => {
     // 6 columns gives is 5s granularity
     const columnCount = 6;
     const columns = getCrumbsByColumn(
+      startTimestamp,
+      duration,
       [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
       columnCount
     );
