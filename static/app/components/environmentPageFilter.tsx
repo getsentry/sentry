@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import Badge from 'sentry/components/badge';
-import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
+import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import {IconWindow} from 'sentry/icons';
@@ -15,7 +15,7 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-type EnvironmentSelectorProps = React.ComponentProps<typeof MultipleEnvironmentSelector>;
+type EnvironmentSelectorProps = React.ComponentProps<typeof EnvironmentSelector>;
 
 type Props = {
   router: WithRouterProps['router'];
@@ -92,7 +92,7 @@ function EnvironmentPageFilter({
   );
 
   return (
-    <MultipleEnvironmentSelector
+    <EnvironmentSelector
       organization={organization}
       projects={projects}
       loadingProjects={!projectsLoaded || !isReady}

@@ -81,12 +81,10 @@ function readShowTagsState() {
   return value === '1';
 }
 
-function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQuery) {
+function getYAxis(location: Location, savedQuery?: SavedQuery) {
   return location.query.yAxis
     ? decodeList(location.query.yAxis)
-    : savedQuery?.yAxis && savedQuery.yAxis.length > 0
-    ? decodeList(savedQuery?.yAxis)
-    : [eventView.getYAxis()];
+    : decodeList(savedQuery?.yAxis);
 }
 
 class Results extends Component<Props, State> {
@@ -133,12 +131,8 @@ class Results extends Component<Props, State> {
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
-    const yAxisArray = getYAxis(location, eventView, savedQuery);
-    const prevYAxisArray = getYAxis(
-      prevProps.location,
-      prevState.eventView,
-      prevState.savedQuery
-    );
+    const yAxisArray = getYAxis(location, savedQuery);
+    const prevYAxisArray = getYAxis(prevProps.location, prevState.savedQuery);
 
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
@@ -485,7 +479,7 @@ class Results extends Component<Props, State> {
       : eventView.fields;
     const query = eventView.query;
     const title = this.getDocumentTitle();
-    const yAxisArray = getYAxis(location, eventView, savedQuery);
+    const yAxisArray = getYAxis(location, savedQuery);
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
