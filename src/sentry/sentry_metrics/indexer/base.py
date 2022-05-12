@@ -84,12 +84,12 @@ class KeyCollection:
 class KeyResults:
     def __init__(self) -> None:
         self.results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
-        self.meta: MutableMapping[FetchType, MutableMapping[int, str]] = defaultdict(dict)
+        self.meta: MutableMapping[str, Tuple[int, FetchType]] = dict()
 
     def add_key_result(self, key_result: KeyResult, fetch_type: Optional[FetchType] = None) -> None:
         self.results[key_result.org_id].update({key_result.string: key_result.id})
         if fetch_type:
-            self.meta[fetch_type].update({key_result.id: key_result.string})
+            self.meta[key_result.string] = (key_result.id, fetch_type)
 
     def add_key_results(
         self, key_results: Sequence[KeyResult], fetch_type: Optional[FetchType] = None
@@ -97,7 +97,7 @@ class KeyResults:
         for key_result in key_results:
             self.results[key_result.org_id].update({key_result.string: key_result.id})
             if fetch_type:
-                self.meta[fetch_type].update({key_result.id: key_result.string})
+                self.meta[key_result.string] = (key_result.id, fetch_type)
 
     def get_mapped_results(self) -> Mapping[int, Mapping[str, int]]:
         """
@@ -139,7 +139,7 @@ class KeyResults:
 
         return cache_key_results
 
-    def get_fetch_metadata(self) -> Mapping[FetchType, Mapping[int, str]]:
+    def get_fetch_metadata(self) -> Mapping[str, Tuple[int, FetchType]]:
         return self.meta
 
     def merge(self, other: "KeyResults") -> "KeyResults":
@@ -148,9 +148,8 @@ class KeyResults:
         for org_id, strings in [*other.results.items(), *self.results.items()]:
             new_results.results[org_id].update(strings)
 
-        for fetch_type in [*self.meta.keys(), *other.meta.keys()]:
-            new_results.meta[fetch_type].update(other.meta[fetch_type].items())
-            new_results.meta[fetch_type].update(self.meta[fetch_type].items())
+        new_results.meta.update(self.meta)
+        new_results.meta.update(other.meta)
 
         return new_results
 

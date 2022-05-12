@@ -1,3 +1,5 @@
+from typing import Mapping, Set, Tuple
+
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
@@ -10,6 +12,12 @@ from sentry.sentry_metrics.indexer.postgres_v2 import (
 from sentry.sentry_metrics.indexer.strings import SHARED_STRINGS
 from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
+
+
+def assert_fetch_type_for_tag_string_set(
+    meta: Mapping[str, Tuple[int, FetchType]], fetch_type: FetchType, str_set: Set[str]
+):
+    assert all([meta[string][1] == fetch_type for string in str_set])
 
 
 class PostgresIndexerTest(TestCase):
@@ -71,8 +79,10 @@ class StaticStringsIndexerTest(TestCase):
         assert results[3]["2.0.0"] == v2.id
 
         meta = results.get_fetch_metadata()
-        assert set(meta[FetchType.HARDCODED].values()) == {"release", "production", "environment"}
-        assert set(meta[FetchType.FIRST_SEEN].values()) == {"1.0.0", "2.0.0"}
+        assert_fetch_type_for_tag_string_set(
+            meta, FetchType.HARDCODED, {"release", "production", "environment"}
+        )
+        assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, {"1.0.0", "2.0.0"})
 
 
 class PostgresIndexerV2Test(TestCase):
@@ -175,10 +185,10 @@ class PostgresIndexerV2Test(TestCase):
             assert expected_mapping[string] == id
 
         fetch_meta = results.get_fetch_metadata()
-        assert {"v1.2.0", "v1.2.1", "v1.2.2"} == {
-            v for _, v in fetch_meta[FetchType.CACHE_HIT].items()
-        }
-        assert {"v1.2.3"} == set(fetch_meta[FetchType.FIRST_SEEN].values())
+        assert_fetch_type_for_tag_string_set(
+            fetch_meta, FetchType.CACHE_HIT, {"v1.2.0", "v1.2.1", "v1.2.2"}
+        )
+        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.FIRST_SEEN, {"v1.2.3"})
 
     def test_already_cached_plus_read_results(self) -> None:
         """
@@ -205,8 +215,8 @@ class PostgresIndexerV2Test(TestCase):
         assert results[org_id]["bam"] == bam.id
 
         fetch_meta = results.get_fetch_metadata()
-        assert {"beep", "boop"} == {v for _, v in fetch_meta[FetchType.CACHE_HIT].items()}
-        assert {"bam"} == set(fetch_meta[FetchType.DB_READ].values())
+        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.CACHE_HIT, {"beep", "boop"})
+        assert_fetch_type_for_tag_string_set(fetch_meta, FetchType.DB_READ, {"bam"})
 
     def test_get_db_records(self):
         """
@@ -333,8 +343,11 @@ class KeyResultsTest(TestCase):
         kr_merged = kr_cache.merge(kr_dbread).merge(kr_hardcoded).merge(kr_write)
 
         assert len(kr_merged.get_mapped_results()[org_id]) == len(mappings)
-        fetch_metadata = kr_merged.get_fetch_metadata()
-        assert fetch_metadata[FetchType.DB_READ].keys() == set(read_mappings.values())
-        assert fetch_metadata[FetchType.HARDCODED].keys() == set(hardcode_mappings.values())
-        assert fetch_metadata[FetchType.FIRST_SEEN].keys() == set(write_mappings.values())
-        assert fetch_metadata[FetchType.CACHE_HIT].keys() == set(cache_mappings.values())
+        meta = kr_merged.get_fetch_metadata()
+
+        assert_fetch_type_for_tag_string_set(meta, FetchType.DB_READ, set(read_mappings.keys()))
+        assert_fetch_type_for_tag_string_set(
+            meta, FetchType.HARDCODED, set(hardcode_mappings.keys())
+        )
+        assert_fetch_type_for_tag_string_set(meta, FetchType.FIRST_SEEN, set(write_mappings.keys()))
+        assert_fetch_type_for_tag_string_set(meta, FetchType.CACHE_HIT, set(cache_mappings.keys()))
