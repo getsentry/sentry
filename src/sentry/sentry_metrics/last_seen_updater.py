@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any, Mapping, Optional, Set, Union
+from typing import Mapping, Optional, Set, Union
 
 from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -31,7 +31,8 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):  # type: 
         return FetchType.DB_READ.value not in str(header_value)
 
 
-def _update_stale_last_seen(seen_ints: Set[int]) -> Any:
+def _update_stale_last_seen(seen_ints: Set[int]) -> int:
+    # TODO: filter out ints that we've handled recently in memcache or something, to reduce DB load
     return StringIndexer.objects.filter(
         id__in=seen_ints, last_seen__time__lt=(timezone.now() - timedelta(hours=12))
     ).update(last_seen=timezone.now())
@@ -54,13 +55,14 @@ class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
         pass
 
     def join(self, timeout: Optional[float] = None) -> None:
-        logger.info(f"{len(self.__seen_ints)} unique keys seen")
-        _update_stale_last_seen(self.__seen_ints)
+        logger.debug(f"{len(self.__seen_ints)} unique keys seen")
+        update_count = _update_stale_last_seen(self.__seen_ints)
+        logger.info("rows-updated", extra={"count": update_count})
         self.__seen_ints = set()
 
 
 def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
-    parsed_message = json.loads(message.payload.value)
+    parsed_message = json.loads(message.payload.value, use_rapid_json=True)
     if MAPPING_META in parsed_message:
         if FetchType.DB_READ.value in parsed_message[MAPPING_META]:
             return set(parsed_message[MAPPING_META][FetchType.DB_READ.value].keys())
