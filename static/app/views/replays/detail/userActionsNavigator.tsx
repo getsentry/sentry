@@ -150,10 +150,7 @@ const Container = styled('div')<PanelItemCenterProps>`
     background: ${p => p.theme.surface400};
   }
   ${p => p.isHovered && `background: ${p.theme.surface400};`}
-  ${p =>
-    p.isSelected &&
-    `border-left: 4px solid ${p.theme.purple300};
-          background-color: ${p.theme.surface400};`}
+  ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
 `;
 
 const Wrapper = styled('div')`
