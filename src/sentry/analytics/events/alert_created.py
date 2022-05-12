@@ -10,10 +10,10 @@ class AlertCreatedEvent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("rule_id"),
         analytics.Attribute("rule_type"),
-        analytics.Attribute("duplicate_rule"),
         analytics.Attribute("is_api_token"),
         # `alert_rule_ui_component` can be `alert-rule-action`
         analytics.Attribute("alert_rule_ui_component", required=False),
+        analytics.Attribute("duplicate_rule", required=False),
     )
 
 

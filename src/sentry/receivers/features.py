@@ -287,11 +287,11 @@ def record_alert_rule_created(
     project,
     rule,
     rule_type,
-    duplicate_rule,
     is_api_token,
     referrer=None,
     session_id=None,
     alert_rule_ui_component=None,
+    duplicate_rule=None,
     **kwargs,
 ):
     if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:

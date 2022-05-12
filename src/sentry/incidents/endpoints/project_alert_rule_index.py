@@ -116,11 +116,11 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                     project=project,
                     rule=alert_rule,
                     rule_type="metric",
-                    duplicate_rule=duplicate_rule,
                     sender=self,
                     referrer=referrer,
                     session_id=session_id,
                     is_api_token=request.auth is not None,
+                    duplicate_rule=duplicate_rule,
                 )
                 return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 

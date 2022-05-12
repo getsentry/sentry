@@ -127,10 +127,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 project=project,
                 rule=rule,
                 rule_type="issue",
-                duplicate_rule=duplicate_rule,
                 sender=self,
                 is_api_token=request.auth is not None,
                 alert_rule_ui_component=created_alert_rule_ui_component,
+                duplicate_rule=duplicate_rule,
             )
 
             return Response(serialize(rule, request.user))

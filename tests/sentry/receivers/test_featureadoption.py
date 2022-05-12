@@ -528,7 +528,6 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             project=self.project,
             rule=rule,
             rule_type="issue",
-            duplicate_rule="false",
             sender=type(self.project),
             is_api_token=False,
         )
