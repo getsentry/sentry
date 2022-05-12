@@ -5954,3 +5954,14 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert data[1]["transaction"] == "bar_transaction"
         assert data[1]["count_unique_user"] == 0
         assert meta["isMetricsData"]
+
+
+class OrganizationEventsEndpointTest(OrganizationEventsV2EndpointTest):
+    viewname = "sentry-api-0-organization-events"
+    referrer = "api.organization-events"
+
+
+class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(
+    OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest
+):
+    viewname = "sentry-api-0-organization-events"
