@@ -74,8 +74,6 @@ function UserActionsNavigator({event, crumbs}: Props) {
         {userActionCrumbs.map(item => (
           <PanelItemCenter
             key={item.id}
-            isHovered={closestUserAction?.id === item.id}
-            isSelected={currentUserAction?.id === item.id}
             onClick={() => {
               setCurrentUserAction(item);
               item.timestamp
@@ -83,14 +81,24 @@ function UserActionsNavigator({event, crumbs}: Props) {
                 : '';
             }}
           >
-            <Wrapper>
-              <Type type={item.type} color={item.color} description={item.description} />
-              <ActionCategory category={item} />
-            </Wrapper>
-            <PlayerRelativeTime
-              relativeTime={startTimestamp}
-              timestamp={item.timestamp}
-            />
+            {/* Create a Container div to avoid messing with PanelItem inherited styled */}
+            <Container
+              isHovered={closestUserAction?.id === item.id}
+              isSelected={currentUserAction?.id === item.id}
+            >
+              <Wrapper>
+                <Type
+                  type={item.type}
+                  color={item.color}
+                  description={item.description}
+                />
+                <ActionCategory category={item} />
+              </Wrapper>
+              <PlayerRelativeTime
+                relativeTime={startTimestamp}
+                timestamp={item.timestamp}
+              />
+            </Container>
           </PanelItemCenter>
         ))}
       </PanelBody>
@@ -127,23 +135,21 @@ const PanelBody = styled(BasePanelBody)`
 `;
 
 const PanelItemCenter = styled(PanelItem)<PanelItemCenterProps>`
+  display: block;
+  padding: ${space(0)};
+  cursor: pointer;
+`;
+
+const Container = styled('div')<PanelItemCenterProps>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-left: 4px solid transparent;
   padding: ${space(1)} ${space(1.5)};
-  cursor: pointer;
-  &:last-child {
-    border-left: 4px solid transparent;
-  }
   &:hover {
     background: ${p => p.theme.surface400};
-    border-color: transparent;
   }
-  ${p =>
-    p.isHovered &&
-    `background: ${p.theme.surface400};
-        border-color: transparent;`}
+  ${p => p.isHovered && `background: ${p.theme.surface400};`}
   ${p =>
     p.isSelected &&
     `border-left: 4px solid ${p.theme.purple300};
