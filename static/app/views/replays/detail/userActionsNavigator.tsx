@@ -129,7 +129,7 @@ const PanelBody = styled(BasePanelBody)`
   overflow-y: auto;
 `;
 
-const PanelItemCenter = styled(PanelItem)<PanelItemCenterProps>`
+const PanelItemCenter = styled(PanelItem)`
   display: block;
   padding: ${space(0)};
   cursor: pointer;
