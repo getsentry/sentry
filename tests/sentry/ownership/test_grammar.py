@@ -174,6 +174,40 @@ def test_matcher_test_stacktrace():
     assert not Matcher("path", "*.py").test({})
 
 
+def test_matcher_test_threads():
+    data = {
+        "threads": {
+            "values": [
+                {
+                    "id": 0,
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                # "function": "invoke0",
+                                "abs_path": "NativeMethodAccessorImpl.java",
+                                # "in_app": False,
+                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                # "filename": "NativeMethodAccessorImpl.java",
+                            }
+                        ],
+                        "registers": {},
+                    },
+                    "crashed": False,
+                    "current": False,
+                }
+            ]
+        }
+    }
+
+    assert Matcher("path", "*.java").test(data)
+    assert Matcher("path", "/jdk/internal/reflect/*.java").test(data)
+    # assert Matcher("path", "/jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
 def test_matcher_test_tags():
     data = {
         "tags": [["foo", "foo_value"], ["bar", "barval"]],

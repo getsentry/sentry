@@ -4,19 +4,7 @@ import operator
 import re
 from collections import namedtuple
 from functools import reduce
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Pattern,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Pattern, Sequence, Tuple, Union
 
 from django.db.models import Q
 from parsimonious.exceptions import ParseError
@@ -26,6 +14,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
+from sentry.utils.event_frames import find_stack_frames
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import PathSearchable, get_path
 
@@ -158,7 +147,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             glob_match(val, pattern, ignorecase=True, path_normalize=True)
         ),
     ) -> bool:
-        for frame in (f for f in _iter_frames(data) if isinstance(f, Mapping)):
+        for frame in (f for f in find_stack_frames(data) if isinstance(f, Mapping)):
             for key in keys:
                 value = frame.get(key)
                 if not value:
@@ -358,24 +347,6 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     else:
         regex += r"(?:\Z|/)"
     return re.compile(regex)
-
-
-def _iter_frames(data: PathSearchable) -> Iterator[Any]:
-    try:
-        yield from get_path(data, "stacktrace", "frames", filter=True) or ()
-    except KeyError:
-        pass
-
-    try:
-        values = get_path(data, "exception", "values", filter=True) or ()
-    except KeyError:
-        return
-
-    for value in values:
-        try:
-            yield from get_path(value, "stacktrace", "frames", filter=True) or ()
-        except KeyError:
-            continue
 
 
 def parse_rules(data: str) -> Any:
