@@ -27,9 +27,9 @@ type Props = {
   event: EventTransaction;
 };
 
-type PanelItemCenterProps = {
-  isHovered?: boolean;
-  isSelected?: boolean;
+type ContainerProps = {
+  isHovered: boolean;
+  isSelected: boolean;
 };
 
 function UserActionsNavigator({event, crumbs}: Props) {
