@@ -55,10 +55,6 @@ function UserActionsNavigator({event, crumbs}: Props) {
   );
 
   useEffect(() => {
-    if (!currentHoverTime) {
-      setClosestUserAction(undefined);
-      return;
-    }
     getClosestUserAction(currentHoverTime);
   }, [getClosestUserAction, currentHoverTime]);
 
