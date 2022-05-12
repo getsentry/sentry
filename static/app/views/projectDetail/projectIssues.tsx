@@ -145,6 +145,11 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
     setOnCursor(() => cursorHandler);
   }
 
+  const discoverQuery =
+    issuesType === 'unhandled'
+      ? ['event.type:error error.unhandled:true', query].join(' ').trim()
+      : ['event.type:error', query].join(' ').trim();
+
   function getDiscoverUrl() {
     return {
       pathname: `/organizations/${organization.slug}/discover/results/`,
@@ -152,7 +157,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         sort: ['-count'],
-        query: ['event.type:error error.unhandled:true', query].join(' ').trim(),
+        query: discoverQuery,
         display: 'top5',
         ...normalizeDateTimeParams(pick(location.query, [...Object.values(URL_PARAM)])),
       },
