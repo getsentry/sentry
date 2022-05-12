@@ -391,3 +391,7 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # contents are a list of project IDs to message types to be randomly assigned
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
 register("kafka.send-project-events-to-random-partitions", default=[])
+
+# Mechanism for dialing up the last-seen-updater, which isn't needed outside
+# of SaaS
+register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)

@@ -1,5 +1,7 @@
+import functools
+import random
 from datetime import timedelta
-from typing import Mapping, Optional, Set, Union
+from typing import Any, Mapping, Optional, Set, Union
 
 from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
@@ -9,6 +11,7 @@ from arroyo.processing.strategies.streaming import KafkaConsumerStrategyFactory
 from arroyo.processing.strategies.streaming.factory import StreamMessageFilter
 from django.utils import timezone
 
+from sentry import options
 from sentry.sentry_metrics.indexer.base import FetchType
 from sentry.sentry_metrics.indexer.models import StringIndexer
 from sentry.sentry_metrics.multiprocess import get_config, logger
@@ -17,11 +20,22 @@ from sentry.utils import json
 MAPPING_META = "mapping_meta"
 
 
+@functools.lru_cache(maxsize=10)
+def get_metrics():  # type: ignore
+    from sentry.utils import metrics
+
+    return metrics
+
+
 class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):  # type: ignore
     # We want to ignore messages where the mapping_sources header is present
     # and does not contain the DB_READ ('d') character (this should be the vast
     # majority of messages).
     def should_drop(self, message: KafkaPayload) -> bool:
+        feature_enabled: float = options.get("sentry-metrics.last-seen-updater.accept-rate")
+        if random.random() > feature_enabled:
+            return True
+
         header_value: Optional[str] = next(
             (str(header[1]) for header in message.headers if header[0] == "mapping_sources"), None
         )
@@ -32,15 +46,17 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):  # type: 
 
 
 def _update_stale_last_seen(seen_ints: Set[int]) -> int:
-    # TODO: filter out ints that we've handled recently in memcache or something, to reduce DB load
+    # TODO: filter out ints that we've handled recently in memcache to reduce DB load
+    # we may not need a cache, we should see as we dial up the accept rate
     return StringIndexer.objects.filter(
         id__in=seen_ints, last_seen__time__lt=(timezone.now() - timedelta(hours=12))
     ).update(last_seen=timezone.now())
 
 
 class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
-    def __init__(self) -> None:
+    def __init__(self, metrics: Any) -> None:
         self.__seen_ints = set()
+        self.__metrics = metrics
 
     def submit(self, message: Message[Set[int]]) -> None:
         self.__seen_ints.update(message.payload)
@@ -55,9 +71,14 @@ class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
         pass
 
     def join(self, timeout: Optional[float] = None) -> None:
-        logger.debug(f"{len(self.__seen_ints)} unique keys seen")
+        keys_to_pass_to_update = len(self.__seen_ints)
+        logger.debug(f"{keys_to_pass_to_update} unique keys seen")
+        self.__metrics.incr(
+            "last_seen_updater.unique-update-candidate-keys", amount=keys_to_pass_to_update
+        )
         update_count = _update_stale_last_seen(self.__seen_ints)
-        logger.info("rows-updated", extra={"count": update_count})
+        self.__metrics.incr("last_seen_updater.updated-rows-count", amount=update_count)
+        logger.debug(f"{update_count} keys updated")
         self.__seen_ints = set()
 
 
@@ -85,7 +106,7 @@ def get_last_seen_updater(
         output_block_size=None,
         process_message=retrieve_db_read_keys,
         prefilter=LastSeenUpdaterMessageFilter(),
-        collector=lambda: LastSeenUpdaterCollector(),
+        collector=lambda: LastSeenUpdaterCollector(metrics=get_metrics()),
     )
     return StreamProcessor(
         KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
