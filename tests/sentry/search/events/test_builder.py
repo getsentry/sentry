@@ -483,7 +483,7 @@ class QueryBuilderTest(TestCase):
             sample_rate=0.1,
         )
         assert query.sample_rate == 0.1
-        snql_query = query.get_snql_query()
+        snql_query = query.get_snql_query().query
         snql_query.validate()
         assert snql_query.match.sample == 0.1
 
@@ -497,10 +497,10 @@ class QueryBuilderTest(TestCase):
             ],
             turbo=True,
         )
-        assert query.turbo.value
+        assert query.turbo
         snql_query = query.get_snql_query()
         snql_query.validate()
-        assert snql_query.turbo.value
+        assert snql_query.flags.turbo
 
     def test_auto_aggregation(self):
         query = QueryBuilder(
@@ -513,7 +513,7 @@ class QueryBuilderTest(TestCase):
             auto_aggregations=True,
             use_aggregate_conditions=True,
         )
-        snql_query = query.get_snql_query()
+        snql_query = query.get_snql_query().query
         snql_query.validate()
         self.assertCountEqual(
             snql_query.having,
@@ -541,7 +541,7 @@ class QueryBuilderTest(TestCase):
             auto_aggregations=True,
             use_aggregate_conditions=True,
         )
-        snql_query = query.get_snql_query()
+        snql_query = query.get_snql_query().query
         snql_query.validate()
         self.assertCountEqual(
             snql_query.having,
@@ -1778,13 +1778,14 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
-        assert snql_query[0].where == [
+        query = snql_query[0].query
+        assert query.where == [
             *self.default_conditions,
             *_metric_conditions(self.organization.id, ["transaction.duration"]),
         ]
-        assert snql_query[0].select == [_metric_percentile_definition(self.organization.id, "50")]
-        assert snql_query[0].match.name == "metrics_distributions"
-        assert snql_query[0].granularity.granularity == 60
+        assert query.select == [_metric_percentile_definition(self.organization.id, "50")]
+        assert query.match.name == "metrics_distributions"
+        assert query.granularity.granularity == 60
 
     def test_default_conditions(self):
         query = TimeseriesMetricQueryBuilder(
@@ -1982,7 +1983,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_run_query_with_hour_interval(self):
-        # See comment on resolve_time_column for explaination of this test
+        # See comment on resolve_time_column for explanation of this test
         self.start = datetime.datetime.now(timezone.utc).replace(
             hour=15, minute=30, second=0, microsecond=0
         )

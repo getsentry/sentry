@@ -39,17 +39,17 @@ function SelectOption(props: Props) {
                 />
               )}
             </CheckWrap>
+          </Indent>
+          <ContentWrap
+            isFocused={isFocused}
+            showDividers={showDividers}
+            addRightMargin={defined(trailingItems)}
+          >
             {leadingItems && (
               <LeadingItems spanFullHeight={leadingItemsSpanFullHeight}>
                 {leadingItems}
               </LeadingItems>
             )}
-          </Indent>
-          <ContentWrap
-            isFocused={isFocused}
-            showDividers={showDividers}
-            addRightMargin={!defined(trailingItems)}
-          >
             <LabelWrap>
               <Label as={typeof label === 'string' ? 'p' : 'div'}>{label}</Label>
               {details && <Details>{details}</Details>}
@@ -135,6 +135,7 @@ const ContentWrap = styled('div')<{
   gap: ${space(1)};
   justify-content: space-between;
   padding: ${space(1)} 0;
+  min-width: 0;
 
   ${p =>
     p.addRightMargin &&
@@ -166,6 +167,7 @@ const LeadingItems = styled('div')<{spanFullHeight?: boolean}>`
 const LabelWrap = styled('div')`
   padding-right: ${space(1)};
   width: 100%;
+  min-width: 0;
 `;
 
 const Label = styled('p')`

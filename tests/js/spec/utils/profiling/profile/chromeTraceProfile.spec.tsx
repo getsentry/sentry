@@ -27,8 +27,8 @@ describe('splitEventsByProcessAndTraceId', () => {
       },
     ];
 
-    expect(splitEventsByProcessAndTraceId(trace)[0][0]).toEqual([trace[0]]);
-    expect(splitEventsByProcessAndTraceId(trace)[0][1]).toEqual([trace[1]]);
+    expect(splitEventsByProcessAndTraceId(trace).get(0)?.get(0)).toEqual([trace[0]]);
+    expect(splitEventsByProcessAndTraceId(trace).get(0)?.get(1)).toEqual([trace[1]]);
   });
 });
 
