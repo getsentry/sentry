@@ -652,7 +652,11 @@ export function handleAddQueryToDashboard({
       },
       widget: {
         title: query?.name ?? eventView.name,
-        displayType: displayType === DisplayType.TOP_N ? DisplayType.AREA : displayType,
+        displayType:
+          organization.features.includes('new-widget-builder-experience-design') &&
+          displayType === DisplayType.TOP_N
+            ? DisplayType.AREA
+            : displayType,
         queries: [
           {
             ...defaultWidgetQuery,
@@ -660,7 +664,11 @@ export function handleAddQueryToDashboard({
           },
         ],
         interval: eventView.interval,
-        limit: displayType === DisplayType.TOP_N ? DEFAULT_RESULTS_LIMIT : undefined,
+        limit:
+          organization.features.includes('new-widget-builder-experience-design') &&
+          displayType === DisplayType.TOP_N
+            ? DEFAULT_RESULTS_LIMIT
+            : undefined,
       },
       router,
       widgetAsQueryParams,
