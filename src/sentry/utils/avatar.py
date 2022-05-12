@@ -13,7 +13,6 @@ from django.utils.html import escape
 from PIL import Image  # type: ignore
 
 from sentry.http import safe_urlopen
-from sentry.utils.compat import map
 from sentry.utils.hashlib import md5_text
 
 

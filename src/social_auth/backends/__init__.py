@@ -23,7 +23,6 @@ from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
 
 from sentry.utils import json
-from sentry.utils.compat import map
 from social_auth.exceptions import (
     AuthCanceled,
     AuthFailed,
