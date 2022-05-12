@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/featureBadge';
@@ -33,16 +33,26 @@ function OptionSelector({
   multiple,
   ...rest
 }: SingleProps | MultipleProps) {
-  const mappedOptions = options.map(opt => ({
-    ...opt,
-    label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
-  }));
+  const mappedOptions = useMemo(() => {
+    return options.map(opt => ({
+      ...opt,
+      label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
+    }));
+  }, [options]);
 
   function onValueChange(option) {
-    if (multiple && option.length > 3) {
-      return;
-    }
     onChange(multiple ? option.map(o => o.value) : option.value);
+  }
+
+  function isOptionDisabled(option) {
+    return (
+      // Option is explicitly marked as disabled
+      option.disabled ||
+      // The user has reached the maximum number of selections (3), and the option hasn't
+      // yet been selected. These options should be disabled to visually indicate that the
+      // user has reached the max.
+      (multiple && selected.length === 3 && !selected.includes(option.value))
+    );
   }
 
   return (
@@ -50,7 +60,7 @@ function OptionSelector({
       options={mappedOptions}
       value={selected}
       onChange={onValueChange}
-      isOptionDisabled={opt => opt.disabled}
+      isOptionDisabled={isOptionDisabled}
       multiple={multiple}
       triggerProps={{
         size: 'small',
