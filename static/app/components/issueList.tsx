@@ -72,15 +72,17 @@ function IssueList({
     });
   }, [query, endpoint, location.query, api]);
 
+  // TODO: location should always be passed as a prop, check why we have this
+  const hasLocation = !!location;
+
   useEffect(() => {
-    // TODO: location should always be passed as a prop, check why we have this
-    if (!location) {
+    if (!hasLocation) {
       return;
     }
 
     setState({issueIds: [], status: 'loading', pageLinks: null, data: []});
     fetchIssueListData();
-  }, [fetchIssueListData]);
+  }, [fetchIssueListData, hasLocation]);
 
   const panelStyles = useMemo(() => {
     const styles: React.CSSProperties = {
