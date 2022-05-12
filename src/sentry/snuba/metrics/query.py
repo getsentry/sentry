@@ -86,4 +86,6 @@ class QueryDefinition:
                     )
                 )
                 totals_limit = max(totals_limit // intervals_len, 1)
+            # Cannot set attribute directly because dataclass is frozen:
+            # https://docs.python.org/3/library/dataclasses.html#frozen-instances
             object.__setattr__(self, "limit", Limit(totals_limit))
