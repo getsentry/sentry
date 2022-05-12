@@ -23,7 +23,7 @@ import {EventTransaction} from 'sentry/types/event';
 import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
 
 type Props = {
-  crumbs: Array<RawCrumb>;
+  crumbs: RawCrumb[];
   event: EventTransaction;
 };
 
