@@ -65,7 +65,12 @@ function ReplayTimeline({}: Props) {
                 ) : null}
                 <div>
                   <TimelineScubber />
-                  <ReplayTimelineEvents crumbs={userCrumbs} width={width} />
+                  <ReplayTimelineEvents
+                    crumbs={userCrumbs}
+                    duration={duration || 0}
+                    startTimestamp={replay.getEvent().startTimestamp}
+                    width={width}
+                  />
                   <ReplayTimelineSpans
                     duration={duration || 0}
                     spans={networkSpans}

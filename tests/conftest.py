@@ -1,12 +1,9 @@
 import os
-import sys
 from collections import OrderedDict
 
 import pytest
 
 pytest_plugins = ["sentry.utils.pytest"]
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 
 # XXX: The below code is vendored code from https://github.com/utgwkk/pytest-github-actions-annotate-failures

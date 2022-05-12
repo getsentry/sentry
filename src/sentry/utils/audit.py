@@ -54,7 +54,12 @@ def create_audit_entry_from_user(
         extra["transaction_id"] = transaction_id
 
     if logger:
-        logger.info(entry.get_event_display(), extra=extra)
+        # Only use the api_name for the logger message when the entry
+        # is a real AuditLogEntry record
+        if entry.event is not None:
+            logger.info(audit_log.get(entry.event).api_name, extra=extra)
+        else:
+            logger.info(entry, extra=extra)
 
     return entry
 
