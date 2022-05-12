@@ -342,7 +342,7 @@ class GlobalSelectionHeader extends Component<Props, State> {
                   nonMemberProjects={nonMemberProjects}
                   value={this.state.projects || this.props.selection.projects}
                   onChange={this.handleChangeProjects}
-                  onUpdate={this.handleUpdateProjects}
+                  onApplyChange={this.handleUpdateProjects}
                   disableMultipleProjectSelection={disableMultipleProjectSelection}
                   {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
                   showIssueStreamLink={showIssueStreamLink}
