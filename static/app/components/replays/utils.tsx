@@ -102,20 +102,13 @@ export function countColumns(duration: number, width: number, minWidth: number =
  * This function groups crumbs into columns based on the number of columns available
  * and the timestamp of the crumb.
  */
-export function getCrumbsByColumn(crumbs: Crumb[], totalColumns: number) {
-  // TODO(replay): we should pass in the startTimestamp and not rely on the first breadcrumb time
-  const startTime = crumbs[0]?.timestamp;
-  const endTime = crumbs[crumbs.length - 1]?.timestamp;
-
-  // If there is only one crumb then we cannot do the math, return it in the first column
-  if (crumbs.length === 1 || startTime === endTime) {
-    return new Map([[0, crumbs]]);
-  }
-
-  const startMilliSeconds = +new Date(String(startTime));
-  const endMilliSeconds = +new Date(String(endTime));
-
-  const duration = endMilliSeconds - startMilliSeconds;
+export function getCrumbsByColumn(
+  startTimestamp: number,
+  duration: number,
+  crumbs: Crumb[],
+  totalColumns: number
+) {
+  const startMilliSeconds = startTimestamp * 1000;
   const safeDuration = isNaN(duration) ? 1 : duration;
 
   const columnCrumbPairs = crumbs.map(breadcrumb => {
