@@ -155,7 +155,6 @@ class RedisQuotaTest(TestCase):
             DataCategory.ERROR,
             DataCategory.SECURITY,
         }
-        breakpoint()
         assert quotas[0].limit == 60
         assert quotas[0].window == 60
         assert quotas[0].reason_code == "project_abuse_limit"
