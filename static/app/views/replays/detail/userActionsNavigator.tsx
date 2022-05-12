@@ -54,6 +54,17 @@ function UserActionsNavigator({event, crumbs}: Props) {
     [closestUserAction?.timestamp, startTimestamp, userActionCrumbs]
   );
 
+  const onMouseEnter = useCallback(
+    (item: Crumb) => {
+      setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
+    },
+    [setCurrentHoverTime, startTimestamp]
+  );
+
+  const onMouseLeave = useCallback(() => {
+    setCurrentHoverTime(undefined);
+  }, [setCurrentHoverTime]);
+
   useEffect(() => {
     if (!currentHoverTime) {
       setClosestUserAction(undefined);
@@ -64,14 +75,6 @@ function UserActionsNavigator({event, crumbs}: Props) {
 
   if (!event) {
     return null;
-  }
-
-  function onMouseEnter(item: Crumb) {
-    setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
-  }
-
-  function onMouseLeave() {
-    setCurrentHoverTime(undefined);
   }
 
   return (
