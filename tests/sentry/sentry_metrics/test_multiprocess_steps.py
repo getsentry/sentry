@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime, timezone
-from typing import Dict, List, Mapping, MutableMapping, Union
+from typing import Dict, List, Mapping, MutableMapping, Sequence, Union
 from unittest import mock
 from unittest.mock import Mock, call, patch
 
@@ -27,6 +27,34 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
+    assert actual.offset == expected.offset
+    assert actual.partition == expected.partition
+    assert actual.timestamp == expected.timestamp
+
+    actual_payload: KafkaPayload = actual.payload
+    expected_payload: KafkaPayload = expected.payload
+
+    assert actual_payload.key == expected_payload.key
+
+    actual_headers_without_mapping_sources = [
+        (k, v) for k, v in actual_payload.headers if k != "mapping_sources"
+    ]
+    assert actual_headers_without_mapping_sources == expected_payload.headers
+
+    actual_deserialized = json.loads(actual_payload.value)
+    expected_deserialized = json.loads(expected_payload.value)
+    del actual_deserialized["mapping_meta"]
+    assert actual_deserialized == expected_deserialized
+
+
+def compare_message_batches_ignoring_metadata(
+    actual: Sequence[Message], expected: Sequence[Message]
+) -> None:
+    for (a, e) in zip(actual, expected):
+        compare_messages_ignoring_mapping_metadata(a, e)
 
 
 def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
@@ -255,7 +283,7 @@ def test_process_messages(mock_indexer) -> None:
         )
         for i, m in enumerate(message_batch)
     ]
-    assert new_batch == expected_new_batch
+    compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
 
 
 invalid_payloads = [
@@ -330,7 +358,7 @@ def test_process_messages_invalid_messages(invalid_payload, error_text, caplog) 
             expected_msg.timestamp,
         )
     ]
-    assert new_batch == expected_new_batch
+    compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
     assert error_text in caplog.text
 
 
