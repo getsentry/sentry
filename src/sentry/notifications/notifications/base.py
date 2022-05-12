@@ -25,7 +25,6 @@ class BaseNotification(abc.ABC):
     # some notifications have no settings for it
     notification_setting_type: NotificationSettingTypes | None = None
     analytics_event: str = ""
-    referrer_base: str = ""
 
     def __init__(self, organization: Organization):
         self.organization = organization
@@ -150,7 +149,7 @@ class BaseNotification(abc.ABC):
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
         # referrer needs the provider and recipient
-        referrer = f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
+        referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
             referrer += "-" + recipient.__class__.__name__.lower()
         return referrer
