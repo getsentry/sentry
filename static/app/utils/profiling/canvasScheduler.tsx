@@ -153,4 +153,16 @@ export class CanvasPoolManager {
       this.schedulers.delete(scheduler);
     }
   }
+
+  drawSync(): void {
+    for (const scheduler of this.schedulers) {
+      scheduler.drawSync();
+    }
+  }
+
+  draw(): void {
+    for (const scheduler of this.schedulers) {
+      scheduler.draw();
+    }
+  }
 }
