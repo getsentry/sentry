@@ -179,6 +179,7 @@ def test_matcher_test_threads():
         "threads": {
             "values": [
                 {
+<<<<<<< HEAD
                     "stacktrace": {
                         "frames": [
                             {"filename": "foo/file.py"},
@@ -216,6 +217,44 @@ def test_matcher_test_platform_java_threads():
                             }
                         ]
                     }
+=======
+                    "stacktrace": {
+                        "frames": [
+                            {"filename": "foo/file.py"},
+                            {"abs_path": "/usr/local/src/other/app.py"},
+                        ]
+                    },
+                    "crashed": False,
+                    "current": False,
+>>>>>>> b975c7297b (add support for thread stack trace in code owners)
+                }
+            ]
+        },
+    }
+
+    assert Matcher("path", "*.py").test(data)
+    assert Matcher("path", "foo/*.py").test(data)
+    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
+def test_matcher_test_platform_java_threads():
+    data = {
+        "platform": "java",
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                "filename": "NativeMethodAccessorImpl.java",
+                            }
+                        ]
+                    }
                 }
             ]
         },
@@ -224,9 +263,12 @@ def test_matcher_test_platform_java_threads():
     assert Matcher("path", "*.java").test(data)
     assert Matcher("path", "jdk/internal/reflect/*.java").test(data)
     assert Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+<<<<<<< HEAD
     assert Matcher("codeowners", "*.java").test(data)
     assert Matcher("codeowners", "jdk/internal/reflect/*.java").test(data)
     assert Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+=======
+>>>>>>> b975c7297b (add support for thread stack trace in code owners)
     assert not Matcher("path", "*.js").test(data)
     assert not Matcher("path", "*.jsx").test(data)
     assert not Matcher("url", "*.py").test(data)
