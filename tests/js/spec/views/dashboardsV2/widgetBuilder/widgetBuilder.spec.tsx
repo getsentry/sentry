@@ -2657,7 +2657,7 @@ describe('WidgetBuilder', function () {
               field: ['sum(sentry.sessions.session)'],
               groupBy: ['project_id'],
               interval: '5m',
-              orderBy: '-sum_session',
+              orderBy: '-sum(sentry.sessions.session)',
               per_page: 5,
               project: [],
               statsPeriod: '24h',
