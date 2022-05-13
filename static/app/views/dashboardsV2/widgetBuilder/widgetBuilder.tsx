@@ -78,7 +78,6 @@ import {GroupByStep} from './buildSteps/groupByStep';
 import {SortByStep} from './buildSteps/sortByStep';
 import {VisualizationStep} from './buildSteps/visualizationStep';
 import {YAxisStep} from './buildSteps/yAxisStep';
-import {DISABLED_SORT} from './releaseWidget/fields';
 import {Footer} from './footer';
 import {Header} from './header';
 import {
