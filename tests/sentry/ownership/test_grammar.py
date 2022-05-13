@@ -229,6 +229,36 @@ def test_matcher_test_platform_java_threads():
     assert not Matcher("path", "*.py").test({})
 
 
+def test_matcher_test_platform_none_threads():
+    data = {
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                "filename": "NativeMethodAccessorImpl.java",
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+    }
+
+    # since no platform, we won't be able to fully-qualify(filename munge) based off module and filename
+    # matching will still work based on just the filename, but we won't be able to match on the src path
+    assert Matcher("path", "NativeMethodAccessorImpl.java").test(data)
+    assert Matcher("path", "*.java").test(data)
+    assert not Matcher("path", "jdk/internal/reflect/*.java").test(data)
+    assert not Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
 def test_matcher_test_tags():
     data = {
         "tags": [["foo", "foo_value"], ["bar", "barval"]],
