@@ -972,7 +972,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Release Health Widgets', function () {
-    let sessionsMock;
+    let metricsMock;
     const mockQuery = {
       conditions: '',
       fields: [`sum(session)`],
@@ -991,14 +991,14 @@ describe('Modals -> WidgetViewerModal', function () {
       widgetType: WidgetType.RELEASE,
     };
     beforeEach(function () {
-      sessionsMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/sessions/',
-        body: TestStubs.SesssionTotalCountByReleaseIn24h(),
+      metricsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/metrics/data/',
+        body: TestStubs.MetricsTotalCountByReleaseIn24h(),
       });
     });
     it('does a sessions query', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(sessionsMock).toHaveBeenCalled();
+      expect(metricsMock).toHaveBeenCalled();
     });
 
     it('renders widget title', async function () {
@@ -1031,7 +1031,7 @@ describe('Modals -> WidgetViewerModal', function () {
         tableData: [],
         seriesData: [],
       });
-      expect(sessionsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMock).toHaveBeenCalledTimes(1);
       userEvent.click(screen.getByText(`sum(session)`));
       expect(initialData.router.push).toHaveBeenCalledWith({
         query: {sort: '-sum(session)'},
@@ -1053,7 +1053,7 @@ describe('Modals -> WidgetViewerModal', function () {
         />
       );
       await waitFor(() => {
-        expect(sessionsMock).toHaveBeenCalledTimes(2);
+        expect(metricsMock).toHaveBeenCalledTimes(2);
       });
     });
   });

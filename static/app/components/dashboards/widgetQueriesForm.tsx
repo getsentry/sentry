@@ -23,6 +23,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {ReleaseSearchBar} from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
+import {DISABLED_SORT} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import WidgetQueryFields from './widgetQueryFields';
@@ -43,6 +44,7 @@ export const generateOrderOptions = ({
   let equations = 0;
   (isRelease ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
     .filter(field => !!field)
+    .filter(field => !DISABLED_SORT.includes(field))
     .forEach(field => {
       let alias;
       const label = stripEquationPrefix(field);
