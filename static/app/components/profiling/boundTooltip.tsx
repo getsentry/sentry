@@ -2,6 +2,7 @@ import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
+import space from 'sentry/styles/space';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
@@ -91,7 +92,6 @@ function BoundTooltip({
   let cursorHorizontalPosition = logicalSpaceCursor[0];
   // Move the tooltip just beneath the cursor so that the text isn't covered.
   const cursorVerticalPosition = logicalSpaceCursor[1] + 8;
-
   const mid = bounds.width / 2;
 
   // If users screen is on right half of the screen, then we have more space to position on the left and vice versa
@@ -101,6 +101,7 @@ function BoundTooltip({
     cursorHorizontalPosition -= tooltipBounds.width;
   }
 
+  const PADDING = 24;
   return (
     <Tooltip
       ref={tooltipRef}
@@ -109,7 +110,9 @@ function BoundTooltip({
         fontFamily: flamegraphTheme.FONTS.FONT,
         left: cursorHorizontalPosition,
         top: cursorVerticalPosition,
-        width: Math.min(tooltipRect.width, bounds.width - cursorHorizontalPosition - 2),
+        width:
+          Math.min(tooltipRect.width, bounds.width - cursorHorizontalPosition - 2) +
+          PADDING,
       }}
     >
       {children}
@@ -125,6 +128,8 @@ const Tooltip = styled('div')`
   overflow: hidden;
   pointer-events: none;
   user-select: none;
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(0.25)} ${space(1)};
 `;
 
 export {BoundTooltip};
