@@ -17,7 +17,7 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
+import {isAggregateField, stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
@@ -269,6 +269,17 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       useSessionAPI
     );
 
+    const columns = widget.queries[0].columns;
+    if (!!!aggregates.includes(rawOrderby) && !!!columns.includes(rawOrderby)) {
+      if (isAggregateField(rawOrderby)) {
+        aggregates.push(rawOrderby);
+        injectedFields.push(rawOrderby);
+      } else {
+        columns.push(rawOrderby);
+        injectedFields.push(rawOrderby);
+      }
+    }
+
     widget.queries.forEach(query => {
       if (useSessionAPI) {
         const sessionAggregates = aggregates.filter(
@@ -280,7 +291,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           orgSlug: organization.slug,
           end,
           environment: environments,
-          groupBy: query.columns,
+          groupBy: columns,
           limit: undefined,
           orderBy: '', // Orderby not supported with session.status
           interval,
@@ -298,7 +309,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           orgSlug: organization.slug,
           end,
           environment: environments,
-          groupBy: query.columns.map(fieldsToDerivedMetrics),
+          groupBy: columns.map(fieldsToDerivedMetrics),
           limit: unsupportedOrderby || rawOrderby === '' ? undefined : this.limit,
           orderBy: unsupportedOrderby
             ? ''
