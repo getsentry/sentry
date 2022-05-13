@@ -118,7 +118,7 @@ export default function WizardField({
       {({onChange, value, model, disabled}) => {
         const aggregate = model.getValue('aggregate');
         const dataset = model.getValue('dataset');
-        const eventTypes = [...model.getValue('eventTypes')];
+        const eventTypes = [...(model.getValue('eventTypes') ?? [])];
 
         const selectedTemplate =
           findKey(

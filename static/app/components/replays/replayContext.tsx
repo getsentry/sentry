@@ -1,7 +1,6 @@
 import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
-import type {eventWithTime} from 'rrweb/typings/types';
 
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -17,7 +16,14 @@ type RootElem = null | HTMLDivElement;
 // Instead only expose methods that wrap `Replayer` and manage state.
 type ReplayPlayerContextProps = {
   /**
-   * The current time of the video, in miliseconds
+   * The time, in milliseconds, where the user focus is.
+   * The user focus can be reported by any collaborating object, usually on
+   * hover.
+   */
+  currentHoverTime: undefined | number;
+
+  /**
+   * The current time of the video, in milliseconds
    * The value is updated on every animation frame, about every 16.6ms
    */
   currentTime: number;
@@ -31,11 +37,6 @@ type ReplayPlayerContextProps = {
    * Duration of the video, in miliseconds
    */
   duration: undefined | number;
-
-  /**
-   * Raw RRWeb events
-   */
-  events: ReadonlyArray<eventWithTime>;
 
   /**
    * The calculated speed of the player when fast-forwarding through idle moments in the video
@@ -73,6 +74,12 @@ type ReplayPlayerContextProps = {
   replay: ReplayReader | null;
 
   /**
+   * Set the currentHoverTime so collaborating components can highlight related
+   * information
+   */
+  setCurrentHoverTime: (time: undefined | number) => void;
+
+  /**
    * Jump the video to a specific time
    */
   setCurrentTime: (time: number) => void;
@@ -103,16 +110,17 @@ type ReplayPlayerContextProps = {
 };
 
 const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
+  currentHoverTime: undefined,
   currentTime: 0,
   dimensions: {height: 0, width: 0},
   duration: undefined,
-  events: [],
   fastForwardSpeed: 0,
   initRoot: () => {},
   isBuffering: false,
   isPlaying: false,
   isSkippingInactive: false,
   replay: null,
+  setCurrentHoverTime: () => {},
   setCurrentTime: () => {},
   setSpeed: () => {},
   speed: 1,
@@ -148,6 +156,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   const oldEvents = usePrevious(events);
   const replayerRef = useRef<Replayer>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
+  const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
   const [isPlaying, setIsPlaying] = useState(false);
   const [isSkippingInactive, setIsSkippingInactive] = useState(false);
   const [speed, setSpeedState] = useState(1);
@@ -331,19 +340,23 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setBufferTime({target: -1, previous: -1});
   }
 
+  const event = replay.getEvent();
+  const duration = (event.endTimestamp - event.startTimestamp) * 1000;
+
   return (
     <ReplayPlayerContext.Provider
       value={{
+        currentHoverTime,
         currentTime,
         dimensions,
-        duration: replayerRef.current?.getMetaData().totalTime,
-        events,
+        duration,
         fastForwardSpeed,
         initRoot,
         isBuffering,
         isPlaying,
         isSkippingInactive,
         replay,
+        setCurrentHoverTime,
         setCurrentTime,
         setSpeed,
         speed,

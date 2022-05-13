@@ -15,6 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.models.releasefile import read_artifact_index
+from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.utils.db import atomic_transaction
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
@@ -208,6 +209,9 @@ def pseudo_releasefile(url, info, dist):
 
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
     permission_classes = (ProjectReleasePermission,)
+    rate_limits = RateLimitConfig(
+        group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
+    )
 
     def get(self, request: Request, project, version) -> Response:
         """

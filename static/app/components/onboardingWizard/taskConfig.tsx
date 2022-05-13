@@ -40,6 +40,16 @@ type Options = {
   projects?: Project[];
 };
 
+function getIssueAlertUrl({projects, organization}: Options) {
+  if (!projects || !projects.length) {
+    return `/organizations/${organization.slug}/alerts/rules/`;
+  }
+  // pick the first project with events if we have that, otherwise just pick the first project
+  const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
+  const project = firstProjectWithEvents ?? projects[0];
+  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
+}
+
 export function getOnboardingTasks({
   organization,
   projects,
@@ -194,14 +204,14 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.ALERT_RULE,
-      title: t('Get smarter alerts'),
+      title: t('Configure an Issue Alert'),
       description: t(
-        "Customize alerting rules by issue or metric. You'll get the exact information you need precisely when you need it."
+        'We all have issues. Get real-time error notifications by setting up alerts for issues that match your set criteria.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: `/organizations/${organization.slug}/alerts/rules/`,
+      location: getIssueAlertUrl({projects, organization}),
       display: true,
     },
   ];
