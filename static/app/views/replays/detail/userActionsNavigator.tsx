@@ -77,7 +77,9 @@ function UserActionsNavigator({event, crumbs}: Props) {
 
   const onMouseEnter = useCallback(
     (item: Crumb) => {
-      setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
+      if (startTimestamp) {
+        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
+      }
     },
     [setCurrentHoverTime, startTimestamp]
   );
