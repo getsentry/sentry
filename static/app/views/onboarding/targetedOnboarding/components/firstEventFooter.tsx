@@ -66,25 +66,27 @@ export default function FirstEventFooter({
         <Button
           priority="primary"
           onClick={async () => {
-            if (clientState) {
-              addLoadingMessage(t('Sending you an email to continue onboarding...'));
-              await client
-                .requestPromise(
-                  `/organizations/${organization.slug}/onboarding-continuation-email/`,
-                  {
-                    method: 'POST',
-                    data: {
-                      platforms: clientState.selectedPlatforms,
-                    },
-                  }
-                )
-                .then(() => {
-                  addSuccessMessage(t('Onboarding remainder email sent to your inbox!'));
-                })
-                .catch(() => {
-                  addErrorMessage(t('Unable to send onboarding email'));
-                });
+            if (!clientState) {
+              // client state not yet loaded.
+              return;
             }
+            addLoadingMessage(t('Sending you an email to continue onboarding...'));
+            await client
+              .requestPromise(
+                `/organizations/${organization.slug}/onboarding-continuation-email/`,
+                {
+                  method: 'POST',
+                  data: {
+                    platforms: clientState.selectedPlatforms,
+                  },
+                }
+              )
+              .then(() => {
+                addSuccessMessage(t('Onboarding remainder email sent to your inbox!'));
+              })
+              .catch(() => {
+                addErrorMessage(t('Unable to send onboarding email'));
+              });
             browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
           }}
         >
@@ -174,8 +176,7 @@ const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${space(1)};
-  color: ${p =>
-    p.errorReceived ? p.theme.successText : p.theme.charts.getColorPalette(5)[4]};
+  color: ${p => (p.errorReceived ? p.theme.successText : p.theme.pink300)};
 `;
 
 const indicatorAnimation: Variants = {
@@ -191,7 +192,7 @@ AnimatedText.defaultProps = {
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
-  background-color: ${p => p.theme.charts.getColorPalette(5)[4]};
+  background-color: ${p => p.theme.pink300};
 `;
 
 WaitingIndicator.defaultProps = {

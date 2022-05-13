@@ -1,0 +1,20 @@
+--- .venv/lib/python3.8/site-packages/selenium/webdriver/remote/webelement.py	2022-05-12 17:08:49.000000000 -0400
++++ .venv/lib/python3.8/site-packages/selenium/webdriver/remote/webelement.py.bak	2022-05-12 17:09:05.000000000 -0400
+@@ -159,7 +159,7 @@
+         return self._execute(Command.IS_ELEMENT_ENABLED)['value']
+ 
+     def find_element_by_id(self, id_):
+-        """Finds element within this element's children by ID.
++        r"""Finds element within this element's children by ID.
+ 
+         :Args:
+          - id\_ - ID of child element to locate.
+@@ -176,7 +176,7 @@
+         return self.find_element(by=By.ID, value=id_)
+ 
+     def find_elements_by_id(self, id_):
+-        """Finds a list of elements within this element's children by ID.
++        r"""Finds a list of elements within this element's children by ID.
+         Will return a list of webelements if found, or an empty list if not.
+ 
+         :Args:

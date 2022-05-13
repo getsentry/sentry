@@ -18,7 +18,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
 
     filteredEndpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/?environment=staging&limit=5&query=is%3Aunresolved%20error.unhandled%3Atrue&sort=freq&statsPeriod=7d`,
+      url: `/organizations/${organization.slug}/issues/?environment=staging&limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=7d`,
       body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
     });
 
@@ -34,12 +34,14 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a list', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/?limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=14d`,
+      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+    });
     wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
-
-    expect(wrapper.find('SectionHeading').text()).toBe('Frequent Unhandled Issues');
 
     await tick();
     wrapper.update();
@@ -59,7 +61,7 @@ describe('ProjectDetail > ProjectIssues', function () {
       pathname: `/organizations/${organization.slug}/issues/`,
       query: {
         limit: 5,
-        query: 'is:unresolved error.unhandled:true',
+        query: 'error.unhandled:true is:unresolved',
         sort: 'freq',
         statsPeriod: '14d',
       },
@@ -109,7 +111,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         limit: 5,
         environment: 'staging',
         statsPeriod: '7d',
-        query: 'is:unresolved error.unhandled:true',
+        query: 'error.unhandled:true is:unresolved',
         sort: 'freq',
       },
     });
