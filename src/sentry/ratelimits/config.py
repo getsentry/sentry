@@ -22,9 +22,7 @@ HttpMethodName = str
 
 RateLimitOverrideDict = Mapping[HttpMethodName, Mapping[RateLimitCategory, RateLimit]]
 
-DEFAULT_RATELIMIT = RateLimit(
-    settings.SENTRY_RATELIMITER_DEFAULT, 1, settings.SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT
-)
+DEFAULT_RATELIMIT = RateLimit(settings.SENTRY_RATELIMITER_DEFAULT, 1)
 SENTRY_RATELIMITER_GROUP_DEFAULTS: Mapping[GroupName, Mapping[RateLimitCategory, RateLimit]] = {
     "default": {category: DEFAULT_RATELIMIT for category in RateLimitCategory},
     "CLI": {
