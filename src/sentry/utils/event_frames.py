@@ -40,7 +40,7 @@ def supplement_filename(platform: str, data_frames: Sequence[MutableMapping[str,
 
 def find_stack_frames(
     event_data: PathSearchable, consume_frame: Callable[[Any], None] = lambda _: None
-) -> Sequence[Mapping[str, Any]]:
+) -> Sequence[MutableMapping[str, Any]]:
     """
     See: https://develop.sentry.dev/sdk/event-payloads/#core-interfaces for event data payload format.
 
