@@ -46,7 +46,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version == "2":
+        if version in ["2", "3"]:
             return self._post_by_key(
                 request=request,
                 full_config_requested=full_config_requested,
