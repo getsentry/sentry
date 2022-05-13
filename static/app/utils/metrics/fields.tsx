@@ -54,6 +54,17 @@ export const METRIC_TO_COLUMN_TYPE: Readonly<
   [SessionMetric.SESSION_DURATION]: 'duration',
   [SessionMetric.SESSION]: 'integer',
   [SessionMetric.SESSION_CRASH_FREE_RATE]: 'percentage',
+  [SessionMetric.USER_CRASH_FREE_RATE]: 'percentage',
+  [SessionMetric.SESSION_CRASH_RATE]: 'percentage',
+  [SessionMetric.USER_CRASH_RATE]: 'percentage',
+  [SessionMetric.SESSION_HEALTHY]: 'integer',
+  [SessionMetric.USER_HEALTHY]: 'integer',
+  [SessionMetric.SESSION_ABNORMAL]: 'integer',
+  [SessionMetric.USER_ABNORMAL]: 'integer',
+  [SessionMetric.SESSION_CRASHED]: 'integer',
+  [SessionMetric.USER_CRASHED]: 'integer',
+  [SessionMetric.SESSION_ERRORED]: 'integer',
+  [SessionMetric.USER_ERRORED]: 'integer',
 
   // Transaction metrics
   [TransactionMetric.USER]: 'integer',
