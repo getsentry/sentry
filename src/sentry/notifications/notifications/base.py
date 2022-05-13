@@ -133,7 +133,7 @@ class BaseNotification(abc.ABC):
             # may want to explicitly pass in the parameters for this event
             self.record_analytics(
                 f"integrations.{provider.name}.notification_sent",
-                category=self.get_category(),
+                category=self.metrics_key,
                 **self.get_log_params(recipient),
             )
             # record an optional second event

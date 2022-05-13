@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
 
 class AutoSyncNotification(ProjectNotification):
-    notification_setting_type = NotificationSettingTypes.DEPLOY
     metrics_key = "auto_sync"
+    notification_setting_type = NotificationSettingTypes.DEPLOY
     template_path = "sentry/emails/codeowners-auto-sync-failure"
 
     def determine_recipients(self) -> Iterable[Team | User]:
