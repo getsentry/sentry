@@ -39,7 +39,7 @@ def supplement_filename(platform: str, data_frames: Sequence[MutableMapping[str,
 
 
 def find_stack_frames(
-    event_data: PathSearchable, fn_on_each_frame: Callable[[Any], None] = lambda _: None
+    event_data: PathSearchable, consume_frame: Callable[[Any], None] = lambda _: None
 ) -> Sequence[Mapping[str, Any]]:
     """
     See: https://develop.sentry.dev/sdk/event-payloads/#core-interfaces for event data payload format.
@@ -54,7 +54,7 @@ def find_stack_frames(
     stacktrace_in_exception = False
     for exc in get_path(event_data, "exception", "values", filter=True) or ():
         for frame in get_path(exc, "stacktrace", "frames", filter=True) or ():
-            fn_on_each_frame(frame)
+            consume_frame(frame)
             frames.append(frame)
             stacktrace_in_exception = True
 
@@ -69,6 +69,6 @@ def find_stack_frames(
             if thread is not None:
                 frames = get_path(thread, "stacktrace", "frames") or []
         for frame in frames or ():
-            fn_on_each_frame(frame)
+            consume_frame(frame)
 
     return frames
