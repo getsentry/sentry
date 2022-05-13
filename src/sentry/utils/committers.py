@@ -26,9 +26,8 @@ from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
 from sentry.utils.compat import zip
-from sentry.utils.event_frames import supplement_filename
+from sentry.utils.event_frames import find_stack_frames, supplement_filename
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import PathSearchable, get_path
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
 
@@ -52,12 +51,8 @@ def score_path_match_length(path_a: str, path_b: str) -> int:
     return score
 
 
-def get_frame_paths(data: PathSearchable) -> Union[Any, Sequence[Any]]:
-    frames = get_path(data, "stacktrace", "frames", filter=True)
-    if frames:
-        return frames
-
-    return get_path(data, "exception", "values", 0, "stacktrace", "frames", filter=True) or []
+def get_frame_paths(event: Event) -> Union[Any, Sequence[Any]]:
+    return find_stack_frames(event.data)
 
 
 def release_cache_key(release: Release) -> str:
@@ -252,7 +247,7 @@ def get_event_file_committers(
         raise Commit.DoesNotExist
 
     frames = event_frames or ()
-    app_frames = [frame for frame in frames if frame["in_app"]][-frame_limit:]
+    app_frames = [frame for frame in frames if frame.get("in_app")][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
 
@@ -295,7 +290,7 @@ def get_event_file_committers(
 def get_serialized_event_file_committers(
     project: Project, event: Event, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
-    event_frames = get_frame_paths(event.data)
+    event_frames = get_frame_paths(event)
     committers = get_event_file_committers(
         project, event.group_id, event_frames, event.platform, frame_limit=frame_limit
     )

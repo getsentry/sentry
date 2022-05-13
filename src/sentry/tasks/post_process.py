@@ -385,7 +385,7 @@ def post_process_group(
                             from sentry.utils.committers import get_frame_paths
 
                             cache.set(group_cache_key, True, 604800)  # 1 week in seconds
-                            event_frames = get_frame_paths(event.data)
+                            event_frames = get_frame_paths(event)
                             process_suspect_commits.delay(
                                 event_id=event.event_id,
                                 event_platform=event.platform,
