@@ -33,6 +33,7 @@ class ProjectConfigDebounceCache(Service):
 
     def is_debounced(self, public_key, project_id, organization_id):
         """Checks if the given project/organization should be debounced."""
+        return False
 
     def debounce(self, public_key, project_id, organization_id):
         """
