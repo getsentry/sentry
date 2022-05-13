@@ -21,9 +21,9 @@ function FrameCallTreeStack({flamegraphRenderer, roots}: FrameCallTreeStackProps
       <FrameCallersTable>
         <FrameCallersTableHeader>
           <tr>
-            <th>Self Time</th>
-            <th>Total Time</th>
-            <th colSpan={100}>Frame</th>
+            <th>{t('Self Time')}</th>
+            <th>{t('Total Time')}</th>
+            <th colSpan={100}>{t('Frame')}</th>
           </tr>
         </FrameCallersTableHeader>
         <tbody>
@@ -33,6 +33,7 @@ function FrameCallTreeStack({flamegraphRenderer, roots}: FrameCallTreeStackProps
                 key={r.key}
                 depth={0}
                 frame={r}
+                referenceNode={r}
                 flamegraphRenderer={flamegraphRenderer}
               />
             );
@@ -142,6 +143,8 @@ function FrameRow({
         ? frame.children.map(c => (
             <FrameRow
               key={c.key}
+              frame={c}
+              referenceNode={referenceNode}
               initialOpen={forceOpenChildren ? open : undefined}
               flamegraphRenderer={flamegraphRenderer}
               depth={depth + 1}
@@ -233,6 +236,7 @@ const FrameTabs = styled('ul')`
       border-bottom: 2px solid ${prop => prop.theme.active};
     }
   }
+`;
 
 const Weight = styled((props: {weight: number}) => {
   const {weight, ...rest} = props;
