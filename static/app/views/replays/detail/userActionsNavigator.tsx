@@ -96,10 +96,6 @@ function UserActionsNavigator({event, crumbs}: Props) {
     getClosestUserAction(currentHoverTime);
   }, [getClosestUserAction, currentHoverTime]);
 
-  if (!event) {
-    return null;
-  }
-
   return (
     <Panel>
       <PanelHeader>{t('Event Chapters')}</PanelHeader>
