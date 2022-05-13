@@ -1,0 +1,38 @@
+--- .venv/lib/python3.8/site-packages/selenium/webdriver/remote/webdriver.py	2022-05-12 16:53:37.000000000 -0400
++++ .venv/lib/python3.8/site-packages/selenium/webdriver/remote/webdriver.py.bak	2022-05-12 16:54:12.000000000 -0400
+@@ -343,7 +343,7 @@
+         return resp['value'] if resp['value'] is not None else ""
+ 
+     def find_element_by_id(self, id_):
+-        """Finds an element by id.
++        r"""Finds an element by id.
+ 
+         :Args:
+          - id\_ - The id of the element to be found.
+@@ -360,7 +360,7 @@
+         return self.find_element(by=By.ID, value=id_)
+ 
+     def find_elements_by_id(self, id_):
+-        """
++        r"""
+         Finds multiple elements by id.
+ 
+         :Args:
+@@ -614,7 +614,7 @@
+         return self.find_elements(by=By.CSS_SELECTOR, value=css_selector)
+ 
+     def execute_script(self, script, *args):
+-        """
++        r"""
+         Synchronously Executes JavaScript in the current window/frame.
+ 
+         :Args:
+@@ -641,7 +641,7 @@
+ 
+         :Args:
+          - script: The JavaScript to execute.
+-         - \*args: Any applicable arguments for your JavaScript.
++         - \\*args: Any applicable arguments for your JavaScript.
+ 
+         :Usage:
+             script = "var callback = arguments[arguments.length - 1]; " \

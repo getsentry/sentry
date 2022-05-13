@@ -82,4 +82,5 @@ repos:
       exclude_types: [svg]
     - id: trailing-whitespace
       exclude_types: [svg]
+      exclude: ^scripts/patches/
     - id: debug-statements
