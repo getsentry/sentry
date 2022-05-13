@@ -8,7 +8,7 @@ from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
 
-from .utils import MAX_POINTS, MetricOperationType, get_intervals
+from .utils import MAX_POINTS, MetricOperationType
 
 # TODO: Add __all__ to be consistent with sibling modules
 
@@ -76,14 +76,8 @@ class QueryDefinition:
                 # In a series query, we also need to factor in the len of the intervals
                 # array. The number of totals should never get so large that the
                 # intervals exceed MAX_POINTS, however at least a single group.
-                intervals_len = len(
-                    list(
-                        get_intervals(
-                            self.start,
-                            self.end,
-                            self.granularity.granularity,
-                        )
-                    )
+                intervals_len = int(
+                    (self.end - self.start).total_seconds() / self.granularity.granularity
                 )
                 totals_limit = max(totals_limit // intervals_len, 1)
             # Cannot set attribute directly because dataclass is frozen:

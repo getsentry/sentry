@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from typing import Optional
 
 import sentry_sdk
 from django.utils.datastructures import MultiValueDict
@@ -46,7 +47,11 @@ class OrganizationSessionsEndpoint(OrganizationEventsEndpointBase):
         )
 
     def build_sessions_query(
-        self, request: Request, organization: Organization, offset: int, limit: int
+        self,
+        request: Request,
+        organization: Organization,
+        offset: Optional[int],
+        limit: Optional[int],
     ):
         try:
             params = self.get_filter_params(request, organization, date_filter_optional=True)
