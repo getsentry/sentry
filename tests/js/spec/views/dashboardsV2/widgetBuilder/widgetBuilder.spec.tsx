@@ -2452,9 +2452,7 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('resolved')).toBeInTheDocument();
     });
 
-    // Disabling for CI, but should run locally when making changes
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('Update table header values (field alias)', async function () {
+    it('Update table header values (field alias)', async function () {
       const handleSave = jest.fn();
 
       renderTestComponent({
@@ -2831,9 +2829,7 @@ describe('WidgetBuilder', function () {
       ).toBeDisabled();
     });
 
-    // Disabling for CI, but should run locally when making changes
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('renders with a release search bar', async function () {
+    it('renders with a release search bar', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
       });
@@ -2845,11 +2841,14 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('No items found')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
-      userEvent.type(
-        screen.getByPlaceholderText('Search for events, users, tags, and more'),
-        'session.status:'
+      selectEvent.openMenu(
+        screen.getByPlaceholderText(
+          'Search for release version, session status, and more'
+        )
       );
-      expect(await screen.findByText('crashed')).toBeInTheDocument();
+      expect(await screen.findByText('environment')).toBeInTheDocument();
+      expect(screen.getByText('project')).toBeInTheDocument();
+      expect(screen.getByText('release')).toBeInTheDocument();
     });
   });
 
@@ -2881,9 +2880,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  // Disabling for CI, but should run locally when making changes
-  // eslint-disable-next-line jest/no-disabled-tests
-  describe.skip('group by field', function () {
+  describe('group by field', function () {
     it('does not contain functions as options', async function () {
       renderTestComponent({
         query: {displayType: 'line'},
