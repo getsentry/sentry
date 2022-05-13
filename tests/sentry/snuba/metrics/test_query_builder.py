@@ -569,7 +569,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
@@ -593,7 +593,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
@@ -603,7 +603,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, get_mri(metric_name))]),
         ],
         orderby=[OrderBy(select, Direction.DESC)],
-        limit=Limit(6480),
+        limit=Limit(72),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
@@ -667,7 +667,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
@@ -690,7 +690,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
@@ -699,7 +699,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             ),
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, SessionMRI.RAW_DURATION.value)]),
         ],
-        limit=Limit(6480),
+        limit=Limit(72),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )

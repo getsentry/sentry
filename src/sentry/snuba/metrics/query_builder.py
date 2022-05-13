@@ -222,8 +222,8 @@ class APIQueryDefinition:
             self.fields.append(parse_field(key, query_params))
 
         self.orderby = self._parse_orderby(query_params)
-        self.limit: Optional[Limit] = self._parse_limit(query_params, paginator_kwargs)
-        self.offset: Optional[Offset] = self._parse_offset(query_params, paginator_kwargs)
+        self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
+        self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -285,13 +285,13 @@ class APIQueryDefinition:
 
         return MetricsOrderBy(field, direction)
 
-    def _parse_limit(self, query_params, paginator_kwargs):
-        if query_params.get("per_page") is None:
+    def _parse_limit(self, paginator_kwargs) -> Optional[Limit]:
+        if "limit" not in paginator_kwargs:
             return
         return Limit(paginator_kwargs["limit"])
 
-    def _parse_offset(self, query_params, paginator_kwargs):
-        if query_params.get("cursor") is None:
+    def _parse_offset(self, paginator_kwargs) -> Optional[Offset]:
+        if "offset" not in paginator_kwargs:
             return
         return Offset(paginator_kwargs["offset"])
 
@@ -321,7 +321,7 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     if ONE_DAY % interval != 0:
         raise InvalidParams("The interval should divide one day without a remainder.")
 
-    start, end = get_date_range_from_params(params)
+    start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
 
     date_range = end - start
 
