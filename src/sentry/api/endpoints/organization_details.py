@@ -186,6 +186,12 @@ class OrganizationSerializer(serializers.Serializer):
         qs = Organization.objects.filter(slug=value).exclude(id=self.context["organization"].id)
         if qs.exists():
             raise serializers.ValidationError(f'The slug "{value}" is already in use.')
+
+        contains_whitespace = any(c.isspace() for c in self.initial_data["slug"])
+        if contains_whitespace:
+            raise serializers.ValidationError(
+                f'The slug "{value}" should not contain any whitespace.'
+            )
         return value
 
     def validate_relayPiiConfig(self, value):
@@ -382,8 +388,8 @@ class OrganizationSerializer(serializers.Serializer):
             org.flags.require_email_verification = self.initial_data["requireEmailVerification"]
         if "name" in self.initial_data:
             org.name = self.initial_data["name"]
-        if "slug" in self.initial_data:
-            org.slug = self.initial_data["slug"]
+        if "slug" in self.validated_data:
+            org.slug = self.validated_data["slug"]
 
         org_tracked_field = {
             "name": org.name,
