@@ -544,16 +544,16 @@ def _sort_results_by_group_filters(
     return sorted
 
 
-def _prune_extra_groups(results: dict, filters: GroupLimitFilters):
+def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
     valid_values = set(filters.values)
     for _entity, queries in results.items():
         for key, query_results in queries.items():
             filtered = []
-            for row in query_results:
+            for row in query_results["data"]:
                 group_values = tuple(row[col] for col in filters.keys)
                 if group_values in valid_values:
                     filtered.append(row)
-            queries[key] = filtered
+            queries[key]["data"] = filtered
 
 
 def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
@@ -692,9 +692,17 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
         projects[0].organization_id, query, fields_in_entities, intervals, results
     )
 
+    result_groups = converter.translate_results()
+    # It can occur, when we make queries that are not ordered, that we end up with a number of
+    # groups that doesn't meet the limit of the query for each of the entities, and hence they
+    # don't go through the pruning logic resulting in a total number of groups that is greater
+    # than the limit, and hence we need to prune those excess groups
+    if len(result_groups) > query.limit.limit:
+        result_groups = result_groups[0 : query.limit.limit]
+
     return {
         "start": query.start,
         "end": query.end,
         "intervals": intervals,
-        "groups": converter.translate_results(),
+        "groups": result_groups,
     }
