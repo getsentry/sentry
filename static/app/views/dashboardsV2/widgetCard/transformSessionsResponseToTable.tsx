@@ -61,7 +61,15 @@ export function transformSessionsResponseToTable(
     response?.groups.map((group, index) => ({
       id: String(index),
       ...mapDerivedMetricsToFields(group.by),
+      // if `sum(session)` or `count_unique(user)` are not
+      // requested as a part of the payload for
+      // derived status metrics through the Sessions API,
+      // they are injected into the payload and need to be
+      // stripped.
       ...omit(mapDerivedMetricsToFields(group.totals), injectedFields),
+      // if session.status is a groupby, some post processing
+      // is needed to calculate the status derived metrics
+      // from grouped results of `sum(session)` or `count_unique(user)`
       ...getDerivedMetrics(group.by, group.totals, requestedStatusMetrics),
     })) ?? [];
 

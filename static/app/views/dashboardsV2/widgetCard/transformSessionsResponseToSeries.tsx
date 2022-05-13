@@ -34,6 +34,11 @@ export function transformSessionsResponseToSeries(
 
   response.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {
+      // if `sum(session)` or `count_unique(user)` are not
+      // requested as a part of the payload for
+      // derived status metrics through the Sessions API,
+      // they are injected into the payload and need to be
+      // stripped.
       if (!!!injectedFields.includes(field)) {
         results.push({
           seriesName: getSeriesName(field, group, queryAlias),
@@ -44,6 +49,9 @@ export function transformSessionsResponseToSeries(
         });
       }
     });
+    // if session.status is a groupby, some post processing
+    // is needed to calculate the status derived metrics
+    // from grouped results of `sum(session)` or `count_unique(user)`
     if (requestedStatusMetrics.length && defined(group.by['session.status'])) {
       requestedStatusMetrics.forEach(status => {
         const result = status.match(DERIVED_STATUS_METRICS_PATTERN);
