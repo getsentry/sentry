@@ -37,34 +37,28 @@ const ActionCategory = memo(function Category({category, description}: Props) {
   const title = getActionCategoryDescription(convertCrumbType(category));
 
   return (
-    <Wrapper>
-      <Tooltip
-        title={description}
-        disabled={!description}
-        skipWrapper
-        disableForVisualTest
-      >
-        <Value>{title}</Value>
-      </Tooltip>
-    </Wrapper>
+    <Tooltip title={description} disabled={!description} skipWrapper disableForVisualTest>
+      <Value>{title}</Value>
+    </Tooltip>
   );
 });
 
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  position: relative;
-  :before {
-    content: '';
-    display: block;
-    width: 1px;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    transform: translate(-50%);
-    position: absolute;
-  }
-`;
+// const Wrapper = styled('div')`
+//   display: flex;
+//   justify-content: center;
+//   position: relative;
+//   :before {
+//     content: '';
+//     display: block;
+//     width: 1px;
+//     top: 0;
+//     bottom: 0;
+//     left: 50%;
+//     transform: translate(-50%);
+//     position: absolute;
+//   }
+// `;
+
 const Value = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.fontSizeMedium};
