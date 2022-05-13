@@ -627,12 +627,9 @@ function WidgetBuilder({
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
-      if (
-        !widgetBuilderNewDesign &&
-        !fieldStrings.includes(rawOrderby) &&
-        query.orderby !== ''
-      ) {
+      if (!fieldStrings.includes(rawOrderby) && query.orderby !== '') {
         if (
+          !widgetBuilderNewDesign &&
           prevAggregateFieldStrings.length === newFields.length &&
           prevAggregateFieldStrings.includes(rawOrderby)
         ) {
