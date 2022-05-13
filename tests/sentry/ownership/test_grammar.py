@@ -221,34 +221,6 @@ def test_matcher_test_platform_java_threads():
         },
     }
 
-    assert Matcher("path", "*.py").test(data)
-    assert Matcher("path", "foo/*.py").test(data)
-    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
-    assert not Matcher("path", "*.js").test(data)
-    assert not Matcher("path", "*.jsx").test(data)
-    assert not Matcher("url", "*.py").test(data)
-    assert not Matcher("path", "*.py").test({})
-
-
-def test_matcher_test_platform_java_threads():
-    data = {
-        "platform": "java",
-        "threads": {
-            "values": [
-                {
-                    "stacktrace": {
-                        "frames": [
-                            {
-                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
-                                "filename": "NativeMethodAccessorImpl.java",
-                            }
-                        ]
-                    }
-                }
-            ]
-        },
-    }
-
     assert Matcher("path", "*.java").test(data)
     assert Matcher("path", "jdk/internal/reflect/*.java").test(data)
     assert Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
