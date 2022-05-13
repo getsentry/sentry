@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from functools import reduce
 from typing import Any, List, Mapping, Optional, cast
 
 from django.utils import timezone
@@ -114,7 +115,7 @@ def fetch_metric_alert_events_timeseries(
             "data": [
                 {
                     "name": point[0] * 1000,
-                    "value": point[1][0]["count"],
+                    "value": reduce(lambda a, b: a + float(b["count"]), point[1], 0.0),
                 }
                 for point in resp.data["data"]
             ],
