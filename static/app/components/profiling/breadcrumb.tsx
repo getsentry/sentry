@@ -6,9 +6,9 @@ import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {
-  flamegraphRouteWithQuery,
-  functionsRouteWithQuery,
-  profilingRouteWithQuery,
+  generateFlamegraphRouteWithQuery,
+  generateFunctionsRouteWithQuery,
+  generateProfilingRouteWithQuery,
 } from 'sentry/views/profiling/routes';
 
 type ProfilingTrail = {
@@ -60,7 +60,7 @@ function trailToCrumb(
   switch (trail.type) {
     case 'landing': {
       return {
-        to: profilingRouteWithQuery({
+        to: generateProfilingRouteWithQuery({
           location,
           orgSlug: organization.slug,
         }),
@@ -70,7 +70,7 @@ function trailToCrumb(
     }
     case 'functions': {
       return {
-        to: functionsRouteWithQuery({
+        to: generateFunctionsRouteWithQuery({
           location,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
@@ -83,7 +83,7 @@ function trailToCrumb(
     }
     case 'flamegraph': {
       return {
-        to: flamegraphRouteWithQuery({
+        to: generateFlamegraphRouteWithQuery({
           location,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
