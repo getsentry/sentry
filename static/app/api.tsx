@@ -362,8 +362,6 @@ export class Client {
 
     metric.mark({name: startMarker});
 
-    const errorObject = new Error();
-
     /**
      * Called when the request completes with a 2xx status
      */
@@ -399,35 +397,6 @@ export class Client {
         start: startMarker,
         data: {status: resp?.status},
       });
-
-      if (
-        resp &&
-        resp.status !== 0 &&
-        resp.status !== 404 &&
-        errorThrown !== 'Request was aborted'
-      ) {
-        run(Sentry =>
-          Sentry.withScope(scope => {
-            // `requestPromise` can pass its error object
-            const preservedError = options.preservedError ?? errorObject;
-
-            const errorObjectToUse = createRequestError(
-              resp,
-              preservedError.stack,
-              method,
-              path
-            );
-
-            errorObjectToUse.removeFrames(3);
-
-            // Setting this to warning because we are going to capture all failed requests
-            scope.setLevel('warning');
-            scope.setTag('http.statusCode', String(resp.status));
-            scope.setTag('error.reason', errorThrown);
-            Sentry.captureException(errorObjectToUse);
-          })
-        );
-      }
 
       this.handleRequestError(
         {id, path, requestOptions: options},
