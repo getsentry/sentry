@@ -75,6 +75,7 @@ type Props = {
   rule: IncidentRule;
   userTeamIds: string[];
   isCustomMetric?: boolean;
+  isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
 } & RouteComponentProps<{orgId: string; projectId?: string; ruleId?: string}, {}> & {
@@ -531,6 +532,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           aggregate,
         },
         {
+          duplicateRule: this.props.isDuplicateRule ? 'true' : 'false',
           referrer: location?.query?.referrer,
           sessionId,
         }
