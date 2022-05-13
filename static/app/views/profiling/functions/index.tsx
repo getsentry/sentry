@@ -146,7 +146,7 @@ function fetchFunctions(
       method: 'GET',
       includeAllArgs: false,
       query: {
-        query: `transaction_name:${transaction} version:"${version}"`,
+        query: `transaction_name:"${transaction}" version:"${version}"`,
       },
     }
   );
