@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 class OrganizationRequestNotification(BaseNotification, abc.ABC):
     notification_setting_type = NotificationSettingTypes.APPROVAL
+    referrer_base: str = ""
     RoleBasedRecipientStrategyClass: Type[RoleBasedRecipientStrategy]
 
     def __init__(self, organization: Organization, requester: User) -> None:
