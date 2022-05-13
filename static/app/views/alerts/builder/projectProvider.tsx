@@ -38,7 +38,7 @@ function AlertBuilderProjectProvider(props: Props) {
         }
   );
   const project = useFirstProject
-    ? projects.find(p => p)
+    ? projects.find(p => p.isMember)
     : projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {
