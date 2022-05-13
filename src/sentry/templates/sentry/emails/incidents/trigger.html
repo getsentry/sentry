@@ -20,6 +20,11 @@
       controls are enabled. For more details about this alert, <a href="{{ link }}">view on Sentry.</a>
     </div>
   {% else %}
+    {% if chart_url %}
+      <div class="align-center well" style="margin-bottom: 10px;background-color: #fff;padding: 20px 10px;">
+        <img width="100%" src="{{ chart_url }}" alt="{{ incident_name }} chart" />
+      </div>
+    {% endif %}
     <div class="alert-info-container alert-container-{{ status_key }}">
       <h4>
         <span class="alert-badge">{{ status }} alert</span>
