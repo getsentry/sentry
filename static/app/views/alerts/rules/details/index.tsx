@@ -20,7 +20,7 @@ import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types'
 import {makeRuleDetailsQuery} from 'sentry/views/alerts/list/row';
 
 import {Incident} from '../../types';
-import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils';
+import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils/apiCalls';
 
 import DetailsBody from './body';
 import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';

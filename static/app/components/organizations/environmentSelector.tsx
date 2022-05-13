@@ -60,7 +60,7 @@ type Props = WithRouterProps & {
  *
  * Note we only fetch environments when this component is mounted
  */
-function MultipleEnvironmentSelector({
+function EnvironmentSelector({
   loadingProjects,
   onUpdate,
   organization,
@@ -300,7 +300,7 @@ function MultipleEnvironmentSelector({
   );
 }
 
-export default withRouter(MultipleEnvironmentSelector);
+export default withRouter(EnvironmentSelector);
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;

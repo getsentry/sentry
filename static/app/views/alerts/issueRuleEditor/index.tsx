@@ -140,6 +140,15 @@ function isSavedAlertRule(rule: State['rule']): rule is IssueAlertRule {
 class IssueRuleEditor extends AsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
 
+  get isDuplicateRule(): boolean {
+    const {location, organization} = this.props;
+    const createFromDuplicate = location?.query.createFromDuplicate === 'true';
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
+    return (
+      hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
+    );
+  }
+
   componentWillUnmount() {
     window.clearTimeout(this.pollingTimeout);
   }
@@ -347,6 +356,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         includeAllArgs: true,
         method: isNew ? 'POST' : 'PUT',
         data: rule,
+        query: {
+          duplicateRule: this.isDuplicateRule ? 'true' : 'false',
+        },
       });
 
       // if we get a 202 back it means that we have an async task
@@ -625,6 +637,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           type="text"
           name="name"
           value={name}
+          data-test-id="alert-name"
           placeholder={hasAlertWizardV3 ? t('Enter Alert Name') : t('My Rule Name')}
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
             this.handleChange('name', event.target.value)

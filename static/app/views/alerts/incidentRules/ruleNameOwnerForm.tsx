@@ -19,6 +19,7 @@ type Props = {
 export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}: Props) {
   const renderRuleName = () => (
     <StyledTextField
+      data-test-id="alert-name"
       hasAlertWizardV3={hasAlertWizardV3}
       disabled={disabled}
       name="name"

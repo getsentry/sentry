@@ -4,6 +4,12 @@
 const process = require('process');
 
 const isRelaxed = !!process.env.SENTRY_ESLINT_RELAXED;
+const isCi = !!process.env.CI;
+
+// Strict ruleset that runs on pre-commit and in local environments
+const strictRulesNotCi = {
+  'react-hooks/exhaustive-deps': ['error'],
+};
 
 module.exports = {
   extends: [isRelaxed ? 'sentry-app' : 'sentry-app/strict'],
@@ -17,7 +23,9 @@ module.exports = {
     jest: true,
   },
 
-  rules: {},
+  rules: {
+    ...(!isRelaxed && !isCi ? strictRulesNotCi : {}),
+  },
 
   overrides: [
     {

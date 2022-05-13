@@ -25,8 +25,10 @@ function ThreadMenuSelector<OptionType extends GeneralSelectValue = GeneralSelec
   profileGroup,
 }: ThreadSelectorProps) {
   const options: SelectValue<number>[] = useMemo(() => {
-    return profileGroup.profiles.sort(compareProfiles).map(profile => ({
-      label: profile.name ? profile.name : `tid (${profile.threadId})`,
+    return [...profileGroup.profiles].sort(compareProfiles).map(profile => ({
+      label: profile.name
+        ? `tid (${profile.threadId}): ${profile.name}`
+        : `tid (${profile.threadId})`,
       value: profile.threadId,
       details: (
         <ThreadLabelDetails

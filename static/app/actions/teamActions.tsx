@@ -15,6 +15,7 @@ const TeamActions = createActions([
   'removeTeam',
   'removeTeamError',
   'removeTeamSuccess',
+  'reset',
   'update',
   'updateError',
   'updateSuccess',
