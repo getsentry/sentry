@@ -662,8 +662,51 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
+  renderIdBadge(project: Project) {
+    return (
+      <IdBadge
+        project={project}
+        avatarProps={{consistentWidth: true}}
+        avatarSize={18}
+        disableLink
+        hideName
+      />
+    );
+  }
+
   renderProjectSelect(hasAccess: boolean, canEdit: boolean) {
-    const {project: _selectedProject, projects} = this.props;
+    const {project: _selectedProject, projects, organization} = this.props;
+    const hasOpenMembership = organization.features.includes('open-membership');
+    const myProjects = projects.filter(project => project.hasAccess && project.isMember);
+    const allProjects = projects.filter(
+      project => project.hasAccess && !project.isMember
+    );
+
+    const myProjectOptions = myProjects.map(myProject => ({
+      value: myProject.id,
+      label: myProject.slug,
+      leadingItems: this.renderIdBadge(myProject),
+    }));
+
+    const openMembershipProjects = [
+      {
+        label: t('My Projects'),
+        options: myProjectOptions,
+      },
+      {
+        label: t('All Projects'),
+        options: allProjects.map(allProject => ({
+          value: allProject.id,
+          label: allProject.slug,
+          leadingItems: this.renderIdBadge(allProject),
+        })),
+      },
+    ];
+
+    const projectOptions =
+      hasOpenMembership || isActiveSuperuser()
+        ? openMembershipProjects
+        : myProjectOptions;
 
     return (
       <FormField
@@ -687,19 +730,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                   marginBottom: `${space(1)}`,
                 }),
               }}
-              options={projects.map(project => ({
-                label: project.slug,
-                value: project.id,
-                leadingItems: (
-                  <IdBadge
-                    project={project}
-                    avatarProps={{consistentWidth: true}}
-                    avatarSize={18}
-                    disableLink
-                    hideName
-                  />
-                ),
-              }))}
+              options={projectOptions}
               onChange={({value}: {value: Project['id']}) => {
                 // if the current owner/team isn't part of project selected, update to the first available team
                 const nextSelectedProject =
