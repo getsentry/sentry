@@ -101,6 +101,7 @@ function FlamegraphSummary() {
         query: {
           ...location.query,
           query: searchString,
+          cursor: undefined,
         },
       });
     },
