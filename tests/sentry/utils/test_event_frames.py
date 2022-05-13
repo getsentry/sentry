@@ -1,4 +1,5 @@
 import unittest
+
 from typing import Any, Mapping
 
 from sentry.testutils import TestCase
@@ -102,6 +103,7 @@ class JavaFilenameMungingTestCase(unittest.TestCase):
                 "filename": "Application.java",
             },
         ]
+
         key, munged_frames = munged_filename_and_frames("java", frames, "munged_filename")
         assert len(munged_frames) == 3
         assert munged_frames[0][key] == "jdk/internal/reflect/NativeMethodAccessorImpl.java"
