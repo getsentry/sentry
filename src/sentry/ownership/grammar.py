@@ -105,7 +105,6 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     @staticmethod
     def munge_if_needed(data: PathSearchable) -> Tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
-
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
         frames = find_stack_frames(data)
