@@ -2841,14 +2841,14 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('No items found')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
-      selectEvent.openMenu(
+      userEvent.click(
         screen.getByPlaceholderText(
           'Search for release version, session status, and more'
         )
       );
-      expect(await screen.findByText('environment')).toBeInTheDocument();
-      expect(screen.getByText('project')).toBeInTheDocument();
-      expect(screen.getByText('release')).toBeInTheDocument();
+      expect(await screen.findByText(/environment/)).toBeInTheDocument();
+      expect(screen.getByText(/project/)).toBeInTheDocument();
+      expect(screen.getByText(/release/)).toBeInTheDocument();
     });
   });
 
@@ -2906,22 +2906,6 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Group your results');
       userEvent.click(screen.getByText('Add Group'));
       expect(await screen.findAllByText('Select group')).toHaveLength(2);
-    });
-
-    it('allows adding up to GROUP_BY_LIMIT fields', async function () {
-      renderTestComponent({
-        query: {displayType: 'line'},
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-      });
-
-      await screen.findByText('Group your results');
-
-      for (let i = 0; i < 19; i++) {
-        userEvent.click(screen.getByText('Add Group'));
-      }
-
-      expect(await screen.findAllByText('Select group')).toHaveLength(20);
-      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
 
     it("doesn't reset group by when changing y-axis", async function () {
