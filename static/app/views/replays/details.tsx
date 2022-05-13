@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayView from 'sentry/components/replays/replayView';
@@ -37,14 +36,7 @@ function ReplayDetails() {
 
   const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
 
-  if (fetching) {
-    return (
-      <DetailLayout orgId={orgId}>
-        <LoadingIndicator />
-      </DetailLayout>
-    );
-  }
-  if (!replay) {
+  if (!fetching && !replay) {
     // TODO(replay): Give the user more details when errors happen
     console.log({fetching, fetchError}); // eslint-disable-line no-console
     return (
@@ -55,7 +47,8 @@ function ReplayDetails() {
       </DetailLayout>
     );
   }
-  if (replay.getRRWebEvents().length < 2) {
+
+  if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
       <DetailLayout event={replay.getEvent()} orgId={orgId}>
         <DetailedError
@@ -80,9 +73,9 @@ function ReplayDetails() {
   return (
     <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
       <DetailLayout
-        event={replay.getEvent()}
+        event={replay?.getEvent()}
         orgId={orgId}
-        crumbs={replay.getRawCrumbs()}
+        crumbs={replay?.getRawCrumbs()}
       >
         <Layout.Body>
           <Layout.Main ref={fullscreenRef}>
@@ -91,8 +84,8 @@ function ReplayDetails() {
 
           <Layout.Side>
             <UserActionsNavigator
-              crumbs={replay.getRawCrumbs()}
-              event={replay.getEvent()}
+              crumbs={replay?.getRawCrumbs()}
+              event={replay?.getEvent()}
             />
           </Layout.Side>
 
