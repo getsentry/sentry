@@ -115,7 +115,6 @@ export class Provider extends Component<Props, State> {
   wheelTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
   spansOutOfView: Map<string, number> = new Map();
-  currentTreeDepth: number = 0;
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -246,6 +245,7 @@ export class Provider extends Component<Props, State> {
   performScroll = (scrollLeft: number) => {
     const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
     const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
+    interactiveLayerRefDOM.scrollLeft = scrollLeft;
 
     // Update scroll position of the virtual scroll bar
     selectRefs(this.scrollBarArea, (scrollBarAreaDOM: HTMLDivElement) => {
@@ -303,7 +303,6 @@ export class Provider extends Component<Props, State> {
       maxScrollLeft
     );
 
-    interactiveLayerRefDOM.scrollLeft = scrollLeft;
     this.performScroll(scrollLeft);
   };
 
@@ -463,7 +462,10 @@ export class Provider extends Component<Props, State> {
     }
 
     this.spansOutOfView.set(spanId, treeDepth);
-    this.performScroll(25 * (treeDepth + 1));
+
+    const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
+    const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
+    this.performScroll(interactiveLayerRect.width * 0.05 * (treeDepth + 1));
   };
 
   markSpanInView = (spanId: string) => {
@@ -472,9 +474,11 @@ export class Provider extends Component<Props, State> {
     }
 
     const treeDepth = this.spansOutOfView.get(spanId);
-    this.currentTreeDepth = treeDepth!;
     this.spansOutOfView.delete(spanId);
-    this.performScroll(-25 * (treeDepth! + 1));
+
+    const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
+    const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
+    this.performScroll(interactiveLayerRect.width * 0.05 * treeDepth!);
   };
 
   render() {
