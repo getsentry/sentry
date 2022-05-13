@@ -1,7 +1,5 @@
 from collections.abc import Mapping, Sequence, Set
 
-from sentry.utils.compat import map
-
 
 class Encoder:
     try:

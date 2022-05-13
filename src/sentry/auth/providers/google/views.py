@@ -5,7 +5,6 @@ from rest_framework.response import Response
 
 from sentry.auth.view import AuthView, ConfigureView
 from sentry.utils import json
-from sentry.utils.compat import map
 from sentry.utils.signing import urlsafe_b64decode
 
 from .constants import DOMAIN_BLOCKLIST, ERR_INVALID_DOMAIN, ERR_INVALID_RESPONSE

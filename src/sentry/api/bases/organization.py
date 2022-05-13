@@ -25,7 +25,6 @@ from sentry.models import (
     ReleaseProject,
 )
 from sentry.utils import auth
-from sentry.utils.compat import map
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context

@@ -3,7 +3,6 @@ from collections import Counter, defaultdict
 from django.utils import timezone
 
 from sentry.tsdb.base import BaseTSDB
-from sentry.utils.compat import map
 from sentry.utils.dates import to_datetime, to_timestamp
 
 

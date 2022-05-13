@@ -5,7 +5,6 @@ from symbolic import parse_addr
 from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.interfaces.exception import upgrade_legacy_mechanism
 from sentry.lang.native.utils import image_name
-from sentry.utils.compat import map
 from sentry.utils.safe import get_path
 
 REPORT_VERSION = "104"

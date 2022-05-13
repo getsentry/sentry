@@ -14,7 +14,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment
 from sentry.search.events.builder import QueryBuilder
 from sentry.utils import metrics
-from sentry.utils.compat import map
 from sentry.utils.snuba import MAX_FIELDS, Dataset
 
 from ..base import ExportQueryType
