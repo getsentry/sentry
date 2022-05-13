@@ -396,6 +396,11 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # 0 default value means don't limit.
 # The limits are per second, applied across a window. The actual quota is then `window * limit`.
 # If the limit is negative, then it means completely blocked.
+register("project-abuse-quota.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.error-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.transaction-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.attachment-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.session-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
 
 # DEPRECATED. Use the org option "project-abuse-quota.window" instead.
 register("getsentry.rate-limit.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
