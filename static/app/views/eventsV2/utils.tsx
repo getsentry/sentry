@@ -593,14 +593,13 @@ export function eventViewToWidgetQuery({
   }
   let newAggregates = aggregates;
 
-  if (displayType === DisplayType.TOP_N) {
-    if (widgetBuilderNewDesign) {
-      // Only preserve the y-axis for the aggregates because that is what
-      // will be plotted in the chart
-      newAggregates = queryYAxis;
-    } else {
-      newAggregates = [...aggregates, ...queryYAxis];
-    }
+  if (widgetBuilderNewDesign && displayType !== DisplayType.TABLE) {
+    newAggregates = queryYAxis;
+  } else if (!widgetBuilderNewDesign) {
+    newAggregates = [
+      ...(displayType === DisplayType.TOP_N ? aggregates : []),
+      ...queryYAxis,
+    ];
   }
 
   const widgetQuery: WidgetQuery = {
