@@ -64,7 +64,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Import your GitHub CODEOWNERS file and use it alongside your ownership rules to assign Sentry issues.
+        Import your GitHub [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/github/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
         """,
         IntegrationFeatures.CODEOWNERS,
     ),

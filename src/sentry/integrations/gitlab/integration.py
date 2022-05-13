@@ -69,7 +69,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Import your GitLab CODEOWNERS file and use it alongside your ownership rules to assign Sentry issues.
+        Import your GitLab [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/gitlab/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
         """,
         IntegrationFeatures.CODEOWNERS,
     ),
