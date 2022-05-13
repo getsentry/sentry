@@ -96,10 +96,10 @@ function OnboardingWizardSidebar({
 
   const {allTasks, customTasks, active, upcoming, complete} = useMemo(() => {
     const all = getMergedTasks({organization, projects}).filter(task => task.display);
-    const tasks = all.filter(task => !task.render);
+    const tasks = all.filter(task => !task.renderCard);
     return {
       allTasks: all,
-      customTasks: all.filter(task => task.render),
+      customTasks: all.filter(task => task.renderCard),
       active: tasks.filter(findActiveTasks),
       upcoming: tasks.filter(findUpcomingTasks),
       complete: tasks.filter(findCompleteTasks),
@@ -165,16 +165,14 @@ function OnboardingWizardSidebar({
 
   const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
   const customizedCards = customTasks
-    .map(
-      task =>
-        task.render &&
-        task.render({
-          organization,
-          task,
-          onboardingState,
-          setOnboardingState,
-          projects,
-        })
+    .map(task =>
+      task.renderCard?.({
+        organization,
+        task,
+        onboardingState,
+        setOnboardingState,
+        projects,
+      })
     )
     .filter(card => !!card);
 
