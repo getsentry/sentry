@@ -11,28 +11,28 @@ import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
 type Props = {
+  crumb: Crumb;
   isHovered: boolean;
   isSelected: boolean;
-  item: Crumb;
   startTimestamp: number;
 };
 
-function ChapterItem({item, isHovered, isSelected, startTimestamp}: Props) {
+function ChapterItem({crumb, isHovered, isSelected, startTimestamp}: Props) {
   const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
-  const timestamp = relativeTimeInMs(item.timestamp ?? '', startTimestamp);
-
   const onMouseEnter = useCallback(() => {
+    const timestamp = relativeTimeInMs(crumb.timestamp ?? '', startTimestamp);
     setCurrentHoverTime(timestamp);
-  }, [setCurrentHoverTime, timestamp]);
+  }, [setCurrentHoverTime, crumb.timestamp, startTimestamp]);
 
   const onMouseLeave = useCallback(() => {
     setCurrentHoverTime(undefined);
   }, [setCurrentHoverTime]);
 
   const onClick = useCallback(() => {
+    const timestamp = relativeTimeInMs(crumb.timestamp ?? '', startTimestamp);
     setCurrentTime(timestamp);
-  }, [setCurrentTime, timestamp]);
+  }, [setCurrentTime, crumb.timestamp, startTimestamp]);
 
   return (
     <PanelItem>
@@ -44,10 +44,10 @@ function ChapterItem({item, isHovered, isSelected, startTimestamp}: Props) {
         onClick={onClick}
       >
         <Wrapper>
-          <Type type={item.type} color={item.color} description={item.description} />
-          <ActionCategory category={item} />
+          <Type type={crumb.type} color={crumb.color} description={crumb.description} />
+          <ActionCategory crumb={crumb} />
         </Wrapper>
-        <PlayerRelativeTime relativeTime={startTimestamp} timestamp={item.timestamp} />
+        <PlayerRelativeTime relativeTime={startTimestamp} timestamp={crumb.timestamp} />
       </CrumbItem>
     </PanelItem>
   );
@@ -63,15 +63,10 @@ const CrumbItem = styled('button')<Pick<Props, 'isHovered' | 'isSelected'>>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: transparent;
+  padding: ${space(1)} ${space(1.5)} ${space(1)} ${space(1)};
   border: none;
-  border-left: 4px solid transparent;
-  padding: ${space(1)} ${space(1.5)};
-  :hover {
-    background: ${p => p.theme.surface400};
-  }
-  ${p => p.isHovered && `background: ${p.theme.surface400};`}
-  ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
+  border-left: 4px solid ${p => (p.isSelected ? p.theme.purple300 : 'transparent')};
+  background: ${p => (p.isHovered ? p.theme.surface400 : 'transparent')};
 `;
 
 const Wrapper = styled('div')`

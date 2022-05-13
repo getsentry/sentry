@@ -1,17 +1,19 @@
-import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
 export function getCurrentUserAction(
-  userActionCrumbs: Crumb[],
+  crumbs: Crumb[],
   startTimestamp: number,
-  currentHoverTime: number
+  targetOffset: number
 ) {
-  return userActionCrumbs.reduce((prev, curr) => {
-    return Math.abs(
-      relativeTimeInMs(curr.timestamp ?? '', startTimestamp) - currentHoverTime
-    ) <
-      Math.abs(relativeTimeInMs(prev.timestamp ?? '', startTimestamp) - currentHoverTime)
-      ? curr
-      : prev;
-  });
+  const targetTimestamp = startTimestamp * 1000 + targetOffset;
+  return crumbs.reduce<Crumb | undefined>((found, crumb) => {
+    const crumbTimestamp = +new Date(crumb.timestamp || '');
+    if (crumbTimestamp > targetTimestamp) {
+      return found;
+    }
+    if (!found || +new Date(found.timestamp || '') <= crumbTimestamp) {
+      return crumb;
+    }
+    return found;
+  }, undefined);
 }

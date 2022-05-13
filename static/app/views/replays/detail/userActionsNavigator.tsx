@@ -40,21 +40,17 @@ function UserActionsNavigator({event, crumbs}: Props) {
       ? getCurrentUserAction(userActionCrumbs, startTimestamp, currentTime)
       : undefined;
 
-  if (!event) {
-    return null;
-  }
-
   return (
     <Panel>
       <PanelHeader>{t('Event Chapters')}</PanelHeader>
 
       <PanelBody>
-        {userActionCrumbs.map(item => (
+        {userActionCrumbs.map(crumb => (
           <ChapterItem
-            key={item.id}
-            item={item}
-            isHovered={hoveredAction?.id === item.id}
-            isSelected={selectedAction?.id === item.id}
+            key={crumb.id}
+            crumb={crumb}
+            isHovered={hoveredAction?.id === crumb.id}
+            isSelected={selectedAction?.id === crumb.id}
             startTimestamp={startTimestamp}
           />
         ))}

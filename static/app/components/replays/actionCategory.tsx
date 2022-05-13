@@ -3,21 +3,13 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {
-  BreadcrumbType,
-  BreadcrumbTypeHTTP,
-  BreadcrumbTypeNavigation,
-  RawCrumb,
-} from 'sentry/types/breadcrumbs';
-
-import {convertCrumbType} from '../events/interfaces/breadcrumbs/utils';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 
 type Props = {
-  category: RawCrumb;
-  description?: BreadcrumbTypeNavigation | BreadcrumbTypeHTTP;
+  crumb: Crumb;
 };
 
-function getActionCategoryDescription(crumb: RawCrumb): string {
+function getActionCategoryDescription(crumb: Crumb): string {
   switch (crumb.type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
@@ -33,31 +25,15 @@ function getActionCategoryDescription(crumb: RawCrumb): string {
   }
 }
 
-const ActionCategory = memo(function Category({category, description}: Props) {
-  const title = getActionCategoryDescription(convertCrumbType(category));
+const ActionCategory = memo(function Category({crumb}: Props) {
+  const title = getActionCategoryDescription(crumb);
 
   return (
-    <Tooltip title={description} disabled={!description} skipWrapper disableForVisualTest>
+    <Tooltip title={crumb.description} skipWrapper disableForVisualTest>
       <Value>{title}</Value>
     </Tooltip>
   );
 });
-
-// const Wrapper = styled('div')`
-//   display: flex;
-//   justify-content: center;
-//   position: relative;
-//   :before {
-//     content: '';
-//     display: block;
-//     width: 1px;
-//     top: 0;
-//     bottom: 0;
-//     left: 50%;
-//     transform: translate(-50%);
-//     position: absolute;
-//   }
-// `;
 
 const Value = styled('div')`
   color: ${p => p.theme.headingColor};
