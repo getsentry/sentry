@@ -45,7 +45,7 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-const groupingFeedbackTypes = [
+export const groupingFeedbackTypes = [
   t('Too eager grouping'),
   t('Too specific grouping'),
   t('Other grouping issue'),

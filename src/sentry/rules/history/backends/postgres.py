@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Sequence, TypedDict
+from typing import TYPE_CHECKING, Sequence, TypedDict, cast
 
 import pytz
 from django.db.models import Count, Max
@@ -10,10 +10,11 @@ from django.db.models.functions import TruncHour
 from sentry.api.paginator import OffsetPaginator
 from sentry.models import Group, RuleFireHistory
 from sentry.rules.history.base import RuleGroupHistory, RuleHistoryBackend, TimeSeriesValue
+from sentry.utils.cursors import CursorResult
 
 if TYPE_CHECKING:
     from sentry.models import Rule
-    from sentry.utils.cursors import Cursor, CursorResult
+    from sentry.utils.cursors import Cursor
 
 
 class _Result(TypedDict):
@@ -40,7 +41,7 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
         end: datetime,
         cursor: Cursor | None = None,
         per_page: int = 25,
-    ) -> CursorResult:
+    ) -> CursorResult[Group]:
         qs = (
             RuleFireHistory.objects.filter(
                 rule=rule,
@@ -51,9 +52,13 @@ class PostgresRuleHistoryBackend(RuleHistoryBackend):
             .values("group")
             .annotate(count=Count("id"), last_triggered=Max("date_added"))
         )
-        return OffsetPaginator(
-            qs, order_by=("-count", "-last_triggered"), on_results=convert_results
-        ).get_result(per_page, cursor)
+        # TODO: Add types to paginators and remove this
+        return cast(
+            CursorResult[Group],
+            OffsetPaginator(
+                qs, order_by=("-count", "-last_triggered"), on_results=convert_results
+            ).get_result(per_page, cursor),
+        )
 
     def fetch_rule_hourly_stats(
         self, rule: Rule, start: datetime, end: datetime

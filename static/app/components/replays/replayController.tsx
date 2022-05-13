@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
@@ -60,27 +61,28 @@ function ReplayCurrentTime() {
 
 function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
   const {setSpeed, speed} = useReplayContext();
-
   return (
-    <ButtonBar active={String(speed)} merged>
-      {speedOptions.map(opt => (
-        <Button
-          key={opt}
-          size="xsmall"
-          barId={String(opt)}
-          onClick={() => setSpeed(opt)}
-          title={t('Set playback speed to %s', `${opt}x`)}
-        >
-          {opt}x
-        </Button>
-      ))}
-    </ButtonBar>
+    <CompactSelect
+      triggerProps={{
+        size: 'xsmall',
+        prefix: t('Speed'),
+      }}
+      value={speed}
+      options={speedOptions.map(speedOption => ({
+        value: speedOption,
+        label: `${speedOption}x`,
+        disabled: speedOption === speed,
+      }))}
+      onChange={opt => {
+        setSpeed(opt.value);
+      }}
+    />
   );
 }
 
 const ReplayControls = ({
   toggleFullscreen = () => {},
-  speedOptions = [0.5, 1, 2, 4],
+  speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
 }: Props) => {
   const {isFullscreen} = useFullscreen();
   const {isSkippingInactive, toggleSkipInactive} = useReplayContext();

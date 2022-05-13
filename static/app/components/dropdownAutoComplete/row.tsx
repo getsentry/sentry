@@ -17,7 +17,7 @@ type Props<T> = Pick<
     /**
      * Is the row 'active'
      */
-    isActive: boolean;
+    isHighlighted: boolean;
     /**
      * Size for dropdown items
      */
@@ -28,11 +28,15 @@ type Props<T> = Pick<
     style?: React.CSSProperties;
   };
 
+function scrollIntoView(element: HTMLDivElement) {
+  element?.scrollIntoView?.({block: 'nearest'});
+}
+
 function Row<T extends Item>({
   item,
   style,
   itemSize,
-  isActive,
+  isHighlighted,
   inputValue,
   getItemProps,
   registerVisibleItem,
@@ -58,8 +62,9 @@ function Row<T extends Item>({
     <AutoCompleteItem
       itemSize={itemSize}
       disabled={item.disabled}
-      isHighlighted={isActive}
+      isHighlighted={isHighlighted}
       style={style}
+      ref={isHighlighted ? scrollIntoView : undefined}
       {...itemProps}
     >
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}

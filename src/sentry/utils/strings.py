@@ -7,8 +7,6 @@ import zlib
 
 from django.utils.encoding import force_text, smart_text
 
-from sentry.utils.compat import map
-
 _word_sep_re = re.compile(r"[\s.;,_-]+", re.UNICODE)
 _camelcase_re = re.compile(r"(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)")
 _letters_re = re.compile(r"[A-Z]+")
@@ -45,7 +43,7 @@ INVALID_ESCAPE = re.compile(
 def unescape_string(value: str):
     """Unescapes a backslash escaped string."""
     value = INVALID_ESCAPE.sub(r"\1\\", value)
-    return ast.literal_eval(f'"{value}"')
+    return ast.literal_eval(f'"""{value}"""')
 
 
 def strip_lone_surrogates(string):
