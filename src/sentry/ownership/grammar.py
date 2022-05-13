@@ -104,7 +104,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         return cls(data["type"], data["pattern"])
 
     @staticmethod
-    def _frame_and_keys(data: PathSearchable) -> Tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
+    def munge_if_needed(data: PathSearchable) -> Tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
         frames = find_stack_frames(data)
@@ -123,14 +123,14 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
-            return self.test_frames(*self._frame_and_keys(data))
+            return self.test_frames(*self.munge_if_needed(data))
         elif self.type == MODULE:
             return self.test_frames(find_stack_frames(data), ["module"])
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
             return self.test_frames(
-                *self._frame_and_keys(data),
+                *self.munge_if_needed(data),
                 # Codeowners has a slightly different syntax compared to issue owners
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
@@ -155,7 +155,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     def test_frames(
         self,
-        frames: Sequence[Any],
+        frames: Sequence[Mapping[str, Any]],
         keys: Sequence[str],
         match_frame_value_func: Callable[[Optional[str], str], bool] = lambda val, pattern: bool(
             glob_match(val, pattern, ignorecase=True, path_normalize=True)
