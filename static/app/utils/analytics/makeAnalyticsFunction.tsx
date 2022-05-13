@@ -1,11 +1,11 @@
-import {Organization, OrganizationSummary} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {Hooks} from 'sentry/types/hooks';
 import {trackAnalyticsEventV2} from 'sentry/utils/analytics';
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
 type OptionalOrg = {
-  organization: Organization | OrganizationSummary | string | null;
+  organization: Organization | string | null;
 };
 type Options = Parameters<Hooks['analytics:track-event-v2']>[1];
 

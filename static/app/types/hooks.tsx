@@ -9,7 +9,7 @@ import type {NavigationItem, NavigationSection} from 'sentry/views/settings/type
 
 import type {ExperimentKey} from './experiments';
 import type {Integration, IntegrationProvider} from './integrations';
-import type {Member, Organization, OrganizationSummary} from './organization';
+import type {Member, Organization} from './organization';
 import type {Project} from './project';
 import type {User} from './user';
 
@@ -311,10 +311,10 @@ type AnalyticsTrackEventV2 = (
      */
     eventName: string | null;
     /**
-     * Organization to pass in, prefer more details over fewer
-     * If string, string represents the id
+     * Organization to pass in. If full org object not available, pass in just the Id.
+     * If no org, pass in null.
      */
-    organization: Organization | OrganizationSummary | string | null;
+    organization: Organization | string | null;
   },
   options?: {
     /**
