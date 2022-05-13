@@ -15,6 +15,7 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
 import OnboardingViewTask from './onboardingCard';
 import ProgressHeader from './progressHeader';
@@ -53,6 +54,7 @@ Heading.defaultProps = {
   transition: testableTransition(),
 };
 
+const customizedTasksHeading = <Heading key="customized">{t('The Basics')}</Heading>;
 const completeNowHeading = <Heading key="now">{t('Next Steps')}</Heading>;
 const upcomingTasksHeading = (
   <Heading key="upcoming">
@@ -92,14 +94,15 @@ function OnboardingWizardSidebar({
     });
   }
 
-  const {allTasks, active, upcoming, complete} = useMemo(() => {
+  const {allTasks, customTasks, active, upcoming, complete} = useMemo(() => {
     const all = getMergedTasks({organization, projects}).filter(task => task.display);
-
+    const tasks = all.filter(task => !task.render);
     return {
       allTasks: all,
-      active: all.filter(findActiveTasks),
-      upcoming: all.filter(findUpcomingTasks),
-      complete: all.filter(findCompleteTasks),
+      customTasks: all.filter(task => task.render),
+      active: tasks.filter(findActiveTasks),
+      upcoming: tasks.filter(findUpcomingTasks),
+      complete: tasks.filter(findCompleteTasks),
     };
   }, [organization, projects]);
 
@@ -160,7 +163,24 @@ function OnboardingWizardSidebar({
     </CompleteList>
   );
 
+  const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
+  const customizedCards = customTasks
+    .map(
+      task =>
+        task.render &&
+        task.render({
+          organization,
+          task,
+          onboardingState,
+          setOnboardingState,
+          projects,
+        })
+    )
+    .filter(card => !!card);
+
   const items = [
+    customizedCards.length > 0 && customizedTasksHeading,
+    ...customizedCards,
     active.length > 0 && completeNowHeading,
     ...active.map(renderItem),
     upcoming.length > 0 && upcomingTasksHeading,

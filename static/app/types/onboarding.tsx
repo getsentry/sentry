@@ -1,4 +1,7 @@
+import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
+
 import type {AvatarUser} from './user';
+import {Organization, Project} from '.';
 
 export enum OnboardingTaskKey {
   FIRST_PROJECT = 'create_project',
@@ -16,6 +19,14 @@ export enum OnboardingTaskKey {
 
 export type OnboardingSupplementComponentProps = {
   onCompleteTask: () => void;
+  task: OnboardingTask;
+};
+
+export type OnboardingCustomComponentProps = {
+  onboardingState: OnboardingState | null;
+  organization: Organization;
+  projects: Project[];
+  setOnboardingState: (state: OnboardingState | null) => void;
   task: OnboardingTask;
 };
 
@@ -40,6 +51,14 @@ export type OnboardingTaskDescriptor = {
    * An extra component that may be rendered within the onboarding task item.
    */
   SupplementComponent?: React.ComponentType<OnboardingSupplementComponentProps>;
+  /**
+   * If a render function was provided, it will be used to render the entire card,
+   * and the card will be rendered before any other cards regardless of completion status.
+   * the render function is therefore responsible for determining the completion status
+   * of the card by returning null when it's completed. Note that this is not a functional
+   * component so you can't use react hooks in here.
+   */
+  render?: (props: OnboardingCustomComponentProps) => JSX.Element | null;
 } & (
   | {
       actionType: 'app' | 'external';
@@ -55,7 +74,7 @@ export type OnboardingTaskStatus = {
   status: 'skipped' | 'pending' | 'complete';
   task: OnboardingTaskKey;
   completionSeen?: string;
-  data?: object;
+  data?: {[key: string]: string};
   dateCompleted?: string;
   user?: AvatarUser | null;
 };
