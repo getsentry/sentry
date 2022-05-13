@@ -26,7 +26,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
 from sentry.utils.compat import zip
-from sentry.utils.event_frames import find_stack_frames, supplement_filename
+from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
@@ -228,7 +228,7 @@ def get_previous_releases(
 def get_event_file_committers(
     project: Project,
     group_id: int,
-    event_frames: Sequence[MutableMapping[str, Any]],
+    event_frames: Sequence[Mapping[str, Any]],
     event_platform: str,
     frame_limit: int = 25,
 ) -> Sequence[AuthorCommits]:
@@ -246,19 +246,23 @@ def get_event_file_committers(
     if not commits:
         raise Commit.DoesNotExist
 
-    frames = event_frames or ()
+    frames = event_frames or []
+    munged = munged_filename_and_frames(event_platform, frames, "munged_filename")
+    if munged:
+        frames = munged[1]
     app_frames = [frame for frame in frames if frame.get("in_app")][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
-
-    supplement_filename(event_platform, frames)
 
     # TODO(maxbittker) return this set instead of annotated frames
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
     # to only have a module name/path
     path_set = {
         str(f)
-        for f in (frame.get("filename") or frame.get("abs_path") for frame in app_frames)
+        for f in (
+            frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")
+            for frame in app_frames
+        )
         if f
     }
 
@@ -274,7 +278,8 @@ def get_event_file_committers(
         {
             "frame": str(frame),
             "commits": commit_path_matches.get(
-                str(frame.get("filename") or frame.get("abs_path")), []
+                str(frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")),
+                [],
             ),
         }
         for frame in app_frames
