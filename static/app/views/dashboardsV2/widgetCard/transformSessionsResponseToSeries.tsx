@@ -39,7 +39,7 @@ export function transformSessionsResponseToSeries(
       // derived status metrics through the Sessions API,
       // they are injected into the payload and need to be
       // stripped.
-      if (!!!injectedFields.includes(field)) {
+      if (!!!injectedFields.includes(derivedMetricsToField(field))) {
         results.push({
           seriesName: getSeriesName(field, group, queryAlias),
           data: response.intervals.map((interval, index) => ({

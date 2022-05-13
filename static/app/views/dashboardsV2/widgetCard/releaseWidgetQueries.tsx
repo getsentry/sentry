@@ -80,7 +80,10 @@ export function derivedMetricsToField(field: string): string {
  * requested but required to calculate the value of a derived
  * status field so will need to be stripped away in post processing.
  */
-function resolveDerivedStatusFields(fields: string[]): {
+function resolveDerivedStatusFields(
+  fields: string[],
+  useSessionAPI: boolean
+): {
   aggregates: string[];
   derivedStatusFields: string[];
   injectedFields: string[];
@@ -91,6 +94,11 @@ function resolveDerivedStatusFields(fields: string[]): {
   );
 
   const injectedFields: string[] = [];
+
+  if (!!!useSessionAPI) {
+    return {aggregates, derivedStatusFields, injectedFields};
+  }
+
   derivedStatusFields.forEach(field => {
     const result = field.match(DERIVED_STATUS_METRICS_PATTERN);
     if (result) {
@@ -174,13 +182,15 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     }
 
     // If the query names have changed, then update timeseries labels
+    const useSessionAPI = widget.queries[0].columns.includes('session.status');
     if (
       !loading &&
       !isEqual(widgetQueryNames, prevWidgetQueryNames) &&
       rawResults?.length === widget.queries.length
     ) {
       const {derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
-        widget.queries[0].aggregates
+        widget.queries[0].aggregates,
+        useSessionAPI
       );
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
@@ -247,16 +257,17 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
     >[] = [];
 
-    const {aggregates, derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
-      widget.queries[0].aggregates
-    );
-
     // Only time we need to use sessions API is when session.status is requested
     // as a group by.
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
     const isDescending = widget.queries[0].orderby.startsWith('-');
     const rawOrderby = trimStart(widget.queries[0].orderby, '-');
     const unsupportedOrderby = DISABLED_SORT.includes(rawOrderby) || useSessionAPI;
+
+    const {aggregates, derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
+      widget.queries[0].aggregates,
+      useSessionAPI
+    );
 
     widget.queries.forEach(query => {
       if (useSessionAPI) {
