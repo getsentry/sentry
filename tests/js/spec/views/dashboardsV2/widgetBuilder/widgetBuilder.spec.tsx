@@ -2544,10 +2544,10 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByLabelText(/releases/i));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
       expect(screen.getByText('session')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('sum(…)'));
+      userEvent.click(screen.getByText('crash_free_rate(…)'));
       expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
       expect(screen.getByText('release')).toBeInTheDocument();
@@ -2569,8 +2569,8 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByLabelText(/releases/i));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
-      await selectEvent.select(screen.getByText('sum(…)'), 'count_unique(…)');
+      expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
+      await selectEvent.select(screen.getByText('crash_free_rate(…)'), 'count_unique(…)');
 
       userEvent.click(screen.getByText('user'));
       expect(screen.queryByText('release')).not.toBeInTheDocument();
@@ -2590,7 +2590,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByLabelText(/releases/i));
 
       expect(screen.getByText('High to low')).toBeEnabled();
-      expect(screen.getByText('sum(session)')).toBeInTheDocument();
+      expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
 
       userEvent.click(screen.getByLabelText('Add a Column'));
       await selectEvent.select(screen.getByText('(Required)'), 'session.status');
@@ -2619,7 +2619,7 @@ describe('WidgetBuilder', function () {
           expect.objectContaining({
             query: expect.objectContaining({
               environment: [],
-              field: [`sum(sentry.sessions.session)`],
+              field: [`session.crash_free_rate`],
               groupBy: [],
               interval: '5m',
               project: [],
@@ -2654,10 +2654,10 @@ describe('WidgetBuilder', function () {
           expect.objectContaining({
             query: expect.objectContaining({
               environment: [],
-              field: ['sum(sentry.sessions.session)'],
+              field: ['session.crash_free_rate'],
               groupBy: ['project_id'],
               interval: '5m',
-              orderBy: '-sum(sentry.sessions.session)',
+              orderBy: '-session.crash_free_rate',
               per_page: 5,
               project: [],
               statsPeriod: '24h',
@@ -2691,7 +2691,7 @@ describe('WidgetBuilder', function () {
           expect.objectContaining({
             query: expect.objectContaining({
               environment: [],
-              field: ['sum(session)'],
+              field: ['crash_free_rate(session)'],
               groupBy: ['session.status'],
               interval: '5m',
               project: [],
@@ -2717,10 +2717,10 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
       expect(screen.getByText(`session`)).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('sum(…)'));
+      userEvent.click(screen.getByText('crash_free_rate(…)'));
       expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
@@ -2744,9 +2744,9 @@ describe('WidgetBuilder', function () {
             widgetType: WidgetType.RELEASE,
             queries: [
               expect.objectContaining({
-                aggregates: [`sum(session)`],
-                fields: [`sum(session)`],
-                orderby: `-sum(session)`,
+                aggregates: [`crash_free_rate(session)`],
+                fields: [`crash_free_rate(session)`],
+                orderby: `-crash_free_rate(session)`,
               }),
             ],
           }),
