@@ -41,7 +41,6 @@ import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {DashboardWidgetSource, DisplayType, WidgetQuery} from '../dashboardsV2/types';
-import {DEFAULT_RESULTS_LIMIT} from '../dashboardsV2/widgetBuilder/utils';
 
 import {displayModeToDisplayType} from './savedQuery/utils';
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
@@ -667,7 +666,7 @@ export function handleAddQueryToDashboard({
         limit:
           organization.features.includes('new-widget-builder-experience-design') &&
           displayType === DisplayType.TOP_N
-            ? DEFAULT_RESULTS_LIMIT
+            ? 5
             : undefined,
       },
       router,
