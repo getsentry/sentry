@@ -10,6 +10,29 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
+function computeRelativeWeight(base: number, value: number) {
+  // Make sure we dont divide by zero
+  if (!base || !value) {
+    return 0;
+  }
+  return (value / base) * 100;
+}
+
+function formatColorForFrame(
+  frame: FlamegraphFrame,
+  renderer: FlamegraphRenderer
+): string {
+  const color = renderer.getColorForFrame(frame);
+  if (color.length === 4) {
+    return `rgba(${color
+      .slice(0, 3)
+      .map(n => n * 255)
+      .join(',')}, ${color[3]})`;
+  }
+
+  return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+}
+
 interface FrameCallTreeStackProps {
   flamegraphRenderer: FlamegraphRenderer;
   roots: FlamegraphFrame[];
@@ -58,14 +81,6 @@ interface FrameRowProps {
   initialOpen?: boolean;
 }
 
-function computeRelativeWeight(base: number, value: number) {
-  // Make sure we dont divide by zero
-  if (!base || !value) {
-    return 0;
-  }
-  return (value / base) * 100;
-}
-
 function FrameRow({
   depth,
   frame,
@@ -92,16 +107,7 @@ function FrameRow({
   );
 
   const colorString = useMemo(() => {
-    const color = flamegraphRenderer.getColorForFrame(frame);
-
-    if (color.length === 4) {
-      return `rgba(${color
-        .slice(0, 3)
-        .map(n => n * 255)
-        .join(',')}, ${color[3]})`;
-    }
-
-    return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
+    return formatColorForFrame(frame, flamegraphRenderer);
   }, [frame, flamegraphRenderer]);
 
   return (
@@ -176,11 +182,11 @@ function FrameStack(props: FrameStackProps) {
       }}
     >
       <FrameTabs>
-        {/* <li className={tab === 'bottom up' ? 'active' : undefined}>
+        <li className={tab === 'bottom up' ? 'active' : undefined}>
           <Button priority="link" size="zero" onClick={() => setTab('bottom up')}>
             {t('Bottom Up')}
           </Button>
-        </li> */}
+        </li>
         <li
           onClick={() => setTab('call order')}
           className={tab === 'call order' ? 'active' : undefined}
