@@ -1,10 +1,12 @@
 import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import {mat3, vec2} from 'gl-matrix';
+import {vec2} from 'gl-matrix';
 
+import space from 'sentry/styles/space';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {getContext, measureText, Rect} from 'sentry/utils/profiling/gl/utils';
-import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 
 const useCachedMeasure = (string: string, font: string): Rect => {
   const cache = useRef<Record<string, Rect>>({});
@@ -32,15 +34,17 @@ const useCachedMeasure = (string: string, font: string): Rect => {
 
 interface BoundTooltipProps {
   bounds: Rect;
-  configViewToPhysicalSpace: mat3;
   cursor: vec2 | null;
+  flamegraphCanvas: FlamegraphCanvas;
+  flamegraphView: FlamegraphView;
   children?: React.ReactNode;
 }
 
 function BoundTooltip({
   bounds,
-  configViewToPhysicalSpace,
+  flamegraphCanvas,
   cursor,
+  flamegraphView,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -49,17 +53,6 @@ function BoundTooltip({
     tooltipRef.current?.textContent ?? '',
     `${flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE}px ${flamegraphTheme.FONTS.FONT}`
   );
-  const devicePixelRatio = useDevicePixelRatio();
-
-  const physicalToLogicalSpace = useMemo(
-    () =>
-      mat3.fromScaling(
-        mat3.create(),
-        vec2.fromValues(1 / devicePixelRatio, 1 / devicePixelRatio)
-      ),
-    [devicePixelRatio]
-  );
-
   const [tooltipBounds, setTooltipBounds] = useState<Rect>(Rect.Empty());
 
   useLayoutEffect(() => {
@@ -87,20 +80,18 @@ function BoundTooltip({
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     cursor,
-
-    configViewToPhysicalSpace
+    flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
   );
 
   const logicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     physicalSpaceCursor,
-    physicalToLogicalSpace
+    flamegraphCanvas.physicalToLogicalSpace
   );
 
   let cursorHorizontalPosition = logicalSpaceCursor[0];
   // Move the tooltip just beneath the cursor so that the text isn't covered.
   const cursorVerticalPosition = logicalSpaceCursor[1] + 8;
-
   const mid = bounds.width / 2;
 
   // If users screen is on right half of the screen, then we have more space to position on the left and vice versa
@@ -110,7 +101,8 @@ function BoundTooltip({
     cursorHorizontalPosition -= tooltipBounds.width;
   }
 
-  return children ? (
+  const PADDING = 24;
+  return (
     <Tooltip
       ref={tooltipRef}
       style={{
@@ -118,12 +110,14 @@ function BoundTooltip({
         fontFamily: flamegraphTheme.FONTS.FONT,
         left: cursorHorizontalPosition,
         top: cursorVerticalPosition,
-        width: Math.min(tooltipRect.width, bounds.width - cursorHorizontalPosition - 2),
+        width:
+          Math.min(tooltipRect.width, bounds.width - cursorHorizontalPosition - 2) +
+          PADDING,
       }}
     >
       {children}
     </Tooltip>
-  ) : null;
+  );
 }
 
 const Tooltip = styled('div')`
@@ -134,6 +128,8 @@ const Tooltip = styled('div')`
   overflow: hidden;
   pointer-events: none;
   user-select: none;
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(0.25)} ${space(1)};
 `;
 
 export {BoundTooltip};
