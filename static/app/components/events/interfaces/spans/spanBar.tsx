@@ -109,6 +109,8 @@ type SpanBarProps = {
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isEmbeddedTransactionTimeAdjusted: boolean;
+  markSpanInView: (spanId: string, treeDepth: number) => void;
+  markSpanOutOfView: (spanId: string, treeDepth: number) => void;
   numOfSpanChildren: number;
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
@@ -640,6 +642,11 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             relativeToMinimap.top > 0 && relativeToMinimap.bottom > 0;
 
           if (rectBelowMinimap) {
+            const {span, treeDepth} = this.props;
+            if ('type' in span) {
+              return;
+            }
+            this.props.markSpanInView(span.span_id, treeDepth);
             // if the first span is below the minimap, we scroll the minimap
             // to the top. this addresses spurious scrolling to the top of the page
             if (spanNumber <= 1) {
@@ -652,6 +659,11 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           const inAndAboveMinimap = relativeToMinimap.bottom <= 0;
 
           if (inAndAboveMinimap) {
+            const {span, treeDepth} = this.props;
+            if ('type' in span) {
+              return;
+            }
+            this.props.markSpanOutOfView(span.span_id, treeDepth);
             return;
           }
 
