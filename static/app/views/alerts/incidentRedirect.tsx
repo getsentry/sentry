@@ -8,7 +8,8 @@ import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 
-import {alertDetailsLink, fetchIncident} from './utils';
+import {fetchIncident} from './utils/apiCalls';
+import {alertDetailsLink} from './utils';
 
 type Props = {
   api: Client;
