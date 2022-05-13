@@ -63,7 +63,7 @@ def get_crashing_thread(thread_frames: Sequence[Mapping[str, Any]]) -> Mapping[s
 
 def find_stack_frames(
     event_data: PathSearchable, consume_frame: Callable[[Any], None] = lambda _: None
-) -> Sequence[Mapping[str, Any]]:
+) -> Sequence[MutableMapping[str, Any]]:
     """
     See: https://develop.sentry.dev/sdk/event-payloads/#core-interfaces for event data payload format.
 
