@@ -1,6 +1,5 @@
 from datetime import datetime, timedelta
-from functools import reduce
-from typing import Any, Dict, Optional
+from typing import Any, List, Mapping, Optional, cast
 
 from django.utils import timezone
 
@@ -28,7 +27,7 @@ API_INTERVAL_POINTS_LIMIT = 10000
 API_INTERVAL_POINTS_MIN = 150
 
 
-def incident_date_range(alert_rule: AlertRule, incident: Incident):
+def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[str, str]:
     """Retrieve the start/end for graphing an incident."""
     time_window_seconds = alert_rule.snuba_query.time_window
     min_range = time_window_seconds * API_INTERVAL_POINTS_MIN
@@ -49,9 +48,9 @@ def incident_date_range(alert_rule: AlertRule, incident: Incident):
 def fetch_metric_alert_sessions_data(
     organization: Organization,
     alert_rule: AlertRule,
-    time_period: Dict[str, Any],
+    time_period: Mapping[str, str],
     user: Optional["User"] = None,
-):
+) -> Any:
     aggregate = translate_aggregate_field(alert_rule.snuba_query.aggregate, reverse=True)
     project_id = alert_rule.snuba_query.subscriptions.select_related("project").first().project.id
 
@@ -88,9 +87,9 @@ def fetch_metric_alert_sessions_data(
 def fetch_metric_alert_events_timeseries(
     organization: Organization,
     alert_rule: AlertRule,
-    time_period: Dict[str, Any],
+    time_period: Mapping[str, str],
     user: Optional["User"] = None,
-):
+) -> List[Any]:
     env = alert_rule.snuba_query.environment
     env_params = {"environment": env} if env else {}
     aggregate = translate_aggregate_field(alert_rule.snuba_query.aggregate, reverse=True)
@@ -110,35 +109,31 @@ def fetch_metric_alert_events_timeseries(
             },
         )
         # Format the data into a timeseries object for charts
-        data = [
-            {
-                "seriesName": aggregate,
-                "data": [
-                    {
-                        "name": point[0] * 1000,
-                        "value": reduce(
-                            lambda a, b: a["count"] + b["count"], point[1], {"count": 0}
-                        ),
-                    }
-                    for point in resp.data["data"]
-                ],
-            }
-        ]
-        return data
+        series = {
+            "seriesName": aggregate,
+            "data": [
+                {
+                    "name": point[0] * 1000,
+                    "value": point[1][0]["count"],
+                }
+                for point in resp.data["data"]
+            ],
+        }
+        return [series]
     except Exception as exc:
         logger.error(
             f"Failed to load events-stats for chart: {exc}",
             exc_info=True,
         )
-        return None
+        return []
 
 
 def fetch_metric_alert_incidents(
     organization: Organization,
     alert_rule: AlertRule,
-    time_period: Dict[str, Any],
+    time_period: Mapping[str, str],
     user: Optional["User"] = None,
-):
+) -> List[Any]:
     try:
         resp = client.get(
             auth=ApiKey(organization=organization, scope_list=["org:read"]),
@@ -152,7 +147,7 @@ def fetch_metric_alert_incidents(
                 **time_period,
             },
         )
-        return resp.data
+        return cast(List[Any], resp.data)
     except Exception as exc:
         logger.error(
             f"Failed to load incidents for chart: {exc}",
@@ -169,7 +164,7 @@ def build_metric_alert_chart(
     start: Optional[str] = None,
     end: Optional[str] = None,
     user: Optional["User"] = None,
-):
+) -> Optional[str]:
     """Builds the dataset required for metric alert chart the same way the frontend would"""
     is_crash_free_alert = alert_rule.snuba_query.dataset in {
         Dataset.Sessions.value,
@@ -218,9 +213,10 @@ def build_metric_alert_chart(
 
     try:
         url = generate_chart(style, chart_data)
-        return url
+        return cast(str, url)
     except RuntimeError as exc:
         logger.error(
-            f"Failed to generate chart for discover unfurl: {exc}",
+            f"Failed to generate chart for metric alert: {exc}",
             exc_info=True,
         )
+        return None
