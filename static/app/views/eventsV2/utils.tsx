@@ -35,7 +35,7 @@ import {
   measurementType,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -562,9 +562,11 @@ export function eventViewToWidgetQuery({
   eventView,
   yAxis,
   displayType,
+  widgetBuilderNewDesign,
 }: {
   displayType: DisplayType;
   eventView: EventView;
+  widgetBuilderNewDesign?: boolean;
   yAxis?: string | string[];
 }) {
   const fields = eventView.fields.map(({field}) => field);
@@ -591,8 +593,14 @@ export function eventViewToWidgetQuery({
   }
   let newAggregates = aggregates;
 
-  if (displayType !== DisplayType.TABLE) {
-    newAggregates = queryYAxis;
+  if (displayType === DisplayType.TOP_N) {
+    if (widgetBuilderNewDesign) {
+      // Only preserve the y-axis for the aggregates because that is what
+      // will be plotted in the chart
+      newAggregates = queryYAxis;
+    } else {
+      newAggregates = [...aggregates, ...queryYAxis];
+    }
   }
 
   const widgetQuery: WidgetQuery = {
@@ -627,6 +635,9 @@ export function handleAddQueryToDashboard({
     eventView,
     displayType,
     yAxis,
+    widgetBuilderNewDesign: organization.features.includes(
+      'new-widget-builder-experience-design'
+    ),
   });
 
   if (organization.features.includes('new-widget-builder-experience-design')) {
@@ -666,7 +677,7 @@ export function handleAddQueryToDashboard({
         limit:
           organization.features.includes('new-widget-builder-experience-design') &&
           displayType === DisplayType.TOP_N
-            ? 5
+            ? TOP_N
             : undefined,
       },
       router,
@@ -712,6 +723,9 @@ export function constructAddQueryToDashboardLink({
     eventView,
     displayType,
     yAxis,
+    widgetBuilderNewDesign: organization.features.includes(
+      'new-widget-builder-experience-design'
+    ),
   });
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
