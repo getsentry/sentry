@@ -1,3 +1,5 @@
+import invert from 'lodash/invert';
+
 import {
   SelectValue,
   SessionAggregationColumn,
@@ -7,6 +9,7 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 export const DERIVED_STATUS_METRICS_PATTERN =
@@ -24,40 +27,24 @@ export enum DerivedStatusFields {
 }
 
 export const FIELD_TO_METRICS_EXPRESSION = {
-  'count_healthy(session)': 'session.healthy',
-  'count_healthy(user)': 'session.healthy_user',
-  'count_abnormal(session)': 'session.abnormal',
-  'count_abnormal(user)': 'session.abnormal_user',
-  'count_crashed(session)': 'session.crashed',
-  'count_crashed(user)': 'session.crashed_user',
-  'count_errored(session)': 'session.errored',
-  'count_errored(user)': 'session.errored_user',
-  'count_unique(user)': 'count_unique(sentry.sessions.user)',
-  'sum(session)': 'sum(sentry.sessions.session)',
-  'crash_free_rate(session)': 'session.crash_free_rate',
-  'crash_free_rate(user)': 'session.crash_free_user_rate',
-  'crash_rate(session)': 'session.crash_rate',
-  'crash_rate(user)': 'session.crash_user_rate',
+  'count_healthy(session)': SessionMetric.SESSION_HEALTHY,
+  'count_healthy(user)': SessionMetric.USER_HEALTHY,
+  'count_abnormal(session)': SessionMetric.SESSION_ABNORMAL,
+  'count_abnormal(user)': SessionMetric.USER_ABNORMAL,
+  'count_crashed(session)': SessionMetric.SESSION_CRASHED,
+  'count_crashed(user)': SessionMetric.USER_CRASHED,
+  'count_errored(session)': SessionMetric.SESSION_ERRORED,
+  'count_errored(user)': SessionMetric.USER_ERRORED,
+  'count_unique(user)': `count_unique(${SessionMetric.USER})`,
+  'sum(session)': `sum(${SessionMetric.SESSION})`,
+  'crash_free_rate(session)': SessionMetric.SESSION_CRASH_FREE_RATE,
+  'crash_free_rate(user)': SessionMetric.USER_CRASH_FREE_RATE,
+  'crash_rate(session)': SessionMetric.SESSION_CRASH_RATE,
+  'crash_rate(user)': SessionMetric.USER_CRASH_RATE,
   project: 'project_id',
 };
 
-export const METRICS_EXPRESSION_TO_FIELD = {
-  'session.healthy': 'count_healthy(session)',
-  'session.healthy_user': 'count_healthy(user)',
-  'session.abnormal': 'count_abnormal(session)',
-  'session.abnormal_user': 'count_abnormal(user)',
-  'session.crashed': 'count_crashed(session)',
-  'session.crashed_user': 'count_crashed(user)',
-  'session.errored': 'count_errored(session)',
-  'session.errored_user': 'count_errored(user)',
-  'count_unique(sentry.sessions.user)': 'count_unique(user)',
-  'sum(sentry.sessions.session)': 'sum(session)',
-  'session.crash_free_rate': 'crash_free_rate(session)',
-  'session.crash_free_user_rate': 'crash_free_rate(user)',
-  'session.crash_rate': 'crash_rate(session)',
-  'session.crash_user_rate': 'crash_rate(user)',
-  project_id: 'project',
-};
+export const METRICS_EXPRESSION_TO_FIELD = invert(FIELD_TO_METRICS_EXPRESSION);
 
 export const DISABLED_SORT = [
   'count_errored(session)',

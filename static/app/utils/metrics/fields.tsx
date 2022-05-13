@@ -7,7 +7,18 @@ export enum SessionMetric {
   SESSION_DURATION = 'sentry.sessions.session.duration',
   SESSION_ERROR = 'sentry.sessions.session.error',
   SESSION_CRASH_FREE_RATE = 'session.crash_free_rate',
+  USER_CRASH_FREE_RATE = 'session.crash_free_user_rate',
+  SESSION_CRASH_RATE = 'session.crash_rate',
+  USER_CRASH_RATE = 'session.crash_user_rate',
   USER = 'sentry.sessions.user',
+  SESSION_HEALTHY = 'session.healthy',
+  USER_HEALTHY = 'session.healthy_user',
+  SESSION_ABNORMAL = 'session.abnormal',
+  USER_ABNORMAL = 'session.abnormal_user',
+  SESSION_CRASHED = 'session.crashed',
+  USER_CRASHED = 'session.crashed_user',
+  SESSION_ERRORED = 'session.errored',
+  USER_ERRORED = 'session.errored_user',
 }
 
 export enum TransactionMetric {

@@ -71,6 +71,15 @@ export function derivedMetricsToField(field: string): string {
   return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
 }
 
+/**
+ * Given a list of requested fields, this function returns
+ * 'aggregates' which is a list of aggregate functions that
+ * can be passed to either Metrics or Sessions endpoints,
+ * 'derivedStatusFields' which need to be requested from the
+ * Metrics endpoint and 'injectFields' which are fields not
+ * requested but required to calculate the value of a derived
+ * status field so will need to be stripped away in post processing.
+ */
 function resolveDerivedStatusFields(fields: string[]): {
   aggregates: string[];
   derivedStatusFields: string[];
@@ -242,6 +251,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       widget.queries[0].aggregates
     );
 
+    // Only time we need to use sessions API is when session.status is requested
+    // as a group by.
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
     const isDescending = widget.queries[0].orderby.startsWith('-');
     const rawOrderby = trimStart(widget.queries[0].orderby, '-');
@@ -260,7 +271,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           environment: environments,
           groupBy: query.columns,
           limit: undefined,
-          orderBy: '',
+          orderBy: '', // Orderby not supported with session.status
           interval,
           project: projects,
           query: query.conditions,
