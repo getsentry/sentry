@@ -56,7 +56,6 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
                 "interval": interval,
             }
         )
-        print(response.data)
         assert response.status_code == 200
         return response.data
 
