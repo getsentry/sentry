@@ -17,6 +17,12 @@ describe('Filters and Sampling - Transaction rule', function () {
   describe('transaction rule', function () {
     it('renders', async function () {
       MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/tags/',
+        method: 'GET',
+        body: TestStubs.Tags,
+      });
+
+      MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
         body: TestStubs.Project({
