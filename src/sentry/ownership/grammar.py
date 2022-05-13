@@ -14,11 +14,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
-<<<<<<< HEAD
 from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
-=======
-from sentry.utils.event_frames import find_stack_frames, supplement_filename
->>>>>>> b975c7297b (add support for thread stack trace in code owners)
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import PathSearchable, get_path
 
@@ -165,14 +161,6 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             glob_match(val, pattern, ignorecase=True, path_normalize=True)
         ),
     ) -> bool:
-<<<<<<< HEAD
-=======
-        platform = data.get("platform")
-        frames = find_stack_frames(data)
-        if platform:
-            supplement_filename(platform, frames)
-
->>>>>>> b975c7297b (add support for thread stack trace in code owners)
         for frame in (f for f in frames if isinstance(f, Mapping)):
             for key in keys:
                 value = frame.get(key)
