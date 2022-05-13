@@ -36,10 +36,15 @@ function formatColorForFrame(
 
 interface FrameCallTreeStackProps {
   flamegraphRenderer: FlamegraphRenderer;
+  referenceNode: FlamegraphFrame;
   roots: FlamegraphFrame[];
 }
 
-function FrameCallTreeStack({flamegraphRenderer, roots}: FrameCallTreeStackProps) {
+function FrameCallTreeStack({
+  flamegraphRenderer,
+  roots,
+  referenceNode,
+}: FrameCallTreeStackProps) {
   return (
     <FrameBar>
       <FrameCallersTable>
@@ -59,7 +64,7 @@ function FrameCallTreeStack({flamegraphRenderer, roots}: FrameCallTreeStackProps
                   key={r.key}
                   depth={0}
                   frame={r}
-                  referenceNode={r}
+                  referenceNode={referenceNode}
                   flamegraphRenderer={flamegraphRenderer}
                 />
               );
@@ -170,9 +175,9 @@ interface FrameStackProps {
 }
 
 function FrameStack(props: FrameStackProps) {
-  const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const theme = useFlamegraphTheme();
   const {selectedNode} = useFlamegraphProfilesValue();
+  const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
 
   const roots = useMemo(() => {
     if (!selectedNode) {
@@ -208,7 +213,7 @@ function FrameStack(props: FrameStackProps) {
         </li>
       </FrameTabs>
 
-      <FrameCallTreeStack {...props} roots={roots ?? []} />
+      <FrameCallTreeStack {...props} roots={roots ?? []} referenceNode={selectedNode} />
     </FrameDrawer>
   ) : null;
 }
