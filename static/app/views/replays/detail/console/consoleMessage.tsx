@@ -54,12 +54,10 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
   // TODO(replays): Add better support for AnnotatedText (e.g. we use message
   // args from breadcrumb.data.arguments and not breadcrumb.message directly)
   return (
-    <Fragment>
-      <AnnotatedText
-        meta={getMeta(breadcrumb, 'message')}
-        value={[formattedMessage, ...restArgs].join(' ')}
-      />
-    </Fragment>
+    <AnnotatedText
+      meta={getMeta(breadcrumb, 'message')}
+      value={[formattedMessage, ...restArgs].join(' ')}
+    />
   );
 }
 
