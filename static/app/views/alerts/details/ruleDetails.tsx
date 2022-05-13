@@ -9,6 +9,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -208,6 +209,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         forceEnvironment={rule.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
+        hideGlobalHeader
       >
         <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
 
@@ -222,7 +224,17 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
                 },
               ]}
             />
-            <Layout.Title>{rule.name}</Layout.Title>
+            <Layout.Title>
+              <RuleName>
+                <IdBadge
+                  project={project}
+                  avatarSize={28}
+                  hideName
+                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                />
+                {rule.name}
+              </RuleName>
+            </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
@@ -291,4 +303,11 @@ export default AlertRuleDetails;
 
 const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   margin-bottom: ${space(2)};
+`;
+
+const RuleName = styled('div')`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-column-gap: ${space(1)};
+  align-items: center;
 `;

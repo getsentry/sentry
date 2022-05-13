@@ -4,29 +4,31 @@ import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
+import IdBadge from 'sentry/components/idBadge';
 import PageHeading from 'sentry/components/pageHeading';
 import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 
 import {isIssueAlert} from '../../utils';
 
 type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'params'> & {
   hasIncidentRuleDetailsError: boolean;
+  project?: Project;
   rule?: IncidentRule;
 };
 
-function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {
+function DetailsHeader({hasIncidentRuleDetailsError, rule, params, project}: Props) {
   const isRuleReady = !!rule && !hasIncidentRuleDetailsError;
-  const project = rule?.projects?.[0];
   const ruleTitle = rule && !hasIncidentRuleDetailsError ? rule.name : '';
   const settingsLink =
     rule &&
     `/organizations/${params.orgId}/alerts/${
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
-    }/${project}/${rule.id}/`;
+    }/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`;
 
   return (
     <Header>
@@ -45,6 +47,14 @@ function DetailsHeader({hasIncidentRuleDetailsError, rule, params}: Props) {
       </BreadCrumbBar>
       <Details>
         <RuleTitle data-test-id="incident-rule-title" loading={!isRuleReady}>
+          {project && (
+            <IdBadge
+              project={project}
+              avatarSize={28}
+              hideName
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+            />
+          )}
           {ruleTitle}
         </RuleTitle>
       </Details>
@@ -97,4 +107,8 @@ const RuleTitle = styled(PageHeading, {
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   line-height: 1.5;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  grid-column-gap: ${space(1)};
+  align-items: center;
 `;

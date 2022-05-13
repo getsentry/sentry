@@ -219,6 +219,7 @@ class MetricAlertDetails extends Component<Props, State> {
         forceEnvironment={rule?.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
+        hideGlobalHeader
       >
         <SentryDocumentTitle title={rule?.name ?? ''} />
 
@@ -226,6 +227,7 @@ class MetricAlertDetails extends Component<Props, State> {
           hasIncidentRuleDetailsError={hasError}
           params={params}
           rule={rule}
+          project={project}
         />
         <DetailsBody
           {...this.props}

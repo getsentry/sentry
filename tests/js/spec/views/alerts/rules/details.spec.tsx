@@ -62,7 +62,7 @@ describe('MetricAlertDetails', () => {
         location={router.location}
         params={{orgId: organization.slug, ruleId: rule.id}}
       />,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
@@ -113,7 +113,7 @@ describe('MetricAlertDetails', () => {
         location={{...router.location, query: {alert: incident.id}}}
         params={{orgId: organization.slug, ruleId: rule.id}}
       />,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
