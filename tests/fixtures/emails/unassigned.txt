@@ -7,7 +7,7 @@ foo@example.com unassigned PROJECT-1
 
 goose smiling gobbler sterling feline
 
-http://testserver/organizations/organization/issues/1/?referrer=unassigned-activity-email
+http://testserver/organizations/organization/issues/1/?referrer=unassigned_activity-email
 
 
 Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");

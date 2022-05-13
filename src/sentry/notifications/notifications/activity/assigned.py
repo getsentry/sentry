@@ -48,17 +48,14 @@ def get_assignee_str(activity: Activity, organization: Organization) -> str:
 
 
 class AssignedActivityNotification(GroupActivityNotification):
+    metrics_key = "assigned_activity"
     title = "Assigned"
-    referrer_base = "assigned-activity"
 
     def get_assignee(self) -> str:
         return get_assignee_str(self.activity, self.organization)
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         return "{author} assigned {an issue} to {assignee}", {"assignee": self.get_assignee()}, {}
-
-    def get_category(self) -> str:
-        return "assigned_activity_email"
 
     def get_notification_title(self) -> str:
         assignee = self.get_assignee()
