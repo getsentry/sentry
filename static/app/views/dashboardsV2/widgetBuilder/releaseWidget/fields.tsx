@@ -276,6 +276,7 @@ export const SESSIONS_OPERATIONS: Readonly<
 };
 
 export const SESSIONS_TAGS = ['environment', 'project', 'release', 'session.status'];
+export const SESSIONS_FILTER_TAGS = ['environment', 'project', 'release'];
 export const SESSION_STATUSES = Object.values(SessionStatus);
 
 export function generateReleaseWidgetFieldOptions(

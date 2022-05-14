@@ -114,12 +114,12 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
     },
     [DataSet.RELEASES]: {
       name: '',
-      fields: [`sum(${SessionField.SESSION})`],
+      fields: [`crash_free_rate(${SessionField.SESSION})`],
       columns: [],
       fieldAliases: [],
-      aggregates: [`sum(${SessionField.SESSION})`],
+      aggregates: [`crash_free_rate(${SessionField.SESSION})`],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? `-sum(${SessionField.SESSION})` : '',
+      orderby: widgetBuilderNewDesign ? `-crash_free_rate(${SessionField.SESSION})` : '',
     },
   };
 }
