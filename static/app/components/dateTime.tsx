@@ -1,31 +1,31 @@
-import {Component} from 'react';
 import moment from 'moment';
 import momentTimezone from 'moment-timezone';
 
 import ConfigStore from 'sentry/stores/configStore';
 
-type DefaultProps = {
-  seconds: boolean;
-};
-
-type Props = DefaultProps & {
+interface Props extends React.HTMLAttributes<HTMLTimeElement> {
   date: moment.MomentInput | momentTimezone.MomentInput;
   dateOnly?: boolean;
   format?: string;
+  seconds?: boolean;
   shortDate?: boolean;
   timeAndDate?: boolean;
   timeOnly?: boolean;
   utc?: boolean;
-};
+}
 
-class DateTime extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    seconds: true,
-  };
-
-  getFormat = ({clock24Hours}: {clock24Hours: boolean}): string => {
-    const {dateOnly, timeOnly, seconds, shortDate, timeAndDate, format} = this.props;
-
+function DateTime({
+  format,
+  date,
+  utc,
+  shortDate,
+  dateOnly,
+  timeOnly,
+  timeAndDate,
+  seconds = true,
+  ...props
+}: Props) {
+  function getFormat({clock24Hours}: {clock24Hours: boolean}): string {
     if (format) {
       return format;
     }
@@ -74,31 +74,19 @@ class DateTime extends Component<Props> {
 
     // Default is Oct 26, 2017 11:30 AM
     return 'lll';
-  };
-
-  render() {
-    const {
-      date,
-      utc,
-      seconds: _seconds,
-      shortDate: _shortDate,
-      dateOnly: _dateOnly,
-      timeOnly: _timeOnly,
-      timeAndDate: _timeAndDate,
-      ...carriedProps
-    } = this.props;
-    const user = ConfigStore.get('user');
-    const options = user?.options;
-    const format = this.getFormat(options);
-
-    return (
-      <time {...carriedProps}>
-        {utc
-          ? moment.utc(date as moment.MomentInput).format(format)
-          : momentTimezone.tz(date, options?.timezone ?? '').format(format)}
-      </time>
-    );
   }
+
+  const user = ConfigStore.get('user');
+  const options = user?.options;
+  const formatString = getFormat(options);
+
+  return (
+    <time {...props}>
+      {utc
+        ? moment.utc(date as moment.MomentInput).format(formatString)
+        : momentTimezone.tz(date, options?.timezone ?? '').format(formatString)}
+    </time>
+  );
 }
 
 export default DateTime;
