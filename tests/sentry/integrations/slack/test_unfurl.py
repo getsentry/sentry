@@ -436,6 +436,8 @@ class UnfurlTest(TestCase):
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
             project_id=self.project.id,
         )
+        debug_first_event = first_event.event_id  # noqa: F841
+        debug_second_event = second_event.event_id  # noqa: F841
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[{first_event.message},{second_event.message}]&sort=-count&statsPeriod=24h&display=dailytop5&topEvents=2"
         link_type, args = match_link(url)
