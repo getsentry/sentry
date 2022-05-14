@@ -1,4 +1,3 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
@@ -19,34 +18,22 @@ type Props = {
   onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 };
 
-class SortLink extends Component<Props> {
-  renderArrow() {
-    const {direction} = this.props;
-    if (!direction) {
-      return null;
-    }
+function SortLink({align, title, canSort, generateSortLink, onClick, direction}: Props) {
+  const target = generateSortLink();
 
-    if (direction === 'desc') {
-      return <StyledIconArrow size="xs" direction="down" />;
-    }
-    return <StyledIconArrow size="xs" direction="up" />;
+  if (!target || !canSort) {
+    return <StyledNonLink align={align}>{title}</StyledNonLink>;
   }
 
-  render() {
-    const {align, title, canSort, generateSortLink, onClick} = this.props;
+  const arrow = !direction ? null : (
+    <StyledIconArrow size="xs" direction={direction === 'desc' ? 'down' : 'up'} />
+  );
 
-    const target = generateSortLink();
-
-    if (!target || !canSort) {
-      return <StyledNonLink align={align}>{title}</StyledNonLink>;
-    }
-
-    return (
-      <StyledLink align={align} to={target} onClick={onClick}>
-        {title} {this.renderArrow()}
-      </StyledLink>
-    );
-  }
+  return (
+    <StyledLink align={align} to={target} onClick={onClick}>
+      {title} {arrow}
+    </StyledLink>
+  );
 }
 
 type LinkProps = React.ComponentPropsWithoutRef<typeof Link>;
