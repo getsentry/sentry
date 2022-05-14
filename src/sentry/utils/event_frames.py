@@ -5,22 +5,6 @@ from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, T
 
 from sentry.utils.safe import PathSearchable, get_path
 
-
-def get_crashing_thread(thread_frames: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
-    if not thread_frames:
-        return None
-    if len(thread_frames) == 1:
-        return thread_frames[0]
-    filtered = [x for x in thread_frames if x and x.get("crashed")]
-    if len(filtered) == 1:
-        return filtered[0]
-    filtered = [x for x in thread_frames if x and x.get("current")]
-    if len(filtered) == 1:
-        return filtered[0]
-
-    return None
-
-
 FrameMunger = Callable[[str, MutableMapping[str, Any]], bool]
 
 
@@ -60,6 +44,21 @@ def munged_filename_and_frames(
     for frame in copy_frames:
         frames_updated |= munger(key, frame)
     return (key, copy_frames) if frames_updated else None
+
+
+def get_crashing_thread(thread_frames: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+    if not thread_frames:
+        return None
+    if len(thread_frames) == 1:
+        return thread_frames[0]
+    filtered = [x for x in thread_frames if x and x.get("crashed")]
+    if len(filtered) == 1:
+        return filtered[0]
+    filtered = [x for x in thread_frames if x and x.get("current")]
+    if len(filtered) == 1:
+        return filtered[0]
+
+    return None
 
 
 def find_stack_frames(
