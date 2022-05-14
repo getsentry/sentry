@@ -31,9 +31,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
-        group_a = self.create_group(checksum="a" * 32, status=GroupStatus.UNRESOLVED)
-        self.create_group(checksum="b" * 32, status=GroupStatus.UNRESOLVED)
-        group_c = self.create_group(checksum="c" * 32, status=GroupStatus.UNRESOLVED)
+        group_a = self.create_group(status=GroupStatus.UNRESOLVED)
+        self.create_group(status=GroupStatus.UNRESOLVED)
+        group_c = self.create_group(status=GroupStatus.UNRESOLVED)
         self.login_as(user=self.user)
         response = self.get_response(
             sort_by="date", limit=10, query="is:unresolved", groups=[group_a.id, group_c.id]

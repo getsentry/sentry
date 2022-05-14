@@ -41,9 +41,7 @@ import {
   getAggregateAlias,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
-  isAggregateFieldOrEquation,
   isEquation,
-  isEquationAlias,
   QueryFieldValue,
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
@@ -116,12 +114,12 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
     },
     [DataSet.RELEASES]: {
       name: '',
-      fields: [`sum(${SessionField.SESSION})`],
+      fields: [`crash_free_rate(${SessionField.SESSION})`],
       columns: [],
       fieldAliases: [],
-      aggregates: [`sum(${SessionField.SESSION})`],
+      aggregates: [`crash_free_rate(${SessionField.SESSION})`],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? `-sum(${SessionField.SESSION})` : '',
+      orderby: widgetBuilderNewDesign ? `-crash_free_rate(${SessionField.SESSION})` : '',
     },
   };
 }
@@ -235,27 +233,11 @@ function WidgetBuilder({
   const api = useApi();
 
   const [state, setState] = useState<State>(() => {
-    return {
+    const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
       displayType: displayType ?? DisplayType.TABLE,
       interval: '5m',
-      queries: [
-        defaultWidgetQuery
-          ? widgetBuilderNewDesign
-            ? {
-                ...defaultWidgetQuery,
-                orderby:
-                  defaultWidgetQuery.orderby ||
-                  generateOrderOptions({
-                    widgetType: WidgetType.DISCOVER,
-                    widgetBuilderNewDesign,
-                    columns: defaultWidgetQuery.columns,
-                    aggregates: defaultWidgetQuery.aggregates,
-                  })[0].value,
-              }
-            : {...defaultWidgetQuery}
-          : {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
-      ],
+      queries: [],
       limit,
       errors: undefined,
       loading: !!notDashboardsOrigin,
@@ -263,6 +245,36 @@ function WidgetBuilder({
       userHasModified: false,
       dataSet: DataSet.EVENTS,
     };
+
+    if (defaultWidgetQuery) {
+      if (widgetBuilderNewDesign) {
+        defaultState.queries = [
+          {
+            ...defaultWidgetQuery,
+            orderby:
+              defaultWidgetQuery.orderby ||
+              generateOrderOptions({
+                widgetType: WidgetType.DISCOVER,
+                widgetBuilderNewDesign,
+                columns: defaultWidgetQuery.columns,
+                aggregates: defaultWidgetQuery.aggregates,
+              })[0].value,
+          },
+        ];
+      } else {
+        defaultState.queries = [{...defaultWidgetQuery}];
+      }
+
+      if (![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType)) {
+        defaultState.queries[0].orderby = '';
+      }
+    } else {
+      defaultState.queries = [
+        {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+      ];
+    }
+
+    return defaultState;
   });
 
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
@@ -413,6 +425,9 @@ function WidgetBuilder({
               query.columns = [...tableQuery.columns];
               query.aggregates = [...tableQuery.aggregates];
               query.fields = [...defaultTableColumns];
+              query.orderby =
+                defaultWidgetQuery.orderby ??
+                (query.fields.length ? `${query.fields[0]}` : '-');
             });
           } else if (newDisplayType === displayType) {
             // When switching back to original display type, default fields back to the fields provided from the discover query
@@ -423,7 +438,10 @@ function WidgetBuilder({
               ];
               query.aggregates = [...defaultWidgetQuery.aggregates];
               query.columns = [...defaultWidgetQuery.columns];
-              if (!!defaultWidgetQuery.orderby) {
+              if (
+                !!defaultWidgetQuery.orderby &&
+                (displayType === DisplayType.TOP_N || defaultWidgetQuery.columns.length)
+              ) {
                 query.orderby = defaultWidgetQuery.orderby;
               }
             });
@@ -573,6 +591,7 @@ function WidgetBuilder({
 
     const newQueries = state.queries.map(query => {
       const isDescending = query.orderby.startsWith('-');
+      const orderbyPrefix = isDescending ? '-' : '';
       const rawOrderby = trimStart(query.orderby, '-');
       const prevAggregateFieldStrings = query.aggregates.map(aggregate =>
         state.dataSet === DataSet.RELEASES
@@ -610,6 +629,7 @@ function WidgetBuilder({
 
       if (!fieldStrings.includes(rawOrderby) && query.orderby !== '') {
         if (
+          !widgetBuilderNewDesign &&
           prevAggregateFieldStrings.length === newFields.length &&
           prevAggregateFieldStrings.includes(rawOrderby)
         ) {
@@ -621,13 +641,9 @@ function WidgetBuilder({
             newOrderByValue = '';
           }
 
-          newQuery.orderby = `${isDescending ? '-' : ''}${newOrderByValue}`;
+          newQuery.orderby = `${orderbyPrefix}${newOrderByValue}`;
         } else {
-          const isUsingFieldFormat =
-            isAggregateFieldOrEquation(rawOrderby) || isEquationAlias(rawOrderby);
-          const isFromAggregates = (
-            isUsingFieldFormat ? fieldStrings : fieldStrings.map(getAggregateAlias)
-          ).includes(rawOrderby);
+          const isFromAggregates = fieldStrings.includes(rawOrderby);
           const isCustomEquation = isEquation(rawOrderby);
           const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
 
@@ -639,7 +655,7 @@ function WidgetBuilder({
 
           newQuery.orderby = widgetBuilderNewDesign
             ? (keepCurrentOrderby && newQuery.orderby) ||
-              `${isDescending ? '-' : ''}${firstAggregateAlias}`
+              `${orderbyPrefix}${firstAggregateAlias}`
             : '';
         }
       }
@@ -689,7 +705,16 @@ function WidgetBuilder({
       if (!fieldStrings.length) {
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
+      } else if (widgetBuilderNewDesign && !newQuery.orderby) {
+        const orderOption = generateOrderOptions({
+          widgetType: widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+          columns: query.columns,
+          aggregates: query.aggregates,
+        })[0].value;
+        newQuery.orderby = `-${orderOption}`;
       } else if (
+        !widgetBuilderNewDesign &&
         aggregateAliasFieldStrings.length &&
         !aggregateAliasFieldStrings.includes(orderby) &&
         !newQuery.columns.includes(orderby) &&
@@ -1114,6 +1139,7 @@ function WidgetBuilder({
                       onLimitChange={handleLimitChange}
                       organization={organization}
                       widgetType={widgetType}
+                      tags={tags}
                     />
                   )}
                   {notDashboardsOrigin && !widgetBuilderNewDesign && (

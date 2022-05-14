@@ -68,13 +68,26 @@ export default function ChartFooter({
             onChange={onTopEventsChange}
           />
         )}
-        <OptionSelector
-          multiple
-          title={t('Y-Axis')}
-          selected={yAxisValue}
-          options={yAxisOptions}
-          onChange={onAxisChange}
-        />
+        {TOP_EVENT_MODES.includes(displayMode) ? (
+          <OptionSelector
+            title={t('Y-Axis')}
+            selected={yAxisValue[0]}
+            options={yAxisOptions}
+            onChange={yAxis => onAxisChange([yAxis])}
+          />
+        ) : (
+          <OptionSelector
+            multiple
+            isClearable
+            menuTitle={
+              yAxisOptions.length > 3 ? t('Select up to 3 options') : t('Y-axis')
+            }
+            title={t('Y-Axis')}
+            selected={yAxisValue}
+            options={yAxisOptions}
+            onChange={onAxisChange}
+          />
+        )}
       </InlineContainer>
     </ChartControls>
   );

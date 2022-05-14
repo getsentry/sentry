@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -14,7 +14,7 @@ import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -26,10 +26,8 @@ const recordAnalytics = (
   organization: Organization,
   action: string
 ) =>
-  trackAnalyticsEvent({
-    eventKey: 'onboarding.wizard_clicked',
-    eventName: 'Onboarding Wizard Clicked',
-    organization_id: organization.id,
+  trackAdvancedAnalyticsEvent('onboarding.wizard_clicked', {
+    organization,
     todo_id: task.task,
     todo_title: task.title,
     action,
@@ -73,7 +71,9 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     }
 
     if (task.actionType === 'app') {
-      navigateTo(`${task.location}?onboardingTask`, router);
+      const url = new URL(task.location, window.location.origin);
+      url.searchParams.append('referrer', 'onboarding_task');
+      navigateTo(url.toString(), router);
     }
   };
 
@@ -287,7 +287,7 @@ TaskBlankAvatar.defaultProps = {
 
 const WrappedTask = withOrganization(withRouter(Task));
 
-export default React.forwardRef<
+export default forwardRef<
   HTMLDivElement,
   Omit<React.ComponentProps<typeof WrappedTask>, 'forwardedRef'>
 >((props, ref) => <WrappedTask forwardedRef={ref} {...props} />);

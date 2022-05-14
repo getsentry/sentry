@@ -401,6 +401,8 @@ def run_sessions_query(
     query = deepcopy(query)
 
     intervals = get_timestamps(query)
+    if not intervals:
+        return _empty_result(query)
 
     conditions = _get_filter_conditions(query.conditions)
     where, status_filter = _extract_status_filter_from_conditions(conditions)
@@ -501,8 +503,8 @@ def _empty_result(query: QueryDefinition) -> SessionsQueryResult:
     intervals = get_timestamps(query)
     return {
         "groups": [],
-        "start": intervals[0],
-        "end": intervals[-1],
+        "start": query.start,
+        "end": query.end,
         "intervals": intervals,
         "query": query.query,
     }
@@ -513,7 +515,7 @@ def _get_filter_conditions(conditions: Any) -> ConditionGroup:
     dummy_entity = EntityKey.MetricsSets.value
     return json_to_snql(
         {"selected_columns": ["value"], "conditions": conditions}, entity=dummy_entity
-    ).where
+    ).query.where
 
 
 def _extract_status_filter_from_conditions(

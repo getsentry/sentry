@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -179,14 +179,14 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   renderTrend() {
     // we want to show trend only after currentApdex has loaded to prevent jumping
     return defined(this.currentApdex) && defined(this.trend) ? (
-      <React.Fragment>
+      <Fragment>
         {this.trend >= 0 ? (
           <IconArrow direction="up" size="xs" />
         ) : (
           <IconArrow direction="down" size="xs" />
         )}
         <Count value={Math.abs(this.trend)} />
-      </React.Fragment>
+      </Fragment>
     ) : null;
   }
 

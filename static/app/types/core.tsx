@@ -48,7 +48,7 @@ export type SelectValue<T> = {
   label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
-  tooltip?: string;
+  tooltip?: React.ReactNode;
 };
 
 /**
@@ -97,3 +97,23 @@ export type PageFilters = {
    */
   projects: number[];
 };
+
+type InitialState = {type: 'initial'};
+
+type LoadingState = {type: 'loading'};
+
+type ResolvedState<T> = {
+  data: T;
+  type: 'resolved';
+};
+
+type ErroredState = {
+  error: string;
+  type: 'errored';
+};
+
+export type RequestState<T> =
+  | InitialState
+  | LoadingState
+  | ResolvedState<T>
+  | ErroredState;

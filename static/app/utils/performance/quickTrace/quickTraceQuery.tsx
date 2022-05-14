@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import {Event} from 'sentry/types/event';
 import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -21,7 +21,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
 
   if (!traceId) {
     return (
-      <React.Fragment>
+      <Fragment>
         {children({
           isLoading: false,
           error: null,
@@ -29,7 +29,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
           type: 'empty',
           currentEvent: null,
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

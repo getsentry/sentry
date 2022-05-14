@@ -1,4 +1,3 @@
-import * as React from 'react';
 import countBy from 'lodash/countBy';
 
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
@@ -34,6 +33,8 @@ type Props = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  onWheel: (deltaX: number) => void;
   span: Readonly<ProcessedSpanType>;
   spanGrouping: EnhancedSpan[];
   spanNumber: number;
@@ -50,6 +51,8 @@ export function SpanDescendantGroupBar(props: Props) {
     spanGrouping,
     spanNumber,
     toggleSpanGroup,
+    onWheel,
+    generateContentSpanBarRef,
   } = props;
 
   function renderGroupSpansTitle() {
@@ -162,6 +165,8 @@ export function SpanDescendantGroupBar(props: Props) {
       renderSpanTreeConnector={renderSpanTreeConnector}
       renderGroupSpansTitle={renderGroupSpansTitle}
       renderSpanRectangles={renderSpanRectangles}
+      onWheel={onWheel}
+      generateContentSpanBarRef={generateContentSpanBarRef}
     />
   );
 }

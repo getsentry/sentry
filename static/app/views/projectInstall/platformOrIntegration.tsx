@@ -1,4 +1,3 @@
-import * as React from 'react';
 import * as qs from 'query-string';
 
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';

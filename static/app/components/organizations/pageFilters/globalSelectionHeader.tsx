@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -9,10 +9,10 @@ import {
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import BackToIssues from 'sentry/components/organizations/backToIssues';
+import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import HeaderItemPosition from 'sentry/components/organizations/headerItemPosition';
 import HeaderSeparator from 'sentry/components/organizations/headerSeparator';
-import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
-import MultipleProjectSelector from 'sentry/components/organizations/multipleProjectSelector';
+import ProjectSelector from 'sentry/components/organizations/projectSelector';
 import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
@@ -169,7 +169,7 @@ type State = {
   searchQuery: string;
 };
 
-class GlobalSelectionHeader extends React.Component<Props, State> {
+class GlobalSelectionHeader extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -182,13 +182,6 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     save: true,
     resetParams: this.props.resetParamsOnChange,
   });
-
-  handleChangeProjects = (projects: State['projects']) => {
-    this.setState({
-      projects,
-    });
-    callIfFunction(this.props.onChangeProjects, projects);
-  };
 
   handleChangeTime = ({start, end, relative: period, utc}: ChangeData) => {
     callIfFunction(this.props.onChangeTime, {start, end, period, utc});
@@ -216,9 +209,12 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
     callIfFunction(this.props.onUpdateEnvironments, environments);
   };
 
-  handleUpdateProjects = () => {
-    const {projects} = this.state;
+  handleChangeProjects = (projects: State['projects']) => {
+    this.setState({projects});
+    callIfFunction(this.props.onChangeProjects, projects);
+  };
 
+  handleUpdateProjects = (projects: State['projects']) => {
     // Clear environments when switching projects
     updateProjects(projects || [], this.props.router, {
       ...this.getUpdateOptions(),
@@ -331,7 +327,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                 paginated: true,
               };
               return (
-                <MultipleProjectSelector
+                <ProjectSelector
                   organization={organization}
                   shouldForceProject={shouldForceProject}
                   forceProject={forceProject}
@@ -342,7 +338,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                   nonMemberProjects={nonMemberProjects}
                   value={this.state.projects || this.props.selection.projects}
                   onChange={this.handleChangeProjects}
-                  onUpdate={this.handleUpdateProjects}
+                  onApplyChange={this.handleUpdateProjects}
                   disableMultipleProjectSelection={disableMultipleProjectSelection}
                   {...(loadingProjects ? paginatedProjectSelectorCallbacks : {})}
                   showIssueStreamLink={showIssueStreamLink}
@@ -356,10 +352,10 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
         </HeaderItemPosition>
 
         {showEnvironmentSelector && (
-          <React.Fragment>
+          <Fragment>
             <HeaderSeparator />
             <HeaderItemPosition>
-              <MultipleEnvironmentSelector
+              <EnvironmentSelector
                 organization={organization}
                 projects={this.props.projects}
                 loadingProjects={loadingProjects}
@@ -369,11 +365,11 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                 onUpdate={this.handleUpdateEnvironments}
               />
             </HeaderItemPosition>
-          </React.Fragment>
+          </Fragment>
         )}
 
         {showDateSelector && (
-          <React.Fragment>
+          <Fragment>
             <HeaderSeparator />
             <HeaderItemPosition>
               <TimeRangeSelector
@@ -393,7 +389,7 @@ class GlobalSelectionHeader extends React.Component<Props, State> {
                 maxPickableDays={maxPickableDays}
               />
             </HeaderItemPosition>
-          </React.Fragment>
+          </Fragment>
         )}
 
         {!showEnvironmentSelector && <HeaderItemPosition isSpacer />}

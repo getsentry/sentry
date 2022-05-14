@@ -19,6 +19,7 @@ export type Series = {
     opacity: number;
   };
   color?: string;
+  id?: string;
   lineStyle?: AxisPointerComponentOption['lineStyle'];
   // https://echarts.apache.org/en/option.html#series-line.z
   markLine?: LineSeriesOption['markLine'];
@@ -37,9 +38,48 @@ export type EChartChartReadyHandler = (instance: ECharts) => void;
 
 export type EChartHighlightHandler = EChartEventHandler<any>;
 
-export type EChartMouseOverHandler = EChartEventHandler<any>;
+/**
+ * XXX: These are incomplete types and can also vary depending on the component type
+ *
+ * Taken from https://echarts.apache.org/en/api.html#events.Mouse%20events
+ */
+interface EChartMouseEventParam {
+  // color of component (make sense when componentType is 'series')
+  color: string;
+  // type of the component to which the clicked glyph belongs
+  // i.e., 'series', 'markLine', 'markPoint', 'timeLine'
+  componentType: string;
+  // incoming raw data item
+  data: Record<string, any>;
+  // data index in incoming data array
+  dataIndex: number;
+  // Some series, such as sankey or graph, maintains more than
+  // one types of data (nodeData and edgeData), which can be
+  // distinguished from each other by dataType with its value
+  // 'node' and 'edge'.
+  // On the other hand, most series has only one type of data,
+  // where dataType is not needed.
+  dataType: string;
+  // data name, category name
+  name: string;
 
-export type EChartClickHandler = EChartEventHandler<any>;
+  seriesId: string;
+  // series index in incoming option.series (make sense when componentType is 'series')
+  seriesIndex: number;
+  // series name (make sense when componentType is 'series')
+  seriesName: string;
+  // series type (make sense when componentType is 'series')
+  // i.e., 'line', 'bar', 'pie'
+  seriesType: string;
+  // incoming data value
+  value: number | number[];
+}
+
+export type EChartMouseOutHandler = EChartEventHandler<EChartMouseEventParam>;
+
+export type EChartMouseOverHandler = EChartEventHandler<EChartMouseEventParam>;
+
+export type EChartClickHandler = EChartEventHandler<EChartMouseEventParam>;
 
 export type EChartDataZoomHandler = EChartEventHandler<{
   /**

@@ -1,8 +1,9 @@
+import * as Sentry from '@sentry/react';
+
 import {Client} from 'sentry/api';
 import ConfigStore from 'sentry/stores/configStore';
 import GuideStore from 'sentry/stores/guideStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import {run} from 'sentry/utils/apiSentryClient';
 
 const api = new Client();
 
@@ -11,7 +12,7 @@ export async function fetchGuides() {
     const data = await api.requestPromise('/assistant/');
     GuideStore.fetchSucceeded(data);
   } catch (error) {
-    run(Sentry => Sentry.captureException(error));
+    Sentry.captureException(error);
   }
 }
 

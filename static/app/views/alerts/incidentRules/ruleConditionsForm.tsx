@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {Fragment} from 'react';
+import {Fragment, PureComponent} from 'react';
 import {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
@@ -23,6 +22,7 @@ import space from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {getDisplayName} from 'sentry/utils/environment';
+import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/incidentRules/wizardField';
 import {
@@ -78,7 +78,7 @@ type State = {
   environments: Environment[] | null;
 };
 
-class RuleConditionsForm extends React.PureComponent<Props, State> {
+class RuleConditionsForm extends PureComponent<Props, State> {
   state: State = {
     environments: null,
   };
@@ -250,8 +250,51 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
     );
   }
 
+  renderIdBadge(project: Project) {
+    return (
+      <IdBadge
+        project={project}
+        avatarProps={{consistentWidth: true}}
+        avatarSize={18}
+        disableLink
+        hideName
+      />
+    );
+  }
+
   renderProjectSelector() {
-    const {project: _selectedProject, projects, disabled} = this.props;
+    const {project: _selectedProject, projects, disabled, organization} = this.props;
+    const hasOpenMembership = organization.features.includes('open-membership');
+    const myProjects = projects.filter(project => project.hasAccess && project.isMember);
+    const allProjects = projects.filter(
+      project => project.hasAccess && !project.isMember
+    );
+
+    const myProjectOptions = myProjects.map(myProject => ({
+      value: myProject.id,
+      label: myProject.slug,
+      leadingItems: this.renderIdBadge(myProject),
+    }));
+
+    const openMembershipProjects = [
+      {
+        label: t('My Projects'),
+        options: myProjectOptions,
+      },
+      {
+        label: t('All Projects'),
+        options: allProjects.map(allProject => ({
+          value: allProject.id,
+          label: allProject.slug,
+          leadingItems: this.renderIdBadge(allProject),
+        })),
+      },
+    ];
+
+    const projectOptions =
+      hasOpenMembership || isActiveSuperuser()
+        ? openMembershipProjects
+        : myProjectOptions;
 
     return (
       <FormField
@@ -273,19 +316,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
             <SelectControl
               isDisabled={disabled}
               value={selectedProject.id}
-              options={projects.map(project => ({
-                label: project.slug,
-                value: project.id,
-                leadingItems: (
-                  <IdBadge
-                    project={project}
-                    avatarProps={{consistentWidth: true}}
-                    avatarSize={18}
-                    disableLink
-                    hideName
-                  />
-                ),
-              }))}
+              options={projectOptions}
               onChange={({value}: {value: Project['id']}) => {
                 // if the current owner/team isn't part of project selected, update to the first available team
                 const nextSelectedProject =
@@ -480,7 +511,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
       dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ChartPanel>
           <StyledPanelBody>{this.props.thresholdChart}</StyledPanelBody>
         </ChartPanel>
@@ -575,7 +606,7 @@ class RuleConditionsForm extends React.PureComponent<Props, State> {
           </FormField>
         </FormRow>
         {!hasAlertWizardV3 && this.renderInterval()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

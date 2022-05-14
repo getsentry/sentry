@@ -7,21 +7,27 @@ import TextareaField from 'sentry/components/forms/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
 
 import {getInnerNameLabel} from '../utils';
 
-import AutoComplete from './autoComplete';
 import LegacyBrowsers from './legacyBrowsers';
-import {getMatchFieldPlaceholder} from './utils';
+import {TagKeyAutocomplete} from './tagKeyAutocomplete';
+import {TagValueAutocomplete} from './tagValueAutocomplete';
+import {getMatchFieldPlaceholder, getTagKey} from './utils';
 
 type Condition = {
   category: DynamicSamplingInnerName;
   legacyBrowsers?: Array<LegacyBrowser>;
   match?: string;
+  tagKey?: string;
 };
 
-type Props = Pick<React.ComponentProps<typeof AutoComplete>, 'orgSlug' | 'projectId'> & {
+type Props = Pick<
+  React.ComponentProps<typeof TagValueAutocomplete>,
+  'orgSlug' | 'projectId'
+> & {
   conditions: Condition[];
   onChange: <T extends keyof Condition>(
     index: number,
@@ -29,42 +35,68 @@ type Props = Pick<React.ComponentProps<typeof AutoComplete>, 'orgSlug' | 'projec
     value: Condition[T]
   ) => void;
   onDelete: (index: number) => void;
+  projectSlug: Project['slug'];
 };
 
-function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props) {
+function Conditions({
+  conditions,
+  orgSlug,
+  projectId,
+  projectSlug,
+  onDelete,
+  onChange,
+}: Props) {
   return (
     <Fragment>
-      {conditions.map(({category, match, legacyBrowsers}, index) => {
+      {conditions.map((condition, index) => {
+        const {category, match, legacyBrowsers, tagKey} = condition;
         const displayLegacyBrowsers =
           category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
 
         const isBooleanField =
-          category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
-          category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
-          category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS ||
-          displayLegacyBrowsers;
+          [
+            DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS,
+            DynamicSamplingInnerName.EVENT_LOCALHOST,
+            DynamicSamplingInnerName.EVENT_WEB_CRAWLERS,
+          ].includes(category) || displayLegacyBrowsers;
 
         const isAutoCompleteField =
           category === DynamicSamplingInnerName.EVENT_ENVIRONMENT ||
           category === DynamicSamplingInnerName.EVENT_RELEASE ||
           category === DynamicSamplingInnerName.EVENT_TRANSACTION ||
+          category === DynamicSamplingInnerName.EVENT_OS_NAME ||
+          category === DynamicSamplingInnerName.EVENT_DEVICE_FAMILY ||
+          category === DynamicSamplingInnerName.EVENT_DEVICE_NAME ||
+          category === DynamicSamplingInnerName.EVENT_CUSTOM_TAG ||
           category === DynamicSamplingInnerName.TRACE_ENVIRONMENT ||
           category === DynamicSamplingInnerName.TRACE_RELEASE ||
           category === DynamicSamplingInnerName.TRACE_TRANSACTION;
 
+        const isCustomTag = category === DynamicSamplingInnerName.EVENT_CUSTOM_TAG;
+
         return (
           <ConditionWrapper key={index}>
             <LeftCell>
-              <span>
-                {getInnerNameLabel(category)}
-                <FieldRequiredBadge />
-              </span>
+              {isCustomTag ? (
+                <TagKeyAutocomplete
+                  orgSlug={orgSlug}
+                  projectSlug={projectSlug}
+                  onChange={value => onChange(index, 'tagKey', value)}
+                  value={tagKey}
+                />
+              ) : (
+                <span>
+                  {getInnerNameLabel(category)}
+                  <FieldRequiredBadge />
+                </span>
+              )}
             </LeftCell>
             <CenterCell>
               {!isBooleanField &&
                 (isAutoCompleteField ? (
-                  <AutoComplete
+                  <TagValueAutocomplete
                     category={category}
+                    tagKey={getTagKey(condition)}
                     orgSlug={orgSlug}
                     projectId={projectId}
                     value={match}

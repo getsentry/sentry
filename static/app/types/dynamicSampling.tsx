@@ -44,6 +44,11 @@ export enum DynamicSamplingInnerOperator {
   CUSTOM = 'custom',
 }
 
+/**
+ * String of the sampling category that's used on the backend.
+ * Default naming strategy should be based on the path in the event, prefixed with `event.`.
+ * To see the path in the event, click on the JSON button on the issue details page.
+ */
 export enum DynamicSamplingInnerName {
   TRACE_RELEASE = 'trace.release',
   TRACE_ENVIRONMENT = 'trace.environment',
@@ -58,11 +63,16 @@ export enum DynamicSamplingInnerName {
   EVENT_WEB_CRAWLERS = 'event.web_crawlers',
   EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
   EVENT_TRANSACTION = 'event.transaction',
+  EVENT_OS_NAME = 'event.contexts.os.name',
+  EVENT_OS_VERSION = 'event.contexts.os.version',
+  EVENT_DEVICE_NAME = 'event.contexts.device.name',
+  EVENT_DEVICE_FAMILY = 'event.contexts.device.family',
   // Custom operators
   EVENT_IP_ADDRESSES = 'event.client_ip',
   EVENT_LEGACY_BROWSER = 'event.legacy_browser',
   EVENT_ERROR_MESSAGES = 'event.error_messages',
   EVENT_CSP = 'event.csp',
+  EVENT_CUSTOM_TAG = 'event.custom_tag',
 }
 
 export enum LegacyBrowser {
@@ -81,7 +91,12 @@ type DynamicSamplingConditionLogicalInnerGlob = {
     | DynamicSamplingInnerName.EVENT_RELEASE
     | DynamicSamplingInnerName.TRACE_RELEASE
     | DynamicSamplingInnerName.EVENT_TRANSACTION
-    | DynamicSamplingInnerName.TRACE_TRANSACTION;
+    | DynamicSamplingInnerName.TRACE_TRANSACTION
+    | DynamicSamplingInnerName.EVENT_OS_NAME
+    | DynamicSamplingInnerName.EVENT_OS_VERSION
+    | DynamicSamplingInnerName.EVENT_DEVICE_FAMILY
+    | DynamicSamplingInnerName.EVENT_DEVICE_NAME
+    | DynamicSamplingInnerName.EVENT_CUSTOM_TAG;
   op: DynamicSamplingInnerOperator.GLOB_MATCH;
   value: Array<string>;
 };
@@ -125,12 +140,20 @@ type DynamicSamplingConditionLogicalInnerCustomLegacyBrowser = {
   value: Array<LegacyBrowser>;
 };
 
+export type DynamicSamplingConditionLogicalInnerCustomTag = {
+  name: DynamicSamplingInnerName.EVENT_CUSTOM_TAG;
+  op: DynamicSamplingInnerOperator.GLOB_MATCH;
+  tagKey: string;
+  value: Array<string>;
+};
+
 export type DynamicSamplingConditionLogicalInner =
   | DynamicSamplingConditionLogicalInnerGlob
   | DynamicSamplingConditionLogicalInnerEq
   | DynamicSamplingConditionLogicalInnerEqBoolean
   | DynamicSamplingConditionLogicalInnerCustom
-  | DynamicSamplingConditionLogicalInnerCustomLegacyBrowser;
+  | DynamicSamplingConditionLogicalInnerCustomLegacyBrowser
+  | DynamicSamplingConditionLogicalInnerCustomTag;
 
 export type DynamicSamplingCondition = {
   inner: Array<DynamicSamplingConditionLogicalInner>;
