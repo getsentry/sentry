@@ -35,10 +35,7 @@ function ProjectSettingsLayout({
             )}
           >
             {children && isValidElement(children)
-              ? cloneElement(children, {
-                  organization,
-                  project,
-                })
+              ? cloneElement(children, {organization, project})
               : children}
           </SettingsLayout>
         </AppStoreConnectContext.Provider>
