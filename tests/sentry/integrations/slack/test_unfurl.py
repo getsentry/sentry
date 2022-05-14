@@ -165,7 +165,7 @@ class UnfurlTest(TestCase):
             == SlackMetricAlertMessageBuilder(incident.alert_rule, incident).build()
         )
 
-    @patch("sentry.charts.metric_alerts.generate_chart", return_value="chart-url")
+    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart(self, mock_generate_chart):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
@@ -214,10 +214,10 @@ class UnfurlTest(TestCase):
         assert len(series_data) > 0
         # Validate format of timeseries
         assert type(series_data[0]["name"]) is int
-        assert type(series_data[0]["value"]) is int
+        assert type(series_data[0]["value"]) is float
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
-    @patch("sentry.charts.metric_alerts.generate_chart", return_value="chart-url")
+    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
     def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):
         alert_rule = self.create_alert_rule(
             query="",

@@ -160,7 +160,7 @@ def fetch_metric_alert_incidents(
 def build_metric_alert_chart(
     organization: Organization,
     alert_rule: AlertRule,
-    selected_incident: Optional[Incident],
+    selected_incident: Optional[Incident] = None,
     period: Optional[str] = None,
     start: Optional[str] = None,
     end: Optional[str] = None,
