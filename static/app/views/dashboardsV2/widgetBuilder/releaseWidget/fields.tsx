@@ -41,6 +41,12 @@ export const FIELD_TO_METRICS_EXPRESSION = {
   'crash_free_rate(user)': SessionMetric.USER_CRASH_FREE_RATE,
   'crash_rate(session)': SessionMetric.SESSION_CRASH_RATE,
   'crash_rate(user)': SessionMetric.USER_CRASH_RATE,
+  'avg(session.duration)': `avg(${SessionMetric.SESSION_DURATION})`,
+  'max(session.duration)': `max(${SessionMetric.SESSION_DURATION})`,
+  'p50(session.duration)': `p50(${SessionMetric.SESSION_DURATION})`,
+  'p75(session.duration)': `p75(${SessionMetric.SESSION_DURATION})`,
+  'p95(session.duration)': `p95(${SessionMetric.SESSION_DURATION})`,
+  'p99(session.duration)': `p99(${SessionMetric.SESSION_DURATION})`,
   project: 'project_id',
 };
 
@@ -276,6 +282,7 @@ export const SESSIONS_OPERATIONS: Readonly<
 };
 
 export const SESSIONS_TAGS = ['environment', 'project', 'release', 'session.status'];
+export const SESSIONS_FILTER_TAGS = ['environment', 'project', 'release'];
 export const SESSION_STATUSES = Object.values(SessionStatus);
 
 export function generateReleaseWidgetFieldOptions(

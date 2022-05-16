@@ -19,7 +19,9 @@ logger = logging.getLogger(__name__)
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
-    headers = {"X-SMTPAPI": json.dumps({"category": notification.metrics_key})}
+    headers = {
+        "X-SMTPAPI": json.dumps({"category": notification.get_category()}),
+    }
     if isinstance(notification, ProjectNotification):
         headers["X-Sentry-Project"] = notification.project.slug
 
@@ -152,7 +154,7 @@ def get_builder_args_from_context(
         "html_template": f"{notification.template_path}.html",
         "headers": get_headers(notification),
         "reference": notification.reference,
-        "type": notification.metrics_key,
+        "type": notification.get_type(),
     }
     # add in optinal fields
     from_email = notification.from_email
