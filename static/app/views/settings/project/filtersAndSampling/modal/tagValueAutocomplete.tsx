@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import {components, MultiValueProps, OptionProps} from 'react-select';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SelectField from 'sentry/components/forms/selectField';
@@ -31,7 +30,8 @@ type Props = {
     | DynamicSamplingInnerName.EVENT_CUSTOM_TAG
     | DynamicSamplingInnerName.TRACE_ENVIRONMENT
     | DynamicSamplingInnerName.TRACE_RELEASE
-    | DynamicSamplingInnerName.TRACE_TRANSACTION;
+    | DynamicSamplingInnerName.TRACE_TRANSACTION
+    | string;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
   projectId: Project['id'];
@@ -69,13 +69,10 @@ function TagValueAutocomplete({
         return t('Search or add a device family');
       case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
         return t('Search or add a device name');
-      case DynamicSamplingInnerName.EVENT_CUSTOM_TAG:
-        return t('Search or add tag values');
+
       default:
-        Sentry.captureException(
-          new Error('Unknown dynamic sampling condition inner name')
-        );
-        return ''; // this shall never happen
+        // custom tags
+        return t('Search or add tag values');
     }
   }
 

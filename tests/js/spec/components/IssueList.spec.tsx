@@ -1,6 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {IssueList} from 'sentry/components/issueList';
+import useApi from 'sentry/utils/useApi';
+
+jest.mock('sentry/utils/useApi');
 
 describe('IssueList', () => {
   beforeEach(() => {
@@ -10,6 +13,10 @@ describe('IssueList', () => {
 
   it('renders loading state', () => {
     const api = new MockApiClient();
+
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     jest.spyOn(api, 'request').mockImplementation(() => {
       return new Promise(_ => {
         return null;
@@ -18,7 +25,6 @@ describe('IssueList', () => {
 
     render(
       <IssueList
-        api={api}
         location={TestStubs.location()}
         endpoint="endpoint"
         params={{}}
@@ -31,6 +37,10 @@ describe('IssueList', () => {
 
   it('renders error state', () => {
     const api = new MockApiClient();
+
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     MockApiClient.addMockResponse({
       url: 'endpoint',
       method: 'GET',
@@ -39,7 +49,6 @@ describe('IssueList', () => {
 
     render(
       <IssueList
-        api={api}
         location={TestStubs.location()}
         endpoint="endpoint"
         params={{}}
@@ -53,6 +62,10 @@ describe('IssueList', () => {
 
   it('refetches data on click from error state', async () => {
     const api = new MockApiClient();
+
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     MockApiClient.addMockResponse({
       url: 'endpoint',
       method: 'GET',
@@ -63,7 +76,6 @@ describe('IssueList', () => {
 
     render(
       <IssueList
-        api={api}
         location={TestStubs.location()}
         endpoint="endpoint"
         params={{}}
@@ -85,6 +97,9 @@ describe('IssueList', () => {
     const api = new MockApiClient();
     const spy = jest.spyOn(api, 'request');
 
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     MockApiClient.addMockResponse({
       url: 'endpoint',
       method: 'GET',
@@ -94,7 +109,6 @@ describe('IssueList', () => {
 
     render(
       <IssueList
-        api={api}
         query={{limit: '5'}}
         location={TestStubs.location({
           query: {
@@ -121,6 +135,9 @@ describe('IssueList', () => {
     const api = new MockApiClient();
     const CustomEmptyState = jest.fn().mockImplementation(() => <div>Empty State</div>);
 
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     MockApiClient.addMockResponse({
       url: 'endpoint',
       method: 'GET',
@@ -130,7 +147,6 @@ describe('IssueList', () => {
 
     render(
       <IssueList
-        api={api}
         location={TestStubs.location()}
         endpoint="endpoint"
         params={{}}
@@ -153,9 +169,11 @@ describe('IssueList', () => {
       body: [],
     });
 
+    // @ts-ignore useApi is mocked
+    useApi.mockReturnValue(api);
+
     render(
       <IssueList
-        api={api}
         location={TestStubs.location()}
         endpoint="endpoint"
         params={{}}

@@ -102,9 +102,8 @@ function ProjectPageFilter({
     setCurrentSelectedProjects(newProjects);
   };
 
-  const handleUpdateProjects = (newProjects?: number[]) => {
-    // Use newProjects if provided otherwise fallback to current selection
-    updateProjects(newProjects ?? (currentSelectedProjects || []), router, {
+  const handleApplyChange = (newProjects: number[]) => {
+    updateProjects(newProjects, router, {
       save: true,
       resetParams: [],
       environments: [], // Clear environments when switching projects
@@ -195,7 +194,7 @@ function ProjectPageFilter({
       nonMemberProjects={nonMemberProjects}
       value={currentSelectedProjects || selection.projects}
       onChange={handleChangeProjects}
-      onUpdate={handleUpdateProjects}
+      onApplyChange={handleApplyChange}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
       detached
