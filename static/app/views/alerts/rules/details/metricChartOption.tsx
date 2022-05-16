@@ -17,8 +17,8 @@ import {lightTheme as theme} from 'sentry/utils/theme';
 import {
   AlertRuleTriggerType,
   Dataset,
-  IncidentRule,
-} from 'sentry/views/alerts/incidentRules/types';
+  MetricRule,
+} from 'sentry/views/alerts/metricRules/types';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -137,7 +137,7 @@ function createIncidentSeries(
 }
 
 export type MetricChartData = {
-  rule: IncidentRule;
+  rule: MetricRule;
   timeseriesData: Series[];
   handleIncidentClick?: (incident: Incident) => void;
   incidents?: Incident[];
@@ -375,7 +375,7 @@ export function getMetricAlertChartOption({
 
 export function transformSessionResponseToSeries(
   response: SessionApiResponse | null,
-  rule: IncidentRule
+  rule: MetricRule
 ): MetricChartData['timeseriesData'] {
   const {aggregate} = rule;
 

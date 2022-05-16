@@ -247,7 +247,7 @@ describe('IncidentsList', () => {
           identifier: '1',
           title: 'First incident',
           projects: projects1,
-          alertRule: TestStubs.IncidentRule({owner: `team:${team.id}`}),
+          alertRule: TestStubs.MetricRule({owner: `team:${team.id}`}),
         }),
       ],
     });

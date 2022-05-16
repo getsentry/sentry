@@ -11,19 +11,19 @@ import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {MetricRule} from 'sentry/views/alerts/metricRules/types';
 
 import {isIssueAlert} from '../../utils';
 
 type Props = Pick<RouteComponentProps<{orgId: string}, {}>, 'params'> & {
-  hasIncidentRuleDetailsError: boolean;
+  hasMetricRuleDetailsError: boolean;
   project?: Project;
-  rule?: IncidentRule;
+  rule?: MetricRule;
 };
 
-function DetailsHeader({hasIncidentRuleDetailsError, rule, params, project}: Props) {
-  const isRuleReady = !!rule && !hasIncidentRuleDetailsError;
-  const ruleTitle = rule && !hasIncidentRuleDetailsError ? rule.name : '';
+function DetailsHeader({hasMetricRuleDetailsError, rule, params, project}: Props) {
+  const isRuleReady = !!rule && !hasMetricRuleDetailsError;
+  const ruleTitle = rule && !hasMetricRuleDetailsError ? rule.name : '';
   const settingsLink =
     rule &&
     `/organizations/${params.orgId}/alerts/${

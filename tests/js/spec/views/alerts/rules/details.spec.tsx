@@ -38,7 +38,7 @@ describe('MetricAlertDetails', () => {
   it('renders', async () => {
     const {routerContext, organization, router} = initializeOrg();
     const incident = TestStubs.Incident();
-    const rule = TestStubs.IncidentRule({
+    const rule = TestStubs.MetricRule({
       projects: [project.slug],
       latestIncident: incident,
     });
@@ -82,7 +82,7 @@ describe('MetricAlertDetails', () => {
 
   it('renders selected incident', async () => {
     const {routerContext, organization, router} = initializeOrg();
-    const rule = TestStubs.IncidentRule({projects: [project.slug]});
+    const rule = TestStubs.MetricRule({projects: [project.slug]});
     const incident = TestStubs.Incident();
 
     MockApiClient.addMockResponse({

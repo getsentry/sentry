@@ -16,11 +16,11 @@ import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {Dataset, IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
-import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
+import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/metricRules/types';
+import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/metricRules/utils/getEventTypeFilter';
 import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
 
-import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
+import {isCrashFreeAlert} from '../../metricRules/utils/isCrashFreeAlert';
 import {AlertRuleStatus, Incident} from '../../types';
 
 import {
@@ -41,7 +41,7 @@ type Props = {
   timePeriod: TimePeriodType;
   incidents?: Incident[];
   project?: Project;
-  rule?: IncidentRule;
+  rule?: MetricRule;
   selectedIncident?: Incident | null;
 } & RouteComponentProps<{orgId: string}, {}>;
 

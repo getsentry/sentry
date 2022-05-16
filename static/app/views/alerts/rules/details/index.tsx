@@ -43,7 +43,7 @@ interface State {
   isLoading: boolean;
   selectedIncident: Incident | null;
   incidents?: Incident[];
-  rule?: IncidentRule;
+  rule?: MetricRule;
 }
 
 class MetricAlertDetails extends Component<Props, State> {
@@ -227,7 +227,7 @@ class MetricAlertDetails extends Component<Props, State> {
         <SentryDocumentTitle title={rule?.name ?? ''} />
 
         <DetailsHeader
-          hasIncidentRuleDetailsError={hasError}
+          hasMetricRuleDetailsError={hasError}
           params={params}
           rule={rule}
           project={project}

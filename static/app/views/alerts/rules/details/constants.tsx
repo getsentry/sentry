@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {SelectValue} from 'sentry/types';
-import {TimePeriod, TimeWindow} from 'sentry/views/alerts/incidentRules/types';
+import {TimePeriod, TimeWindow} from 'sentry/views/alerts/metricRules/types';
 
 export const SELECTOR_RELATIVE_PERIODS = {
   [TimePeriod.SIX_HOURS]: t('Last 6 hours'),

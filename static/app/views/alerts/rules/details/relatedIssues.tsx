@@ -10,8 +10,8 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OrganizationSummary, Project} from 'sentry/types';
-import {makeDefaultCta} from 'sentry/views/alerts/incidentRules/incidentRulePresets';
-import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {makeDefaultCta} from 'sentry/views/alerts/metricRules/metricRulePresets';
+import {MetricRule} from 'sentry/views/alerts/metricRules/types';
 import {
   RELATED_ISSUES_BOOLEAN_QUERY_ERROR,
   RelatedIssuesNotAvailable,
@@ -23,7 +23,7 @@ import {TimePeriodType} from './constants';
 interface Props {
   organization: OrganizationSummary;
   projects: Project[];
-  rule: IncidentRule;
+  rule: MetricRule;
   timePeriod: TimePeriodType;
   query?: string;
 }

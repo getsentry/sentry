@@ -16,7 +16,7 @@ import DiscoverQuery, {
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
+import {MetricRule, TimePeriod} from 'sentry/views/alerts/metricRules/types';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -178,7 +178,7 @@ interface Props {
   location: Location;
   organization: Organization;
   projects: Project[];
-  rule: IncidentRule;
+  rule: MetricRule;
   timePeriod: TimePeriodType;
 }
 

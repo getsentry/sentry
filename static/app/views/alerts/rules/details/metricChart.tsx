@@ -44,17 +44,17 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
-import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
-import {makeDefaultCta} from 'sentry/views/alerts/incidentRules/incidentRulePresets';
+import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/metricRules/constants';
+import {makeDefaultCta} from 'sentry/views/alerts/metricRules/metricRulePresets';
 import {
   AlertRuleTriggerType,
-  IncidentRule,
+  MetricRule,
   TimePeriod,
-} from 'sentry/views/alerts/incidentRules/types';
+} from 'sentry/views/alerts/metricRules/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-import {isCrashFreeAlert} from '../../incidentRules/utils/isCrashFreeAlert';
+import {isCrashFreeAlert} from '../../metricRules/utils/isCrashFreeAlert';
 import {Incident} from '../../types';
 import {
   alertDetailsLink,
@@ -77,7 +77,7 @@ type Props = WithRouterProps & {
   organization: Organization;
   project: Project;
   query: string;
-  rule: IncidentRule;
+  rule: MetricRule;
   timePeriod: TimePeriodType;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
@@ -96,7 +96,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
 }
 
 function getRuleChangeSeries(
-  rule: IncidentRule,
+  rule: MetricRule,
   data: AreaChartSeries[]
 ): LineSeriesOption[] {
   const {dateModified} = rule;

@@ -10,8 +10,8 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import IncidentRulesDetails from 'sentry/views/alerts/incidentRules/details';
-import IssueEditor from 'sentry/views/alerts/issueRuleEditor';
+import IssueEditor from 'sentry/views/alerts/issueRules';
+import MetricRulesDetails from 'sentry/views/alerts/metricRules/details';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
 type RouteParams = {
@@ -97,7 +97,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
                       />
                     )}
                     {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
-                      <IncidentRulesDetails
+                      <MetricRulesDetails
                         {...this.props}
                         project={project}
                         onChangeTitle={this.handleChangeTitle}

@@ -12,9 +12,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import IncidentRulesCreate from 'sentry/views/alerts/incidentRules/create';
-import IncidentRulesDuplicate from 'sentry/views/alerts/incidentRules/duplicate';
-import IssueRuleEditor from 'sentry/views/alerts/issueRuleEditor';
+import IssueRuleEditor from 'sentry/views/alerts/issueRules';
+import MetricRulesCreate from 'sentry/views/alerts/metricRules/create';
+import MetricRulesDuplicate from 'sentry/views/alerts/metricRules/duplicate';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertType as WizardAlertType,
@@ -181,7 +181,7 @@ class Create extends Component<Props, State> {
                     {hasMetricAlerts &&
                       alertType === AlertRuleType.METRIC &&
                       (this.isDuplicateRule ? (
-                        <IncidentRulesDuplicate
+                        <MetricRulesDuplicate
                           {...this.props}
                           eventView={eventView}
                           wizardTemplate={wizardTemplate}
@@ -190,7 +190,7 @@ class Create extends Component<Props, State> {
                           userTeamIds={teams.map(({id}) => id)}
                         />
                       ) : (
-                        <IncidentRulesCreate
+                        <MetricRulesCreate
                           {...this.props}
                           eventView={eventView}
                           wizardTemplate={wizardTemplate}

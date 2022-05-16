@@ -15,7 +15,7 @@ import {
   IssueConfigField,
   SelectValue,
 } from 'sentry/types';
-import {FormField} from 'sentry/views/alerts/issueRuleEditor/ruleNode';
+import {FormField} from 'sentry/views/alerts/issueRules/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 

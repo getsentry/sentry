@@ -14,20 +14,20 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/incidentRules/constants';
+import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/metricRules/constants';
 import {
   Action,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-  IncidentRule,
-} from 'sentry/views/alerts/incidentRules/types';
+  MetricRule,
+} from 'sentry/views/alerts/metricRules/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
 import {IncidentStatus} from '../../types';
 
 interface Props {
-  rule: IncidentRule;
+  rule: MetricRule;
 }
 
 export default class Sidebar extends PureComponent<Props> {

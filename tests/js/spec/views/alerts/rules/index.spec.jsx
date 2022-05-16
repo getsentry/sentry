@@ -50,14 +50,14 @@ describe('AlertRulesList', () => {
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '345',
           projects: ['earth'],
           latestIncident: TestStubs.Incident({
             status: IncidentStatus.CRITICAL,
           }),
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '678',
           projects: ['earth'],
           latestIncident: null,
