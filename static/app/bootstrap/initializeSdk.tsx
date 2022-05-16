@@ -82,7 +82,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * deployed separately from backend.
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
-    whitelistUrls: SPA_DSN
+    allowUrls: SPA_DSN
       ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
       : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(hasReplays, routes),

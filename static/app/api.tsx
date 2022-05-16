@@ -1,5 +1,4 @@
 import {browserHistory} from 'react-router';
-import {Severity} from '@sentry/react';
 import Cookies from 'js-cookie';
 import isUndefined from 'lodash/isUndefined';
 import * as qs from 'query-string';
@@ -422,7 +421,7 @@ export class Client {
             errorObjectToUse.removeFrames(3);
 
             // Setting this to warning because we are going to capture all failed requests
-            scope.setLevel(Severity.Warning);
+            scope.setLevel('warning');
             scope.setTag('http.statusCode', String(resp.status));
             scope.setTag('error.reason', errorThrown);
             Sentry.captureException(errorObjectToUse);
@@ -554,7 +553,7 @@ export class Client {
         // The request failed for other reason
         run(Sentry =>
           Sentry.withScope(scope => {
-            scope.setLevel(Severity.Warning);
+            scope.setLevel('warning');
             Sentry.captureException(err);
           })
         );

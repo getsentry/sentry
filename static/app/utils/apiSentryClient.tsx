@@ -1,18 +1,27 @@
-import * as Sentry from '@sentry/react';
+import {
+  BrowserClient,
+  defaultIntegrations,
+  defaultStackParser,
+  Hub,
+  makeFetchTransport,
+} from '@sentry/react';
 
-let hub: Sentry.Hub | undefined;
+let hub: Hub | undefined;
 
 function init(dsn: string) {
   // This client is used to track all API requests that use `app/api`
   // This is a bit noisy so we don't want it in the main project (yet)
-  const client = new Sentry.BrowserClient({
+  const client = new BrowserClient({
     dsn,
+    transport: makeFetchTransport,
+    stackParser: defaultStackParser,
+    integrations: defaultIntegrations,
   });
 
-  hub = new Sentry.Hub(client);
+  hub = new Hub(client);
 }
 
-const run: Sentry.Hub['run'] = cb => {
+const run: Hub['run'] = cb => {
   if (!hub) {
     return;
   }

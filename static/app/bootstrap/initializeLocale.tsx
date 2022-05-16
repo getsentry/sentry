@@ -23,7 +23,7 @@ async function getTranslations(language: string) {
     return await import(`sentry-locale/${language}/LC_MESSAGES/django.po`);
   } catch (e) {
     Sentry.withScope(scope => {
-      scope.setLevel(Sentry.Severity.Warning);
+      scope.setLevel('warning');
       scope.setFingerprint(['sentry-locale-not-found']);
       scope.setExtra('locale', language);
       Sentry.captureException(e);

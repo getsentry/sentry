@@ -42,7 +42,7 @@ export function getImageFeatureDescription(type: ImageFeature) {
       };
     default: {
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         Sentry.captureException(new Error('Unknown image candidate feature'));
       });
       return {}; // this shall not happen
@@ -122,7 +122,7 @@ export function getStatusTooltipDescription(
     }
     default: {
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         Sentry.captureException(new Error('Unknown image candidate download status'));
       });
       return {}; // This shall not happen
