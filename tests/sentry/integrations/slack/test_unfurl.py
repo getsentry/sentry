@@ -435,7 +435,6 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        print(min_ago)
         first_event = self.store_event(
             data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
             project_id=self.project.id,
