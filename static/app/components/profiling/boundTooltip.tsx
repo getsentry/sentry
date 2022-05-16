@@ -86,6 +86,7 @@ const Tooltip = styled('div')`
   user-select: none;
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(0.25)} ${space(1)};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 export {BoundTooltip};
