@@ -310,19 +310,28 @@ function FrameStack(props: FrameStackProps) {
 
   const onMouseDown = useCallback((evt: React.MouseEvent<HTMLElement>) => {
     let startResizeVector = vec2.fromValues(evt.clientX, evt.clientY);
+    let rafId: number | undefined;
 
     function handleMouseMove(mvEvent: MouseEvent) {
-      const currentPositionVector = vec2.fromValues(mvEvent.clientX, mvEvent.clientY);
+      if (rafId !== undefined) {
+        window.cancelAnimationFrame(rafId);
+        rafId = undefined;
+      }
 
-      const distance = vec2.subtract(
-        vec2.fromValues(0, 0),
-        startResizeVector,
-        currentPositionVector
-      );
+      window.requestAnimationFrame(() => {
+        const currentPositionVector = vec2.fromValues(mvEvent.clientX, mvEvent.clientY);
 
-      startResizeVector = currentPositionVector;
+        const distance = vec2.subtract(
+          vec2.fromValues(0, 0),
+          startResizeVector,
+          currentPositionVector
+        );
 
-      setDrawerHeight(h => Math.max(MIN_DRAWER_HEIGHT_PX, h + distance[1]));
+        startResizeVector = currentPositionVector;
+
+        setDrawerHeight(h => Math.max(MIN_DRAWER_HEIGHT_PX, h + distance[1]));
+        rafId = undefined;
+      });
     }
 
     function handleMouseUp() {
@@ -334,6 +343,10 @@ function FrameStack(props: FrameStackProps) {
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
+
+      if (rafId !== undefined) {
+        window.cancelAnimationFrame(rafId);
+      }
     };
   }, []);
 
