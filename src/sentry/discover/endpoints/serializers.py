@@ -9,6 +9,7 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.discover.arithmetic import categorize_columns
 from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Team
@@ -218,11 +219,13 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
 
         if "query" in query:
             try:
+                equations, columns = categorize_columns(query["fields"])
                 builder = QueryBuilder(
                     dataset=Dataset.Discover,
                     params=self.context["params"],
                     query=query["query"],
-                    selected_columns=query["fields"],
+                    selected_columns=columns,
+                    equations=equations,
                     orderby=query.get("orderby"),
                 )
                 builder.get_snql_query().validate()
