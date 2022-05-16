@@ -48,6 +48,7 @@ export const mobile = [
   'capacitor',
   'javascript-cordova',
   'javascript-capacitor',
+  'ionic',
   'react-native',
   'flutter',
   'dart-flutter',
