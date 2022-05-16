@@ -327,7 +327,7 @@ class SpanTreeModel {
     let descendants: EnhancedProcessedSpanType[];
 
     if (isAutogroupSiblingFeatureEnabled) {
-      const groupedDescendants: DescendantGroup[] = [];
+      let groupedDescendants: DescendantGroup[] = [];
       // Used to number sibling groups in case there are multiple groups with the same op and description
       const siblingGroupOccurrenceMap = {};
 
@@ -379,6 +379,8 @@ class SpanTreeModel {
       } else if (descendantsSource.length >= 1) {
         groupedDescendants.push({group: descendantsSource});
       }
+
+      groupedDescendants = groupedDescendants.filter(g => g.group.length);
 
       descendants = (hideSpanTree ? [] : groupedDescendants).reduce(
         (
