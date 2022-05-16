@@ -9,6 +9,7 @@ from sentry.api.base import logger
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
+from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
 from sentry.incidents.logic import translate_aggregate_field
@@ -36,16 +37,18 @@ def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[st
     Will show at least 150 and no more than 10,000 data points.
     This function should match what is in the frontend.
     """
-    time_window_seconds = alert_rule.snuba_query.time_window
-    min_range = time_window_seconds * API_INTERVAL_POINTS_MIN
-    max_range = time_window_seconds * API_INTERVAL_POINTS_LIMIT
+    time_window_milliseconds = alert_rule.snuba_query.time_window * 1000
+    min_range = time_window_milliseconds * API_INTERVAL_POINTS_MIN
+    max_range = time_window_milliseconds * API_INTERVAL_POINTS_LIMIT
     now = timezone.now()
     start_date: datetime = incident.date_started
     end_date: datetime = incident.date_closed if incident.date_closed else now
-    incident_range = max((end_date - start_date).total_seconds(), 3 * time_window_seconds)
+    incident_range = (
+        max((end_date - start_date).total_seconds() * 1000),
+        3 * time_window_milliseconds,
+    )
     range = min(max_range, max(min_range, incident_range))
     half_range = timedelta(seconds=range / 2)
-
     return {
         "start": (start_date - half_range).strftime("%Y-%m-%dT%H:%M:%S"),
         "end": (end_date + half_range).strftime("%Y-%m-%dT%H:%M:%S"),
@@ -55,14 +58,9 @@ def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[st
 def fetch_metric_alert_sessions_data(
     organization: Organization,
     rule_aggregate: str,
-    time_period: Mapping[str, str],
     query_params: Mapping[str, str],
     user: Optional["User"] = None,
 ) -> Any:
-
-    if "period" in time_period:
-        time_period = {"statsPeriod": time_period["period"]}
-
     try:
         resp = client.get(
             auth=ApiKey(organization=organization, scope_list=["org:read"]),
@@ -71,7 +69,6 @@ def fetch_metric_alert_sessions_data(
             params={
                 "field": SESSION_AGGREGATE_TO_FIELD[rule_aggregate],
                 "groupBy": "session.status",
-                **time_period,
                 **query_params,
             },
         )
@@ -87,7 +84,6 @@ def fetch_metric_alert_sessions_data(
 def fetch_metric_alert_events_timeseries(
     organization: Organization,
     rule_aggregate: str,
-    time_period: Mapping[str, str],
     query_params: Mapping[str, str],
     user: Optional["User"] = None,
 ) -> List[Any]:
@@ -98,7 +94,6 @@ def fetch_metric_alert_events_timeseries(
             path=f"/organizations/{organization.slug}/events-stats/",
             params={
                 "yAxis": rule_aggregate,
-                **time_period,
                 **query_params,
             },
         )
@@ -172,10 +167,8 @@ def build_metric_alert_chart(
         time_period = incident_date_range(alert_rule, selected_incident)
     elif start and end:
         time_period = {"start": start, "end": end}
-    elif period:
-        time_period = {"period": period}
     else:
-        time_period = {"period": "10000m"}
+        time_period = get_datetime_from_stats_period(period if period else "10000m")
 
     chart_data = {
         "rule": serialize(alert_rule, user, AlertRuleSerializer()),
@@ -204,6 +197,7 @@ def build_metric_alert_chart(
 
     query_params = {
         **env_params,
+        **time_period,
         "project": str(project_id),
         "interval": f"{time_window_minutes}m",
         "query": query,
@@ -212,7 +206,6 @@ def build_metric_alert_chart(
         chart_data["sessionResponse"] = fetch_metric_alert_sessions_data(
             organization,
             aggregate,
-            time_period,
             query_params,
             user,
         )
@@ -220,7 +213,6 @@ def build_metric_alert_chart(
         chart_data["timeseriesData"] = fetch_metric_alert_events_timeseries(
             organization,
             aggregate,
-            time_period,
             query_params,
             user,
         )
