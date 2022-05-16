@@ -12,8 +12,8 @@ type Props = {
 };
 
 type actionCategoryInfo = {
-  description?: string;
-  title?: string;
+  description: string;
+  title: string;
 };
 
 function getActionCategoryInfo(crumb: RawCrumb): actionCategoryInfo {
