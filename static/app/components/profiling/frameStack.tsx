@@ -83,7 +83,7 @@ function FrameCallTreeStack({
   roots,
   referenceNode,
 }: FrameCallTreeStackProps) {
-  const [sort, setSort] = useState<'total weight' | 'self weight' | 'name' | null>(
+  const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
