@@ -53,6 +53,7 @@ export const mobile = [
   'dart-flutter',
   'unity',
   'dotnet-xamarin',
+  'unreal',
   // Old platforms
   'java-android',
   'cocoa-objc',
@@ -129,6 +130,7 @@ export const desktop = [
   'unity',
   'flutter',
   'kotlin',
+  'unreal',
 ] as const;
 
 const categoryList = [
