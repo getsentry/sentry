@@ -8,6 +8,7 @@ import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 function computeRelativeWeight(base: number, value: number) {
@@ -50,17 +51,19 @@ function FrameCallTreeStack({flamegraphRenderer, roots}: FrameCallTreeStackProps
           </tr>
         </FrameCallersTableHeader>
         <tbody>
-          {roots.map(r => {
-            return (
-              <FrameRow
-                key={r.key}
-                depth={0}
-                frame={r}
-                referenceNode={r}
-                flamegraphRenderer={flamegraphRenderer}
-              />
-            );
-          })}
+          {roots
+            .sort((a, b) => b.node.selfWeight - a.node.selfWeight)
+            .map(r => {
+              return (
+                <FrameRow
+                  key={r.key}
+                  depth={0}
+                  frame={r}
+                  referenceNode={r}
+                  flamegraphRenderer={flamegraphRenderer}
+                />
+              );
+            })}
           {/* We add a row at the end with rowSpan so that we can have that nice border-right stretched over the entire table */}
           <tr>
             <FrameCallersTableCell rowSpan={100} />
@@ -114,20 +117,20 @@ function FrameRow({
     <Fragment>
       <FrameCallersRow onClick={handleClick}>
         <FrameCallersTableCell textAlign="right">
-          {flamegraphRenderer.flamegraph.formatter(frame.frame.selfWeight)}
+          {flamegraphRenderer.flamegraph.formatter(frame.node.selfWeight)}
           <Weight
             weight={computeRelativeWeight(
-              referenceNode.frame.selfWeight,
-              frame.frame.selfWeight
+              referenceNode.node.selfWeight,
+              frame.node.selfWeight
             )}
           />
         </FrameCallersTableCell>
         <FrameCallersTableCell textAlign="right">
-          {flamegraphRenderer.flamegraph.formatter(frame.frame.totalWeight)}
+          {flamegraphRenderer.flamegraph.formatter(frame.node.totalWeight)}
           <Weight
             weight={computeRelativeWeight(
-              referenceNode.frame.totalWeight,
-              frame.frame.totalWeight
+              referenceNode.node.totalWeight,
+              frame.node.totalWeight
             )}
           />
         </FrameCallersTableCell>
@@ -171,9 +174,17 @@ function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
   const {selectedNode} = useFlamegraphProfilesValue();
 
-  const selectedNodeRoots = useMemo(() => {
-    return selectedNode ? [selectedNode] : [];
-  }, [selectedNode]);
+  const roots = useMemo(() => {
+    if (!selectedNode) {
+      return null;
+    }
+
+    if (tab === 'call order') {
+      return [selectedNode];
+    }
+
+    return invertCallTree([selectedNode]);
+  }, [selectedNode, tab]);
 
   return selectedNode ? (
     <FrameDrawer
@@ -197,11 +208,7 @@ function FrameStack(props: FrameStackProps) {
         </li>
       </FrameTabs>
 
-      {tab === 'call order' ? (
-        <FrameCallTreeStack {...props} roots={selectedNodeRoots} />
-      ) : (
-        <FrameCallTreeStack {...props} roots={selectedNodeRoots} />
-      )}
+      <FrameCallTreeStack {...props} roots={roots ?? []} />
     </FrameDrawer>
   ) : null;
 }
