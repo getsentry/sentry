@@ -109,6 +109,7 @@ describe('WidgetBuilder', function () {
   let eventsStatsMock: jest.Mock | undefined;
   let eventsv2Mock: jest.Mock | undefined;
   let sessionsDataMock: jest.Mock | undefined;
+  let metricsDataMock: jest.Mock | undefined;
   let tagsMock: jest.Mock | undefined;
 
   beforeEach(function () {
@@ -183,9 +184,17 @@ describe('WidgetBuilder', function () {
 
     sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/org-slug/sessions/`,
+      url: '/organizations/org-slug/sessions/',
       body: TestStubs.SessionsField({
         field: `sum(session)`,
+      }),
+    });
+
+    metricsDataMock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({
+        field: 'sum(sentry.sessions.session)',
       }),
     });
 
@@ -2443,9 +2452,7 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('resolved')).toBeInTheDocument();
     });
 
-    // Disabling for CI, but should run locally when making changes
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('Update table header values (field alias)', async function () {
+    it('Update table header values (field alias)', async function () {
       const handleSave = jest.fn();
 
       renderTestComponent({
@@ -2535,10 +2542,10 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByLabelText(/releases/i));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
       expect(screen.getByText('session')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('sum(…)'));
+      userEvent.click(screen.getByText('crash_free_rate(…)'));
       expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
       expect(screen.getByText('release')).toBeInTheDocument();
@@ -2560,8 +2567,8 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByLabelText(/releases/i));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
-      await selectEvent.select(screen.getByText('sum(…)'), 'count_unique(…)');
+      expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
+      await selectEvent.select(screen.getByText('crash_free_rate(…)'), 'count_unique(…)');
 
       userEvent.click(screen.getByText('user'));
       expect(screen.queryByText('release')).not.toBeInTheDocument();
@@ -2581,7 +2588,7 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByLabelText(/releases/i));
 
       expect(screen.getByText('High to low')).toBeEnabled();
-      expect(screen.getByText('sum(session)')).toBeInTheDocument();
+      expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
 
       userEvent.click(screen.getByLabelText('Add a Column'));
       await selectEvent.select(screen.getByText('(Required)'), 'session.status');
@@ -2605,12 +2612,12 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Line Chart'));
 
       await waitFor(() =>
-        expect(sessionsDataMock).toHaveBeenLastCalledWith(
-          `/organizations/org-slug/sessions/`,
+        expect(metricsDataMock).toHaveBeenLastCalledWith(
+          `/organizations/org-slug/metrics/data/`,
           expect.objectContaining({
             query: expect.objectContaining({
               environment: [],
-              field: [`sum(session)`],
+              field: [`session.crash_free_rate`],
               groupBy: [],
               interval: '5m',
               project: [],
@@ -2640,16 +2647,51 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
 
       await waitFor(() =>
+        expect(metricsDataMock).toHaveBeenLastCalledWith(
+          `/organizations/org-slug/metrics/data/`,
+          expect.objectContaining({
+            query: expect.objectContaining({
+              environment: [],
+              field: ['session.crash_free_rate'],
+              groupBy: ['project_id'],
+              interval: '5m',
+              orderBy: '-session.crash_free_rate',
+              per_page: 5,
+              project: [],
+              statsPeriod: '24h',
+            }),
+          })
+        )
+      );
+    });
+
+    it('calls sessions api when session.status is selected as a groupby', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
+      });
+
+      expect(
+        await screen.findByText('Releases (sessions, crash rates)')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText(/releases/i));
+
+      userEvent.click(screen.getByText('Table'));
+      userEvent.click(screen.getByText('Line Chart'));
+
+      await selectEvent.select(await screen.findByText('Select group'), 'session.status');
+
+      expect(screen.getByText('Limit to 5 results')).toBeInTheDocument();
+
+      await waitFor(() =>
         expect(sessionsDataMock).toHaveBeenLastCalledWith(
           `/organizations/org-slug/sessions/`,
           expect.objectContaining({
             query: expect.objectContaining({
               environment: [],
-              field: ['sum(session)'],
-              groupBy: ['project'],
+              field: ['crash_free_rate(session)'],
+              groupBy: ['session.status'],
               interval: '5m',
-              orderBy: '-sum(session)',
-              per_page: 5,
               project: [],
               statsPeriod: '24h',
             }),
@@ -2673,10 +2715,10 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
 
-      expect(screen.getByText('sum(…)')).toBeInTheDocument();
+      expect(screen.getByText('crash_free_rate(…)')).toBeInTheDocument();
       expect(screen.getByText(`session`)).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('sum(…)'));
+      userEvent.click(screen.getByText('crash_free_rate(…)'));
       expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('count_unique(…)'));
@@ -2700,9 +2742,9 @@ describe('WidgetBuilder', function () {
             widgetType: WidgetType.RELEASE,
             queries: [
               expect.objectContaining({
-                aggregates: [`sum(session)`],
-                fields: [`sum(session)`],
-                orderby: `-sum(session)`,
+                aggregates: [`crash_free_rate(session)`],
+                fields: [`crash_free_rate(session)`],
+                orderby: `-crash_free_rate(session)`,
               }),
             ],
           }),
@@ -2787,9 +2829,7 @@ describe('WidgetBuilder', function () {
       ).toBeDisabled();
     });
 
-    // Disabling for CI, but should run locally when making changes
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('renders with a release search bar', async function () {
+    it('renders with a release search bar', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
       });
@@ -2801,11 +2841,14 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('No items found')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
-      userEvent.type(
-        screen.getByPlaceholderText('Search for events, users, tags, and more'),
-        'session.status:'
+      userEvent.click(
+        screen.getByPlaceholderText(
+          'Search for release version, session status, and more'
+        )
       );
-      expect(await screen.findByText('crashed')).toBeInTheDocument();
+      expect(await screen.findByText('environment:')).toBeInTheDocument();
+      expect(screen.getByText('project:')).toBeInTheDocument();
+      expect(screen.getByText('release:')).toBeInTheDocument();
     });
   });
 
@@ -2837,9 +2880,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  // Disabling for CI, but should run locally when making changes
-  // eslint-disable-next-line jest/no-disabled-tests
-  describe.skip('group by field', function () {
+  describe('group by field', function () {
     it('does not contain functions as options', async function () {
       renderTestComponent({
         query: {displayType: 'line'},
@@ -2865,22 +2906,6 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Group your results');
       userEvent.click(screen.getByText('Add Group'));
       expect(await screen.findAllByText('Select group')).toHaveLength(2);
-    });
-
-    it('allows adding up to GROUP_BY_LIMIT fields', async function () {
-      renderTestComponent({
-        query: {displayType: 'line'},
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-      });
-
-      await screen.findByText('Group your results');
-
-      for (let i = 0; i < 19; i++) {
-        userEvent.click(screen.getByText('Add Group'));
-      }
-
-      expect(await screen.findAllByText('Select group')).toHaveLength(20);
-      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
 
     it("doesn't reset group by when changing y-axis", async function () {

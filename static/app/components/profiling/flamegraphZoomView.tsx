@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {FrameStack} from 'sentry/components/profiling/frameStack';
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
@@ -26,6 +27,10 @@ import {
   FlamegraphOptionsContextMenu,
   useContextMenu,
 } from './flamegraphOptionsContextMenu';
+
+function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
+  return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;
+}
 
 interface FlamegraphZoomViewProps {
   canvasBounds: Rect;
@@ -636,9 +641,10 @@ function FlamegraphZoomView({
             contextMenuProps={contextMenuProps}
           />
         ) : null}
-        {flamegraphRenderer &&
+        {flamegraphCanvas &&
+        flamegraphRenderer &&
         flamegraphView &&
-        flamegraphCanvas &&
+        configSpaceCursor &&
         hoveredNode?.frame?.name ? (
           <BoundTooltip
             bounds={canvasBounds}
@@ -646,7 +652,12 @@ function FlamegraphZoomView({
             flamegraphCanvas={flamegraphCanvas}
             flamegraphView={flamegraphView}
           >
-            {hoveredNode?.frame?.name}
+            {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
+            {formatWeightToProfileDuration(
+              hoveredNode.node,
+              flamegraphRenderer.flamegraph
+            )}{' '}
+            {hoveredNode.frame.name}
           </BoundTooltip>
         ) : null}
       </CanvasContainer>
