@@ -228,7 +228,7 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.METRIC_ALERT,
-      title: t('Create a Metric Alert'),
+      title: t('Create a Performance Alert'),
       description: t(
         'No one likes crashes and frozen frames. Define thresholds for metrics that trigger alerts for when your application’s performance is degrading.'
       ),
