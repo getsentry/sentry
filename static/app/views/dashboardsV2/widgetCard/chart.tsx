@@ -43,6 +43,7 @@ import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
+const OTHER = 'Other';
 export const SLIDER_HEIGHT = 60;
 
 export type AugmentedEChartDataZoomHandler = (
@@ -427,9 +428,10 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
             );
           }
 
+          const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
           const shouldColorOther = timeseriesResults
             ?.map(series => series.seriesName)
-            .includes('Other');
+            .some(seriesName => seriesName.match(otherRegex));
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(
                 timeseriesResults.length - (shouldColorOther ? 3 : 2)
