@@ -642,6 +642,7 @@ function FlamegraphZoomView({
       {flamegraphCanvas &&
       flamegraphRenderer &&
       flamegraphView &&
+      configSpaceCursor &&
       hoveredNode?.frame?.name ? (
         <BoundTooltip
           bounds={canvasBounds}
