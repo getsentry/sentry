@@ -713,7 +713,7 @@ function WidgetBuilder({
           aggregates: query.aggregates,
         });
         let orderOption: string;
-        // If no oderby options are available because of DISABLED_SORTS
+        // If no orderby options are available because of DISABLED_SORTS
         if (!!!orderOptions.length && state.dataSet === DataSet.RELEASES) {
           newQuery.orderby = '';
         } else {

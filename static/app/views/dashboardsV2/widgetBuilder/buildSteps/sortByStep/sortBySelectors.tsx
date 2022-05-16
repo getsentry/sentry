@@ -20,7 +20,6 @@ import Measurements from 'sentry/utils/measurements/measurements';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
-  filterPrimaryOptions as filterReleaseSortOptions,
   getAmendedFieldOptions,
   SortDirection,
   sortDirections,
@@ -183,16 +182,7 @@ export function SortBySelectors({
                 sortDirection: values.sortDirection,
               });
             }}
-            filterPrimaryOptions={option => {
-              if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
-                return false;
-              }
-              return filterReleaseSortOptions({
-                option,
-                widgetType,
-                displayType: DisplayType.TABLE,
-              });
-            }}
+            filterPrimaryOptions={filterPrimaryOptions}
           />
         </Tooltip>
       );
