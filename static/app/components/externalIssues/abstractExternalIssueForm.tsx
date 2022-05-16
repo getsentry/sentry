@@ -41,7 +41,6 @@ type State = {
 } & AsyncComponent['state'];
 
 const DEBOUNCE_MS = 200;
-
 /**
  * @abstract
  */
@@ -360,6 +359,7 @@ export default class AbstractExternalIssueForm<
                           disabled={this.state.reloading}
                           field={field}
                           flexibleControlStateSize
+                          inline={false}
                           stacked
                           {...this.getFieldProps(field)}
                         />
