@@ -1,3 +1,4 @@
+import os.path
 import re
 import subprocess
 
@@ -40,6 +41,8 @@ def main() -> int:
                 continue
 
         print(f"patching {filename}, you will only see this once")
+        sentry_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        patch = os.path.join(sentry_root, patch)
         if subprocess.call(("patch", "-f", "-p0", "-i", patch)):
             return 1
 
