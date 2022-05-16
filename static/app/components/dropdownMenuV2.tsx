@@ -19,6 +19,7 @@ import MenuControl from 'sentry/components/dropdownMenuControlV2';
 import MenuItem, {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import MenuSection from 'sentry/components/dropdownMenuSectionV2';
 import space from 'sentry/styles/space';
+import isMobile from 'sentry/utils/isMobile';
 
 type Props = {
   /**
@@ -101,7 +102,7 @@ function Menu({
   const {overlayProps} = useOverlay(
     {
       onClose: closeRootMenu,
-      shouldCloseOnBlur,
+      shouldCloseOnBlur: isMobile() ? false : shouldCloseOnBlur,
       isDismissable,
       isOpen: true,
     },

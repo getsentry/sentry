@@ -22,6 +22,7 @@ import SelectControl, {
 } from 'sentry/components/forms/selectControl';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
+import isMobile from 'sentry/utils/isMobile';
 
 interface TriggerRenderingProps {
   props: Omit<DropdownButtonProps, 'children'>;
@@ -137,7 +138,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   containerPadding = 8,
   placement = 'bottom left',
   closeOnSelect = true,
-  shouldCloseOnBlur = false,
+  shouldCloseOnBlur = true,
   isDismissable = true,
   menuTitle,
   ...props
@@ -162,7 +163,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
     {
       onClose: state.close,
       isOpen: state.isOpen,
-      shouldCloseOnBlur,
+      shouldCloseOnBlur: isMobile() ? false : shouldCloseOnBlur,
       isDismissable,
     },
     overlayRef
