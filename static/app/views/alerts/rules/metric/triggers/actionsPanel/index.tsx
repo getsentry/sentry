@@ -4,13 +4,15 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/selectControl';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {IconAdd, IconSettings} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
@@ -136,6 +138,29 @@ class ActionsPanel extends PureComponent<Props> {
     };
 
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
+  }
+
+  conditionallyRenderHelpfulBanner(triggerIndex: number, index: number) {
+    const {triggers} = this.props;
+    const {actions} = triggers[triggerIndex];
+    const newAction = {...actions[index]};
+    if (newAction.type === 'slack') {
+      return (
+        <MarginlessAlert type="warning">
+          {tct(
+            'Having rate limiting problems? Enter a channel or user ID. Read more [rateLimiting].',
+            {
+              rateLimiting: (
+                <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
+                  {t('here')}
+                </ExternalLink>
+              ),
+            }
+          )}
+        </MarginlessAlert>
+      );
+    }
+    return null;
   }
 
   handleAddAction = () => {
@@ -414,6 +439,7 @@ class ActionsPanel extends PureComponent<Props> {
                   />
                 </PanelItemGrid>
               </RuleRowContainer>
+              {this.conditionallyRenderHelpfulBanner(triggerIndex, actionIdx)}
             </div>
           );
         })}
@@ -481,6 +507,16 @@ const StyledListItem = styled(ListItem)`
 const PerformActionsListItem = styled(StyledListItem)`
   margin-bottom: 0;
   line-height: 1.3;
+`;
+
+const MarginlessAlert = styled(Alert)`
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-width: 0;
+  border-top: 1px ${p => p.theme.innerBorder} solid;
+  margin: 0;
+  padding: ${space(1)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export default withOrganization(ActionsPanelWithSpace);
