@@ -28,6 +28,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.db.models.base import Snowflake
 from sentry.db.models.utils import slugify_instance
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
@@ -165,6 +166,10 @@ class Project(Model, PendingDeletionMixin):
             return Counter.increment(self)
 
     def save(self, *args, **kwargs):
+        breakpoint()
+        snowflake = Snowflake()
+        if not self.id:
+            self.id = snowflake.snowflake_id_generation()
         if not self.slug:
             lock = locks.get("slug:project", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
@@ -175,9 +180,7 @@ class Project(Model, PendingDeletionMixin):
                     reserved=RESERVED_PROJECT_SLUGS,
                     max_length=50,
                 )
-            super().save(*args, **kwargs)
-        else:
-            super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):

@@ -48,6 +48,7 @@ class AuditLogEntry(Model):
     __repr__ = sane_repr("organization_id", "type")
 
     def save(self, *args, **kwargs):
+        breakpoint()
         if not self.actor_label:
             assert self.actor or self.actor_key
             if self.actor:

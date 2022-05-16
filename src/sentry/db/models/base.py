@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any, Callable, Mapping, Tuple, cast
 
 from django.db import models
@@ -90,6 +91,35 @@ class Model(BaseModel):
         abstract = True
 
     __repr__ = sane_repr("id")
+
+
+class Snowflake:
+    SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
+    VERSION_ID = 0
+    REGION_ID = 0
+    REGION_SEQUENCE = 0  # this needs to be auto incr
+
+    id = BoundedBigAutoField(primary_key=True)
+
+    def snowflake_id_generation(self):
+        def validate_snowflake_id():
+            if snowflake_id > MAX_VALUE:
+                raise Exception("ID exceed max value of 53 bits")
+
+        MAX_VALUE = 9007199254740992
+        current_time = datetime.now().timestamp()
+        # supports up to 130 years
+        time_difference = int(current_time - self.SENTRY_EPOCH_START)
+
+        snowflake_id = (
+            (self.VERSION_ID << 48)
+            + (time_difference << 16)
+            + (self.REGION_ID << 12)
+            + self.REGION_SEQUENCE
+        )
+
+        validate_snowflake_id()
+        return snowflake_id
 
 
 class DefaultFieldsModel(Model):
