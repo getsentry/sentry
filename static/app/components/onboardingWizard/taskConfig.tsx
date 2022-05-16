@@ -236,7 +236,7 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
       actionType: 'app',
       location: getMetricAlertUrl({projects, organization}),
-      display: organization.features.includes('incidents'),
+      display: organization.features?.includes('incidents'),
     },
   ];
 }
