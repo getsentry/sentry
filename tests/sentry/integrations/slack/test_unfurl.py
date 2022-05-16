@@ -1,5 +1,7 @@
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import freezegun
 import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
@@ -427,51 +429,62 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        first_event = self.store_event(
-            data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-        second_event = self.store_event(
-            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-        debug_first_event = first_event.event_id  # noqa: F841
-        debug_second_event = second_event.event_id  # noqa: F841
+        with freezegun.freeze_time(datetime.now() - timedelta(days=3)):
+            min_ago = iso_format(before_now(minutes=1))
+            first_event = self.store_event(
+                data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
+                project_id=self.project.id,
+            )
+            second_event = self.store_event(
+                data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
+                project_id=self.project.id,
+            )
+            url = (
+                f"https://sentry.io/organizations/{self.organization.slug}/discover/results/"
+                f"?field=message"
+                f"&field=event.type"
+                f"&field=count()"
+                f"&name=All+Events"
+                f"&query=message:[{first_event.message},{second_event.message}]"
+                f"&sort=-count"
+                f"&statsPeriod=24h"
+                f"&display=dailytop5"
+                f"&topEvents=2"
+            )
+            link_type, args = match_link(url)
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[{first_event.message},{second_event.message}]&sort=-count&statsPeriod=24h&display=dailytop5&topEvents=2"
-        link_type, args = match_link(url)
+            if not args or not link_type:
+                raise Exception("Missing link_type/args")
 
-        if not args or not link_type:
-            raise Exception("Missing link_type/args")
-
-        links = [
-            UnfurlableUrl(url=url, args=args),
-        ]
-
-        with self.feature(
-            [
-                "organizations:discover",
-                "organizations:discover-basic",
+            links = [
+                UnfurlableUrl(url=url, args=args),
             ]
-        ):
-            unfurls = link_handlers[link_type].fn(self.request, self.integration, links, self.user)
 
-        assert (
-            unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
-        )
-        assert len(mock_generate_chart.mock_calls) == 1
+            with self.feature(
+                [
+                    "organizations:discover",
+                    "organizations:discover-basic",
+                ]
+            ):
+                unfurls = link_handlers[link_type].fn(
+                    self.request, self.integration, links, self.user
+                )
 
-        assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_DAILY
-        chart_data = mock_generate_chart.call_args[0][1]
-        assert chart_data["seriesName"] == "count()"
-        assert len(chart_data["stats"].keys()) == 2
-        first_key = list(chart_data["stats"].keys())[0]
-        # Two buckets
-        assert len(chart_data["stats"][first_key]["data"]) == 2
+            assert (
+                unfurls[url]
+                == SlackDiscoverMessageBuilder(
+                    title=args["query"].get("name"), chart_url="chart-url"
+                ).build()
+            )
+            assert len(mock_generate_chart.mock_calls) == 1
+
+            assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOP5_DAILY
+            chart_data = mock_generate_chart.call_args[0][1]
+            assert chart_data["seriesName"] == "count()"
+            assert len(chart_data["stats"].keys()) == 2
+            first_key = list(chart_data["stats"].keys())[0]
+            # Two buckets
+            assert len(chart_data["stats"][first_key]["data"]) == 2
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover_short_url_without_project_ids(self, mock_generate_chart):
