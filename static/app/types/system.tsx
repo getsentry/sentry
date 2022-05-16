@@ -125,6 +125,7 @@ export interface Config {
   // Maintain isOnPremise key for backcompat (plugins?).
   isOnPremise: boolean;
   isSelfHosted: boolean;
+  isSingleTenant: boolean;
   languageCode: string;
   lastOrganization: string | null;
   /**
