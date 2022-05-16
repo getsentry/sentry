@@ -2,7 +2,9 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import AbstractExternalIssueForm from 'sentry/components/externalIssues/abstractExternalIssueForm';
+import AbstractExternalIssueForm, {
+  ExternalIssueFormErrors,
+} from 'sentry/components/externalIssues/abstractExternalIssueForm';
 import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -175,17 +177,16 @@ class TicketRuleModal extends AbstractExternalIssueForm<Props, State> {
   };
 
   getErrors() {
-    const errors: {[key: string]: React.ReactNode} = {};
+    const errors: ExternalIssueFormErrors = {};
     for (const field of this.cleanFields()) {
       if (field.type === 'select' && field.default) {
-        let found;
-        if (Array.isArray(field.default)) {
-          found = (field.choices || []).find(([value, _]) =>
-            ((field.default as Choices[0]) || []).includes(value)
-          );
-        } else {
-          found = (field.choices || []).find(([value, _]) => value === field.default);
-        }
+        const fieldChoices = (field.choices || []) as Choices;
+        const found = fieldChoices.find(([value, _]) =>
+          Array.isArray(field.default)
+            ? field.default.includes(value)
+            : value === field.default
+        );
+
         if (!found) {
           errors[field.name] = (
             <FieldErrorLabel>{`Could not fetch saved option for ${field.label}. Please reselect.`}</FieldErrorLabel>

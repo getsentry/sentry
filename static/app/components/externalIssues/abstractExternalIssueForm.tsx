@@ -19,6 +19,8 @@ import {FormField} from 'sentry/views/alerts/issueRuleEditor/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
+export type ExternalIssueFormErrors = {[key: string]: React.ReactNode};
+
 type Props = ModalRenderProps & AsyncComponent['props'];
 
 type State = {
@@ -320,7 +322,7 @@ export default class AbstractExternalIssueForm<
 
   renderForm = (
     formFields?: IssueConfigField[],
-    errors: {[key: string]: React.ReactNode} = {}
+    errors: ExternalIssueFormErrors = {}
   ) => {
     const initialData: {[key: string]: any} = (formFields || []).reduce(
       (accumulator, field: FormField) => {
@@ -358,7 +360,6 @@ export default class AbstractExternalIssueForm<
                           disabled={this.state.reloading}
                           field={field}
                           flexibleControlStateSize
-                          inline={false}
                           stacked
                           {...this.getFieldProps(field)}
                         />
