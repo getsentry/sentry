@@ -18,6 +18,8 @@ import {
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
 
+import OnboardingProjectsCard from './onboardingCard';
+
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
     ? projects.some(({platform}) => platform && sourceMaps.includes(platform))
@@ -213,6 +215,17 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: getIssueAlertUrl({projects, organization}),
       display: true,
+    },
+    {
+      task: OnboardingTaskKey.USER_SELECTED_PROJECTS,
+      title: t('Projects to Setup'),
+      description: '',
+      skippable: true,
+      requisites: [],
+      actionType: 'action',
+      action: () => {},
+      display: true,
+      renderCard: OnboardingProjectsCard,
     },
   ];
 }
