@@ -208,6 +208,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         illegal_slug = list(RESERVED_ORGANIZATION_SLUGS)[0]
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
+    def test_invalid_slug(self):
+        self.get_error_response(self.organization.slug, slug=" i have whitespace ", status_code=400)
+        self.get_error_response(self.organization.slug, slug="foo-bar ", status_code=400)
+        self.get_error_response(self.organization.slug, slug="bird-company!", status_code=400)
+
     def test_upload_avatar(self):
         data = {"avatarType": "upload", "avatar": b64encode(self.load_fixture("avatar.jpg"))}
         self.get_success_response(self.organization.slug, **data)
