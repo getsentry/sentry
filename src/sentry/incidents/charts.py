@@ -48,7 +48,7 @@ def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[st
         (end_date - start_date).total_seconds() * 1000, 3 * time_window_milliseconds
     )
     range = min(max_range, max(min_range, incident_range))
-    half_range = timedelta(seconds=range / 2)
+    half_range = timedelta(milliseconds=range / 2)
     return {
         "start": (start_date - half_range).strftime(TIME_FORMAT),
         "end": (end_date + half_range).strftime(TIME_FORMAT),
