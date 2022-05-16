@@ -646,7 +646,13 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             if ('type' in span) {
               return;
             }
-            this.props.markSpanInView(span.span_id, treeDepth);
+
+            if (this.props.numOfSpanChildren !== 0) {
+              const left =
+                treeDepth === 0 ? 0 : treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+              this.props.markSpanInView(span.span_id, left);
+            }
+
             // if the first span is below the minimap, we scroll the minimap
             // to the top. this addresses spurious scrolling to the top of the page
             if (spanNumber <= 1) {
@@ -663,7 +669,13 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             if ('type' in span) {
               return;
             }
-            this.props.markSpanOutOfView(span.span_id, treeDepth);
+
+            if (this.props.numOfSpanChildren !== 0) {
+              const left =
+                treeDepth === 0 ? 0 : treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+              this.props.markSpanOutOfView(span.span_id, left);
+            }
+
             return;
           }
 

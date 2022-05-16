@@ -12,8 +12,8 @@ import {DragManagerChildrenProps} from './dragManager';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
-  markSpanInView: (spanId: string, treeDepth: number) => void;
-  markSpanOutOfView: (spanId: string, treeDepth: number) => void;
+  markSpanInView: (spanId: string) => void;
+  markSpanOutOfView: (spanId: string, left: number) => void;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
@@ -456,16 +456,14 @@ export class Provider extends Component<Props, State> {
     }
   };
 
-  markSpanOutOfView = (spanId: string, treeDepth: number) => {
+  markSpanOutOfView = (spanId: string, left: number) => {
     if (this.spansOutOfView.has(spanId)) {
       return;
     }
 
-    this.spansOutOfView.set(spanId, treeDepth);
+    this.spansOutOfView.set(spanId, left);
 
-    const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
-    const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
-    this.performScroll(interactiveLayerRect.width * 0.05 * (treeDepth + 1));
+    this.performScroll(left);
   };
 
   markSpanInView = (spanId: string) => {
@@ -473,12 +471,10 @@ export class Provider extends Component<Props, State> {
       return;
     }
 
-    const treeDepth = this.spansOutOfView.get(spanId);
+    const left = this.spansOutOfView.get(spanId);
     this.spansOutOfView.delete(spanId);
 
-    const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
-    const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
-    this.performScroll(interactiveLayerRect.width * 0.05 * treeDepth!);
+    this.performScroll(left!);
   };
 
   render() {
