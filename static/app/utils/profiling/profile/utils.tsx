@@ -206,11 +206,9 @@ function indexNodeToParents(
 
   // Begin in each root node
   for (let i = 0; i < roots.length; i++) {
-    leafs.push(roots[i]);
-
-    // If the root has no children, continue
+    // If the root is a leaf node, push it to the leafs array
     if (!roots[i].children?.length) {
-      continue;
+      leafs.push(roots[i]);
     }
 
     // Init the map for the root in case we havent yet
