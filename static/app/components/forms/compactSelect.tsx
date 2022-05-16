@@ -273,6 +273,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
           {...mergeProps(overlayProps, positionProps)}
         >
           <SelectControl
+            components={{Control: CompactSelectControl, ClearIndicator: null}}
             {...props}
             options={options}
             value={valueProp ?? internalValue}
@@ -281,7 +282,6 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             menuTitle={menuTitle}
             placeholder={placeholder}
             isSearchable={isSearchable}
-            components={{Control: CompactSelectControl, ClearIndicator: null}}
             menuPlacement="bottom"
             menuIsOpen
             isCompact
@@ -333,10 +333,12 @@ const Overlay = styled('div')<{minWidth?: number}>`
 `;
 
 const MenuHeader = styled('div')`
+  position: relative;
   display: flex;
   justify-content: space-between;
-  padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(1.5)};
-  border-bottom: solid 1px ${p => p.theme.innerBorder};
+  padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
+  box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+  z-index: 1;
 `;
 
 const MenuTitle = styled('span')`
@@ -344,7 +346,7 @@ const MenuTitle = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
-  margin-right: ${space(1)};
+  margin-right: ${space(2)};
 `;
 
 const ClearButton = styled(Button)`

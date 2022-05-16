@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
@@ -12,6 +12,7 @@ import {
   PanelHeader as BasePanelHeader,
   PanelItem,
 } from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
 import ActionCategory from 'sentry/components/replays/actionCategory';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -20,51 +21,104 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
+import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
+
+function CrumbPlaceholder({number}: {number: number}) {
+  return (
+    <Fragment>
+      {[...Array(number)].map((_, i) => (
+        <PlaceholderMargin key={i} height="40px" />
+      ))}
+    </Fragment>
+  );
+}
 
 type Props = {
-  crumbs: Array<RawCrumb>;
-  event: EventTransaction;
+  /**
+   * Raw breadcrumbs, `undefined` means it is still loading
+   */
+  crumbs: RawCrumb[] | undefined;
+  /**
+   * Root replay event, `undefined` means it is still loading
+   */
+  event: EventTransaction | undefined;
+};
+
+type ContainerProps = {
+  isHovered: boolean;
+  isSelected: boolean;
 };
 
 function UserActionsNavigator({event, crumbs}: Props) {
-  const {setCurrentTime} = useReplayContext();
+  const {setCurrentTime, currentHoverTime} = useReplayContext();
   const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
+  const [closestUserAction, setClosestUserAction] = useState<Crumb>();
 
-  if (!event) {
-    return null;
-  }
+  const {startTimestamp} = event || {};
+  const userActionCrumbs = crumbs && onlyUserActions(transformCrumbs(crumbs));
+  const isLoaded = userActionCrumbs && startTimestamp;
 
-  const {startTimestamp} = event;
-  const userActionCrumbs = onlyUserActions(transformCrumbs(crumbs));
+  const getClosestUserAction = useCallback(
+    async (hovertime: number) => {
+      const closestUserActionItem = getCurrentUserAction(
+        userActionCrumbs,
+        startTimestamp,
+        hovertime
+      );
+      if (
+        closestUserActionItem &&
+        closestUserAction?.timestamp !== closestUserActionItem.timestamp
+      ) {
+        setClosestUserAction(closestUserActionItem);
+      }
+    },
+    [closestUserAction?.timestamp, startTimestamp, userActionCrumbs]
+  );
+
+  useEffect(() => {
+    if (!currentHoverTime) {
+      setClosestUserAction(undefined);
+      return;
+    }
+    getClosestUserAction(currentHoverTime);
+  }, [getClosestUserAction, currentHoverTime]);
 
   return (
     <Panel>
       <PanelHeader>{t('Event Chapters')}</PanelHeader>
 
       <PanelBody>
-        {userActionCrumbs.map(item => (
-          <PanelItemCenter
-            key={item.id}
-            className={
-              currentUserAction && currentUserAction.id === item.id ? 'selected' : ''
-            }
-            onClick={() => {
-              setCurrentUserAction(item);
-              item.timestamp
-                ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
-                : '';
-            }}
-          >
-            <Wrapper>
-              <Type type={item.type} color={item.color} description={item.description} />
-              <ActionCategory category={item} />
-            </Wrapper>
-            <PlayerRelativeTime
-              relativeTime={startTimestamp}
-              timestamp={item.timestamp}
-            />
-          </PanelItemCenter>
-        ))}
+        {!isLoaded && <CrumbPlaceholder number={4} />}
+        {isLoaded &&
+          userActionCrumbs.map(item => (
+            <PanelItemCenter
+              key={item.id}
+              onClick={() => {
+                setCurrentUserAction(item);
+                item.timestamp
+                  ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
+                  : '';
+              }}
+            >
+              <Container
+                isHovered={closestUserAction?.id === item.id}
+                isSelected={currentUserAction?.id === item.id}
+              >
+                <Wrapper>
+                  <Type
+                    type={item.type}
+                    color={item.color}
+                    description={item.description}
+                  />
+                  <ActionCategory category={item} />
+                </Wrapper>
+                <PlayerRelativeTime
+                  relativeTime={startTimestamp}
+                  timestamp={item.timestamp}
+                />
+              </Container>
+            </PanelItemCenter>
+          ))}
       </PanelBody>
     </Panel>
   );
@@ -99,19 +153,22 @@ const PanelBody = styled(BasePanelBody)`
 `;
 
 const PanelItemCenter = styled(PanelItem)`
+  display: block;
+  padding: ${space(0)};
+  cursor: pointer;
+`;
+
+const Container = styled('div')<ContainerProps>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: none;
+  border-left: 4px solid transparent;
   padding: ${space(1)} ${space(1.5)};
-  cursor: pointer;
   &:hover {
     background: ${p => p.theme.surface400};
-    border-color: transparent;
   }
-  &.selected {
-    background-color: ${p => p.theme.gray100};
-  }
+  ${p => p.isHovered && `background: ${p.theme.surface400};`}
+  ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
 `;
 
 const Wrapper = styled('div')`
@@ -120,6 +177,11 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray500};
+`;
+
+const PlaceholderMargin = styled(Placeholder)`
+  margin: ${space(1)} ${space(1.5)};
+  width: auto;
 `;
 
 export default UserActionsNavigator;

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -134,21 +134,6 @@ function ReleaseComparisonChart({
   );
 
   useEffect(() => {
-    if (hasDiscover || hasPerformance) {
-      fetchEventsTotals();
-      fetchIssuesTotals();
-    }
-  }, [
-    period,
-    start,
-    end,
-    organization.slug,
-    location.query.project,
-    location.query.environment?.toString(),
-    release.version,
-  ]);
-
-  useEffect(() => {
     const chartInUrl = decodeScalar(location.query.chart) as ReleaseComparisonChartType;
     if (
       [
@@ -158,7 +143,7 @@ function ReleaseComparisonChart({
         ReleaseComparisonChartType.CRASHED_SESSIONS,
       ].includes(chartInUrl)
     ) {
-      setExpanded(new Set(expanded.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
+      setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
     }
 
     if (
@@ -169,7 +154,7 @@ function ReleaseComparisonChart({
         ReleaseComparisonChartType.CRASHED_USERS,
       ].includes(chartInUrl)
     ) {
-      setExpanded(new Set(expanded.add(ReleaseComparisonChartType.CRASH_FREE_USERS)));
+      setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_USERS)));
     }
 
     if (
@@ -184,7 +169,7 @@ function ReleaseComparisonChart({
     }
   }, [location.query.chart]);
 
-  async function fetchEventsTotals() {
+  const fetchEventsTotals = useCallback(async () => {
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const commonQuery = {
       environment: decodeList(location.query.environment),
@@ -194,9 +179,7 @@ function ReleaseComparisonChart({
       ...(period ? {statsPeriod: period} : {}),
     };
 
-    if (eventsTotals === null) {
-      setEventsLoading(true);
-    }
+    setEventsLoading(true);
 
     try {
       const [
@@ -255,9 +238,18 @@ function ReleaseComparisonChart({
       setEventsLoading(false);
       Sentry.captureException(err);
     }
-  }
+  }, [
+    api,
+    end,
+    location.query.environment,
+    location.query.project,
+    organization.slug,
+    period,
+    release.version,
+    start,
+  ]);
 
-  async function fetchIssuesTotals() {
+  const fetchIssuesTotals = useCallback(async () => {
     const UNHANDLED_QUERY = `release:"${release.version}" error.handled:0`;
     const HANDLED_QUERY = `release:"${release.version}" error.handled:1`;
 
@@ -284,7 +276,23 @@ function ReleaseComparisonChart({
       setIssuesTotals(null);
       Sentry.captureException(err);
     }
-  }
+  }, [
+    api,
+    end,
+    location.query.environment,
+    organization.slug,
+    period,
+    project.id,
+    release.version,
+    start,
+  ]);
+
+  useEffect(() => {
+    if (hasDiscover || hasPerformance) {
+      fetchEventsTotals();
+      fetchIssuesTotals();
+    }
+  }, [fetchEventsTotals, fetchIssuesTotals, hasDiscover, hasPerformance]);
 
   const releaseCrashFreeSessions = getCrashFreeRate(
     releaseSessions?.groups,
