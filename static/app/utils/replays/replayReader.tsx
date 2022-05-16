@@ -43,7 +43,9 @@ export default class ReplayReader {
      * Regular Sentry SDK events that occurred during the rrweb session.
      */
     private _replayEvents: Event[]
-  ) {}
+  ) {
+    this._rrwebEvents.sort((a, b) => a.timestamp - b.timestamp);
+  }
 
   /**
    * The original `this._event.startTimestamp` and `this._event.endTimestamp`
@@ -56,27 +58,17 @@ export default class ReplayReader {
     const crumbs = this.getRawCrumbs();
     const spans = this.getRawSpans();
 
-    // Sort our data so we know we're getting the first or last record from the array.
-    const sortedRRwebEvents = Array.from(this._rrwebEvents).sort(
-      (a, b) => a.timestamp - b.timestamp
-    );
-    const sortedCrumbs = Array.from(crumbs).sort(
-      (a, b) => +new Date(a?.timestamp || 0) - +new Date(b?.timestamp || 0)
-    );
-    const startSortedSpans = Array.from(spans).sort(
-      (a, b) => a.start_timestamp - b.start_timestamp
-    );
     const endSortedSpans = Array.from(spans).sort((a, b) => a.timestamp - b.timestamp);
 
     return {
       startTimestsampMS: Math.min(
-        first(sortedRRwebEvents)?.timestamp || 0,
-        +new Date(first(sortedCrumbs)?.timestamp || 0),
-        (first(startSortedSpans)?.start_timestamp || 0) * 1000
+        first(this._rrwebEvents)?.timestamp || 0,
+        +new Date(first(crumbs)?.timestamp || 0),
+        (first(spans)?.start_timestamp || 0) * 1000
       ),
       endTimestampMS: Math.max(
-        last(sortedRRwebEvents)?.timestamp || 0,
-        +new Date(last(sortedCrumbs)?.timestamp || 0),
+        last(this._rrwebEvents)?.timestamp || 0,
+        +new Date(last(crumbs)?.timestamp || 0),
         (first(endSortedSpans)?.timestamp || 0) * 1000
       ),
     };
@@ -108,8 +100,7 @@ export default class ReplayReader {
     // mouse-move, but before page unload.
     const {startTimestsampMS, endTimestampMS} = this._getTimestampsMS();
 
-    const sortedRRwebEvents = this._rrwebEvents.sort((a, b) => a.timestamp - b.timestamp);
-    const firstRRWebEvent = first(sortedRRwebEvents);
+    const firstRRWebEvent = first(this._rrwebEvents);
     if (firstRRWebEvent) {
       firstRRWebEvent.timestamp = startTimestsampMS;
     }
@@ -117,7 +108,7 @@ export default class ReplayReader {
     // TODO(replay): We start rendering at `startTimestsampMS`, and then the
     // first rrweb data comes later at `this._rrwebEvents[0].timestamp`.
     // Can/should we inject an rrweb event, like `FullSnapshot` so that
-    // there is something to render in that inbetween time?
+    // there is something to render in that 'in-between' time?
 
     const endEvent = {
       type: 5, // EventType.Custom,
