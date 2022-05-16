@@ -2846,9 +2846,9 @@ describe('WidgetBuilder', function () {
           'Search for release version, session status, and more'
         )
       );
-      expect(await screen.findByText(/environment/)).toBeInTheDocument();
-      expect(screen.getByText(/project/)).toBeInTheDocument();
-      expect(screen.getByText(/release/)).toBeInTheDocument();
+      expect(await screen.findByText('environment:')).toBeInTheDocument();
+      expect(screen.getByText('project:')).toBeInTheDocument();
+      expect(screen.getByText('release:')).toBeInTheDocument();
     });
   });
 
