@@ -2,7 +2,7 @@ import {lastOfArray} from 'sentry/utils';
 
 import {Rect} from './gl/utils';
 import {Profile} from './profile/profile';
-import {makeFormatter} from './units/units';
+import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
 import {FlamegraphFrame} from './flamegraphFrame';
 
@@ -20,6 +20,8 @@ export class Flamegraph {
   configSpace: Rect = new Rect(0, 0, 0, 0);
 
   formatter: (value: number) => string;
+  timelineFormatter: (value: number) => string;
+
   frameIndex: Record<string, FlamegraphFrame> = {};
 
   static Empty(): Flamegraph {
@@ -45,7 +47,7 @@ export class Flamegraph {
     this.inverted = inverted;
     this.leftHeavy = leftHeavy;
 
-    // @TODO check if we can not keep a reference to the profile
+    // @TODO check if we can get rid of this profile reference
     this.profile = profile;
     this.profileIndex = profileIndex;
 
@@ -57,6 +59,7 @@ export class Flamegraph {
       : this.buildCallOrderGraph(profile, configSpace ? configSpace.x : 0);
 
     this.formatter = makeFormatter(profile.unit);
+    this.timelineFormatter = makeTimelineFormatter(profile.unit);
 
     // If the profile duration is 0, set the flamegraph duration
     // to 1 second so we can render a placeholder grid
