@@ -29,6 +29,7 @@ SESSION_AGGREGATE_TO_FIELD = {
 
 API_INTERVAL_POINTS_LIMIT = 10000
 API_INTERVAL_POINTS_MIN = 150
+TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
 def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[str, str]:
@@ -50,8 +51,8 @@ def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[st
     range = min(max_range, max(min_range, incident_range))
     half_range = timedelta(seconds=range / 2)
     return {
-        "start": (start_date - half_range).strftime("%Y-%m-%dT%H:%M:%S"),
-        "end": (end_date + half_range).strftime("%Y-%m-%dT%H:%M:%S"),
+        "start": (start_date - half_range).strftime(TIME_FORMAT),
+        "end": (end_date + half_range).strftime(TIME_FORMAT),
     }
 
 
@@ -168,7 +169,11 @@ def build_metric_alert_chart(
     elif start and end:
         time_period = {"start": start, "end": end}
     else:
-        time_period = get_datetime_from_stats_period(period if period else "10000m")
+        start = get_datetime_from_stats_period(period if period else "10000m")
+        time_period = {
+            "start": start.strftime(TIME_FORMAT),
+            "end": timezone.now().strftime(TIME_FORMAT),
+        }
 
     chart_data = {
         "rule": serialize(alert_rule, user, AlertRuleSerializer()),
