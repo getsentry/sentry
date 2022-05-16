@@ -706,13 +706,20 @@ function WidgetBuilder({
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
       } else if (widgetBuilderNewDesign && !newQuery.orderby) {
-        const orderOption = generateOrderOptions({
+        const orderOptions = generateOrderOptions({
           widgetType: widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
           columns: query.columns,
           aggregates: query.aggregates,
-        })[0].value;
-        newQuery.orderby = `-${orderOption}`;
+        });
+        let orderOption: string;
+        // If no orderby options are available because of DISABLED_SORTS
+        if (!!!orderOptions.length && state.dataSet === DataSet.RELEASES) {
+          newQuery.orderby = '';
+        } else {
+          orderOption = orderOptions[0].value;
+          newQuery.orderby = `-${orderOption}`;
+        }
       } else if (
         !widgetBuilderNewDesign &&
         aggregateAliasFieldStrings.length &&

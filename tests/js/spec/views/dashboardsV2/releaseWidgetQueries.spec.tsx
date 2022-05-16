@@ -154,6 +154,206 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
+  it('strips injected sort columns', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
+    });
+    const children = jest.fn(() => <div />);
+
+    const injectedOrderby = {
+      title: 'Sessions',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          conditions: '',
+          fields: [`sum(session)`],
+          aggregates: [`sum(session)`],
+          columns: [],
+          name: 'sessions',
+          orderby: '-count_unique(user)',
+        },
+      ],
+      widgetType: WidgetType.RELEASE,
+    };
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={injectedOrderby}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    await waitFor(() =>
+      expect(children).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          errorMessage: undefined,
+          loading: false,
+          timeseriesResults: [
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 0},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 23},
+                {name: '2022-01-25T00:00:00Z', value: 11},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > crashed, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 0},
+                {name: '2022-01-25T00:00:00Z', value: 0},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > abnormal, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 0},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 37},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 335},
+                {name: '2022-01-25T00:00:00Z', value: 79},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > errored, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 0},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 2503},
+                {name: '2022-01-21T00:00:00Z', value: 661},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 1464},
+                {name: '2022-01-25T00:00:00Z', value: 430},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > healthy, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 23},
+                {name: '2022-01-25T00:00:00Z', value: 11},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > crashed, 2 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 0},
+                {name: '2022-01-25T00:00:00Z', value: 0},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > abnormal, 2 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 37},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 335},
+                {name: '2022-01-25T00:00:00Z', value: 79},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > errored, 2 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 2503},
+                {name: '2022-01-21T00:00:00Z', value: 661},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 1464},
+                {name: '2022-01-25T00:00:00Z', value: 430},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > healthy, 2 : sum(session)',
+            },
+          ],
+        })
+      )
+    );
+  });
+
   it('can send table requests', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
