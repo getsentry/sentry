@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
+import trimStart from 'lodash/trimStart';
 
 import {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -88,9 +89,14 @@ export const renderIssueGridHeaderCell =
 export const renderDiscoverGridHeaderCell =
   ({location, selection, widget, tableData, organization, onHeaderClick}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+    const {orderby} = widget.queries[0];
+    // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
+    const aggregateAliasOrderBy = `${
+      orderby.startsWith('-') ? '-' : ''
+    }${getAggregateAlias(trimStart(orderby, '-'))}`;
     const eventView = eventViewFromWidget(
       widget.title,
-      widget.queries[0],
+      {...widget.queries[0], orderby: aggregateAliasOrderBy},
       selection,
       widget.displayType
     );
@@ -102,7 +108,7 @@ export const renderDiscoverGridHeaderCell =
         return undefined;
       }
 
-      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const nextEventView = eventView.sortOnField(field, tableMeta, undefined, true);
       const queryStringObject = nextEventView.generateQueryStringObject();
 
       return {
