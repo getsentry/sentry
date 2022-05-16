@@ -25,8 +25,8 @@ import {
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/rules/metric/types';
 
-import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../types';
-import {isIssueAlert} from '../utils';
+import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../../types';
+import {isIssueAlert} from '../../utils';
 
 type Props = {
   hasDuplicateAlertRules: boolean;
@@ -211,7 +211,7 @@ function RuleListRow({
           onConfirm: () => onDelete(slug, rule),
           header: t('Delete Alert Rule?'),
           message: tct(
-            "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
+            "Are you sure you want to delete [name]? You won't be able to view the incidents of this alert once it's deleted.",
             {name: rule.name}
           ),
           confirmText: t('Delete Rule'),

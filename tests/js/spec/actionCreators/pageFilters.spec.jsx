@@ -288,7 +288,7 @@ describe('PageFilters ActionCreators', function () {
       expect(PageFiltersActions.updateProjects).not.toHaveBeenCalled();
     });
 
-    it('updates history when queries are different', function () {
+    it('updates incidents when queries are different', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -304,7 +304,7 @@ describe('PageFilters ActionCreators', function () {
         query: {project: ['1']},
       });
     });
-    it('does not update history when queries are the same', function () {
+    it('does not update incidents when queries are the same', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -319,7 +319,7 @@ describe('PageFilters ActionCreators', function () {
       expect(router.push).not.toHaveBeenCalled();
     });
 
-    it('updates history when queries are different with replace', function () {
+    it('updates incidents when queries are different with replace', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',
@@ -334,7 +334,7 @@ describe('PageFilters ActionCreators', function () {
       });
     });
 
-    it('does not update history when queries are the same with replace', function () {
+    it('does not update incidents when queries are the same with replace', function () {
       const router = TestStubs.router({
         location: {
           pathname: '/test/',

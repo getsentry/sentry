@@ -436,7 +436,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         expect(browserHistory.push).not.toHaveBeenCalled();
       });
 
-      it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser history', async function () {
+      it('renders a display toggle that changes a chart view between timeseries and histogram by pushing it to the browser incidents', async function () {
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans-histogram/',
           body: [

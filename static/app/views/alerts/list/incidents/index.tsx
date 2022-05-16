@@ -20,12 +20,12 @@ import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import Projects from 'sentry/utils/projects';
 
-import FilterBar from '../filterBar';
-import {Incident} from '../types';
-import {getQueryStatus, getTeamParams} from '../utils';
+import FilterBar from '../../filterBar';
+import {Incident} from '../../types';
+import {getQueryStatus, getTeamParams} from '../../utils';
+import AlertHeader from '../header';
+import Onboarding from '../onboarding';
 
-import AlertHeader from './header';
-import Onboarding from './onboarding';
 import AlertListRow from './row';
 
 const DOCS_URL =

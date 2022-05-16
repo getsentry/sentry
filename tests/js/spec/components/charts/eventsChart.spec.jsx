@@ -71,7 +71,7 @@ describe('EventsChart', function () {
     expect(render).toHaveBeenCalledTimes(1);
   });
 
-  it('has correct history entries when zooming', function () {
+  it('has correct incidents entries when zooming', function () {
     const chartZoomInstance = wrapper.find('ChartZoom').instance();
 
     doZoom(wrapper, chart);
@@ -101,7 +101,7 @@ describe('EventsChart', function () {
     expect(chartZoomInstance.history[1].start).toEqual('2018-11-29T00:00:00');
     expect(chartZoomInstance.history[1].end).toEqual('2018-12-02T00:00:00');
 
-    // go back in history
+    // go back in incidents
     mockZoomRange(null, null);
     doZoom(wrapper, chart);
     expect(chartZoomInstance.currentPeriod.period).toEqual(null);
@@ -132,7 +132,7 @@ describe('EventsChart', function () {
     const chartZoomInstance = wrapper.find('ChartZoom').instance();
     expect(chartZoomInstance.history).toHaveLength(3);
 
-    // Restore history
+    // Restore incidents
     chartZoomInstance.handleZoomRestore();
     chartZoomInstance.handleChartFinished({}, chart);
     expect(chartZoomInstance.currentPeriod).toEqual({

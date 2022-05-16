@@ -103,7 +103,7 @@ export type ApiApplication = {
   termsUrl: string | null;
 };
 
-// Used in user session history.
+// Used in user session incidents.
 export type InternetProtocol = {
   countryCode: string | null;
   firstSeen: string;

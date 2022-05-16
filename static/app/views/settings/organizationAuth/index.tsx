@@ -28,7 +28,7 @@ class OrganizationAuth extends AsyncView<Props, State> {
       // to django configuration view
       const path = `/organizations/${this.props.params.orgId}/auth/configure/`;
 
-      // Don't break the back button by first replacing the current history
+      // Don't break the back button by first replacing the current incidents
       // state so pressing back skips this react view.
       this.props.router.replace(path);
       window.location.assign(path);

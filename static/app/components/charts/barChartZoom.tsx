@@ -105,7 +105,7 @@ class BarChartZoom extends Component<Props> {
 
     // Both of these values should not be null, but we include it just in case.
     // These values are null when the user uses the toolbox included in ECharts
-    // to navigate back through zoom history, but we hide it below.
+    // to navigate back through zoom incidents, but we hide it below.
     if (startValue !== null && endValue !== null) {
       const {buckets, location, paramStart, paramEnd, minZoomWidth, onHistoryPush} =
         this.props;

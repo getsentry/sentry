@@ -1026,13 +1026,13 @@ function buildRoutes() {
       component={SafeLazyLoad}
     >
       <IndexRoute
-        componentPromise={() => import('sentry/views/alerts/list')}
+        componentPromise={() => import('sentry/views/alerts/list/incidents')}
         component={SafeLazyLoad}
       />
       <Route path="rules/">
         <IndexRoute
           component={SafeLazyLoad}
-          componentPromise={() => import('sentry/views/alerts/rules')}
+          componentPromise={() => import('sentry/views/alerts/list/rules')}
         />
         <Route
           path="details/:ruleId/"

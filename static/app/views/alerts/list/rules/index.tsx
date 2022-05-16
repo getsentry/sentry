@@ -18,10 +18,10 @@ import Projects from 'sentry/utils/projects';
 import Teams from 'sentry/utils/teams';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-import FilterBar from '../filterBar';
-import AlertHeader from '../list/header';
-import {AlertRuleType, CombinedMetricIssueAlerts} from '../types';
-import {getTeamParams, isIssueAlert} from '../utils';
+import FilterBar from '../../filterBar';
+import {AlertRuleType, CombinedMetricIssueAlerts} from '../../types';
+import {getTeamParams, isIssueAlert} from '../../utils';
+import AlertHeader from '../header';
 
 import RuleListRow from './row';
 

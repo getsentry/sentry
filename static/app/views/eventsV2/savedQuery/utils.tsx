@@ -105,7 +105,7 @@ export function handleUpdateQuery(
         ...extractAnalyticsQueryFields(payload),
       });
       // NOTE: there is no need to convert _saved into an EventView and push it
-      //       to the browser history, since this.props.eventView already
+      //       to the browser incidents, since this.props.eventView already
       //       derives from location.
 
       return savedQuery;
