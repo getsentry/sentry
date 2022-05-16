@@ -17,7 +17,7 @@ import {
   COMPARISON_INTERVAL_CHOICES,
   COMPARISON_TYPE_CHOICE_VALUES,
   COMPARISON_TYPE_CHOICES,
-} from 'sentry/views/alerts/changeAlerts/constants';
+} from 'sentry/views/alerts/utils/constants';
 import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import RuleNode from './ruleNode';

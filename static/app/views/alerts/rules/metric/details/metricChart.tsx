@@ -43,7 +43,6 @@ import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
-import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {makeDefaultCta} from 'sentry/views/alerts/rules/metric/metricRulePresets';
 import {
@@ -51,6 +50,7 @@ import {
   MetricRule,
   TimePeriod,
 } from 'sentry/views/alerts/rules/metric/types';
+import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
@@ -405,7 +405,7 @@ class MetricChart extends PureComponent<Props, State> {
                             ? NaN
                             : ((pointY - comparisonPointY) * 100) / comparisonPointY;
 
-                        const changeStatus = checkChangeStatus(
+                        const changeStatus = getChangeStatus(
                           changePercentage,
                           rule.thresholdType,
                           rule.triggers

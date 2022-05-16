@@ -15,7 +15,6 @@ import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import theme from 'sentry/utils/theme';
-import {checkChangeStatus} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -23,6 +22,7 @@ import {
   isSessionAggregate,
   shouldScaleAlertChart,
 } from 'sentry/views/alerts/utils';
+import {getChangeStatus} from 'sentry/views/alerts/utils/getChangeStatus';
 
 import {
   AlertRuleThresholdType,
@@ -385,11 +385,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
 
           const changePercentage = ((pointY - comparisonPointY) * 100) / comparisonPointY;
 
-          const changeStatus = checkChangeStatus(
-            changePercentage,
-            thresholdType,
-            triggers
-          );
+          const changeStatus = getChangeStatus(changePercentage, thresholdType, triggers);
 
           const changeStatusColor =
             changeStatus === AlertRuleTriggerType.CRITICAL

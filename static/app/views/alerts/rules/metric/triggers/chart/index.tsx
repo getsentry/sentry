@@ -27,9 +27,9 @@ import {
   MINUTES_THRESHOLD_TO_DISPLAY_SECONDS,
 } from 'sentry/utils/sessions';
 import withApi from 'sentry/utils/withApi';
-import {getComparisonMarkLines} from 'sentry/views/alerts/changeAlerts/comparisonMarklines';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
 import {isSessionAggregate, SESSION_AGGREGATE_TO_FIELD} from 'sentry/views/alerts/utils';
+import {getComparisonMarkLines} from 'sentry/views/alerts/utils/getComparisonMarkLines';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 

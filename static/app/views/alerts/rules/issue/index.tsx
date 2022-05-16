@@ -55,7 +55,7 @@ import withProjects from 'sentry/utils/withProjects';
 import {
   CHANGE_ALERT_CONDITION_IDS,
   CHANGE_ALERT_PLACEHOLDERS_LABELS,
-} from 'sentry/views/alerts/changeAlerts/constants';
+} from 'sentry/views/alerts/utils/constants';
 import AsyncView from 'sentry/views/asyncView';
 
 import RuleNodeList from './ruleNodeList';
