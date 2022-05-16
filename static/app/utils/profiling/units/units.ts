@@ -38,19 +38,8 @@ export function makeFormatter(from: Unit | string): (value: number) => string {
   };
 }
 
-function templateString(template: string, value: number) {
-  if (value === 0) {
-    return template;
-  }
-
-  const str = [...Math.floor(value).toString()].reverse();
-  const out: string[] = [];
-
-  for (let i = 0; i < template.length; i++) {
-    out[template.length - 1 - i] = str[i] || template.charAt(i);
-  }
-
-  return out.join('');
+function pad(n: number, slots: number) {
+  return Math.floor(n).toString().padStart(slots, '0');
 }
 
 export function makeTimelineFormatter(from: Unit | string) {
@@ -65,9 +54,6 @@ export function makeTimelineFormatter(from: Unit | string) {
     const m = s / 60;
     const ms = s * 1e3;
 
-    return `${templateString('00', m)}:${templateString('00', s % 60)}.${templateString(
-      '000',
-      ms % 1e3
-    )}`;
+    return `${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
   };
 }
