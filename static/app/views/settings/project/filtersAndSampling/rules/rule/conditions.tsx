@@ -10,8 +10,7 @@ import {
   DynamicSamplingConditionOperator,
 } from 'sentry/types/dynamicSampling';
 
-import {isInnerCustomTag} from '../../modal/utils';
-import {getCustomTagLabel, getInnerNameLabel, LEGACY_BROWSER_LIST} from '../../utils';
+import {getInnerNameLabel, LEGACY_BROWSER_LIST} from '../../utils';
 
 type Props = {
   condition: DynamicSamplingCondition;
@@ -46,11 +45,7 @@ function Conditions({condition}: Props) {
         <Wrapper>
           {inner.map((innerItem, index) => (
             <div key={index}>
-              <Label>
-                {isInnerCustomTag(innerItem)
-                  ? getCustomTagLabel(innerItem.tagKey)
-                  : getInnerNameLabel(innerItem.name)}
-              </Label>
+              <Label>{getInnerNameLabel(innerItem.name)}</Label>
               {getConvertedValue(innerItem.value)}
             </div>
           ))}

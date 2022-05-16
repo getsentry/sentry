@@ -72,7 +72,7 @@ export enum DynamicSamplingInnerName {
   EVENT_LEGACY_BROWSER = 'event.legacy_browser',
   EVENT_ERROR_MESSAGES = 'event.error_messages',
   EVENT_CSP = 'event.csp',
-  EVENT_CUSTOM_TAG = 'event.custom_tag',
+  EVENT_CUSTOM_TAG = 'event.custom_tag', // used for the fresh new custom tag condition (gets replaced once you choose tag key)
 }
 
 export enum LegacyBrowser {
@@ -96,7 +96,8 @@ type DynamicSamplingConditionLogicalInnerGlob = {
     | DynamicSamplingInnerName.EVENT_OS_VERSION
     | DynamicSamplingInnerName.EVENT_DEVICE_FAMILY
     | DynamicSamplingInnerName.EVENT_DEVICE_NAME
-    | DynamicSamplingInnerName.EVENT_CUSTOM_TAG;
+    | DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+    | string; // for custom tags
   op: DynamicSamplingInnerOperator.GLOB_MATCH;
   value: Array<string>;
 };
@@ -140,20 +141,12 @@ type DynamicSamplingConditionLogicalInnerCustomLegacyBrowser = {
   value: Array<LegacyBrowser>;
 };
 
-export type DynamicSamplingConditionLogicalInnerCustomTag = {
-  name: DynamicSamplingInnerName.EVENT_CUSTOM_TAG;
-  op: DynamicSamplingInnerOperator.GLOB_MATCH;
-  tagKey: string;
-  value: Array<string>;
-};
-
 export type DynamicSamplingConditionLogicalInner =
   | DynamicSamplingConditionLogicalInnerGlob
   | DynamicSamplingConditionLogicalInnerEq
   | DynamicSamplingConditionLogicalInnerEqBoolean
   | DynamicSamplingConditionLogicalInnerCustom
-  | DynamicSamplingConditionLogicalInnerCustomLegacyBrowser
-  | DynamicSamplingConditionLogicalInnerCustomTag;
+  | DynamicSamplingConditionLogicalInnerCustomLegacyBrowser;
 
 export type DynamicSamplingCondition = {
   inner: Array<DynamicSamplingConditionLogicalInner>;

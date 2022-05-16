@@ -24,8 +24,12 @@ import {
 import {defined} from 'sentry/utils';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
+import {getInnerNameLabel, isCustomTagName} from '../utils';
+
 import Conditions from './conditions';
-import {getErrorMessage, isInnerCustomTag, isLegacyBrowser} from './utils';
+import {getErrorMessage, isLegacyBrowser} from './utils';
+
+const conditionAlreadyAddedTooltip = t('This condition has already been added');
 
 type ConditionsProps = React.ComponentProps<typeof Conditions>['conditions'];
 
@@ -111,7 +115,6 @@ function RuleModal({
             return {
               category: name,
               match: value.join('\n'),
-              ...(isInnerCustomTag(innerItem) && {tagKey: innerItem.tagKey ?? ''}),
             };
           }
           return {category: name};
@@ -196,7 +199,7 @@ function RuleModal({
     newConditions[index][field] = value;
 
     // If custom tag key changes, reset the value
-    if (field === 'tagKey') {
+    if (field === 'category') {
       newConditions[index].match = '';
     }
 
@@ -218,8 +221,43 @@ function RuleModal({
         return false;
       }
 
+      // They probably did not specify custom tag key
+      if (
+        condition.category === '' ||
+        condition.category === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+      ) {
+        return true;
+      }
+
       return !condition.match;
     });
+
+  const customTagConditionsOptions = conditions
+    .filter(
+      condition =>
+        isCustomTagName(condition.category) &&
+        condition.category !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+    )
+    .map(({category}) => ({
+      value: category,
+      label: getInnerNameLabel(category),
+      disabled: true,
+      tooltip: conditionAlreadyAddedTooltip,
+    }));
+
+  const predefinedConditionsOptions = conditionCategories.map(([value, label]) => {
+    // Never disable the "Add Custom Tag" option, you can add more of those
+    const disabled =
+      value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+        ? false
+        : conditions.some(condition => condition.category === value);
+    return {
+      value,
+      label,
+      disabled,
+      tooltip: disabled ? conditionAlreadyAddedTooltip : undefined,
+    };
+  });
 
   return (
     <Fragment>
@@ -237,21 +275,7 @@ function RuleModal({
                 triggerLabel={t('Add Condition')}
                 placeholder={t('Filter conditions')}
                 isOptionDisabled={opt => opt.disabled}
-                options={conditionCategories.map(([value, label]) => {
-                  // Never disable the "Add Custom Tag" option, you can add more of those
-                  const disabled =
-                    value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
-                      ? false
-                      : conditions.some(condition => condition.category === value);
-                  return {
-                    value,
-                    label,
-                    disabled,
-                    tooltip: disabled
-                      ? t('This condition has already been added')
-                      : undefined,
-                  };
-                })}
+                options={[...customTagConditionsOptions, ...predefinedConditionsOptions]}
                 value={conditions
                   // We need to filter our custom tag option so that it can be selected multiple times without being unselected every other time
                   .filter(
