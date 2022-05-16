@@ -44,7 +44,7 @@ type getFieldsOpts = {
   /**
    * Callback when u2f device is activated
    */
-  onU2fTap: U2fsign['props']['onTap'];
+  onU2fTap: React.ComponentProps<typeof U2fsign>['onTap'];
   /**
    * Flag to track if we are currently sending the otp code
    */
