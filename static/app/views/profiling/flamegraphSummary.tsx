@@ -1,7 +1,8 @@
-import {Fragment, useCallback, useEffect, useMemo, useReducer} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -14,6 +15,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -23,7 +25,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProfileGroup} from './profileGroupProvider';
 import {generateFlamegraphRoute} from './routes';
 
-const PER_PAGE = 50;
+const RESULTS_PER_PAGE = 50;
 
 function FlamegraphSummary() {
   const location = useLocation();
@@ -33,66 +35,85 @@ function FlamegraphSummary() {
   const cursor = useMemo<number>(() => {
     const cursorQuery = decodeScalar(location.query.cursor, '');
     return parseInt(cursorQuery, 10) || 0;
-  }, [location]);
+  }, [location.query.cursor]);
 
   const query = useMemo<string>(() => decodeScalar(location.query.query, ''), [location]);
 
-  const allNodes = useMemo(() => {
+  const allFunctions: TableDataRow[] = useMemo(() => {
     return state.type === 'resolved'
-      ? state.data.profiles.flatMap(profile =>
-          profile.getNodes().map(node => ({
-            symbol: node.frame.name,
-            image: node.frame.image,
-            thread: profile.threadId,
-            type: node.frame.is_application ? 'application' : 'system',
-            'self weight': node.selfWeight,
-            'total weight': node.totalWeight,
-          }))
-        )
+      ? state.data.profiles
+          .flatMap(profile => {
+            const nodes: CallTreeNode[] = [];
+
+            profile.forEach(
+              node => {
+                if (node.selfWeight > 0) {
+                  nodes.push(node);
+                }
+              },
+              () => {}
+            );
+
+            return (
+              nodes
+                .sort((a, b) => b.selfWeight - a.selfWeight)
+                // take only the slowest nodes from each thread because the rest
+                // aren't useful to display
+                .slice(0, 500)
+                .map(node => ({
+                  symbol: node.frame.name,
+                  image: node.frame.image,
+                  thread: profile.threadId,
+                  type: node.frame.is_application ? 'application' : 'system',
+                  'self weight': node.selfWeight,
+                  'total weight': node.totalWeight,
+                }))
+            );
+          })
+          .sort((a, b) => b['self weight'] - a['self weight'])
       : [];
   }, [state]);
 
   const searchIndex = useMemo(() => {
-    return new Fuse(allNodes, {
+    return new Fuse(allFunctions, {
       keys: ['symbol'],
       threshold: 0.3,
       includeMatches: true,
     });
-  }, [allNodes]);
+  }, [allFunctions]);
 
-  const [slowestFunctions, setNodes] = useReducer(
-    (_state, newNodes) =>
-      newNodes.slice().sort((a, b) => b['self weight'] - a['self weight']),
-    []
-  );
+  const [slowestFunctions, setSlowestFunctions] = useState<TableDataRow[]>([]);
 
   const pageLinks = useMemo(() => {
-    const suffix = window.location.search ? '&' : '?';
-    const url = `${window.location.origin}${window.location.pathname}${window.location.search}${suffix}`;
-
-    const prevResults = cursor >= PER_PAGE ? 'true' : 'false';
-    const prevCursor = cursor >= PER_PAGE ? cursor - PER_PAGE : 0;
-    const prevHref = `${url}cursor=${prevCursor}`;
+    const prevResults = cursor >= RESULTS_PER_PAGE ? 'true' : 'false';
+    const prevCursor = cursor >= RESULTS_PER_PAGE ? cursor - RESULTS_PER_PAGE : 0;
+    const prevQuery = {...location.query, cursor: prevCursor};
+    const prevHref = `${location.pathname}${qs.stringify(prevQuery)}`;
     const prev = `<${prevHref}>; rel="previous"; results="${prevResults}"; cursor="${prevCursor}"`;
 
-    const nextResults = cursor + PER_PAGE < slowestFunctions.length ? 'true' : 'false';
+    const nextResults =
+      cursor + RESULTS_PER_PAGE < slowestFunctions.length ? 'true' : 'false';
     const nextCursor =
-      cursor + PER_PAGE < slowestFunctions.length ? cursor + PER_PAGE : 0;
-    const nextHref = `${url}cursor=${nextCursor}`;
+      cursor + RESULTS_PER_PAGE < slowestFunctions.length ? cursor + RESULTS_PER_PAGE : 0;
+    const nextQuery = {...location.query, cursor: nextCursor};
+    const nextHref = `${location.pathname}${qs.stringify(nextQuery)}`;
     const next = `<${nextHref}>; rel="next"; results="${nextResults}"; cursor="${nextCursor}"`;
 
     return `${prev},${next}`;
-  }, [cursor, slowestFunctions]);
+  }, [cursor, location, slowestFunctions]);
 
   useEffect(() => {
     if (!query) {
-      setNodes(allNodes);
+      setSlowestFunctions(allFunctions);
       return;
     }
 
-    const fuseResults = searchIndex.search(query);
-    setNodes(fuseResults.map(result => result.item));
-  }, [allNodes, searchIndex, query]);
+    const filteredSlowestFunctions = searchIndex
+      .search(query)
+      .map(result => result.item)
+      .sort((a, b) => b['self weight'] - a['self weight']);
+    setSlowestFunctions(filteredSlowestFunctions);
+  }, [allFunctions, searchIndex, query]);
 
   const handleSearch = useCallback(
     searchString => {
@@ -128,7 +149,7 @@ function FlamegraphSummary() {
               title={t('Slowest Functions')}
               isLoading={state.type === 'loading'}
               error={state.type === 'errored'}
-              data={slowestFunctions.slice(cursor, cursor + PER_PAGE)}
+              data={slowestFunctions.slice(cursor, cursor + RESULTS_PER_PAGE)}
               columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
               columnSortBy={[]}
               grid={{renderBodyCell: renderFunctionCell}}
