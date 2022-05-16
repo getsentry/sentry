@@ -122,6 +122,7 @@ class GroupHeader extends Component<Props, State> {
     const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
+    const hasIssueIdBreadcrumbs = organizationFeatures.has('issue-id-breadcrumbs');
 
     let className = 'group-detail';
 
@@ -146,6 +147,23 @@ class GroupHeader extends Component<Props, State> {
     const disabledTabs = this.getDisabledTabs();
     const disableActions = !!disabledTabs.length;
 
+    const shortIdBreadCrumb = group.shortId && (
+      <GuideAnchor target="issue_number" position="bottom">
+        <StyledTooltip
+          className="help-link"
+          title={t(
+            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+          )}
+          position="bottom"
+        >
+          <StyledShortId
+            shortId={group.shortId}
+            avatar={<StyledProjectBadge project={project} avatarSize={16} hideName />}
+          />
+        </StyledTooltip>
+      </GuideAnchor>
+    );
+
     return (
       <Layout.Header>
         <div className={className}>
@@ -153,7 +171,7 @@ class GroupHeader extends Component<Props, State> {
             crumbs={[
               {label: 'Issues', to: `/organizations/${orgId}/issues/${location.search}`},
               {
-                label: 'Issue Details',
+                label: hasIssueIdBreadcrumbs ? shortIdBreadCrumb : t('Issue Details'),
               },
             ]}
           />
@@ -206,38 +224,8 @@ class GroupHeader extends Component<Props, State> {
               </StyledTagAndMessageWrapper>
             </div>
 
-            <div className="col-sm-5 stats">
-              <div className="flex flex-justify-right">
-                {group.shortId && (
-                  <GuideAnchor target="issue_number" position="bottom">
-                    <div className="short-id-box count align-right">
-                      <h6 className="nav-header">
-                        <Tooltip
-                          className="help-link"
-                          showUnderline
-                          title={t(
-                            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-                          )}
-                          position="bottom"
-                        >
-                          <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/github/#resolve-via-commit-or-pull-request">
-                            {t('Issue #')}
-                          </ExternalLink>
-                        </Tooltip>
-                      </h6>
-                      <ShortId
-                        shortId={group.shortId}
-                        avatar={
-                          <StyledProjectBadge
-                            project={project}
-                            avatarSize={20}
-                            hideName
-                          />
-                        }
-                      />
-                    </div>
-                  </GuideAnchor>
-                )}
+            {hasIssueIdBreadcrumbs ? (
+              <StatsWrapper>
                 <div className="count align-right m-l-1">
                   <h6 className="nav-header">{t('Events')}</h6>
                   {disableActions ? (
@@ -270,8 +258,75 @@ class GroupHeader extends Component<Props, State> {
                     disabled={disableActions}
                   />
                 </div>
+              </StatsWrapper>
+            ) : (
+              <div className="col-sm-5 stats">
+                <div className="flex flex-justify-right">
+                  {group.shortId && (
+                    <GuideAnchor target="issue_number" position="bottom">
+                      <div className="short-id-box count align-right">
+                        <h6 className="nav-header">
+                          <Tooltip
+                            className="help-link"
+                            showUnderline
+                            title={t(
+                              'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+                            )}
+                            position="bottom"
+                          >
+                            <ExternalLink href="https://docs.sentry.io/product/integrations/source-code-mgmt/github/#resolve-via-commit-or-pull-request">
+                              {t('Issue #')}
+                            </ExternalLink>
+                          </Tooltip>
+                        </h6>
+                        <ShortId
+                          shortId={group.shortId}
+                          avatar={
+                            <StyledProjectBadge
+                              project={project}
+                              avatarSize={20}
+                              hideName
+                            />
+                          }
+                        />
+                      </div>
+                    </GuideAnchor>
+                  )}
+                  <div className="count align-right m-l-1">
+                    <h6 className="nav-header">{t('Events')}</h6>
+                    {disableActions ? (
+                      <Count className="count" value={group.count} />
+                    ) : (
+                      <Link to={eventRouteToObject}>
+                        <Count className="count" value={group.count} />
+                      </Link>
+                    )}
+                  </div>
+                  <div className="count align-right m-l-1">
+                    <h6 className="nav-header">{t('Users')}</h6>
+                    {userCount !== 0 ? (
+                      disableActions ? (
+                        <Count className="count" value={userCount} />
+                      ) : (
+                        <Link to={`${baseUrl}tags/user/${location.search}`}>
+                          <Count className="count" value={userCount} />
+                        </Link>
+                      )
+                    ) : (
+                      <span>0</span>
+                    )}
+                  </div>
+                  <div className="assigned-to m-l-1">
+                    <h6 className="nav-header">{t('Assignee')}</h6>
+                    <AssigneeSelector
+                      id={group.id}
+                      memberList={memberList}
+                      disabled={disableActions}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <SeenByList
             seenBy={group.seenBy}
@@ -378,6 +433,22 @@ const StyledBreadcrumbs = styled(Breadcrumbs)`
 
 const StyledIdBadge = styled(IdBadge)`
   margin-right: ${space(1)};
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  display: flex;
+`;
+
+const StyledShortId = styled(ShortId)`
+  font-family: ${p => p.theme.text.family};
+`;
+
+const StatsWrapper = styled('div')`
+  display: grid;
+  justify-content: flex-end;
+  grid-template-columns: repeat(3, min-content);
+  gap: ${space(3)};
+  margin-right: 15px;
 `;
 
 const InboxReasonWrapper = styled('div')`
