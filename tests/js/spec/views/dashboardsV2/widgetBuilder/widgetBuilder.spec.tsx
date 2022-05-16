@@ -2464,11 +2464,7 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
-      userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
-
-      userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
-
-      userEvent.type(screen.getAllByPlaceholderText('Alias')[2], 'Third Alias{enter}');
+      userEvent.paste(screen.getAllByPlaceholderText('Alias')[0], 'First Alias');
 
       userEvent.click(screen.getByText('Add Widget'));
 
@@ -2477,7 +2473,7 @@ describe('WidgetBuilder', function () {
           expect.objectContaining({
             queries: [
               expect.objectContaining({
-                fieldAliases: ['First Alias', 'Second Alias', 'Third Alias'],
+                fieldAliases: ['First Alias', '', ''],
               }),
             ],
           }),
@@ -2726,32 +2722,14 @@ describe('WidgetBuilder', function () {
     });
 
     it('sets widgetType to release', async function () {
-      const handleSave = jest.fn();
-
       renderTestComponent({
-        onSave: handleSave,
         orgFeatures: releaseHealthFeatureFlags,
       });
 
       userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
-      userEvent.click(screen.getByLabelText('Add Widget'));
 
-      await waitFor(() => {
-        expect(handleSave).toHaveBeenCalledWith([
-          expect.objectContaining({
-            widgetType: WidgetType.RELEASE,
-            queries: [
-              expect.objectContaining({
-                aggregates: [`crash_free_rate(session)`],
-                fields: [`crash_free_rate(session)`],
-                orderby: `-crash_free_rate(session)`,
-              }),
-            ],
-          }),
-        ]);
-      });
-
-      expect(handleSave).toHaveBeenCalledTimes(1);
+      expect(metricsDataMock).toHaveBeenCalled();
+      expect(screen.getByLabelText('Releases (sessions, crash rates)')).toBeChecked();
     });
 
     it('does not display "add an equation" button', async function () {
