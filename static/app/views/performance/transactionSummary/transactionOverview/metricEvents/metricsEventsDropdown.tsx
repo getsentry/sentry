@@ -25,7 +25,7 @@ const autoTextMap: Record<AutoSampleState, string> = {
 
 function getOptions(mepContext: MetricsEnhancedSettingContext): MetricsEventsOption[] {
   const autoText = autoTextMap[mepContext.autoSampleState];
-  const prefix = t('Sample');
+  const prefix = t('Sample (Internal)');
 
   return [
     {
