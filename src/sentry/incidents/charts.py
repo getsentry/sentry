@@ -44,9 +44,8 @@ def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[st
     now = timezone.now()
     start_date: datetime = incident.date_started
     end_date: datetime = incident.date_closed if incident.date_closed else now
-    incident_range = (
-        max((end_date - start_date).total_seconds() * 1000),
-        3 * time_window_milliseconds,
+    incident_range = max(
+        (end_date - start_date).total_seconds() * 1000, 3 * time_window_milliseconds
     )
     range = min(max_range, max(min_range, incident_range))
     half_range = timedelta(seconds=range / 2)
