@@ -14,6 +14,7 @@ class AlertCreatedEvent(analytics.Event):
         # `alert_rule_ui_component` can be `alert-rule-action`
         analytics.Attribute("alert_rule_ui_component", required=False),
         analytics.Attribute("duplicate_rule", required=False),
+        analytics.Attribute("wizard_v3", required=False),
     )
 
 

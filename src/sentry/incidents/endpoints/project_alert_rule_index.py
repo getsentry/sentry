@@ -111,6 +111,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                 referrer = request.query_params.get("referrer")
                 session_id = request.query_params.get("sessionId")
                 duplicate_rule = request.query_params.get("duplicateRule")
+                wizard_v3 = request.query_params.get("wizardV3")
                 alert_rule_created.send_robust(
                     user=request.user,
                     project=project,
@@ -121,6 +122,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                     session_id=session_id,
                     is_api_token=request.auth is not None,
                     duplicate_rule=duplicate_rule,
+                    wizard_v3=wizard_v3,
                 )
                 return Response(serialize(alert_rule, request.user), status=status.HTTP_201_CREATED)
 
