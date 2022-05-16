@@ -2,6 +2,7 @@ import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -34,36 +35,125 @@ function formatColorForFrame(
   return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 }
 
+function makeSortFunction(
+  property: 'total weight' | 'self weight' | 'name',
+  direction: 'asc' | 'desc'
+) {
+  if (property === 'total weight') {
+    return direction === 'desc'
+      ? (a: FlamegraphFrame, b: FlamegraphFrame) => {
+          return b.node.totalWeight - a.node.totalWeight;
+        }
+      : (a: FlamegraphFrame, b: FlamegraphFrame) => {
+          return a.node.totalWeight - b.node.totalWeight;
+        };
+  }
+
+  if (property === 'self weight') {
+    return direction === 'desc'
+      ? (a: FlamegraphFrame, b: FlamegraphFrame) => {
+          return b.node.selfWeight - a.node.selfWeight;
+        }
+      : (a: FlamegraphFrame, b: FlamegraphFrame) => {
+          return a.node.selfWeight - b.node.selfWeight;
+        };
+  }
+
+  if (property === 'name') {
+    return direction === 'desc'
+      ? (a: FlamegraphFrame, b: FlamegraphFrame) => {
+          return a.frame.name.localeCompare(b.frame.name);
+        }
+      : (a: FlamegraphFrame, b: FlamegraphFrame) => {
+          return b.frame.name.localeCompare(a.frame.name);
+        };
+  }
+
+  throw new Error(`Unknown sort property ${property}`);
+}
+
 interface FrameCallTreeStackProps {
   flamegraphRenderer: FlamegraphRenderer;
+  referenceNode: FlamegraphFrame;
   roots: FlamegraphFrame[];
 }
 
-function FrameCallTreeStack({flamegraphRenderer, roots}: FrameCallTreeStackProps) {
+function FrameCallTreeStack({
+  flamegraphRenderer,
+  roots,
+  referenceNode,
+}: FrameCallTreeStackProps) {
+  const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
+    'total weight'
+  );
+  const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
+
+  const sortFunction: FrameRowProps['sortFunction'] = useMemo(() => {
+    if (sort === null) {
+      return () => 0;
+    }
+    return makeSortFunction(sort, direction);
+  }, [sort, direction]);
+
+  const onSortChange = useCallback(
+    (newSort: 'total weight' | 'self weight' | 'name') => {
+      // If sort is the same, just invert the direction
+      if (newSort === sort) {
+        setDirection(direction === 'asc' ? 'desc' : 'asc');
+        return;
+      }
+
+      // Else set the new sort and default to descending order
+      setSort(newSort);
+      setDirection('desc');
+    },
+    [sort, direction]
+  );
+
   return (
     <FrameBar>
       <FrameCallersTable>
         <FrameCallersTableHeader>
           <tr>
-            <th>{t('Self Time')}</th>
-            <th>{t('Total Time')}</th>
-            <th colSpan={100}>{t('Frame')}</th>
+            <th>
+              <TableHeaderButton onClick={() => onSortChange('self weight')}>
+                {t('Self Time ')}
+                {sort === 'self weight' ? (
+                  <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
+                ) : null}
+              </TableHeaderButton>
+            </th>
+            <th>
+              <TableHeaderButton onClick={() => onSortChange('total weight')}>
+                {t('Total Time')}{' '}
+                {sort === 'total weight' ? (
+                  <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
+                ) : null}
+              </TableHeaderButton>
+            </th>
+            <th colSpan={100}>
+              <TableHeaderButton onClick={() => onSortChange('name')}>
+                {t('Frame')}{' '}
+                {sort === 'name' ? (
+                  <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
+                ) : null}
+              </TableHeaderButton>
+            </th>
           </tr>
         </FrameCallersTableHeader>
         <tbody>
-          {roots
-            .sort((a, b) => b.node.selfWeight - a.node.selfWeight)
-            .map(r => {
-              return (
-                <FrameRow
-                  key={r.key}
-                  depth={0}
-                  frame={r}
-                  referenceNode={r}
-                  flamegraphRenderer={flamegraphRenderer}
-                />
-              );
-            })}
+          {roots.sort(sortFunction).map(r => {
+            return (
+              <FrameRow
+                key={r.key}
+                depth={0}
+                frame={r}
+                sortFunction={sortFunction}
+                referenceNode={referenceNode}
+                flamegraphRenderer={flamegraphRenderer}
+              />
+            );
+          })}
           {/* We add a row at the end with rowSpan so that we can have that nice border-right stretched over the entire table */}
           <tr>
             <FrameCallersTableCell rowSpan={100} />
@@ -76,11 +166,32 @@ function FrameCallTreeStack({flamegraphRenderer, roots}: FrameCallTreeStackProps
   );
 }
 
+const TableHeaderButton = styled('button')`
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 ${space(1)};
+  border: none;
+  background-color: ${props => props.theme.surface400};
+  transition: background-color 100ms ease-in-out;
+
+  &:hover {
+    background-color: #edecee;
+  }
+
+  svg {
+    width: 10px;
+    height: 10px;
+  }
+`;
+
 interface FrameRowProps {
   depth: number;
   flamegraphRenderer: FlamegraphRenderer;
   frame: FlamegraphFrame;
   referenceNode: FlamegraphFrame;
+  sortFunction: (a: FlamegraphFrame, b: FlamegraphFrame) => number;
   initialOpen?: boolean;
 }
 
@@ -89,6 +200,7 @@ function FrameRow({
   frame,
   flamegraphRenderer,
   referenceNode,
+  sortFunction,
   initialOpen,
 }: FrameRowProps) {
   const [open, setOpen] = useState<boolean>(initialOpen ?? false);
@@ -149,16 +261,19 @@ function FrameRow({
         </FrameCallersTableCell>
       </FrameCallersRow>
       {open
-        ? frame.children.map(c => (
-            <FrameRow
-              key={c.key}
-              frame={c}
-              referenceNode={referenceNode}
-              initialOpen={forceOpenChildren ? open : undefined}
-              flamegraphRenderer={flamegraphRenderer}
-              depth={depth + 1}
-            />
-          ))
+        ? frame.children
+            .sort(sortFunction)
+            .map(c => (
+              <FrameRow
+                key={c.key}
+                frame={c}
+                referenceNode={referenceNode}
+                initialOpen={forceOpenChildren ? open : undefined}
+                flamegraphRenderer={flamegraphRenderer}
+                sortFunction={sortFunction}
+                depth={depth + 1}
+              />
+            ))
         : null}
     </Fragment>
   );
@@ -170,9 +285,9 @@ interface FrameStackProps {
 }
 
 function FrameStack(props: FrameStackProps) {
-  const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const theme = useFlamegraphTheme();
   const {selectedNode} = useFlamegraphProfilesValue();
+  const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
 
   const roots = useMemo(() => {
     if (!selectedNode) {
@@ -207,8 +322,7 @@ function FrameStack(props: FrameStackProps) {
           </Button>
         </li>
       </FrameTabs>
-
-      <FrameCallTreeStack {...props} roots={roots ?? []} />
+      <FrameCallTreeStack {...props} roots={roots ?? []} referenceNode={selectedNode} />
     </FrameDrawer>
   ) : null;
 }
@@ -225,6 +339,7 @@ const FrameTabs = styled('ul')`
   padding: 0 ${space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.border};
+  background-color: ${props => props.theme.surface400};
 
   > li {
     font-size: ${p => p.theme.fontSizeSmall};
@@ -332,9 +447,8 @@ const FrameCallersTableHeader = styled('thead')`
   th {
     position: relative;
     border-bottom: 1px solid ${p => p.theme.border};
-    background-color: ${p => p.theme.surface100};
+    background-color: ${p => p.theme.surface400};
     white-space: nowrap;
-    padding: 0 ${space(1)};
 
     &:first-child,
     &:nth-child(2) {
