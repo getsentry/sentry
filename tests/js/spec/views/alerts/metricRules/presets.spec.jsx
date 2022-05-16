@@ -1,8 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {PRESET_AGGREGATES} from 'sentry/views/alerts/metricRules/presets';
-import {Dataset} from 'sentry/views/alerts/metricRules/types';
+import {PRESET_AGGREGATES} from 'sentry/views/alerts/rules/metric/presets';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getIncidentDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentDiscoverUrl';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 

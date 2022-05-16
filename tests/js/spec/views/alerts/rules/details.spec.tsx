@@ -3,7 +3,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import MetricAlertDetails from 'sentry/views/alerts/rules/details';
+import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 

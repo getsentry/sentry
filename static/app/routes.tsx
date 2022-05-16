@@ -1038,7 +1038,7 @@ function buildRoutes() {
           path="details/:ruleId/"
           name={t('Alert Rule Details')}
           component={SafeLazyLoad}
-          componentPromise={() => import('sentry/views/alerts/rules/details')}
+          componentPromise={() => import('sentry/views/alerts/rules/metric/details')}
         />
         <Route
           path=":projectId/"
@@ -1056,12 +1056,14 @@ function buildRoutes() {
         <Route
           path=":projectId/:ruleId/details/"
           name={t('Alert Rule Details')}
-          componentPromise={() => import('sentry/views/alerts/details')}
+          componentPromise={() => import('sentry/views/alerts/rules/issue/details')}
           component={SafeLazyLoad}
         >
           <IndexRoute
             component={SafeLazyLoad}
-            componentPromise={() => import('sentry/views/alerts/details/ruleDetails')}
+            componentPromise={() =>
+              import('sentry/views/alerts/rules/issue/details/ruleDetails')
+            }
           />
         </Route>
       </Route>

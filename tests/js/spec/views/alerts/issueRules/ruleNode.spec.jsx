@@ -3,7 +3,7 @@ import selectEvent from 'react-select-event';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ModalActions from 'sentry/actions/modalActions';
-import RuleNode from 'sentry/views/alerts/issueRules/ruleNode';
+import RuleNode from 'sentry/views/alerts/rules/issue/ruleNode';
 
 describe('RuleNode', () => {
   const project = TestStubs.Project();

@@ -12,9 +12,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import IssueRuleEditor from 'sentry/views/alerts/issueRules';
-import MetricRulesCreate from 'sentry/views/alerts/metricRules/create';
-import MetricRulesDuplicate from 'sentry/views/alerts/metricRules/duplicate';
+import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
+import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
+import MetricRulesDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertType as WizardAlertType,

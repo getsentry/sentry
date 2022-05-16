@@ -1,6 +1,6 @@
 import EventView from 'sentry/utils/discover/eventView';
-import {createRuleFromEventView} from 'sentry/views/alerts/metricRules/constants';
-import {Dataset, EventTypes} from 'sentry/views/alerts/metricRules/types';
+import {createRuleFromEventView} from 'sentry/views/alerts/rules/metric/constants';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
 describe('createRuleFromEventView()', () => {
   it('sets transaction dataset from event.type:transaction', () => {

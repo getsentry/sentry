@@ -5,8 +5,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import GlobalModal from 'sentry/components/globalModal';
 import {metric} from 'sentry/utils/analytics';
-import MetricRulesDetails from 'sentry/views/alerts/metricRules/details';
-import {AlertRuleTriggerType} from 'sentry/views/alerts/metricRules/types';
+import MetricRulesDetails from 'sentry/views/alerts/rules/metric/details';
+import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/utils/analytics', () => ({
   metric: {

@@ -3,8 +3,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import MetricField from 'sentry/views/alerts/metricRules/metricField';
-import {Dataset} from 'sentry/views/alerts/metricRules/types';
+import MetricField from 'sentry/views/alerts/rules/metric/metricField';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 function openSelectMenu(text) {
   const placeholder = screen.getByText(text);

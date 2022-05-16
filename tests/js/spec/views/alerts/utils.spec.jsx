@@ -4,7 +4,7 @@ import {
   Dataset,
   Datasource,
   SessionsAggregate,
-} from 'sentry/views/alerts/metricRules/types';
+} from 'sentry/views/alerts/rules/metric/types';
 import {
   alertAxisFormatter,
   alertTooltipValueFormatter,

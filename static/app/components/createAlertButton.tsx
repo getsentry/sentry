@@ -27,7 +27,7 @@ import useApi from 'sentry/utils/useApi';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'sentry/views/alerts/metricRules/constants';
+} from 'sentry/views/alerts/rules/metric/constants';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
 import {
   AlertType,

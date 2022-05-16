@@ -17,7 +17,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import {metric} from 'sentry/utils/analytics';
-import IssueRuleEditor from 'sentry/views/alerts/issueRules';
+import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
 
 jest.unmock('sentry/utils/recreateRoute');

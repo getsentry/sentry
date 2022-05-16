@@ -2,11 +2,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
-import TriggersChart from 'sentry/views/alerts/metricRules/triggers/chart';
+import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
-} from 'sentry/views/alerts/metricRules/types';
+} from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Create', () => {
   const eventStatsMock = MockApiClient.addMockResponse({

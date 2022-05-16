@@ -23,7 +23,7 @@ import type {Color} from 'sentry/utils/theme';
 import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-} from 'sentry/views/alerts/metricRules/types';
+} from 'sentry/views/alerts/rules/metric/types';
 
 import {CombinedAlertType, CombinedMetricIssueAlerts, IncidentStatus} from '../types';
 import {isIssueAlert} from '../utils';

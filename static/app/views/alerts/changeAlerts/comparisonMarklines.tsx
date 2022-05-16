@@ -8,7 +8,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Trigger,
-} from 'sentry/views/alerts/metricRules/types';
+} from 'sentry/views/alerts/rules/metric/types';
 
 export const checkChangeStatus = (
   value: number,

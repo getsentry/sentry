@@ -4,8 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
-import MetricRulesDuplicate from 'sentry/views/alerts/metricRules/duplicate';
-import {AlertRuleTriggerType} from 'sentry/views/alerts/metricRules/types';
+import MetricRulesDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
+import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
 describe('Incident Rules Duplicate', function () {
   beforeAll(function () {

@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import MetricRulesCreate from 'sentry/views/alerts/metricRules/create';
+import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
 
 describe('Incident Rules Create', function () {
   let eventStatsMock;

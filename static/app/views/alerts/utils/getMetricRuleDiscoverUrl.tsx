@@ -1,7 +1,7 @@
 import {NewQuery, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {Dataset, MetricRule} from 'sentry/views/alerts/metricRules/types';
+import {Dataset, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 /**
  * Gets the URL for a discover view of the rule with the following default
  * parameters:

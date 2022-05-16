@@ -5,7 +5,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {metric} from 'sentry/utils/analytics';
-import RuleFormContainer from 'sentry/views/alerts/metricRules/ruleForm';
+import RuleFormContainer from 'sentry/views/alerts/rules/metric/ruleForm';
 
 jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/utils/analytics', () => ({
