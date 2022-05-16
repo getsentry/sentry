@@ -1,6 +1,7 @@
 import {Span} from '@sentry/types';
 
 import {defined} from 'sentry/utils';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
 import {CallTreeNode} from '../callTreeNode';
@@ -122,4 +123,83 @@ export const isSystemCall = (node: CallTreeNode): boolean => {
 
 export const isApplicationCall = (node: CallTreeNode): boolean => {
   return !!node.frame.is_application;
+};
+
+function indexNodeToParents(
+  roots: FlamegraphFrame[],
+  map: Record<string, FlamegraphFrame[]>,
+  leafs: FlamegraphFrame[]
+) {
+  // Index each child node to its parent
+  function indexNode(node: FlamegraphFrame, parent: FlamegraphFrame) {
+    if (!map[node.key]) {
+      map[node.key] = [];
+    }
+
+    map[node.key].push(parent);
+
+    if (!node.children.length) {
+      leafs.push(node);
+      return;
+    }
+
+    for (let i = 0; i < node.children.length; i++) {
+      indexNode(node.children[i], node);
+    }
+  }
+
+  // Begin in each root node
+  for (let i = 0; i < roots.length; i++) {
+    leafs.push(roots[i]);
+
+    // If the root has no children, continue
+    if (!roots[i].children?.length) {
+      continue;
+    }
+
+    // Init the map for the root in case we havent yet
+    if (!map[roots[i].key]) {
+      map[roots[i].key] = [];
+    }
+
+    // descend down to each child and index them
+    for (let j = 0; j < roots[i].children.length; j++) {
+      indexNode(roots[i].children[j], roots[i]);
+    }
+  }
+}
+
+function reverseTrail(
+  nodes: FlamegraphFrame[],
+  parentMap: Record<string, FlamegraphFrame[]>
+): FlamegraphFrame[] {
+  const splits: FlamegraphFrame[] = [];
+
+  for (const n of nodes) {
+    const nc = {
+      ...n,
+      parent: null as FlamegraphFrame | null,
+      children: [] as FlamegraphFrame[],
+    };
+
+    if (!parentMap[n.key]) {
+      continue;
+    }
+
+    for (const parent of parentMap[n.key]) {
+      nc.children.push(...reverseTrail([parent], parentMap));
+    }
+    splits.push(nc);
+  }
+
+  return splits;
+}
+
+export const invertCallTree = (roots: FlamegraphFrame[]): FlamegraphFrame[] => {
+  const nodeToParentIndex: Record<string, FlamegraphFrame[]> = {};
+  const leafNodes: FlamegraphFrame[] = [];
+
+  indexNodeToParents(roots, nodeToParentIndex, leafNodes);
+  const reversed = reverseTrail(leafNodes, nodeToParentIndex);
+  return reversed;
 };

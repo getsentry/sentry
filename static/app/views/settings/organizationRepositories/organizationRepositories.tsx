@@ -1,6 +1,5 @@
 import {RouteComponentProps} from 'react-router';
 
-import {Client} from 'sentry/api';
 import AlertLink from 'sentry/components/alertLink';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -9,17 +8,19 @@ import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {Repository, RepositoryStatus} from 'sentry/types';
+import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
-  api: Client;
   itemList: Repository[];
   onRepositoryChange: (data: {id: string; status: RepositoryStatus}) => void;
 };
 
-const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: Props) => {
+function OrganizationRepositories({itemList, onRepositoryChange, params}: Props) {
+  const api = useApi();
+
   const {orgId} = params;
   const hasItemList = itemList && itemList.length > 0;
 
@@ -54,9 +55,9 @@ const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: P
             <div>
               {itemList.map(repo => (
                 <RepositoryRow
+                  api={api}
                   key={repo.id}
                   repository={repo}
-                  api={api}
                   showProvider
                   orgId={orgId}
                   onRepositoryChange={onRepositoryChange}
@@ -83,6 +84,6 @@ const OrganizationRepositories = ({itemList, onRepositoryChange, api, params}: P
       )}
     </div>
   );
-};
+}
 
 export default OrganizationRepositories;
