@@ -144,23 +144,21 @@ class ActionsPanel extends PureComponent<Props> {
     const {triggers} = this.props;
     const {actions} = triggers[triggerIndex];
     const newAction = {...actions[index]};
-    if (newAction.type === 'slack') {
-      return (
-        <MarginlessAlert type="warning">
-          {tct(
-            'Having rate limiting problems? Enter a channel or user ID. Read more [rateLimiting].',
-            {
-              rateLimiting: (
-                <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error">
-                  {t('here')}
-                </ExternalLink>
-              ),
-            }
-          )}
-        </MarginlessAlert>
-      );
+    if (newAction.type !== 'slack') {
+      return null;
     }
-    return null;
+    return (
+      <MarginlessAlert type="warning">
+        {tct(
+          'Having rate limiting problems? Enter a channel or user ID. Read more [rateLimiting:here].',
+          {
+            rateLimiting: (
+              <ExternalLink href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error" />
+            ),
+          }
+        )}
+      </MarginlessAlert>
+    );
   }
 
   handleAddAction = () => {
