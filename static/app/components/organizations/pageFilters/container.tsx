@@ -158,6 +158,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
       !isEqual(oldSelectionQuery, newSelectionQuery)
     ) {
       doInitialization();
+      lastQuery.current = location.query;
       return;
     }
 
