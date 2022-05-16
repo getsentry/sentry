@@ -93,15 +93,6 @@ export class Profile {
     }
   }
 
-  getNodes(): CallTreeNode[] {
-    const nodes: CallTreeNode[] = [];
-    this.forEach(
-      node => nodes.push(node),
-      () => {}
-    );
-    return nodes;
-  }
-
   build(): Profile {
     this.duration = Math.max(
       this.duration,
