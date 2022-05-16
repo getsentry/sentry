@@ -322,7 +322,6 @@ function FrameStack(props: FrameStackProps) {
           </Button>
         </li>
       </FrameTabs>
-
       <FrameCallTreeStack {...props} roots={roots ?? []} referenceNode={selectedNode} />
     </FrameDrawer>
   ) : null;
