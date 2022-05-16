@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import isUndefined from 'lodash/isUndefined';
 import * as qs from 'query-string';
@@ -11,7 +12,6 @@ import {
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
 import {metric} from 'sentry/utils/analytics';
-import {run} from 'sentry/utils/apiSentryClient';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import createRequestError from 'sentry/utils/requestError/createRequestError';
@@ -140,13 +140,11 @@ function buildRequestUrl(baseUrl: string, path: string, query: RequestOptions['q
   try {
     params = qs.stringify(query ?? []);
   } catch (err) {
-    run(Sentry =>
-      Sentry.withScope(scope => {
-        scope.setExtra('path', path);
-        scope.setExtra('query', query);
-        Sentry.captureException(err);
-      })
-    );
+    Sentry.withScope(scope => {
+      scope.setExtra('path', path);
+      scope.setExtra('query', query);
+      Sentry.captureException(err);
+    });
     throw err;
   }
 
@@ -447,86 +445,71 @@ export class Client {
 
     // XXX(epurkhiser): We migrated off of jquery, so for now we have a
     // compatibility layer which mimics that of the jquery response objects.
-    fetchRequest
-      .then(async response => {
-        // The Response's body can only be resolved/used at most once.
-        // So we clone the response so we can resolve the body content as text content.
-        // Response objects need to be cloned before its body can be used.
-        const responseClone = response.clone();
+    fetchRequest.then(async response => {
+      // The Response's body can only be resolved/used at most once.
+      // So we clone the response so we can resolve the body content as text content.
+      // Response objects need to be cloned before its body can be used.
+      const responseClone = response.clone();
 
-        let responseJSON: any;
-        let responseText: any;
+      let responseJSON: any;
+      let responseText: any;
 
-        const {status, statusText} = response;
-        let {ok} = response;
-        let errorReason = 'Request not OK'; // the default error reason
+      const {status, statusText} = response;
+      let {ok} = response;
+      let errorReason = 'Request not OK'; // the default error reason
 
-        // Try to get text out of the response no matter the status
-        try {
-          responseText = await response.text();
-        } catch (error) {
-          ok = false;
-          if (error.name === 'AbortError') {
-            errorReason = 'Request was aborted';
-          } else {
-            errorReason = error.toString();
-          }
-        }
-
-        const responseContentType = response.headers.get('content-type');
-        const isResponseJSON = responseContentType?.includes('json');
-
-        const isStatus3XX = status >= 300 && status < 400;
-        if (status !== 204 && !isStatus3XX) {
-          try {
-            responseJSON = await responseClone.json();
-          } catch (error) {
-            if (error.name === 'AbortError') {
-              ok = false;
-              errorReason = 'Request was aborted';
-            } else if (isResponseJSON && error instanceof SyntaxError) {
-              // If the MIME type is `application/json` but decoding failed,
-              // this should be an error.
-              ok = false;
-              errorReason = 'JSON parse error';
-            }
-          }
-        }
-
-        const responseMeta: ResponseMeta = {
-          status,
-          statusText,
-          responseJSON,
-          responseText,
-          getResponseHeader: (header: string) => response.headers.get(header),
-        };
-
-        // Respect the response content-type header
-        const responseData = isResponseJSON ? responseJSON : responseText;
-
-        if (ok) {
-          successHandler(responseMeta, statusText, responseData);
+      // Try to get text out of the response no matter the status
+      try {
+        responseText = await response.text();
+      } catch (error) {
+        ok = false;
+        if (error.name === 'AbortError') {
+          errorReason = 'Request was aborted';
         } else {
-          globalErrorHandlers.forEach(handler => handler(responseMeta));
-          errorHandler(responseMeta, statusText, errorReason);
+          errorReason = error.toString();
         }
+      }
 
-        completeHandler(responseMeta, statusText);
-      })
-      .catch(err => {
-        // Aborts are expected
-        if (err?.name === 'AbortError') {
-          return;
+      const responseContentType = response.headers.get('content-type');
+      const isResponseJSON = responseContentType?.includes('json');
+
+      const isStatus3XX = status >= 300 && status < 400;
+      if (status !== 204 && !isStatus3XX) {
+        try {
+          responseJSON = await responseClone.json();
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            ok = false;
+            errorReason = 'Request was aborted';
+          } else if (isResponseJSON && error instanceof SyntaxError) {
+            // If the MIME type is `application/json` but decoding failed,
+            // this should be an error.
+            ok = false;
+            errorReason = 'JSON parse error';
+          }
         }
+      }
 
-        // The request failed for other reason
-        run(Sentry =>
-          Sentry.withScope(scope => {
-            scope.setLevel('warning');
-            Sentry.captureException(err);
-          })
-        );
-      });
+      const responseMeta: ResponseMeta = {
+        status,
+        statusText,
+        responseJSON,
+        responseText,
+        getResponseHeader: (header: string) => response.headers.get(header),
+      };
+
+      // Respect the response content-type header
+      const responseData = isResponseJSON ? responseJSON : responseText;
+
+      if (ok) {
+        successHandler(responseMeta, statusText, responseData);
+      } else {
+        globalErrorHandlers.forEach(handler => handler(responseMeta));
+        errorHandler(responseMeta, statusText, errorReason);
+      }
+
+      completeHandler(responseMeta, statusText);
+    });
 
     const request = new Request(fetchRequest, aborter);
     this.activeRequests[id] = request;
