@@ -24,7 +24,6 @@ from sentry.models.integrations.sentry_app import VALID_EVENTS, track_response_c
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
-from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
 

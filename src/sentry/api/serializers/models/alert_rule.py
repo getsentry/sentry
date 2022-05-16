@@ -23,7 +23,6 @@ from sentry.models import (
     actor_type_to_string,
 )
 from sentry.snuba.models import SnubaQueryEventType
-from sentry.utils.compat import zip
 
 
 @register(AlertRule)

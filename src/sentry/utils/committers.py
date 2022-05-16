@@ -25,7 +25,6 @@ from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
-from sentry.utils.compat import zip
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import PathSearchable, get_path
 

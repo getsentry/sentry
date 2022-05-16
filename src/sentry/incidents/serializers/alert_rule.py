@@ -30,7 +30,6 @@ from sentry.snuba.entity_subscription import get_entity_subscription_for_dataset
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils import json
-from sentry.utils.compat import zip
 from sentry.utils.snuba import raw_snql_query
 
 from . import CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS, DATASET_VALID_EVENT_TYPES, UNSUPPORTED_QUERIES

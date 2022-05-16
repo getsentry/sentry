@@ -42,10 +42,3 @@ from binascii import crc32 as _crc32
 def crc32(*args):
     rt = _crc32(*args)
     return rt - ((rt & 0x80000000) << 1)
-
-
-import types
-
-
-def new_module(name):
-    return types.ModuleType(name)

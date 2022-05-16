@@ -2,7 +2,6 @@ import functools
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import Activity, Commit, Group, PullRequest
-from sentry.utils.compat import zip
 from sentry.utils.functional import apply_values
 
 

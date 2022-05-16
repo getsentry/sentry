@@ -8,7 +8,6 @@ from sentry import similarity
 from sentry.api.bases.group import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Group
-from sentry.utils.compat import zip
 
 logger = logging.getLogger(__name__)
 

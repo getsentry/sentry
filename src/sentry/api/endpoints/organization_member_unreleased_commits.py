@@ -3,7 +3,6 @@ from django.db import connections
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import Commit, Repository, UserEmail
-from sentry.utils.compat import zip
 
 # TODO(dcramer): once LatestRepoReleaseEnvironment is backfilled, change this query to use the new
 # schema [performance]

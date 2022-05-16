@@ -7,7 +7,6 @@ from django.conf import settings
 
 from sentry import options
 from sentry.utils import json
-from sentry.utils.compat import filter, map
 
 ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 

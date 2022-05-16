@@ -27,7 +27,6 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.types import HistogramParams, ParamsType
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
-from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (

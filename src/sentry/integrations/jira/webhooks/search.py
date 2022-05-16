@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
-from sentry.utils.compat import filter
 
 from ..utils import build_user_choice
 
