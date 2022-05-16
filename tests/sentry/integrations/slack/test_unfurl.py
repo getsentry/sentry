@@ -428,16 +428,18 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
+        first_event = self.store_event(
             data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
             project_id=self.project.id,
         )
-        self.store_event(
+        second_event = self.store_event(
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
             project_id=self.project.id,
         )
+        debug_first_event = first_event.event_id  # noqa: F841
+        debug_second_event = second_event.event_id  # noqa: F841
 
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=dailytop5&topEvents=2"
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[{first_event.message},{second_event.message}]&sort=-count&statsPeriod=24h&display=dailytop5&topEvents=2"
         link_type, args = match_link(url)
 
         if not args or not link_type:
