@@ -17,7 +17,7 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {isAggregateField, stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
+import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
@@ -268,25 +268,17 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       widget.queries[0].aggregates,
       useSessionAPI
     );
-
     const columns = widget.queries[0].columns;
-    if (!!!aggregates.includes(rawOrderby) && !!!columns.includes(rawOrderby)) {
-      if (isAggregateField(rawOrderby)) {
-        aggregates.push(rawOrderby);
-        injectedFields.push(rawOrderby);
-      } else {
-        columns.push(rawOrderby);
-        injectedFields.push(rawOrderby);
-      }
-    }
 
     widget.queries.forEach(query => {
+      let requestData;
+      let requester;
       if (useSessionAPI) {
         const sessionAggregates = aggregates.filter(
           agg =>
             !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
         );
-        const requestData = {
+        requestData = {
           field: sessionAggregates,
           orgSlug: organization.slug,
           end,
@@ -302,9 +294,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           includeAllArgs,
           cursor,
         };
-        promises.push(doSessionsRequest(api, requestData));
+        requester = doSessionsRequest;
       } else {
-        const metricsRequestData = {
+        requestData = {
           field: aggregates.map(fieldsToDerivedMetrics),
           orgSlug: organization.slug,
           end,
@@ -324,8 +316,22 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           includeAllArgs,
           cursor,
         };
-        promises.push(doMetricsRequest(api, metricsRequestData));
+        requester = doMetricsRequest;
+
+        if (
+          rawOrderby &&
+          !!!unsupportedOrderby &&
+          !!!aggregates.includes(rawOrderby) &&
+          !!!columns.includes(rawOrderby)
+        ) {
+          requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
+          if (!!!injectedFields.includes(rawOrderby)) {
+            injectedFields.push(rawOrderby);
+          }
+        }
       }
+
+      promises.push(requester(api, requestData));
     });
 
     let completed = 0;
