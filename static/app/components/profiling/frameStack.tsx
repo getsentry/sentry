@@ -117,7 +117,7 @@ function FrameCallTreeStack({
           <tr>
             <th>
               <TableHeaderButton onClick={() => onSortChange('self weight')}>
-                {t('Self Time')}{' '}
+                {t('Self Time ')}
                 {sort === 'self weight' ? (
                   <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
                 ) : null}
