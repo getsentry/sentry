@@ -327,11 +327,15 @@ class SpanTreeModel {
     let descendants: EnhancedProcessedSpanType[];
 
     if (isAutogroupSiblingFeatureEnabled) {
-      let groupedDescendants: DescendantGroup[] = [];
+      const groupedDescendants: DescendantGroup[] = [];
       // Used to number sibling groups in case there are multiple groups with the same op and description
       const siblingGroupOccurrenceMap = {};
 
       const addGroupToMap = (prevSpanModel: SpanTreeModel, group: SpanTreeModel[]) => {
+        if (!group.length) {
+          return;
+        }
+
         const groupKey = `${prevSpanModel.span.op}.${prevSpanModel.span.description}`;
 
         if (!siblingGroupOccurrenceMap[groupKey]) {
@@ -379,8 +383,6 @@ class SpanTreeModel {
       } else if (descendantsSource.length >= 1) {
         groupedDescendants.push({group: descendantsSource});
       }
-
-      groupedDescendants = groupedDescendants.filter(g => g.group.length);
 
       descendants = (hideSpanTree ? [] : groupedDescendants).reduce(
         (
