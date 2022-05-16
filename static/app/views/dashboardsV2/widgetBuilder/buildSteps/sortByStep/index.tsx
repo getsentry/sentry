@@ -10,10 +10,15 @@ import space from 'sentry/styles/space';
 import {Organization, SelectValue, TagCollection} from 'sentry/types';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
+import {
+  DataSet,
+  filterPrimaryOptions as filterReleaseSortOptions,
+  getResultsLimit,
+  SortDirection,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DataSet, getResultsLimit, SortDirection} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
@@ -84,6 +89,33 @@ export function SortByStep({
   }, [limit, maxLimit]);
 
   const columnSet = new Set(queries[0].columns);
+  const filterDiscoverOptions = option => {
+    if (
+      option.value.kind === FieldValueKind.FUNCTION ||
+      option.value.kind === FieldValueKind.EQUATION
+    ) {
+      return true;
+    }
+
+    return (
+      columnSet.has(option.value.meta.name) ||
+      option.value.meta.name === CUSTOM_EQUATION_VALUE
+    );
+  };
+
+  const filterReleaseOptions = option => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return false;
+    }
+    if (option.value.kind === FieldValueKind.TAG) {
+      return columnSet.has(option.value.meta.name);
+    }
+    return filterReleaseSortOptions({
+      option,
+      widgetType,
+      displayType: DisplayType.TABLE,
+    });
+  };
 
   if (widgetBuilderNewDesign) {
     return (
@@ -150,19 +182,9 @@ export function SortByStep({
               onSortByChange(newOrderBy);
             }}
             tags={tags}
-            filterPrimaryOptions={option => {
-              if (
-                option.value.kind === FieldValueKind.FUNCTION ||
-                option.value.kind === FieldValueKind.EQUATION
-              ) {
-                return true;
-              }
-
-              return (
-                columnSet.has(option.value.meta.name) ||
-                option.value.meta.name === CUSTOM_EQUATION_VALUE
-              );
-            }}
+            filterPrimaryOptions={
+              dataSet === DataSet.RELEASES ? filterReleaseOptions : filterDiscoverOptions
+            }
           />
         </Field>
       </BuildStep>
