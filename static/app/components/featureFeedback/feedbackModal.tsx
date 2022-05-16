@@ -1,6 +1,11 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
-import {BrowserClient, Severity} from '@sentry/react';
+import {
+  BrowserClient,
+  defaultIntegrations,
+  defaultStackParser,
+  makeFetchTransport,
+} from '@sentry/react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -22,6 +27,9 @@ import ExternalLink from '../links/externalLink';
 const feedbackClient = new BrowserClient({
   // feedback project under Sentry organization
   dsn: 'https://3c5ef4e344a04a0694d187a1272e96de@o1.ingest.sentry.io/6356259',
+  transport: makeFetchTransport,
+  stackParser: defaultStackParser,
+  integrations: defaultIntegrations,
 });
 
 export interface FeedBackModalProps {
@@ -83,7 +91,7 @@ export function FeedbackModal({
         featureName,
       },
       user,
-      level: Severity.Info,
+      level: 'info',
     });
 
     addSuccessMessage(t('Thanks for taking the time to provide us feedback!'));
