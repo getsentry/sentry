@@ -15,6 +15,8 @@ from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import AlertRule, Incident, User
 from sentry.models import ApiKey, Organization
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.entity_subscription import apply_dataset_query_conditions
+from sentry.snuba.models import SnubaQuery
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -29,7 +31,11 @@ API_INTERVAL_POINTS_MIN = 150
 
 
 def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[str, str]:
-    """Retrieve the start/end for graphing an incident."""
+    """
+    Retrieve the start/end for graphing an incident.
+    Will show at least 150 and no more than 10,000 data points.
+    This function should match what is in the frontend.
+    """
     time_window_seconds = alert_rule.snuba_query.time_window
     min_range = time_window_seconds * API_INTERVAL_POINTS_MIN
     max_range = time_window_seconds * API_INTERVAL_POINTS_LIMIT
@@ -48,18 +54,14 @@ def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[st
 
 def fetch_metric_alert_sessions_data(
     organization: Organization,
-    alert_rule: AlertRule,
+    rule_aggregate: str,
     time_period: Mapping[str, str],
+    query_params: Mapping[str, str],
     user: Optional["User"] = None,
 ) -> Any:
-    aggregate = translate_aggregate_field(alert_rule.snuba_query.aggregate, reverse=True)
-    project_id = alert_rule.snuba_query.subscriptions.select_related("project").first().project.id
 
     if "period" in time_period:
         time_period = {"statsPeriod": time_period["period"]}
-
-    env = alert_rule.snuba_query.environment
-    env_params = {"environment": env} if env else {}
 
     try:
         resp = client.get(
@@ -67,13 +69,10 @@ def fetch_metric_alert_sessions_data(
             user=user,
             path=f"/organizations/{organization.slug}/sessions/",
             params={
-                "field": SESSION_AGGREGATE_TO_FIELD[aggregate],
-                "interval": f"{alert_rule.snuba_query.time_window}m",
-                "project": str(project_id),
-                "query": alert_rule.snuba_query.query,
+                "field": SESSION_AGGREGATE_TO_FIELD[rule_aggregate],
                 "groupBy": "session.status",
-                **env_params,
                 **time_period,
+                **query_params,
             },
         )
         return resp.data
@@ -87,31 +86,25 @@ def fetch_metric_alert_sessions_data(
 
 def fetch_metric_alert_events_timeseries(
     organization: Organization,
-    alert_rule: AlertRule,
+    rule_aggregate: str,
     time_period: Mapping[str, str],
+    query_params: Mapping[str, str],
     user: Optional["User"] = None,
 ) -> List[Any]:
-    env = alert_rule.snuba_query.environment
-    env_params = {"environment": env} if env else {}
-    aggregate = translate_aggregate_field(alert_rule.snuba_query.aggregate, reverse=True)
-    project_id = alert_rule.snuba_query.subscriptions.select_related("project").first().project.id
     try:
         resp = client.get(
             auth=ApiKey(organization=organization, scope_list=["org:read"]),
             user=user,
             path=f"/organizations/{organization.slug}/events-stats/",
             params={
-                "query": alert_rule.snuba_query.query,
-                "interval": f"{alert_rule.snuba_query.time_window}m",
-                "yAxis": aggregate,
-                "project": str(project_id),
-                **env_params,
+                "yAxis": rule_aggregate,
                 **time_period,
+                **query_params,
             },
         )
         # Format the data into a timeseries object for charts
         series = {
-            "seriesName": aggregate,
+            "seriesName": rule_aggregate,
             "data": [
                 {
                     "name": point[0] * 1000,
@@ -167,10 +160,8 @@ def build_metric_alert_chart(
     user: Optional["User"] = None,
 ) -> Optional[str]:
     """Builds the dataset required for metric alert chart the same way the frontend would"""
-    is_crash_free_alert = alert_rule.snuba_query.dataset in {
-        Dataset.Sessions.value,
-        Dataset.Metrics.value,
-    }
+    dataset = alert_rule.snuba_query.dataset
+    is_crash_free_alert = dataset in {Dataset.Sessions.value, Dataset.Metrics.value}
     style = (
         ChartType.SLACK_METRIC_ALERT_SESSIONS
         if is_crash_free_alert
@@ -197,18 +188,40 @@ def build_metric_alert_chart(
         ),
     }
 
+    snuba_query: SnubaQuery = alert_rule.snuba_query
+    aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True)
+    # If we allow alerts to be across multiple orgs this will break
+    project_id = snuba_query.subscriptions.first().project_id
+    time_window_minutes = snuba_query.time_window / 60
+    env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
+    query = (
+        snuba_query.query
+        if is_crash_free_alert
+        else apply_dataset_query_conditions(
+            snuba_query.dataset, snuba_query.query, snuba_query.event_types, discover=True
+        )
+    )
+
+    query_params = {
+        **env_params,
+        "project": str(project_id),
+        "interval": f"{time_window_minutes}m",
+        "query": query,
+    }
     if is_crash_free_alert:
         chart_data["sessionResponse"] = fetch_metric_alert_sessions_data(
             organization,
-            alert_rule,
+            aggregate,
             time_period,
+            query_params,
             user,
         )
     else:
         chart_data["timeseriesData"] = fetch_metric_alert_events_timeseries(
             organization,
-            alert_rule,
+            aggregate,
             time_period,
+            query_params,
             user,
         )
 
