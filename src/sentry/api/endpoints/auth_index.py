@@ -99,14 +99,15 @@ class AuthIndexEndpoint(Endpoint):
         DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
             settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
         )
+        IS_SINGLE_TENANT = getattr(settings, "SENTRY_SINGLE_TENANT", False)
 
         # TODO Look at AuthVerifyValidator
         validator.is_valid()
         authenticated = None
 
         def _require_password_or_u2f_check():
-            if not is_self_hosted():
-                # Don't need to check as its only for self-hosted users
+            if not (is_self_hosted() or IS_SINGLE_TENANT):
+                # Don't need to check password as its only for self-hosted/single tenant users
                 return False
             if request.user.has_usable_password():
                 return True

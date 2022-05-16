@@ -161,6 +161,7 @@ def get_client_config(request=None):
         # Maintain isOnPremise key for backcompat (plugins?).
         "isOnPremise": is_self_hosted(),
         "isSelfHosted": is_self_hosted(),
+        "isSingleTenant": getattr(settings, "SENTRY_SINGLE_TENANT", False),
         "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
         "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
         "termsUrl": settings.TERMS_URL,

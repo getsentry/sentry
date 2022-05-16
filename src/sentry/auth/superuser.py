@@ -63,6 +63,8 @@ UNSET = object()
 
 ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
 
+IS_SINGLE_TENANT = getattr(settings, "SENTRY_SINGLE_TENANT", False)
+
 
 def is_active_superuser(request):
     if is_system_auth(getattr(request, "auth", None)):
@@ -118,7 +120,7 @@ class Superuser:
 
     @staticmethod
     def _needs_validation():
-        if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV:
+        if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV or IS_SINGLE_TENANT:
             return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 
