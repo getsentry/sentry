@@ -493,8 +493,11 @@ const PanelItemSelects = styled('div')`
 
 const RuleRowContainer = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.border} solid;
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  &:last-child {
+    border-radius: ${p => p.theme.borderRadius};
+  }
 `;
 
 const StyledListItem = styled(ListItem)`
@@ -508,10 +511,9 @@ const PerformActionsListItem = styled(StyledListItem)`
 `;
 
 const MarginlessAlert = styled(Alert)`
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  border-width: 0;
-  border-top: 1px ${p => p.theme.innerBorder} solid;
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border: 1px ${p => p.theme.border} solid;
+  border-top-width: 0;
   margin: 0;
   padding: ${space(1)} ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
