@@ -169,9 +169,9 @@ def build_metric_alert_chart(
     elif start and end:
         time_period = {"start": start, "end": end}
     else:
-        start = get_datetime_from_stats_period(period if period else "10000m")
+        period_start = get_datetime_from_stats_period(period if period else "10000m")
         time_period = {
-            "start": start.strftime(TIME_FORMAT),
+            "start": period_start.strftime(TIME_FORMAT),
             "end": timezone.now().strftime(TIME_FORMAT),
         }
 
