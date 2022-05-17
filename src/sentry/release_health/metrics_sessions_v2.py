@@ -40,6 +40,7 @@ from snuba_sdk.conditions import ConditionGroup
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.api.utils import InvalidParams as UtilsInvalidParams
+from sentry.models import Release
 from sentry.models.project import Project
 from sentry.release_health.base import (
     SessionsQueryFunction,
@@ -387,6 +388,7 @@ FIELD_MAP: Mapping[SessionsQueryFunction, Type[Field]] = {
     "crash_free_rate(session)": SimpleForwardingField,
     "crash_free_rate(user)": SimpleForwardingField,
 }
+PREFLIGHT_QUERY_COLUMNS = {"release.timestamp"}
 
 
 def run_sessions_query(
@@ -425,13 +427,41 @@ def run_sessions_query(
     project_ids = filter_keys.pop("project_id")
     assert not filter_keys
 
-    orderby = _parse_orderby(query, fields)
-    if orderby is None:
-        # We only return the top-N groups, based on the first field that is being
-        # queried, assuming that those are the most relevant to the user.
-        # In a future iteration we might expose an `orderBy` query parameter.
-        primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
-        orderby = OrderBy(primary_metric_field, Direction.DESC)
+    ordered_preflight_filters = {}
+    try:
+        orderby = _parse_orderby(query, fields)
+    except OrderByFieldNotInSelectException as exc:
+        orderby = query.raw_orderby[0]
+        if orderby[0] == "-":
+            orderby = orderby[1:]
+            direction = Direction.DESC
+        else:
+            direction = Direction.ASC
+        if orderby not in PREFLIGHT_QUERY_COLUMNS:
+            raise exc
+        # ToDo(ahmed): use that limit in releases query and test
+        preflight_query_filters = _generate_preflight_query_conditions(
+            field_name=orderby, direction=direction, org_id=org_id, project_ids=project_ids
+        )
+        if len(preflight_query_filters) == 0:
+            # ToDo(ahmed): Test this case
+            return _empty_result(query)
+        condition_lhs = None
+        if orderby == "release.timestamp":
+            condition_lhs = "release"
+            ordered_preflight_filters[condition_lhs] = preflight_query_filters
+        where += [Condition(Column(condition_lhs), Op.IN, preflight_query_filters)]
+
+        # Clear OrderBy because query is already filtered and we will re-order the results
+        # according to the order of the filter list later on
+        orderby = None
+    else:
+        if orderby is None:
+            # We only return the top-N groups, based on the first field that is being
+            # queried, assuming that those are the most relevant to the user.
+            # In a future iteration we might expose an `orderBy` query parameter.
+            primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
+            orderby = OrderBy(primary_metric_field, Direction.DESC)
 
     metrics_query = MetricsQuery(
         org_id,
@@ -484,12 +514,27 @@ def run_sessions_query(
                 # Create entry in default dict:
                 output_groups[GroupKey(session_status=status)]
 
+    result_groups = [
+        # Convert group keys back to dictionaries:
+        {"by": group_key.to_output_dict(), **group}  # type: ignore
+        for group_key, group in output_groups.items()
+    ]
+
+    if len(ordered_preflight_filters) == 1:
+        post_q_orderby_field = list(ordered_preflight_filters.keys())[0]
+        grp_value_to_result_grp_mapping = {}
+        if post_q_orderby_field in query.raw_groupby:
+            for result_group in result_groups:
+                grp_value_to_result_grp_mapping[
+                    result_group["by"][post_q_orderby_field]
+                ] = result_group
+            result_groups = [
+                grp_value_to_result_grp_mapping[elem]
+                for elem in ordered_preflight_filters[post_q_orderby_field]
+            ]
+
     return {
-        "groups": [
-            # Convert group keys back to dictionaries:
-            {"by": group_key.to_output_dict(), **group}  # type: ignore
-            for group_key, group in output_groups.items()
-        ],
+        "groups": result_groups,
         "start": isoformat_z(metrics_results["start"]),
         "end": isoformat_z(metrics_results["end"]),
         "intervals": [isoformat_z(ts) for ts in metrics_results["intervals"]],
@@ -577,16 +622,22 @@ def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
         return frozenset()
 
 
+class OrderByFieldNotInSelectException(Exception):
+    ...
+
+
 def _parse_orderby(
     query: QueryDefinition, fields: Mapping[SessionsQueryFunction, Field]
 ) -> Optional[OrderBy]:
     orderbys = query.raw_orderby
     if orderbys == []:
         return None
+    # ToDo(ahmed): Examine this here
     if len(orderbys) > 1:
         raise InvalidParams("Cannot order by multiple fields")
     orderby = orderbys[0]
 
+    # ToDo(ahmed): Examine what happens with release.timestamp
     if "session.status" in query.raw_groupby:
         raise InvalidParams("Cannot use 'orderBy' when grouping by sessions.status")
 
@@ -597,7 +648,7 @@ def _parse_orderby(
 
     assert query.raw_fields
     if orderby not in query.raw_fields:
-        raise InvalidParams("'orderBy' must be one of the provided 'fields'")
+        raise OrderByFieldNotInSelectException("'orderBy' must be one of the provided 'fields'")
 
     field = fields[orderby]
 
@@ -617,3 +668,21 @@ def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> M
 
     assert primary_metric_field
     return primary_metric_field
+
+
+def _generate_preflight_query_conditions(
+    field_name: str, direction: Direction, org_id: int, project_ids
+) -> ConditionGroup:
+    queryset_results = []
+    if field_name == "release.timestamp":
+        queryset = Release.objects.filter(
+            organization=org_id,
+            projects__id__in=project_ids,
+        )
+        # ToDo env filter
+        if direction == Direction.DESC:
+            queryset = queryset.order_by("-date_added", "-id")
+        else:
+            queryset = queryset.order_by("date_added", "id")
+        queryset_results = [item[0] for item in queryset.values_list("version")]
+    return queryset_results

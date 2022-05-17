@@ -1428,3 +1428,67 @@ class OrganizationSessionsEndpointMetricsTest(
                     "totals": {"sum(session)": 1},
                 }
             ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_session_metrics_order_by_release_timestamp(self):
+        """
+        Test that ensures that we are able to get the crash_free_rate for the most 2 recent
+        releases when grouping by release
+
+        ToDo(ahmed): Disambiguate
+        ToDo(ahmed): Check for environment
+        """
+        # Step 1: Create 3 releases
+        release1b = self.create_release(version="1B")
+        release1c = self.create_release(version="1C")
+        release1d = self.create_release(version="1D")
+
+        # Step 2: Create crash free rate for each of those releases
+        # Release 1c -> 66.7% Crash free rate
+        for _ in range(0, 2):
+            self.store_session(make_session(self.project1, release=release1c.version))
+        self.store_session(make_session(self.project1, release=release1c.version, status="crashed"))
+
+        # Release 1b -> 33.3% Crash free rate
+        for _ in range(0, 2):
+            self.store_session(
+                make_session(self.project1, release=release1b.version, status="crashed")
+            )
+        self.store_session(make_session(self.project1, release=release1b.version))
+
+        # Create Sessions in each of these releases
+        # Release 1d -> 80% Crash free rate
+        for _ in range(0, 4):
+            self.store_session(make_session(self.project1, release=release1d.version))
+        self.store_session(make_session(self.project1, release=release1d.version, status="crashed"))
+
+        # Step 3: Make request
+        response = self.do_request(
+            {
+                "project": self.project.id,  # project without users
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["crash_free_rate(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 2,
+            }
+        )
+        # Step 4: Validate Results
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D"},
+                "totals": {"crash_free_rate(session)": 0.8},
+                "series": {"crash_free_rate(session)": [0.8]},
+            },
+            {
+                "by": {"release": "1C"},
+                "totals": {"crash_free_rate(session)": 0.6666666666666667},
+                "series": {"crash_free_rate(session)": [0.6666666666666667]},
+            },
+            {
+                "by": {"release": "1B"},
+                "totals": {"crash_free_rate(session)": 0.33333333333333337},
+                "series": {"crash_free_rate(session)": [0.33333333333333337]},
+            },
+        ]
