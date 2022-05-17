@@ -15,7 +15,7 @@ class ProjectConfigDebounceCache(Service):
     going to cut it.
     """
 
-    __all__ = ("check_is_debounced", "mark_task_done")
+    __all__ = ("check_is_debounced", "is_debounced", "debounce", "mark_task_done")
 
     def __init__(self, **options):
         pass
