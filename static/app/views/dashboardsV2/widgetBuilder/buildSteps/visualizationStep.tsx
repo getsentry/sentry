@@ -67,17 +67,10 @@ export function VisualizationStep({
     };
   }, [widget, previousWidget, debounceWidget]);
 
-  const displayOptions = Object.keys(displayTypes)
-    .filter(
-      key =>
-        !organization.features.includes('new-widget-builder-experience-design') ||
-        (organization.features.includes('new-widget-builder-experience-design') &&
-          key !== DisplayType.TOP_N)
-    )
-    .map(value => ({
-      label: displayTypes[value],
-      value,
-    }));
+  const displayOptions = Object.keys(displayTypes).map(value => ({
+    label: displayTypes[value],
+    value,
+  }));
 
   return (
     <BuildStep
