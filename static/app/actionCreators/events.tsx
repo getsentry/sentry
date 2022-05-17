@@ -25,6 +25,7 @@ type Options = {
   generatePathname?: (org: OrganizationSummary) => string;
   includePrevious?: boolean;
   interval?: string;
+  isDirty?: string;
   limit?: number;
   orderby?: string;
   period?: string | null;
@@ -85,6 +86,7 @@ export const doEventsRequest = (
     generatePathname,
     queryExtras,
     excludeOther,
+    isDirty,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
@@ -104,6 +106,7 @@ export const doEventsRequest = (
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
+      user_modified: isDirty,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

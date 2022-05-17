@@ -148,6 +148,10 @@ type EventsRequestPartialProps = {
    */
   hideError?: boolean;
   /**
+   * Tracks whether the query was modified by a user in the search bar
+   */
+  isDirty?: string;
+  /**
    * Initial loading state
    */
   loading?: boolean;

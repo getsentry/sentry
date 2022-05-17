@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 
@@ -22,7 +23,7 @@ type DataType = {
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
-  const {ContainerActions} = props;
+  const {ContainerActions, location} = props;
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
   const mepSetting = useMEPSettingContext();
@@ -59,6 +60,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               hideError
               onError={pageError.setPageError}
               queryExtras={getMEPQueryParams(mepSetting)}
+              isDirty={decodeScalar(location.query.isDirty)}
             />
           )}
         </QueryBatchNode>
