@@ -1138,7 +1138,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     <PanelBody>{this.renderActionInterval(disabled)}</PanelBody>
                   </Panel>
                 )}
-                {hasAlertWizardV3 && (
+                {this.hasAlertWizardV3 && (
                   <Fragment>
                     <StyledListItem>{t('Establish ownership')}</StyledListItem>
                     {this.renderRuleName(disabled)}
