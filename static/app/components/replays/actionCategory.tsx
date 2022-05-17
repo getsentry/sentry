@@ -3,12 +3,10 @@ import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {BreadcrumbType, RawCrumb} from 'sentry/types/breadcrumbs';
-
-import {convertCrumbType} from '../events/interfaces/breadcrumbs/utils';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 
 type Props = {
-  action: RawCrumb;
+  action: Crumb;
 };
 
 type actionCategoryInfo = {
@@ -16,7 +14,7 @@ type actionCategoryInfo = {
   title: string;
 };
 
-function getActionCategoryInfo(crumb: RawCrumb): actionCategoryInfo {
+function getActionCategoryInfo(crumb: Crumb): actionCategoryInfo {
   switch (crumb.type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
@@ -41,8 +39,8 @@ function getActionCategoryInfo(crumb: RawCrumb): actionCategoryInfo {
   }
 }
 
-const ActionCategory = memo(function Category({action}: Props) {
-  const {title, description} = getActionCategoryInfo(convertCrumbType(action));
+const ActionCategory = memo(({action}: Props) => {
+  const {title, description} = getActionCategoryInfo(action);
 
   return (
     <Tooltip title={description} disabled={!description} skipWrapper disableForVisualTest>
