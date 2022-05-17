@@ -116,6 +116,7 @@ export class Provider extends Component<Props, State> {
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
   spansOutOfView: Map<string, number> = new Map();
+  animationInProgress: boolean = false;
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -466,8 +467,10 @@ export class Provider extends Component<Props, State> {
 
     this.spansOutOfView.set(spanId, left);
 
-    this.startAnimation();
-    this.performScroll(left);
+    if (!this.animationInProgress) {
+      this.startAnimation();
+      this.performScroll(left);
+    }
   };
 
   markSpanInView = (spanId: string) => {
@@ -478,14 +481,18 @@ export class Provider extends Component<Props, State> {
     const left = this.spansOutOfView.get(spanId);
     this.spansOutOfView.delete(spanId);
 
-    this.startAnimation();
-    this.performScroll(left!);
+    if (!this.animationInProgress) {
+      this.startAnimation();
+      this.performScroll(left!);
+    }
   };
 
   startAnimation() {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.style.transition = 'transform 0.3s';
     });
+
+    this.animationInProgress = true;
 
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout);
@@ -497,6 +504,7 @@ export class Provider extends Component<Props, State> {
       selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
         spanBarDOM.style.transition = '';
       });
+      this.animationInProgress = false;
       this.animationTimeout = null;
     }, 300);
   }
