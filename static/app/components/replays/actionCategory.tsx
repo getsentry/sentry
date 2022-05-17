@@ -25,7 +25,7 @@ function getActionCategoryInfo(crumb: Crumb): actionCategoryInfo {
     case BreadcrumbType.NAVIGATION:
       return {
         title: t('Navigation'),
-        description: `${crumb.category}: ${(crumb.data && crumb.data?.from) || ''} => ${
+description: `${crumb.category}: ${crumb.data?.from ?? ''} => ${crumb.data?.to ?? ''}`
           (crumb.data && crumb.data?.to) || ''
         }`,
       };
