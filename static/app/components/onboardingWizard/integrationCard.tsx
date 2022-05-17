@@ -45,7 +45,7 @@ export default function OnboardingIntegrationCard({
   }
   return (
     <TaskCard key="onboarding-integration-continue-card">
-      <Title>{t('Integrations to setup')}</Title>
+      <Title>{t('Integrations to Setup')}</Title>
       <OnboardingTaskProjectList>
         {integrationsToSetup.slice(0, MAX_INTEGRATIONS_COUNT).map(p => {
           const integration = onboardingIntegrationSet.get(p);
