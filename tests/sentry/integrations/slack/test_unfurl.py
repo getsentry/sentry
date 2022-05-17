@@ -1,8 +1,10 @@
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
+from django.utils import timezone
 
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery
@@ -169,7 +171,11 @@ class UnfurlTest(TestCase):
     def test_unfurl_metric_alerts_chart(self, mock_generate_chart):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(
-            status=2, organization=self.organization, projects=[self.project], alert_rule=alert_rule
+            status=2,
+            organization=self.organization,
+            projects=[self.project],
+            alert_rule=alert_rule,
+            date_started=timezone.now() - timedelta(minutes=2),
         )
         incident.update(identifier=123)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
