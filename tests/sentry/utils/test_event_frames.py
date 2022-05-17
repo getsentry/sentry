@@ -184,13 +184,13 @@ class FilenameMungingTestCase(unittest.TestCase):
                 "function": "onClick",
                 "module": "com.jetbrains.kmm.androidApp.MainActivity$$ExternalSyntheticLambda0",
                 "lineno": 2,
-                "in_app": False,
+                "in_app": True,
             },
             {
                 "function": "$r8$lambda$hGNRcN3pFcj8CSoYZBi9fT_AXd0",
                 "module": "com.jetbrains.kmm.androidApp.MainActivity",
                 "lineno": 0,
-                "in_app": False,
+                "in_app": True,
             },
             {
                 "function": "onCreate$lambda-1",
@@ -203,11 +203,8 @@ class FilenameMungingTestCase(unittest.TestCase):
         ]
         key, munged_frames = munged_filename_and_frames("java", exception_frames, "munged_filename")
         assert len(munged_frames) == 16
-        # assert munged_frames[0][key] == "jdk/internal/reflect/NativeMethodAccessorImpl.java"
-        # assert munged_frames[1][key] == "io/sentry/example/Application.java"
-        # assert munged_frames[2][key] == "io/sentry/example/Application.java"
-        # for z in zip(frames, munged_frames):
-        #     assert z[0].items() <= z[1].items()
+        for z in zip(exception_frames, munged_frames):
+            assert z[0].items() <= z[1].items()
 
 
 class WaterFallTestCase(TestCase):
