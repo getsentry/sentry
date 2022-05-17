@@ -10,8 +10,14 @@ from sentry.web.helpers import render_to_response
 
 
 class ReactMixin:
+    def meta_tags(self, request: Request):
+        return []
+
     def handle_react(self, request: Request) -> Response:
-        context = {"CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME}
+        context = {
+            "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
+            "meta_tags": self.meta_tags(request),
+        }
 
         # Force a new CSRF token to be generated and set in user's
         # Cookie. Alternatively, we could use context_processor +
