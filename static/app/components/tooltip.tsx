@@ -291,7 +291,6 @@ export function DO_NOT_USE_TOOLTIP({
                     id={tooltipId}
                     data-placement={placement}
                     style={computeOriginFromArrow(position, arrowProps)}
-                    className="tooltip-content"
                     popperStyle={popperStyle}
                     onMouseEnter={() => isHoverable && handleMouseEnter()}
                     onMouseLeave={() => isHoverable && handleMouseLeave()}
