@@ -164,7 +164,7 @@ const Container = styled('button')<ContainerProps>`
   display: inline-flex;
   width: 100%;
   border: none;
-  background: ${p => p.theme.white};
+  background: transparent;
   justify-content: space-between;
   align-items: center;
   border-left: 4px solid transparent;

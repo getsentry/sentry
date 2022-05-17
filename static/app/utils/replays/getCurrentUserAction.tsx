@@ -6,7 +6,7 @@ export function getCurrentUserAction(
   startTimestamp: number | undefined,
   currentHoverTime: number | undefined
 ) {
-  if (!startTimestamp || !userActionCrumbs || !currentHoverTime) {
+  if (!startTimestamp || !userActionCrumbs || currentHoverTime === undefined) {
     return undefined;
   }
 
