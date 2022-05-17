@@ -9,6 +9,7 @@ import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
@@ -18,21 +19,6 @@ function computeRelativeWeight(base: number, value: number) {
     return 0;
   }
   return (value / base) * 100;
-}
-
-function formatColorForFrame(
-  frame: FlamegraphFrame,
-  renderer: FlamegraphRenderer
-): string {
-  const color = renderer.getColorForFrame(frame);
-  if (color.length === 4) {
-    return `rgba(${color
-      .slice(0, 3)
-      .map(n => n * 255)
-      .join(',')}, ${color[3]})`;
-  }
-
-  return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 }
 
 function makeSortFunction(
