@@ -1,8 +1,6 @@
-import {Fragment} from 'react';
-
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Hovercard, HOVERCARD_PORTAL_ID} from 'sentry/components/hovercard';
+import {Hovercard} from 'sentry/components/hovercard';
 
 describe('Hovercard', () => {
   beforeEach(() => {
@@ -13,31 +11,6 @@ describe('Hovercard', () => {
     jest.useRealTimers();
   });
 
-  it('reuses portal', () => {
-    render(
-      <Fragment>
-        <Hovercard
-          position="top"
-          body="Hovercard Body"
-          header="Hovercard Header"
-          displayTimeout={0}
-        >
-          Hovercard Trigger
-        </Hovercard>
-        <Hovercard
-          position="top"
-          body="Hovercard Body"
-          header="Hovercard Header"
-          displayTimeout={0}
-        >
-          Hovercard Trigger
-        </Hovercard>
-      </Fragment>
-    );
-
-    // eslint-disable-next-line
-    expect(document.querySelectorAll(`#${HOVERCARD_PORTAL_ID}`)).toHaveLength(1);
-  });
   it('Displays card', async () => {
     render(
       <Hovercard

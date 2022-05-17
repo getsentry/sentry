@@ -9,22 +9,6 @@ import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
-export const HOVERCARD_PORTAL_ID = 'hovercard-portal';
-
-function findOrCreatePortal(): HTMLElement {
-  let portal = document.getElementById(HOVERCARD_PORTAL_ID);
-
-  if (portal) {
-    return portal;
-  }
-
-  portal = document.createElement('div');
-  portal.setAttribute('id', HOVERCARD_PORTAL_ID);
-  document.body.appendChild(portal);
-
-  return portal;
-}
-
 interface HovercardProps {
   /**
    * Classname to apply to the hovercard
@@ -86,12 +70,27 @@ interface HovercardProps {
   underlineColor?: ColorOrAlias;
 }
 
-function Hovercard(props: HovercardProps): React.ReactElement {
+function Hovercard({
+  body,
+  bodyClassName,
+  children,
+  className,
+  containerClassName,
+  header,
+  modifiers,
+  offset,
+  show,
+  showUnderline,
+  tipBorderColor,
+  tipColor,
+  underlineColor,
+  displayTimeout = 100,
+  position = 'top',
+}: HovercardProps): React.ReactElement {
   const [visible, setVisible] = useState(false);
 
   const scheduleUpdateRef = useRef<(() => void) | null>(null);
 
-  const portalEl = useMemo(() => findOrCreatePortal(), []);
   const tooltipId = useMemo(() => domId('hovercard-'), []);
 
   const showHoverCardTimeoutRef = useRef<number | undefined>(undefined);
@@ -108,7 +107,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
     if (scheduleUpdateRef.current) {
       scheduleUpdateRef.current();
     }
-  }, [props.body, props.header]);
+  }, [body, header]);
 
   const toggleHovercard = useCallback(
     (value: boolean) => {
@@ -117,14 +116,14 @@ function Hovercard(props: HovercardProps): React.ReactElement {
       // Else enqueue a new timeout
       showHoverCardTimeoutRef.current = window.setTimeout(
         () => setVisible(value),
-        props.displayTimeout ?? 100
+        displayTimeout
       );
     },
-    [props.displayTimeout]
+    [displayTimeout]
   );
 
-  const popperModifiers = useMemo(() => {
-    const modifiers: PopperProps['modifiers'] = {
+  const popperModifiers = useMemo<PopperProps['modifiers']>(() => {
+    return {
       hide: {
         enabled: false,
       },
@@ -133,27 +132,26 @@ function Hovercard(props: HovercardProps): React.ReactElement {
         enabled: true,
         boundariesElement: 'viewport',
       },
-      ...(props.modifiers || {}),
+      ...(modifiers || {}),
     };
-    return modifiers;
-  }, [props.modifiers]);
+  }, [modifiers]);
 
   // If show is not set, then visibility state is uncontrolled
-  const isVisible = props.show === undefined ? visible : props.show;
+  const isVisible = show === undefined ? visible : show;
 
   const hoverProps = useMemo((): {
     onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
     onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
   } => {
     // If show is not set, then visibility state is controlled by mouse events
-    if (props.show === undefined) {
+    if (show === undefined) {
       return {
         onMouseEnter: () => toggleHovercard(true),
         onMouseLeave: () => toggleHovercard(false),
       };
     }
     return {};
-  }, [props.show, toggleHovercard]);
+  }, [show, toggleHovercard]);
 
   return (
     <Manager>
@@ -162,17 +160,17 @@ function Hovercard(props: HovercardProps): React.ReactElement {
           <Trigger
             ref={ref}
             aria-describedby={tooltipId}
-            className={props.containerClassName}
-            showUnderline={props.showUnderline}
-            underlineColor={props.underlineColor}
+            className={containerClassName}
+            showUnderline={showUnderline}
+            underlineColor={underlineColor}
             {...hoverProps}
           >
-            {props.children}
+            {children}
           </Trigger>
         )}
       </Reference>
       {createPortal(
-        <Popper placement={props.position ?? 'top'} modifiers={popperModifiers}>
+        <Popper placement={position} modifiers={popperModifiers}>
           {({ref, style, placement, arrowProps, scheduleUpdate}) => {
             scheduleUpdateRef.current = scheduleUpdate;
 
@@ -182,7 +180,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
             }
 
             // Nothing to render
-            if (!props.body && !props.header) {
+            if (!body && !header) {
               return null;
             }
 
@@ -193,21 +191,19 @@ function Hovercard(props: HovercardProps): React.ReactElement {
                     ref={ref}
                     id={tooltipId}
                     placement={placement}
-                    offset={props.offset}
+                    offset={offset}
                     // Maintain the hovercard class name for BC with less styles
-                    className={classNames('hovercard', props.className)}
+                    className={classNames('hovercard', className)}
                     {...hoverProps}
                   >
-                    {props.header ? <Header>{props.header}</Header> : null}
-                    {props.body ? (
-                      <Body className={props.bodyClassName}>{props.body}</Body>
-                    ) : null}
+                    {header ? <Header>{header}</Header> : null}
+                    {body ? <Body className={bodyClassName}>{body}</Body> : null}
                     <HovercardArrow
                       ref={arrowProps.ref}
                       style={arrowProps.style}
                       placement={placement}
-                      tipColor={props.tipColor}
-                      tipBorderColor={props.tipBorderColor}
+                      tipColor={tipColor}
+                      tipBorderColor={tipBorderColor}
                     />
                   </StyledHovercard>
                 </SlideInAnimation>
@@ -215,7 +211,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
             );
           }}
         </Popper>,
-        portalEl
+        document.body
       )}
     </Manager>
   );
