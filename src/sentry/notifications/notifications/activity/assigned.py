@@ -22,7 +22,8 @@ def _get_team_option(assignee_id: int, organization: Organization) -> Team | Non
 
 
 def is_team_assignee(activity: Activity) -> bool:
-    return activity.data.get("assigneeType") == "team"
+    assignee_type: str | None = activity.data.get("assigneeType")
+    return assignee_type == "team"
 
 
 def get_assignee_str(activity: Activity, organization: Organization) -> str:
