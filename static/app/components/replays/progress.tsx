@@ -1,5 +1,9 @@
 import styled from '@emotion/styled';
 
+type MeterProps = {
+  position?: 'absolute' | 'relative';
+};
+
 /**
  * A simple progress bar.
  * ```
@@ -13,8 +17,8 @@ import styled from '@emotion/styled';
  * Return multiple <Value /> components to render multiple bars directly on top
  * of each other with `position:absolute;`.
  */
-export const Meter = styled('div')`
-  position: relative;
+export const Meter = styled('div')<MeterProps>`
+  position: ${p => p.position ?? 'relative'};
   height: 100%;
   width: 100%;
   pointer-events: none;

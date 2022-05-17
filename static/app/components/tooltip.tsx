@@ -43,6 +43,18 @@ const TOOLTIP_ANIMATION: MotionProps = {
   },
 };
 
+const MODIFIERS: PopperProps['modifiers'] = {
+  hide: {enabled: false},
+  preventOverflow: {
+    padding: 10,
+    enabled: true,
+    boundariesElement: 'viewport',
+  },
+  applyStyle: {
+    gpuAcceleration: true,
+  },
+};
+
 /**
  * How long to wait before closing the tooltip when isHoverable is set
  */
@@ -209,19 +221,6 @@ export function DO_NOT_USE_TOOLTIP({
 
   // Tracks the triggering element
   const triggerRef = useRef<HTMLElement | null>(null);
-  const modifiers: PopperProps['modifiers'] = useMemo(() => {
-    return {
-      hide: {enabled: false},
-      preventOverflow: {
-        padding: 10,
-        enabled: true,
-        boundariesElement: 'viewport',
-      },
-      applyStyle: {
-        gpuAcceleration: true,
-      },
-    };
-  }, []);
 
   function renderTrigger(triggerChildren: React.ReactNode, ref: React.Ref<HTMLElement>) {
     const setRef = (el: HTMLElement) => {
@@ -281,37 +280,69 @@ export function DO_NOT_USE_TOOLTIP({
     <Manager>
       <Reference>{({ref}) => renderTrigger(children, ref)}</Reference>
       {createPortal(
-        <AnimatePresence>
-          {isVisible ? (
-            <Popper placement={position} modifiers={modifiers}>
-              {({ref, style, placement, arrowProps}) => (
-                <PositionWrapper style={style}>
-                  <TooltipContent
-                    ref={ref}
-                    id={tooltipId}
-                    data-placement={placement}
-                    style={computeOriginFromArrow(position, arrowProps)}
-                    className="tooltip-content"
-                    popperStyle={popperStyle}
-                    onMouseEnter={() => isHoverable && handleMouseEnter()}
-                    onMouseLeave={() => isHoverable && handleMouseLeave()}
-                    {...TOOLTIP_ANIMATION}
-                  >
-                    {title}
-                    <TooltipArrow
-                      ref={arrowProps.ref}
-                      data-placement={placement}
-                      style={arrowProps.style}
-                    />
-                  </TooltipContent>
-                </PositionWrapper>
-              )}
-            </Popper>
-          ) : null}
-        </AnimatePresence>,
+        <TooltipUI
+          isVisible={isVisible}
+          position={position}
+          popperStyle={popperStyle}
+          title={title}
+          tooltipId={tooltipId}
+          onMouseEnter={() => isHoverable && handleMouseEnter()}
+          onMouseLeave={() => isHoverable && handleMouseLeave()}
+        />,
         document.body
       )}
     </Manager>
+  );
+}
+
+type TooltipUIProps = {
+  isVisible: boolean;
+  position: InternalTooltipProps['position'];
+  title: InternalTooltipProps['title'];
+  tooltipId: string;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  popperStyle?: InternalTooltipProps['popperStyle'];
+};
+
+export function TooltipUI({
+  isVisible,
+  popperStyle,
+  position,
+  title,
+  tooltipId,
+  onMouseLeave,
+  onMouseEnter,
+}: TooltipUIProps) {
+  return (
+    <AnimatePresence>
+      {isVisible ? (
+        <Popper placement={position} modifiers={MODIFIERS}>
+          {({ref, style, placement, arrowProps}) => (
+            <PositionWrapper style={style}>
+              <TooltipContent
+                ref={ref}
+                id={tooltipId}
+                data-placement={placement}
+                style={computeOriginFromArrow(position, arrowProps)}
+                className="tooltip-content"
+                popperStyle={popperStyle}
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
+                {...TOOLTIP_ANIMATION}
+              >
+                {title}
+                <TooltipArrow
+                  ref={arrowProps.ref}
+                  data-placement={placement}
+                  style={arrowProps.style}
+                />
+              </TooltipContent>
+            </PositionWrapper>
+          )}
+        </Popper>
+      ) : null}
+    </AnimatePresence>
   );
 }
 

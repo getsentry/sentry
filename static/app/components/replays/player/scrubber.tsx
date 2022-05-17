@@ -2,14 +2,35 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import StaticTooltip from 'sentry/components/replays/player/StaticTooltip';
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {divide} from 'sentry/components/replays/utils';
+import {divide, formatTime} from 'sentry/components/replays/utils';
+import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 
 type Props = {
   className?: string;
 };
+
+function CursorTooltip({percent, timestamp}: {percent: number; timestamp: number}) {
+  return (
+    <PositionedTooltip percent={percent}>
+      <Tooltip title={formatTime(timestamp)} forceVisible>
+        <div style={{opacity: '1 !important'}} />
+      </Tooltip>
+    </PositionedTooltip>
+  );
+}
+
+const PositionedTooltip = styled('div')<{percent: number}>`
+  position: absolute;
+  top: 0;
+  left: ${p => p.percent * 100}%;
+  width: 10px;
+  height: 100%;
+  background: red;
+`;
 
 function Scrubber({className}: Props) {
   const {currentHoverTime, currentTime, duration, setCurrentTime} = useReplayContext();
@@ -19,7 +40,7 @@ function Scrubber({className}: Props) {
 
   return (
     <Wrapper className={className}>
-      <Meter>
+      <Meter position="absolute">
         {currentHoverTime ? <MouseTrackingValue percent={hoverPlace} /> : null}
         <PlaybackTimeValue percent={percentComplete} />
       </Meter>
@@ -33,6 +54,13 @@ function Scrubber({className}: Props) {
           showLabel={false}
         />
       </RangeWrapper>
+
+      {/* <CursorTooltip percent={hoverPlace} timestamp={currentHoverTime || 0} /> */}
+      <StaticTooltip
+        forceVisible
+        percent={hoverPlace}
+        title={formatTime(currentHoverTime || 0)}
+      />
     </Wrapper>
   );
 }
