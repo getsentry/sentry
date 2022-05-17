@@ -61,3 +61,36 @@ class AssignedNotificationAPITest(APITestCase):
         assert text == f"Issue assigned to {self.user.get_display_name()} by themselves"
         assert attachment["title"] == self.group.title
         assert self.project.slug in attachment["footer"]
+
+    @responses.activate
+    def test_sends_assignment_notification_team(self):
+        link_team(
+            team=self.team,
+            integration=self.integration,
+            channel_id="CXXXXXXX1",
+            channel_name="#javascript",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.ALWAYS,
+            team=self.team,
+        )
+
+        url = f"/api/0/issues/{self.group.id}/"
+        with self.tasks():
+            response = self.client.put(
+                url, format="json", data={"assignedTo": f"team:{self.team.id}"}
+            )
+        assert response.status_code == 200, response.content
+
+        # No email version for teams.
+        assert not len(mail.outbox)
+
+        attachment, text = get_attachment()
+
+        assert (
+            text == f"Issue assigned to the {self.team.name} team by {self.user.get_display_name()}"
+        )
+        assert attachment["title"] == self.group.title
+        assert self.project.slug in attachment["footer"]

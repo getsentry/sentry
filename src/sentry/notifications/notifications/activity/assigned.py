@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections import defaultdict
+from typing import Any, Mapping, MutableMapping
 
 from sentry.models import Activity, NotificationSetting, Organization, Team, User
 from sentry.notifications.types import GroupSubscriptionReason
@@ -86,7 +87,11 @@ class AssignedActivityNotification(GroupActivityNotification):
                     recipients=[assignee_team],
                     type=self.notification_setting_type,
                 )
-                actors_by_provider = {**users_by_provider}
+                actors_by_provider: MutableMapping[
+                    ExternalProviders,
+                    MutableMapping[Team | User, int],
+                ] = defaultdict(dict)
+                actors_by_provider.update({**users_by_provider})
                 for provider, teams in teams_by_provider.items():
                     for team in teams:
                         actors_by_provider[provider][team] = GroupSubscriptionReason.assigned
