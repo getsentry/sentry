@@ -1,8 +1,49 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Mapping, MutableMapping, Sequence
+from copy import deepcopy
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
 
 from sentry.utils.safe import PathSearchable, get_path
+
+FrameMunger = Callable[[str, MutableMapping[str, Any]], bool]
+
+
+def java_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
+    if frame.get("filename") is None or frame.get("module") is None:
+        return False
+    if "/" not in str(frame.get("filename")) and frame.get("module"):
+        # Replace the last module segment with the filename, as the
+        # terminal element in a module path is the class
+        module = frame["module"].split(".")
+        module[-1] = frame["filename"]
+        frame[key] = "/".join(module)
+        return True
+    return False
+
+
+PLATFORM_FRAME_MUNGER: Mapping[str, FrameMunger] = {"java": java_frame_munger}
+
+
+def munged_filename_and_frames(
+    platform: str, data_frames: Sequence[Mapping[str, Any]], key: str = "munged_filename"
+) -> Optional[Tuple[str, Sequence[Mapping[str, Any]]]]:
+    """
+    Applies platform-specific frame munging for filename pathing.
+
+    Returns the key used to insert into the frames and a deepcopy of the input data_frames with munging applied,
+    otherwise returns None.
+    """
+    munger = PLATFORM_FRAME_MUNGER.get(platform)
+    if not munger:
+        return None
+
+    copy_frames: Sequence[MutableMapping[str, Any]] = cast(
+        Sequence[MutableMapping[str, Any]], deepcopy(data_frames)
+    )
+    frames_updated = False
+    for frame in copy_frames:
+        frames_updated |= munger(key, frame)
+    return (key, copy_frames) if frames_updated else None
 
 
 def get_crashing_thread(thread_frames: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
@@ -18,24 +59,6 @@ def get_crashing_thread(thread_frames: Sequence[Mapping[str, Any]]) -> Mapping[s
         return filtered[0]
 
     return None
-
-
-def supplement_filename(platform: str, data_frames: Sequence[MutableMapping[str, Any]]) -> None:
-    # Java stackframes don't have an absolute path in the filename key.
-    # That property is usually just the basename of the file. In the future
-    # the Java SDK might generate better file paths, but for now we use the module
-    # path to approximate the file path so that we can intersect it with commit
-    # file paths.
-    if platform == "java":
-        for frame in data_frames:
-            if frame.get("filename") is None:
-                continue
-            if "/" not in str(frame.get("filename")) and frame.get("module"):
-                # Replace the last module segment with the filename, as the
-                # terminal element in a module path is the class
-                module = frame["module"].split(".")
-                module[-1] = frame["filename"]
-                frame["filename"] = "/".join(module)
 
 
 def find_stack_frames(

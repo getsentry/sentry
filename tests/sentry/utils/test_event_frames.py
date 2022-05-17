@@ -1,7 +1,11 @@
 import unittest
 
 from sentry.testutils import TestCase
-from sentry.utils.event_frames import find_stack_frames, get_crashing_thread, supplement_filename
+from sentry.utils.event_frames import (
+    find_stack_frames,
+    get_crashing_thread,
+    munged_filename_and_frames,
+)
 
 
 class CrashingThreadTestCase(unittest.TestCase):
@@ -31,7 +35,7 @@ class CrashingThreadTestCase(unittest.TestCase):
 class FilenameMungingTestCase(unittest.TestCase):
     def test_platform_other(self):
         fake_frame = [{"filename": "should_not_change.py"}]
-        supplement_filename("other", fake_frame)
+        assert not munged_filename_and_frames("other", fake_frame)
         assert fake_frame[0]["filename"] == "should_not_change.py"
 
     def test_platform_java(self):
@@ -49,26 +53,27 @@ class FilenameMungingTestCase(unittest.TestCase):
                 "filename": "Application.java",
             },
         ]
-        supplement_filename("java", frames)
-        assert frames[0]["filename"] == "jdk/internal/reflect/NativeMethodAccessorImpl.java"
-        assert frames[1]["filename"] == "io/sentry/example/Application.java"
-        assert frames[2]["filename"] == "io/sentry/example/Application.java"
+        key, munged_frames = munged_filename_and_frames("java", frames, "munged_filename")
+        assert len(munged_frames) == 3
+        assert munged_frames[0][key] == "jdk/internal/reflect/NativeMethodAccessorImpl.java"
+        assert munged_frames[1][key] == "io/sentry/example/Application.java"
+        assert munged_frames[2][key] == "io/sentry/example/Application.java"
+        for z in zip(frames, munged_frames):
+            assert z[0].items() <= z[1].items()
 
     def test_platform_java_no_filename(self):
         no_filename = {
             "module": "io.sentry.example.Application",
         }
-        supplement_filename("java", [no_filename])
-        assert no_filename["module"] == "io.sentry.example.Application"
-        assert "filename" not in no_filename
+        no_munged = munged_filename_and_frames("java", [no_filename])
+        assert not no_munged
 
     def test_platform_java_no_module(self):
-        no_filename = {
+        no_module = {
             "filename": "Application.java",
         }
-        supplement_filename("java", [no_filename])
-        assert no_filename["filename"] == "Application.java"
-        assert "module" not in no_filename
+        no_munged = munged_filename_and_frames("java", [no_module])
+        assert not no_munged
 
 
 class WaterFallTestCase(TestCase):
