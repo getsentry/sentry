@@ -37,10 +37,9 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     id: undefined,
     title: t('High Throughput Transactions'),
     description: t('Top 5 transactions with the largest volume.'),
-    displayType: DisplayType.AREA,
+    displayType: DisplayType.TOP_N,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
-    limit: 5,
     queries: [
       {
         name: '',
@@ -134,10 +133,9 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     id: undefined,
     title: t('Top Unhandled Error Types'),
     description: t('Most frequently encountered unhandled errors.'),
-    displayType: DisplayType.AREA,
+    displayType: DisplayType.TOP_N,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
-    limit: 5,
     queries: [
       {
         name: '',
@@ -168,3 +166,15 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
 ];
+
+export const getTopNConvertedDefaultWidgets = () =>
+  DEFAULT_WIDGETS.map(widget => {
+    if (widget.displayType === DisplayType.TOP_N) {
+      return {
+        ...widget,
+        displayType: DisplayType.AREA,
+        limit: 5,
+      };
+    }
+    return widget;
+  });
