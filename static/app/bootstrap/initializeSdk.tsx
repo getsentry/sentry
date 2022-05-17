@@ -98,7 +98,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       transport: Sentry.makeFetchTransport,
       stackParser: Sentry.defaultStackParser,
       tracesSampleRate,
-      integrations: [replay],
+      integrations: [...Sentry.defaultIntegrations, replay],
     });
     // `bindClient` will setup integrations
     hub.bindClient(client);
