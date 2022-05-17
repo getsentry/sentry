@@ -30,11 +30,13 @@ __all__ = (
     "MetricEntity",
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
+    "get_intervals",
 )
 
 
 import re
 from abc import ABC
+from datetime import datetime, timedelta
 from typing import (
     Collection,
     Dict,
@@ -211,3 +213,11 @@ class NotSupportedOverCompositeEntityException(DerivedMetricException):
 
 class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeEntityException):
     ...
+
+
+def get_intervals(start: datetime, end: datetime, granularity: int):
+    assert granularity > 0
+    delta = timedelta(seconds=granularity)
+    while start < end:
+        yield start
+        start += delta

@@ -30,13 +30,13 @@ def get_datetime_from_stats_period(stats_period, now=None):
         raise InvalidParams(f"Invalid statsPeriod: {stats_period!r}")
 
 
-def default_start_end_dates(now=None):
+def default_start_end_dates(now=None, default_stats_period=MAX_STATS_PERIOD):
     if now is None:
         now = timezone.now()
-    return now - MAX_STATS_PERIOD, now
+    return now - default_stats_period, now
 
 
-def get_date_range_from_params(params, optional=False):
+def get_date_range_from_params(params, optional=False, default_stats_period=MAX_STATS_PERIOD):
     """
     Gets a date range from standard date range params we pass to the api.
 
@@ -53,12 +53,14 @@ def get_date_range_from_params(params, optional=False):
     If `start` end `end` are passed, validate them, convert to `datetime` and
     returns them if valid.
     :param optional: When True, if no params passed then return `(None, None)`.
+    :param default_stats_period: When set, this becomes the interval upon which default start and
+    and end dates are defined
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
     """
     now = timezone.now()
 
-    start, end = default_start_end_dates(now)
+    start, end = default_start_end_dates(now, default_stats_period)
 
     stats_period = params.get("statsPeriod")
     stats_period_start = params.get("statsPeriodStart")
