@@ -8,13 +8,12 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {DISCOVER2_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import TagStore from 'sentry/stores/tagStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {Column} from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
+import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import ColumnEditCollection from './columnEditCollection';
@@ -49,7 +48,7 @@ function ColumnEditModal(props: Props) {
     });
   }, [organization.id]);
 
-  const tags = useLegacyStore(TagStore);
+  const {tags} = useTags();
   const tagKeys = Object.values(tags).map(({key}) => key);
 
   const [columns, setColumns] = useState<Column[]>(props.columns);
