@@ -75,6 +75,141 @@ class FilenameMungingTestCase(unittest.TestCase):
         no_munged = munged_filename_and_frames("java", [no_module])
         assert not no_munged
 
+    def test_platform_android_kotlin(self):
+        exception_frames = [
+            {
+                "function": "main",
+                "module": "com.android.internal.os.ZygoteInit",
+                "filename": "ZygoteInit.java",
+                "abs_path": "ZygoteInit.java",
+                "lineno": 1003,
+                "in_app": False,
+            },
+            {
+                "function": "run",
+                "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                "filename": "RuntimeInit.java",
+                "abs_path": "RuntimeInit.java",
+                "lineno": 548,
+                "in_app": False,
+            },
+            {
+                "function": "invoke",
+                "module": "java.lang.reflect.Method",
+                "filename": "Method.java",
+                "abs_path": "Method.java",
+                "in_app": False,
+            },
+            {
+                "function": "main",
+                "module": "android.app.ActivityThread",
+                "filename": "ActivityThread.java",
+                "abs_path": "ActivityThread.java",
+                "lineno": 7842,
+                "in_app": False,
+            },
+            {
+                "function": "loop",
+                "module": "android.os.Looper",
+                "filename": "Looper.java",
+                "abs_path": "Looper.java",
+                "lineno": 288,
+                "in_app": False,
+            },
+            {
+                "function": "loopOnce",
+                "module": "android.os.Looper",
+                "filename": "Looper.java",
+                "abs_path": "Looper.java",
+                "lineno": 201,
+                "in_app": False,
+            },
+            {
+                "function": "dispatchMessage",
+                "module": "android.os.Handler",
+                "filename": "Handler.java",
+                "abs_path": "Handler.java",
+                "lineno": 99,
+                "in_app": False,
+            },
+            {
+                "function": "handleCallback",
+                "module": "android.os.Handler",
+                "filename": "Handler.java",
+                "abs_path": "Handler.java",
+                "lineno": 938,
+                "in_app": False,
+            },
+            {
+                "function": "run",
+                "module": "android.view.View$PerformClick",
+                "filename": "View.java",
+                "abs_path": "View.java",
+                "lineno": 28810,
+                "in_app": False,
+            },
+            {
+                "function": "access$3700",
+                "module": "android.view.View",
+                "filename": "View.java",
+                "abs_path": "View.java",
+                "lineno": 835,
+                "in_app": False,
+            },
+            {
+                "function": "performClickInternal",
+                "module": "android.view.View",
+                "filename": "View.java",
+                "abs_path": "View.java",
+                "lineno": 7432,
+                "in_app": False,
+            },
+            {
+                "function": "performClick",
+                "module": "com.google.android.material.button.MaterialButton",
+                "filename": "MaterialButton.java",
+                "abs_path": "MaterialButton.java",
+                "lineno": 1119,
+                "in_app": False,
+            },
+            {
+                "function": "performClick",
+                "module": "android.view.View",
+                "filename": "View.java",
+                "abs_path": "View.java",
+                "lineno": 7455,
+                "in_app": False,
+            },
+            {
+                "function": "onClick",
+                "module": "com.jetbrains.kmm.androidApp.MainActivity$$ExternalSyntheticLambda0",
+                "lineno": 2,
+                "in_app": True,
+            },
+            {
+                "function": "$r8$lambda$hGNRcN3pFcj8CSoYZBi9fT_AXd0",
+                "module": "com.jetbrains.kmm.androidApp.MainActivity",
+                "lineno": 0,
+                "in_app": True,
+            },
+            {
+                "function": "onCreate$lambda-1",
+                "module": "com.jetbrains.kmm.androidApp.MainActivity",
+                "filename": "MainActivity.kt",
+                "abs_path": "MainActivity.kt",
+                "lineno": 55,
+                "in_app": True,
+            },
+        ]
+        key, munged_frames = munged_filename_and_frames("java", exception_frames, "munged_filename")
+        assert len(munged_frames) == 16
+        for z in zip(exception_frames, munged_frames):
+            assert z[0].items() <= z[1].items()
+
+        has_munged = list(filter(lambda f: f.get("filename") and f.get("module"), munged_frames))
+        assert len(has_munged) == 14
+        assert all(str(x.get("munged_filename")).endswith(x.get("filename")) for x in has_munged)
+
 
 class WaterFallTestCase(TestCase):
     def test_only_exception_interface_with_no_stacktrace(self):
@@ -175,6 +310,37 @@ class WaterFallTestCase(TestCase):
                         }
                     ]
                 }
+            },
+            project_id=self.project.id,
+        )
+
+        frames = find_stack_frames(event.data)
+        assert len(frames) == 1
+        assert frames[0]["function"] == "invoke0"
+        assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
+
+    def test_only_thread_interface_flattened(self):
+        event = self.store_event(
+            data={
+                "threads": [
+                    {
+                        "id": 0,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "invoke0",
+                                    "abs_path": "NativeMethodAccessorImpl.java",
+                                    "in_app": False,
+                                    "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                    "filename": "NativeMethodAccessorImpl.java",
+                                }
+                            ],
+                            "registers": {},
+                        },
+                        "crashed": False,
+                        "current": False,
+                    }
+                ]
             },
             project_id=self.project.id,
         )
