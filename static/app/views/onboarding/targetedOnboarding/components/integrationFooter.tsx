@@ -35,6 +35,12 @@ export default function IntegrationsFooter({
       selectedIntegrations: integrations,
     };
     setClientState(nextState);
+
+    trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_integrations', {
+      integrations: integrations.join(','),
+      integration_count: integrations.length,
+      organization,
+    });
     onComplete();
   };
 
