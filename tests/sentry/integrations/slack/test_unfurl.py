@@ -1,6 +1,7 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import freezegun
 import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
@@ -105,6 +106,11 @@ class UnfurlTest(TestCase):
         self.integration = install_slack(self.organization)
 
         self.request = RequestFactory().get("slack/event")
+        self.frozen_time = freezegun.freeze_time(datetime.now() - timedelta(days=1))
+        self.frozen_time.start()
+
+    def tearDown(self):
+        self.frozen_time.stop()
 
     def test_unfurl_issues(self):
         min_ago = iso_format(before_now(minutes=1))
@@ -579,16 +585,26 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
+        first_event = self.store_event(
             data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
             project_id=self.project.id,
         )
-        self.store_event(
+        second_event = self.store_event(
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
             project_id=self.project.id,
         )
-
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=dailytop5&topEvents=2"
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/discover/results/"
+            f"?field=message"
+            f"&field=event.type"
+            f"&field=count()"
+            f"&name=All+Events"
+            f"&query=message:[{first_event.message},{second_event.message}]"
+            f"&sort=-count"
+            f"&statsPeriod=24h"
+            f"&display=dailytop5"
+            f"&topEvents=2"
+        )
         link_type, args = match_link(url)
 
         if not args or not link_type:

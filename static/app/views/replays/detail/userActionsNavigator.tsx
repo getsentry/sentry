@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
@@ -12,6 +12,7 @@ import {
   PanelHeader as BasePanelHeader,
   PanelItem,
 } from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
 import ActionCategory from 'sentry/components/replays/actionCategory';
 import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -22,9 +23,25 @@ import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
 import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
 
+function CrumbPlaceholder({number}: {number: number}) {
+  return (
+    <Fragment>
+      {[...Array(number)].map((_, i) => (
+        <PlaceholderMargin key={i} height="40px" />
+      ))}
+    </Fragment>
+  );
+}
+
 type Props = {
-  crumbs: RawCrumb[];
-  event: EventTransaction;
+  /**
+   * Raw breadcrumbs, `undefined` means it is still loading
+   */
+  crumbs: RawCrumb[] | undefined;
+  /**
+   * Root replay event, `undefined` means it is still loading
+   */
+  event: EventTransaction | undefined;
 };
 
 type ContainerProps = {
@@ -33,12 +50,13 @@ type ContainerProps = {
 };
 
 function UserActionsNavigator({event, crumbs}: Props) {
-  const {setCurrentTime, currentHoverTime} = useReplayContext();
+  const {setCurrentTime, setCurrentHoverTime, currentHoverTime} = useReplayContext();
   const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
   const [closestUserAction, setClosestUserAction] = useState<Crumb>();
 
-  const {startTimestamp} = event;
-  const userActionCrumbs = onlyUserActions(transformCrumbs(crumbs));
+  const {startTimestamp} = event || {};
+  const userActionCrumbs = crumbs && onlyUserActions(transformCrumbs(crumbs));
+  const isLoaded = userActionCrumbs && startTimestamp;
 
   const getClosestUserAction = useCallback(
     async (hovertime: number) => {
@@ -47,12 +65,28 @@ function UserActionsNavigator({event, crumbs}: Props) {
         startTimestamp,
         hovertime
       );
-      if (closestUserAction?.timestamp !== closestUserActionItem.timestamp) {
+      if (
+        closestUserActionItem &&
+        closestUserAction?.timestamp !== closestUserActionItem.timestamp
+      ) {
         setClosestUserAction(closestUserActionItem);
       }
     },
     [closestUserAction?.timestamp, startTimestamp, userActionCrumbs]
   );
+
+  const onMouseEnter = useCallback(
+    (item: Crumb) => {
+      if (startTimestamp) {
+        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
+      }
+    },
+    [setCurrentHoverTime, startTimestamp]
+  );
+
+  const onMouseLeave = useCallback(() => {
+    setCurrentHoverTime(undefined);
+  }, [setCurrentHoverTime]);
 
   useEffect(() => {
     if (!currentHoverTime) {
@@ -62,44 +96,44 @@ function UserActionsNavigator({event, crumbs}: Props) {
     getClosestUserAction(currentHoverTime);
   }, [getClosestUserAction, currentHoverTime]);
 
-  if (!event) {
-    return null;
-  }
-
   return (
     <Panel>
       <PanelHeader>{t('Event Chapters')}</PanelHeader>
 
       <PanelBody>
-        {userActionCrumbs.map(item => (
-          <PanelItemCenter
-            key={item.id}
-            onClick={() => {
-              setCurrentUserAction(item);
-              item.timestamp
-                ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
-                : '';
-            }}
-          >
-            <Container
-              isHovered={closestUserAction?.id === item.id}
-              isSelected={currentUserAction?.id === item.id}
+        {!isLoaded && <CrumbPlaceholder number={4} />}
+        {isLoaded &&
+          userActionCrumbs.map(item => (
+            <PanelItemCenter
+              key={item.id}
+              onMouseEnter={() => onMouseEnter(item)}
+              onMouseLeave={() => onMouseLeave()}
+              onClick={() => {
+                setCurrentUserAction(item);
+                item.timestamp
+                  ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
+                  : '';
+              }}
             >
-              <Wrapper>
-                <Type
-                  type={item.type}
-                  color={item.color}
-                  description={item.description}
+              <Container
+                isHovered={closestUserAction?.id === item.id}
+                isSelected={currentUserAction?.id === item.id}
+              >
+                <Wrapper>
+                  <Type
+                    type={item.type}
+                    color={item.color}
+                    description={item.description}
+                  />
+                  <ActionCategory category={item} />
+                </Wrapper>
+                <PlayerRelativeTime
+                  relativeTime={startTimestamp}
+                  timestamp={item.timestamp}
                 />
-                <ActionCategory category={item} />
-              </Wrapper>
-              <PlayerRelativeTime
-                relativeTime={startTimestamp}
-                timestamp={item.timestamp}
-              />
-            </Container>
-          </PanelItemCenter>
-        ))}
+              </Container>
+            </PanelItemCenter>
+          ))}
       </PanelBody>
     </Panel>
   );
@@ -115,8 +149,10 @@ const Panel = styled(BasePanel)`
   grid-template-rows: auto 1fr;
   height: 0;
   min-height: 100%;
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
-    min-height: 450px;
+  @media only screen and (max-width: ${p => p.theme.breakpoints[2]}) {
+    height: fit-content;
+    max-height: 400px;
+    margin-top: ${space(2)};
   }
 `;
 
@@ -158,6 +194,11 @@ const Wrapper = styled('div')`
   gap: ${space(1)};
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray500};
+`;
+
+const PlaceholderMargin = styled(Placeholder)`
+  margin: ${space(1)} ${space(1.5)};
+  width: auto;
 `;
 
 export default UserActionsNavigator;

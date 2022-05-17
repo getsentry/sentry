@@ -102,9 +102,8 @@ function ProjectPageFilter({
     setCurrentSelectedProjects(newProjects);
   };
 
-  const handleApplyChange = (newProjects?: number[]) => {
-    // Use newProjects if provided otherwise fallback to current selection
-    updateProjects(newProjects ?? (currentSelectedProjects || []), router, {
+  const handleApplyChange = (newProjects: number[]) => {
+    updateProjects(newProjects, router, {
       save: true,
       resetParams: [],
       environments: [], // Clear environments when switching projects
@@ -165,6 +164,7 @@ function ProjectPageFilter({
           hideBottomBorder={false}
           isOpen={isOpen}
           highlighted={desyncedFilters.has('projects')}
+          data-test-id="global-header-project-selector"
         >
           <DropdownTitle>
             <PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>
@@ -179,7 +179,11 @@ function ProjectPageFilter({
   };
 
   const customLoadingIndicator = (
-    <PageFilterDropdownButton showChevron={false} disabled>
+    <PageFilterDropdownButton
+      showChevron={false}
+      disabled
+      data-test-id="global-header-project-selector-loading"
+    >
       <DropdownTitle>
         <IconProject />
         <TitleContainer>{t('Loading\u2026')}</TitleContainer>
