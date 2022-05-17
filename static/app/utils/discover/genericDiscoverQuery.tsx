@@ -188,7 +188,9 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       payload.referrer = referrer;
     }
 
-    payload.user_modified = location.query.isDirty;
+    if (props.route === 'eventsv2') {
+      payload.user_modified = location.query.isDirty;
+    }
 
     Object.assign(payload, props.queryExtras ?? {});
 

@@ -91,7 +91,6 @@ export function PerformanceLanding(props: Props) {
   );
   const landingDisplay = paramLandingDisplay ?? defaultLandingDisplayForProjects;
   const showOnboarding = onboardingProject !== undefined;
-  const eventViewProjectsAsString = eventView.project.join('.');
 
   useEffect(() => {
     if (hasMounted.current) {
@@ -103,7 +102,7 @@ export function PerformanceLanding(props: Props) {
         },
       });
     }
-  }, [eventViewProjectsAsString, location.pathname, location.query]);
+  }, [eventView.project.join('.')]);
 
   useEffect(() => {
     hasMounted.current = true;
