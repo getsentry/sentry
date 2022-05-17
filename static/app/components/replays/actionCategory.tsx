@@ -33,7 +33,7 @@ function getActionCategoryInfo(crumb: Crumb): actionCategoryInfo {
       return {title: t('Error'), description: `${crumb.category}: ${crumb.message}`};
     default:
       return {
-        title: '',
+        title: t('Default'),
         description: '',
       };
   }
