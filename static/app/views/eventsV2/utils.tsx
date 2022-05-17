@@ -676,7 +676,7 @@ export function handleAddQueryToDashboard({
         limit:
           organization.features.includes('new-widget-builder-experience-design') &&
           displayType === DisplayType.TOP_N
-            ? TOP_N
+            ? Number(eventView.topEvents) || TOP_N
             : undefined,
       },
       router,
@@ -745,6 +745,11 @@ export function constructAddQueryToDashboardLink({
         displayType === DisplayType.TOP_N
           ? DisplayType.AREA
           : displayType,
+      limit:
+        organization.features.includes('new-widget-builder-experience-design') &&
+        displayType === DisplayType.TOP_N
+          ? Number(eventView.topEvents) || TOP_N
+          : undefined,
     },
   };
 }

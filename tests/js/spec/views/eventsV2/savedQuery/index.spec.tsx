@@ -361,6 +361,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         display: DisplayModes.TOP5,
         orderby: 'test',
         fields: ['test', 'count()'],
+        topEvents: '2',
       });
       mount(
         testData.router.location,
@@ -379,7 +380,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             widget: {
               title: 'Saved query #1',
               displayType: DisplayType.AREA,
-              limit: 5,
+              limit: 2,
               queries: [
                 {
                   aggregates: ['count()'],

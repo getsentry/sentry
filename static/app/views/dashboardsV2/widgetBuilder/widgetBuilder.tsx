@@ -241,7 +241,7 @@ function WidgetBuilder({
           : displayType) ?? DisplayType.TABLE,
       interval: '5m',
       queries: [],
-      limit,
+      limit: limit ? Number(limit) : undefined,
       errors: undefined,
       loading: !!notDashboardsOrigin,
       dashboards: [],
