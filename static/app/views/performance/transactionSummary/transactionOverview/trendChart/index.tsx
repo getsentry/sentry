@@ -11,6 +11,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 
 import {TrendFunctionField} from '../../../trends/types';
@@ -18,7 +19,6 @@ import {generateTrendFunctionAsString} from '../../../trends/utils';
 import {ViewProps} from '../../../types';
 
 import Content from './content';
-import { decodeScalar } from 'sentry/utils/queryString';
 
 type Props = WithRouterProps &
   ViewProps & {
