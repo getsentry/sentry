@@ -321,24 +321,29 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         project_deletion_query = models.Project.objects.filter(status=ObjectStatus.VISIBLE)
         if project:
-            project_deletion_query = project_deletion_query.filter(project=project)
+            project_deletion_query = models.Project.objects.filter(project=project)
 
-        for project_id_for_deletion in RangeQuerySetWrapper(
-            project_deletion_query.values_list("id", flat=True),
-            result_value_getter=lambda item: item,
-        ):
-            for model, dtfield, order_by in DELETES_BY_PROJECT:
+        to_delete_by_project = []
+        for model in DELETES_BY_PROJECT:
+            if is_filtered(model):
                 if not silent:
-                    click.echo(
-                        "Removing {model} for days={days} project={project}".format(
-                            model=model.__name__, days=days, project=project_id_for_deletion
-                        )
-                    )
+                    click.echo(">> Skipping %s" % model.__name__)
+            else:
+                to_delete_by_project.append(model)
 
-                if is_filtered(model):
+        if to_delete_by_project:
+            for project_id_for_deletion in RangeQuerySetWrapper(
+                project_deletion_query.values_list("id", flat=True),
+                result_value_getter=lambda item: item,
+            ):
+                for model, dtfield, order_by in to_delete_by_project:
                     if not silent:
-                        click.echo(">> Skipping %s" % model.__name__)
-                else:
+                        click.echo(
+                            "Removing {model} for days={days} project={project}".format(
+                                model=model.__name__, days=days, project=project_id_for_deletion
+                            )
+                        )
+
                     imp = ".".join((model.__module__, model.__name__))
 
                     q = BulkDeleteQuery(
