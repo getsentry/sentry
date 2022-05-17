@@ -118,7 +118,7 @@ const TaskCard = styled(motion(Card))`
   overflow: visible;
   display: flex;
   flex-direction: column;
-  padding-bottom: ${space(2)};
+  padding-bottom: ${space(1)};
 `;
 TaskCard.defaultProps = {
   initial: 'initial',
