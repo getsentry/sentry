@@ -169,7 +169,7 @@ class SudoModal extends Component<Props, State> {
 
     if (
       (!user.hasPasswordAuth && authenticators.length === 0) ||
-      (isSuperuser && !isSelfHosted && !validateSUForm)
+      (isSuperuser && !isSelfHosted && validateSUForm)
     ) {
       return (
         <Fragment>
