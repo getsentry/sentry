@@ -44,6 +44,7 @@
 /.github/                   @getsentry/owners-sentry-dev
 /config/hooks/              @getsentry/owners-sentry-dev
 /scripts/                   @getsentry/owners-sentry-dev
+/tools/                     @getsentry/owners-sentry-dev
 Makefile                    @getsentry/owners-sentry-dev
 .envrc                      @getsentry/owners-sentry-dev
 .pre-commit-config.yaml     @getsentry/owners-sentry-dev
@@ -350,6 +351,8 @@ build-utils/        @getsentry/owners-js-build
 
 /src/sentry/snuba/metrics/                                            @getsentry/metrics
 /src/sentry/api/endpoints/organization_metrics.py                     @getsentry/metrics
+/src/sentry/api/endpoints/organization_sessions.py                    @getsentry/metrics
+src/sentry/snuba/metrics/query.py                                     @getsentry/metrics
 /tests/sentry/api/endpoints/test_organization_metric_data.py          @getsentry/metrics
 /tests/sentry/api/endpoints/test_organization_metric_details.py       @getsentry/metrics
 /tests/sentry/api/endpoints/test_organization_metric_tag_details.py   @getsentry/metrics

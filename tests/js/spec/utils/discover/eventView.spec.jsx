@@ -2572,6 +2572,23 @@ describe('EventView.sortOnField()', function () {
       sorts: [{field: 'title', kind: 'desc'}],
     });
   });
+
+  it('sorts on a field using function format', function () {
+    const modifiedState = {
+      ...state,
+      fields: [...state.fields, {field: 'count()'}],
+    };
+
+    const eventView = new EventView(modifiedState);
+    expect(eventView).toMatchObject(modifiedState);
+
+    const field = modifiedState.fields[2];
+
+    let sortedEventView = eventView.sortOnField(field, meta, undefined, true);
+    expect(sortedEventView.sorts).toEqual([{field: 'count()', kind: 'asc'}]);
+    sortedEventView = sortedEventView.sortOnField(field, meta, undefined, true);
+    expect(sortedEventView.sorts).toEqual([{field: 'count()', kind: 'desc'}]);
+  });
 });
 
 describe('EventView.withSorts()', function () {

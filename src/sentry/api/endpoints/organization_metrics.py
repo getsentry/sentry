@@ -107,9 +107,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
-    # XXX: this should be aligned with sessions_v2 (which is SNUBA_LIMIT =
-    # 5000), but that triggers another error when querying series, as combined
-    # with groupby/rollup, MAX_POINTS can be exceeded easily.
     default_per_page = 50
 
     def get(self, request: Request, organization) -> Response:

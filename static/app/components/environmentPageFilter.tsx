@@ -66,6 +66,7 @@ function EnvironmentPageFilter({
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('environments')}
+        data-test-id="global-header-environment-selector"
       >
         <DropdownTitle>
           <PageFilterPinIndicator filter="environments">
@@ -83,7 +84,11 @@ function EnvironmentPageFilter({
   };
 
   const customLoadingIndicator = (
-    <PageFilterDropdownButton showChevron={false} disabled>
+    <PageFilterDropdownButton
+      showChevron={false}
+      disabled
+      data-test-id="global-header-environment-selector"
+    >
       <DropdownTitle>
         <IconWindow />
         <TitleContainer>{t('Loading\u2026')}</TitleContainer>

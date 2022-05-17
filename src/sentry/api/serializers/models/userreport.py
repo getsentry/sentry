@@ -1,6 +1,5 @@
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import EventUser, Group, UserReport
-from sentry.utils.compat import zip
 
 
 @register(UserReport)

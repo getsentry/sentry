@@ -9,7 +9,6 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
 )
-from sentry.utils.compat import zip
 
 
 @register(AlertRuleTrigger)
