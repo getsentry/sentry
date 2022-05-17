@@ -181,28 +181,17 @@ class BaseNotification(abc.ABC):
     def determine_recipients(self) -> Iterable[Team | User]:
         raise NotImplementedError
 
-    def get_notification_providers(self) -> Iterable[ExternalProviders]:
-        # subclass this method to limit notifications to specific providers
-        from sentry.notifications.notify import notification_providers
-
-        return notification_providers()
-
     def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
-        # need a notification_setting_type to call this function
-        if not self.notification_setting_type:
-            raise NotImplementedError
-
-        available_providers = self.get_notification_providers()
-        recipients = list(self.determine_recipients())
-        recipients_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization, recipients, self.notification_setting_type
+        """
+        This is the main mechanism for determining the audience for a
+        notification. When this is overridden, it MUST read from
+        NotificationSetting and respect users' opt-out preferences.
+        """
+        return NotificationSetting.objects.filter_to_accepting_recipients(
+            organization=self.organization,
+            recipients=self.determine_recipients(),
+            type=self.notification_setting_type,
         )
-
-        return {
-            provider: recipients_of_provider
-            for provider, recipients_of_provider in recipients_by_provider.items()
-            if provider in available_providers
-        }
 
     def send(self) -> None:
         """The default way to send notifications that respects Notification Settings."""

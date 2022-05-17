@@ -25,9 +25,12 @@ class AutoSyncNotification(ProjectNotification):
     def reference(self) -> Model | None:
         return None
 
-    def get_notification_providers(self) -> Iterable[ExternalProviders]:
-        # For now, return only email.
-        return [ExternalProviders.EMAIL]
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+        return {
+            provider: participants
+            for provider, participants in super().get_participants().items()
+            if provider in [ExternalProviders.EMAIL]
+        }
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return "Unable to Complete CODEOWNERS Auto-Sync"
