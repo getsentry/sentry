@@ -17,22 +17,22 @@ describe('buildIncidentGraphDateRange', () => {
     const incident = TestStubs.Incident({
       dateClosed: null,
       dateStarted: '2022-05-16T18:55:00Z',
-      timeWindow: {timeWindow: 1},
+      alertRule: {timeWindow: 1},
     });
     const result = buildIncidentGraphDateRange(incident);
-    expect(result).toEqual({start: '2022-05-13T15:55:00', end: now});
-    expect(moment(result.end).diff(moment(result.start), 'minutes')).toBe(4565);
+    expect(result).toEqual({start: '2022-05-16T17:40:00', end: now});
+    expect(moment(result.end).diff(moment(result.start), 'minutes')).toBe(140);
   });
 
   it('should use current date for a recently closed alert', () => {
     const incident = TestStubs.Incident({
       dateClosed: '2022-05-16T18:57:00Z',
       dateStarted: '2022-05-16T18:55:00Z',
-      timeWindow: {timeWindow: 1},
+      alertRule: {timeWindow: 1},
     });
     const result = buildIncidentGraphDateRange(incident);
-    expect(result).toEqual({start: '2022-05-13T15:55:00', end: now});
-    expect(moment(result.end).diff(moment(result.start), 'minutes')).toBe(4565);
+    expect(result).toEqual({start: '2022-05-16T17:40:00', end: now});
+    expect(moment(result.end).diff(moment(result.start), 'minutes')).toBe(140);
   });
 
   it('should use a past date for an older alert', () => {
@@ -40,11 +40,11 @@ describe('buildIncidentGraphDateRange', () => {
     const incident = TestStubs.Incident({
       dateClosed: '2022-05-04T18:57:00Z',
       dateStarted: '2022-05-04T18:55:00Z',
-      timeWindow: {timeWindow: 1},
+      alertRule: {timeWindow: 1},
     });
     const result = buildIncidentGraphDateRange(incident);
-    expect(result).toEqual({start: '2022-05-01T15:55:00', end: '2022-05-07T21:57:00'});
-    expect(moment(result.end).diff(moment(result.start), 'minutes')).toBe(9002);
+    expect(result).toEqual({end: '2022-05-04T20:12:00', start: '2022-05-04T17:40:00'});
+    expect(moment(result.end).diff(moment(result.start), 'minutes')).toBe(152);
   });
 
   it('should handle large time windows', () => {
@@ -52,10 +52,10 @@ describe('buildIncidentGraphDateRange', () => {
       dateClosed: null,
       dateStarted: '2022-04-20T20:28:00Z',
       // 1 day time window
-      timeWindow: {timeWindow: 1440},
+      alertRule: {timeWindow: 1440},
     });
     const result = buildIncidentGraphDateRange(incident);
-    expect(result).toEqual({start: '2022-04-07T20:42:00', end: now});
-    expect(moment(result.end).diff(moment(result.start), 'days')).toBe(38);
+    expect(result).toEqual({start: '2022-02-04T20:28:00', end: now});
+    expect(moment(result.end).diff(moment(result.start), 'days')).toBe(100);
   });
 });
