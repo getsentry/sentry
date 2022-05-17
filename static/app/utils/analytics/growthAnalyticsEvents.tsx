@@ -29,6 +29,7 @@ type SampleEventParam = {
 };
 
 type IntegrationParam = {
+  all_selected_integrations?: string;
   integration?: string;
 };
 
@@ -78,6 +79,10 @@ export type GrowthEventParameters = {
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_quick_start_cta': SampleEventParam;
   'growth.onboarding_quick_start_cta_integration': IntegrationParam;
+  'growth.onboarding_set_up_your_integrations': {
+    integration_count: number;
+    integrations: string;
+  };
   'growth.onboarding_set_up_your_project': PlatformParam;
   'growth.onboarding_set_up_your_projects': {platform_count: number; platforms: string};
   'growth.onboarding_start_onboarding': {
@@ -145,6 +150,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.onboarding_set_up_your_project': 'Growth: Onboarding Click Set Up Your Project',
   'growth.onboarding_set_up_your_projects':
     'Growth: Onboarding Click Set Up Your Projects',
+  'growth.onboarding_set_up_your_integrations':
+    'Growth: Onboarding Click Set Up Your Integrations',
   'growth.select_platform': 'Growth: Onboarding Choose Platform',
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
