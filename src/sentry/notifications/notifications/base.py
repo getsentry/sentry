@@ -24,9 +24,7 @@ class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
     notification_setting_type: NotificationSettingTypes | None = None
-    metrics_key: str = ""
     analytics_event: str = ""
-    referrer_base: str = ""
 
     def __init__(self, organization: Organization):
         self.organization = organization
@@ -35,8 +33,14 @@ class BaseNotification(abc.ABC):
     def from_email(self) -> str | None:
         return None
 
-    def get_category(self) -> str:
-        raise NotImplementedError
+    @property
+    @abc.abstractmethod
+    def metrics_key(self) -> str:
+        """
+        When we want to collect analytics about this type of notification, we
+        will use this key. This MUST be snake_case.
+        """
+        pass
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {}
@@ -92,9 +96,6 @@ class BaseNotification(abc.ABC):
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
 
-    def get_type(self) -> str:
-        raise NotImplementedError
-
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 
@@ -132,7 +133,7 @@ class BaseNotification(abc.ABC):
             # may want to explicitly pass in the parameters for this event
             self.record_analytics(
                 f"integrations.{provider.name}.notification_sent",
-                category=self.get_category(),
+                category=self.metrics_key,
                 **self.get_log_params(recipient),
             )
             # record an optional second event
@@ -148,7 +149,7 @@ class BaseNotification(abc.ABC):
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
         # referrer needs the provider and recipient
-        referrer = f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
+        referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
             referrer += "-" + recipient.__class__.__name__.lower()
         return referrer

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 @register()
 class InviteRequestNotification(AbstractInviteRequestNotification):
     analytics_event = "invite_request.sent"
-    referrer_base = "invite_request"
+    metrics_key = "invite_request"
     template_path = "sentry/emails/organization-invite-request"
 
     def build_attachment_title(self, recipient: Team | User) -> str:
