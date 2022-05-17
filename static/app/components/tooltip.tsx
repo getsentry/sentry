@@ -293,8 +293,8 @@ export function DO_NOT_USE_TOOLTIP({
                     style={computeOriginFromArrow(position, arrowProps)}
                     className="tooltip-content"
                     popperStyle={popperStyle}
-                    onMouseEnter={() => isHoverable && handleMouseEnter()}
-                    onMouseLeave={() => isHoverable && handleMouseLeave()}
+                    onMouseEnter={isHoverable ? handleMouseEnter : undefined}
+                    onMouseLeave={isHoverable ? handleMouseLeave : undefined}
                     {...TOOLTIP_ANIMATION}
                   >
                     {title}
