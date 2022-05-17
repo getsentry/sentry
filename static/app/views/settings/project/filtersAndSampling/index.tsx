@@ -20,7 +20,7 @@ const Index = ({organization, ...props}: Props) => (
     renderDisabled={() => (
       <FeatureDisabled
         alert={PanelAlert}
-        features={organization.features}
+        features={['organization:filters-and-sampling']}
         featureName={t('Filters & Sampling')}
       />
     )}
