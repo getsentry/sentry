@@ -1038,7 +1038,7 @@ function buildRoutes() {
           path="details/:ruleId/"
           name={t('Alert Rule Details')}
           component={SafeLazyLoad}
-          componentPromise={() => import('sentry/views/alerts/rules/metric/details')}
+          componentPromise={() => import('sentry/views/alerts/rules/metric/edit')}
         />
         <Route
           path=":projectId/"

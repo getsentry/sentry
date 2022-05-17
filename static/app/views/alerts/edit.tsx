@@ -11,7 +11,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueEditor from 'sentry/views/alerts/rules/issue';
-import MetricRulesDetails from 'sentry/views/alerts/rules/metric/details';
+import MetricRulesEdit from 'sentry/views/alerts/rules/metric/edit';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
 type RouteParams = {
@@ -97,7 +97,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
                       />
                     )}
                     {hasMetricAlerts && alertType === AlertRuleType.METRIC && (
-                      <MetricRulesDetails
+                      <MetricRulesEdit
                         {...this.props}
                         project={project}
                         onChangeTitle={this.handleChangeTitle}

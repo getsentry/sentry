@@ -28,7 +28,7 @@ type State = {
   rule: MetricRule; // This is temp
 } & AsyncView['state'];
 
-class MetricRulesDetails extends AsyncView<Props, State> {
+class MetricRulesEdit extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
@@ -106,4 +106,4 @@ class MetricRulesDetails extends AsyncView<Props, State> {
   }
 }
 
-export default MetricRulesDetails;
+export default MetricRulesEdit;
