@@ -16,7 +16,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types';
+import {buildMetricGraphDateRange} from 'sentry/views/alerts/rules/details/utils';
+import {MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import type {Incident} from 'sentry/views/alerts/types';
 import {
   fetchAlertRule,
@@ -27,7 +28,6 @@ import {
 import DetailsBody from './body';
 import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
 import DetailsHeader from './header';
-import {buildIncidentGraphDateRange} from './utils';
 
 interface Props extends RouteComponentProps<{orgId: string; ruleId: string}, {}> {
   api: Client;
@@ -101,7 +101,7 @@ class MetricAlertDetails extends Component<Props, State> {
     }
 
     if (location.query.alert && selectedIncident) {
-      const {start, end} = buildIncidentGraphDateRange(selectedIncident);
+      const {start, end} = buildMetricGraphDateRange(selectedIncident);
       return {
         start,
         end,

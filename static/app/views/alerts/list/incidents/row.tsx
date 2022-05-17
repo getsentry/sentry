@@ -15,9 +15,8 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
-
-import {Incident, IncidentStatus} from '../types';
-import {alertDetailsLink} from '../utils';
+import {Incident, IncidentStatus} from 'sentry/views/alerts/types';
+import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
 type Props = {
   incident: Incident;
