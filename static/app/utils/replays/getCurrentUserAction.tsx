@@ -4,9 +4,9 @@ import {Crumb} from 'sentry/types/breadcrumbs';
 export function getCurrentUserAction(
   userActionCrumbs: Crumb[] | undefined,
   startTimestamp: number | undefined,
-  currentHoverTime: number
+  currentHoverTime: number | undefined
 ) {
-  if (!startTimestamp || !userActionCrumbs) {
+  if (!startTimestamp || !userActionCrumbs || !currentHoverTime) {
     return undefined;
   }
 
