@@ -16,6 +16,7 @@ export enum OnboardingTaskKey {
   ALERT_RULE = 'setup_alert_rules',
   FIRST_TRANSACTION = 'setup_transactions',
   METRIC_ALERT = 'setup_metric_alert_rules',
+  USER_SELECTED_PROJECTS = 'setup_userselected_projects',
 }
 
 export type OnboardingSupplementComponentProps = {
