@@ -281,6 +281,177 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
 
+    def test_kotlin_java_sdk_path_mangling(self):
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "java",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "button clicked",
+                            "module": "java.lang",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "main",
+                                        "module": "com.android.internal.os.ZygoteInit",
+                                        "filename": "ZygoteInit.java",
+                                        "abs_path": "ZygoteInit.java",
+                                        "lineno": 1003,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "run",
+                                        "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                                        "filename": "RuntimeInit.java",
+                                        "abs_path": "RuntimeInit.java",
+                                        "lineno": 548,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "invoke",
+                                        "module": "java.lang.reflect.Method",
+                                        "filename": "Method.java",
+                                        "abs_path": "Method.java",
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "main",
+                                        "module": "android.app.ActivityThread",
+                                        "filename": "ActivityThread.java",
+                                        "abs_path": "ActivityThread.java",
+                                        "lineno": 7842,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "loop",
+                                        "module": "android.os.Looper",
+                                        "filename": "Looper.java",
+                                        "abs_path": "Looper.java",
+                                        "lineno": 288,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "loopOnce",
+                                        "module": "android.os.Looper",
+                                        "filename": "Looper.java",
+                                        "abs_path": "Looper.java",
+                                        "lineno": 201,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "dispatchMessage",
+                                        "module": "android.os.Handler",
+                                        "filename": "Handler.java",
+                                        "abs_path": "Handler.java",
+                                        "lineno": 99,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "handleCallback",
+                                        "module": "android.os.Handler",
+                                        "filename": "Handler.java",
+                                        "abs_path": "Handler.java",
+                                        "lineno": 938,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "run",
+                                        "module": "android.view.View$PerformClick",
+                                        "filename": "View.java",
+                                        "abs_path": "View.java",
+                                        "lineno": 28810,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "access$3700",
+                                        "module": "android.view.View",
+                                        "filename": "View.java",
+                                        "abs_path": "View.java",
+                                        "lineno": 835,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "performClickInternal",
+                                        "module": "android.view.View",
+                                        "filename": "View.java",
+                                        "abs_path": "View.java",
+                                        "lineno": 7432,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "performClick",
+                                        "module": "com.google.android.material.button.MaterialButton",
+                                        "filename": "MaterialButton.java",
+                                        "abs_path": "MaterialButton.java",
+                                        "lineno": 1119,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "performClick",
+                                        "module": "android.view.View",
+                                        "filename": "View.java",
+                                        "abs_path": "View.java",
+                                        "lineno": 7455,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "onClick",
+                                        "module": "com.jetbrains.kmm.androidApp.MainActivity$$ExternalSyntheticLambda0",
+                                        "lineno": 2,
+                                        "in_app": True,
+                                    },
+                                    {
+                                        "function": "$r8$lambda$hGNRcN3pFcj8CSoYZBi9fT_AXd0",
+                                        "module": "com.jetbrains.kmm.androidApp.MainActivity",
+                                        "lineno": 0,
+                                        "in_app": True,
+                                    },
+                                    {
+                                        "function": "onCreate$lambda-1",
+                                        "module": "com.jetbrains.kmm.androidApp.MainActivity",
+                                        "filename": "MainActivity.kt",
+                                        "abs_path": "MainActivity.kt",
+                                        "lineno": 55,
+                                        "in_app": True,
+                                    },
+                                ]
+                            },
+                            "thread_id": 2,
+                            "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                        }
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [
+                        {"path": "com/jetbrains/kmm/androidApp/MainActivity.kt", "type": "M"}
+                    ],
+                }
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+
     def test_matching(self):
         event = self.store_event(
             data={

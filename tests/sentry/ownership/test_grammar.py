@@ -184,9 +184,7 @@ def test_matcher_test_threads():
                             {"filename": "foo/file.py"},
                             {"abs_path": "/usr/local/src/other/app.py"},
                         ]
-                    },
-                    "crashed": False,
-                    "current": False,
+                    }
                 }
             ]
         }
