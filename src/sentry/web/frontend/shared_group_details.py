@@ -17,4 +17,8 @@ class SharedGroupDetailsView(GenericReactPageView):
             "og:title": group.title,
             "og:description": group.message,
             "og:site_name": "Sentry",
+            "twitter:card": "summary",
+            "twitter:site": "@getsentry",
+            "twitter:title": group.title,
+            "twitter:description": group.message,
         }
