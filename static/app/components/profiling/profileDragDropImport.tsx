@@ -62,7 +62,7 @@ function ProfileDragDropImport({
   }, []);
 
   return (
-    <div onDragEnter={onDragEnter}>
+    <DragDropContainer onDragEnter={onDragEnter}>
       {dropState === 'idle' ? null : (
         <Overlay onDrop={onDrop} onDragOver={onDragOver} onDragLeave={onDragLeave}>
           {t('Drop here')}
@@ -70,9 +70,15 @@ function ProfileDragDropImport({
         </Overlay>
       )}
       {children}
-    </div>
+    </DragDropContainer>
   );
 }
+
+const DragDropContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 100%;
+`;
 
 const Overlay = styled('div')`
   position: absolute;
