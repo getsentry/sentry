@@ -300,31 +300,33 @@ function WidgetBuilder({
 
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
-      const newDisplayType =
-        widgetBuilderNewDesign && widgetFromDashboard.displayType === DisplayType.TOP_N
-          ? DisplayType.AREA
-          : widgetFromDashboard.displayType;
-      let queries = normalizeQueries({
-        displayType: newDisplayType,
-        queries: widgetFromDashboard.queries,
-        widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
-        widgetBuilderNewDesign,
-      });
+
+      let queries;
+      let newDisplayType = widgetFromDashboard.displayType;
       let newLimit = widgetFromDashboard.limit;
-
-      if (
-        widgetBuilderNewDesign &&
-        widgetFromDashboard.displayType === DisplayType.TOP_N
-      ) {
+      if (widgetFromDashboard.displayType === DisplayType.TOP_N) {
         newLimit = DEFAULT_RESULTS_LIMIT;
+        newDisplayType = DisplayType.AREA;
 
-        // Use the last aggregate because that's where the y-axis is stored
-        queries = queries.map(query => ({
+        queries = normalizeQueries({
+          displayType: newDisplayType,
+          queries: widgetFromDashboard.queries,
+          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+        }).map(query => ({
           ...query,
+          // Use the last aggregate because that's where the y-axis is stored
           aggregates: query.aggregates.length
             ? [query.aggregates[query.aggregates.length - 1]]
             : [],
         }));
+      } else {
+        queries = normalizeQueries({
+          displayType: newDisplayType,
+          queries: widgetFromDashboard.queries,
+          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+        });
       }
 
       setState({
