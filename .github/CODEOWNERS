@@ -82,9 +82,6 @@ build-utils/        @getsentry/owners-js-build
 /static/app/views/settings/projectAlerts/                       @getsentry/workflow
 /tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
 
-/static/app/views/settings/incidentRules/                       @getsentry/workflow
-/tests/js/spec/views/settings/incidentRules/                    @getsentry/workflow
-
 /static/app/views/alerts/                                       @getsentry/workflow
 /tests/js/spec/views/alerts/                                    @getsentry/workflow
 

@@ -41,7 +41,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {queryToObj} from 'sentry/utils/stream';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
+import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,

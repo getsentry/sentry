@@ -5,7 +5,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import AlertRulesList from 'sentry/views/alerts/rules';
+import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -50,14 +50,14 @@ describe('AlertRulesList', () => {
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '345',
           projects: ['earth'],
           latestIncident: TestStubs.Incident({
             status: IncidentStatus.CRITICAL,
           }),
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '678',
           projects: ['earth'],
           latestIncident: null,

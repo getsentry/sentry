@@ -1,7 +1,7 @@
 import {NewQuery, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {Dataset} from 'sentry/views/alerts/incidentRules/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Incident, IncidentStats} from 'sentry/views/alerts/types';
 import {getStartEndFromStats} from 'sentry/views/alerts/utils';
 /**

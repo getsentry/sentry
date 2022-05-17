@@ -6,7 +6,7 @@ import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLi
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import AlertsContainer from 'sentry/views/alerts';
-import IncidentsList from 'sentry/views/alerts/list';
+import IncidentsList from 'sentry/views/alerts/list/incidents';
 
 describe('IncidentsList', () => {
   let projectMock;
@@ -247,7 +247,7 @@ describe('IncidentsList', () => {
           identifier: '1',
           title: 'First incident',
           projects: projects1,
-          alertRule: TestStubs.IncidentRule({owner: `team:${team.id}`}),
+          alertRule: TestStubs.MetricRule({owner: `team:${team.id}`}),
         }),
       ],
     });

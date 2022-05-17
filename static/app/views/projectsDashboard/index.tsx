@@ -26,7 +26,7 @@ import {sortProjects} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeamsForUser from 'sentry/utils/withTeamsForUser';
-import TeamFilter from 'sentry/views/alerts/rules/teamFilter';
+import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
 
 import ProjectCard from './projectCard';
 import Resources from './resources';

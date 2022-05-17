@@ -1,9 +1,9 @@
 import MockDate from 'mockdate';
 import moment from 'moment';
 
-import {buildIncidentGraphDateRange} from 'sentry/views/alerts/rules/details/utils';
+import {buildMetricGraphDateRange} from 'sentry/views/alerts/rules/details/utils';
 
-describe('buildIncidentGraphDateRange', () => {
+describe('buildMetricGraphDateRange', () => {
   const now = '2022-05-16T20:00:00';
   beforeAll(() => {
     MockDate.set(`${now}Z`);
@@ -19,7 +19,7 @@ describe('buildIncidentGraphDateRange', () => {
       dateClosed: null,
       alertRule: {timeWindow: 1},
     });
-    const result = buildIncidentGraphDateRange(incident);
+    const result = buildMetricGraphDateRange(incident);
     expect(result).toEqual({start: '2022-05-16T17:40:00', end: now});
     expect(moment(result.end).diff(moment(result.start), 'minutes')).toBe(140);
   });
@@ -30,7 +30,7 @@ describe('buildIncidentGraphDateRange', () => {
       dateClosed: '2022-05-16T18:57:00Z',
       alertRule: {timeWindow: 1},
     });
-    const result = buildIncidentGraphDateRange(incident);
+    const result = buildMetricGraphDateRange(incident);
     expect(result).toEqual({start: '2022-05-16T17:40:00', end: now});
     expect(moment(result.end).diff(moment(result.start), 'minutes')).toBe(140);
   });
@@ -42,7 +42,7 @@ describe('buildIncidentGraphDateRange', () => {
       dateClosed: '2022-05-04T18:57:00Z',
       alertRule: {timeWindow: 1},
     });
-    const result = buildIncidentGraphDateRange(incident);
+    const result = buildMetricGraphDateRange(incident);
     expect(result).toEqual({end: '2022-05-04T20:12:00', start: '2022-05-04T17:40:00'});
     expect(moment(result.end).diff(moment(result.start), 'minutes')).toBe(152);
   });
@@ -54,7 +54,7 @@ describe('buildIncidentGraphDateRange', () => {
       // 1 day time window
       alertRule: {timeWindow: 1440},
     });
-    const result = buildIncidentGraphDateRange(incident);
+    const result = buildMetricGraphDateRange(incident);
     expect(result).toEqual({start: '2022-02-04T20:28:00', end: now});
     expect(moment(result.end).diff(moment(result.start), 'days')).toBe(100);
   });

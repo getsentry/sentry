@@ -1,15 +1,17 @@
 import moment from 'moment';
 
 import {getUtcDateString} from 'sentry/utils/dates';
+import {
+  API_INTERVAL_POINTS_LIMIT,
+  API_INTERVAL_POINTS_MIN,
+} from 'sentry/views/alerts/rules/metric/details/constants';
 import type {Incident} from 'sentry/views/alerts/types';
-
-import {API_INTERVAL_POINTS_LIMIT, API_INTERVAL_POINTS_MIN} from './constants';
 
 /**
  * Retrieve start/end date of a metric alert incident for the events graph
  * Will show at least 150 and no more than 10,000 data points
  */
-export function buildIncidentGraphDateRange(incident: Incident): {
+export function buildMetricGraphDateRange(incident: Incident): {
   end: string;
   start: string;
 } {
