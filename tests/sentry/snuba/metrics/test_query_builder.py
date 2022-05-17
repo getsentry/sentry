@@ -305,7 +305,6 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
         return Query(
-            dataset="metrics",
             match=Entity(match),
             select=[
                 Function(
@@ -335,7 +334,9 @@ def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
                 ),
                 Condition(Column("metric_id"), Op.IN, [resolve_weak(org_id, get_mri(metric_name))]),
             ],
-            limit=Limit(MAX_POINTS),
+            # totals: MAX_POINTS // (90d * 24h)
+            # series: totals * (90d * 24h)
+            limit=Limit(4) if not extra_groupby else Limit(8640),
             offset=Offset(0),
             granularity=query_definition.granularity,
         )
@@ -424,7 +425,6 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
         groupby = [] if key == "totals" else [Column("bucketed_time")]
         assert snuba_queries["metrics_counters"][key] == (
             Query(
-                dataset="metrics",
                 match=Entity("metrics_counters"),
                 select=[
                     errored_preaggr_sessions(
@@ -483,14 +483,13 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         [resolve_weak(org_id, SessionMRI.SESSION.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS),
+                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
                 offset=Offset(0),
                 granularity=Granularity(query_definition.rollup),
             )
         )
         assert snuba_queries["metrics_sets"][key] == (
             Query(
-                dataset="metrics",
                 match=Entity("metrics_sets"),
                 select=[
                     uniq_aggregation_on_metric(
@@ -514,7 +513,7 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
                         [resolve_weak(org_id, SessionMRI.ERROR.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS),
+                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
                 offset=Offset(0),
                 granularity=Granularity(query_definition.rollup),
             )
@@ -535,6 +534,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
                 "sum(sentry.sessions.session)",
             ],
             "orderBy": ["-sum(sentry.sessions.session)"],
+            "per_page": [2],
         }
     )
     query_definition = APIQueryDefinition(
@@ -561,7 +561,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
     )
 
     assert counter_queries["totals"] == Query(
-        dataset="metrics",
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
@@ -570,7 +569,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
@@ -585,7 +584,6 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         granularity=Granularity(query_definition.rollup),
     )
     assert counter_queries["series"] == Query(
-        dataset="metrics",
         match=Entity("metrics_counters"),
         select=[select],
         groupby=[
@@ -595,7 +593,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
@@ -605,7 +603,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, get_mri(metric_name))]),
         ],
         orderby=[OrderBy(select, Direction.DESC)],
-        limit=Limit(6480),
+        limit=Limit(72),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
@@ -622,6 +620,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             "field": [
                 "p95(session.duration)",
             ],
+            "per_page": [2],
         }
     )
     query_definition = APIQueryDefinition(
@@ -660,7 +659,6 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
         alias=f"{op}({SessionMRI.DURATION.value})",
     )
     assert distribution_queries["totals"] == Query(
-        dataset="metrics",
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
@@ -669,7 +667,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
@@ -678,12 +676,11 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             ),
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, SessionMRI.RAW_DURATION.value)]),
         ],
-        limit=Limit(MAX_POINTS),
+        limit=Limit(3),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )
     assert distribution_queries["series"] == Query(
-        dataset="metrics",
         match=Entity("metrics_distributions"),
         select=[select],
         groupby=[
@@ -693,7 +690,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 5, 28, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(org_id, "release"), entity=None),
@@ -702,7 +699,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             ),
             Condition(Column("metric_id"), Op.IN, [resolve(org_id, SessionMRI.RAW_DURATION.value)]),
         ],
-        limit=Limit(MAX_POINTS),
+        limit=Limit(72),
         offset=Offset(0),
         granularity=Granularity(query_definition.rollup),
     )

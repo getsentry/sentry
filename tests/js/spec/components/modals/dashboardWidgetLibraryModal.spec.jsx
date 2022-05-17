@@ -132,7 +132,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
             aggregates: ['count()'],
             columns: ['transaction'],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
         ],
         title: 'High Throughput Transactions',

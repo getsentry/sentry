@@ -20,7 +20,7 @@ import {IncidentRule, TimePeriod} from 'sentry/views/alerts/incidentRules/types'
 import {makeRuleDetailsQuery} from 'sentry/views/alerts/list/row';
 
 import {Incident} from '../../types';
-import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils';
+import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils/apiCalls';
 
 import DetailsBody from './body';
 import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
@@ -219,6 +219,7 @@ class MetricAlertDetails extends Component<Props, State> {
         forceEnvironment={rule?.environment ?? ''}
         lockedMessageSubject={t('alert rule')}
         showDateSelector={false}
+        hideGlobalHeader
       >
         <SentryDocumentTitle title={rule?.name ?? ''} />
 
@@ -226,6 +227,7 @@ class MetricAlertDetails extends Component<Props, State> {
           hasIncidentRuleDetailsError={hasError}
           params={params}
           rule={rule}
+          project={project}
         />
         <DetailsBody
           {...this.props}

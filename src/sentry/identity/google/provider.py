@@ -3,7 +3,6 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import MigratingIdentityId
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.utils import json
-from sentry.utils.compat import map
 from sentry.utils.signing import urlsafe_b64decode
 
 # When no hosted domain is in use for the authenticated user, we default to the

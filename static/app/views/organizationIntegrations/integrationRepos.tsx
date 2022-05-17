@@ -239,10 +239,10 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
             )}
             {itemList.map(repo => (
               <RepositoryRow
+                api={this.api}
                 key={repo.id}
                 repository={repo}
                 orgId={orgId}
-                api={this.api}
                 onRepositoryChange={this.onRepositoryChange}
               />
             ))}
