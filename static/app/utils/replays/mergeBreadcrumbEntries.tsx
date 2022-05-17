@@ -14,6 +14,8 @@ export default function mergeBreadcrumbEntries(events: Event[]): Entry {
   const deduped = Array.from(new Set(stringified));
   const values = deduped.map(value => JSON.parse(value));
 
+  values.sort((a, b) => +new Date(a?.timestamp || 0) - +new Date(b?.timestamp || 0));
+
   return {
     type: EntryType.BREADCRUMBS,
     data: {
