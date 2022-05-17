@@ -321,7 +321,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         project_deletion_query = models.Project.objects.filter(status=ObjectStatus.VISIBLE)
         if project:
-            project_deletion_query = models.Project.objects.filter(project=project)
+            project_deletion_query = models.Project.objects.filter(id=project_id)
 
         to_delete_by_project = []
         for model in DELETES_BY_PROJECT:
