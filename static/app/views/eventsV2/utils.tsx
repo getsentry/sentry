@@ -669,7 +669,7 @@ export function handleAddQueryToDashboard({
         queries: [
           {
             ...defaultWidgetQuery,
-            aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? [])],
+            aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
           },
         ],
         interval: eventView.interval,
