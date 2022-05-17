@@ -331,8 +331,10 @@ class JiraIntegrationTest(APITestCase):
                 "updatesForm": True,
             }
 
-    @patch("sentry.integrations.jira.integration.JiraIntegration.get_issue_create_meta")
-    def test_get_create_issue_config_with_default_project_deleted(self, mock_get_issue_create_meta):
+    @patch("sentry.integrations.jira.integration.JiraIntegration.fetch_issue_create_meta")
+    def test_get_create_issue_config_with_default_project_deleted(
+        self, mock_fetch_issue_create_meta
+    ):
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -350,9 +352,19 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration.save()
 
         with mock.patch.object(installation, "get_client", get_client):
-            mock_get_issue_create_meta.return_value = json.loads(
-                StubService.get_stub_json("jira", "get_create_issue_meta.json")
+            mock_fetch_issue_create_meta_return_value = json.loads(
+                StubService.get_stub_json("jira", "fetch_issue_create_meta.json")
             )
+            project_list_response = json.loads(
+                StubService.get_stub_json("jira", "project_list_response.json")
+            )
+            side_effect_values = [
+                mock_fetch_issue_create_meta_return_value for project in project_list_response
+            ]
+            # return None the first time fetch_issue_create_meta is called to mimic a deleted default project id (10004)
+            # so that we drop into the code block where it iterates over available projects
+            mock_fetch_issue_create_meta.side_effect = [None, *side_effect_values]
+
             fields = installation.get_create_issue_config(group, self.user)
             project_field = [field for field in fields if field["name"] == "project"][0]
 
