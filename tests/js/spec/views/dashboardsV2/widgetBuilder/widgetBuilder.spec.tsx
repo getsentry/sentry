@@ -2452,9 +2452,7 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('resolved')).toBeInTheDocument();
     });
 
-    // Disabling for CI, but should run locally when making changes
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('Update table header values (field alias)', async function () {
+    it('Update table header values (field alias)', async function () {
       const handleSave = jest.fn();
 
       renderTestComponent({
@@ -2466,11 +2464,7 @@ describe('WidgetBuilder', function () {
 
       userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
-      userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias{enter}');
-
-      userEvent.type(screen.getAllByPlaceholderText('Alias')[1], 'Second Alias{enter}');
-
-      userEvent.type(screen.getAllByPlaceholderText('Alias')[2], 'Third Alias{enter}');
+      userEvent.paste(screen.getAllByPlaceholderText('Alias')[0], 'First Alias');
 
       userEvent.click(screen.getByText('Add Widget'));
 
@@ -2479,7 +2473,7 @@ describe('WidgetBuilder', function () {
           expect.objectContaining({
             queries: [
               expect.objectContaining({
-                fieldAliases: ['First Alias', 'Second Alias', 'Third Alias'],
+                fieldAliases: ['First Alias', '', ''],
               }),
             ],
           }),
@@ -2728,32 +2722,14 @@ describe('WidgetBuilder', function () {
     });
 
     it('sets widgetType to release', async function () {
-      const handleSave = jest.fn();
-
       renderTestComponent({
-        onSave: handleSave,
         orgFeatures: releaseHealthFeatureFlags,
       });
 
       userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
-      userEvent.click(screen.getByLabelText('Add Widget'));
 
-      await waitFor(() => {
-        expect(handleSave).toHaveBeenCalledWith([
-          expect.objectContaining({
-            widgetType: WidgetType.RELEASE,
-            queries: [
-              expect.objectContaining({
-                aggregates: [`crash_free_rate(session)`],
-                fields: [`crash_free_rate(session)`],
-                orderby: `-crash_free_rate(session)`,
-              }),
-            ],
-          }),
-        ]);
-      });
-
-      expect(handleSave).toHaveBeenCalledTimes(1);
+      expect(metricsDataMock).toHaveBeenCalled();
+      expect(screen.getByLabelText('Releases (sessions, crash rates)')).toBeChecked();
     });
 
     it('does not display "add an equation" button', async function () {
@@ -2831,9 +2807,7 @@ describe('WidgetBuilder', function () {
       ).toBeDisabled();
     });
 
-    // Disabling for CI, but should run locally when making changes
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('renders with a release search bar', async function () {
+    it('renders with a release search bar', async function () {
       renderTestComponent({
         orgFeatures: releaseHealthFeatureFlags,
       });
@@ -2845,11 +2819,14 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('No items found')).toBeInTheDocument();
 
       userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
-      userEvent.type(
-        screen.getByPlaceholderText('Search for events, users, tags, and more'),
-        'session.status:'
+      userEvent.click(
+        screen.getByPlaceholderText(
+          'Search for release version, session status, and more'
+        )
       );
-      expect(await screen.findByText('crashed')).toBeInTheDocument();
+      expect(await screen.findByText('environment:')).toBeInTheDocument();
+      expect(screen.getByText('project:')).toBeInTheDocument();
+      expect(screen.getByText('release:')).toBeInTheDocument();
     });
   });
 
@@ -2881,9 +2858,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  // Disabling for CI, but should run locally when making changes
-  // eslint-disable-next-line jest/no-disabled-tests
-  describe.skip('group by field', function () {
+  describe('group by field', function () {
     it('does not contain functions as options', async function () {
       renderTestComponent({
         query: {displayType: 'line'},
@@ -2909,22 +2884,6 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Group your results');
       userEvent.click(screen.getByText('Add Group'));
       expect(await screen.findAllByText('Select group')).toHaveLength(2);
-    });
-
-    it('allows adding up to GROUP_BY_LIMIT fields', async function () {
-      renderTestComponent({
-        query: {displayType: 'line'},
-        orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
-      });
-
-      await screen.findByText('Group your results');
-
-      for (let i = 0; i < 19; i++) {
-        userEvent.click(screen.getByText('Add Group'));
-      }
-
-      expect(await screen.findAllByText('Select group')).toHaveLength(20);
-      expect(screen.queryByText('Add Group')).not.toBeInTheDocument();
     });
 
     it("doesn't reset group by when changing y-axis", async function () {

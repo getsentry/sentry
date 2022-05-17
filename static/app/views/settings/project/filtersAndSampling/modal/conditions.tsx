@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -7,8 +7,9 @@ import TextareaField from 'sentry/components/forms/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Project, Tag} from 'sentry/types';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
+import useApi from 'sentry/utils/useApi';
 
 import {
   addCustomTagPrefix,
@@ -50,6 +51,24 @@ function Conditions({
   onDelete,
   onChange,
 }: Props) {
+  const api = useApi();
+  const [tags, setTags] = useState<Tag[]>([]);
+
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        const response = await api.requestPromise(
+          `/projects/${orgSlug}/${projectSlug}/tags/`
+        );
+        setTags(response);
+      } catch {
+        // Do nothing, just autocomplete won't suggest any results
+      }
+    }
+
+    fetchTags();
+  }, [api, orgSlug, projectSlug]);
+
   return (
     <Fragment>
       {conditions.map((condition, index) => {
@@ -81,8 +100,7 @@ function Conditions({
             <LeftCell>
               {isCustomTag ? (
                 <TagKeyAutocomplete
-                  orgSlug={orgSlug}
-                  projectSlug={projectSlug}
+                  tags={tags}
                   onChange={value =>
                     onChange(index, 'category', addCustomTagPrefix(value))
                   }

@@ -306,6 +306,7 @@ const FlamegraphZoomViewMinimapContainer = styled('div')<{
 
 const FlamegraphZoomViewContainer = styled('div')`
   position: relative;
+  display: flex;
   flex: 1 1 100%;
 `;
 

@@ -5,7 +5,6 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
-from sentry.utils.compat import zip
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
