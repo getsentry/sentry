@@ -16,12 +16,12 @@ import {
   getMeasurementSlug,
   WebVital,
 } from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 
 import {ViewProps} from '../../../types';
 
 import Content from './content';
-import { decodeScalar } from 'sentry/utils/queryString';
 
 type Props = WithRouterProps &
   ViewProps & {
