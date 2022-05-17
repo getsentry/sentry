@@ -147,7 +147,7 @@ function TransactionRuleModal({rule, errorRules, transactionRules, ...props}: Pr
           <Tooltip
             title={t('This field can only be edited if there are no match conditions')}
             disabled={!isTracingDisabled}
-            popperStyle={css`
+            overlayStyle={css`
               @media (min-width: ${theme.breakpoints[0]}) {
                 max-width: 370px;
               }
