@@ -437,7 +437,7 @@ class GetEventFileCommitters(CommitTestCase):
                     "author_name": "Bob",
                     "message": "i fixed a bug",
                     "patch_set": [
-                        {"path": "com.jetbrains.kmm.androidApp.MainActivity.kt", "type": "M"}
+                        {"path": "com/jetbrains/kmm/androidApp/MainActivity.kt", "type": "M"}
                     ],
                 }
             ]

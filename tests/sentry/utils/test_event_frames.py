@@ -318,6 +318,37 @@ class WaterFallTestCase(TestCase):
         assert frames[0]["function"] == "invoke0"
         assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
 
+    def test_only_thread_interface_flattened(self):
+        event = self.store_event(
+            data={
+                "threads": [
+                    {
+                        "id": 0,
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "invoke0",
+                                    "abs_path": "NativeMethodAccessorImpl.java",
+                                    "in_app": False,
+                                    "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                    "filename": "NativeMethodAccessorImpl.java",
+                                }
+                            ],
+                            "registers": {},
+                        },
+                        "crashed": False,
+                        "current": False,
+                    }
+                ]
+            },
+            project_id=self.project.id,
+        )
+
+        frames = find_stack_frames(event.data)
+        assert len(frames) == 1
+        assert frames[0]["function"] == "invoke0"
+        assert frames[0]["filename"] == "NativeMethodAccessorImpl.java"
+
     def test_exception_and_stacktrace_interfaces(self):
         exception_frame = {
             "function": "invoke0",
