@@ -184,9 +184,7 @@ def test_matcher_test_threads():
                             {"filename": "foo/file.py"},
                             {"abs_path": "/usr/local/src/other/app.py"},
                         ]
-                    },
-                    "crashed": False,
-                    "current": False,
+                    }
                 }
             ]
         }
@@ -267,8 +265,11 @@ def test_matcher_test_platform_none_threads():
     assert not Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
     assert not Matcher("codeowners", "*.js").test(data)
     assert not Matcher("codeowners", "*.jsx").test(data)
-    assert not Matcher("url", "*.py").test(data)
-    assert not Matcher("path", "*.py").test({})
+    assert Matcher("path", "*.java").test(data)
+    assert Matcher("path", "/jdk/internal/reflect/*.java").test(data)
+    # assert Matcher("path", "/jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
 
 
 def test_matcher_test_tags():
