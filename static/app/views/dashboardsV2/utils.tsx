@@ -259,8 +259,28 @@ export function getWidgetIssueUrl(
     query: widget.queries?.[0]?.conditions,
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
   })}`;
   return issuesLocation;
+}
+
+export function getWidgetReleasesUrl(
+  _widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+  const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
+    ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
+  })}`;
+  return releasesLocation;
 }
 
 export function flattenErrors(
