@@ -32,13 +32,13 @@ API_INTERVAL_POINTS_MIN = 150
 TIME_FORMAT = "%Y-%m-%dT%H:%M:%S"
 
 
-def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[str, str]:
+def incident_date_range(alert_time_window: int, incident: Incident) -> Mapping[str, str]:
     """
     Retrieve the start/end for graphing an incident.
     Will show at least 150 and no more than 10,000 data points.
     This function should match what is in the frontend.
     """
-    time_window_milliseconds = alert_rule.snuba_query.time_window * 1000
+    time_window_milliseconds = alert_time_window * 1000
     min_range = time_window_milliseconds * API_INTERVAL_POINTS_MIN
     max_range = time_window_milliseconds * API_INTERVAL_POINTS_LIMIT
     now = timezone.now()
@@ -51,7 +51,7 @@ def incident_date_range(alert_rule: AlertRule, incident: Incident) -> Mapping[st
     half_range = timedelta(milliseconds=range / 2)
     return {
         "start": (start_date - half_range).strftime(TIME_FORMAT),
-        "end": (end_date + half_range).strftime(TIME_FORMAT),
+        "end": min((end_date + half_range), now).strftime(TIME_FORMAT),
     }
 
 
@@ -155,7 +155,8 @@ def build_metric_alert_chart(
     user: Optional["User"] = None,
 ) -> Optional[str]:
     """Builds the dataset required for metric alert chart the same way the frontend would"""
-    dataset = alert_rule.snuba_query.dataset
+    snuba_query: SnubaQuery = alert_rule.snuba_query
+    dataset = snuba_query.dataset
     is_crash_free_alert = dataset in {Dataset.Sessions.value, Dataset.Metrics.value}
     style = (
         ChartType.SLACK_METRIC_ALERT_SESSIONS
@@ -164,7 +165,7 @@ def build_metric_alert_chart(
     )
 
     if selected_incident:
-        time_period = incident_date_range(alert_rule, selected_incident)
+        time_period = incident_date_range(snuba_query.time_window, selected_incident)
     elif start and end:
         time_period = {"start": start, "end": end}
     else:
@@ -185,7 +186,6 @@ def build_metric_alert_chart(
         ),
     }
 
-    snuba_query: SnubaQuery = alert_rule.snuba_query
     aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True)
     # If we allow alerts to be across multiple orgs this will break
     project_id = snuba_query.subscriptions.first().project_id
