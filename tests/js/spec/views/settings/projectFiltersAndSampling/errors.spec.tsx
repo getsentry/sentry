@@ -131,7 +131,7 @@ describe('Filters and Sampling - Error rule', function () {
     expect(screen.queryByText('Tracing')).not.toBeInTheDocument();
 
     // Release Field
-    expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
+    expect(screen.getByLabelText('Search or add a release')).toBeInTheDocument();
 
     // Release field is not empty
     const releaseFieldValues = screen.getByTestId('multivalue');
@@ -161,13 +161,13 @@ describe('Filters and Sampling - Error rule', function () {
     // Type into realease field
     userEvent.type(screen.getByLabelText('Search or add a release'), '[I3]');
 
-    // Autocomplete suggests options
-    const autocompleteOptions = screen.getByTestId('option');
-    expect(autocompleteOptions).toBeInTheDocument();
-    expect(autocompleteOptions).toHaveTextContent('[I3].[0-9]');
+    // Autocomplete suggests option
+    const autocompleteOption = screen.getByTestId('[I3].[0-9]');
+    expect(autocompleteOption).toBeInTheDocument();
+    expect(autocompleteOption).toHaveTextContent('[I3].[0-9]');
 
     // Click on the suggested option
-    userEvent.click(autocompleteOptions);
+    userEvent.click(autocompleteOption);
 
     expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
@@ -421,7 +421,7 @@ describe('Filters and Sampling - Error rule', function () {
       userEvent.click(screen.getAllByText('Release')[0]);
 
       // Release Field
-      expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search or add a release')).toBeInTheDocument();
 
       // Release field is empty
       expect(screen.queryByTestId('multivalue')).not.toBeInTheDocument();
@@ -430,12 +430,12 @@ describe('Filters and Sampling - Error rule', function () {
       userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
 
       // Autocomplete suggests options
-      const autocompleteOptions = screen.getByTestId('option');
-      expect(autocompleteOptions).toBeInTheDocument();
-      expect(autocompleteOptions).toHaveTextContent('1.2.3');
+      const autocompleteOption = screen.getByTestId('1.2.3');
+      expect(autocompleteOption).toBeInTheDocument();
+      expect(autocompleteOption).toHaveTextContent('1.2.3');
 
       // Click on the suggested option
-      userEvent.click(autocompleteOptions);
+      userEvent.click(autocompleteOption);
 
       // Button is still disabled
       const saveRuleButton = screen.getByLabelText('Save Rule');

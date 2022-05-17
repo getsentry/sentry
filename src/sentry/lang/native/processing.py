@@ -20,7 +20,6 @@ from sentry.lang.native.utils import (
 from sentry.models import EventError, Project
 from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import find_stacktraces_in_data
-from sentry.utils.compat import zip
 from sentry.utils.in_app import is_known_third_party, is_optional_package
 from sentry.utils.safe import get_path, set_path, setdefault_path, trim
 

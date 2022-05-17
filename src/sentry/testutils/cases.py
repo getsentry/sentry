@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import responses
 
-from sentry.utils.compat import zip
-
 __all__ = (
     "TestCase",
     "TransactionTestCase",

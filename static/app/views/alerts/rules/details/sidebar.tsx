@@ -184,6 +184,11 @@ export default class Sidebar extends PureComponent<Props> {
           <Heading>{t('Alert Rule Details')}</Heading>
           <KeyValueTable>
             <KeyValueTableRow
+              keyName={t('Environment')}
+              value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
+            />
+
+            <KeyValueTableRow
               keyName={t('Date created')}
               value={
                 <DateTime
@@ -199,7 +204,9 @@ export default class Sidebar extends PureComponent<Props> {
             {rule.createdBy && (
               <KeyValueTableRow
                 keyName={t('Created By')}
-                value={<CreatedBy>{rule.createdBy.name ?? '-'}</CreatedBy>}
+                value={
+                  <OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>
+                }
               />
             )}
 
@@ -258,7 +265,7 @@ const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
   margin-bottom: ${p => (p.noMargin ? 0 : space(1))};
 `;
 
-const CreatedBy = styled('div')`
+const OverflowTableValue = styled('div')`
   ${overflowEllipsis}
 `;
 

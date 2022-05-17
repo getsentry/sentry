@@ -12,6 +12,7 @@
 import {default as worldMap} from 'sentry/data/world.json';
 
 import {discoverCharts} from './discover';
+import {metricAlertCharts} from './metricAlert';
 import {ChartcuterieConfig, ChartType, RenderConfig, RenderDescriptor} from './types';
 
 /**
@@ -37,5 +38,6 @@ const register = (renderDescriptor: RenderDescriptor<ChartType>) =>
   renderConfig.set(renderDescriptor.key, renderDescriptor);
 
 discoverCharts.forEach(register);
+metricAlertCharts.forEach(register);
 
 export default config;

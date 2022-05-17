@@ -114,12 +114,12 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
     },
     [DataSet.RELEASES]: {
       name: '',
-      fields: [`sum(${SessionField.SESSION})`],
+      fields: [`crash_free_rate(${SessionField.SESSION})`],
       columns: [],
       fieldAliases: [],
-      aggregates: [`sum(${SessionField.SESSION})`],
+      aggregates: [`crash_free_rate(${SessionField.SESSION})`],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? `-sum(${SessionField.SESSION})` : '',
+      orderby: widgetBuilderNewDesign ? `-crash_free_rate(${SessionField.SESSION})` : '',
     },
   };
 }
@@ -627,12 +627,9 @@ function WidgetBuilder({
         newQuery.columns = columnsAndAggregates?.columns ?? [];
       }
 
-      if (
-        !widgetBuilderNewDesign &&
-        !fieldStrings.includes(rawOrderby) &&
-        query.orderby !== ''
-      ) {
+      if (!fieldStrings.includes(rawOrderby) && query.orderby !== '') {
         if (
+          !widgetBuilderNewDesign &&
           prevAggregateFieldStrings.length === newFields.length &&
           prevAggregateFieldStrings.includes(rawOrderby)
         ) {
@@ -709,13 +706,20 @@ function WidgetBuilder({
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
       } else if (widgetBuilderNewDesign && !newQuery.orderby) {
-        const orderOption = generateOrderOptions({
+        const orderOptions = generateOrderOptions({
           widgetType: widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
           columns: query.columns,
           aggregates: query.aggregates,
-        })[0].value;
-        newQuery.orderby = `-${orderOption}`;
+        });
+        let orderOption: string;
+        // If no orderby options are available because of DISABLED_SORTS
+        if (!!!orderOptions.length && state.dataSet === DataSet.RELEASES) {
+          newQuery.orderby = '';
+        } else {
+          orderOption = orderOptions[0].value;
+          newQuery.orderby = `-${orderOption}`;
+        }
       } else if (
         !widgetBuilderNewDesign &&
         aggregateAliasFieldStrings.length &&
