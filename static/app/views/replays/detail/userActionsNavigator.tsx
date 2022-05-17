@@ -50,7 +50,7 @@ type ContainerProps = {
 };
 
 function UserActionsNavigator({event, crumbs}: Props) {
-  const {setCurrentTime, currentHoverTime} = useReplayContext();
+  const {setCurrentTime, setCurrentHoverTime, currentHoverTime} = useReplayContext();
   const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
   const [closestUserAction, setClosestUserAction] = useState<Crumb>();
 
@@ -75,6 +75,19 @@ function UserActionsNavigator({event, crumbs}: Props) {
     [closestUserAction?.timestamp, startTimestamp, userActionCrumbs]
   );
 
+  const onMouseEnter = useCallback(
+    (item: Crumb) => {
+      if (startTimestamp) {
+        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
+      }
+    },
+    [setCurrentHoverTime, startTimestamp]
+  );
+
+  const onMouseLeave = useCallback(() => {
+    setCurrentHoverTime(undefined);
+  }, [setCurrentHoverTime]);
+
   useEffect(() => {
     if (!currentHoverTime) {
       setClosestUserAction(undefined);
@@ -93,6 +106,8 @@ function UserActionsNavigator({event, crumbs}: Props) {
           userActionCrumbs.map(item => (
             <PanelItemCenter
               key={item.id}
+              onMouseEnter={() => onMouseEnter(item)}
+              onMouseLeave={() => onMouseLeave()}
               onClick={() => {
                 setCurrentUserAction(item);
                 item.timestamp
