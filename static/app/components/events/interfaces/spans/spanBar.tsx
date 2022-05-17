@@ -647,7 +647,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             relativeToMinimap.top > 0 && relativeToMinimap.bottom > 0;
 
           if (rectBelowMinimap) {
-            const {span, treeDepth} = this.props;
+            const {span, treeDepth, organization} = this.props;
             if ('type' in span) {
               return;
             }
@@ -655,7 +655,11 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             if (this.props.numOfSpanChildren !== 0) {
               const left =
                 treeDepth === 0 ? 0 : treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
-              this.props.markSpanInView(span.span_id, left);
+
+              // TODO: Remove this check when this feature is GA'd
+              if (organization.features.includes('performance-span-tree-autoscroll')) {
+                this.props.markSpanInView(span.span_id, left);
+              }
             }
 
             // if the first span is below the minimap, we scroll the minimap
@@ -670,7 +674,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           const inAndAboveMinimap = relativeToMinimap.bottom <= 0;
 
           if (inAndAboveMinimap) {
-            const {span, treeDepth} = this.props;
+            const {span, treeDepth, organization} = this.props;
             if ('type' in span) {
               return;
             }
@@ -678,7 +682,11 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             if (this.props.numOfSpanChildren !== 0) {
               const left =
                 treeDepth === 0 ? 0 : treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
-              this.props.markSpanOutOfView(span.span_id, left);
+
+              // TODO: Remove this check when this feature is GA'd
+              if (organization.features.includes('performance-span-tree-autoscroll')) {
+                this.props.markSpanOutOfView(span.span_id, left);
+              }
             }
 
             return;
