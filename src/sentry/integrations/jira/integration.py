@@ -720,6 +720,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 reporter_id, reporter_label = reporter_tuple
                 field["default"] = reporter_id
                 field["choices"] = [(reporter_id, reporter_label)]
+
         return fields
 
     def create_issue(self, data, **kwargs):
@@ -743,6 +744,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         jira_project = data.get("project")
         if not jira_project:
             raise IntegrationFormError({"project": ["Jira project is required"]})
+
         meta = client.get_create_meta_for_project(jira_project)
         if not meta:
             raise IntegrationError("Could not fetch issue create configuration from Jira.")
