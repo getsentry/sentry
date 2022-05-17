@@ -129,7 +129,6 @@ class EventAccess:
             self._frames = []
 
         find_stack_frames(self.event.data, self._push_frame)
-
         return self._frames
 
     def get_toplevel(self):

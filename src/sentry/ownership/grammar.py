@@ -4,19 +4,7 @@ import operator
 import re
 from collections import namedtuple
 from functools import reduce
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
-    Optional,
-    Pattern,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Pattern, Sequence, Tuple, Union
 
 from django.db.models import Q
 from parsimonious.exceptions import ParseError
@@ -26,6 +14,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
+from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import PathSearchable, get_path
 
@@ -114,6 +103,19 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     def load(cls, data: Mapping[str, str]) -> Matcher:
         return cls(data["type"], data["pattern"])
 
+    @staticmethod
+    def munge_if_needed(data: PathSearchable) -> Tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
+        keys = ["filename", "abs_path"]
+        platform = data.get("platform")
+        frames = find_stack_frames(data)
+        if platform:
+            munged = munged_filename_and_frames(platform, frames, "munged_filename")
+            if munged:
+                keys.append(munged[0])
+                frames = munged[1]
+
+        return frames, keys
+
     def test(
         self,
         data: PathSearchable,
@@ -121,20 +123,21 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         if self.type == URL:
             return self.test_url(data)
         elif self.type == PATH:
-            return self.test_frames(data, ["filename", "abs_path"])
+            return self.test_frames(*self.munge_if_needed(data))
         elif self.type == MODULE:
-            return self.test_frames(data, ["module"])
+            return self.test_frames(find_stack_frames(data), ["module"])
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
             return self.test_frames(
-                data,
-                ["filename", "abs_path"],
+                *self.munge_if_needed(data),
                 # Codeowners has a slightly different syntax compared to issue owners
                 # As such we need to match it using gitignore logic.
                 # See syntax documentation here:
                 # https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/creating-a-repository-on-github/about-code-owners
-                lambda val, pattern: bool(_path_to_regex(pattern).search(val))
+                match_frame_value_func=lambda val, pattern: bool(
+                    _path_to_regex(pattern).search(val)
+                )
                 if val is not None
                 else False,
             )
@@ -152,13 +155,13 @@ class Matcher(namedtuple("Matcher", "type pattern")):
 
     def test_frames(
         self,
-        data: PathSearchable,
+        frames: Sequence[Mapping[str, Any]],
         keys: Sequence[str],
         match_frame_value_func: Callable[[Optional[str], str], bool] = lambda val, pattern: bool(
             glob_match(val, pattern, ignorecase=True, path_normalize=True)
         ),
     ) -> bool:
-        for frame in (f for f in _iter_frames(data) if isinstance(f, Mapping)):
+        for frame in (f for f in frames if isinstance(f, Mapping)):
             for key in keys:
                 value = frame.get(key)
                 if not value:
@@ -358,24 +361,6 @@ def _path_to_regex(pattern: str) -> Pattern[str]:
     else:
         regex += r"(?:\Z|/)"
     return re.compile(regex)
-
-
-def _iter_frames(data: PathSearchable) -> Iterator[Any]:
-    try:
-        yield from get_path(data, "stacktrace", "frames", filter=True) or ()
-    except KeyError:
-        pass
-
-    try:
-        values = get_path(data, "exception", "values", filter=True) or ()
-    except KeyError:
-        return
-
-    for value in values:
-        try:
-            yield from get_path(value, "stacktrace", "frames", filter=True) or ()
-        except KeyError:
-            continue
 
 
 def parse_rules(data: str) -> Any:
