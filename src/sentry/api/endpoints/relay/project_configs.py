@@ -57,7 +57,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 full_config_requested=full_config_requested,
             )
         else:
-            return Response("Unsupported version, we only support version null, 1 and 2.", 400)
+            return Response("Unsupported version, we only support versions 1 to 3.", 400)
 
     def _post_by_key(self, request: Request, full_config_requested):
         public_keys = request.relay_request_data.get("publicKeys")
