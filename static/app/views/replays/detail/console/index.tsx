@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import debounce from 'lodash/debounce';
 
 import {Panel} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
@@ -14,7 +15,7 @@ interface Props {
 
 function Console({breadcrumbs}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
-  const handleSearch = query => setSearchTerm(query);
+  const handleSearch = debounce(query => setSearchTerm(query), 150);
   const filteredBreadcrumbs = useMemo(
     () =>
       !searchTerm
