@@ -57,6 +57,7 @@ export default function OnboardingIntegrationCard({
                   'growth.onboarding_quick_start_cta_integration',
                   {
                     integration: p,
+                    all_selected_integrations: integrationsToSetup.join(','),
                     organization,
                   }
                 );
