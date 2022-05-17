@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {sprintf, vsprintf} from 'sprintf-js';
 
+import DateTime from 'sentry/components/dateTime';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -9,7 +10,6 @@ import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
-import {getFormattedDate} from 'sentry/utils/dates';
 
 interface MessageFormatterProps {
   breadcrumb: BreadcrumbTypeDefault;
@@ -83,41 +83,17 @@ function ConsoleMessage({
       <Icon isLast={isLast} level={breadcrumb.level}>
         {ICONS[breadcrumb.level]}
       </Icon>
-      <MessageWrapper>
-        <Message isLast={isLast} level={breadcrumb.level}>
-          <MessageFormatter breadcrumb={breadcrumb} />
-        </Message>
-        <StyledConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
-          <Hovercard body={`${t('Relative Time')}: ${relativeTimestamp}`}>
-            {getFormattedDate(breadcrumb.timestamp, 'MMM D, YYYY hh:mm:ss A z', {
-              local: false,
-            })}
-          </Hovercard>
-        </StyledConsoleTimestamp>
-      </MessageWrapper>
+      <Message isLast={isLast} level={breadcrumb.level}>
+        <MessageFormatter breadcrumb={breadcrumb} />
+      </Message>
+      <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
+        <Hovercard body={`${t('Relative Time')}: ${relativeTimestamp}`}>
+          <DateTime date={breadcrumb.timestamp} />
+        </Hovercard>
+      </ConsoleTimestamp>
     </Fragment>
   );
 }
-
-const StyledConsoleTimestamp = styled('div')<{isLast: boolean; level: string}>`
-  padding: ${space(1)};
-  border-left: 1px solid ${p => p.theme.innerBorder};
-  background-color: ${p =>
-    ['warning', 'error'].includes(p.level)
-      ? p.theme.alert[p.level].backgroundLight
-      : 'inherit'};
-  color: ${p =>
-    ['warning', 'error'].includes(p.level)
-      ? p.theme.alert[p.level].iconHoverColor
-      : 'inherit'};
-  ${p => (!p.isLast ? `border-bottom: 1px solid ${p.theme.innerBorder}` : '')};
-`;
-
-const MessageWrapper = styled('div')`
-  display: grid;
-  width: 100%;
-  grid-template-columns: 2fr minmax(0, max-content);
-`;
 
 const Common = styled('div')<{isLast: boolean; level: string}>`
   background-color: ${p =>
@@ -129,6 +105,11 @@ const Common = styled('div')<{isLast: boolean; level: string}>`
       ? p.theme.alert[p.level].iconHoverColor
       : 'inherit'};
   ${p => (!p.isLast ? `border-bottom: 1px solid ${p.theme.innerBorder}` : '')};
+`;
+
+const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
+  padding: ${space(1)};
+  border-left: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const Icon = styled(Common)`
