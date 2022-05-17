@@ -1,19 +1,19 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {changeInputValue, openMenu, selectByLabel} from 'sentry-test/select-new';
 
+import TagStore from 'sentry/stores/tagStore';
 import ColumnEditModal from 'sentry/views/eventsV2/table/columnEditModal';
 
 const stubEl = props => <div>{props.children}</div>;
 
-function mountModal({tagKeys, columns, onApply}, initialData) {
+function mountModal({columns, onApply}, initialData) {
   return mountWithTheme(
     <ColumnEditModal
       Header={stubEl}
       Footer={stubEl}
       Body={stubEl}
       organization={initialData.organization}
-      tagKeys={tagKeys}
       columns={columns}
       onApply={onApply}
       closeModal={() => void 0}
@@ -23,12 +23,21 @@ function mountModal({tagKeys, columns, onApply}, initialData) {
 }
 
 describe('EventsV2 -> ColumnEditModal', function () {
+  enforceActOnUseLegacyStoreHook();
+
+  beforeEach(() => {
+    TagStore.reset();
+    TagStore.loadTagsSuccess([
+      {name: 'browser.name', key: 'browser.name', count: 1},
+      {name: 'custom-field', key: 'custom-field', count: 1},
+      {name: 'user', key: 'user', count: 1},
+    ]);
+  });
   const initialData = initializeOrg({
     organization: {
       features: ['performance-view'],
     },
   });
-  const tagKeys = ['browser.name', 'custom-field', 'user'];
   const columns = [
     {
       kind: 'field',
@@ -65,7 +74,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
       {
         columns,
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -96,7 +104,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
           {kind: 'field', field: 'user-def'},
         ],
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -129,10 +136,16 @@ describe('EventsV2 -> ColumnEditModal', function () {
           {kind: 'field', field: 'tags[count]'},
         ],
         onApply: () => void 0,
-        tagKeys: ['project', 'count'],
       },
       initialData
     );
+    beforeEach(() => {
+      TagStore.reset();
+      TagStore.loadTagsSuccess([
+        {name: 'project', key: 'project', count: 1},
+        {name: 'count', key: 'count', count: 1},
+      ]);
+    });
 
     it('selects tag expressions that overlap fields', function () {
       const funcRow = wrapper.find('QueryField').first();
@@ -160,7 +173,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
           {kind: 'function', function: ['percentile', 'transaction.duration', '0.66']},
         ],
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -187,7 +199,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
         {
           columns: [columns[0]],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -338,7 +349,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -373,7 +383,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -420,7 +429,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -453,7 +461,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -488,7 +495,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -525,7 +531,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -557,7 +562,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply,
-          tagKeys,
         },
         initialData
       );
@@ -586,7 +590,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
       {
         columns: [columns[0]],
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -606,7 +609,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
       {
         columns: [columns[0], columns[1]],
         onApply: () => void 0,
-        tagKeys,
       },
       initialData
     );
@@ -639,7 +641,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             },
           ],
           onApply: () => void 0,
-          tagKeys,
         },
         initialData
       );
@@ -672,7 +673,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
             columns[1],
           ],
           onApply: () => void 0,
-          tagKeys,
         },
         initialData
       );
@@ -695,7 +695,6 @@ describe('EventsV2 -> ColumnEditModal', function () {
       {
         columns: [columns[0], columns[1]],
         onApply,
-        tagKeys,
       },
       initialData
     );
