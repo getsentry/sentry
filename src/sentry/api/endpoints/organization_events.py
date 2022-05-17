@@ -170,6 +170,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "auto_aggregations": True,
                 "use_aggregate_conditions": True,
                 "allow_metric_aggregates": allow_metric_aggregates,
+                "transform_alias_to_input_format": True,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)
