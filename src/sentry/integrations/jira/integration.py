@@ -509,7 +509,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         meta = None
         if project_id:
             meta = self.fetch_issue_create_meta(client, project_id)
-        if not meta:
+        if meta is not None:
+            return meta
+        if meta is None:
             # If we don't have a jira projectid (or we couldn't fetch the metadata from the given project_id),
             # iterate all projects and find the first project that has metadata.
             # We only want one project as getting all project metadata is expensive and wasteful.
@@ -718,7 +720,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 reporter_id, reporter_label = reporter_tuple
                 field["default"] = reporter_id
                 field["choices"] = [(reporter_id, reporter_label)]
-
         return fields
 
     def create_issue(self, data, **kwargs):

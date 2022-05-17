@@ -1,5 +1,6 @@
 import copy
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 import responses
@@ -7,7 +8,7 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from exam import fixture
 
-from sentry.integrations.jira import JiraIntegrationProvider
+from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.models import (
     ExternalIssue,
     Integration,
@@ -318,6 +319,40 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration.save()
 
         with mock.patch.object(installation, "get_client", get_client):
+            fields = installation.get_create_issue_config(group, self.user)
+            project_field = [field for field in fields if field["name"] == "project"][0]
+
+            assert project_field == {
+                "default": "10001",
+                "choices": [("10000", "EX"), ("10001", "ABC")],
+                "type": "select",
+                "name": "project",
+                "label": "Jira Project",
+                "updatesForm": True,
+            }
+
+    @patch("sentry.integrations.jira.integration.JiraIntegration.get_issue_create_meta")
+    def test_get_create_issue_config_with_default_project_deleted(self, mock_get_issue_create_meta):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        installation = self.integration.get_installation(self.organization.id)
+        installation.org_integration.config = {
+            "project_issue_defaults": {str(group.project_id): {"project": "10004"}}
+        }
+        installation.org_integration.save()
+
+        with mock.patch.object(installation, "get_client", get_client):
+            mock_get_issue_create_meta.return_value = json.loads(
+                StubService.get_stub_json("jira", "get_create_issue_meta.json")
+            )
             fields = installation.get_create_issue_config(group, self.user)
             project_field = [field for field in fields if field["name"] == "project"][0]
 
