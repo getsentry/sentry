@@ -3,8 +3,6 @@ import {Span} from '@sentry/types';
 import {defined} from 'sentry/utils';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
 
 import {CallTreeNode} from '../callTreeNode';
 
@@ -126,60 +124,6 @@ export const isSystemCall = (node: CallTreeNode): boolean => {
 export const isApplicationCall = (node: CallTreeNode): boolean => {
   return !!node.frame.is_application;
 };
-
-type AnalyzeProfileResults = {
-  slowestApplicationCalls: CallTreeNode[];
-  slowestSystemCalls: CallTreeNode[];
-};
-
-export function getSlowestProfileCallsFromProfile(
-  profile: Profile
-): AnalyzeProfileResults {
-  const applicationCalls: CallTreeNode[] = [];
-  const systemFrames: CallTreeNode[] = [];
-
-  const openFrame = (node: CallTreeNode) => {
-    if (isSystemCall(node)) {
-      systemFrames.push(node);
-    } else {
-      applicationCalls.push(node);
-    }
-  };
-
-  const closeFrame = (_node: CallTreeNode) => {
-    return;
-  };
-
-  profile.forEach(openFrame, closeFrame);
-
-  const slowestApplicationCalls = applicationCalls.sort(
-    (a, b) => b.selfWeight - a.selfWeight
-  );
-  const slowestSystemCalls = systemFrames.sort((a, b) => b.selfWeight - a.selfWeight);
-
-  return {
-    slowestApplicationCalls: slowestApplicationCalls.slice(0, 10),
-    slowestSystemCalls: slowestSystemCalls.slice(0, 10),
-  };
-}
-
-export function getSlowestProfileCallsFromProfileGroup(profileGroup: ProfileGroup) {
-  const applicationCalls: Record<number, CallTreeNode[]> = {};
-  const systemCalls: Record<number, CallTreeNode[]> = {};
-
-  for (const profile of profileGroup.profiles) {
-    const {slowestApplicationCalls, slowestSystemCalls} =
-      getSlowestProfileCallsFromProfile(profile);
-
-    applicationCalls[profile.threadId] = slowestApplicationCalls.splice(0, 10);
-    systemCalls[profile.threadId] = slowestSystemCalls.splice(0, 10);
-  }
-
-  return {
-    slowestApplicationCalls: applicationCalls,
-    slowestSystemCalls: systemCalls,
-  };
-}
 
 function indexNodeToParents(
   roots: FlamegraphFrame[],

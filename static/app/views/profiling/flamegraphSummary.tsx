@@ -1,16 +1,23 @@
-import {Fragment, useMemo} from 'react';
-import {Link} from 'react-router';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {browserHistory, Link} from 'react-router';
+import styled from '@emotion/styled';
+import Fuse from 'fuse.js';
+import * as qs from 'query-string';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Pagination from 'sentry/components/pagination';
+import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import {getSlowestProfileCallsFromProfileGroup} from 'sentry/utils/profiling/profile/utils';
+import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -18,57 +25,109 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProfileGroup} from './profileGroupProvider';
 import {generateFlamegraphRoute} from './routes';
 
+const RESULTS_PER_PAGE = 50;
+
 function FlamegraphSummary() {
   const location = useLocation();
   const [state] = useProfileGroup();
   const organization = useOrganization();
 
-  const functions = useMemo(() => {
-    if (state.type === 'resolved') {
-      const {slowestApplicationCalls, slowestSystemCalls} =
-        getSlowestProfileCallsFromProfileGroup(state.data);
+  const cursor = useMemo<number>(() => {
+    const cursorQuery = decodeScalar(location.query.cursor, '');
+    return parseInt(cursorQuery, 10) || 0;
+  }, [location.query.cursor]);
 
-      let allSlowestApplicationCalls: TableDataRow[] = [];
-      for (const threadID in slowestApplicationCalls) {
-        allSlowestApplicationCalls = allSlowestApplicationCalls.concat(
-          slowestApplicationCalls[threadID].map(call => {
-            return {
-              symbol: call.frame.name,
-              image: call.frame.image,
-              thread: threadID,
-              'self weight': call.selfWeight,
-              'total weight': call.totalWeight,
-            };
+  const query = useMemo<string>(() => decodeScalar(location.query.query, ''), [location]);
+
+  const allFunctions: TableDataRow[] = useMemo(() => {
+    return state.type === 'resolved'
+      ? state.data.profiles
+          .flatMap(profile => {
+            const nodes: CallTreeNode[] = [];
+
+            profile.forEach(
+              node => {
+                if (node.selfWeight > 0) {
+                  nodes.push(node);
+                }
+              },
+              () => {}
+            );
+
+            return (
+              nodes
+                .sort((a, b) => b.selfWeight - a.selfWeight)
+                // take only the slowest nodes from each thread because the rest
+                // aren't useful to display
+                .slice(0, 500)
+                .map(node => ({
+                  symbol: node.frame.name,
+                  image: node.frame.image,
+                  thread: profile.threadId,
+                  type: node.frame.is_application ? 'application' : 'system',
+                  'self weight': node.selfWeight,
+                  'total weight': node.totalWeight,
+                }))
+            );
           })
-        );
-      }
-
-      let allSlowestSystemCalls: TableDataRow[] = [];
-      for (const threadID in slowestSystemCalls) {
-        allSlowestSystemCalls = allSlowestSystemCalls.concat(
-          slowestSystemCalls[threadID].map(call => {
-            return {
-              symbol: call.frame.name,
-              image: call.frame.image,
-              thread: threadID,
-              'self weight': call.selfWeight,
-              'total weight': call.totalWeight,
-            };
-          })
-        );
-      }
-
-      return {
-        slowestApplicationCalls: allSlowestApplicationCalls
           .sort((a, b) => b['self weight'] - a['self weight'])
-          .splice(0, 10),
-        slowestSystemCalls: allSlowestSystemCalls
-          .sort((a, b) => b['self weight'] - a['self weight'])
-          .splice(0, 10),
-      };
-    }
-    return {slowestApplicationCalls: [], slowestSystemCalls: []};
+      : [];
   }, [state]);
+
+  const searchIndex = useMemo(() => {
+    return new Fuse(allFunctions, {
+      keys: ['symbol'],
+      threshold: 0.3,
+      includeMatches: true,
+    });
+  }, [allFunctions]);
+
+  const [slowestFunctions, setSlowestFunctions] = useState<TableDataRow[]>([]);
+
+  const pageLinks = useMemo(() => {
+    const prevResults = cursor >= RESULTS_PER_PAGE ? 'true' : 'false';
+    const prevCursor = cursor >= RESULTS_PER_PAGE ? cursor - RESULTS_PER_PAGE : 0;
+    const prevQuery = {...location.query, cursor: prevCursor};
+    const prevHref = `${location.pathname}${qs.stringify(prevQuery)}`;
+    const prev = `<${prevHref}>; rel="previous"; results="${prevResults}"; cursor="${prevCursor}"`;
+
+    const nextResults =
+      cursor + RESULTS_PER_PAGE < slowestFunctions.length ? 'true' : 'false';
+    const nextCursor =
+      cursor + RESULTS_PER_PAGE < slowestFunctions.length ? cursor + RESULTS_PER_PAGE : 0;
+    const nextQuery = {...location.query, cursor: nextCursor};
+    const nextHref = `${location.pathname}${qs.stringify(nextQuery)}`;
+    const next = `<${nextHref}>; rel="next"; results="${nextResults}"; cursor="${nextCursor}"`;
+
+    return `${prev},${next}`;
+  }, [cursor, location, slowestFunctions]);
+
+  useEffect(() => {
+    if (!query) {
+      setSlowestFunctions(allFunctions);
+      return;
+    }
+
+    const filteredSlowestFunctions = searchIndex
+      .search(query)
+      .map(result => result.item)
+      .sort((a, b) => b['self weight'] - a['self weight']);
+    setSlowestFunctions(filteredSlowestFunctions);
+  }, [allFunctions, searchIndex, query]);
+
+  const handleSearch = useCallback(
+    searchString => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          query: searchString,
+          cursor: undefined,
+        },
+      });
+    },
+    [location]
+  );
 
   return (
     <Fragment>
@@ -78,32 +137,38 @@ function FlamegraphSummary() {
       >
         <Layout.Body>
           <Layout.Main fullWidth>
+            <ActionBar>
+              <SearchBar
+                defaultQuery=""
+                query={query}
+                placeholder={t('Search for frames')}
+                onSearch={handleSearch}
+              />
+            </ActionBar>
             <GridEditable
-              title={t('Slowest Application Calls')}
+              title={t('Slowest Functions')}
               isLoading={state.type === 'loading'}
               error={state.type === 'errored'}
-              data={functions.slowestApplicationCalls}
+              data={slowestFunctions.slice(cursor, cursor + RESULTS_PER_PAGE)}
               columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
               columnSortBy={[]}
               grid={{renderBodyCell: renderFunctionCell}}
               location={location}
             />
-            <GridEditable
-              title={t('Slowest System Calls')}
-              isLoading={state.type === 'loading'}
-              error={state.type === 'errored'}
-              data={functions.slowestSystemCalls}
-              columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
-              columnSortBy={[]}
-              grid={{renderBodyCell: renderFunctionCell}}
-              location={location}
-            />
+            <Pagination pageLinks={pageLinks} />
           </Layout.Main>
         </Layout.Body>
       </SentryDocumentTitle>
     </Fragment>
   );
 }
+
+const ActionBar = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  grid-template-columns: auto;
+  margin-bottom: ${space(2)};
+`;
 
 function renderFunctionCell(
   column: TableColumn,
@@ -165,7 +230,13 @@ function ProfilingFunctionsTableCell({
   }
 }
 
-type TableColumnKey = 'symbol' | 'image' | 'self weight' | 'total weight' | 'thread';
+type TableColumnKey =
+  | 'symbol'
+  | 'image'
+  | 'self weight'
+  | 'total weight'
+  | 'thread'
+  | 'type';
 type TableDataRow = Record<TableColumnKey, any>;
 
 type TableColumn = GridColumnOrder<TableColumnKey>;
@@ -174,6 +245,7 @@ const COLUMN_ORDER: TableColumnKey[] = [
   'symbol',
   'image',
   'thread',
+  'type',
   'self weight',
   'total weight',
 ];
@@ -193,6 +265,11 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   thread: {
     key: 'thread',
     name: t('Thread'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  type: {
+    key: 'type',
+    name: t('Type'),
     width: COL_WIDTH_UNDEFINED,
   },
   'self weight': {
