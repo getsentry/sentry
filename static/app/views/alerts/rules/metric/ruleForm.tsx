@@ -38,14 +38,15 @@ import {AlertRuleType} from 'sentry/views/alerts/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
-import {addOrUpdateRule} from '../actions';
+import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
+import {addOrUpdateRule} from './actions';
 import {
   createDefaultTrigger,
   DEFAULT_CHANGE_COMP_DELTA,
   DEFAULT_CHANGE_TIME_WINDOW,
   DEFAULT_COUNT_TIME_WINDOW,
-} from '../constants';
-import RuleConditionsForm from '../ruleConditionsForm';
+} from './constants';
+import RuleConditionsForm from './ruleConditionsForm';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
@@ -56,8 +57,7 @@ import {
   MetricRule,
   Trigger,
   UnsavedMetricRule,
-} from '../types';
-import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
+} from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
 
