@@ -429,9 +429,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           }
 
           const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
-          const shouldColorOther = timeseriesResults
-            ?.map(series => series.seriesName)
-            .some(seriesName => seriesName.match(otherRegex));
+          const shouldColorOther = timeseriesResults?.some(({seriesName}) =>
+            seriesName.match(otherRegex)
+          );
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(
                 timeseriesResults.length - (shouldColorOther ? 3 : 2)
