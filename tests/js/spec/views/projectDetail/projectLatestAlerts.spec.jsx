@@ -18,7 +18,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     });
     rulesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/`,
-      body: [TestStubs.IncidentRule()],
+      body: [TestStubs.MetricRule()],
     });
   });
 

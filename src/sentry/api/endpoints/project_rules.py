@@ -114,6 +114,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 rule=rule, user=request.user, type=RuleActivityType.CREATED.value
             )
             duplicate_rule = request.query_params.get("duplicateRule")
+            wizard_v3 = request.query_params.get("wizardV3")
 
             self.create_audit_entry(
                 request=request,
@@ -131,6 +132,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 is_api_token=request.auth is not None,
                 alert_rule_ui_component=created_alert_rule_ui_component,
                 duplicate_rule=duplicate_rule,
+                wizard_v3=wizard_v3,
             )
 
             return Response(serialize(rule, request.user))

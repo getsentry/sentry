@@ -268,19 +268,22 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       widget.queries[0].aggregates,
       useSessionAPI
     );
+    const columns = widget.queries[0].columns;
 
     widget.queries.forEach(query => {
+      let requestData;
+      let requester;
       if (useSessionAPI) {
         const sessionAggregates = aggregates.filter(
           agg =>
             !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
         );
-        const requestData = {
+        requestData = {
           field: sessionAggregates,
           orgSlug: organization.slug,
           end,
           environment: environments,
-          groupBy: query.columns,
+          groupBy: columns,
           limit: undefined,
           orderBy: '', // Orderby not supported with session.status
           interval,
@@ -291,14 +294,14 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           includeAllArgs,
           cursor,
         };
-        promises.push(doSessionsRequest(api, requestData));
+        requester = doSessionsRequest;
       } else {
-        const metricsRequestData = {
+        requestData = {
           field: aggregates.map(fieldsToDerivedMetrics),
           orgSlug: organization.slug,
           end,
           environment: environments,
-          groupBy: query.columns.map(fieldsToDerivedMetrics),
+          groupBy: columns.map(fieldsToDerivedMetrics),
           limit: unsupportedOrderby || rawOrderby === '' ? undefined : this.limit,
           orderBy: unsupportedOrderby
             ? ''
@@ -313,8 +316,22 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           includeAllArgs,
           cursor,
         };
-        promises.push(doMetricsRequest(api, metricsRequestData));
+        requester = doMetricsRequest;
+
+        if (
+          rawOrderby &&
+          !!!unsupportedOrderby &&
+          !!!aggregates.includes(rawOrderby) &&
+          !!!columns.includes(rawOrderby)
+        ) {
+          requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
+          if (!!!injectedFields.includes(rawOrderby)) {
+            injectedFields.push(rawOrderby);
+          }
+        }
       }
+
+      promises.push(requester(api, requestData));
     });
 
     let completed = 0;

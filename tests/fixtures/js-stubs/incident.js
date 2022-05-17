@@ -1,4 +1,4 @@
-import {IncidentRule} from './incidentRule';
+import {MetricRule} from './metricRule';
 
 export function Incident(params = {}) {
   return {
@@ -13,7 +13,7 @@ export function Incident(params = {}) {
     status: 0,
     projects: [],
     isSubscribed: true,
-    alertRule: IncidentRule(),
+    alertRule: MetricRule(params.alertRule),
     activities: [
       {
         id: '78',

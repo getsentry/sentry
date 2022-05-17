@@ -85,7 +85,7 @@ export interface InternalTooltipProps {
   /**
    * Additional style rules for the tooltip content.
    */
-  popperStyle?: React.CSSProperties | SerializedStyles;
+  overlayStyle?: React.CSSProperties | SerializedStyles;
 
   /**
    * Position for the tooltip.
@@ -148,7 +148,7 @@ export function DO_NOT_USE_TOOLTIP({
   delay,
   forceVisible,
   isHoverable,
-  popperStyle,
+  overlayStyle,
   showUnderline,
   underlineColor,
   showOnlyOnOverflow,
@@ -291,10 +291,9 @@ export function DO_NOT_USE_TOOLTIP({
                     id={tooltipId}
                     data-placement={placement}
                     style={computeOriginFromArrow(position, arrowProps)}
-                    className="tooltip-content"
-                    popperStyle={popperStyle}
-                    onMouseEnter={() => isHoverable && handleMouseEnter()}
-                    onMouseLeave={() => isHoverable && handleMouseLeave()}
+                    overlayStyle={overlayStyle}
+                    onMouseEnter={isHoverable ? handleMouseEnter : undefined}
+                    onMouseLeave={isHoverable ? handleMouseLeave : undefined}
                     {...TOOLTIP_ANIMATION}
                   >
                     {title}
@@ -336,7 +335,7 @@ const TooltipContent = styled(motion.div, {
   shouldForwardProp: (prop: string) =>
     typeof prop === 'string' && (animationProps.includes(prop) || isPropValid(prop)),
 })<{
-  popperStyle: InternalTooltipProps['popperStyle'];
+  overlayStyle: InternalTooltipProps['overlayStyle'];
 }>`
   will-change: transform, opacity;
   position: relative;
@@ -353,67 +352,66 @@ const TooltipContent = styled(motion.div, {
 
   margin: 6px;
   text-align: center;
-  ${p => p.popperStyle as any};
+  ${p => p.overlayStyle as any};
 `;
 
 const TooltipArrow = styled('span')`
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  border: solid 6px transparent;
   pointer-events: none;
+  position: absolute;
+  width: 12px;
+  height: 12px;
 
-  &::before {
+  &::before,
+  &::after {
     content: '';
     display: block;
     position: absolute;
-    width: 0;
-    height: 0;
+    height: 12px;
+    width: 12px;
     border: solid 6px transparent;
-    z-index: -1;
   }
 
-  &[data-placement*='bottom'] {
-    top: 0;
-    margin-top: -12px;
-    border-bottom-color: ${p => p.theme.backgroundElevated};
+  &[data-placement|='bottom'] {
+    top: -12px;
     &::before {
-      bottom: -5px;
-      left: -6px;
+      bottom: 1px;
       border-bottom-color: ${p => p.theme.translucentBorder};
     }
+    &::after {
+      border-bottom-color: ${p => p.theme.backgroundElevated};
+    }
   }
 
-  &[data-placement*='top'] {
-    bottom: 0;
-    margin-bottom: -12px;
-    border-top-color: ${p => p.theme.backgroundElevated};
+  &[data-placement|='top'] {
+    bottom: -12px;
     &::before {
-      top: -5px;
-      left: -6px;
+      top: 1px;
       border-top-color: ${p => p.theme.translucentBorder};
     }
-  }
-
-  &[data-placement*='right'] {
-    left: 0;
-    margin-left: -12px;
-    border-right-color: ${p => p.theme.backgroundElevated};
-    &::before {
-      top: -6px;
-      right: -5px;
-      border-right-color: ${p => p.theme.translucentBorder};
+    &::after {
+      border-top-color: ${p => p.theme.backgroundElevated};
     }
   }
 
-  &[data-placement*='left'] {
-    right: 0;
-    margin-right: -12px;
-    border-left-color: ${p => p.theme.backgroundElevated};
+  &[data-placement|='right'] {
+    left: -12px;
     &::before {
-      top: -6px;
-      left: -5px;
+      right: 1px;
+      border-right-color: ${p => p.theme.translucentBorder};
+    }
+    &::after {
+      border-right-color: ${p => p.theme.backgroundElevated};
+    }
+  }
+
+  &[data-placement|='left'] {
+    right: -12px;
+    &::before {
+      left: 1px;
       border-left-color: ${p => p.theme.translucentBorder};
+    }
+    &::after {
+      border-left-color: ${p => p.theme.backgroundElevated};
     }
   }
 `;
