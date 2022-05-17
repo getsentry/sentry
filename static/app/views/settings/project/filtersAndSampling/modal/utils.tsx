@@ -248,6 +248,8 @@ export function getTagKey(condition: Condition) {
       return 'device.family';
     case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
       return 'device.name';
+    case DynamicSamplingInnerName.EVENT_CUSTOM_TAG:
+      return '';
     default:
       // custom tags
       return stripCustomTagPrefix(condition.category);

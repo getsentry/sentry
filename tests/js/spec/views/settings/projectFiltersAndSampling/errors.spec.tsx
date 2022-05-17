@@ -99,6 +99,12 @@ describe('Filters and Sampling - Error rule', function () {
       body: [{value: '[I3].[0-9]'}],
     });
 
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/tags/',
+      method: 'GET',
+      body: TestStubs.Tags,
+    });
+
     renderComponent();
 
     // Error rules container
