@@ -764,7 +764,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_snuba_limit_exceeded(self):
         # 2 * 3 => only show two groups
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
-            "sentry.release_health.metrics_sessions_v2.SNUBA_LIMIT", 6
+            "sentry.snuba.metrics.query.MAX_POINTS", 6
         ):
 
             response = self.do_request(
@@ -804,7 +804,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         """Get consistent result when grouping by status"""
         # 2 * 3 => only show two groups
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
-            "sentry.release_health.metrics_sessions_v2.SNUBA_LIMIT", 6
+            "sentry.snuba.metrics.query.MAX_POINTS", 6
         ):
 
             response = self.do_request(
