@@ -185,8 +185,6 @@ export function flattenSpans(rawSpans: RawSpanType[]): FlattenedSpanRange[] {
     } as FlattenedSpanRange;
   });
 
-  // might need to make sure we've sorted by startTimestamp
-
   const [firstSpan, ...restSpans] = spans;
   const flatSpans = [firstSpan];
 
