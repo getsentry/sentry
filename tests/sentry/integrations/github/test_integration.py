@@ -66,7 +66,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "account": {
                     "login": "Test Organization",
                     "avatar_url": "http://example.com/avatar.png",
-                    "html_url": "https://github.com/Test-Organization",
+                    "html_url": "https://github.com/Test-``Organization",
                     "type": "Organization",
                 },
             },
@@ -190,6 +190,13 @@ class GitHubIntegrationTest(IntegrationTestCase):
         assert OrganizationIntegration.objects.filter(
             organization=self.organization_2, integration=integration
         ).exists()
+
+    @responses.activate
+    def test_installation_not_found(self):
+        # Add a 404 for an org to responses
+        # Attempt to install integration
+        # Expect IntegrationError
+        assert True
 
     @responses.activate
     def test_reinstall_flow(self):
