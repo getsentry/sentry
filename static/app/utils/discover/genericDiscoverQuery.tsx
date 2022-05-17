@@ -170,7 +170,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   }
 
   getPayload(props: Props<T, P>) {
-    const {cursor, limit, noPagination, referrer} = props;
+    const {cursor, limit, noPagination, referrer, location} = props;
     const payload = this.props.getRequestPayload
       ? this.props.getRequestPayload(props)
       : props.eventView.getEventsAPIPayload(props.location);
@@ -187,6 +187,8 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     if (referrer) {
       payload.referrer = referrer;
     }
+
+    payload.user_modified = location.query.isDirty;
 
     Object.assign(payload, props.queryExtras ?? {});
 
