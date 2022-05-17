@@ -133,7 +133,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(screen.getByRole('checkbox')).toBeChecked();
 
       // Release Field
-      expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search or add a release')).toBeInTheDocument();
 
       // Release field is not empty
       const releaseFieldValues = screen.getByTestId('multivalue');
@@ -165,12 +165,12 @@ describe('Filters and Sampling - Transaction rule', function () {
       userEvent.paste(screen.getByLabelText('Search or add a release'), '[0-9]');
 
       // Autocomplete suggests options
-      const autocompleteOptions = screen.getByTestId('option');
-      expect(autocompleteOptions).toBeInTheDocument();
-      expect(autocompleteOptions).toHaveTextContent('[0-9]');
+      const autocompleteOption = screen.getByTestId('[0-9]');
+      expect(autocompleteOption).toBeInTheDocument();
+      expect(autocompleteOption).toHaveTextContent('[0-9]');
 
       // Click on the suggested option
-      userEvent.click(autocompleteOptions);
+      userEvent.click(autocompleteOption);
 
       expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
@@ -353,7 +353,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           userEvent.click(screen.getAllByText('Release')[0]);
 
           // Release Field
-          expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
+          expect(screen.getByLabelText('Search or add a release')).toBeInTheDocument();
 
           // Release field is empty
           const releaseFieldValues = screen.queryByTestId('multivalue');
@@ -363,12 +363,12 @@ describe('Filters and Sampling - Transaction rule', function () {
           userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
 
           // Autocomplete suggests options
-          const autocompleteOptions = screen.getByTestId('option');
-          expect(autocompleteOptions).toBeInTheDocument();
-          expect(autocompleteOptions).toHaveTextContent('1.2.3');
+          const autocompleteOption = screen.getByTestId('1.2.3');
+          expect(autocompleteOption).toBeInTheDocument();
+          expect(autocompleteOption).toHaveTextContent('1.2.3');
 
           // Click on the suggested option
-          userEvent.click(autocompleteOptions);
+          userEvent.click(autocompleteOption);
 
           // Button is still disabled
           const saveRuleButton = screen.getByLabelText('Save Rule');
@@ -453,7 +453,7 @@ describe('Filters and Sampling - Transaction rule', function () {
             userEvent.click(screen.getAllByText('Release')[0]);
 
             // Release Field
-            expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
+            expect(screen.getByLabelText('Search or add a release')).toBeInTheDocument();
 
             // Release field is empty
             const releaseFieldValues = screen.queryByTestId('multivalue');
@@ -463,12 +463,12 @@ describe('Filters and Sampling - Transaction rule', function () {
             userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
 
             // Autocomplete suggests options
-            const autocompleteOptions = screen.getByTestId('option');
-            expect(autocompleteOptions).toBeInTheDocument();
-            expect(autocompleteOptions).toHaveTextContent('1.2.3');
+            const autocompleteOption = screen.getByTestId('1.2.3');
+            expect(autocompleteOption).toBeInTheDocument();
+            expect(autocompleteOption).toHaveTextContent('1.2.3');
 
             // Click on the suggested option
-            userEvent.click(autocompleteOptions);
+            userEvent.click(autocompleteOption);
 
             // Button is still disabled
             const saveRuleButton = screen.getByLabelText('Save Rule');
@@ -755,7 +755,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(screen.getByRole('checkbox')).not.toBeChecked();
 
       // Release Field
-      expect(screen.getByTestId('autocomplete-release')).toBeInTheDocument();
+      expect(screen.getByLabelText('Search or add a release')).toBeInTheDocument();
 
       // Release field is not empty
       expect(screen.getByTestId('multivalue')).toBeInTheDocument();
@@ -785,12 +785,12 @@ describe('Filters and Sampling - Transaction rule', function () {
       userEvent.paste(screen.getByLabelText('Search or add a release'), '[0-9]');
 
       // Autocomplete suggests options
-      const autocompleteOptions = screen.getByTestId('option');
-      expect(autocompleteOptions).toBeInTheDocument();
-      expect(autocompleteOptions).toHaveTextContent('[0-9]');
+      const autocompleteOption = screen.getByTestId('[0-9]');
+      expect(autocompleteOption).toBeInTheDocument();
+      expect(autocompleteOption).toHaveTextContent('[0-9]');
 
       // Click on the suggested option
-      userEvent.click(autocompleteOptions);
+      userEvent.click(autocompleteOption);
 
       expect(screen.getByLabelText('Save Rule')).toBeEnabled();
 
