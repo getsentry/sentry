@@ -204,6 +204,7 @@ def query(
     use_aggregate_conditions=False,
     conditions=None,
     functions_acl=None,
+    transform_alias_to_input_format=False,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -232,6 +233,8 @@ def query(
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
     conditions (Sequence[Condition]) List of conditions that are passed directly to snuba without
                     any additional processing.
+    transform_alias_to_input_format (bool) Whether aggregate columns should be returned in the originally
+                                requested function format.
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -258,7 +261,23 @@ def query(
         op="discover.discover", description="query.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_results(result, builder.function_alias_map, {}, None)
+        translated_columns = {}
+        function_alias_map = builder.function_alias_map
+        if transform_alias_to_input_format:
+            translated_columns = {
+                column: function_details.field
+                for column, function_details in builder.function_alias_map.items()
+            }
+            function_alias_map = {
+                translated_columns.get(column): function_details
+                for column, function_details in builder.function_alias_map.items()
+            }
+        result = transform_results(
+            result,
+            function_alias_map,
+            translated_columns,
+            None,
+        )
     return result
 
 

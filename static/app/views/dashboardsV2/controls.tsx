@@ -172,16 +172,13 @@ const DashboardEditFeature = ({
 }: {
   children: (hasFeature: boolean) => React.ReactNode;
 }) => {
-  const noFeatureMessage = t('Requires dashboard editing.');
-
   const renderDisabled = p => (
     <Hovercard
       body={
         <FeatureDisabled
           features={p.features}
           hideHelpToggle
-          message={noFeatureMessage}
-          featureName={noFeatureMessage}
+          featureName={t('Dashboard Editing')}
         />
       }
     >
