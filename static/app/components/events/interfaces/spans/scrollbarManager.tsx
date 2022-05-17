@@ -498,7 +498,7 @@ export class Provider extends Component<Props, State> {
       });
       this.animationsEnabled = false;
       this.animationTimeout = null;
-    }, 500);
+    }, 300);
   }
 
   render() {
