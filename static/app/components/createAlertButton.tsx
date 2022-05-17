@@ -426,7 +426,7 @@ const CreateAlertButton = withRouter(
         tooltipProps={{
           isHoverable: true,
           position: 'top',
-          popperStyle: {
+          overlayStyle: {
             maxWidth: '270px',
           },
         }}
