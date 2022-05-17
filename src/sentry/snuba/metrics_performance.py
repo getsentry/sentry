@@ -50,7 +50,7 @@ def query(
     conditions=None,
     functions_acl=None,
     dry_run=False,
-    use_function_field_as_alias=False,
+    transform_alias_to_input_format=False,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -81,7 +81,7 @@ def query(
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         translated_columns = {}
         function_alias_map = metrics_query.function_alias_map
-        if use_function_field_as_alias:
+        if transform_alias_to_input_format:
             translated_columns = {
                 column: function_details.field
                 for column, function_details in metrics_query.function_alias_map.items()
