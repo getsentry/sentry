@@ -164,7 +164,7 @@ function renderInviteMembersButton({
     <Hovercard
       body={
         <FeatureDisabled
-          featureName="Invite Members"
+          featureName={t('Invite Members')}
           features={['organizations:invite-members']}
           hideHelpToggle
         />
