@@ -18,6 +18,7 @@ import {
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
 
+import IntegrationCard from './integrationCard';
 import OnboardingProjectsCard from './onboardingCard';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
@@ -250,6 +251,17 @@ export function getOnboardingTasks({
       action: () => {},
       display: true,
       renderCard: OnboardingProjectsCard,
+    },
+    {
+      task: OnboardingTaskKey.INTEGRATIONS,
+      title: t('Integrations to Setup'),
+      description: '',
+      skippable: true,
+      requisites: [],
+      actionType: 'action',
+      action: () => {},
+      display: !!organization.experiments.TargetedOnboardingIntegrationSelectExperiment,
+      renderCard: IntegrationCard,
     },
   ];
 }
