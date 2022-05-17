@@ -260,7 +260,7 @@ export function getOnboardingTasks({
       requisites: [],
       actionType: 'action',
       action: () => {},
-      display: !!organization.experiments.TargetedOnboardingIntegrationSelectExperiment,
+      display: !!organization.experiments?.TargetedOnboardingIntegrationSelectExperiment,
       renderCard: IntegrationCard,
     },
   ];
