@@ -174,6 +174,103 @@ def test_matcher_test_stacktrace():
     assert not Matcher("path", "*.py").test({})
 
 
+def test_matcher_test_threads():
+    data = {
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {"filename": "foo/file.py"},
+                            {"abs_path": "/usr/local/src/other/app.py"},
+                        ]
+                    },
+                    "crashed": False,
+                    "current": False,
+                }
+            ]
+        }
+    }
+
+    assert Matcher("path", "*.py").test(data)
+    assert Matcher("path", "foo/*.py").test(data)
+    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
+    assert Matcher("codeowners", "*.py").test(data)
+    assert Matcher("codeowners", "foo/*.py").test(data)
+    assert Matcher("codeowners", "/usr/local/src/*/app.py").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
+def test_matcher_test_platform_java_threads():
+    data = {
+        "platform": "java",
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                "filename": "NativeMethodAccessorImpl.java",
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+    }
+
+    assert Matcher("path", "*.java").test(data)
+    assert Matcher("path", "jdk/internal/reflect/*.java").test(data)
+    assert Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert Matcher("codeowners", "*.java").test(data)
+    assert Matcher("codeowners", "jdk/internal/reflect/*.java").test(data)
+    assert Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
+def test_matcher_test_platform_none_threads():
+    data = {
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                "filename": "NativeMethodAccessorImpl.java",
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+    }
+
+    # since no platform, we won't be able to fully-qualify(filename munge) based off module and filename
+    # matching will still work based on just the filename, but we won't be able to match on the src path
+    assert Matcher("path", "NativeMethodAccessorImpl.java").test(data)
+    assert Matcher("path", "*.java").test(data)
+    assert Matcher("codeowners", "NativeMethodAccessorImpl.java").test(data)
+    assert Matcher("codeowners", "*.java").test(data)
+    assert not Matcher("path", "jdk/internal/reflect/*.java").test(data)
+    assert not Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("codeowners", "jdk/internal/reflect/*.java").test(data)
+    assert not Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert not Matcher("codeowners", "*.js").test(data)
+    assert not Matcher("codeowners", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
 def test_matcher_test_tags():
     data = {
         "tags": [["foo", "foo_value"], ["bar", "barval"]],
@@ -568,8 +665,32 @@ def test_codeowners_match_backslash(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_fowardslash(path_details, expected):
+def test_codeowners_match_forwardslash(path_details, expected):
     _assert_matcher(Matcher("codeowners", "/"), path_details, expected)
+
+
+def test_codeowners_match_threads():
+    data = {
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {"filename": "foo/file.py"},
+                            {"abs_path": "/usr/local/src/other/app.py"},
+                        ]
+                    },
+                    "crashed": False,
+                    "current": False,
+                }
+            ]
+        }
+    }
+
+    assert Matcher("codeowners", "*.py").test(data)
+    assert Matcher("codeowners", "foo/file.py").test(data)
+    assert Matcher("codeowners", "/**/app.py").test(data)
+    assert Matcher("codeowners", "/usr/*/src/*/app.py").test(data)
 
 
 def test_parse_code_owners():
