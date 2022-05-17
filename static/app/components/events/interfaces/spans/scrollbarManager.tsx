@@ -116,7 +116,6 @@ export class Provider extends Component<Props, State> {
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
   spansOutOfView: Map<string, number> = new Map();
-  animationsEnabled: boolean = false;
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -281,6 +280,8 @@ export class Provider extends Component<Props, State> {
     if (this.isDragging || !this.hasInteractiveLayer()) {
       return;
     }
+
+    this.disableAnimation();
 
     // Setting this here is necessary, since updating the virtual scrollbar position will also trigger the onScroll function
     this.isWheeling = true;
@@ -486,19 +487,24 @@ export class Provider extends Component<Props, State> {
       spanBarDOM.style.transition = 'transform 0.3s';
     });
 
-    this.animationsEnabled = true;
-
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout);
     }
 
+    // This timeout is set to trigger immediately after the animation ends, to disable the animation.
+    // The animation needs to be cleared, otherwise manual horizontal scrolling will be animated
     this.animationTimeout = setTimeout(() => {
       selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
         spanBarDOM.style.transition = '';
       });
-      this.animationsEnabled = false;
       this.animationTimeout = null;
     }, 300);
+  }
+
+  disableAnimation() {
+    selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
+      spanBarDOM.style.transition = '';
+    });
   }
 
   render() {
