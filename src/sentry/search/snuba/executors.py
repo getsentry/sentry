@@ -359,8 +359,6 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
 
-            metrics.incr("snuba.search.postgres_only")
-
             # This search is for some time window that ends with "now",
             # so if the requested sort is `date` (`last_seen`) and there
             # are no other Snuba-based search predicates, we can simply
@@ -378,6 +376,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             ):
                 group_queryset = group_queryset.order_by("-last_seen")
                 paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
+                metrics.incr("snuba.search.postgres_only")
                 # When its a simple django-only search, we count_hits like normal
 
                 # TODO: Add types to paginators and remove this
