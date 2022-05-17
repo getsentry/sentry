@@ -37,9 +37,10 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     id: undefined,
     title: t('High Throughput Transactions'),
     description: t('Top 5 transactions with the largest volume.'),
-    displayType: DisplayType.TOP_N,
+    displayType: DisplayType.AREA,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
+    limit: 5,
     queries: [
       {
         name: '',
@@ -133,9 +134,10 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     id: undefined,
     title: t('Top Unhandled Error Types'),
     description: t('Most frequently encountered unhandled errors.'),
-    displayType: DisplayType.TOP_N,
+    displayType: DisplayType.AREA,
     widgetType: WidgetType.DISCOVER,
     interval: '5m',
+    limit: 5,
     queries: [
       {
         name: '',
