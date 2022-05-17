@@ -33,7 +33,7 @@ type QuestionProps = {
   Partial<
     Pick<
       React.ComponentProps<typeof Tooltip>,
-      'containerDisplayMode' | 'isHoverable' | 'popperStyle'
+      'containerDisplayMode' | 'isHoverable' | 'overlayStyle'
     >
   >;
 

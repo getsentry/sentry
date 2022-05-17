@@ -85,7 +85,7 @@ export interface InternalTooltipProps {
   /**
    * Additional style rules for the tooltip content.
    */
-  popperStyle?: React.CSSProperties | SerializedStyles;
+  overlayStyle?: React.CSSProperties | SerializedStyles;
 
   /**
    * Position for the tooltip.
@@ -148,7 +148,7 @@ export function DO_NOT_USE_TOOLTIP({
   delay,
   forceVisible,
   isHoverable,
-  popperStyle,
+  overlayStyle,
   showUnderline,
   underlineColor,
   showOnlyOnOverflow,
@@ -291,7 +291,7 @@ export function DO_NOT_USE_TOOLTIP({
                     id={tooltipId}
                     data-placement={placement}
                     style={computeOriginFromArrow(position, arrowProps)}
-                    popperStyle={popperStyle}
+                    overlayStyle={overlayStyle}
                     onMouseEnter={isHoverable ? handleMouseEnter : undefined}
                     onMouseLeave={isHoverable ? handleMouseLeave : undefined}
                     {...TOOLTIP_ANIMATION}
@@ -335,7 +335,7 @@ const TooltipContent = styled(motion.div, {
   shouldForwardProp: (prop: string) =>
     typeof prop === 'string' && (animationProps.includes(prop) || isPropValid(prop)),
 })<{
-  popperStyle: InternalTooltipProps['popperStyle'];
+  overlayStyle: InternalTooltipProps['overlayStyle'];
 }>`
   will-change: transform, opacity;
   position: relative;
@@ -352,7 +352,7 @@ const TooltipContent = styled(motion.div, {
 
   margin: 6px;
   text-align: center;
-  ${p => p.popperStyle as any};
+  ${p => p.overlayStyle as any};
 `;
 
 const TooltipArrow = styled('span')`
