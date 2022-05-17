@@ -54,7 +54,7 @@ def get_subject_with_prefix(
     prefix = ""
     if isinstance(notification, ProjectNotification):
         prefix = build_subject_prefix(notification.project)
-    return f"{prefix}{notification.get_subject(context)}".encode()
+    return f"{prefix} {notification.get_subject(context)}".encode()
 
 
 def get_unsubscribe_link(
