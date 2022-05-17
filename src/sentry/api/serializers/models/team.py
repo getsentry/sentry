@@ -35,7 +35,6 @@ from sentry.models import (
     User,
 )
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
-from sentry.utils.compat import zip
 from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:
