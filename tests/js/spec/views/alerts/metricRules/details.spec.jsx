@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import GlobalModal from 'sentry/components/globalModal';
 import {metric} from 'sentry/utils/analytics';
-import MetricRulesDetails from 'sentry/views/alerts/rules/metric/details';
+import MetricRulesEdit from 'sentry/views/alerts/rules/metric/edit';
 import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/utils/analytics', () => ({
@@ -76,7 +76,7 @@ describe('Incident Rules Details', function () {
     render(
       <Fragment>
         <GlobalModal />
-        <MetricRulesDetails
+        <MetricRulesEdit
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -187,7 +187,7 @@ describe('Incident Rules Details', function () {
     render(
       <Fragment>
         <GlobalModal />
-        <MetricRulesDetails
+        <MetricRulesEdit
           params={{
             orgId: organization.slug,
             projectId: project.slug,
@@ -265,7 +265,7 @@ describe('Incident Rules Details', function () {
     });
 
     render(
-      <MetricRulesDetails
+      <MetricRulesEdit
         params={{
           orgId: organization.slug,
           projectId: project.slug,
