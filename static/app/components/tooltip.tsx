@@ -292,8 +292,8 @@ export function DO_NOT_USE_TOOLTIP({
                     data-placement={placement}
                     style={computeOriginFromArrow(position, arrowProps)}
                     popperStyle={popperStyle}
-                    onMouseEnter={() => isHoverable && handleMouseEnter()}
-                    onMouseLeave={() => isHoverable && handleMouseLeave()}
+                    onMouseEnter={isHoverable ? handleMouseEnter : undefined}
+                    onMouseLeave={isHoverable ? handleMouseLeave : undefined}
                     {...TOOLTIP_ANIMATION}
                   >
                     {title}
