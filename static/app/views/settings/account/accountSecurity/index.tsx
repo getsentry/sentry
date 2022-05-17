@@ -91,7 +91,7 @@ class AccountSecurity extends AsyncView<Props> {
               <ListLink to={recreateRoute('', this.props)} index>
                 {t('Settings')}
               </ListLink>
-              <ListLink to={recreateRoute('session-incidents/', this.props)}>
+              <ListLink to={recreateRoute('session-history/', this.props)}>
                 {t('Session History')}
               </ListLink>
             </NavTabs>
