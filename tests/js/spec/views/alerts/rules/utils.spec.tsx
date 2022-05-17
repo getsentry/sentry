@@ -15,8 +15,8 @@ describe('buildIncidentGraphDateRange', () => {
 
   it('should use current date for an active alert', () => {
     const incident = TestStubs.Incident({
-      dateClosed: null,
       dateStarted: '2022-05-16T18:55:00Z',
+      dateClosed: null,
       alertRule: {timeWindow: 1},
     });
     const result = buildIncidentGraphDateRange(incident);
@@ -26,8 +26,8 @@ describe('buildIncidentGraphDateRange', () => {
 
   it('should use current date for a recently closed alert', () => {
     const incident = TestStubs.Incident({
-      dateClosed: '2022-05-16T18:57:00Z',
       dateStarted: '2022-05-16T18:55:00Z',
+      dateClosed: '2022-05-16T18:57:00Z',
       alertRule: {timeWindow: 1},
     });
     const result = buildIncidentGraphDateRange(incident);
@@ -38,8 +38,8 @@ describe('buildIncidentGraphDateRange', () => {
   it('should use a past date for an older alert', () => {
     // Incident is from over a week ago
     const incident = TestStubs.Incident({
-      dateClosed: '2022-05-04T18:57:00Z',
       dateStarted: '2022-05-04T18:55:00Z',
+      dateClosed: '2022-05-04T18:57:00Z',
       alertRule: {timeWindow: 1},
     });
     const result = buildIncidentGraphDateRange(incident);
@@ -49,8 +49,8 @@ describe('buildIncidentGraphDateRange', () => {
 
   it('should handle large time windows', () => {
     const incident = TestStubs.Incident({
-      dateClosed: null,
       dateStarted: '2022-04-20T20:28:00Z',
+      dateClosed: null,
       // 1 day time window
       alertRule: {timeWindow: 1440},
     });
