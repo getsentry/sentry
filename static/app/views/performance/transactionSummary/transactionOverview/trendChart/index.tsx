@@ -18,6 +18,7 @@ import {generateTrendFunctionAsString} from '../../../trends/utils';
 import {ViewProps} from '../../../types';
 
 import Content from './content';
+import { decodeScalar } from 'sentry/utils/queryString';
 
 type Props = WithRouterProps &
   ViewProps & {
@@ -129,6 +130,7 @@ function TrendChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.trends-chart"
+        isDirty={decodeScalar(location.query.isDirty)}
       >
         {({errored, loading, reloading, timeseriesData, timeframe: timeFrame}) => (
           <Content

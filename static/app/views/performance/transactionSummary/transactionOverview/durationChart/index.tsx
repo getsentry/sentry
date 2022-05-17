@@ -22,6 +22,7 @@ import {
 } from '../../filter';
 
 import Content from './content';
+import { decodeScalar } from 'sentry/utils/queryString';
 
 type Props = WithRouterProps &
   ViewProps & {
@@ -148,6 +149,7 @@ function DurationChart({
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.duration-chart"
         queryExtras={getMEPQueryParams(mepContext)}
+        isDirty={decodeScalar(location.query.isDirty)}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content

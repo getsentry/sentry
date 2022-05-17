@@ -31,6 +31,7 @@ import {
   VitalState,
   vitalStateColors,
 } from './utils';
+import { decodeScalar } from 'sentry/utils/queryString';
 
 type Props = WithRouterProps &
   Omit<ViewProps, 'start' | 'end'> & {
@@ -110,6 +111,7 @@ function VitalChart({
               includePrevious={false}
               yAxis={[yAxis]}
               partial
+              isDirty={decodeScalar(location.query.isDirty)}
             >
               {({timeseriesData: results, errored, loading, reloading}) => {
                 if (errored) {

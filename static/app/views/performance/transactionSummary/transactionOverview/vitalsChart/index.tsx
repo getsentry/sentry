@@ -21,6 +21,7 @@ import useApi from 'sentry/utils/useApi';
 import {ViewProps} from '../../../types';
 
 import Content from './content';
+import { decodeScalar } from 'sentry/utils/queryString';
 
 type Props = WithRouterProps &
   ViewProps & {
@@ -140,6 +141,7 @@ function VitalsChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.vitals-chart"
+        isDirty={decodeScalar(location.query.isDirty)}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content
