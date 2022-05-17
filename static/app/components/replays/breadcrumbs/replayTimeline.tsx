@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {Panel} from 'sentry/components/panels';
+import Placeholder from 'sentry/components/placeholder';
 import {
   MajorGridlines,
   MinorGridlines,
@@ -32,7 +33,7 @@ function ReplayTimeline({}: Props) {
   const {currentHoverTime, currentTime, duration, replay} = useReplayContext();
 
   if (!replay) {
-    return null;
+    return <Placeholder height="86px" bottomGutter={2} />;
   }
 
   const crumbs = replay.getRawCrumbs() || [];
@@ -65,7 +66,12 @@ function ReplayTimeline({}: Props) {
                 ) : null}
                 <div>
                   <TimelineScubber />
-                  <ReplayTimelineEvents crumbs={userCrumbs} width={width} />
+                  <ReplayTimelineEvents
+                    crumbs={userCrumbs}
+                    duration={duration || 0}
+                    startTimestamp={replay.getEvent().startTimestamp}
+                    width={width}
+                  />
                   <ReplayTimelineSpans
                     duration={duration || 0}
                     spans={networkSpans}

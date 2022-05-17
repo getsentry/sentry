@@ -31,7 +31,7 @@ function Status({status}: Props) {
     }
     default: {
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         Sentry.captureException(new Error('Unknown image candidate download status'));
       });
       return <Tag>{t('Unknown')}</Tag>; // This shall not happen

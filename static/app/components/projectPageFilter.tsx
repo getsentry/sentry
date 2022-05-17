@@ -9,7 +9,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
-import MultipleProjectSelector from 'sentry/components/organizations/projectSelector/multiple';
+import ProjectSelector from 'sentry/components/organizations/projectSelector';
 import PlatformList from 'sentry/components/platformList';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
@@ -23,7 +23,7 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-type MultipleProjectSelectorProps = React.ComponentProps<typeof MultipleProjectSelector>;
+type ProjectSelectorProps = React.ComponentProps<typeof ProjectSelector>;
 
 type Props = WithRouterProps & {
   /**
@@ -76,7 +76,7 @@ type Props = WithRouterProps & {
 function ProjectPageFilter({
   router,
   specificProjectSlugs,
-  maxTitleLength = 20,
+  maxTitleLength = 30,
   ...otherProps
 }: Props) {
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
@@ -102,9 +102,8 @@ function ProjectPageFilter({
     setCurrentSelectedProjects(newProjects);
   };
 
-  const handleUpdateProjects = (newProjects?: number[]) => {
-    // Use newProjects if provided otherwise fallback to current selection
-    updateProjects(newProjects ?? (currentSelectedProjects || []), router, {
+  const handleApplyChange = (newProjects: number[]) => {
+    updateProjects(newProjects, router, {
       save: true,
       resetParams: [],
       environments: [], // Clear environments when switching projects
@@ -124,7 +123,7 @@ function ProjectPageFilter({
   const isOrgAdmin = organization.access.includes('org:admin');
   const nonMemberProjects = isSuperuser || isOrgAdmin ? otherProjects : [];
 
-  const customProjectDropdown: MultipleProjectSelectorProps['customDropdownButton'] = ({
+  const customProjectDropdown: ProjectSelectorProps['customDropdownButton'] = ({
     actions,
     selectedProjects,
     isOpen,
@@ -188,14 +187,14 @@ function ProjectPageFilter({
   );
 
   return (
-    <MultipleProjectSelector
+    <ProjectSelector
       organization={organization}
       memberProjects={memberProjects}
       isGlobalSelectionReady={projectsLoaded && isReady}
       nonMemberProjects={nonMemberProjects}
       value={currentSelectedProjects || selection.projects}
       onChange={handleChangeProjects}
-      onUpdate={handleUpdateProjects}
+      onApplyChange={handleApplyChange}
       customDropdownButton={customProjectDropdown}
       customLoadingIndicator={customLoadingIndicator}
       detached

@@ -44,6 +44,7 @@
 /.github/                   @getsentry/owners-sentry-dev
 /config/hooks/              @getsentry/owners-sentry-dev
 /scripts/                   @getsentry/owners-sentry-dev
+/tools/                     @getsentry/owners-sentry-dev
 Makefile                    @getsentry/owners-sentry-dev
 .envrc                      @getsentry/owners-sentry-dev
 .pre-commit-config.yaml     @getsentry/owners-sentry-dev
