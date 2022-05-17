@@ -174,7 +174,7 @@ class ProjectDataForwarding extends AsyncComponent<Props, State> {
               {!hasFeature && (
                 <FeatureDisabled
                   alert
-                  featureName="Data Forwarding"
+                  featureName={t('Data Forwarding')}
                   features={features}
                 />
               )}
