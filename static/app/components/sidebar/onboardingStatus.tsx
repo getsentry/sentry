@@ -51,7 +51,9 @@ function OnboardingStatus({
 
   const tasks = getMergedTasks({organization: org, projects});
 
-  const allDisplayedTasks = tasks.filter(task => task.display);
+  const allDisplayedTasks = tasks
+    .filter(task => task.display)
+    .filter(task => !task.renderCard);
   const doneTasks = allDisplayedTasks.filter(isDone);
   const numberRemaining = allDisplayedTasks.length - doneTasks.length;
 
