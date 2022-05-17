@@ -48,6 +48,7 @@ function PerformanceContainer({organization, children, location}: Props) {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
+      {/* TODO remove before merging */}
       <div style={{marginLeft: '30px'}}>
         isDirty: {location.query?.isDirty || 'nothing set'}
       </div>

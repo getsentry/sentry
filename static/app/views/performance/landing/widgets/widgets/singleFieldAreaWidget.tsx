@@ -67,7 +67,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
       ),
       transform: transformEventsRequestToArea,
     }),
-    [props.chartSetting, mepSetting.memoizationKey]
+    [props.chartSetting, mepSetting.memoizationKey, location.query.isDirty]
   );
 
   const Queries = {

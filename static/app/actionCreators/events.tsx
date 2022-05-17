@@ -86,8 +86,13 @@ export const doEventsRequest = (
     generatePathname,
     queryExtras,
     excludeOther,
+    isDirty,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
+  const pathname =
+    generatePathname?.(organization) ??
+    `/organizations/${organization.slug}/events-stats/`;
+
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = Object.fromEntries(
     Object.entries({
@@ -105,6 +110,7 @@ export const doEventsRequest = (
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
+      user_modified: pathname.includes('events-stats') ? isDirty : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -120,10 +126,6 @@ export const doEventsRequest = (
       ...queryExtras,
     },
   };
-
-  const pathname =
-    generatePathname?.(organization) ??
-    `/organizations/${organization.slug}/events-stats/`;
 
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, pathname, queryObject);
