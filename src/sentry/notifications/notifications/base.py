@@ -125,20 +125,17 @@ class BaseNotification(abc.ABC):
         """
         return None
 
-    def record_analytics(self, event_name: str, *args: Any, **kwargs: Any) -> None:
-        analytics.record(event_name, *args, **kwargs)
-
     def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
         with sentry_sdk.start_span(op="notification.send", description="record_notification_sent"):
             # may want to explicitly pass in the parameters for this event
-            self.record_analytics(
+            analytics.record(
                 f"integrations.{provider.name}.notification_sent",
                 category=self.metrics_key,
                 **self.get_log_params(recipient),
             )
             # record an optional second event
             if self.analytics_event:
-                self.record_analytics(
+                analytics.record(
                     self.analytics_event,
                     self.analytics_instance,
                     providers=provider.name.lower(),
