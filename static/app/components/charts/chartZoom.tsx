@@ -83,10 +83,10 @@ class ChartZoom extends Component<Props> {
   constructor(props: Props) {
     super(props);
 
-    // Zoom incidents
+    // Zoom history
     this.history = [];
 
-    // Initialize current period instance state for zoom incidents
+    // Initialize current period instance state for zoom history
     this.saveCurrentPeriod(props);
   }
 
@@ -96,7 +96,7 @@ class ChartZoom extends Component<Props> {
     }
 
     // When component updates, make sure we sync current period state
-    // for use in zoom incidents
+    // for use in zoom history
     this.saveCurrentPeriod(this.props);
   }
 
@@ -106,7 +106,7 @@ class ChartZoom extends Component<Props> {
 
   /**
    * Save current period state from period in props to be used
-   * in handling chart's zoom incidents state
+   * in handling chart's zoom history state
    */
   saveCurrentPeriod = props => {
     this.currentPeriod = {
@@ -120,7 +120,7 @@ class ChartZoom extends Component<Props> {
    * Sets the new period due to a zoom related action
    *
    * Saves the current period to an instance property so that we
-   * can control URL state when zoom incidents is being manipulated
+   * can control URL state when zoom history is being manipulated
    * by the chart controls.
    *
    * Saves a callback function to be called after chart animation is completed
@@ -199,7 +199,7 @@ class ChartZoom extends Component<Props> {
 
     this.setPeriod(this.history[0]);
 
-    // reset incidents
+    // reset history
     this.history = [];
 
     callIfFunction(this.props.onRestore, evt, chart);

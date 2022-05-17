@@ -50,7 +50,7 @@ export function makeSafeRefluxStore<
     cleanupActiveRefluxSubscriptions(this.unsubscribeListeners);
   }
   // We allow for some stores to implement their own teardown mechanism
-  // in case other listeners are attached to the store (eg. browser incidents listeners etc)
+  // in case other listeners are attached to the store (eg. browser history listeners etc)
   if (!safeStore.teardown) {
     safeStore.teardown = teardown.bind(safeStore);
   }

@@ -227,7 +227,7 @@ describe('pushEventViewToLocation', function () {
     },
   };
 
-  it('correct query string object pushed to incidents', function () {
+  it('correct query string object pushed to history', function () {
     const eventView = new EventView(state);
 
     pushEventViewToLocation({

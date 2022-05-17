@@ -158,7 +158,7 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
     return reset;
   }, [portal, handleEscapeClose, visible]);
 
-  // Close the modal when the browser incidents changes
+  // Close the modal when the browser history changes
   useEffect(() => browserHistory.listen(() => actionCloseModal()), []);
 
   const renderedChild = children?.({
