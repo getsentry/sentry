@@ -99,9 +99,8 @@ function UserActionsNavigator({event, crumbs}: Props) {
                 isHovered={closestUserAction?.id === item.id}
                 isSelected={currentUserAction?.id === item.id}
                 onClick={() => {
-                  item.timestamp
-                    ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
-                    : '';
+                  item.timestamp &&
+                    setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp));
                 }}
               >
                 <Wrapper>
