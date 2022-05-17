@@ -147,4 +147,16 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCrashFreeUsers,
   },
+  app_start_cold: {
+    description: t('App cold start metric track when your app takes too long to launch.'),
+    examples: [
+      t(
+        'On iOS, Apple recommends your app take at most 400ms to render the first frame.'
+      ),
+      t(
+        'On Android, the Google Play console warns you when a cold start takes longer than five seconds or a warm start longer than two seconds.'
+      ),
+    ],
+    illustration: diagramCustom,
+  },
 };

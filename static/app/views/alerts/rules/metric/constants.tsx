@@ -1,7 +1,10 @@
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'sentry/utils/discover/fields';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {
+  MOBILE_VITAL_DETAILS,
+  WEB_VITAL_DETAILS,
+} from 'sentry/utils/performance/vitals/constants';
 import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
@@ -120,7 +123,10 @@ export function getWizardAlertFieldConfig(
   return {
     aggregations,
     fields: ['transaction.duration'],
-    measurementKeys: Object.keys(WEB_VITAL_DETAILS),
+    measurementKeys: [
+      ...Object.keys(WEB_VITAL_DETAILS),
+      ...Object.keys(MOBILE_VITAL_DETAILS),
+    ],
   };
 }
 
