@@ -181,6 +181,11 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     event.preventDefault();
     event.stopPropagation();
+
+    if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+      return;
+    }
+
     const {onWheel} = this.props;
     onWheel(event.deltaX);
   };

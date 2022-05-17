@@ -113,8 +113,10 @@ export class Provider extends Component<Props, State> {
   isDragging: boolean = false;
   isWheeling: boolean = false;
   wheelTimeout: NodeJS.Timeout | null = null;
+  animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
   spansOutOfView: Map<string, number> = new Map();
+  animationsEnabled: boolean = false;
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -261,7 +263,7 @@ export class Provider extends Component<Props, State> {
           clamp(virtualScrollbarPosition, 0, maxVirtualScrollableArea) *
           interactiveLayerRect.width;
 
-        virtualScrollbarDOM.style.transform = `translate3d(${virtualLeft}px, 0, 0)`;
+        virtualScrollbarDOM.style.transform = `translateX(${virtualLeft}px)`;
         virtualScrollbarDOM.style.transformOrigin = 'left';
       });
     });
@@ -270,7 +272,7 @@ export class Provider extends Component<Props, State> {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       const left = -scrollLeft;
 
-      spanBarDOM.style.transform = `translate3d(${left}px, 0, 0)`;
+      spanBarDOM.style.transform = `translateX(${left}px)`;
       spanBarDOM.style.transformOrigin = 'left';
     });
   };
@@ -463,6 +465,7 @@ export class Provider extends Component<Props, State> {
 
     this.spansOutOfView.set(spanId, left);
 
+    this.startAnimation();
     this.performScroll(left);
   };
 
@@ -474,8 +477,29 @@ export class Provider extends Component<Props, State> {
     const left = this.spansOutOfView.get(spanId);
     this.spansOutOfView.delete(spanId);
 
+    this.startAnimation();
     this.performScroll(left!);
   };
+
+  startAnimation() {
+    selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
+      spanBarDOM.style.transition = 'transform 0.3s';
+    });
+
+    this.animationsEnabled = true;
+
+    if (this.animationTimeout) {
+      clearTimeout(this.animationTimeout);
+    }
+
+    this.animationTimeout = setTimeout(() => {
+      selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
+        spanBarDOM.style.transition = '';
+      });
+      this.animationsEnabled = false;
+      this.animationTimeout = null;
+    }, 500);
+  }
 
   render() {
     const childrenProps: ScrollbarManagerChildrenProps = {
