@@ -96,12 +96,15 @@ class Create extends Component<Props, State> {
   componentDidMount() {
     const {organization, project} = this.props;
 
+    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+
     trackAdvancedAnalyticsEvent('new_alert_rule.viewed', {
       organization,
       project_id: project.id,
       session_id: this.sessionId,
       alert_type: this.state.alertType,
       duplicate_rule: this.isDuplicateRule ? 'true' : 'false',
+      wizard_v3: hasAlertWizardV3 ? 'true' : 'false',
     });
   }
 
