@@ -60,11 +60,17 @@ export default class ReplayReader {
 
     const endSortedSpans = Array.from(spans).sort((a, b) => a.timestamp - b.timestamp);
 
+    const rrwebStart = first(this._rrwebEvents)?.timestamp;
+    const crumbStart = first(crumbs)?.timestamp;
+    const spanStart = first(spans)?.start_timestamp;
+
     return {
       startTimestsampMS: Math.min(
-        first(this._rrwebEvents)?.timestamp || 0,
-        +new Date(first(crumbs)?.timestamp || 0),
-        (first(spans)?.start_timestamp || 0) * 1000
+        ...([
+          rrwebStart,
+          crumbStart ? +new Date(crumbStart) : undefined,
+          spanStart ? spanStart * 1000 : undefined,
+        ].filter(Boolean) as number[])
       ),
       endTimestampMS: Math.max(
         last(this._rrwebEvents)?.timestamp || 0,
