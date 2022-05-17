@@ -19,7 +19,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type Props = {
   projectId: string;
@@ -157,12 +156,10 @@ function IssueList(props: Props) {
       limit={15}
     >
       {data => {
-        return data.tableData?.data.length === 0 ? (
-          <Placeholder height="200px">
-            <EmptyMessage title={`${t('No issues for replay event.')}`} />
-          </Placeholder>
-        ) : (
+        return (
           <StyledPanelTable
+            isEmpty={data.tableData?.data.length === 0}
+            emptyMessage={`${t('Good News! There are no processing issues.')}`}
             isLoading={data.isLoading}
             headers={
               isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
