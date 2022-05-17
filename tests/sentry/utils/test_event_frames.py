@@ -206,6 +206,10 @@ class FilenameMungingTestCase(unittest.TestCase):
         for z in zip(exception_frames, munged_frames):
             assert z[0].items() <= z[1].items()
 
+        has_munged = list(filter(lambda f: f.get("filename") and f.get("module"), munged_frames))
+        assert len(has_munged) == 14
+        assert all(str(x.get("munged_filename")).endswith(x.get("filename")) for x in has_munged)
+
 
 class WaterFallTestCase(TestCase):
     def test_only_exception_interface_with_no_stacktrace(self):
