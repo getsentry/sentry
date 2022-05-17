@@ -28,6 +28,10 @@ type SampleEventParam = {
   platform?: PlatformKey;
 };
 
+type IntegrationParam = {
+  integration?: string;
+};
+
 type InviteRequestParam = {
   invite_status: string;
   member_id: number;
@@ -73,6 +77,7 @@ export type GrowthEventParameters = {
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_quick_start_cta': SampleEventParam;
+  'growth.onboarding_quick_start_cta_integration': IntegrationParam;
   'growth.onboarding_set_up_your_project': PlatformParam;
   'growth.onboarding_set_up_your_projects': {platform_count: number; platforms: string};
   'growth.onboarding_start_onboarding': {
@@ -154,6 +159,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.onboarding_clicked_setup_integration_later':
     'Growth: Onboarding Clicked Setup Integration Later',
   'growth.onboarding_quick_start_cta': 'Growth: Quick Start Onboarding CTA',
+  'growth.onboarding_quick_start_cta_integration':
+    'Growth: Quick Start Onboarding Integration CTA',
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',
