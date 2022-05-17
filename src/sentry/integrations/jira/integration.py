@@ -511,40 +511,40 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             meta = self.fetch_issue_create_meta(client, project_id)
         if meta is not None:
             return meta
-        if meta is None:
-            # If we don't have a jira projectid (or we couldn't fetch the metadata from the given project_id),
-            # iterate all projects and find the first project that has metadata.
-            # We only want one project as getting all project metadata is expensive and wasteful.
-            # In the first run experience, the user won't have a 'last used' project id
-            # so we need to iterate available projects until we find one that we can get metadata for.
-            attempts = 0
-            if len(jira_projects):
-                for fallback in jira_projects:
-                    attempts += 1
-                    meta = self.fetch_issue_create_meta(client, fallback["id"])
-                    if meta:
-                        logger.info(
-                            "jira.get-issue-create-meta.attempts",
-                            extra={"organization_id": self.organization_id, "attempts": attempts},
-                        )
-                        return meta
 
-            jira_project_ids = "no projects"
-            if len(jira_projects):
-                jira_project_ids = ",".join(project["key"] for project in jira_projects)
+        # If we don't have a jira projectid (or we couldn't fetch the metadata from the given project_id),
+        # iterate all projects and find the first project that has metadata.
+        # We only want one project as getting all project metadata is expensive and wasteful.
+        # In the first run experience, the user won't have a 'last used' project id
+        # so we need to iterate available projects until we find one that we can get metadata for.
+        attempts = 0
+        if len(jira_projects):
+            for fallback in jira_projects:
+                attempts += 1
+                meta = self.fetch_issue_create_meta(client, fallback["id"])
+                if meta:
+                    logger.info(
+                        "jira.get-issue-create-meta.attempts",
+                        extra={"organization_id": self.organization_id, "attempts": attempts},
+                    )
+                    return meta
 
-            logger.info(
-                "jira.get-issue-create-meta.no-metadata",
-                extra={
-                    "organization_id": self.organization_id,
-                    "attempts": attempts,
-                    "jira_projects": jira_project_ids,
-                },
-            )
-            raise IntegrationError(
-                "Could not get issue create metadata for any Jira projects. "
-                "Ensure that your project permissions are correct."
-            )
+        jira_project_ids = "no projects"
+        if len(jira_projects):
+            jira_project_ids = ",".join(project["key"] for project in jira_projects)
+
+        logger.info(
+            "jira.get-issue-create-meta.no-metadata",
+            extra={
+                "organization_id": self.organization_id,
+                "attempts": attempts,
+                "jira_projects": jira_project_ids,
+            },
+        )
+        raise IntegrationError(
+            "Could not get issue create metadata for any Jira projects. "
+            "Ensure that your project permissions are correct."
+        )
 
     def fetch_issue_create_meta(self, client, project_id):
         try:
