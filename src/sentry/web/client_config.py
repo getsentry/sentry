@@ -161,7 +161,6 @@ def get_client_config(request=None):
         # Maintain isOnPremise key for backcompat (plugins?).
         "isOnPremise": is_self_hosted(),
         "isSelfHosted": is_self_hosted(),
-        "isSingleTenant": getattr(settings, "SENTRY_SINGLE_TENANT", False),
         "invitesEnabled": settings.SENTRY_ENABLE_INVITES,
         "gravatarBaseUrl": settings.SENTRY_GRAVATAR_BASE_URL,
         "termsUrl": settings.TERMS_URL,
@@ -186,6 +185,7 @@ def get_client_config(request=None):
         },
         "demoMode": settings.DEMO_MODE,
         "enableAnalytics": settings.ENABLE_ANALYTICS,
+        "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
     }
     if user and user.is_authenticated:
         context.update(
