@@ -71,6 +71,7 @@ type Props = {
   timeWindow: number;
   allowChangeEventTypes?: boolean;
   comparisonDelta?: number;
+  disableProjectSelector?: boolean;
   loadingProjects?: boolean;
 };
 
@@ -263,7 +264,13 @@ class RuleConditionsForm extends PureComponent<Props, State> {
   }
 
   renderProjectSelector() {
-    const {project: _selectedProject, projects, disabled, organization} = this.props;
+    const {
+      project: _selectedProject,
+      projects,
+      disabled,
+      organization,
+      disableProjectSelector,
+    } = this.props;
     const hasOpenMembership = organization.features.includes('open-membership');
     const myProjects = projects.filter(project => project.hasAccess && project.isMember);
     const allProjects = projects.filter(
@@ -314,7 +321,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
           return (
             <SelectControl
-              isDisabled={disabled}
+              isDisabled={disabled || disableProjectSelector}
               value={selectedProject.id}
               options={projectOptions}
               onChange={({value}: {value: Project['id']}) => {

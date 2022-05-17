@@ -74,6 +74,7 @@ type Props = {
   routes: PlainRoute[];
   rule: MetricRule;
   userTeamIds: string[];
+  disableProjectSelector?: boolean;
   isCustomMetric?: boolean;
   isDuplicateRule?: boolean;
   ruleId?: string;
@@ -673,7 +674,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization, ruleId, rule, onSubmitSuccess, router} = this.props;
+    const {organization, ruleId, rule, onSubmitSuccess, router, disableProjectSelector} =
+      this.props;
     const {
       query,
       project,
@@ -843,6 +845,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   onTimeWindowChange={value =>
                     this.handleFieldChange('timeWindow', value)
                   }
+                  disableProjectSelector={disableProjectSelector}
                 />
                 {!this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
                 <AlertListItem>
