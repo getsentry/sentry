@@ -159,6 +159,7 @@ function IssueList(props: Props) {
         return (
           <StyledPanelTable
             isEmpty={data.tableData?.data.length === 0}
+            emptyMessage={t('No related Issues found.')}
             isLoading={data.isLoading}
             headers={
               isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
