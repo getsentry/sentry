@@ -87,7 +87,9 @@ def find_stack_frames(
         # potentially here for backwards compatibility
         frames = get_path(event_data, "stacktrace", "frames", filter=True) or []
         if not frames:
-            threads = get_path(event_data, "threads", "values", filter=True)
+            threads = get_path(event_data, "threads", "values", filter=True) or get_path(
+                event_data, "threads", filter=True
+            )
             thread = get_crashing_thread(threads)
             if thread is not None:
                 frames = get_path(thread, "stacktrace", "frames") or []
