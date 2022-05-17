@@ -233,7 +233,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.METRIC_ALERT,
       title: t('Create a Performance Alert'),
       description: t(
-        'No one likes crashes and frozen frames. Define thresholds for metrics that trigger alerts for when your application’s performance is degrading.'
+        'See slow fast with performance alerts. Set up alerts for notifications about slow page load times, API latency, or when throughput significantly deviates from normal.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
