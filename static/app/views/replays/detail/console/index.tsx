@@ -15,7 +15,7 @@ interface Props {
 function Console({breadcrumbs}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const handleSearch = query => setSearchTerm(query);
-  const filteredBreadCrumbs = useMemo(
+  const filteredBreadcrumbs = useMemo(
     () =>
       !searchTerm
         ? breadcrumbs
@@ -28,7 +28,7 @@ function Console({breadcrumbs}: Props) {
     <Fragment>
       <StyledSearchBar onChange={handleSearch} />
       <ConsoleTable>
-        {filteredBreadCrumbs.map((breadcrumb, i) => (
+        {filteredBreadcrumbs.map((breadcrumb, i) => (
           <ConsoleMessage
             key={i}
             isLast={i === breadcrumbs.length - 1}
