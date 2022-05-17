@@ -157,6 +157,7 @@ export interface Config {
     latest: string;
     upgradeAvailable: boolean;
   };
+  sentryReplaysDsn?: string;
   statuspage?: {
     api_host: string;
     id: string;

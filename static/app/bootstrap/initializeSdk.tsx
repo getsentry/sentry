@@ -1,7 +1,7 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import SentryRRWeb from '@sentry/rrweb';
+import {SentryReplay} from '@sentry/replay';
 import {Integrations} from '@sentry/tracing';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
@@ -16,7 +16,7 @@ import {LongTaskObserver} from 'sentry/utils/performanceForSentry';
  * having routing instrumentation in order to have a smaller bundle size.
  * (e.g.  `static/views/integrationPipeline`)
  */
-function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
+function getSentryIntegrations(routes?: Function) {
   const integrations = [
     new ExtraErrorData({
       // 6 is arbitrary, seems like a nice number
@@ -38,19 +38,6 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
       },
     }),
   ];
-  if (hasReplays) {
-    // eslint-disable-next-line no-console
-    console.log('[sentry] Instrumenting session with rrweb');
-
-    // TODO(ts): The type returned by SentryRRWeb seems to be somewhat
-    // incompatible. It's a newer plugin, so this can be expected, but we
-    // should fix.
-    integrations.push(
-      new SentryRRWeb({
-        checkoutEveryNms: 60 * 1000, // 60 seconds
-      }) as any
-    );
-  }
   return integrations;
 }
 
@@ -69,6 +56,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
   const tracesSampleRate = apmSampling ?? 0;
 
   const hasReplays = userIdentity?.isStaff && !DISABLE_RR_WEB;
+  const integrations = getSentryIntegrations(routes);
 
   Sentry.init({
     ...sentryConfig,
@@ -85,7 +73,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN
       ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
       : sentryConfig?.whitelistUrls,
-    integrations: getSentryIntegrations(hasReplays, routes),
+    integrations,
     tracesSampleRate,
     /**
      * There is a bug in Safari, that causes `AbortError` when fetch is aborted, and you are in the middle of reading the response.
@@ -95,6 +83,26 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      */
     ignoreErrors: ['AbortError: Fetch is aborted'],
   });
+
+  // Initialize replay client for staff only, will temporarily save to a separate project
+  if (hasReplays && config.sentryReplaysDsn) {
+    const hub = new Sentry.Hub();
+    // This is a bit hacky, but if we don't pass a reference to hub, then in
+    // the replay plugin, we will not be able to access the correct hub.
+    // `Sentry.getCurrentHub()` will return the hub created by the
+    // `Sentry.init()` call above.
+    const replay = new SentryReplay({stickySession: true, hub});
+    const client = new Sentry.BrowserClient({
+      // replays project under Sentry organization
+      dsn: config.sentryReplaysDsn,
+      transport: Sentry.makeFetchTransport,
+      stackParser: Sentry.defaultStackParser,
+      tracesSampleRate,
+      integrations: [replay],
+    });
+    // `bindClient` will setup integrations
+    hub.bindClient(client);
+  }
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
   Sentry.addGlobalEventProcessor((event: Sentry.Event, _hint?: Sentry.EventHint) => {
