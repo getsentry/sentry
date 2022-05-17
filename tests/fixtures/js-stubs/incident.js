@@ -13,7 +13,7 @@ export function Incident(params = {}) {
     status: 0,
     projects: [],
     isSubscribed: true,
-    alertRule: IncidentRule(),
+    alertRule: IncidentRule(params.alertRule),
     activities: [
       {
         id: '78',
