@@ -15,7 +15,9 @@ import {usePersistedOnboardingState} from './utils';
 export default function OnboardingIntegrationSelect(props: StepProps) {
   const [selectedIntegrations, setSelectedIntegrations] = useState<string[]>([]);
   const addIntegration = (integration: string) => {
-    setSelectedIntegrations([...selectedIntegrations, integration]);
+    if (!selectedIntegrations.includes(integration)) {
+      setSelectedIntegrations([...selectedIntegrations, integration]);
+    }
   };
   const removeIntegration = (integration: string) => {
     setSelectedIntegrations(selectedIntegrations.filter(p => p !== integration));
