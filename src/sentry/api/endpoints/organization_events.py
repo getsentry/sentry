@@ -1,6 +1,6 @@
-import datetime
 import logging
 from calendar import MONDAY
+from datetime import datetime
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -53,10 +53,12 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         if (
-            features.has(
-                "organizations:discover-eventsv2-brown-out", organization, actor=request.user
+            not features.has(
+                "organizations:discover-eventsv2-exclude-brown-out",
+                organization,
+                actor=request.user,
             )
-            and datetime.datetime.today().weekday() in BROWN_OUT_DAYS
+            and datetime.today().weekday() in BROWN_OUT_DAYS
         ):
             return Response(status=410)
 

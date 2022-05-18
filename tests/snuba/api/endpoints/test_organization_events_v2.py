@@ -1,4 +1,5 @@
 from base64 import b64encode
+from datetime import date
 from unittest import mock
 
 import pytest
@@ -41,7 +42,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
     def do_request(self, query, features=None):
         if features is None:
-            features = {"organizations:discover-basic": True}
+            features = {
+                "organizations:discover-basic": True,
+                "organizations:discover-eventsv2-exclude-brown-out": True,
+            }
         features.update(self.features)
         self.login_as(user=self.user)
         url = reverse(
@@ -5954,6 +5958,32 @@ class OrganizationEventsV2MetricsEnhancedPerformanceEndpointTest(
         assert data[1]["transaction"] == "bar_transaction"
         assert data[1]["count_unique_user"] == 0
         assert meta["isMetricsData"]
+
+    def test_brown_outs_on_monday(self):
+        with mock.patch("sentry.api.endpoints.organization_events.datetime") as mock_date:
+            # Monday
+            mock_date.today.return_value = date(2022, 5, 16)
+            response = self.do_request(
+                {
+                    "field": ["count()"],
+                    "project": [self.project.id],
+                },
+                {"organizations:discover-basic": True},
+            )
+            assert response.status_code == 410
+
+    def test_does_not_brown_out(self):
+        with mock.patch("sentry.api.endpoints.organization_events.datetime") as mock_date:
+            # Tuesday
+            mock_date.today.return_value = date(2022, 5, 17)
+            response = self.do_request(
+                {
+                    "field": ["count()"],
+                    "project": [self.project.id],
+                },
+                {"organizations:discover-basic": True},
+            )
+            assert response.status_code == 200
 
 
 class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
