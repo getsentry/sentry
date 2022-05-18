@@ -184,11 +184,14 @@ class BaseNotification(abc.ABC):
         notification. When this is overridden, it MUST read from
         NotificationSetting and respect users' opt-out preferences.
         """
-        return NotificationSetting.objects.filter_to_accepting_recipients(
-            organization=self.organization,
+        participants: Mapping[
+            ExternalProviders, Iterable[Team | User]
+        ] = NotificationSetting.objects.filter_to_accepting_recipients(
+            parent=self.organization,
             recipients=self.determine_recipients(),
             type=self.notification_setting_type,
         )
+        return participants
 
     def send(self) -> None:
         """The default way to send notifications that respects Notification Settings."""
