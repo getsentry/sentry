@@ -21,9 +21,9 @@ if TYPE_CHECKING:
 
 
 class ActivityNotification(ProjectNotification, abc.ABC):
+    metrics_key = "activity"
     notification_setting_type = NotificationSettingTypes.WORKFLOW
     template_path = "sentry/emails/activity/generic"
-    metrics_key = "activity"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity.project)
@@ -55,9 +55,6 @@ class ActivityNotification(ProjectNotification, abc.ABC):
     @property
     def reference(self) -> Model | None:
         return self.activity
-
-    def get_type(self) -> str:
-        return f"notify.activity.{self.activity.get_type_display()}"
 
     @abc.abstractmethod
     def get_context(self) -> MutableMapping[str, Any]:

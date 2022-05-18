@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import TagStore from 'sentry/stores/tagStore';
 import EventView from 'sentry/utils/discover/eventView';
 import TableView from 'sentry/views/eventsV2/table/tableView';
 
@@ -33,7 +34,6 @@ describe('TableView > CellActions', function () {
     },
   };
   const eventView = EventView.fromLocation(location);
-  const tagKeys = ['size', 'shape', 'direction'];
 
   function makeWrapper(context, tableData, view) {
     return mountWithTheme(
@@ -41,7 +41,6 @@ describe('TableView > CellActions', function () {
         organization={context.organization}
         location={location}
         eventView={view}
-        tagKeys={tagKeys}
         isLoading={false}
         projects={context.organization.projects}
         tableData={tableData}
@@ -77,7 +76,15 @@ describe('TableView > CellActions', function () {
       organization,
       router: {location},
     });
-    act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+    act(() => {
+      ProjectsStore.loadInitialData(initialData.organization.projects);
+      TagStore.reset();
+      TagStore.loadTagsSuccess([
+        {name: 'size', key: 'size', count: 1},
+        {name: 'shape', key: 'shape', count: 1},
+        {name: 'direction', key: 'direction', count: 1},
+      ]);
+    });
 
     onChangeShowTags = jest.fn();
 

@@ -1,52 +1,65 @@
-import {cloneElement, Component, isValidElement} from 'react';
+import {cloneElement, isValidElement, useCallback, useEffect, useState} from 'react';
 import {findDOMNode} from 'react-dom';
 import copy from 'copy-text-to-clipboard';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 
-type DefaultProps = {
-  errorMessage: string;
-  hideMessages: boolean;
-  successMessage: string;
-};
-
 type Props = {
-  /** Text to be copied on click */
+  children: React.ReactNode;
+  /**
+   * Text to be copied on click
+   */
   value: string;
-  /** Hide children if browser does not support copy */
+  /**
+   * Toast message to show on copy failures
+   */
+  errorMessage?: string;
+  /**
+   * Do not show a toast message on success
+   */
+  hideMessages?: boolean;
+  /**
+   * Hide children if browser does not support copying
+   */
   hideUnsupported?: boolean;
+  /**
+   * Triggered if we fail to copy
+   */
   onError?: () => void;
+  /**
+   * Trigger if we successfully copy
+   */
   onSuccess?: () => void;
-} & DefaultProps;
+  /**
+   * Message to show when we successfully copy
+   */
+  successMessage?: string;
+};
 
 /**
  * copy-text-to-clipboard relies on `document.execCommand('copy')`
  */
 function isSupported() {
-  const support = !!document.queryCommandSupported;
-  return support && !!document.queryCommandSupported('copy');
+  return !!document.queryCommandSupported?.('copy');
 }
 
-class Clipboard extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    hideMessages: false,
-    successMessage: t('Copied to clipboard'),
-    errorMessage: t('Error copying to clipboard'),
-  };
+function Clipboard({
+  hideMessages = false,
+  successMessage = t('Copied to clipboard'),
+  errorMessage = t('Error copying to clipboard'),
+  value,
+  onSuccess,
+  onError,
+  hideUnsupported,
+  children,
+}: Props) {
+  const [element, setElement] = useState<ReturnType<typeof findDOMNode>>();
 
-  componentWillUnmount() {
-    this.element?.removeEventListener('click', this.handleClick);
-  }
+  const handleClick = useCallback(() => {
+    const copyWasSuccessful = copy(value);
 
-  element?: ReturnType<typeof findDOMNode>;
-
-  handleClick = () => {
-    const {value, hideMessages, successMessage, errorMessage, onSuccess, onError} =
-      this.props;
-    // Copy returns whether it succeeded to copy the text
-    const success = copy(value);
-    if (!success) {
+    if (!copyWasSuccessful) {
       if (!hideMessages) {
         addErrorMessage(errorMessage);
       }
@@ -57,35 +70,33 @@ class Clipboard extends Component<Props> {
     if (!hideMessages) {
       addSuccessMessage(successMessage);
     }
+
     onSuccess?.();
-  };
+  }, [value, onError, onSuccess, errorMessage, successMessage, hideMessages]);
 
-  handleMount = (ref: HTMLElement) => {
-    if (!ref) {
-      return;
-    }
+  useEffect(() => {
+    element?.addEventListener('click', handleClick);
+    return () => element?.removeEventListener('click', handleClick);
+  }, [handleClick, element]);
 
+  // XXX: Instead of assigning the `onClick` to the cloned child element, we
+  // attach a event listener, otherwise we would wipeout whatever click handler
+  // may be assigne don the child.
+  const handleMount = useCallback((ref: HTMLElement) => {
     // eslint-disable-next-line react/no-find-dom-node
-    this.element = findDOMNode(ref);
-    this.element?.addEventListener('click', this.handleClick);
-  };
+    setElement(findDOMNode(ref));
+  }, []);
 
-  render() {
-    const {children, hideUnsupported} = this.props;
-
-    // Browser doesn't support `execCommand`
-    if (hideUnsupported && !isSupported()) {
-      return null;
-    }
-
-    if (!isValidElement(children)) {
-      return null;
-    }
-
-    return cloneElement(children, {
-      ref: this.handleMount,
-    });
+  // Browser doesn't support `execCommand`
+  if (hideUnsupported && !isSupported()) {
+    return null;
   }
+
+  if (!isValidElement(children)) {
+    return null;
+  }
+
+  return cloneElement(children, {ref: handleMount});
 }
 
 export default Clipboard;
