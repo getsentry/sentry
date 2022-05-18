@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {FrameStack} from 'sentry/components/profiling/frameStack';
+import space from 'sentry/styles/space';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
@@ -15,7 +16,7 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
@@ -652,12 +653,22 @@ function FlamegraphZoomView({
             flamegraphCanvas={flamegraphCanvas}
             flamegraphView={flamegraphView}
           >
-            {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
-            {formatWeightToProfileDuration(
-              hoveredNode.node,
-              flamegraphRenderer.flamegraph
-            )}{' '}
-            {hoveredNode.frame.name}
+            <HoveredFrameMainInfo>
+              <FrameColorIndicator
+                backgroundColor={formatColorForFrame(hoveredNode, flamegraphRenderer)}
+              />
+              {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
+              {formatWeightToProfileDuration(
+                hoveredNode.node,
+                flamegraphRenderer.flamegraph
+              )}{' '}
+              {hoveredNode.frame.name}
+            </HoveredFrameMainInfo>
+            <HoveredFrameTimelineInfo>
+              {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.start)}{' '}
+              {' \u2014 '}
+              {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.end)}
+            </HoveredFrameTimelineInfo>
           </BoundTooltip>
         ) : null}
       </CanvasContainer>
@@ -670,6 +681,28 @@ function FlamegraphZoomView({
     </Fragment>
   );
 }
+
+const HoveredFrameTimelineInfo = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const HoveredFrameMainInfo = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const FrameColorIndicator = styled('div')<{
+  backgroundColor: React.CSSProperties['backgroundColor'];
+}>`
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+  background-color: ${p => p.backgroundColor};
+  margin-right: ${space(1)};
+`;
 
 const CanvasContainer = styled('div')`
   display: flex;

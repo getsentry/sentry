@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 
 class AutoSyncNotification(ProjectNotification):
+    metrics_key = "auto_sync"
     notification_setting_type = NotificationSettingTypes.DEPLOY
     template_path = "sentry/emails/codeowners-auto-sync-failure"
 
@@ -47,9 +48,3 @@ class AutoSyncNotification(ProjectNotification):
             )
         )
         return context
-
-    def get_type(self) -> str:
-        return "deploy.auto-sync"
-
-    def get_category(self) -> str:
-        return "auto-sync"
