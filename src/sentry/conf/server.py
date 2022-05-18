@@ -1087,7 +1087,7 @@ SENTRY_FEATURES = {
     "organizations:performance-onboarding-checklist": False,
     # Enable automatic horizontal scrolling on the span tree
     "organizations:performance-span-tree-autoscroll": False,
-    # Enable transaction name only search on performance landing page
+    # Enable transaction name only search
     "organizations:performance-transaction-name-only-search": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
