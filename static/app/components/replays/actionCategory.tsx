@@ -9,12 +9,12 @@ type Props = {
   action: Crumb;
 };
 
-type actionCategoryInfo = {
+type ActionCategoryInfo = {
   description: string;
   title: string;
 };
 
-function getActionCategoryInfo(crumb: Crumb): actionCategoryInfo {
+function getActionCategoryInfo(crumb: Crumb): ActionCategoryInfo {
   switch (crumb.type) {
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
@@ -25,12 +25,15 @@ function getActionCategoryInfo(crumb: Crumb): actionCategoryInfo {
     case BreadcrumbType.NAVIGATION:
       return {
         title: t('Navigation'),
-description: `${crumb.category}: ${crumb.data?.from ?? ''} => ${crumb.data?.to ?? ''}`
-          (crumb.data && crumb.data?.to) || ''
+        description: `${crumb.category}: ${crumb.data?.from ?? ''} => ${
+          crumb.data?.to ?? ''
         }`,
       };
     case BreadcrumbType.ERROR:
-      return {title: t('Error'), description: `${crumb.category}: ${crumb.message}`};
+      return {
+        title: t('Error'),
+        description: `${crumb.category}: ${crumb.message}`,
+      };
     default:
       return {
         title: t('Default'),
