@@ -76,7 +76,6 @@ updates:
       - dependency-name: 'marked'
       - dependency-name: 'mini-css-extract-plugin'
       - dependency-name: 'react-lazyload'
-      - dependency-name: 'react-popper'
       - dependency-name: 'react-refresh'
       - dependency-name: 'react-router'
       - dependency-name: 'react-select'
