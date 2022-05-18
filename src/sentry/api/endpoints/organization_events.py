@@ -1,3 +1,4 @@
+import datetime
 import logging
 
 import sentry_sdk
@@ -44,6 +45,12 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
+    def add_deprecation_date_to_meta(self, results):
+        meta = results.get("meta", {})
+        if isinstance(meta, dict) and "deprecationDate" not in meta:
+            meta["deprecationDate"] = datetime.datetime(2022, 6, 1)
+        return results
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -117,7 +124,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                     request=request,
                     paginator=GenericOffsetPaginator(data_fn=data_fn),
                     on_results=lambda results: self.handle_results_with_meta(
-                        request, organization, params["project_id"], results
+                        request,
+                        organization,
+                        params["project_id"],
+                        self.add_deprecation_date_to_meta(results),
                     ),
                 )
 
