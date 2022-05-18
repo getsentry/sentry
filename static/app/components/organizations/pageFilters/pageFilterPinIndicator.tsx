@@ -43,7 +43,6 @@ const IndicatorWrap = styled('div')`
   transform: translate(50%, 35%);
   border-radius: 50%;
   background-color: ${p => p.theme.background};
-  opacity: 0.95;
 
   padding: ${space(0.25)};
 
@@ -55,5 +54,5 @@ const IndicatorWrap = styled('div')`
 const StyledIconLock = styled(IconLock)`
   width: 0.5rem;
   height: 0.5rem;
-  color: ${p => p.theme.subText};
+  color: ${p => p.theme.textColor};
 `;
