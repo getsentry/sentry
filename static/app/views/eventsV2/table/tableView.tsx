@@ -241,7 +241,7 @@ class TableView extends Component<TableViewProps> {
     }
 
     const columnKey = String(column.key);
-    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta);
+    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta, false);
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
