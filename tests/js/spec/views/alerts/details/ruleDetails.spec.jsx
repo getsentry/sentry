@@ -5,8 +5,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import RuleDetailsContainer from 'sentry/views/alerts/details/index';
-import AlertRuleDetails from 'sentry/views/alerts/details/ruleDetails';
+import RuleDetailsContainer from 'sentry/views/alerts/rules/issue/details/index';
+import AlertRuleDetails from 'sentry/views/alerts/rules/issue/details/ruleDetails';
 
 describe('AlertRuleDetails', () => {
   const context = initializeOrg();
