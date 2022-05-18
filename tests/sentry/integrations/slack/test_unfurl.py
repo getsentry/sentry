@@ -456,15 +456,15 @@ class UnfurlTest(TestCase):
     def test_top_daily_events_renders_bar_chart(self, mock_generate_chart, _):
         url = (
             f"https://sentry.io/organizations/{self.organization.slug}/discover/results/"
-            f"?field=message"
-            f"&field=event.type"
-            f"&field=count()"
-            f"&name=All+Events"
-            f"&query=message:[first,second]"
-            f"&sort=-count"
-            f"&statsPeriod=24h"
-            f"&display=dailytop5"
-            f"&topEvents=2"
+            "?field=message"
+            "&field=event.type"
+            "&field=count()"
+            "&name=All+Events"
+            "&query=message:[first,second]"
+            "&sort=-count"
+            "&statsPeriod=24h"
+            "&display=dailytop5"
+            "&topEvents=2"
         )
         link_type, args = match_link(url)
 
