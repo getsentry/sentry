@@ -159,12 +159,12 @@ function walk({
 }
 
 function ContextData({
-  preserveQuotes,
   children,
   meta,
   jsonConsts,
   maxDefaultDepth,
   data = null,
+  preserveQuotes = false,
   withAnnotatedText = false,
   ...props
 }: Props) {
