@@ -75,7 +75,7 @@ function Console({breadcrumbs}: Props) {
 const ConsoleFilters = styled('div')`
   display: grid;
   gap: ${space(1)};
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content auto;
   width: 100%;
   margin-bottom: ${space(1)};
   margin-top: ${space(1)};
