@@ -6,15 +6,17 @@ export function getCurrentUserAction(
   startTimestamp: number | undefined,
   currentHoverTime: number | undefined
 ) {
-  if (!startTimestamp || !userActionCrumbs || currentHoverTime === undefined) {
+  if (
+    !startTimestamp ||
+    !userActionCrumbs ||
+    userActionCrumbs.length < 1 ||
+    currentHoverTime === undefined
+  ) {
     return undefined;
   }
 
   return userActionCrumbs.reduce((prev, curr) => {
-    return Math.abs(
-      relativeTimeInMs(curr.timestamp ?? '', startTimestamp) - currentHoverTime
-    ) <
-      Math.abs(relativeTimeInMs(prev.timestamp ?? '', startTimestamp) - currentHoverTime)
+    return currentHoverTime >= relativeTimeInMs(curr.timestamp ?? '', startTimestamp)
       ? curr
       : prev;
   });
