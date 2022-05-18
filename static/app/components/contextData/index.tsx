@@ -7,6 +7,7 @@ import isString from 'lodash/isString';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Meta} from 'sentry/types';
 import {isUrl} from 'sentry/utils';
 
@@ -87,7 +88,7 @@ function walk({
     if (valueInfo.isString && isUrl(value)) {
       out.push(
         <ExternalLink key="external" href={value} className="external-icon">
-          <StyledIconOpen size="xs" />
+          <StyledIconOpen size="xs" aria-label={t('Open link')} />
         </ExternalLink>
       );
     }

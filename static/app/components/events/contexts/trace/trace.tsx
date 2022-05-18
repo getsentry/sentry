@@ -21,7 +21,7 @@ const traceKnownDataValues = [
 const traceIgnoredDataValues = [];
 
 type Props = {
-  data: TraceKnownData;
+  data: TraceKnownData & Record<string, any>;
   event: Event;
   organization: Organization;
 };
