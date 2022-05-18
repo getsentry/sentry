@@ -327,7 +327,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         for model in DELETES_BY_PROJECT:
             if is_filtered(model[0]):
                 if not silent:
-                    click.echo(">> Skipping %s" % model.__name__)
+                    click.echo(">> Skipping %s" % model[0].__name__)
             else:
                 to_delete_by_project.append(model)
 
