@@ -277,7 +277,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        columnTypes: validateForNumericAggregate([
+          'duration',
+          'number',
+          'percentage',
+          'integer',
+        ]),
         required: true,
         defaultValue: 'transaction.duration',
       },
@@ -304,7 +309,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        columnTypes: validateForNumericAggregate([
+          'duration',
+          'number',
+          'percentage',
+          'integer',
+        ]),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -318,7 +328,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        columnTypes: validateForNumericAggregate([
+          'duration',
+          'number',
+          'percentage',
+          'integer',
+        ]),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -332,7 +347,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        columnTypes: validateForNumericAggregate([
+          'duration',
+          'number',
+          'percentage',
+          'integer',
+        ]),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -347,7 +367,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        columnTypes: validateForNumericAggregate([
+          'duration',
+          'number',
+          'percentage',
+          'integer',
+        ]),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -361,7 +386,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        columnTypes: validateForNumericAggregate([
+          'duration',
+          'number',
+          'percentage',
+          'integer',
+        ]),
         defaultValue: 'transaction.duration',
         required: false,
       },
@@ -375,7 +405,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        columnTypes: validateForNumericAggregate([
+          'duration',
+          'number',
+          'percentage',
+          'integer',
+        ]),
         defaultValue: 'transaction.duration',
         required: true,
       },
@@ -395,7 +430,12 @@ export const AGGREGATIONS = {
     parameters: [
       {
         kind: 'column',
-        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        columnTypes: validateForNumericAggregate([
+          'duration',
+          'number',
+          'percentage',
+          'integer',
+        ]),
         defaultValue: 'transaction.duration',
         required: true,
       },
