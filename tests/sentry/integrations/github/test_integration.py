@@ -194,9 +194,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_installation_not_found(self):
         # Add a 404 for an org to responses
+        responses.replace(
+            responses.GET, self.base_url + f"/app/installations/{self.installation_id}", status=404
+        )
         # Attempt to install integration
-        # Expect IntegrationError
-        assert True
+        resp = self.client.get(
+            "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
+        )
+        assert b"The Github installation could not be found." in resp.content
 
     @responses.activate
     def test_reinstall_flow(self):
