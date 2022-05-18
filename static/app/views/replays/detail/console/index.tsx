@@ -52,7 +52,7 @@ function Console({breadcrumbs}: Props) {
             setLogLevel(selections.map(selection => selection.value))
           }
         />
-        <SearchBar onChange={handleSearch} />
+        <SearchBar onChange={handleSearch} placeholder={t('Search console logs...')} />
       </ConsoleFilters>
 
       {filteredBreadcrumbs.length > 0 ? (
