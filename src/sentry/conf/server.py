@@ -1087,6 +1087,8 @@ SENTRY_FEATURES = {
     "organizations:performance-onboarding-checklist": False,
     # Enable automatic horizontal scrolling on the span tree
     "organizations:performance-span-tree-autoscroll": False,
+    # Enable transaction name only search
+    "organizations:performance-transaction-name-only-search": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
