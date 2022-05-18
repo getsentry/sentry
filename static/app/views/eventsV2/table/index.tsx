@@ -87,7 +87,7 @@ class Table extends PureComponent<TableProps, TableState> {
     // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
     // the API payload response
 
-    const url = `/organizations/${organization.slug}/eventsv2/`;
+    const url = `/organizations/${organization.slug}/events/`;
     const tableFetchID = Symbol('tableFetchID');
     const apiPayload = eventView.getEventsAPIPayload(location);
     apiPayload.referrer = 'api.discover.query-table';

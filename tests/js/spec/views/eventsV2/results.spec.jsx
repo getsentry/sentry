@@ -28,7 +28,7 @@ const generateFields = () => ({
   field: FIELDS.map(i => i.field),
 });
 
-describe('EventsV2 > Results', function () {
+describe('Events > Results', function () {
   enforceActOnUseLegacyStoreHook();
 
   const eventTitle = 'Oh no something bad';
@@ -76,7 +76,7 @@ describe('EventsV2 > Results', function () {
       body: [],
     });
     eventResultsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       body: {
         meta: {
           id: 'string',
