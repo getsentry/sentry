@@ -476,7 +476,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     }
 
     if (!validRule || !validTriggers) {
-      addErrorMessage(t('Alert not valid'));
+      const missingFields = [
+        !validRule && t('name'),
+        !validRule && !validTriggers && t('and'),
+        !validTriggers && t('critical threshold'),
+      ].filter(x => x);
+
+      addErrorMessage(t(`Alert not valid: missing %s`, missingFields.join(' ')));
       return;
     }
 

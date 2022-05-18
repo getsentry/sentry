@@ -29,7 +29,7 @@ export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}:
         hasAlertWizardV3 ? t('Enter Alert Name') : t('Something really bad happened')
       }
       required
-      hideControlState
+      flexibleControlStateSize
     />
   );
 
@@ -41,7 +41,7 @@ export default function RuleNameOwnerForm({disabled, project, hasAlertWizardV3}:
       label={hasAlertWizardV3 ? null : t('Team')}
       help={hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
       disabled={disabled}
-      hideControlState
+      flexibleControlStateSize
     >
       {({model}) => {
         const owner = model.getValue('owner');
