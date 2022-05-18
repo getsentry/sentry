@@ -441,9 +441,12 @@ def run_sessions_query(
         if orderby not in PREFLIGHT_QUERY_COLUMNS:
             raise exc
 
-        # ToDo(ahmed): use that limit in releases query and test
         preflight_query_filters = _generate_preflight_query_conditions(
-            field_name=orderby, direction=direction, org_id=org_id, project_ids=project_ids
+            field_name=orderby,
+            direction=direction,
+            org_id=org_id,
+            project_ids=project_ids,
+            limit=query.limit,
         )
 
         if len(preflight_query_filters) == 0:
@@ -495,15 +498,15 @@ def run_sessions_query(
         GroupKey.from_input_dict(group["by"]): group for group in metrics_results["groups"]
     }
 
-    output_groups: MutableMapping[GroupKey, Group] = defaultdict(
-        lambda: {
-            "totals": {field: default_for(field) for field in query.raw_fields},
-            "series": {
-                field: len(metrics_results["intervals"]) * [default_for(field)]
-                for field in query.raw_fields
-            },
-        }
-    )
+    default_group_gen_func = lambda: {
+        "totals": {field: default_for(field) for field in query.raw_fields},
+        "series": {
+            field: len(metrics_results["intervals"]) * [default_for(field)]
+            for field in query.raw_fields
+        },
+    }
+
+    output_groups: MutableMapping[GroupKey, Group] = defaultdict(default_group_gen_func)
 
     for field in fields.values():
         field.extract_values(input_groups, output_groups)
@@ -533,14 +536,27 @@ def run_sessions_query(
         if post_q_orderby_field in query.raw_groupby:
             for result_group in result_groups:
                 grp_value = result_group["by"][post_q_orderby_field]
-                grp_value_to_result_grp_mapping.setdefault(grp_value, [])
-                grp_value_to_result_grp_mapping[grp_value] += [result_group]
+                grp_value_to_result_grp_mapping.setdefault(grp_value, []).append(result_group)
 
-            result_groups = [
-                grp
-                for elem in ordered_preflight_filters[post_q_orderby_field]
-                for grp in grp_value_to_result_grp_mapping[elem]
-            ]
+            result_groups = []
+            for elem in ordered_preflight_filters[post_q_orderby_field]:
+                try:
+                    for grp in grp_value_to_result_grp_mapping[elem]:
+                        result_groups += [grp]
+                except KeyError:
+                    extra_groups_keys = []
+                    if "session.status" in query.raw_groupby:
+                        for status in SessionStatus:
+                            extra_groups_keys.append(
+                                GroupKey(**{"session_status": status, post_q_orderby_field: elem})
+                            )
+                    else:
+                        extra_groups_keys.append(GroupKey(**{post_q_orderby_field: elem}))
+
+                    for extra_grp_key in extra_groups_keys:
+                        result_groups += [
+                            {"by": extra_grp_key.to_output_dict(), **default_group_gen_func()}
+                        ]
 
     return {
         "groups": result_groups,
@@ -632,6 +648,11 @@ def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
 
 
 class NonPreflightOrderByException(InvalidParams):
+    """
+    An exception that is raised when parsing orderBy, to indicate that this is only an exception
+    in the case where we don't run a preflight query on an accepted pre-flight query field
+    """
+
     ...
 
 
@@ -663,7 +684,6 @@ def _parse_orderby(
 
     field = fields[orderby]
 
-    # ToDo(ahmed): Examine this
     if len(field.metric_fields) != 1:
         # This can still happen when we filter by session.status
         raise InvalidParams(f"Cannot order by {field.name} with the current filters")
@@ -683,7 +703,7 @@ def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> M
 
 
 def _generate_preflight_query_conditions(
-    field_name: str, direction: Direction, org_id: int, project_ids
+    field_name: str, direction: Direction, org_id: int, project_ids, limit
 ) -> ConditionGroup:
     queryset_results = []
     if field_name == "release.timestamp":
@@ -696,5 +716,8 @@ def _generate_preflight_query_conditions(
             queryset = queryset.order_by("-date_added", "-id")
         else:
             queryset = queryset.order_by("date_added", "id")
+
+        if limit is not None:
+            queryset = queryset[: limit - 1]
         queryset_results = [item[0] for item in queryset.values_list("version")]
     return queryset_results

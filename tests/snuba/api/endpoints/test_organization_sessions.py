@@ -1431,7 +1431,7 @@ class OrganizationSessionsEndpointMetricsTest(
 
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
-class OrganizationSessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCase):
+class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCase):
     def do_request(self, query, user=None, org=None):
         self.login_as(user=user or self.user)
         url = reverse(
@@ -1560,7 +1560,7 @@ class OrganizationSessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase
 
         response = self.do_request(
             {
-                "project": [-1],
+                "project": rando_project.id,
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(session)"],
@@ -1613,17 +1613,186 @@ class OrganizationSessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase
 
     @freeze_time(MOCK_DATETIME)
     def test_order_by_with_limit(self):
-        # ToDo: Expect limit to be applied on pre-flight query as well
-        ...
+        rando_project = self.create_project()
+
+        # Create two releases with no metrics data and then two releases with metric data
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+        self.create_release(project=rando_project, version="1C")
+        self.create_release(project=rando_project, version="1D")
+
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        self.store_session(make_session(rando_project, release=release_1b.version))
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 3,
+            }
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1C"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release", "session.status"],
+                "orderBy": "-release.timestamp",
+                "per_page": 1,
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D", "session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1D", "session.status": "crashed"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1D", "session.status": "errored"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1D", "session.status": "healthy"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_order_by_with_environment_filter_on_preflight(self):
         ...
 
     @freeze_time(MOCK_DATETIME)
-    def test_order_by_without_session_status_groupby(self):
-        ...
+    def test_order_by_without_release_groupby(self):
+        rando_project = self.create_project()
+
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+        release_1c = self.create_release(project=rando_project, version="1C")
+
+        # Release 1B sessions
+        for _ in range(4):
+            self.store_session(
+                make_session(rando_project, release=release_1b.version, status="crashed")
+            )
+        for _ in range(10):
+            self.store_session(make_session(rando_project, release=release_1b.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1b.version))
+
+        # Release 1A sessions
+        for _ in range(0, 2):
+            self.store_session(
+                make_session(rando_project, release=release_1a.version, status="crashed")
+            )
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1a.version))
+
+        # Release 1C sessions
+        for _ in range(0, 2):
+            self.store_session(
+                make_session(rando_project, release=release_1c.version, status="crashed")
+            )
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1c.version))
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "query": "session.status:[crashed,errored]",
+                "field": ["sum(session)"],
+                "orderBy": "-release.timestamp",
+                "per_page": 2,
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"sum(session)": 12},
+                "series": {"sum(session)": [12]},
+            },
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_order_by_release_with_session_status_current_filter(self):
-        ...
+        rando_project = self.create_project()
+
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+
+        # Release 1B sessions
+        for _ in range(4):
+            self.store_session(
+                make_session(rando_project, release=release_1b.version, status="crashed")
+            )
+        for _ in range(10):
+            self.store_session(make_session(rando_project, release=release_1b.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1b.version))
+
+        # Release 1A sessions
+        for _ in range(0, 2):
+            self.store_session(
+                make_session(rando_project, release=release_1a.version, status="crashed")
+            )
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1a.version))
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "query": "session.status:[crashed,errored]",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+            }
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1B"},
+                "totals": {"sum(session)": 7},
+                "series": {"sum(session)": [7]},
+            },
+            {
+                "by": {"release": "1A"},
+                "totals": {"sum(session)": 5},
+                "series": {"sum(session)": [5]},
+            },
+        ]
