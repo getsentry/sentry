@@ -36,7 +36,10 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
         <ConsoleTable>
           {filteredBreadcrumbs.map((breadcrumb, i) => (
             <ConsoleMessage
-              relativeTimestamp={showPlayerTime(breadcrumb.timestamp || '', startTimestamp)}
+              relativeTimestamp={showPlayerTime(
+                breadcrumb.timestamp || '',
+                startTimestamp
+              )}
               key={i}
               isLast={i === breadcrumbs.length - 1}
               breadcrumb={breadcrumb}
