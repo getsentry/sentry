@@ -1,25 +1,35 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
+import {addMessage} from 'sentry/actionCreators/indicator';
+import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
+import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
+import DropdownBubble from 'sentry/components/dropdownBubble';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Highlight from 'sentry/components/highlight';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
-import {IconArrow, IconEllipsis} from 'sentry/icons';
+import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Color} from 'sentry/utils/theme';
+import useTeams from 'sentry/utils/useTeams';
 import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
@@ -55,6 +65,7 @@ function RuleListRow({
   userTeams,
   hasDuplicateAlertRules,
 }: Props) {
+  const [assignee, setAssignee] = useState<string>('');
   const activeIncident =
     rule.latestIncident?.status !== undefined &&
     [IncidentStatus.CRITICAL, IncidentStatus.WARNING].includes(
@@ -171,6 +182,8 @@ function RuleListRow({
   const teamActor = ownerId
     ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
     : null;
+  const {teams} = useTeams();
+  const filteredTeams = teams.filter(team => team.isMember);
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
   const alertLink = isIssueAlert(rule) ? (
@@ -221,6 +234,100 @@ function RuleListRow({
     },
   ];
 
+  function handleChange(ownerValue) {
+    setAssignee(ownerValue);
+    const api = new Client();
+    const alertPath = rule.type === 'alert_rule' ? 'alert-rules' : 'rules';
+    const endpoint = `/projects/${orgId}/${rule.projects[0]}/${alertPath}/${rule.id}/`;
+    const updatedRule = {...rule, owner: ownerValue};
+
+    return api.request(endpoint, {
+      method: 'PUT',
+      data: updatedRule,
+      success: () => {
+        addMessage(t('Updated alert rule'), 'success');
+      },
+      error: () => {
+        addMessage(t('Unable to save change'), 'error');
+      },
+    });
+  }
+
+  function handleOwnerChange({value}: {value: string}) {
+    const ownerValue = value && `team:${value}`;
+    handleChange(ownerValue);
+  }
+
+  const unassignedOption = {
+    value: '',
+    label: () => (
+      <MenuItemWrapper>
+        <StyledIconUser size="20px" />
+        {t('Unassigned')}
+      </MenuItemWrapper>
+    ),
+    searchKey: 'unassigned',
+    actor: '',
+    disabled: false,
+  };
+
+  const projectRow = projects.filter(project => project.slug === slug);
+  const projectRowTeams = projectRow[0].teams;
+  const filteredProjectTeams =
+    projectRowTeams &&
+    projectRowTeams.filter(o => {
+      return filteredTeams.findIndex(data => data.id === o.id) !== -1;
+    });
+  const dropdownTeams =
+    filteredProjectTeams &&
+    filteredProjectTeams
+      .map((team, idx) => ({
+        value: team.id,
+        searchKey: team.slug,
+        label: ({inputValue}) => (
+          <MenuItemWrapper data-test-id="assignee-option" key={idx}>
+            <IconContainer>
+              <TeamAvatar team={team} size={24} />
+            </IconContainer>
+            <Label>
+              <Highlight text={inputValue}>{`#${team.slug}`}</Highlight>
+            </Label>
+          </MenuItemWrapper>
+        ),
+      }))
+      .concat(unassignedOption);
+
+  const teamId = assignee && assignee.split(':')[1];
+  const teamName = filteredTeams.filter(team => team.id === teamId);
+
+  const assigneeTeamActor = assignee && {
+    type: 'team' as Actor['type'],
+    id: teamId,
+    name: '',
+  };
+
+  const avatarElement = assigneeTeamActor ? (
+    <ActorAvatar
+      actor={assigneeTeamActor}
+      className="avatar"
+      size={24}
+      tooltip={
+        <TooltipWrapper>
+          {tct('Assigned to [name]', {
+            name:
+              assigneeTeamActor.type === 'team'
+                ? `#${teamName[0].name}`
+                : teamName[0].name,
+          })}
+        </TooltipWrapper>
+      }
+    />
+  ) : (
+    <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
+      <StyledIconUser size="20px" color="gray400" />
+    </Tooltip>
+  );
+
   return (
     <ErrorBoundary>
       <AlertNameWrapper isIssueAlert={isIssueAlert(rule)}>
@@ -260,7 +367,40 @@ function RuleListRow({
       </FlexCenter>
 
       <FlexCenter>
-        {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
+        {teamActor ? (
+          <ActorAvatar actor={teamActor} size={24} />
+        ) : (
+          <AssigneeWrapper>
+            {!projectsLoaded && (
+              <LoadingIndicator
+                mini
+                style={{height: '24px', margin: 0, marginRight: 11}}
+              />
+            )}
+            {projectsLoaded && (
+              <DropdownAutoComplete
+                maxHeight={400}
+                onOpen={e => {
+                  e?.stopPropagation();
+                }}
+                items={dropdownTeams}
+                alignMenu="right"
+                onSelect={handleOwnerChange}
+                itemSize="small"
+                searchPlaceholder={t('Filter teams')}
+                disableLabelPadding
+                emptyHidesInput
+              >
+                {({getActorProps, isOpen}) => (
+                  <DropdownButton {...getActorProps({})}>
+                    {avatarElement}
+                    <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                  </DropdownButton>
+                )}
+              </DropdownAutoComplete>
+            )}
+          </AssigneeWrapper>
+        )}
       </FlexCenter>
 
       <FlexCenter>
@@ -355,6 +495,64 @@ const TriggerText = styled('div')`
 const ActionsRow = styled(FlexCenter)`
   justify-content: center;
   padding: ${space(1)};
+`;
+
+const AssigneeWrapper = styled('div')`
+  display: flex;
+  justify-content: flex-end;
+
+  /* manually align menu underneath dropdown caret */
+  ${DropdownBubble} {
+    right: -14px;
+  }
+`;
+
+const DropdownButton = styled('div')`
+  display: flex;
+  align-items: center;
+  font-size: 20px;
+`;
+
+const StyledChevron = styled(IconChevron)`
+  margin-left: ${space(1)};
+`;
+
+const TooltipWrapper = styled('div')`
+  text-align: left;
+`;
+
+const StyledIconUser = styled(IconUser)`
+  /* We need this to center with Avatar */
+  margin-right: 2px;
+`;
+
+const IconContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+`;
+
+const MenuItemWrapper = styled('div')<{
+  disabled?: boolean;
+  py?: number;
+}>`
+  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  ${p =>
+    typeof p.py !== 'undefined' &&
+    `
+      padding-top: ${p.py};
+      padding-bottom: ${p.py};
+    `};
+`;
+
+const Label = styled(TextOverflow)`
+  margin-left: 6px;
 `;
 
 export default RuleListRow;
