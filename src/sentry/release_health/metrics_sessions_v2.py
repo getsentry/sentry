@@ -430,22 +430,27 @@ def run_sessions_query(
     ordered_preflight_filters = {}
     try:
         orderby = _parse_orderby(query, fields)
-    except OrderByFieldNotInSelectException as exc:
+    except NonPreflightOrderByException as exc:
         orderby = query.raw_orderby[0]
         if orderby[0] == "-":
             orderby = orderby[1:]
             direction = Direction.DESC
         else:
             direction = Direction.ASC
+
         if orderby not in PREFLIGHT_QUERY_COLUMNS:
             raise exc
+
         # ToDo(ahmed): use that limit in releases query and test
         preflight_query_filters = _generate_preflight_query_conditions(
             field_name=orderby, direction=direction, org_id=org_id, project_ids=project_ids
         )
+
         if len(preflight_query_filters) == 0:
-            # ToDo(ahmed): Test this case
+            # If we get no results from the pre-flight query that are supposed to be used as a
+            # filter in the metrics query, then there is no point in running the metrics query
             return _empty_result(query)
+
         condition_lhs = None
         if orderby == "release.timestamp":
             condition_lhs = "release"
@@ -520,17 +525,21 @@ def run_sessions_query(
         for group_key, group in output_groups.items()
     ]
 
+    # If a preflight query was run, then we need to preserve the order of results returned by the
+    # preflight query
     if len(ordered_preflight_filters) == 1:
         post_q_orderby_field = list(ordered_preflight_filters.keys())[0]
         grp_value_to_result_grp_mapping = {}
         if post_q_orderby_field in query.raw_groupby:
             for result_group in result_groups:
-                grp_value_to_result_grp_mapping[
-                    result_group["by"][post_q_orderby_field]
-                ] = result_group
+                grp_value = result_group["by"][post_q_orderby_field]
+                grp_value_to_result_grp_mapping.setdefault(grp_value, [])
+                grp_value_to_result_grp_mapping[grp_value] += [result_group]
+
             result_groups = [
-                grp_value_to_result_grp_mapping[elem]
+                grp
                 for elem in ordered_preflight_filters[post_q_orderby_field]
+                for grp in grp_value_to_result_grp_mapping[elem]
             ]
 
     return {
@@ -622,7 +631,7 @@ def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
         return frozenset()
 
 
-class OrderByFieldNotInSelectException(Exception):
+class NonPreflightOrderByException(InvalidParams):
     ...
 
 
@@ -632,14 +641,16 @@ def _parse_orderby(
     orderbys = query.raw_orderby
     if orderbys == []:
         return None
-    # ToDo(ahmed): Examine this here
+
+    # ToDo(ahmed): We might want to enable multi field ordering if some of the fields ordered by
+    #  are generated from pre-flight queries, and thereby are popped from metrics queries,
+    #  but I though it might be confusing behavior so restricting it for now.
     if len(orderbys) > 1:
         raise InvalidParams("Cannot order by multiple fields")
     orderby = orderbys[0]
 
-    # ToDo(ahmed): Examine what happens with release.timestamp
     if "session.status" in query.raw_groupby:
-        raise InvalidParams("Cannot use 'orderBy' when grouping by sessions.status")
+        raise NonPreflightOrderByException("Cannot use 'orderBy' when grouping by sessions.status")
 
     direction = Direction.ASC
     if orderby[0] == "-":
@@ -648,7 +659,7 @@ def _parse_orderby(
 
     assert query.raw_fields
     if orderby not in query.raw_fields:
-        raise OrderByFieldNotInSelectException("'orderBy' must be one of the provided 'fields'")
+        raise NonPreflightOrderByException("'orderBy' must be one of the provided 'fields'")
 
     field = fields[orderby]
 

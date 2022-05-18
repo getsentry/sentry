@@ -1430,6 +1430,31 @@ class OrganizationSessionsEndpointMetricsTest(
             ]
 
     @freeze_time(MOCK_DATETIME)
+    def test_session_metrics_order_by_release_timestamp_no_releases(self):
+        """
+        Test that ensures if we have no releases in the preflight query when trying to order by
+        `release.timestamp`, we get no groups.
+        Essentially testing the empty preflight query filters branch.
+        """
+        project_random = self.create_project()
+        for _ in range(0, 2):
+            self.store_session(make_session(project_random))
+        self.store_session(make_session(project_random, status="crashed"))
+
+        response = self.do_request(
+            {
+                "project": project_random.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["crash_free_rate(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 3,
+            }
+        )
+        assert response.data["groups"] == []
+
+    @freeze_time(MOCK_DATETIME)
     def test_session_metrics_order_by_release_timestamp(self):
         """
         Test that ensures that we are able to get the crash_free_rate for the most 2 recent
@@ -1471,7 +1496,7 @@ class OrganizationSessionsEndpointMetricsTest(
                 "field": ["crash_free_rate(session)"],
                 "groupBy": ["release"],
                 "orderBy": "-release.timestamp",
-                "per_page": 2,
+                "per_page": 3,
             }
         )
         # Step 4: Validate Results
@@ -1492,3 +1517,95 @@ class OrganizationSessionsEndpointMetricsTest(
                 "series": {"crash_free_rate(session)": [0.33333333333333337]},
             },
         ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_session_metrics_order_by_release_timestamp_with_session_status(self):
+        """
+        Test that ensures we are able to group by session.status and order by `release.timestamp`
+        since `release.timestamp` is generated from a preflight query
+        """
+        rando_project = self.create_project()
+
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+
+        # Release 1B sessions
+        for _ in range(4):
+            self.store_session(
+                make_session(rando_project, release=release_1b.version, status="crashed")
+            )
+        for _ in range(10):
+            self.store_session(make_session(rando_project, release=release_1b.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1b.version))
+
+        # Release 1A sessions
+        for _ in range(0, 2):
+            self.store_session(
+                make_session(rando_project, release=release_1a.version, status="crashed")
+            )
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1a.version))
+
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release", "session.status"],
+                "orderBy": "-release.timestamp",
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1B", "session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "crashed"},
+                "totals": {"sum(session)": 4},
+                "series": {"sum(session)": [4]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "errored"},
+                "totals": {"sum(session)": 3},
+                "series": {"sum(session)": [3]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "healthy"},
+                "totals": {"sum(session)": 10},
+                "series": {"sum(session)": [10]},
+            },
+            {
+                "by": {"release": "1A", "session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1A", "session.status": "crashed"},
+                "totals": {"sum(session)": 2},
+                "series": {"sum(session)": [2]},
+            },
+            {
+                "by": {"release": "1A", "session.status": "errored"},
+                "totals": {"sum(session)": 3},
+                "series": {"sum(session)": [3]},
+            },
+            {
+                "by": {"release": "1A", "session.status": "healthy"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_session_metrics_order_by_release_timestamp_with_limit(self):
+        # ToDo: Expect limit to be applied on pre-flight query as well
+        ...
+
+    @freeze_time(MOCK_DATETIME)
+    def test_sessions_metrics_order_by_release_timestamp_environment_filter_on_preflight(self):
+        ...
