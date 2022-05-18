@@ -58,10 +58,12 @@ const IconPopper = ({icon, setSelectedIcon, boxRef}: Props) => {
   return (
     <Popper
       placement="bottom"
-      modifiers={{
-        offset: {offset: '0, 10'},
-        flip: {enabled: false},
-      }}
+      modifiers={[
+        {
+          name: 'offset',
+          options: {offset: [0, 10]},
+        },
+      ]}
     >
       {({ref: popperRef, style, placement}) => {
         return (

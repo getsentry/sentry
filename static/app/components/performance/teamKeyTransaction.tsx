@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, PopperProps, Reference} from 'react-popper';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
@@ -192,16 +192,17 @@ class TeamKeyTransaction extends Component<Props, State> {
       return null;
     }
 
-    const modifiers: PopperProps['modifiers'] = {
-      hide: {
+    const modifiers = [
+      {
+        name: 'hide',
         enabled: false,
       },
-      preventOverflow: {
-        padding: 10,
+      {
+        name: 'preventOverflow',
         enabled: true,
-        boundariesElement: 'viewport',
+        options: {padding: 10},
       },
-    };
+    ];
 
     return createPortal(
       <Popper placement="top" modifiers={modifiers}>

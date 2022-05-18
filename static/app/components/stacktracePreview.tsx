@@ -241,16 +241,6 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
           )
         }
         position="right"
-        modifiers={{
-          flip: {
-            enabled: false,
-          },
-          preventOverflow: {
-            padding: 20,
-            enabled: true,
-            boundariesElement: 'viewport',
-          },
-        }}
         state={
           status === 'loading' && loadingVisible
             ? 'loading'
