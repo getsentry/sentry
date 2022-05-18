@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import contextlib
 import logging
 import re
 from datetime import datetime, timedelta
@@ -137,12 +138,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_rate(self, event: Event, interval: str, environment_id: str) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
-        overrides = {}
+
         # For conditions with interval >= 1 hour we don't need to worry about read your writes
         # consistency. Disable it so that we can scale to more nodes.
+        option_override_cm = contextlib.nullcontext()
         if duration >= timedelta(hours=1):
-            overrides = {"consistent": False}
-        with options_override(overrides):
+            option_override_cm = options_override({"consistent": False})
+        with option_override_cm:
             result: int = self.query(event, end - duration, end, environment_id=environment_id)
             comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
             if comparison_type == COMPARISON_TYPE_PERCENT:
