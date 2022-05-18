@@ -377,28 +377,35 @@ function RuleListRow({
                 style={{height: '24px', margin: 0, marginRight: 11}}
               />
             )}
-            {projectsLoaded && (
-              <DropdownAutoComplete
-                maxHeight={400}
-                onOpen={e => {
-                  e?.stopPropagation();
-                }}
-                items={dropdownTeams}
-                alignMenu="right"
-                onSelect={handleOwnerChange}
-                itemSize="small"
-                searchPlaceholder={t('Filter teams')}
-                disableLabelPadding
-                emptyHidesInput
-              >
-                {({getActorProps, isOpen}) => (
-                  <DropdownButton {...getActorProps({})}>
-                    {avatarElement}
-                    <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
-                  </DropdownButton>
-                )}
-              </DropdownAutoComplete>
-            )}
+            <Access access={['alerts:write']}>
+              {({hasAccess}) =>
+                projectsLoaded && (
+                  <DropdownAutoComplete
+                    maxHeight={400}
+                    onOpen={e => {
+                      e?.stopPropagation();
+                    }}
+                    items={dropdownTeams}
+                    alignMenu="right"
+                    onSelect={handleOwnerChange}
+                    itemSize="small"
+                    searchPlaceholder={t('Filter teams')}
+                    disableLabelPadding
+                    emptyHidesInput
+                    disabled={!hasAccess}
+                  >
+                    {({getActorProps, isOpen}) => (
+                      <DropdownButton {...getActorProps({})}>
+                        {avatarElement}
+                        {hasAccess && (
+                          <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+                        )}
+                      </DropdownButton>
+                    )}
+                  </DropdownAutoComplete>
+                )
+              }
+            </Access>
           </AssigneeWrapper>
         )}
       </FlexCenter>
