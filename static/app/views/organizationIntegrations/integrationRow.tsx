@@ -181,8 +181,7 @@ const IntegrationName = styled(Link)`
 const IntegrationDetails = styled('div')`
   display: flex;
   align-items: center;
-  margin-top: 6px;
-  font-size: 0.8em;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledLink = styled(Link)`

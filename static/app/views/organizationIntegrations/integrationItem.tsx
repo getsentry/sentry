@@ -37,6 +37,7 @@ export default class IntegrationItem extends Component<Props> {
 
 const Flex = styled('div')`
   display: flex;
+  align-items: center;
 `;
 type StyledProps = Pick<Props, 'compact'>;
 const Labels = styled('div')<StyledProps>`
@@ -50,18 +51,18 @@ const Labels = styled('div')<StyledProps>`
 `;
 
 const IntegrationName = styled('div')`
-  font-size: 1rem;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: bold;
 `;
 
 // Not using the overflowEllipsis style import here
 // as it sets width 100% which causes layout issues in the
 // integration list.
 const DomainName = styled('div')<StyledProps>`
-  color: ${p => (p.compact ? p.theme.gray200 : p.theme.gray400)};
+  color: ${p => p.theme.subText};
   margin-left: ${p => (p.compact ? space(1) : 'inherit')};
-  margin-top: ${p => (!p.compact ? space(0.25) : 'inherit')};
-  font-size: 0.875rem;
-  line-height: 1.2;
+  margin-top: ${p => (!p.compact ? 0 : 'inherit')};
+  font-size: ${p => p.theme.fontSizeSmall};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

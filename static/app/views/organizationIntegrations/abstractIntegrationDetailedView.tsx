@@ -389,6 +389,7 @@ class AbstractIntegrationDetailedView<
 
 const Flex = styled('div')`
   display: flex;
+  align-items: center;
 `;
 
 const FlexContainer = styled('div')`
@@ -417,7 +418,7 @@ const NameContainer = styled('div')`
 const Name = styled('div')`
   font-weight: bold;
   font-size: 1.4em;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
 `;
 
 const IconCloseCircle = styled(IconClose)`
@@ -473,9 +474,8 @@ const ExternalLinkContainer = styled('div')`
 `;
 
 const StatusWrapper = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
   padding-left: ${space(2)};
-  line-height: 1.5em;
 `;
 
 const DisableWrapper = styled('div')`
