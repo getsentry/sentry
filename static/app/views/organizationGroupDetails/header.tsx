@@ -441,6 +441,7 @@ const StyledTooltip = styled(Tooltip)`
 
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StatsWrapper = styled('div')`

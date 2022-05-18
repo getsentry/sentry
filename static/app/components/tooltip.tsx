@@ -2,13 +2,14 @@ import {
   cloneElement,
   Fragment,
   isValidElement,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
+import {PopperProps, usePopper} from 'react-popper';
 import isPropValid from '@emotion/is-prop-valid';
 import {SerializedStyles, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -22,7 +23,15 @@ import {ColorOrAlias} from 'sentry/utils/theme';
 
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
 
-export const OPEN_DELAY = 50;
+/**
+ * How long to wait before opening the tooltip
+ */
+const OPEN_DELAY = 50;
+
+/**
+ * How long to wait before closing the tooltip when isHoverable is set
+ */
+const CLOSE_DELAY = 50;
 
 const TOOLTIP_ANIMATION: MotionProps = {
   transition: {duration: 0.2},
@@ -43,10 +52,6 @@ const TOOLTIP_ANIMATION: MotionProps = {
   },
 };
 
-/**
- * How long to wait before closing the tooltip when isHoverable is set
- */
-const CLOSE_DELAY = 50;
 export interface InternalTooltipProps {
   children: React.ReactNode;
   /**
@@ -90,7 +95,7 @@ export interface InternalTooltipProps {
   /**
    * Position for the tooltip.
    */
-  position?: PopperProps['placement'];
+  position?: PopperProps<[]>['placement'];
 
   /**
    * Only display the tooltip only if the content overflows
@@ -116,22 +121,27 @@ export interface InternalTooltipProps {
 
 /**
  * Used to compute the transform origin to give the scale-down micro-animation
- * a pleasant feeling. Without this the animation can feel somewhat 'wrong'.
+ * a pleasant feeling. Without this the animation can feel somewhat 'wrong'
+ * since the direction of the scale isn't towards the reference element
  */
 function computeOriginFromArrow(
-  placement: PopperProps['placement'],
-  arrowProps: PopperArrowProps
+  placement: PopperProps<[]>['placement'],
+  arrowState?: {x?: number; y?: number}
 ): MotionStyle {
-  // XXX: Bottom means the arrow will be pointing up
-  switch (placement) {
+  if (arrowState === undefined) {
+    return {};
+  }
+
+  // XXX: Bottom means the arrow will be pointing up.
+  switch (placement?.split('-')[0]) {
     case 'top':
-      return {originX: `${arrowProps.style.left}px`, originY: '100%'};
+      return {originX: `${arrowState.x}px`, originY: '100%'};
     case 'bottom':
-      return {originX: `${arrowProps.style.left}px`, originY: 0};
+      return {originX: `${arrowState.x}px`, originY: 0};
     case 'left':
-      return {originX: '100%', originY: `${arrowProps.style.top}px`};
+      return {originX: '100%', originY: `${arrowState.y}px`};
     case 'right':
-      return {originX: 0, originY: `${arrowProps.style.top}px`};
+      return {originX: 0, originY: `${arrowState.y}px`};
     default:
       return {originX: `50%`, originY: '100%'};
   }
@@ -155,12 +165,65 @@ export function DO_NOT_USE_TOOLTIP({
   skipWrapper,
   title,
   disabled = false,
-  position = 'top',
+  position: placement = 'top',
   containerDisplayMode = 'inline-block',
 }: InternalTooltipProps) {
   const [visible, setVisible] = useState(false);
   const tooltipId = useMemo(() => domId('tooltip-'), []);
   const theme = useTheme();
+
+  const [referenceElement, setReferenceElement] = useState<HTMLElement | null>(null);
+  const [popoverElement, setPopoverElement] = useState<HTMLElement | null>(null);
+  const [arrowElement, setArrowElement] = useState<HTMLElement | null>(null);
+
+  const modifiers = useMemo(
+    () => [
+      {
+        name: 'hide',
+        enabled: false,
+      },
+      {
+        name: 'computeStyles',
+        options: {
+          // Using the `transform` attribute causes our borders to get blurry
+          // in chrome. See [0]. This just causes it to use `top` / `left`
+          // positions, which should be fine.
+          //
+          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+          gpuAcceleration: false,
+        },
+      },
+      {
+        name: 'arrow',
+        options: {
+          element: arrowElement,
+          // Set padding to avoid the arrow reaching the side of the tooltip
+          // and overflowing out of the rounded border
+          padding: 4,
+        },
+      },
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 8],
+        },
+      },
+      {
+        name: 'preventOverflow',
+        enabled: true,
+        options: {
+          padding: 12,
+          altAxis: true,
+        },
+      },
+    ],
+    [arrowElement]
+  );
+
+  const {styles, state} = usePopper(referenceElement, popoverElement, {
+    modifiers,
+    placement,
+  });
 
   // Delayed open and close time handles
   const delayOpenTimeoutRef = useRef<number | undefined>(undefined);
@@ -174,8 +237,8 @@ export function DO_NOT_USE_TOOLTIP({
     };
   }, []);
 
-  function handleMouseEnter() {
-    if (triggerRef.current && showOnlyOnOverflow && !isOverflown(triggerRef.current)) {
+  const handleMouseEnter = useCallback(() => {
+    if (referenceElement && showOnlyOnOverflow && !isOverflown(referenceElement)) {
       return;
     }
 
@@ -191,9 +254,9 @@ export function DO_NOT_USE_TOOLTIP({
       () => setVisible(true),
       delay ?? OPEN_DELAY
     );
-  }
+  }, [delay, showOnlyOnOverflow, referenceElement]);
 
-  function handleMouseLeave() {
+  const handleMouseLeave = useCallback(() => {
     window.clearTimeout(delayOpenTimeoutRef.current);
     window.clearTimeout(delayHideTimeoutRef.current);
 
@@ -205,70 +268,58 @@ export function DO_NOT_USE_TOOLTIP({
     } else {
       setVisible(false);
     }
-  }
+  }, [isHoverable]);
 
-  // Tracks the triggering element
-  const triggerRef = useRef<HTMLElement | null>(null);
-  const modifiers: PopperProps['modifiers'] = useMemo(() => {
-    return {
-      hide: {enabled: false},
-      preventOverflow: {
-        padding: 10,
-        enabled: true,
-        boundariesElement: 'viewport',
-      },
-      applyStyle: {
-        gpuAcceleration: true,
-      },
-    };
-  }, []);
-
-  function renderTrigger(triggerChildren: React.ReactNode, ref: React.Ref<HTMLElement>) {
-    const setRef = (el: HTMLElement) => {
-      if (typeof ref === 'function') {
-        ref(el);
-      }
-      triggerRef.current = el;
-    };
-
-    const props = {
-      'aria-describedby': tooltipId,
-      onFocus: handleMouseEnter,
-      onBlur: handleMouseLeave,
-      onPointerEnter: handleMouseEnter,
-      onPointerLeave: handleMouseLeave,
-      ref: setRef,
-    };
-
-    // Use the `type` property of the react instance to detect whether we have
-    // a basic element (type=string) or a class/function component
-    // (type=function or object). Because we can't rely on the child element
-    // implementing forwardRefs we wrap it with a span tag for the ref
-
-    if (
-      isValidElement(triggerChildren) &&
-      (skipWrapper || typeof triggerChildren.type === 'string')
-    ) {
-      const styles = {
-        ...triggerChildren.props.style,
-        ...(showUnderline && theme.tooltipUnderline(underlineColor)),
+  const renderTrigger = useCallback(
+    (triggerChildren: React.ReactNode) => {
+      const props = {
+        'aria-describedby': tooltipId,
+        ref: setReferenceElement,
+        onFocus: handleMouseEnter,
+        onBlur: handleMouseLeave,
+        onPointerEnter: handleMouseEnter,
+        onPointerLeave: handleMouseLeave,
       };
-      // Basic DOM nodes can be cloned and have more props applied.
-      return cloneElement(triggerChildren, {
+
+      // Use the `type` property of the react instance to detect whether we have
+      // a basic element (type=string) or a class/function component
+      // (type=function or object). Because we can't rely on the child element
+      // implementing forwardRefs we wrap it with a span tag for the ref
+
+      if (
+        isValidElement(triggerChildren) &&
+        (skipWrapper || typeof triggerChildren.type === 'string')
+      ) {
+        const triggerStyle = {
+          ...triggerChildren.props.style,
+          ...(showUnderline && theme.tooltipUnderline(underlineColor)),
+        };
+
+        // Basic DOM nodes can be cloned and have more props applied.
+        return cloneElement(triggerChildren, {...props, style: triggerStyle});
+      }
+
+      const ourContainerProps = {
         ...props,
-        style: styles,
-      });
-    }
+        containerDisplayMode,
+        style: showUnderline ? theme.tooltipUnderline(underlineColor) : undefined,
+        className,
+      };
 
-    const ourContainerProps = {
-      ...props,
-      containerDisplayMode,
-      style: showUnderline ? theme.tooltipUnderline(underlineColor) : undefined,
+      return <Container {...ourContainerProps}>{triggerChildren}</Container>;
+    },
+    [
       className,
-    };
-
-    return <Container {...ourContainerProps}>{triggerChildren}</Container>;
-  }
+      containerDisplayMode,
+      handleMouseEnter,
+      handleMouseLeave,
+      showUnderline,
+      skipWrapper,
+      tooltipId,
+      theme,
+      underlineColor,
+    ]
+  );
 
   if (disabled || !title) {
     return <Fragment>{children}</Fragment>;
@@ -278,39 +329,34 @@ export function DO_NOT_USE_TOOLTIP({
   const isVisible = forceVisible || visible;
 
   return (
-    <Manager>
-      <Reference>{({ref}) => renderTrigger(children, ref)}</Reference>
+    <Fragment>
+      {renderTrigger(children)}
       {createPortal(
         <AnimatePresence>
           {isVisible ? (
-            <Popper placement={position} modifiers={modifiers}>
-              {({ref, style, placement, arrowProps}) => (
-                <PositionWrapper style={style}>
-                  <TooltipContent
-                    ref={ref}
-                    id={tooltipId}
-                    data-placement={placement}
-                    style={computeOriginFromArrow(position, arrowProps)}
-                    overlayStyle={overlayStyle}
-                    onMouseEnter={isHoverable ? handleMouseEnter : undefined}
-                    onMouseLeave={isHoverable ? handleMouseLeave : undefined}
-                    {...TOOLTIP_ANIMATION}
-                  >
-                    {title}
-                    <TooltipArrow
-                      ref={arrowProps.ref}
-                      data-placement={placement}
-                      style={arrowProps.style}
-                    />
-                  </TooltipContent>
-                </PositionWrapper>
-              )}
-            </Popper>
+            <PositionWrapper style={styles.popper} ref={setPopoverElement}>
+              <TooltipContent
+                id={tooltipId}
+                data-placement={state?.placement}
+                style={computeOriginFromArrow(placement, state?.modifiersData.arrow)}
+                overlayStyle={overlayStyle}
+                onMouseEnter={isHoverable ? handleMouseEnter : undefined}
+                onMouseLeave={isHoverable ? handleMouseLeave : undefined}
+                {...TOOLTIP_ANIMATION}
+              >
+                {title}
+                <TooltipArrow
+                  ref={setArrowElement}
+                  data-placement={state?.placement}
+                  style={styles.arrow}
+                />
+              </TooltipContent>
+            </PositionWrapper>
           ) : null}
         </AnimatePresence>,
         document.body
       )}
-    </Manager>
+    </Fragment>
   );
 }
 
@@ -338,7 +384,6 @@ const TooltipContent = styled(motion.div, {
   overlayStyle: InternalTooltipProps['overlayStyle'];
 }>`
   will-change: transform, opacity;
-  position: relative;
   background: ${p => p.theme.backgroundElevated};
   padding: ${space(1)} ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
@@ -350,29 +395,33 @@ const TooltipContent = styled(motion.div, {
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;
 
-  margin: 6px;
   text-align: center;
   ${p => p.overlayStyle as any};
 `;
 
+/**
+ * Size of the tooltip arrow
+ */
+const ARROW_SIZE = 11;
+
 const TooltipArrow = styled('span')`
   pointer-events: none;
   position: absolute;
-  width: 12px;
-  height: 12px;
+  width: ${ARROW_SIZE}px;
+  height: ${ARROW_SIZE}px;
 
   &::before,
   &::after {
     content: '';
     display: block;
     position: absolute;
-    height: 12px;
-    width: 12px;
+    height: ${ARROW_SIZE}px;
+    width: ${ARROW_SIZE}px;
     border: solid 6px transparent;
   }
 
   &[data-placement|='bottom'] {
-    top: -12px;
+    top: -${ARROW_SIZE}px;
     &::before {
       bottom: 1px;
       border-bottom-color: ${p => p.theme.translucentBorder};
@@ -383,7 +432,7 @@ const TooltipArrow = styled('span')`
   }
 
   &[data-placement|='top'] {
-    bottom: -12px;
+    bottom: -${ARROW_SIZE}px;
     &::before {
       top: 1px;
       border-top-color: ${p => p.theme.translucentBorder};
@@ -394,7 +443,7 @@ const TooltipArrow = styled('span')`
   }
 
   &[data-placement|='right'] {
-    left: -12px;
+    left: -${ARROW_SIZE}px;
     &::before {
       right: 1px;
       border-right-color: ${p => p.theme.translucentBorder};
@@ -405,7 +454,7 @@ const TooltipArrow = styled('span')`
   }
 
   &[data-placement|='left'] {
-    right: -12px;
+    right: -${ARROW_SIZE}px;
     &::before {
       left: 1px;
       border-left-color: ${p => p.theme.translucentBorder};

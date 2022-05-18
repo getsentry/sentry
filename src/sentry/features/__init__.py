@@ -83,6 +83,7 @@ default_manager.add("organizations:issue-search-use-cdc-secondary", Organization
 default_manager.add("organizations:large-debug-files", OrganizationFeature)
 default_manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, True)
 default_manager.add("organizations:metrics", OrganizationFeature, True)
+default_manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, True)
 default_manager.add("organizations:new-widget-builder-experience", OrganizationFeature, True)
 default_manager.add("organizations:new-widget-builder-experience-design", OrganizationFeature, True)
 default_manager.add(
