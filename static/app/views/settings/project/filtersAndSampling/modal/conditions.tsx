@@ -179,7 +179,7 @@ const ConditionWrapper = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 0.6fr minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(0, 0.6fr) minmax(0, 1fr) max-content;
   }
 `;
 

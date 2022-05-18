@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SelectField from 'sentry/components/forms/selectField';
+import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
 import useApi from 'sentry/utils/useApi';
 
-import {getMatchFieldPlaceholder} from './utils';
+import {formatCreateTagLabel, getMatchFieldPlaceholder} from './utils';
 
 type Tag = {
   value: string;
@@ -105,7 +106,7 @@ function TagValueAutocomplete({
       aria-label={getAriaLabel()}
       options={[...createdOptions, ...tagValues].map(tagValue => ({
         value: tagValue.value,
-        label: tagValue.value,
+        label: <Truncate value={tagValue.value} maxLength={40} expandable={false} />,
       }))}
       value={value?.split(',')}
       onChange={newValue => {
@@ -119,6 +120,7 @@ function TagValueAutocomplete({
           />
         ),
       }}
+      formatCreateLabel={formatCreateTagLabel}
       placeholder={getMatchFieldPlaceholder(category)}
       inline={false}
       multiple

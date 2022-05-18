@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 
-import {t} from 'sentry/locale';
+import Truncate from 'sentry/components/truncate';
+import {t, tct} from 'sentry/locale';
 import {
   DynamicSamplingConditionLogicalInner,
   DynamicSamplingInnerName,
@@ -278,4 +279,10 @@ export function generateConditionCategoriesOptions(
     innerName,
     getInnerNameLabel(innerName),
   ]);
+}
+
+export function formatCreateTagLabel(label: string) {
+  return tct('Add "[newLabel]"', {
+    newLabel: <Truncate value={label} maxLength={40} expandable={false} />,
+  });
 }

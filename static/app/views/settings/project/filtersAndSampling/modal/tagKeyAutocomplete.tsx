@@ -1,9 +1,12 @@
 import styled from '@emotion/styled';
 
 import SelectField from 'sentry/components/forms/selectField';
+import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {Tag} from 'sentry/types';
 import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
+
+import {formatCreateTagLabel} from './utils';
 
 type Props = {
   disabledOptions: string[];
@@ -17,13 +20,20 @@ type Props = {
  */
 function TagKeyAutocomplete({tags, onChange, value, disabledOptions}: Props) {
   // select doesn't play nicely with selected values that are not in the listed options
-  const options = tags.map(({key}) => ({value: key, label: key}));
+  const options = tags.map(({key}) => ({
+    value: key,
+    label: <Truncate value={key} maxLength={40} expandable={false} />,
+  }));
+
   if (
     value &&
     value !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG &&
     !tags.some(({key}) => key === value)
   ) {
-    options.push({value, label: value});
+    options.push({
+      value,
+      label: <Truncate value={value} maxLength={40} expandable={false} />,
+    });
   }
 
   return (
@@ -40,6 +50,7 @@ function TagKeyAutocomplete({tags, onChange, value, disabledOptions}: Props) {
         placeholder={t('tag')}
         onChange={onChange}
         value={value}
+        formatCreateLabel={formatCreateTagLabel}
       />
     </Wrapper>
   );
