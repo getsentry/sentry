@@ -125,6 +125,7 @@ const HoverListItem = styled('li')`
 const IconPosition = styled('div')`
   position: absolute;
   transform: translate(-50%);
+  margin-left: 2px; /* Half of EVENT_STICK_MARKER_WIDTH */
 `;
 
 const IconNode = styled('div')<{color: Color}>`
