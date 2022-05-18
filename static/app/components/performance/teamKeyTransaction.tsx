@@ -39,19 +39,6 @@ type State = {
 };
 
 class TeamKeyTransaction extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    let portal = document.getElementById('team-key-transaction-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'team-key-transaction-portal');
-      document.body.appendChild(portal);
-    }
-    this.portalEl = portal;
-    this.menuEl = null;
-  }
-
   state: State = {
     isOpen: false,
   };
@@ -67,11 +54,9 @@ class TeamKeyTransaction extends Component<Props, State> {
 
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClickOutside, true);
-    this.portalEl.remove();
   }
 
-  private portalEl: Element;
-  private menuEl: Element | null;
+  private menuEl: Element | null = null;
 
   handleClickOutside = (event: MouseEvent) => {
     if (!this.menuEl) {
@@ -233,7 +218,7 @@ class TeamKeyTransaction extends Component<Props, State> {
           </DropdownWrapper>
         )}
       </Popper>,
-      this.portalEl
+      document.body
     );
   }
 
