@@ -192,4 +192,19 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustom,
   },
+  stall_longest_time: {
+    description: t('The time, in milliseconds, of the longest event loop stall.'),
+    examples: [t('stall_longest_time example here')],
+    illustration: diagramCustom,
+  },
+  stall_total_time: {
+    description: t('The total combined time, in milliseconds, of all stalls.'),
+    examples: [t('stall_total_time example here')],
+    illustration: diagramCustom,
+  },
+  stall_count: {
+    description: t('The total number of stalls that occurred during the transaction.'),
+    examples: [t('stall_count example here')],
+    illustration: diagramCustom,
+  },
 };

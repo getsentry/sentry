@@ -24,7 +24,10 @@ export type AlertType =
   | 'app_start_cold'
   | 'app_start_warm'
   | 'frames_slow'
-  | 'frames_frozen';
+  | 'frames_frozen'
+  | 'stall_longest_time'
+  | 'stall_total_time'
+  | 'stall_count';
 
 export type MetricAlertType = Exclude<AlertType, 'issues'>;
 
@@ -46,6 +49,9 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   app_start_warm: t('App Warm Start'),
   frames_slow: t('Slow Frames'),
   frames_frozen: t('Frozen Frames'),
+  stall_longest_time: t('Longest Stall Time'),
+  stall_total_time: t('Total Stall Time'),
+  stall_count: t('Stall Count'),
 };
 
 type AlertWizardCategory = {
@@ -79,6 +85,9 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
       'app_start_warm',
       'frames_slow',
       'frames_frozen',
+      'stall_longest_time',
+      'stall_total_time',
+      'stall_count',
     ],
   },
   {
@@ -179,6 +188,21 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
+  stall_longest_time: {
+    aggregate: 'p75(measurements.stall_longest_time)',
+    dataset: Dataset.TRANSACTIONS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  stall_total_time: {
+    aggregate: 'p75(measurements.stall_total_time)',
+    dataset: Dataset.TRANSACTIONS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  stall_count: {
+    aggregate: 'p75(measurements.stall_count)',
+    dataset: Dataset.TRANSACTIONS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
 };
 
 export const DEFAULT_WIZARD_TEMPLATE = AlertWizardRuleTemplates.num_errors;
@@ -202,6 +226,9 @@ export const hideParameterSelectorSet = new Set<AlertType>([
   'app_start_warm',
   'frames_slow',
   'frames_frozen',
+  'stall_longest_time',
+  'stall_total_time',
+  'stall_count',
 ]);
 
 export function getFunctionHelpText(alertType: AlertType): {

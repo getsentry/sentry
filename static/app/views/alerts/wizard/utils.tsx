@@ -20,6 +20,9 @@ const alertTypeIdentifiers: Record<Dataset, Partial<Record<AlertType, string>>> 
     app_start_warm: 'measurements.app_start_warm',
     frames_slow: 'measurements.frames_slow',
     frames_frozen: 'measurements.frames_frozen',
+    stall_longest_time: 'measurements.stall_longest_time',
+    stall_total_time: 'measurements.stall_total_time',
+    stall_count: 'measurements.stall_count',
   },
   [Dataset.SESSIONS]: {
     crash_free_sessions: SessionsAggregate.CRASH_FREE_SESSIONS,
