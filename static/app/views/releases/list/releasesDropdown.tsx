@@ -27,7 +27,7 @@ const ReleasesDropdown = ({label: prefix, options, selected, onSelect}: Props) =
       options={mappedOptions}
       onChange={opt => onSelect(opt.value)}
       value={selected}
-      triggerProps={{prefix}}
+      triggerProps={{prefix, style: {width: '100%'}}}
     />
   );
 };
