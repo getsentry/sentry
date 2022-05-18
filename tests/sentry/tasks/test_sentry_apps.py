@@ -61,12 +61,10 @@ MockResponseWithHeadersInstance = MockResponse(
 
 class TestSendAlertEvent(TestCase):
     def setUp(self):
-        self.organization = self.create_organization(slug="foo")
         self.sentry_app = self.create_sentry_app(organization=self.organization)
-        self.project = self.create_project(organization=self.organization)
         self.rule = Rule.objects.create(project=self.project, label="Issa Rule")
         self.install = self.create_sentry_app_installation(
-            organization=self.project.organization, slug=self.sentry_app.slug
+            organization=self.organization, slug=self.sentry_app.slug
         )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
@@ -193,14 +191,12 @@ class TestSendAlertEvent(TestCase):
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):
     def setUp(self):
-        self.project = self.create_project()
-
         self.sentry_app = self.create_sentry_app(
-            organization=self.project.organization, events=["issue.created"]
+            organization=self.organization, events=["issue.created"]
         )
 
         self.install = self.create_sentry_app_installation(
-            organization=self.project.organization, slug=self.sentry_app.slug
+            organization=self.organization, slug=self.sentry_app.slug
         )
 
     def test_group_created_sends_webhook(self, safe_urlopen):
@@ -526,9 +522,6 @@ class TestWorkflowNotification(TestCase):
 
 class TestWebhookRequests(TestCase):
     def setUp(self):
-        self.project = self.create_project()
-        self.user = self.create_user()
-
         self.sentry_app = self.create_sentry_app(
             name="Test App",
             organization=self.project.organization,

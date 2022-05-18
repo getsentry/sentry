@@ -11,8 +11,6 @@ from sentry.utils import json
 
 class TestServiceHooks(TestCase):
     def setUp(self):
-        self.project = self.create_project()
-
         self.hook = self.create_service_hook(project=self.project, events=("issue.created",))
 
     @patch("sentry.tasks.servicehooks.safe_urlopen")

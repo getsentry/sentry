@@ -23,15 +23,18 @@ class TestInstallationNotifier(TestCase):
     def setUp(self):
         super().setUp()
 
-        self.user = self.create_user(name="foo")
-        self.org = self.create_organization(owner=self.user)
-
         self.sentry_app = self.create_sentry_app(
-            name="foo", organization=self.org, webhook_url="https://example.com", scopes=()
+            name="foo",
+            organization=self.organization,
+            webhook_url="https://example.com",
+            scopes=(),
         )
 
         self.install = self.create_sentry_app_installation(
-            slug="foo", organization=self.org, user=self.user, prevent_token_exchange=True
+            slug="foo",
+            organization=self.organization,
+            user=self.user,
+            prevent_token_exchange=True,
         )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -46,7 +49,7 @@ class TestInstallationNotifier(TestCase):
             "data": {
                 "installation": {
                     "app": {"uuid": self.sentry_app.uuid, "slug": self.sentry_app.slug},
-                    "organization": {"slug": self.org.slug},
+                    "organization": {"slug": self.organization.slug},
                     "uuid": self.install.uuid,
                     "code": self.install.api_grant.code,
                     "status": "installed",
@@ -78,7 +81,7 @@ class TestInstallationNotifier(TestCase):
             "data": {
                 "installation": {
                     "app": {"uuid": self.sentry_app.uuid, "slug": self.sentry_app.slug},
-                    "organization": {"slug": self.org.slug},
+                    "organization": {"slug": self.organization.slug},
                     "uuid": self.install.uuid,
                     "code": self.install.api_grant.code,
                     "status": "installed",
