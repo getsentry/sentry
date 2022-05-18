@@ -125,7 +125,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
                     color={item.color}
                     description={item.description}
                   />
-                  <ActionCategory category={item} />
+                  <ActionCategory action={item} />
                 </Wrapper>
                 <PlayerRelativeTime
                   relativeTime={startTimestamp}
