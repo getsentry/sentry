@@ -6,7 +6,6 @@ import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
 from django.utils import timezone
-from freezegun import freeze_time
 
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery
@@ -283,7 +282,6 @@ class UnfurlTest(TestCase):
         assert chart_data["incidents"][0]["id"] == str(incident.id)
 
     @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
-    @freeze_time("2022-02-21")
     def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):
         alert_rule = self.create_alert_rule(
             query="",
