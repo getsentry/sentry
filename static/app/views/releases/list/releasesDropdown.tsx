@@ -13,11 +13,14 @@ type Props = {
 };
 
 const ReleasesDropdown = ({label: prefix, options, selected, onSelect}: Props) => {
-  const mappedOptions = Object.entries(options).map(([key, {label, tooltip}]) => ({
-    value: key,
-    label,
-    tooltip,
-  }));
+  const mappedOptions = Object.entries(options).map(
+    ([key, {label, tooltip, disabled}]) => ({
+      value: key,
+      label,
+      tooltip,
+      isDisabled: disabled,
+    })
+  );
 
   return (
     <CompactSelect
