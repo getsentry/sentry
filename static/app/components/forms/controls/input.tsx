@@ -9,11 +9,9 @@ export interface InputProps
   type?: React.HTMLInputTypeAttribute;
 }
 
-/**
- * Do not forward required to `input` to avoid default browser behavior
- */
 const Input = styled('input', {
   shouldForwardProp: prop =>
+    // Do not forward required to `input` to avoid default browser behavior
     typeof prop === 'string' && isPropValid(prop) && prop !== 'required',
 })<InputProps>`
   ${inputStyles};
