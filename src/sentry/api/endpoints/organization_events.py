@@ -1,4 +1,6 @@
+import datetime
 import logging
+from calendar import MONDAY
 
 import sentry_sdk
 from rest_framework.exceptions import ParseError
@@ -42,11 +44,21 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
     "api.dashboards.worldmapwidget",
 }
 
+BROWN_OUT_DAYS = [MONDAY]
+
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
+
+        if (
+            features.has(
+                "organizations:discover-eventsv2-brown-out", organization, actor=request.user
+            )
+            and datetime.datetime.today().weekday() in BROWN_OUT_DAYS
+        ):
+            return Response(status=410)
 
         try:
             params = self.get_snuba_params(request, organization)
