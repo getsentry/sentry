@@ -63,7 +63,7 @@ function ReplayPlayPauseBar() {
             currentTime + 1
           );
 
-          if (next && next.timestamp) {
+          if (next?.timestamp) {
             setCurrentTime(relativeTimeInMs(next.timestamp, startTimestamp));
           }
         }}
