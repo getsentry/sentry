@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, PopperProps, Reference} from 'react-popper';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import color from 'color';
 
@@ -363,43 +363,63 @@ class CellAction extends Component<Props, State> {
       return null;
     }
 
-    const modifiers: PopperProps['modifiers'] = {
-      hide: {
+    const modifiers = [
+      {
+        name: 'hide',
         enabled: false,
       },
-      preventOverflow: {
-        padding: 10,
+      {
+        name: 'preventOverflow',
         enabled: true,
-        boundariesElement: 'viewport',
+        options: {
+          padding: 10,
+          altAxis: true,
+        },
       },
-    };
-    let menu: React.ReactPortal | null = null;
+      {
+        name: 'offset',
+        options: {
+          offset: [0, ARROW_SIZE / 2],
+        },
+      },
+      {
+        name: 'computeStyles',
+        options: {
+          // Using the `transform` attribute causes our borders to get blurry
+          // in chrome. See [0]. This just causes it to use `top` / `left`
+          // positions, which should be fine.
+          //
+          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+          gpuAcceleration: false,
+        },
+      },
+    ];
 
-    if (isOpen) {
-      menu = createPortal(
-        <Popper placement="top" modifiers={modifiers}>
-          {({ref: popperRef, style, placement, arrowProps}) => (
-            <Menu
-              ref={ref => {
-                (popperRef as Function)(ref);
-                this.menuEl = ref;
-              }}
-              style={style}
-            >
-              <MenuArrow
-                ref={arrowProps.ref}
-                data-placement={placement}
-                style={arrowProps.style}
-              />
-              <MenuButtons onClick={event => event.stopPropagation()}>
-                {actions}
-              </MenuButtons>
-            </Menu>
-          )}
-        </Popper>,
-        this.portalEl
-      );
-    }
+    const menu = !isOpen
+      ? null
+      : createPortal(
+          <Popper placement="top" modifiers={modifiers}>
+            {({ref: popperRef, style, placement, arrowProps}) => (
+              <Menu
+                ref={ref => {
+                  (popperRef as Function)(ref);
+                  this.menuEl = ref;
+                }}
+                style={style}
+              >
+                <MenuArrow
+                  ref={arrowProps.ref}
+                  data-placement={placement}
+                  style={arrowProps.style}
+                />
+                <MenuButtons onClick={event => event.stopPropagation()}>
+                  {actions}
+                </MenuButtons>
+              </Menu>
+            )}
+          </Popper>,
+          this.portalEl
+        );
 
     return (
       <MenuRoot>
@@ -451,8 +471,6 @@ const MenuRoot = styled('div')`
 `;
 
 const Menu = styled('div')`
-  margin: ${space(1)} 0;
-
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
@@ -464,48 +482,66 @@ const MenuButtons = styled('div')`
   overflow: hidden;
 `;
 
-const MenuArrow = styled('span')`
-  position: absolute;
-  width: 18px;
-  height: 9px;
-  /* left and top set by popper */
+const ARROW_SIZE = 12;
 
-  &[data-placement*='bottom'] {
-    margin-top: -9px;
-    &::before {
-      border-width: 0 9px 9px 9px;
-      border-color: transparent transparent ${p => p.theme.border} transparent;
-    }
-    &::after {
-      top: 1px;
-      left: 1px;
-      border-width: 0 8px 8px 8px;
-      border-color: transparent transparent ${p => p.theme.background} transparent;
-    }
-  }
-  &[data-placement*='top'] {
-    margin-bottom: -8px;
-    bottom: 0;
-    &::before {
-      border-width: 9px 9px 0 9px;
-      border-color: ${p => p.theme.border} transparent transparent transparent;
-    }
-    &::after {
-      bottom: 1px;
-      left: 1px;
-      border-width: 8px 8px 0 8px;
-      border-color: ${p => p.theme.background} transparent transparent transparent;
-    }
-  }
+const MenuArrow = styled('span')`
+  pointer-events: none;
+  position: absolute;
+  width: ${ARROW_SIZE}px;
+  height: ${ARROW_SIZE}px;
 
   &::before,
   &::after {
-    width: 0;
-    height: 0;
     content: '';
     display: block;
     position: absolute;
-    border-style: solid;
+    height: ${ARROW_SIZE}px;
+    width: ${ARROW_SIZE}px;
+    border: solid 6px transparent;
+  }
+
+  &[data-placement|='bottom'] {
+    top: -${ARROW_SIZE}px;
+    &::before {
+      bottom: 1px;
+      border-bottom-color: ${p => p.theme.translucentBorder};
+    }
+    &::after {
+      border-bottom-color: ${p => p.theme.backgroundElevated};
+    }
+  }
+
+  &[data-placement|='top'] {
+    bottom: -${ARROW_SIZE}px;
+    &::before {
+      top: 1px;
+      border-top-color: ${p => p.theme.translucentBorder};
+    }
+    &::after {
+      border-top-color: ${p => p.theme.backgroundElevated};
+    }
+  }
+
+  &[data-placement|='right'] {
+    left: -${ARROW_SIZE}px;
+    &::before {
+      right: 1px;
+      border-right-color: ${p => p.theme.translucentBorder};
+    }
+    &::after {
+      border-right-color: ${p => p.theme.backgroundElevated};
+    }
+  }
+
+  &[data-placement|='left'] {
+    right: -${ARROW_SIZE}px;
+    &::before {
+      left: 1px;
+      border-left-color: ${p => p.theme.translucentBorder};
+    }
+    &::after {
+      border-left-color: ${p => p.theme.backgroundElevated};
+    }
   }
 `;
 

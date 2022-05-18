@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, PopperProps, Reference} from 'react-popper';
+import {Manager, Popper, Reference} from 'react-popper';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
@@ -113,16 +113,17 @@ class OperationSort extends Component<Props, State> {
   }
 
   renderMenu() {
-    const modifiers: PopperProps['modifiers'] = {
-      hide: {
+    const modifiers = [
+      {
+        name: 'hide',
         enabled: false,
       },
-      preventOverflow: {
-        padding: 10,
+      {
+        name: 'preventOverflow',
         enabled: true,
-        boundariesElement: 'viewport',
+        options: {padding: 10},
       },
-    };
+    ];
 
     return createPortal(
       <Popper placement="top" modifiers={modifiers}>
