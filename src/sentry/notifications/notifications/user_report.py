@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class UserReportNotification(ProjectNotification):
-    referrer_base = "user-report"
+    metrics_key = "user_report"
     template_path = "sentry/emails/activity/new-user-feedback"
 
     def __init__(self, project: Project, report: Mapping[str, Any]) -> None:
@@ -37,12 +37,6 @@ class UserReportNotification(ProjectNotification):
             for provider, data in data_by_provider.items()
             if provider in [ExternalProviders.EMAIL]
         }
-
-    def get_category(self) -> str:
-        return "user_report_email"
-
-    def get_type(self) -> str:
-        return "notify.user-report"
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         # Explicitly typing to satisfy mypy.
