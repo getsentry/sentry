@@ -168,8 +168,8 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
 ];
 
-export function getTopNConvertedDefaultWidgets() {
-  DEFAULT_WIDGETS.map(widget => {
+export function getTopNConvertedDefaultWidgets(): Readonly<Array<WidgetTemplate>> {
+  return DEFAULT_WIDGETS.map(widget => {
     if (widget.displayType === DisplayType.TOP_N) {
       return {
         ...widget,
