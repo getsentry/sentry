@@ -3,14 +3,25 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {
+  onlyUserActions,
+  transformCrumbs,
+} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
-import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
+import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
+import {
+  IconArrow,
+  IconNext,
+  IconPause,
+  IconPlay,
+  IconRefresh,
+  IconResize,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-
-import {formatTime} from './utils';
+import {getNextUserAction} from 'sentry/utils/replays/getCurrentUserAction';
 
 const SECOND = 1000;
 
@@ -20,7 +31,8 @@ interface Props {
 }
 
 function ReplayPlayPauseBar() {
-  const {currentTime, isPlaying, setCurrentTime, togglePlayPause} = useReplayContext();
+  const {currentTime, isPlaying, replay, setCurrentTime, togglePlayPause} =
+    useReplayContext();
 
   return (
     <ButtonBar merged>
@@ -40,10 +52,22 @@ function ReplayPlayPauseBar() {
       />
       <Button
         size="xsmall"
-        title={t('Go forward 10 seconds')}
-        icon={<IconClockwise size="sm" />}
-        onClick={() => setCurrentTime(currentTime + 10 * SECOND)}
-        aria-label={t('Go forward 10 seconds')}
+        title={t('Jump to next event')}
+        icon={<IconNext size="sm" />}
+        onClick={() => {
+          const startTimestamp = replay?.getEvent().startTimestamp || 0;
+          const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
+          const next = getNextUserAction(
+            onlyUserActions(transformedCrumbs),
+            replay?.getEvent().startTimestamp,
+            currentTime + 1
+          );
+
+          if (next && next.timestamp) {
+            setCurrentTime(relativeTimeInMs(next.timestamp, startTimestamp));
+          }
+        }}
+        aria-label={t('Jump to next event')}
       />
     </ButtonBar>
   );
@@ -115,10 +139,6 @@ const ReplayControls = ({
     </ButtonGrid>
   );
 };
-
-const IconClockwise = styled(IconRefresh)`
-  transform: scaleX(-1);
-`;
 
 const ButtonGrid = styled('div')`
   display: grid;

@@ -19,3 +19,26 @@ export function getCurrentUserAction(
       : prev;
   });
 }
+
+export function getNextUserAction(
+  crumbs: Crumb[] | undefined,
+  startTimestamp: number | undefined,
+  targetOffsetMS: number
+) {
+  if (!crumbs || startTimestamp === undefined) {
+    return undefined;
+  }
+
+  const targetTimestampMS = startTimestamp * 1000 + targetOffsetMS;
+  return crumbs.reduce<Crumb | undefined>((found, crumb) => {
+    const crumbTimestampMS = +new Date(crumb.timestamp || '');
+
+    if (crumbTimestampMS < targetTimestampMS) {
+      return found;
+    }
+    if (!found || crumbTimestampMS < +new Date(found.timestamp || '')) {
+      return crumb;
+    }
+    return found;
+  }, undefined);
+}
