@@ -24,7 +24,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.helpers.faux import faux
+from sentry.testutils.helpers.faux import DictContaining, faux
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -57,31 +57,6 @@ MockResponseWithHeadersInstance = MockResponse(
     400,
     raiseStatusTrue,
 )
-
-
-class DictContaining:
-    def __init__(self, *args, **kwargs):
-        if len(args) == 1 and isinstance(args[0], dict):
-            self.args = []
-            self.kwargs = args[0]
-        else:
-            self.args = args
-            self.kwargs = kwargs
-
-    def __eq__(self, other):
-        return self._args_match(other) and self._kwargs_match(other)
-
-    def _args_match(self, other):
-        for key in self.args:
-            if key not in other:
-                return False
-        return True
-
-    def _kwargs_match(self, other):
-        for key, value in self.kwargs.items():
-            if self.kwargs[key] != other[key]:
-                return False
-        return True
 
 
 class TestSendAlertEvent(TestCase):

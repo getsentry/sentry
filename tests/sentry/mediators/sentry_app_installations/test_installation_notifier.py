@@ -4,7 +4,7 @@ from unittest.mock import patch
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.sentry_app_installations import InstallationNotifier
 from sentry.testutils import TestCase
-from sentry.testutils.helpers.faux import faux
+from sentry.testutils.helpers.faux import DictContaining, faux
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
@@ -17,14 +17,6 @@ MockResponse = namedtuple(
     "MockResponse", ["headers", "content", "ok", "status_code", "raise_for_status"]
 )
 MockResponseInstance = MockResponse({}, {}, True, 200, raiseStatusFalse)
-
-
-class DictContaining:
-    def __init__(self, *keys):
-        self.keys = keys
-
-    def __eq__(self, other):
-        return all([k in other.keys() for k in self.keys])
 
 
 class TestInstallationNotifier(TestCase):
