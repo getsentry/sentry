@@ -56,7 +56,7 @@ const StyledEmptyMessage = styled(EmptyMessage)`
 
 const ConsoleTable = styled(Panel)`
   display: grid;
-  grid-template-columns: max-content auto auto;
+  grid-template-columns: max-content auto max-content;
   width: 100%;
   font-family: ${p => p.theme.text.familyMono};
   font-size: 0.8em;
