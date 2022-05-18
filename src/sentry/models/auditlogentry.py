@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import (
+    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
@@ -23,7 +24,7 @@ class AuditLogEntry(Model):
     )
     # if the entry was created via an api key
     actor_key = FlexibleForeignKey("sentry.ApiKey", null=True, blank=True)
-    target_object = BoundedPositiveIntegerField(null=True)
+    target_object = BoundedBigIntegerField(null=True)
     target_user = FlexibleForeignKey(
         "sentry.User",
         null=True,
@@ -48,7 +49,6 @@ class AuditLogEntry(Model):
     __repr__ = sane_repr("organization_id", "type")
 
     def save(self, *args, **kwargs):
-        breakpoint()
         if not self.actor_label:
             assert self.actor or self.actor_key
             if self.actor:

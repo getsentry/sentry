@@ -22,6 +22,7 @@ from sentry.constants import (
     RESERVED_PROJECT_SLUGS,
 )
 from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models.base import Snowflake
 from sentry.db.models.utils import slugify_instance
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
@@ -186,13 +187,14 @@ class Organization(Model):
         return f"{self.name} ({self.slug})"
 
     def save(self, *args, **kwargs):
+        snowflake = Snowflake()
+        if not self.id:
+            self.id = snowflake.snowflake_id_generation()
         if not self.slug:
             lock = locks.get("slug:organization", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
-            super().save(*args, **kwargs)
-        else:
-            super().save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting

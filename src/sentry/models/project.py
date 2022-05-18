@@ -166,7 +166,6 @@ class Project(Model, PendingDeletionMixin):
             return Counter.increment(self)
 
     def save(self, *args, **kwargs):
-        breakpoint()
         snowflake = Snowflake()
         if not self.id:
             self.id = snowflake.snowflake_id_generation()
