@@ -162,7 +162,7 @@ export function onlyUserActions(crumbs: Crumb[]): Crumb[] {
   return crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
 }
 
-function moduleToCategory(module?: string | null) {
+function moduleToCategory(module: string | null | undefined) {
   if (!module) {
     return undefined;
   }
