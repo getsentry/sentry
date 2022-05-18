@@ -227,7 +227,7 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
             installation = self.get_installation_info(state["installation_id"])
         except ApiError as api_error:
             if api_error.code == 404:
-                raise IntegrationError("The Github installation could not be found.")
+                raise IntegrationError("The GitHub installation could not be found.")
             raise api_error
 
         integration = {

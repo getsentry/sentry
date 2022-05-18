@@ -201,7 +201,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         resp = self.client.get(
             "{}?{}".format(self.setup_path, urlencode({"installation_id": self.installation_id}))
         )
-        assert b"The Github installation could not be found." in resp.content
+        assert b"The GitHub installation could not be found." in resp.content
 
     @responses.activate
     def test_reinstall_flow(self):
