@@ -9,6 +9,6 @@ sincerely gobbler epic immensely katydid beloved stunning falcon mainly actively
 
 goose smiling gobbler sterling feline
 
-http://testserver/organizations/organization/issues/1/activity/?referrer=note-activity-email
+http://testserver/organizations/organization/issues/1/activity/?referrer=note_activity-email
 
 Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");
