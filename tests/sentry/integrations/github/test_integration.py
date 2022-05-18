@@ -66,7 +66,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 "account": {
                     "login": "Test Organization",
                     "avatar_url": "http://example.com/avatar.png",
-                    "html_url": "https://github.com/Test-``Organization",
+                    "html_url": "https://github.com/Test-Organization",
                     "type": "Organization",
                 },
             },
