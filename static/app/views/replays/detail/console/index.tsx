@@ -17,7 +17,7 @@ interface Props {
 }
 
 const getDistinctLogLevels = breadcrumbs =>
-  Array.from(new Set(breadcrumbs.map(breadcrumb => breadcrumb.level)));
+  Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
 function Console({breadcrumbs}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,7 +46,7 @@ function Console({breadcrumbs}: Props) {
           multiple
           options={getDistinctLogLevels(breadcrumbs).map(breadcrumbLogLevel => ({
             value: breadcrumbLogLevel,
-            label: breadcrumbLogLevel as string,
+            label: breadcrumbLogLevel,
           }))}
           onChange={selections =>
             setLogLevel(selections.map(selection => selection.value))
@@ -78,7 +78,7 @@ const ConsoleFilters = styled('div')`
   grid-template-columns: max-content 1fr;
   width: 100%;
   margin-bottom: ${space(1)};
-  margin-top: 28px;
+  margin-top: ${space(1)};
 `;
 
 const StyledEmptyMessage = styled(EmptyMessage)`
