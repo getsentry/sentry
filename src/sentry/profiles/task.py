@@ -51,6 +51,7 @@ def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
+        key_id=None,
         outcome=Outcome.ACCEPTED,
         reason=None,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
