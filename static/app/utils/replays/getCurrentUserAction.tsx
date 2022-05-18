@@ -20,16 +20,20 @@ export function getCurrentUserAction(
   });
 }
 
-export function getNextUserAction(
-  crumbs: Crumb[] | undefined,
-  startTimestamp: number | undefined,
-  targetOffsetMS: number
-) {
-  if (!crumbs || startTimestamp === undefined) {
+export function getNextUserAction({
+  crumbs,
+  startTimestampSec,
+  targetOffsetMS,
+}: {
+  crumbs: Crumb[];
+  startTimestampSec: number | undefined;
+  targetOffsetMS: number;
+}) {
+  if (startTimestampSec === undefined) {
     return undefined;
   }
 
-  const targetTimestampMS = startTimestamp * 1000 + targetOffsetMS;
+  const targetTimestampMS = startTimestampSec * 1000 + targetOffsetMS;
   return crumbs.reduce<Crumb | undefined>((found, crumb) => {
     const crumbTimestampMS = +new Date(crumb.timestamp || '');
 

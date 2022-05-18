@@ -57,11 +57,11 @@ function ReplayPlayPauseBar() {
         onClick={() => {
           const startTimestamp = replay?.getEvent().startTimestamp || 0;
           const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
-          const next = getNextUserAction(
-            onlyUserActions(transformedCrumbs),
-            replay?.getEvent().startTimestamp,
-            currentTime + 1
-          );
+          const next = getNextUserAction({
+            crumbs: onlyUserActions(transformedCrumbs),
+            startTimestampSec: replay?.getEvent().startTimestamp,
+            targetOffsetMS: currentTime + 1,
+          });
 
           if (next?.timestamp) {
             setCurrentTime(relativeTimeInMs(next.timestamp, startTimestamp));
