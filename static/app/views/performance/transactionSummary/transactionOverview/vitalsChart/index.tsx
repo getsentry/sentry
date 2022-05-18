@@ -141,7 +141,7 @@ function VitalsChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.vitals-chart"
-        isDirty={decodeScalar(location.query.isDirty)}
+        userModified={decodeScalar(location.query.userModified)}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content

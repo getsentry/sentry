@@ -103,7 +103,7 @@ function SummaryContent({
       pathname: location.pathname,
       query: {
         ...searchQueryParams,
-        isDirty: true,
+        userModified: true,
       },
     });
   }

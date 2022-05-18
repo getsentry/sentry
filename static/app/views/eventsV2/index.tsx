@@ -26,7 +26,7 @@ function DiscoverContainer({organization, children, location}: Props) {
           pathname: location.pathname,
           query: {
             ...location.query,
-            isDirty: false,
+            userModified: undefined,
           },
         });
       }

@@ -316,7 +316,7 @@ class Results extends Component<Props, State> {
       pathname: location.pathname,
       query: {
         ...searchQueryParams,
-        isDirty: true,
+        userModified: true,
       },
     });
   };

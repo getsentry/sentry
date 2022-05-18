@@ -148,10 +148,6 @@ type EventsRequestPartialProps = {
    */
   hideError?: boolean;
   /**
-   * Tracks whether the query was modified by a user in the search bar
-   */
-  isDirty?: string;
-  /**
    * Initial loading state
    */
   loading?: boolean;
@@ -197,6 +193,10 @@ type EventsRequestPartialProps = {
    * in the `results` child render function.
    */
   topEvents?: number;
+  /**
+   * Tracks whether the query was modified by a user in the search bar
+   */
+  userModified?: string;
   /**
    * Whether or not to zerofill results
    */

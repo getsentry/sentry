@@ -111,7 +111,7 @@ function VitalChart({
               includePrevious={false}
               yAxis={[yAxis]}
               partial
-              isDirty={decodeScalar(location.query.isDirty)}
+              userModified={decodeScalar(location.query.userModified)}
             >
               {({timeseriesData: results, errored, loading, reloading}) => {
                 if (errored) {

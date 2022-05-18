@@ -80,7 +80,7 @@ function SpansContent(props: Props) {
         ...location,
         query: {
           ...searchQueryParams,
-          isDirty: key === 'query',
+          userModified: key === 'query',
         },
       });
     };

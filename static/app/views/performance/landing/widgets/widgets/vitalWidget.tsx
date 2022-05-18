@@ -168,7 +168,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               hideError
               onError={pageError.setPageError}
               queryExtras={getMEPQueryParams(mepSetting)}
-              isDirty={decodeScalar(props.location.query.isDirty)}
+              userModified={decodeScalar(props.location.query.userModified)}
             />
           );
         },
@@ -178,7 +178,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
         props.chartSetting,
         selectedListIndex,
         mepSetting.memoizationKey,
-        props.location.query.isDirty,
+        props.location.query.userModified,
       ]
     ),
   };

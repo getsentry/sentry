@@ -93,7 +93,7 @@ class VitalDetailContent extends Component<Props, State> {
       pathname: location.pathname,
       query: {
         ...searchQueryParams,
-        isDirty: true,
+        userModified: true,
       },
     });
   };

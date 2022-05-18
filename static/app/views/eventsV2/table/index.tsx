@@ -100,7 +100,7 @@ class Table extends PureComponent<TableProps, TableState> {
       EventQuery & {user_modified?: string};
     apiPayload.referrer = 'api.discover.query-table';
 
-    const queryUserModified = decodeScalar(location.query.isDirty);
+    const queryUserModified = decodeScalar(location.query.userModified);
     if (queryUserModified !== undefined) {
       apiPayload.user_modified = queryUserModified;
     }

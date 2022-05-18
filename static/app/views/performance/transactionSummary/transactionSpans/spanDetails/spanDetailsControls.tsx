@@ -36,7 +36,7 @@ export default function SpanDetailsControls({
         ...location.query,
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
-        isDirty: true,
+        userModified: true,
       },
     });
   };

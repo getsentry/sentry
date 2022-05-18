@@ -149,7 +149,7 @@ function DurationChart({
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.duration-chart"
         queryExtras={getMEPQueryParams(mepContext)}
-        isDirty={decodeScalar(location.query.isDirty)}
+        userModified={decodeScalar(location.query.userModified)}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content

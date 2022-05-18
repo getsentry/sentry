@@ -180,7 +180,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             hideError
             onError={pageError.setPageError}
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
-            isDirty={decodeScalar(props.location.query.isDirty)}
+            userModified={decodeScalar(props.location.query.userModified)}
           />
         );
       },
@@ -190,7 +190,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
     props.chartSetting,
     selectedListIndex,
     mepSetting.memoizationKey,
-    props.location.query.isDirty,
+    props.location.query.userModified,
   ]);
 
   const Queries = {

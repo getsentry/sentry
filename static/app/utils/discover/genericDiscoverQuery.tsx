@@ -191,7 +191,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     }
 
     if (props.route === 'eventsv2') {
-      const queryUserModified = decodeScalar(location.query?.isDirty);
+      const queryUserModified = decodeScalar(location.query?.userModified);
       if (queryUserModified !== undefined) {
         payload.user_modified = queryUserModified;
       }

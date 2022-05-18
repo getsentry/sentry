@@ -281,8 +281,8 @@ describe('EventsV2 > Results', function () {
         ...generateFields(),
         query: 'geo:canada',
         statsPeriod: '14d',
-        // isDirty added on new search for the search bar experiment
-        isDirty: true,
+        // userModified added on new search for the search bar experiment
+        userModified: true,
       },
     });
     wrapper.unmount();

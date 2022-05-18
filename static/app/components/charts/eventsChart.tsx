@@ -667,7 +667,7 @@ class EventsChart extends React.Component<EventsChartProps> {
               partial
               // Cannot do interpolation when stacking series
               withoutZerofill={withoutZerofill && !this.isStacked()}
-              isDirty={decodeScalar(router.location.query.isDirty)}
+              userModified={decodeScalar(router.location.query.userModified)}
             >
               {eventData => {
                 return chartImplementation({

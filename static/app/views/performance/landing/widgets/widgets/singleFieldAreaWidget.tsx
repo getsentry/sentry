@@ -60,14 +60,14 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               hideError
               onError={pageError.setPageError}
               queryExtras={getMEPQueryParams(mepSetting)}
-              isDirty={decodeScalar(location.query.isDirty)}
+              userModified={decodeScalar(location.query.userModified)}
             />
           )}
         </QueryBatchNode>
       ),
       transform: transformEventsRequestToArea,
     }),
-    [props.chartSetting, mepSetting.memoizationKey, location.query.isDirty]
+    [props.chartSetting, mepSetting.memoizationKey, location.query.userModified]
   );
 
   const Queries = {

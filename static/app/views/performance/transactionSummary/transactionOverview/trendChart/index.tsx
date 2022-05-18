@@ -130,7 +130,7 @@ function TrendChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.trends-chart"
-        isDirty={decodeScalar(location.query.isDirty)}
+        userModified={decodeScalar(location.query.userModified)}
       >
         {({errored, loading, reloading, timeseriesData, timeframe: timeFrame}) => (
           <Content

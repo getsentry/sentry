@@ -25,7 +25,6 @@ type Options = {
   generatePathname?: (org: OrganizationSummary) => string;
   includePrevious?: boolean;
   interval?: string;
-  isDirty?: string;
   limit?: number;
   orderby?: string;
   period?: string | null;
@@ -37,6 +36,7 @@ type Options = {
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
+  userModified?: string;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
@@ -86,7 +86,7 @@ export const doEventsRequest = (
     generatePathname,
     queryExtras,
     excludeOther,
-    isDirty,
+    userModified,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
   const pathname =
@@ -110,7 +110,7 @@ export const doEventsRequest = (
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
-      user_modified: pathname.includes('events-stats') ? isDirty : undefined,
+      user_modified: pathname.includes('events-stats') ? userModified : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 

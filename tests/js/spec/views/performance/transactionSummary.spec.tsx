@@ -463,7 +463,7 @@ describe('Performance > TransactionSummary', function () {
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
         transactionCursor: '1:0:0',
-        isDirty: true,
+        userModified: true,
       },
     });
   });
