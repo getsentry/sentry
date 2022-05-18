@@ -22,7 +22,8 @@ export type AlertType =
   | 'crash_free_users'
   // Mobile vitals
   | 'app_start_cold'
-  | 'app_start_warm';
+  | 'app_start_warm'
+  | 'frames_slow';
 
 export type MetricAlertType = Exclude<AlertType, 'issues'>;
 
@@ -42,6 +43,7 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   crash_free_users: t('Crash Free User Rate'),
   app_start_cold: t('App Cold Start'),
   app_start_warm: t('App Warm Start'),
+  frames_slow: t('Slow Frames'),
 };
 
 type AlertWizardCategory = {
@@ -73,6 +75,7 @@ export const getAlertWizardCategories = (org: Organization): AlertWizardCategory
       'cls',
       'app_start_cold',
       'app_start_warm',
+      'frames_slow',
     ],
   },
   {
@@ -163,6 +166,11 @@ export const AlertWizardRuleTemplates: Record<
     dataset: Dataset.TRANSACTIONS,
     eventTypes: EventTypes.TRANSACTION,
   },
+  frames_slow: {
+    aggregate: 'p75(measurements.frames_slow)',
+    dataset: Dataset.TRANSACTIONS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
 };
 
 export const DEFAULT_WIZARD_TEMPLATE = AlertWizardRuleTemplates.num_errors;
@@ -184,6 +192,7 @@ export const hideParameterSelectorSet = new Set<AlertType>([
   'cls',
   'app_start_cold',
   'app_start_warm',
+  'frames_slow',
 ]);
 
 export function getFunctionHelpText(alertType: AlertType): {

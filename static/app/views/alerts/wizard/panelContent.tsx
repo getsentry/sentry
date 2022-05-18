@@ -173,4 +173,14 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustom,
   },
+  frames_slow: {
+    description: t(
+      'Using 60 fps, slow frames are frames that take more time than necessary to render.'
+    ),
+    examples: [
+      t('On iOS, a slow frame occurs when a frame renders after 16.67 ms.'),
+      t('On Android, a slow frame occurs when a frame renders after 16 ms.'),
+    ],
+    illustration: diagramCustom,
+  },
 };
