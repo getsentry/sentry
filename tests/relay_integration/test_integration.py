@@ -205,10 +205,10 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             ]
             assert raw_event["breakdowns"] == {
                 "span_ops": {
-                    "ops.browser": {"value": pytest.approx(200)},
-                    "ops.resource": {"value": pytest.approx(200)},
-                    "ops.http": {"value": pytest.approx(200)},
-                    "ops.db": {"value": pytest.approx(200)},
-                    "total.time": {"value": pytest.approx(1050)},
+                    "ops.browser": {"unit": "millisecond", "value": pytest.approx(200)},
+                    "ops.resource": {"unit": "millisecond", "value": pytest.approx(200)},
+                    "ops.http": {"unit": "millisecond", "value": pytest.approx(200)},
+                    "ops.db": {"unit": "millisecond", "value": pytest.approx(200)},
+                    "total.time": {"unit": "millisecond", "value": pytest.approx(1050)},
                 }
             }
