@@ -663,6 +663,7 @@ def _parse_orderby(
 
     field = fields[orderby]
 
+    # ToDo(ahmed): Examine this
     if len(field.metric_fields) != 1:
         # This can still happen when we filter by session.status
         raise InvalidParams(f"Cannot order by {field.name} with the current filters")

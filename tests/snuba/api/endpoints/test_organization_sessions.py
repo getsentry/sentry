@@ -1429,8 +1429,19 @@ class OrganizationSessionsEndpointMetricsTest(
                 }
             ]
 
+
+@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+class OrganizationSessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCase):
+    def do_request(self, query, user=None, org=None):
+        self.login_as(user=user or self.user)
+        url = reverse(
+            "sentry-api-0-organization-sessions",
+            kwargs={"organization_slug": (org or self.organization).slug},
+        )
+        return self.client.get(url, query, format="json")
+
     @freeze_time(MOCK_DATETIME)
-    def test_session_metrics_order_by_release_timestamp_no_releases(self):
+    def test_order_by_with_no_releases(self):
         """
         Test that ensures if we have no releases in the preflight query when trying to order by
         `release.timestamp`, we get no groups.
@@ -1455,13 +1466,12 @@ class OrganizationSessionsEndpointMetricsTest(
         assert response.data["groups"] == []
 
     @freeze_time(MOCK_DATETIME)
-    def test_session_metrics_order_by_release_timestamp(self):
+    def test_order_by(self):
         """
         Test that ensures that we are able to get the crash_free_rate for the most 2 recent
         releases when grouping by release
 
         ToDo(ahmed): Disambiguate
-        ToDo(ahmed): Check for environment
         """
         # Step 1: Create 3 releases
         release1b = self.create_release(version="1B")
@@ -1471,21 +1481,21 @@ class OrganizationSessionsEndpointMetricsTest(
         # Step 2: Create crash free rate for each of those releases
         # Release 1c -> 66.7% Crash free rate
         for _ in range(0, 2):
-            self.store_session(make_session(self.project1, release=release1c.version))
-        self.store_session(make_session(self.project1, release=release1c.version, status="crashed"))
+            self.store_session(make_session(self.project, release=release1c.version))
+        self.store_session(make_session(self.project, release=release1c.version, status="crashed"))
 
         # Release 1b -> 33.3% Crash free rate
         for _ in range(0, 2):
             self.store_session(
-                make_session(self.project1, release=release1b.version, status="crashed")
+                make_session(self.project, release=release1b.version, status="crashed")
             )
-        self.store_session(make_session(self.project1, release=release1b.version))
+        self.store_session(make_session(self.project, release=release1b.version))
 
         # Create Sessions in each of these releases
         # Release 1d -> 80% Crash free rate
         for _ in range(0, 4):
-            self.store_session(make_session(self.project1, release=release1d.version))
-        self.store_session(make_session(self.project1, release=release1d.version, status="crashed"))
+            self.store_session(make_session(self.project, release=release1d.version))
+        self.store_session(make_session(self.project, release=release1d.version, status="crashed"))
 
         # Step 3: Make request
         response = self.do_request(
@@ -1519,7 +1529,7 @@ class OrganizationSessionsEndpointMetricsTest(
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_session_metrics_order_by_release_timestamp_with_session_status(self):
+    def test_order_by_with_session_status_groupby(self):
         """
         Test that ensures we are able to group by session.status and order by `release.timestamp`
         since `release.timestamp` is generated from a preflight query
@@ -1602,10 +1612,18 @@ class OrganizationSessionsEndpointMetricsTest(
         ]
 
     @freeze_time(MOCK_DATETIME)
-    def test_session_metrics_order_by_release_timestamp_with_limit(self):
+    def test_order_by_with_limit(self):
         # ToDo: Expect limit to be applied on pre-flight query as well
         ...
 
     @freeze_time(MOCK_DATETIME)
-    def test_sessions_metrics_order_by_release_timestamp_environment_filter_on_preflight(self):
+    def test_order_by_with_environment_filter_on_preflight(self):
+        ...
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_without_session_status_groupby(self):
+        ...
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_release_with_session_status_current_filter(self):
         ...
