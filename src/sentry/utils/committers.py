@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import operator
 from collections import defaultdict
 from functools import reduce
@@ -23,7 +25,6 @@ from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
-from sentry.utils.compat import zip
 from sentry.utils.hashlib import hash_values
 from sentry.utils.safe import PathSearchable, get_path
 
@@ -130,22 +131,28 @@ def _match_commits_path(
 
 
 class AuthorCommits(TypedDict):
-    author: Author
+    author: Union[Author, None]
     commits: Sequence[Tuple[Commit, int]]
 
 
 class AuthorCommitsSerialized(TypedDict):
-    author: Author
+    author: Union[Author, None]
     commits: Sequence[MutableMapping[str, Any]]
 
 
+class AnnotatedFrame(TypedDict):
+    frame: str
+    commits: Sequence[Tuple[Commit, int]]
+
+
 def _get_committers(
-    annotated_frames: Sequence[MutableMapping[str, Any]],
+    annotated_frames: Sequence[AnnotatedFrame],
     commits: Sequence[Tuple[Commit, int]],
 ) -> Sequence[AuthorCommits]:
     # extract the unique committers and return their serialized sentry accounts
     committers: MutableMapping[int, int] = defaultdict(int)
 
+    # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
     limit = 5
     for annotated_frame in annotated_frames:
         if limit == 0:
@@ -158,22 +165,16 @@ def _get_committers(
             if limit == 0:
                 break
 
-    # organize them by this heuristic (first frame is worth 5 points, second is worth 4, etc.)
-    sorted_committers = sorted(committers.items(), key=operator.itemgetter(1))
-
-    users_by_author: Mapping[str, Author] = get_users_for_commits([c for c, _ in commits])
-
-    user_dicts: Sequence[AuthorCommits] = [
+    author_users: Mapping[str, Author] = get_users_for_commits([c for c, _ in commits])
+    return [
         {
-            "author": users_by_author.get(str(author_id), {}),
+            "author": author_users.get(str(author_id)),
             "commits": [
                 (commit, score) for (commit, score) in commits if commit.author_id == author_id
             ],
         }
-        for author_id, _ in sorted_committers
+        for author_id, _ in sorted(committers.items(), key=operator.itemgetter(1))
     ]
-
-    return user_dicts
 
 
 def get_previous_releases(
@@ -237,7 +238,6 @@ def get_event_file_committers(
     group = Group.objects.get_from_cache(id=group_id)
 
     first_release_version = group.get_first_release()
-
     if not first_release_version:
         raise Release.DoesNotExist
 
@@ -246,7 +246,6 @@ def get_event_file_committers(
         raise Release.DoesNotExist
 
     commits = _get_commits(releases)
-
     if not commits:
         raise Commit.DoesNotExist
 
@@ -280,26 +279,27 @@ def get_event_file_committers(
         if f
     }
 
-    file_changes: Sequence[CommitFileChange] = []
-    if path_set:
-        file_changes = _get_commit_file_changes(commits, path_set)
+    file_changes: Sequence[CommitFileChange] = (
+        _get_commit_file_changes(commits, path_set) if path_set else []
+    )
 
     commit_path_matches: Mapping[str, Sequence[Tuple[Commit, int]]] = {
         path: _match_commits_path(file_changes, path) for path in path_set
     }
 
-    annotated_frames = [
+    annotated_frames: Sequence[AnnotatedFrame] = [
         {
-            "frame": frame,
-            "commits": commit_path_matches.get(str(frame.get("filename") or frame.get("abs_path")))
-            or [],
+            "frame": str(frame),
+            "commits": commit_path_matches.get(
+                str(frame.get("filename") or frame.get("abs_path")), []
+            ),
         }
         for frame in app_frames
     ]
 
-    relevant_commits: Sequence[Tuple[Commit, int]] = list(
-        {match for matches in commit_path_matches.values() for match in matches}
-    )
+    relevant_commits: Sequence[Tuple[Commit, int]] = [
+        match for matches in commit_path_matches.values() for match in matches
+    ]
 
     return _get_committers(annotated_frames, relevant_commits)
 

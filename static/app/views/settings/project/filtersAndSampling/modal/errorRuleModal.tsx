@@ -10,10 +10,8 @@ import {
 } from 'sentry/types/dynamicSampling';
 import {defined} from 'sentry/utils';
 
-import {getInnerNameLabel} from '../utils';
-
 import RuleModal from './ruleModal';
-import {getNewCondition} from './utils';
+import {generateConditionCategoriesOptions, getNewCondition} from './utils';
 
 type RuleModalProps = React.ComponentProps<typeof RuleModal>;
 
@@ -70,7 +68,7 @@ function ErrorRuleModal({rule, errorRules, transactionRules, ...props}: Props) {
       {...props}
       title={rule ? t('Edit Error Sampling Rule') : t('Add Error Sampling Rule')}
       emptyMessage={t('Apply sampling rate to all errors')}
-      conditionCategories={[
+      conditionCategories={generateConditionCategoriesOptions([
         DynamicSamplingInnerName.EVENT_RELEASE,
         DynamicSamplingInnerName.EVENT_ENVIRONMENT,
         DynamicSamplingInnerName.EVENT_USER_ID,
@@ -87,9 +85,8 @@ function ErrorRuleModal({rule, errorRules, transactionRules, ...props}: Props) {
         DynamicSamplingInnerName.EVENT_OS_VERSION,
         DynamicSamplingInnerName.EVENT_DEVICE_FAMILY,
         DynamicSamplingInnerName.EVENT_DEVICE_NAME,
-      ]
-        .sort((a, b) => getInnerNameLabel(a).localeCompare(getInnerNameLabel(b)))
-        .map(innerName => [innerName, getInnerNameLabel(innerName)])}
+        DynamicSamplingInnerName.EVENT_CUSTOM_TAG,
+      ])}
       rule={rule}
       onSubmit={handleSubmit}
     />

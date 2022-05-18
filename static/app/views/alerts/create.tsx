@@ -12,9 +12,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import IncidentRulesCreate from 'sentry/views/alerts/incidentRules/create';
-import IncidentRulesDuplicate from 'sentry/views/alerts/incidentRules/duplicate';
-import IssueRuleEditor from 'sentry/views/alerts/issueRuleEditor';
+import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
+import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
+import MetricRulesDuplicate from 'sentry/views/alerts/rules/metric/duplicate';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertType as WizardAlertType,
@@ -95,36 +95,42 @@ class Create extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, project} = this.props;
+
+    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+
     trackAdvancedAnalyticsEvent('new_alert_rule.viewed', {
       organization,
       project_id: project.id,
       session_id: this.sessionId,
       alert_type: this.state.alertType,
+      duplicate_rule: this.isDuplicateRule ? 'true' : 'false',
+      wizard_v3: hasAlertWizardV3 ? 'true' : 'false',
     });
   }
 
   /** Used to track analytics within one visit to the creation page */
   sessionId = uniqueId();
 
+  get isDuplicateRule(): boolean {
+    const {location, organization} = this.props;
+    const createFromDuplicate = location?.query.createFromDuplicate === 'true';
+    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
+    return (
+      hasDuplicateAlertRules && createFromDuplicate && location?.query.duplicateRuleId
+    );
+  }
+
   render() {
     const {hasMetricAlerts, organization, project, location, routes} = this.props;
     const {alertType} = this.state;
-    const {
-      aggregate,
-      dataset,
-      eventTypes,
-      createFromWizard,
-      createFromDiscover,
-      createFromDuplicate,
-    } = location?.query ?? {};
+    const {aggregate, dataset, eventTypes, createFromWizard, createFromDiscover} =
+      location?.query ?? {};
     const wizardTemplate: WizardRuleTemplate = {
       aggregate: aggregate ?? DEFAULT_WIZARD_TEMPLATE.aggregate,
       dataset: dataset ?? DEFAULT_WIZARD_TEMPLATE.dataset,
       eventTypes: eventTypes ?? DEFAULT_WIZARD_TEMPLATE.eventTypes,
     };
     const eventView = createFromDiscover ? EventView.fromLocation(location) : undefined;
-
-    const hasDuplicateAlertRules = organization.features.includes('duplicate-alert-rule');
 
     let wizardAlertType: undefined | WizardAlertType;
     if (createFromWizard && alertType === AlertRuleType.METRIC) {
@@ -174,8 +180,8 @@ class Create extends Component<Props, State> {
 
                     {hasMetricAlerts &&
                       alertType === AlertRuleType.METRIC &&
-                      (createFromDuplicate && hasDuplicateAlertRules ? (
-                        <IncidentRulesDuplicate
+                      (this.isDuplicateRule ? (
+                        <MetricRulesDuplicate
                           {...this.props}
                           eventView={eventView}
                           wizardTemplate={wizardTemplate}
@@ -184,7 +190,7 @@ class Create extends Component<Props, State> {
                           userTeamIds={teams.map(({id}) => id)}
                         />
                       ) : (
-                        <IncidentRulesCreate
+                        <MetricRulesCreate
                           {...this.props}
                           eventView={eventView}
                           wizardTemplate={wizardTemplate}

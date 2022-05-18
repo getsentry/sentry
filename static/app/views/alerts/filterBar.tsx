@@ -8,7 +8,7 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import TeamFilter from './rules/teamFilter';
+import TeamFilter from './list/rules/teamFilter';
 import {getQueryStatus, getTeamParams} from './utils';
 
 interface Props {

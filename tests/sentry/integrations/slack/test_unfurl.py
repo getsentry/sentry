@@ -1,8 +1,11 @@
+from datetime import datetime, timedelta
 from unittest.mock import patch
 
+import freezegun
 import pytest
 from django.http.request import QueryDict
 from django.test import RequestFactory
+from django.utils import timezone
 
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery
@@ -11,6 +14,7 @@ from sentry.integrations.slack.message_builder.discover import SlackDiscoverMess
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
+from sentry.snuba.models import QueryDatasets
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -28,14 +32,56 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
             (
                 LinkType.METRIC_ALERT,
-                {"alert_rule_id": 12345, "incident_id": None, "org_slug": "org1"},
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": None,
+                    "org_slug": "org1",
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
             ),
         ),
         (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/?alert=1337",
             (
                 LinkType.METRIC_ALERT,
-                {"alert_rule_id": 12345, "incident_id": 1337, "org_slug": "org1"},
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": 1337,
+                    "org_slug": "org1",
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ),
+        (
+            "https://sentry.io/organizations/org1/alerts/rules/details/12345/?period=14d",
+            (
+                LinkType.METRIC_ALERT,
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": None,
+                    "org_slug": "org1",
+                    "period": "14d",
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ),
+        (
+            "https://sentry.io/organizations/org1/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
+            (
+                LinkType.METRIC_ALERT,
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": None,
+                    "org_slug": "org1",
+                    "period": None,
+                    "start": "2022-05-04T00:46:19",
+                    "end": "2022-05-05T06:05:52",
+                },
             ),
         ),
         (
@@ -60,6 +106,11 @@ class UnfurlTest(TestCase):
         self.integration = install_slack(self.organization)
 
         self.request = RequestFactory().get("slack/event")
+        self.frozen_time = freezegun.freeze_time(datetime.now() - timedelta(days=1))
+        self.frozen_time.start()
+
+    def tearDown(self):
+        self.frozen_time.stop()
 
     def test_unfurl_issues(self):
         min_ago = iso_format(before_now(minutes=1))
@@ -106,6 +157,9 @@ class UnfurlTest(TestCase):
                     "org_slug": self.organization.slug,
                     "alert_rule_id": incident.alert_rule.id,
                     "incident_id": incident.identifier,
+                    "period": None,
+                    "start": None,
+                    "end": None,
                 },
             ),
         ]
@@ -118,6 +172,161 @@ class UnfurlTest(TestCase):
             unfurls[links[0].url]
             == SlackMetricAlertMessageBuilder(incident.alert_rule, incident).build()
         )
+
+    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    def test_unfurl_metric_alerts_chart(self, mock_generate_chart):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(
+            status=2,
+            organization=self.organization,
+            projects=[self.project],
+            alert_rule=alert_rule,
+            date_started=timezone.now() - timedelta(minutes=2),
+        )
+        incident.update(identifier=123)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        links = [
+            UnfurlableUrl(
+                url=url,
+                args={
+                    "org_slug": self.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                    "incident_id": incident.identifier,
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ]
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+
+        assert (
+            unfurls[links[0].url]
+            == SlackMetricAlertMessageBuilder(alert_rule, incident, chart_url="chart-url").build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["rule"]["id"] == str(alert_rule.id)
+        assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
+        series_data = chart_data["timeseriesData"][0]["data"]
+        assert len(series_data) > 0
+        # Validate format of timeseries
+        assert type(series_data[0]["name"]) is int
+        assert type(series_data[0]["value"]) is float
+        assert chart_data["incidents"][0]["id"] == str(incident.id)
+
+    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    def test_unfurl_metric_alerts_chart_transaction(self, mock_generate_chart):
+        # Using the transactions dataset
+        alert_rule = self.create_alert_rule(query="p95", dataset=QueryDatasets.TRANSACTIONS)
+        incident = self.create_incident(
+            status=2,
+            organization=self.organization,
+            projects=[self.project],
+            alert_rule=alert_rule,
+            date_started=timezone.now() - timedelta(minutes=2),
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        links = [
+            UnfurlableUrl(
+                url=url,
+                args={
+                    "org_slug": self.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                    "incident_id": incident.identifier,
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ]
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:performance-view",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+
+        assert (
+            unfurls[links[0].url]
+            == SlackMetricAlertMessageBuilder(alert_rule, incident, chart_url="chart-url").build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["rule"]["id"] == str(alert_rule.id)
+        assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
+        series_data = chart_data["timeseriesData"][0]["data"]
+        assert len(series_data) > 0
+        # Validate format of timeseries
+        assert type(series_data[0]["name"]) is int
+        assert type(series_data[0]["value"]) is float
+        assert chart_data["incidents"][0]["id"] == str(incident.id)
+
+    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    def test_unfurl_metric_alerts_chart_crash_free(self, mock_generate_chart):
+        alert_rule = self.create_alert_rule(
+            query="",
+            aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+            dataset=QueryDatasets.SESSIONS,
+            time_window=60,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+
+        url = f"https://sentry.io/organizations/{self.organization.slug}/alerts/rules/details/{alert_rule.id}/"
+        links = [
+            UnfurlableUrl(
+                url=url,
+                args={
+                    "org_slug": self.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                    "incident_id": None,
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ]
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            unfurls = link_handlers[LinkType.METRIC_ALERT].fn(self.request, self.integration, links)
+
+        assert (
+            unfurls[links[0].url]
+            == SlackMetricAlertMessageBuilder(alert_rule, chart_url="chart-url").build()
+        )
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["rule"]["id"] == str(alert_rule.id)
+        assert chart_data["selectedIncident"] is None
+        assert len(chart_data["sessionResponse"]["groups"]) >= 1
+        assert len(chart_data["incidents"]) == 0
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_unfurl_discover(self, mock_generate_chart):
@@ -428,16 +637,26 @@ class UnfurlTest(TestCase):
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
+        first_event = self.store_event(
             data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
             project_id=self.project.id,
         )
-        self.store_event(
+        second_event = self.store_event(
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
             project_id=self.project.id,
         )
-
-        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=dailytop5&topEvents=2"
+        url = (
+            f"https://sentry.io/organizations/{self.organization.slug}/discover/results/"
+            f"?field=message"
+            f"&field=event.type"
+            f"&field=count()"
+            f"&name=All+Events"
+            f"&query=message:[{first_event.message},{second_event.message}]"
+            f"&sort=-count"
+            f"&statsPeriod=24h"
+            f"&display=dailytop5"
+            f"&topEvents=2"
+        )
         link_type, args = match_link(url)
 
         if not args or not link_type:
