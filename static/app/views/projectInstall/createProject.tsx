@@ -356,6 +356,7 @@ const ProjectNameInput = styled('div')`
 
 const TeamSelectInput = styled('div')`
   display: grid;
+  gap: ${space(1)};
   grid-template-columns: 1fr min-content;
   align-items: center;
 `;
