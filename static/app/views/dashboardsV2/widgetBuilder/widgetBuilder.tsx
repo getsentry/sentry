@@ -279,6 +279,11 @@ function WidgetBuilder({
 
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
 
+  // For analytics around widget library selection
+  const [latestLibrarySelectionTitle, setLatestLibrarySelectionTitle] = useState<
+    string | null
+  >(null);
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
       organization,
@@ -819,6 +824,14 @@ function WidgetBuilder({
       return;
     }
 
+    if (latestLibrarySelectionTitle) {
+      // User has selected a widget library in this session
+      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.add_widget', {
+        organization,
+        title: latestLibrarySelectionTitle,
+      });
+    }
+
     if (notDashboardsOrigin) {
       submitFromSelectedDashboard(widgetData);
       return;
@@ -1176,7 +1189,8 @@ function WidgetBuilder({
             <Side>
               <WidgetLibrary
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
-                onWidgetSelect={prebuiltWidget =>
+                onWidgetSelect={prebuiltWidget => {
+                  setLatestLibrarySelectionTitle(prebuiltWidget.title);
                   setState({
                     ...state,
                     ...prebuiltWidget,
@@ -1184,8 +1198,8 @@ function WidgetBuilder({
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
                     userHasModified: false,
-                  })
-                }
+                  });
+                }}
                 bypassOverwriteModal={!state.userHasModified}
               />
             </Side>
