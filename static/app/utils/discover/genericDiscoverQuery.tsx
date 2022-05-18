@@ -12,6 +12,8 @@ import EventView, {
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
+import {decodeScalar} from '../queryString';
+
 export class QueryError {
   message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
@@ -189,7 +191,10 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
     }
 
     if (props.route === 'eventsv2') {
-      payload.user_modified = location.query.isDirty;
+      const queryUserModified = decodeScalar(location.query?.isDirty);
+      if (queryUserModified !== undefined) {
+        payload.user_modified = queryUserModified;
+      }
     }
 
     Object.assign(payload, props.queryExtras ?? {});
