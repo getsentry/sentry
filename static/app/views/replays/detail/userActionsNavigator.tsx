@@ -98,11 +98,11 @@ function UserActionsNavigator({event, crumbs}: Props) {
               <Container
                 isHovered={closestUserAction?.id === item.id}
                 isSelected={currentUserAction?.id === item.id}
-                onClick={() => {
+                onClick={() =>
                   item.timestamp !== undefined
                     ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
-                    : null;
-                }}
+                    : null
+                }
               >
                 <Wrapper>
                   <Type
