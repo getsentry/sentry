@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
@@ -167,14 +168,15 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
 ];
 
-export const getTopNConvertedDefaultWidgets = () =>
+export function getTopNConvertedDefaultWidgets() {
   DEFAULT_WIDGETS.map(widget => {
     if (widget.displayType === DisplayType.TOP_N) {
       return {
         ...widget,
         displayType: DisplayType.AREA,
-        limit: 5,
+        limit: TOP_N,
       };
     }
     return widget;
   });
+}
