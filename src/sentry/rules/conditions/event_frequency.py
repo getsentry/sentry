@@ -137,22 +137,28 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_rate(self, event: Event, interval: str, environment_id: str) -> int:
         _, duration = self.intervals[interval]
         end = timezone.now()
-        result: int = self.query(event, end - duration, end, environment_id=environment_id)
-        comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
-        if comparison_type == COMPARISON_TYPE_PERCENT:
-            comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
-            comparison_end = end - comparison_interval
-            # TODO: Figure out if there's a way we can do this less frequently. All queries are
-            # automatically cached for 10s. We could consider trying to cache this and the main
-            # query for 20s to reduce the load.
-            comparison_result = self.query(
-                event, comparison_end - duration, comparison_end, environment_id=environment_id
-            )
-            result = (
-                int(max(0, ((result / comparison_result) * 100) - 100))
-                if comparison_result > 0
-                else 0
-            )
+        overrides = {}
+        # For conditions with interval >= 1 hour we don't need to worry about read your writes
+        # consistency. Disable it so that we can scale to more nodes.
+        if duration >= timedelta(hours=1):
+            overrides = {"consistent": False}
+        with options_override(overrides):
+            result: int = self.query(event, end - duration, end, environment_id=environment_id)
+            comparison_type = self.get_option("comparisonType", COMPARISON_TYPE_COUNT)
+            if comparison_type == COMPARISON_TYPE_PERCENT:
+                comparison_interval = comparison_intervals[self.get_option("comparisonInterval")][1]
+                comparison_end = end - comparison_interval
+                # TODO: Figure out if there's a way we can do this less frequently. All queries are
+                # automatically cached for 10s. We could consider trying to cache this and the main
+                # query for 20s to reduce the load.
+                comparison_result = self.query(
+                    event, comparison_end - duration, comparison_end, environment_id=environment_id
+                )
+                result = (
+                    int(max(0, ((result / comparison_result) * 100) - 100))
+                    if comparison_result > 0
+                    else 0
+                )
 
         return result
 
