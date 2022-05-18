@@ -55,16 +55,16 @@ function ReplayPlayPauseBar() {
         title={t('Jump to next event')}
         icon={<IconNext size="sm" />}
         onClick={() => {
-          const startTimestamp = replay?.getEvent().startTimestamp || 0;
+          const startTimestampSec = replay?.getEvent().startTimestamp;
           const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
           const next = getNextUserAction({
             crumbs: onlyUserActions(transformedCrumbs),
-            startTimestampSec: replay?.getEvent().startTimestamp,
+            startTimestampSec,
             targetOffsetMS: currentTime + 1,
           });
 
-          if (next?.timestamp) {
-            setCurrentTime(relativeTimeInMs(next.timestamp, startTimestamp));
+          if (startTimestampSec !== undefined && next?.timestamp) {
+            setCurrentTime(relativeTimeInMs(next.timestamp, startTimestampSec));
           }
         }}
         aria-label={t('Jump to next event')}
