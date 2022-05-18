@@ -348,7 +348,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   }
 
   const event = replay?.getEvent();
-  const duration = event ? (event.endTimestamp - event.startTimestamp) * 1000 : -1;
+  const duration = event ? (event.endTimestamp - event.startTimestamp) * 1000 : undefined;
 
   return (
     <ReplayPlayerContext.Provider
