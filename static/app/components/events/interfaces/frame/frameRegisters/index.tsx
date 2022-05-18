@@ -24,7 +24,7 @@ function FrameRegisters({registers, deviceArch}: Props) {
 
   return (
     <Wrapper>
-      <Heading>{t('registers')}</Heading>
+      <Title>{t('Registers')}</Title>
       <Registers>
         {sortedRegisters.map(([name, value]) => {
           if (!defined(value)) {
@@ -32,7 +32,7 @@ function FrameRegisters({registers, deviceArch}: Props) {
           }
           return (
             <Register key={name} onClick={handlePreventToggling}>
-              <Name>{name}</Name>
+              {name}
               <Value value={value} meta={getMeta(registers, name)} />
             </Register>
           );
@@ -42,39 +42,39 @@ function FrameRegisters({registers, deviceArch}: Props) {
   );
 }
 
+export default FrameRegisters;
+
 const Wrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
-  padding-top: 10px;
+  padding: ${space(1)} ${space(1)} ${space(1)} calc(${space(4)} + ${space(0.25)});
+  display: grid;
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1rem;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 132px 1fr;
+  }
+`;
+
+const Title = styled('div')`
+  padding-right: ${space(1)};
+  padding-bottom: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    padding-bottom: 0;
+    padding-right: ${space(1)};
+  }
 `;
 
 const Registers = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  margin-left: 125px;
-  padding: ${space(0.25)} 0px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14.063rem, 1fr));
+  gap: ${space(1)};
 `;
 
 const Register = styled('div')`
-  padding: ${space(0.5)} 5px;
+  display: grid;
+  gap: ${space(0.5)};
+  grid-template-columns: 3em 1fr;
+  align-items: center;
+  color: ${p => p.theme.gray300};
 `;
-
-const Heading = styled('strong')`
-  font-weight: 600;
-  font-size: 13px;
-  width: 125px;
-  max-width: 125px;
-  word-wrap: break-word;
-  padding: 10px 15px 10px 0;
-  line-height: 1.4;
-  float: left;
-`;
-
-const Name = styled('span')`
-  display: inline-block;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: right;
-  width: 4em;
-`;
-
-export default FrameRegisters;

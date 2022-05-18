@@ -1,10 +1,11 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import Tooltip from 'sentry/components/tooltip';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Meta} from 'sentry/types';
 
 const REGISTER_VIEWS = [t('Hexadecimal'), t('Numeric')];
@@ -18,24 +19,17 @@ type State = {
   view: number;
 };
 
-class Value extends Component<Props, State> {
-  state: State = {view: 0};
+function Value({meta, value}: Props) {
+  const [state, setState] = useState<State>({view: 0});
 
-  toggleView = () => {
-    this.setState(state => ({view: (state.view + 1) % REGISTER_VIEWS.length}));
-  };
-
-  formatValue() {
-    const {value} = this.props;
-    const {view} = this.state;
-
+  function formatValue() {
     try {
       const parsed = typeof value === 'string' ? parseInt(value, 16) : value;
       if (isNaN(parsed)) {
         return value;
       }
 
-      switch (view) {
+      switch (state.view) {
         case 1:
           return `${parsed}`;
         case 0:
@@ -47,28 +41,31 @@ class Value extends Component<Props, State> {
     }
   }
 
-  render() {
-    const formattedValue = this.formatValue();
-    const {meta} = this.props;
-    const {view} = this.state;
-
-    return (
-      <InlinePre data-test-id="frame-registers-value">
-        <FixedWidth>
-          <AnnotatedText value={formattedValue} meta={meta} />
-        </FixedWidth>
-        <Tooltip title={REGISTER_VIEWS[view]}>
-          <Toggle onClick={this.toggleView} size="xs" />
-        </Tooltip>
-      </InlinePre>
-    );
-  }
+  return (
+    <InlinePre data-test-id="frame-registers-value">
+      <FixedWidth>
+        <AnnotatedText value={formatValue()} meta={meta} />
+      </FixedWidth>
+      <Tooltip title={REGISTER_VIEWS[state.view]}>
+        <Toggle
+          onClick={() => {
+            setState({view: (state.view + 1) % REGISTER_VIEWS.length});
+          }}
+          size="xs"
+        />
+      </Tooltip>
+    </InlinePre>
+  );
 }
 
 export default Value;
 
 const InlinePre = styled('pre')`
   display: inline;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-gap: ${space(0.5)};
 `;
 
 const FixedWidth = styled('span')`

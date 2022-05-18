@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ClippedBox from 'sentry/components/clippedBox';
@@ -116,7 +117,7 @@ const Context = ({
         })}
 
       {(hasContextRegisters || hasContextVars) && (
-        <StyledClippedBox clipHeight={100}>
+        <Fragment>
           {hasContextRegisters && (
             <FrameRegisters
               registers={registers}
@@ -124,7 +125,7 @@ const Context = ({
             />
           )}
           {hasContextVars && <FrameVariables data={frame.vars || {}} />}
-        </StyledClippedBox>
+        </Fragment>
       )}
 
       {hasAssembly && (
