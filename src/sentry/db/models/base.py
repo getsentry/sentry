@@ -95,7 +95,7 @@ class Model(BaseModel):
 
 
 @dataclass
-class BitSegment:
+class SnowflakeBitSegment:
     length: int
     name: str
 
@@ -107,13 +107,13 @@ class BitSegment:
 
 class Snowflake:
     SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
-    SNOWFLAKE_ID_LENGTH = BitSegment(53, "Snowflake ID")
+    SNOWFLAKE_ID_LENGTH = SnowflakeBitSegment(53, "Snowflake ID")
 
     SEGMENT_LENGTH = {
-        "VERSION_ID": BitSegment(5, "Version ID"),
-        "TIME_DIFFERENCE": BitSegment(32, "Time difference"),
-        "REGION_ID": BitSegment(12, "Region ID"),
-        "REGION_SEQUENCE": BitSegment(4, "Region sequence"),
+        "VERSION_ID": SnowflakeBitSegment(5, "Version ID"),
+        "TIME_DIFFERENCE": SnowflakeBitSegment(32, "Time difference"),
+        "REGION_ID": SnowflakeBitSegment(12, "Region ID"),
+        "REGION_SEQUENCE": SnowflakeBitSegment(4, "Region sequence"),
     }
 
     SEGMENT_VALUE = {
