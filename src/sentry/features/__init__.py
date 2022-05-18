@@ -83,6 +83,7 @@ default_manager.add("organizations:issue-search-use-cdc-secondary", Organization
 default_manager.add("organizations:large-debug-files", OrganizationFeature)
 default_manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, True)
 default_manager.add("organizations:metrics", OrganizationFeature, True)
+default_manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, True)
 default_manager.add("organizations:new-widget-builder-experience", OrganizationFeature, True)
 default_manager.add("organizations:new-widget-builder-experience-design", OrganizationFeature, True)
 default_manager.add(
@@ -107,6 +108,7 @@ default_manager.add("organizations:performance-autogroup-sibling-spans", Organiz
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
+default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)

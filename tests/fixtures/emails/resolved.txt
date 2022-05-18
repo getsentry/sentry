@@ -7,7 +7,7 @@ Sentry marked PROJECT-1 as resolved
 
 goose smiling gobbler sterling feline
 
-http://testserver/organizations/organization/issues/1/?referrer=resolved-activity-email
+http://testserver/organizations/organization/issues/1/?referrer=resolved_activity-email
 
 
 Unsubscribe: javascript:alert("This is a preview page, what did you expect to happen?");
