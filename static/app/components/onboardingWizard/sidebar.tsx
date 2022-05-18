@@ -17,7 +17,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
-import OnboardingViewTask from './onboardingCard';
 import ProgressHeader from './progressHeader';
 import Task from './task';
 import {getMergedTasks} from './taskConfig';
@@ -192,7 +191,6 @@ function OnboardingWizardSidebar({
       <TopRight src={HighlightTopRight} />
       <ProgressHeader allTasks={allTasks} completedTasks={complete} />
       <TaskList>
-        <OnboardingViewTask org={organization} />
         <AnimatePresence initial={false}>{items}</AnimatePresence>
       </TaskList>
     </TaskSidebarPanel>

@@ -1,6 +1,6 @@
 import {User} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
-import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 type Data = [number, {count: number}[]][];
 
@@ -10,7 +10,7 @@ export enum AlertRuleType {
 }
 
 export type Incident = {
-  alertRule: IncidentRule;
+  alertRule: MetricRule;
   dateClosed: string | null;
   dateCreated: string;
   dateDetected: string;
@@ -87,7 +87,7 @@ export enum CombinedAlertType {
   ISSUE = 'rule',
 }
 
-export type CombinedMetricIssueAlerts = (IssueAlertRule | IncidentRule) & {
+export type CombinedMetricIssueAlerts = (IssueAlertRule | MetricRule) & {
   type: CombinedAlertType;
   latestIncident?: Incident | null;
 };
