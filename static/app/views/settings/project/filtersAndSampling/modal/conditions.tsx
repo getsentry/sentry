@@ -190,7 +190,7 @@ const Cell = styled('div')`
 `;
 
 const LeftCell = styled(Cell)`
-  padding-right: ${space(2)};
+  padding-right: ${space(1)};
   line-height: 16px;
 `;
 
