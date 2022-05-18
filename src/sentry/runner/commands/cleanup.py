@@ -324,7 +324,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             project_deletion_query = models.Project.objects.filter(id=project_id)
 
         to_delete_by_project = []
-        for model in DELETES_BY_PROJECT:
+        for model, _, _ in DELETES_BY_PROJECT:
             if is_filtered(model):
                 if not silent:
                     click.echo(">> Skipping %s" % model.__name__)
