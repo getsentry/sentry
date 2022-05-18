@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import freezegun
 import pytest
+import responses
 from django.http.request import QueryDict
 from django.test import RequestFactory
 
@@ -432,6 +433,7 @@ class UnfurlTest(TestCase):
         first_key = list(chart_data["stats"].keys())[0]
         assert len(chart_data["stats"][first_key]["data"]) == 288
 
+    @responses.activate
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
     def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
         min_ago = iso_format(before_now(minutes=1))
@@ -442,6 +444,13 @@ class UnfurlTest(TestCase):
         second_event = self.store_event(
             data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
             project_id=self.project.id,
+        )
+        responses.add(
+            method="GET",
+            url=f"http://testserver/api/0/organizations/{self.organization.slug}/events-stats/",
+            body={"foo": "bar"},
+            content_type="application/json"
+            # body={'default,second': {'data': [(1212121, [{'count': 15}]), (1652659200, [{'count': 12}])], 'order': 0, 'isMetricsData': False, 'start': 1652572800, 'end': 1652659201}, 'default,first': {'data': [(1652572800, [{'count': 15}]), (1652659200, [{'count': 11}])], 'order': 1, 'isMetricsData': False, 'start': 1652572800, 'end': 1652659201}}
         )
         url = (
             f"https://sentry.io/organizations/{self.organization.slug}/discover/results/"
