@@ -10,7 +10,8 @@ from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
-from sentry.relay import config, projectconfig_cache
+from sentry.relay import config, projectconfig_cache, projectconfig_debounce_cache
+from sentry.tasks.relay import update_config_cache
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,12 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version in ["2", "3"]:
+        if version == "3":
+            # Always compute the full config. It's invalid to send partial
+            # configs to processing relays, and these validate the requests they
+            # get with permissions and trim configs down accordingly.
+            return self._post_or_schedule_by_key(request)
+        elif version == "2":
             return self._post_by_key(
                 request=request,
                 full_config_requested=full_config_requested,
@@ -58,6 +64,57 @@ class RelayProjectConfigsEndpoint(Endpoint):
             )
         else:
             return Response("Unsupported version, we only support versions 1 to 3.", 400)
+
+    def _post_or_schedule_by_key(self, request: Request):
+        request.relay_request_data.get("publicKeys")
+        public_keys = set(request.relay_request_data.get("publicKeys") or ())
+
+        configs = {}
+        pending = []
+        for key in public_keys:
+            computed = self._compute_proj_config(key)
+            if not computed:
+                pending.append(key)
+            else:
+                configs[key] = computed
+
+        if len(pending) > 0:
+            configs["pending"] = pending
+
+        return Response(configs, status=200)
+
+    def _compute_proj_config(self, public_key):
+        """
+        Returns the config of a project if it's in the cache; else, schedules a
+        task to compute and write it into the cache, and returns False.
+
+        Debouncing of the project happens after the task has been scheduled.
+        """
+        cached_config = projectconfig_cache.get(public_key)
+        if cached_config:
+            return cached_config
+        if projectconfig_debounce_cache.is_debounced(
+            public_key=public_key, project_id=None, organization_id=None
+        ):
+            return False
+
+        update_config_cache.delay(
+            generate=True,
+            organization_id=None,
+            project_id=None,
+            public_key=public_key,
+            update_reason="project_config.post_v3",
+        )
+
+        # Checking if the project is debounced and debouncing it are two separate
+        # actions that aren't atomic. If the process marks a project as
+        # debounced and dies before scheduling it, the cache will be stale for
+        # the whole TTL. To avoid that, make sure we first schedule the task,
+        # and only then mark the project as debounced.
+        projectconfig_debounce_cache.debounce(
+            public_key=public_key, project_id=None, organization_id=None
+        )
+        return False
 
     def _post_by_key(self, request: Request, full_config_requested):
         public_keys = request.relay_request_data.get("publicKeys")
