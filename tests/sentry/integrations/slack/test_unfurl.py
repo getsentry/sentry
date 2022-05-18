@@ -634,28 +634,39 @@ class UnfurlTest(TestCase):
         first_key = list(chart_data["stats"].keys())[0]
         assert len(chart_data["stats"][first_key]["data"]) == 288
 
+    # patched return value determined by reading events stats output
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "default,second": {
+                "data": [(1212121, [{"count": 15}]), (1652659200, [{"count": 12}])],
+                "order": 0,
+                "isMetricsData": False,
+                "start": 1652572800,
+                "end": 1652659201,
+            },
+            "default,first": {
+                "data": [(1652572800, [{"count": 15}]), (1652659200, [{"count": 11}])],
+                "order": 1,
+                "isMetricsData": False,
+                "start": 1652572800,
+                "end": 1652659201,
+            },
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        first_event = self.store_event(
-            data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-        second_event = self.store_event(
-            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
+    def test_top_daily_events_renders_bar_chart(self, mock_generate_chart, _):
         url = (
             f"https://sentry.io/organizations/{self.organization.slug}/discover/results/"
-            f"?field=message"
-            f"&field=event.type"
-            f"&field=count()"
-            f"&name=All+Events"
-            f"&query=message:[{first_event.message},{second_event.message}]"
-            f"&sort=-count"
-            f"&statsPeriod=24h"
-            f"&display=dailytop5"
-            f"&topEvents=2"
+            "?field=message"
+            "&field=event.type"
+            "&field=count()"
+            "&name=All+Events"
+            "&query=message:[first,second]"
+            "&sort=-count"
+            "&statsPeriod=24h"
+            "&display=dailytop5"
+            "&topEvents=2"
         )
         link_type, args = match_link(url)
 
