@@ -25,7 +25,7 @@ type Props = {
    * Hovercard renders the container
    */
   containerClassName?: string;
-  offset?: string;
+  offset?: number;
   /**
    * Trigger when the guide is completed (all steps have been clicked through)
    */
@@ -219,9 +219,9 @@ class BaseGuideAnchor extends Component<Props, State> {
 
     return (
       <StyledHovercard
-        show
+        forceVisible
         body={this.getHovercardBody()}
-        tipColor={theme.purple300}
+        tipColor="purple300"
         position={position}
         offset={offset}
         containerClassName={containerClassName}

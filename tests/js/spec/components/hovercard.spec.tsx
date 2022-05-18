@@ -36,7 +36,7 @@ describe('Hovercard', () => {
         body="Hovercard Body"
         header="Hovercard Header"
         displayTimeout={0}
-        show={false}
+        forceVisible={false}
       >
         Hovercard Trigger
       </Hovercard>
@@ -56,7 +56,7 @@ describe('Hovercard', () => {
         body="Hovercard Body"
         header="Hovercard Header"
         displayTimeout={0}
-        show
+        forceVisible
       >
         Hovercard Trigger
       </Hovercard>

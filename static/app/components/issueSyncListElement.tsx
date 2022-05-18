@@ -104,7 +104,7 @@ class IssueSyncListElement extends Component<Props> {
               header={this.props.hoverCardHeader}
               body={this.props.hoverCardBody}
               bodyClassName="issue-list-body"
-              show={this.props.showHoverCard}
+              forceVisible={this.props.showHoverCard}
             >
               {this.getIcon()}
               {this.getLink()}
