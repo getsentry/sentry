@@ -292,6 +292,7 @@ def record_alert_rule_created(
     session_id=None,
     alert_rule_ui_component=None,
     duplicate_rule=None,
+    wizard_v3=None,
     **kwargs,
 ):
     if rule_type == "issue" and rule.label == DEFAULT_RULE_LABEL and rule.data == DEFAULT_RULE_DATA:
@@ -320,6 +321,7 @@ def record_alert_rule_created(
         is_api_token=is_api_token,
         alert_rule_ui_component=alert_rule_ui_component,
         duplicate_rule=duplicate_rule,
+        wizard_v3=wizard_v3,
     )
 
 

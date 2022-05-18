@@ -9,7 +9,7 @@ import {
   getMetricAlertChartOption,
   MetricChartData,
   transformSessionResponseToSeries,
-} from 'sentry/views/alerts/rules/details/metricChartOption';
+} from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
 import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';

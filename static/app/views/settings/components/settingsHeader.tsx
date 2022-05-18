@@ -5,7 +5,7 @@ import space from 'sentry/styles/space';
 // This is required to offer components that sit between this settings header
 // and i.e. dropdowns, some zIndex layer room
 //
-// e.g. app/views/settings/incidentRules/triggers/chart/
+// e.g. app/views/settings/metric/triggers/chart/
 const HEADER_Z_INDEX_OFFSET = 5;
 
 const SettingsHeader = styled('div')`

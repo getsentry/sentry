@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
@@ -50,38 +50,37 @@ type ContainerProps = {
 };
 
 function UserActionsNavigator({event, crumbs}: Props) {
-  const {setCurrentTime, currentHoverTime} = useReplayContext();
-  const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
-  const [closestUserAction, setClosestUserAction] = useState<Crumb>();
+  const {setCurrentTime, setCurrentHoverTime, currentHoverTime, currentTime} =
+    useReplayContext();
 
   const {startTimestamp} = event || {};
   const userActionCrumbs = crumbs && onlyUserActions(transformCrumbs(crumbs));
   const isLoaded = userActionCrumbs && startTimestamp;
 
-  const getClosestUserAction = useCallback(
-    async (hovertime: number) => {
-      const closestUserActionItem = getCurrentUserAction(
-        userActionCrumbs,
-        startTimestamp,
-        hovertime
-      );
-      if (
-        closestUserActionItem &&
-        closestUserAction?.timestamp !== closestUserActionItem.timestamp
-      ) {
-        setClosestUserAction(closestUserActionItem);
-      }
-    },
-    [closestUserAction?.timestamp, startTimestamp, userActionCrumbs]
+  const currentUserAction = getCurrentUserAction(
+    userActionCrumbs,
+    startTimestamp,
+    currentTime
   );
 
-  useEffect(() => {
-    if (!currentHoverTime) {
-      setClosestUserAction(undefined);
-      return;
-    }
-    getClosestUserAction(currentHoverTime);
-  }, [getClosestUserAction, currentHoverTime]);
+  const closestUserAction = getCurrentUserAction(
+    userActionCrumbs,
+    startTimestamp,
+    currentHoverTime
+  );
+
+  const onMouseEnter = useCallback(
+    (item: Crumb) => {
+      if (startTimestamp) {
+        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
+      }
+    },
+    [setCurrentHoverTime, startTimestamp]
+  );
+
+  const onMouseLeave = useCallback(() => {
+    setCurrentHoverTime(undefined);
+  }, [setCurrentHoverTime]);
 
   return (
     <Panel>
@@ -93,16 +92,17 @@ function UserActionsNavigator({event, crumbs}: Props) {
           userActionCrumbs.map(item => (
             <PanelItemCenter
               key={item.id}
-              onClick={() => {
-                setCurrentUserAction(item);
-                item.timestamp
-                  ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
-                  : '';
-              }}
+              onMouseEnter={() => onMouseEnter(item)}
+              onMouseLeave={() => onMouseLeave()}
             >
               <Container
                 isHovered={closestUserAction?.id === item.id}
                 isSelected={currentUserAction?.id === item.id}
+                onClick={() =>
+                  item.timestamp !== undefined
+                    ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
+                    : null
+                }
               >
                 <Wrapper>
                   <Type
@@ -110,7 +110,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
                     color={item.color}
                     description={item.description}
                   />
-                  <ActionCategory category={item} />
+                  <ActionCategory action={item} />
                 </Wrapper>
                 <PlayerRelativeTime
                   relativeTime={startTimestamp}
@@ -134,8 +134,10 @@ const Panel = styled(BasePanel)`
   grid-template-rows: auto 1fr;
   height: 0;
   min-height: 100%;
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
-    min-height: 450px;
+  @media only screen and (max-width: ${p => p.theme.breakpoints[2]}) {
+    height: fit-content;
+    max-height: 400px;
+    margin-top: ${space(2)};
   }
 `;
 
@@ -158,15 +160,15 @@ const PanelItemCenter = styled(PanelItem)`
   cursor: pointer;
 `;
 
-const Container = styled('div')<ContainerProps>`
-  display: flex;
+const Container = styled('button')<ContainerProps>`
+  display: inline-flex;
+  width: 100%;
+  border: none;
+  background: transparent;
   justify-content: space-between;
   align-items: center;
   border-left: 4px solid transparent;
   padding: ${space(1)} ${space(1.5)};
-  &:hover {
-    background: ${p => p.theme.surface400};
-  }
   ${p => p.isHovered && `background: ${p.theme.surface400};`}
   ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
 `;

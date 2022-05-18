@@ -8,7 +8,6 @@ import {TableCell} from 'sentry/components/charts/simpleTableChart';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {PanelAlert} from 'sentry/components/panels';
-import Tag from 'sentry/components/tag';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -42,6 +41,10 @@ export function VisualizationStep({
 
   const previousWidget = usePrevious(widget);
 
+  // Disabling for now because we use debounce to avoid excessively hitting
+  // our endpoints, but useCallback wants an inline function and not one
+  // returned from debounce
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceWidget = useCallback(
     debounce((value: Widget, shouldCancelUpdates: boolean) => {
       if (shouldCancelUpdates) {
@@ -62,19 +65,10 @@ export function VisualizationStep({
     return () => {
       shouldCancelUpdates = true;
     };
-  }, [widget, previousWidget]);
+  }, [widget, previousWidget, debounceWidget]);
 
   const displayOptions = Object.keys(displayTypes).map(value => ({
-    label:
-      organization.features.includes('new-widget-builder-experience-design') &&
-      value === DisplayType.TOP_N ? (
-        <DisplayOptionLabel>
-          {displayTypes[value]}
-          <Tag type="info">{t('deprecated')}</Tag>
-        </DisplayOptionLabel>
-      ) : (
-        displayTypes[value]
-      ),
+    label: displayTypes[value],
     value,
   }));
 
@@ -141,10 +135,4 @@ const VisualizationWrapper = styled('div')<{displayType: DisplayType}>`
         height: 301px;
       }
     `};
-`;
-
-const DisplayOptionLabel = styled('span')`
-  display: flex;
-  justify-content: space-between;
-  width: calc(100% - ${space(1)});
 `;
