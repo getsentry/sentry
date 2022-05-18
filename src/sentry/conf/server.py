@@ -985,12 +985,16 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable having the issue ID in the breadcrumbs on Issue Details
+    "organizations:issue-id-breadcrumbs": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Enable metric alert charts in email/slack
+    "organizations:metric-alert-chartcuterie": False,
     # Enable the new widget builder experience on Dashboards
     "organizations:new-widget-builder-experience": False,
     # Enable the new widget builder experience "design" on Dashboards
@@ -1081,6 +1085,8 @@ SENTRY_FEATURES = {
     "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
+    # Enable automatic horizontal scrolling on the span tree
+    "organizations:performance-span-tree-autoscroll": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1362,6 +1368,10 @@ SENTRY_RATELIMITER_OPTIONS = {}
 SENTRY_RATELIMITER_DEFAULT = 999
 SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT = 999
 ENFORCE_CONCURRENT_RATE_LIMITS = False
+
+# Rate Limit Group Category Defaults
+SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI = 999
+SENTRY_RATELIMITER_GROUP_CLI = 999
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"

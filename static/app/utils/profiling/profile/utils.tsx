@@ -1,9 +1,8 @@
 import {Span} from '@sentry/types';
 
 import {defined} from 'sentry/utils';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
 
 import {CallTreeNode} from '../callTreeNode';
 
@@ -126,56 +125,79 @@ export const isApplicationCall = (node: CallTreeNode): boolean => {
   return !!node.frame.is_application;
 };
 
-type AnalyzeProfileResults = {
-  slowestApplicationCalls: CallTreeNode[];
-  slowestSystemCalls: CallTreeNode[];
-};
-
-export function getSlowestProfileCallsFromProfile(
-  profile: Profile
-): AnalyzeProfileResults {
-  const applicationCalls: CallTreeNode[] = [];
-  const systemFrames: CallTreeNode[] = [];
-
-  const openFrame = (node: CallTreeNode) => {
-    if (isSystemCall(node)) {
-      systemFrames.push(node);
-    } else {
-      applicationCalls.push(node);
+function indexNodeToParents(
+  roots: FlamegraphFrame[],
+  map: Record<string, FlamegraphFrame[]>,
+  leafs: FlamegraphFrame[]
+) {
+  // Index each child node to its parent
+  function indexNode(node: FlamegraphFrame, parent: FlamegraphFrame) {
+    if (!map[node.key]) {
+      map[node.key] = [];
     }
-  };
 
-  const closeFrame = (_node: CallTreeNode) => {
-    return;
-  };
+    map[node.key].push(parent);
 
-  profile.forEach(openFrame, closeFrame);
+    if (!node.children.length) {
+      leafs.push(node);
+      return;
+    }
 
-  const slowestApplicationCalls = applicationCalls.sort(
-    (a, b) => b.selfWeight - a.selfWeight
-  );
-  const slowestSystemCalls = systemFrames.sort((a, b) => b.selfWeight - a.selfWeight);
-
-  return {
-    slowestApplicationCalls: slowestApplicationCalls.slice(0, 10),
-    slowestSystemCalls: slowestSystemCalls.slice(0, 10),
-  };
-}
-
-export function getSlowestProfileCallsFromProfileGroup(profileGroup: ProfileGroup) {
-  const applicationCalls: Record<number, CallTreeNode[]> = {};
-  const systemCalls: Record<number, CallTreeNode[]> = {};
-
-  for (const profile of profileGroup.profiles) {
-    const {slowestApplicationCalls, slowestSystemCalls} =
-      getSlowestProfileCallsFromProfile(profile);
-
-    applicationCalls[profile.threadId] = slowestApplicationCalls.splice(0, 10);
-    systemCalls[profile.threadId] = slowestSystemCalls.splice(0, 10);
+    for (let i = 0; i < node.children.length; i++) {
+      indexNode(node.children[i], node);
+    }
   }
 
-  return {
-    slowestApplicationCalls: applicationCalls,
-    slowestSystemCalls: systemCalls,
-  };
+  // Begin in each root node
+  for (let i = 0; i < roots.length; i++) {
+    // If the root is a leaf node, push it to the leafs array
+    if (!roots[i].children?.length) {
+      leafs.push(roots[i]);
+    }
+
+    // Init the map for the root in case we havent yet
+    if (!map[roots[i].key]) {
+      map[roots[i].key] = [];
+    }
+
+    // descend down to each child and index them
+    for (let j = 0; j < roots[i].children.length; j++) {
+      indexNode(roots[i].children[j], roots[i]);
+    }
+  }
 }
+
+function reverseTrail(
+  nodes: FlamegraphFrame[],
+  parentMap: Record<string, FlamegraphFrame[]>
+): FlamegraphFrame[] {
+  const splits: FlamegraphFrame[] = [];
+
+  for (const n of nodes) {
+    const nc = {
+      ...n,
+      parent: null as FlamegraphFrame | null,
+      children: [] as FlamegraphFrame[],
+    };
+
+    if (!parentMap[n.key]) {
+      continue;
+    }
+
+    for (const parent of parentMap[n.key]) {
+      nc.children.push(...reverseTrail([parent], parentMap));
+    }
+    splits.push(nc);
+  }
+
+  return splits;
+}
+
+export const invertCallTree = (roots: FlamegraphFrame[]): FlamegraphFrame[] => {
+  const nodeToParentIndex: Record<string, FlamegraphFrame[]> = {};
+  const leafNodes: FlamegraphFrame[] = [];
+
+  indexNodeToParents(roots, nodeToParentIndex, leafNodes);
+  const reversed = reverseTrail(leafNodes, nodeToParentIndex);
+  return reversed;
+};

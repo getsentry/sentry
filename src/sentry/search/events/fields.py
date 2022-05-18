@@ -41,7 +41,6 @@ from sentry.search.events.constants import (
 )
 from sentry.search.events.types import NormalizedArg, ParamsType
 from sentry.search.utils import InvalidQuery, parse_duration
-from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
     SESSIONS_SNUBA_MAP,

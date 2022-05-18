@@ -112,7 +112,6 @@ function DebugFileCustomRepository({
               <HookedAppStoreConnectMultiple organization={organization}>
                 <FeatureDisabled
                   features={features}
-                  message={t('This feature is not enabled on your Sentry installation.')}
                   featureName={t('App Store Connect Multiple')}
                   hideHelpToggle
                 />
@@ -182,7 +181,6 @@ function DebugFileCustomRepository({
             <HookedCustomSymbolSources organization={organization}>
               <FeatureDisabled
                 features={features}
-                message={t('This feature is not enabled on your Sentry installation.')}
                 featureName={t('Custom Symbol Sources')}
                 hideHelpToggle
               />
