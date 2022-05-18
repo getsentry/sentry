@@ -287,7 +287,7 @@ class UnfurlTest(TestCase):
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
             dataset=QueryDatasets.SESSIONS,
-            time_window=1,
+            time_window=60,
             resolve_threshold=10,
             threshold_period=1,
         )
@@ -325,7 +325,7 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["rule"]["id"] == str(alert_rule.id)
         assert chart_data["selectedIncident"] is None
-        assert len(chart_data["sessionResponse"]["groups"]) >= 2
+        assert len(chart_data["sessionResponse"]["groups"]) >= 1
         assert len(chart_data["incidents"]) == 0
 
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
