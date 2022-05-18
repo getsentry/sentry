@@ -36,7 +36,7 @@
     "@testing-library/user-event": "^13.5.0",
     "@types/diff": "5.0.2",
     "@types/dompurify": "^2.3.3",
-    "@types/enzyme": "^3.10.11",
+    "@types/enzyme": "^3.10.12",
     "@types/jest": "^27.4.1",
     "@types/js-cookie": "^2.2.7",
     "@types/lodash": "^4.14.180",
