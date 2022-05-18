@@ -34,7 +34,7 @@ class TestInstallationNotifier(TestCase):
             slug="foo", organization=self.org, user=self.user, prevent_token_exchange=True
         )
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_task_enqueued(self, safe_urlopen):
         InstallationNotifier.run(install=self.install, user=self.user, action="created")
 
@@ -66,7 +66,7 @@ class TestInstallationNotifier(TestCase):
             ),
         )
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_uninstallation_enqueued(self, safe_urlopen):
         InstallationNotifier.run(install=self.install, user=self.user, action="deleted")
 
@@ -98,14 +98,14 @@ class TestInstallationNotifier(TestCase):
             ),
         )
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_invalid_installation_action(self, safe_urlopen):
         with self.assertRaises(APIUnauthorized):
             InstallationNotifier.run(install=self.install, user=self.user, action="updated")
 
         assert not safe_urlopen.called
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_webhook_request_saved(self, safe_urlopen):
         InstallationNotifier.run(install=self.install, user=self.user, action="created")
         InstallationNotifier.run(install=self.install, user=self.user, action="deleted")
