@@ -94,6 +94,7 @@ export function doesPathHaveNewFilters(pathname: string, organization: Organizat
           'user-feedback',
           'alerts',
           'monitors',
+          'issues',
           'projects',
           'dashboards',
           'releases',

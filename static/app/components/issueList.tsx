@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 
-import {Client} from 'sentry/api';
 import CompactIssue from 'sentry/components/issues/compactIssue';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -11,11 +10,10 @@ import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 interface IssueListProps extends WithRouterProps {
-  api: Client;
   endpoint: string;
   emptyText?: string;
   noBorder?: boolean;
@@ -33,7 +31,6 @@ interface IssueListState {
 }
 
 function IssueList({
-  api,
   endpoint,
   emptyText,
   query,
@@ -43,6 +40,8 @@ function IssueList({
   noBorder,
   noMargin,
 }: IssueListProps): React.ReactElement {
+  const api = useApi();
+
   const [state, setState] = useState<IssueListState>({
     issueIds: [],
     status: 'loading',
@@ -72,15 +71,17 @@ function IssueList({
     });
   }, [query, endpoint, location.query, api]);
 
+  // TODO: location should always be passed as a prop, check why we have this
+  const hasLocation = !!location;
+
   useEffect(() => {
-    // TODO: location should always be passed as a prop, check why we have this
-    if (!location) {
+    if (!hasLocation) {
       return;
     }
 
     setState({issueIds: [], status: 'loading', pageLinks: null, data: []});
     fetchIssueListData();
-  }, [fetchIssueListData]);
+  }, [fetchIssueListData, hasLocation]);
 
   const panelStyles = useMemo(() => {
     const styles: React.CSSProperties = {
@@ -126,4 +127,4 @@ function IssueList({
 
 export {IssueList};
 
-export default withRouter(withApi(IssueList));
+export default withRouter(IssueList);
