@@ -106,7 +106,14 @@ function walk({
     for (i = 0; i < value.length; i++) {
       children.push(
         <span className="val-array-item" key={i}>
-          {walk({value: value[i], depth: depth + 1})}
+          {walk({
+            value: value[i],
+            depth: depth + 1,
+            preserveQuotes,
+            withAnnotatedText,
+            jsonConsts,
+            meta,
+          })}
           {i < value.length - 1 ? <span className="val-array-sep">{', '}</span> : null}
         </span>
       );
@@ -140,7 +147,14 @@ function walk({
         </span>
         <span className="val-dict-col">{': '}</span>
         <span className="val-dict-value">
-          {walk({value: value[key], depth: depth + 1})}
+          {walk({
+            value: value[key],
+            depth: depth + 1,
+            preserveQuotes,
+            withAnnotatedText,
+            jsonConsts,
+            meta,
+          })}
           {i < keys.length - 1 ? <span className="val-dict-sep">{', '}</span> : null}
         </span>
       </span>
