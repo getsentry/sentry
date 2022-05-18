@@ -41,7 +41,6 @@ function Console({breadcrumbs}: Props) {
       <ConsoleFilters>
         <CompactSelect
           triggerProps={{
-            size: 'small',
             prefix: t('Log Level'),
           }}
           multiple
