@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
 
@@ -148,6 +149,7 @@ function DurationChart({
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.duration-chart"
         queryExtras={getMEPQueryParams(mepContext)}
+        userModified={decodeScalar(location.query.userModified)}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content

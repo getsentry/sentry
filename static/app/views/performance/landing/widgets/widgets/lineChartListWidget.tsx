@@ -13,6 +13,7 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
@@ -179,12 +180,18 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             hideError
             onError={pageError.setPageError}
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
+            userModified={decodeScalar(props.location.query.userModified)}
           />
         );
       },
       transform: transformEventsRequestToArea,
     };
-  }, [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]);
+  }, [
+    props.chartSetting,
+    selectedListIndex,
+    mepSetting.memoizationKey,
+    props.location.query.userModified,
+  ]);
 
   const Queries = {
     list: listQuery,
