@@ -46,7 +46,7 @@ function Console({breadcrumbs}: Props) {
           multiple
           options={getDistinctLogLevels(breadcrumbs).map(breadcrumbLogLevel => ({
             value: breadcrumbLogLevel,
-            label: `${breadcrumbLogLevel}`,
+            label: breadcrumbLogLevel as string,
           }))}
           onChange={selections =>
             setLogLevel(selections.map(selection => selection.value))
