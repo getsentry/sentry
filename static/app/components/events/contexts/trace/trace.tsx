@@ -2,7 +2,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import getUnknownData from '../getUnknownData';
 
@@ -21,30 +21,30 @@ const traceKnownDataValues = [
 const traceIgnoredDataValues = [];
 
 type Props = {
-  data: TraceKnownData;
+  data: TraceKnownData & Record<string, any>;
   event: Event;
   organization: Organization;
 };
 
-const InnerTrace = withOrganization(function ({organization, event, data}: Props) {
+function Trace({event, data}: Props) {
+  const organization = useOrganization();
+
   return (
     <ErrorBoundary mini>
       <KeyValueList
         data={getTraceKnownData(data, traceKnownDataValues, event, organization)}
         isSorted={false}
         raw={false}
+        isContextData
       />
       <KeyValueList
         data={getUnknownData(data, [...traceKnownDataValues, ...traceIgnoredDataValues])}
         isSorted={false}
         raw={false}
+        isContextData
       />
     </ErrorBoundary>
   );
-});
-
-const Trace = (props: Props) => {
-  return <InnerTrace {...props} />;
-};
+}
 
 export default Trace;
