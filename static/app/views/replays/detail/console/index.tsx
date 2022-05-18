@@ -29,7 +29,7 @@ function Console({breadcrumbs}: Props) {
   );
   return (
     <Fragment>
-      <StyledSearchBar onChange={handleSearch} />
+      <ConsoleSearch onChange={handleSearch} />
       {filteredBreadcrumbs.length > 0 ? (
         <ConsoleTable>
           {filteredBreadcrumbs.map((breadcrumb, i) => (
@@ -58,7 +58,7 @@ const ConsoleTable = styled(Panel)`
   font-size: 0.8em;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const ConsoleSearch = styled(SearchBar)`
   margin-bottom: ${space(1)};
   margin-top: 28px;
 `;
