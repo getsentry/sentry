@@ -80,9 +80,9 @@ function MemoryChart({
           </div>`,
           `<div class="tooltip-date" style="border: none;">${'Relative Time'}:
             ${showPlayerTime(
-              `${moment(values[0].axisValue * 1000)
+              moment(values[0].axisValue * 1000)
                 .toDate()
-                .toUTCString()}`,
+                .toUTCString(),
               startTimestamp
             )}
           </div>`,
