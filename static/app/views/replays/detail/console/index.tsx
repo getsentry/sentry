@@ -16,13 +16,13 @@ const getDistinctLogLevels = breadcrumbs =>
   Array.from(new Set(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
 function Console({breadcrumbs}: Props) {
-  const [logLevel, setLogLevel] = useState<BreadcrumbLevelType>();
+  const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
 
   const filteredBreadcrumbs = useMemo(
     () =>
-      !logLevel
+      logLevel.length === 0
         ? breadcrumbs
-        : breadcrumbs.filter(breadcrumb => breadcrumb.level === logLevel),
+        : breadcrumbs.filter(breadcrumb => logLevel.includes(breadcrumb.level)),
     [logLevel, breadcrumbs]
   );
 
@@ -33,13 +33,12 @@ function Console({breadcrumbs}: Props) {
           size: 'small',
           prefix: t('Log Level'),
         }}
-        value={logLevel}
+        multiple
         options={getDistinctLogLevels(breadcrumbs).map(breadcrumbLogLevel => ({
           value: breadcrumbLogLevel,
           label: `${breadcrumbLogLevel}`,
-          disabled: breadcrumbLogLevel === logLevel,
         }))}
-        onChange={opt => setLogLevel(opt.value)}
+        onChange={selections => setLogLevel(selections.map(selection => selection.value))}
       />
       <ConsoleTable>
         {filteredBreadcrumbs.map((breadcrumb, i) => (
