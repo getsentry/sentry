@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Callable, Mapping, Tuple, cast
 
@@ -93,32 +94,52 @@ class Model(BaseModel):
     __repr__ = sane_repr("id")
 
 
+@dataclass
+class BitSegment:
+    length: int
+    name: str
+
+    def validate(self, value):
+        if value >> self.length != 0:
+            raise Exception(f"{self.name} exceed max bit value of {self.length}")
+        return True
+
+
 class Snowflake:
     SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
-    VERSION_ID = 0
-    REGION_ID = 0
-    REGION_SEQUENCE = 0  # this needs to be auto incr
+    SNOWFLAKE_ID_LENGTH = BitSegment(53, "Snowflake ID")
+
+    SEGMENT_LENGTH = {
+        "VERSION_ID": BitSegment(5, "Version ID"),
+        "TIME_DIFFERENCE": BitSegment(32, "Time difference"),
+        "REGION_ID": BitSegment(12, "Region ID"),
+        "REGION_SEQUENCE": BitSegment(4, "Region sequence"),
+    }
+
+    SEGMENT_VALUE = {
+        "VERSION_ID": 0,
+        "TIME_DIFFERENCE": 0,
+        "REGION_ID": 0,
+        "REGION_SEQUENCE": 0,
+    }
 
     id = BoundedBigAutoField(primary_key=True)
 
     def snowflake_id_generation(self):
-        def validate_snowflake_id():
-            if snowflake_id > MAX_VALUE:
-                raise Exception("ID exceed max value of 53 bits")
-
-        MAX_VALUE = 9007199254740992
         current_time = datetime.now().timestamp()
         # supports up to 130 years
-        time_difference = int(current_time - self.SENTRY_EPOCH_START)
+        self.SEGMENT_VALUE["TIME_DIFFERENCE"] = int(current_time - self.SENTRY_EPOCH_START)
 
-        snowflake_id = (
-            (self.VERSION_ID << 48)
-            + (time_difference << 16)
-            + (self.REGION_ID << 12)
-            + self.REGION_SEQUENCE
-        )
+        total_bits_to_allocate = 53
+        snowflake_id = 0
 
-        validate_snowflake_id()
+        for key, segment in self.SEGMENT_LENGTH.items():
+            if segment.validate(self.SEGMENT_VALUE[key]):
+                total_bits_to_allocate -= segment.length
+                snowflake_id += self.SEGMENT_VALUE[key] << (total_bits_to_allocate)
+
+        self.SNOWFLAKE_ID_LENGTH.validate(snowflake_id)
+
         return snowflake_id
 
 
