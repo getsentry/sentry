@@ -16,6 +16,10 @@ function OnboardingController({...rest}: Props) {
         organization: rest.organization,
       });
     }
+    logExperiment({
+      key: 'TargetedOnboardingIntegrationSelectExperiment',
+      organization: rest.organization,
+    });
   }, [rest.organization]);
   return <TargetedOnboarding {...rest} />;
 }
