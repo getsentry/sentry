@@ -4,10 +4,10 @@ import debounce from 'lodash/debounce';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
-import {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import ConsoleMessage from './consoleMessage';
@@ -23,30 +23,39 @@ function Console({breadcrumbs}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
   const handleSearch = debounce(query => setSearchTerm(query), 150);
+
   const filteredBreadcrumbs = useMemo(
     () =>
-      !searchTerm
+      !searchTerm && logLevel.length === 0
         ? breadcrumbs
-        : breadcrumbs.filter(breadcrumb =>
-            breadcrumb.message?.toLowerCase().includes(searchTerm) && logLevel.includes(breadcrumb.level)
+        : breadcrumbs.filter(
+            breadcrumb =>
+              breadcrumb.message?.toLowerCase().includes(searchTerm) &&
+              logLevel.includes(breadcrumb.level)
           ),
     [logLevel, searchTerm, breadcrumbs]
   );
+
   return (
     <Fragment>
-       <CompactSelect
-        triggerProps={{
-          size: 'small',
-          prefix: t('Log Level'),
-        }}
-        multiple
-        options={getDistinctLogLevels(breadcrumbs).map(breadcrumbLogLevel => ({
-          value: breadcrumbLogLevel,
-          label: `${breadcrumbLogLevel}`,
-        }))}
-        onChange={selections => setLogLevel(selections.map(selection => selection.value))}
-      />
-      <ConsoleSearch onChange={handleSearch} />
+      <ConsoleFilters>
+        <CompactSelect
+          triggerProps={{
+            size: 'small',
+            prefix: t('Log Level'),
+          }}
+          multiple
+          options={getDistinctLogLevels(breadcrumbs).map(breadcrumbLogLevel => ({
+            value: breadcrumbLogLevel,
+            label: `${breadcrumbLogLevel}`,
+          }))}
+          onChange={selections =>
+            setLogLevel(selections.map(selection => selection.value))
+          }
+        />
+        <SearchBar onChange={handleSearch} />
+      </ConsoleFilters>
+
       {filteredBreadcrumbs.length > 0 ? (
         <ConsoleTable>
           {filteredBreadcrumbs.map((breadcrumb, i) => (
@@ -64,6 +73,15 @@ function Console({breadcrumbs}: Props) {
   );
 }
 
+const ConsoleFilters = styled('div')`
+  display: grid;
+  gap: ${space(1)};
+  grid-template-columns: max-content 1fr;
+  width: 100%;
+  margin-bottom: ${space(1)};
+  margin-top: 28px;
+`;
+
 const StyledEmptyMessage = styled(EmptyMessage)`
   align-items: center;
 `;
@@ -73,11 +91,6 @@ const ConsoleTable = styled(Panel)`
   grid-template-columns: max-content auto;
   font-family: ${p => p.theme.text.familyMono};
   font-size: 0.8em;
-`;
-
-const ConsoleSearch = styled(SearchBar)`
-  margin-bottom: ${space(1)};
-  margin-top: 28px;
 `;
 
 export default Console;
