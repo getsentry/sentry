@@ -1,13 +1,19 @@
 import logging
+from typing import Any, Dict, List
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.apidocs import constants as api_constants
+from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance
 
@@ -122,10 +128,75 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 )
 
 
-class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
-    private = True
+class EventsResponse(TypedDict):
+    data: List[Dict[str, Any]]
+    meta: Dict[str, str]
 
+
+@extend_schema(tags=["Visibility"])
+class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
+    public = {"GET"}
+
+    @extend_schema(
+        operation_id="Query Discover Events in Table Format",
+        parameters=[
+            VISIBILITY_PARAMS.QUERY,
+            VISIBILITY_PARAMS.FIELD,
+            VISIBILITY_PARAMS.SORT,
+            VISIBILITY_PARAMS.PER_PAGE,
+            GLOBAL_PARAMS.STATS_PERIOD,
+            GLOBAL_PARAMS.START,
+            GLOBAL_PARAMS.END,
+            GLOBAL_PARAMS.PROJECT,
+            GLOBAL_PARAMS.ENVIRONMENT,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsResponseDict", EventsResponse
+            ),
+            400: OpenApiResponse(description="Invalid Query"),
+            404: api_constants.RESPONSE_NOTFOUND,
+        },
+        examples=[
+            OpenApiExample(
+                "Success",
+                value=[
+                    {
+                        "data": [
+                            {
+                                "count_if(transaction.duration,greater,300)": 5,
+                                "count()": 10,
+                                "equation[0]": 50,
+                                "transaction": "foo",
+                            },
+                            {
+                                "count_if(transaction.duration,greater,300)": 3,
+                                "count()": 20,
+                                "equation[0]": 15,
+                                "transaction": "bar",
+                            },
+                            {
+                                "count_if(transaction.duration,greater,300)": 8,
+                                "count()": 40,
+                                "equation[0]": 20,
+                                "transaction": "baz",
+                            },
+                        ],
+                        "meta": {
+                            "count_if(transaction.duration,greater,300)": "integer",
+                            "count()": "integer",
+                            "equation[0]": "integer",
+                            "transaction": "string",
+                        },
+                    }
+                ],
+            )
+        ],
+    )
     def get(self, request: Request, organization) -> Response:
+        """
+        Retrieves discover (aka. events) data for a given organization
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 

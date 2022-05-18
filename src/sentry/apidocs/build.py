@@ -79,4 +79,15 @@ OPENAPI_TAGS = [
             "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
         },
     },
+    {
+        # Using Visibility here since that's the common *internal* name for d&d & performance
+        "name": "Visibility",
+        "x-sidebar-name": "Discover & Performance",
+        "description": "Discover and Performance allow you to slice and dice your Events",
+        "x-display-description": True,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/integration-platform/&template=api_error_template.md",
+        },
+    },
 ]
