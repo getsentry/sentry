@@ -18,6 +18,7 @@ import {
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
 
+import IntegrationCard from './integrationCard';
 import OnboardingProjectsCard from './onboardingCard';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
@@ -232,7 +233,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.METRIC_ALERT,
       title: t('Create a Performance Alert'),
       description: t(
-        'No one likes crashes and frozen frames. Define thresholds for metrics that trigger alerts for when your application’s performance is degrading.'
+        'See slow fast with performance alerts. Set up alerts for notifications about slow page load times, API latency, or when throughput significantly deviates from normal.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
@@ -250,6 +251,17 @@ export function getOnboardingTasks({
       action: () => {},
       display: true,
       renderCard: OnboardingProjectsCard,
+    },
+    {
+      task: OnboardingTaskKey.INTEGRATIONS,
+      title: t('Integrations to Setup'),
+      description: '',
+      skippable: true,
+      requisites: [],
+      actionType: 'action',
+      action: () => {},
+      display: !!organization.experiments?.TargetedOnboardingIntegrationSelectExperiment,
+      renderCard: IntegrationCard,
     },
   ];
 }

@@ -126,6 +126,7 @@ const TaskCard = styled(motion(Card))`
   overflow: visible;
   display: flex;
   flex-direction: column;
+  padding-bottom: ${space(1)};
 `;
 TaskCard.defaultProps = {
   exit: 'exit',
@@ -153,6 +154,7 @@ const OnboardingTaskProjectListItem = styled(Link)`
   :hover {
     background-color: ${p => p.theme.hover};
   }
+  border-radius: 0;
   padding: 0 ${space(3)};
   color: ${p => p.theme.textColor};
 

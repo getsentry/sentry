@@ -1,5 +1,5 @@
 import {Client} from 'sentry/api';
-import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import type {Incident} from '../types';
 
@@ -10,7 +10,7 @@ export function fetchAlertRule(
   orgId: string,
   ruleId: string,
   query?: Record<string, string>
-): Promise<IncidentRule> {
+): Promise<MetricRule> {
   return uncancellableApi.requestPromise(
     `/organizations/${orgId}/alert-rules/${ruleId}/`,
     {query}
