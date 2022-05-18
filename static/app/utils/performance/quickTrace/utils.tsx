@@ -229,7 +229,10 @@ function sortTraceLite(trace: TraceLite): TraceLite {
   return trace.sort((a, b) => b['transaction.duration'] - a['transaction.duration']);
 }
 
-export function getTraceRequestPayload({eventView, location}: DiscoverQueryProps) {
+export function getTraceRequestPayload({
+  eventView,
+  location,
+}: Pick<DiscoverQueryProps, 'eventView' | 'location'>) {
   return omit(eventView.getEventsAPIPayload(location), ['field', 'sort', 'per_page']);
 }
 

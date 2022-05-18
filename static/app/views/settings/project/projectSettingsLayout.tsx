@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import * as AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
@@ -34,11 +34,8 @@ function ProjectSettingsLayout({
               <ProjectSettingsNavigation organization={organization} />
             )}
           >
-            {children && React.isValidElement(children)
-              ? React.cloneElement(children, {
-                  organization,
-                  project,
-                })
+            {children && isValidElement(children)
+              ? cloneElement(children, {organization, project})
               : children}
           </SettingsLayout>
         </AppStoreConnectContext.Provider>

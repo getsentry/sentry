@@ -38,7 +38,7 @@ function AlertBuilderProjectProvider(props: Props) {
         }
   );
   const project = useFirstProject
-    ? projects.find(p => p)
+    ? projects.find(p => p.isMember)
     : projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {
@@ -48,7 +48,7 @@ function AlertBuilderProjectProvider(props: Props) {
 
     // fetch members list for mail action fields
     fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [project]);
+  }, [api, organization, project]);
 
   if (!initiallyLoaded || fetching) {
     return <LoadingIndicator />;

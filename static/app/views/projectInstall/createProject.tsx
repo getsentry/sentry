@@ -96,7 +96,7 @@ class CreateProject extends Component<Props, State> {
             <input
               type="text"
               name="name"
-              placeholder={t('Project name')}
+              placeholder={t('project-name')}
               autoComplete="off"
               value={projectName}
               onChange={e => this.setState({projectName: slugify(e.target.value)})}
@@ -356,6 +356,7 @@ const ProjectNameInput = styled('div')`
 
 const TeamSelectInput = styled('div')`
   display: grid;
+  gap: ${space(1)};
   grid-template-columns: 1fr min-content;
   align-items: center;
 `;

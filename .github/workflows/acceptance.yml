@@ -33,6 +33,7 @@ jobs:
           filters: .github/file-filters.yml
 
   frontend:
+    if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
     name: frontend tests
     runs-on: ubuntu-20.04
@@ -112,6 +113,7 @@ jobs:
           type: frontend
 
   webpack:
+    if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
     name: create frontend bundle
     runs-on: ubuntu-20.04
@@ -170,6 +172,7 @@ jobs:
           path: dist.tar.gz
 
   acceptance:
+    if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
     name: acceptance
     runs-on: ubuntu-20.04
@@ -182,7 +185,7 @@ jobs:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
-        pg-version: ['9.6', '14']
+        pg-version: ['9.6']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 4
@@ -237,9 +240,10 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ needs.files-changed.outputs.backend == 'true' }}
+        if: needs.files-changed.outputs.backend == 'true'
 
   chartcuterie:
+    if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
     name: chartcuterie integration
     runs-on: ubuntu-20.04
@@ -302,18 +306,16 @@ jobs:
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ needs.files-changed.outputs.backend == 'true' }}
+        if: needs.files-changed.outputs.backend == 'true'
 
   visual-diff:
+    if: needs.files-changed.outputs.acceptance == 'true'
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [acceptance, frontend, chartcuterie]
     name: triggers visual snapshot
-    # This is necessary since a failed/skipped dependent job would cause this job to be skipped
-    if: always()
     runs-on: ubuntu-20.04
     timeout-minutes: 20
-
     steps:
       # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
       - name: Check for failures
@@ -330,3 +332,14 @@ jobs:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+  # Since Visual Snapshot is a required check we need to pretend to have run
+  fake-visual-snapshot:
+    name: Visual Snapshot
+    # Opposite condition to "triggers visual snapshot" required check
+    if: needs.files-changed.outputs.acceptance != 'true'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Sentaur attack
+        run: |
+          echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"

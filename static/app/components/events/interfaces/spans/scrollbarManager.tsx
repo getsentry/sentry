@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createContext, createRef} from 'react';
 
 import {
   clamp,
@@ -14,17 +14,19 @@ export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
+  onWheel: (deltaX: number) => void;
   scrollBarAreaRef: React.RefObject<HTMLDivElement>;
   updateScrollState: () => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
 };
 
-const ScrollbarManagerContext = React.createContext<ScrollbarManagerChildrenProps>({
+const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   generateContentSpanBarRef: () => () => undefined,
-  virtualScrollbarRef: React.createRef<HTMLDivElement>(),
-  scrollBarAreaRef: React.createRef<HTMLDivElement>(),
+  virtualScrollbarRef: createRef<HTMLDivElement>(),
+  scrollBarAreaRef: createRef<HTMLDivElement>(),
   onDragStart: () => {},
   onScroll: () => {},
+  onWheel: () => {},
   updateScrollState: () => {},
 });
 
@@ -66,7 +68,7 @@ type State = {
   maxContentWidth: number | undefined;
 };
 
-export class Provider extends React.Component<Props, State> {
+export class Provider extends Component<Props, State> {
   state: State = {
     maxContentWidth: undefined,
   };
@@ -102,9 +104,11 @@ export class Provider extends React.Component<Props, State> {
   }
 
   contentSpanBar: Set<HTMLDivElement> = new Set();
-  virtualScrollbar: React.RefObject<HTMLDivElement> = React.createRef<HTMLDivElement>();
-  scrollBarArea: React.RefObject<HTMLDivElement> = React.createRef<HTMLDivElement>();
+  virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
+  scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   isDragging: boolean = false;
+  isWheeling: boolean = false;
+  wheelTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
 
   getReferenceSpanBar() {
@@ -233,8 +237,67 @@ export class Provider extends React.Component<Props, State> {
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
   initialMouseClickX: number | undefined = undefined;
 
-  onScroll = () => {
+  onWheel = (deltaX: number) => {
     if (this.isDragging || !this.hasInteractiveLayer()) {
+      return;
+    }
+
+    // Setting this here is necessary, since updating the virtual scrollbar position will also trigger the onScroll function
+    this.isWheeling = true;
+
+    if (this.wheelTimeout) {
+      clearTimeout(this.wheelTimeout);
+    }
+
+    this.wheelTimeout = setTimeout(() => {
+      this.isWheeling = false;
+      this.wheelTimeout = null;
+    }, 200);
+
+    const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
+
+    const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
+    const maxScrollLeft =
+      interactiveLayerRefDOM.scrollWidth - interactiveLayerRefDOM.clientWidth;
+
+    const scrollLeft = clamp(
+      interactiveLayerRefDOM.scrollLeft + deltaX,
+      0,
+      maxScrollLeft
+    );
+
+    interactiveLayerRefDOM.scrollLeft = scrollLeft;
+
+    // Update scroll position of the virtual scroll bar
+    selectRefs(this.scrollBarArea, (scrollBarAreaDOM: HTMLDivElement) => {
+      selectRefs(this.virtualScrollbar, (virtualScrollbarDOM: HTMLDivElement) => {
+        const scrollBarAreaRect = scrollBarAreaDOM.getBoundingClientRect();
+        const virtualScrollbarPosition = scrollLeft / scrollBarAreaRect.width;
+
+        const virtualScrollBarRect = rectOfContent(virtualScrollbarDOM);
+        const maxVirtualScrollableArea =
+          1 - virtualScrollBarRect.width / interactiveLayerRect.width;
+
+        const virtualLeft =
+          clamp(virtualScrollbarPosition, 0, maxVirtualScrollableArea) *
+          interactiveLayerRect.width;
+
+        virtualScrollbarDOM.style.transform = `translate3d(${virtualLeft}px, 0, 0)`;
+        virtualScrollbarDOM.style.transformOrigin = 'left';
+      });
+    });
+
+    // Update scroll positions of all the span bars
+    selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
+      const left = -scrollLeft;
+
+      spanBarDOM.style.transform = `translate3d(${left}px, 0, 0)`;
+      spanBarDOM.style.transformOrigin = 'left';
+    });
+  };
+
+  onScroll = () => {
+    if (this.isDragging || this.isWheeling || !this.hasInteractiveLayer()) {
       return;
     }
 
@@ -415,6 +478,7 @@ export class Provider extends React.Component<Props, State> {
       generateContentSpanBarRef: this.generateContentSpanBarRef,
       onDragStart: this.onDragStart,
       onScroll: this.onScroll,
+      onWheel: this.onWheel,
       virtualScrollbarRef: this.virtualScrollbar,
       scrollBarAreaRef: this.scrollBarArea,
       updateScrollState: this.initializeScrollState,
@@ -433,7 +497,7 @@ export const Consumer = ScrollbarManagerContext.Consumer;
 export const withScrollbarManager = <P extends ScrollbarManagerChildrenProps>(
   WrappedComponent: React.ComponentType<P>
 ) =>
-  class extends React.Component<
+  class extends Component<
     Omit<P, keyof ScrollbarManagerChildrenProps> & Partial<ScrollbarManagerChildrenProps>
   > {
     static displayName = `withScrollbarManager(${getDisplayName(WrappedComponent)})`;

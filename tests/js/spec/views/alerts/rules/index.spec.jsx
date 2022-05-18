@@ -5,14 +5,19 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import AlertRulesList from 'sentry/views/alerts/rules';
+import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('AlertRulesList', () => {
-  const {routerContext, organization, router} = initializeOrg();
+  const {routerContext, organization, router} = initializeOrg({
+    organization: {
+      access: ['alerts:write'],
+      features: ['duplicate-alert-rule'],
+    },
+  });
   TeamStore.loadInitialData([], false, null);
   let rulesMock;
   let projectMock;
@@ -45,14 +50,14 @@ describe('AlertRulesList', () => {
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '345',
           projects: ['earth'],
           latestIncident: TestStubs.Incident({
             status: IncidentStatus.CRITICAL,
           }),
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '678',
           projects: ['earth'],
           latestIncident: null,
@@ -109,6 +114,41 @@ describe('AlertRulesList', () => {
     ).toBeInTheDocument();
 
     expect(rulesMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('displays dropdown context menu with actions', async () => {
+    createWrapper();
+    const actions = (await screen.findAllByTestId('alert-row-actions'))[0];
+    expect(actions).toBeInTheDocument();
+
+    userEvent.click(actions);
+
+    expect(screen.getByText('Edit')).toBeInTheDocument();
+    expect(screen.getByText('Delete')).toBeInTheDocument();
+    expect(screen.getByText('Duplicate')).toBeInTheDocument();
+  });
+
+  it('sends user to new alert page on duplicate action', async () => {
+    createWrapper();
+    const actions = (await screen.findAllByTestId('alert-row-actions'))[0];
+    expect(actions).toBeInTheDocument();
+
+    userEvent.click(actions);
+
+    const duplicate = await screen.findByText('Duplicate');
+    expect(duplicate).toBeInTheDocument();
+
+    userEvent.click(duplicate);
+
+    expect(router.push).toHaveBeenCalledWith({
+      pathname: '/organizations/org-slug/alerts/new/issue/',
+      query: {
+        createFromDuplicate: true,
+        duplicateRuleId: '123',
+        project: 'earth',
+        referrer: 'alert_stream',
+      },
+    });
   });
 
   it('sorts by date created', async () => {

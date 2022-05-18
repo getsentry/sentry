@@ -135,6 +135,9 @@ jest.mock('@sentry/react', () => {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
+    BrowserClient: jest.fn().mockReturnValue({
+      captureEvent: jest.fn(),
+    }),
     startTransaction: () => ({
       finish: jest.fn(),
       setTag: jest.fn(),
@@ -144,21 +147,6 @@ jest.mock('@sentry/react', () => {
         finish: jest.fn(),
       }),
     }),
-  };
-});
-
-jest.mock('popper.js', () => {
-  const PopperJS = jest.requireActual('popper.js');
-
-  return class {
-    static placements = PopperJS.placements;
-
-    constructor() {
-      return {
-        destroy: () => {},
-        scheduleUpdate: () => {},
-      };
-    }
   };
 });
 

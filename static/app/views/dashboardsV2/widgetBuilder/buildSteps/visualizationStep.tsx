@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {CSSProperties, useCallback, useEffect, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -41,6 +41,10 @@ export function VisualizationStep({
 
   const previousWidget = usePrevious(widget);
 
+  // Disabling for now because we use debounce to avoid excessively hitting
+  // our endpoints, but useCallback wants an inline function and not one
+  // returned from debounce
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceWidget = useCallback(
     debounce((value: Widget, shouldCancelUpdates: boolean) => {
       if (shouldCancelUpdates) {
@@ -61,7 +65,12 @@ export function VisualizationStep({
     return () => {
       shouldCancelUpdates = true;
     };
-  }, [widget, previousWidget]);
+  }, [widget, previousWidget, debounceWidget]);
+
+  const displayOptions = Object.keys(displayTypes).map(value => ({
+    label: displayTypes[value],
+    value,
+  }));
 
   return (
     <BuildStep
@@ -73,13 +82,16 @@ export function VisualizationStep({
       <Field error={error} inline={false} flexibleControlStateSize stacked>
         <SelectControl
           name="displayType"
-          options={Object.keys(displayTypes).map(value => ({
-            label: displayTypes[value],
-            value,
-          }))}
+          options={displayOptions}
           value={displayType}
           onChange={(option: SelectValue<DisplayType>) => {
             onChange(option.value);
+          }}
+          styles={{
+            singleValue: (provided: CSSProperties) => ({
+              ...provided,
+              width: `calc(100% - ${space(1)})`,
+            }),
           }}
         />
       </Field>

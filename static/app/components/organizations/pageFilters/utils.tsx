@@ -94,9 +94,11 @@ export function doesPathHaveNewFilters(pathname: string, organization: Organizat
           'user-feedback',
           'alerts',
           'monitors',
+          'issues',
           'projects',
           'dashboards',
           'releases',
+          'discover',
           'performance',
         ]
   ).map(route => `/organizations/${organization.slug}/${route}/`);

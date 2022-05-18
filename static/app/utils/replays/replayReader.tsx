@@ -1,16 +1,20 @@
-import memoize from 'lodash/memoize';
 import type {eventWithTime} from 'rrweb/typings/types';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {
+  MemorySpanType,
+  RawSpanType,
+} from 'sentry/components/events/interfaces/spans/types';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import type {Event, EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
-import mergeBreadcrumbEntries from 'sentry/utils/replays/mergeBreadcrumbEntries';
-import mergeSpanEntries from 'sentry/utils/replays/mergeSpanEntries';
-
-function last<T>(arr: T[]): T {
-  return arr[arr.length - 1];
-}
+import {Entry, EntryType} from 'sentry/types/event';
+import {
+  breadcrumbEntryFactory,
+  breadcrumbValuesFromEvents,
+  replayTimestamps,
+  rrwebEventListFactory,
+  spanDataFromEvents,
+  spanEntryFactory,
+} from 'sentry/utils/replays/replayDataUtils';
 
 export default class ReplayReader {
   static factory(
@@ -28,60 +32,85 @@ export default class ReplayReader {
     /**
      * The root Replay event, created at the start of the browser session.
      */
-    private _event: EventTransaction,
+    event: EventTransaction,
 
     /**
      * The captured data from rrweb.
      * Saved as N attachments that belong to the root Replay event.
      */
-    private _rrwebEvents: eventWithTime[],
+    rrwebEvents: eventWithTime[],
 
     /**
      * Regular Sentry SDK events that occurred during the rrweb session.
      */
-    private _replayEvents: Event[]
-  ) {}
+    replayEvents: Event[]
+  ) {
+    const rawCrumbs = breadcrumbValuesFromEvents(replayEvents);
+    const rawSpanData = spanDataFromEvents(replayEvents);
 
-  getEvent = memoize(() => {
-    const breadcrumbs = this.getEntryType(EntryType.BREADCRUMBS);
-    const spans = this.getEntryType(EntryType.SPANS);
+    const {startTimestampMS, endTimestampMS} = replayTimestamps(
+      rrwebEvents,
+      rawCrumbs,
+      rawSpanData
+    );
 
-    const lastRRweb = last(this._rrwebEvents);
-    const lastBreadcrumb = last(breadcrumbs?.data.values as RawCrumb[]);
-    const lastSpan = last(spans?.data as RawSpanType[]);
+    this.breadcrumbEntry = breadcrumbEntryFactory(startTimestampMS, rawCrumbs);
+    this.spanEntry = spanEntryFactory(rawSpanData);
 
-    // The original `this._event.startTimestamp` and `this._event.endTimestamp`
-    // are the same. It's because the root replay event is re-purposing the
-    // `transaction` type, but it is not a real span occuring over time.
-    // So we need to figure out the real end time (in seconds).
-    const endTimestamp =
-      Math.max(
-        lastRRweb.timestamp,
-        +new Date(lastBreadcrumb.timestamp || 0),
-        lastSpan.timestamp * 1000
-      ) / 1000;
+    this.rrwebEvents = rrwebEventListFactory(
+      startTimestampMS,
+      endTimestampMS,
+      rawSpanData,
+      rrwebEvents
+    );
 
-    return {
-      ...this._event,
-      entries: [breadcrumbs, spans],
-      endTimestamp,
+    this.event = {
+      ...event,
+      entries: [this.breadcrumbEntry, this.spanEntry],
+      startTimestamp: startTimestampMS / 1000,
+      endTimestamp: endTimestampMS / 1000,
     } as EventTransaction;
-  });
-
-  getRRWebEvents() {
-    return this._rrwebEvents;
   }
 
-  getEntryType = memoize((type: EntryType) => {
+  event: EventTransaction;
+  rrwebEvents: eventWithTime[];
+  breadcrumbEntry: Entry;
+  spanEntry: Entry;
+
+  getEvent = () => {
+    return this.event;
+  };
+
+  getRRWebEvents = () => {
+    return this.rrwebEvents;
+  };
+
+  getEntryType = (type: EntryType) => {
     switch (type) {
       case EntryType.BREADCRUMBS:
-        return mergeBreadcrumbEntries(this._replayEvents);
+        return this.breadcrumbEntry;
       case EntryType.SPANS:
-        return mergeSpanEntries(this._replayEvents);
+        return this.spanEntry;
       default:
         throw new Error(
           `ReplayReader is unable to prepare EntryType ${type}. Type not supported.`
         );
     }
-  });
+  };
+
+  getRawCrumbs = () => {
+    return this.breadcrumbEntry.data.values as RawCrumb[];
+  };
+
+  getRawSpans = () => {
+    return this.spanEntry.data as RawSpanType[];
+  };
+
+  isMemorySpan = (span: RawSpanType): span is MemorySpanType => {
+    return span.op === 'memory';
+  };
+
+  isNotMemorySpan = (span: RawSpanType) => {
+    return !this.isMemorySpan(span);
+  };
 }

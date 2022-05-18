@@ -70,8 +70,11 @@ export default function CreateProjectsFooter({
         platformToProjectIdMap: persistedOnboardingState.platformToProjectIdMap,
         selectedPlatforms: platforms,
         state: 'projects_selected',
-        url: 'setup-docs/',
+        url: organization.experiments.TargetedOnboardingIntegrationSelectExperiment
+          ? 'select-integrations/'
+          : 'setup-docs/',
         mobileEmailSent: true,
+        selectedIntegrations: [],
       };
       responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
       setPersistedOnboardingState(nextState);
@@ -101,7 +104,7 @@ export default function CreateProjectsFooter({
         }
         browserHistory.push(`/onboarding/${organization.slug}/mobile-redirect/`);
       } else {
-        onComplete();
+        setTimeout(onComplete);
       }
     } catch (err) {
       addErrorMessage(t('Failed to create projects'));

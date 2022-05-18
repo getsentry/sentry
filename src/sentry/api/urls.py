@@ -222,6 +222,7 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import (
+    OrganizationEventsEndpoint,
     OrganizationEventsGeoEndpoint,
     OrganizationEventsV2Endpoint,
 )
@@ -379,7 +380,10 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesEndpoint,
     ProjectProcessingIssuesFixEndpoint,
 )
-from .endpoints.project_profiling_profile import ProjectProfilingProfileEndpoint
+from .endpoints.project_profiling_profile import (
+    ProjectProfilingFunctionsEndpoint,
+    ProjectProfilingProfileEndpoint,
+)
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -1084,6 +1088,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/eventsv2/$",
                     OrganizationEventsV2Endpoint.as_view(),
                     name="sentry-api-0-organization-eventsv2",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events/$",
+                    OrganizationEventsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -2179,6 +2188,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/refresh/$",
                     AppStoreConnectRefreshEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-refresh",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/functions/$",
+                    ProjectProfilingFunctionsEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-functions",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

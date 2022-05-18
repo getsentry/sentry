@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
@@ -337,7 +337,7 @@ class AbstractIntegrationDetailedView<
     const {FeatureList} = getIntegrationFeatureGate();
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Flex>
           <FlexContainer>
             <Description dangerouslySetInnerHTML={{__html: marked(this.description)}} />
@@ -369,26 +369,27 @@ class AbstractIntegrationDetailedView<
             ))}
           </Metadata>
         </Flex>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderAlert()}
         {this.renderTopSection()}
         {this.renderTabs()}
         {this.state.tab === 'overview'
           ? this.renderInformationCard()
           : this.renderConfigurations()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
 
 const Flex = styled('div')`
   display: flex;
+  align-items: center;
 `;
 
 const FlexContainer = styled('div')`
@@ -417,7 +418,7 @@ const NameContainer = styled('div')`
 const Name = styled('div')`
   font-weight: bold;
   font-size: 1.4em;
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
 `;
 
 const IconCloseCircle = styled(IconClose)`
@@ -473,9 +474,8 @@ const ExternalLinkContainer = styled('div')`
 `;
 
 const StatusWrapper = styled('div')`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(0.5)};
   padding-left: ${space(2)};
-  line-height: 1.5em;
 `;
 
 const DisableWrapper = styled('div')`

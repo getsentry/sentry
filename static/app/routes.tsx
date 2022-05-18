@@ -1026,19 +1026,19 @@ function buildRoutes() {
       component={SafeLazyLoad}
     >
       <IndexRoute
-        componentPromise={() => import('sentry/views/alerts/list')}
+        componentPromise={() => import('sentry/views/alerts/list/incidents')}
         component={SafeLazyLoad}
       />
       <Route path="rules/">
         <IndexRoute
           component={SafeLazyLoad}
-          componentPromise={() => import('sentry/views/alerts/rules')}
+          componentPromise={() => import('sentry/views/alerts/list/rules')}
         />
         <Route
           path="details/:ruleId/"
           name={t('Alert Rule Details')}
           component={SafeLazyLoad}
-          componentPromise={() => import('sentry/views/alerts/rules/details')}
+          componentPromise={() => import('sentry/views/alerts/rules/metric/details')}
         />
         <Route
           path=":projectId/"
@@ -1056,12 +1056,14 @@ function buildRoutes() {
         <Route
           path=":projectId/:ruleId/details/"
           name={t('Alert Rule Details')}
-          componentPromise={() => import('sentry/views/alerts/details')}
+          componentPromise={() => import('sentry/views/alerts/rules/issue/details')}
           component={SafeLazyLoad}
         >
           <IndexRoute
             component={SafeLazyLoad}
-            componentPromise={() => import('sentry/views/alerts/details/ruleDetails')}
+            componentPromise={() =>
+              import('sentry/views/alerts/rules/issue/details/ruleDetails')
+            }
           />
         </Route>
       </Route>
@@ -1890,10 +1892,26 @@ function buildRoutes() {
         component={SafeLazyLoad}
       />
       <Route
+        path="functions/:projectId/"
+        componentPromise={() => import('sentry/views/profiling/functions')}
+        component={SafeLazyLoad}
+      />
+      <Route
         path="flamegraph/:projectId/:eventId"
         component={SafeLazyLoad}
-        componentPromise={() => import('sentry/views/profiling/flamegraph')}
-      />
+        componentPromise={() => import('sentry/views/profiling/profileGroupProvider')}
+      >
+        <Route
+          path="summary/"
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/profiling/flamegraphSummary')}
+        />
+        <Route
+          path="flamegraph/"
+          component={SafeLazyLoad}
+          componentPromise={() => import('sentry/views/profiling/flamegraph')}
+        />
+      </Route>
     </Route>
   );
 

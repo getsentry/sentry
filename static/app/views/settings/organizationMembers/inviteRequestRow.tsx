@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -124,12 +124,12 @@ const InviteRequestRow = ({
           disableConfirmButton={!canSend}
           disabled={!canApprove || roleDisallowed}
           message={
-            <React.Fragment>
+            <Fragment>
               {tct('Are you sure you want to invite [email] to your organization?', {
                 email: inviteRequest.email,
               })}
               {headerInfo}
-            </React.Fragment>
+            </Fragment>
           }
         >
           <Button
