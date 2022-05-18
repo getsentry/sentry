@@ -183,4 +183,13 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ],
     illustration: diagramCustom,
   },
+  frames_frozen: {
+    description: t('Frozen frames are frames that take longer than 700 ms to render.'),
+    examples: [
+      t(
+        'For Apple, the frame rate can be higher, especially as 120 fps displays are becoming more popular. For these apps, Sentry detects the frame rate and adjusts the slow frame calculation accordingly.'
+      ),
+    ],
+    illustration: diagramCustom,
+  },
 };
