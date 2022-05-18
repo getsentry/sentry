@@ -74,6 +74,7 @@ type Props = {
   routes: PlainRoute[];
   rule: MetricRule;
   userTeamIds: string[];
+  disableProjectSelector?: boolean;
   isCustomMetric?: boolean;
   isDuplicateRule?: boolean;
   ruleId?: string;
@@ -108,6 +109,14 @@ const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 
 class RuleFormContainer extends AsyncComponent<Props, State> {
   pollingTimeout: number | undefined = undefined;
+
+  get isDuplicateRule(): boolean {
+    return Boolean(this.props.isDuplicateRule);
+  }
+
+  get hasAlertWizardV3(): boolean {
+    return this.props.organization.features.includes('alert-wizard-v3');
+  }
 
   componentDidMount() {
     const {organization} = this.props;
@@ -532,7 +541,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
           aggregate,
         },
         {
-          duplicateRule: this.props.isDuplicateRule ? 'true' : 'false',
+          duplicateRule: this.isDuplicateRule ? 'true' : 'false',
+          wizardV3: this.hasAlertWizardV3 ? 'true' : 'false',
           referrer: location?.query?.referrer,
           sessionId,
         }
@@ -664,7 +674,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization, ruleId, rule, onSubmitSuccess, router} = this.props;
+    const {organization, ruleId, rule, onSubmitSuccess, router, disableProjectSelector} =
+      this.props;
     const {
       query,
       project,
@@ -718,8 +729,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       />
     );
 
-    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
-
     const triggerForm = (disabled: boolean) => (
       <Triggers
         disabled={disabled}
@@ -735,7 +744,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         organization={organization}
         ruleId={ruleId}
         availableActions={this.state.availableActions}
-        hasAlertWizardV3={hasAlertWizardV3}
+        hasAlertWizardV3={this.hasAlertWizardV3}
         onChange={this.handleChangeTriggers}
         onThresholdTypeChange={this.handleThresholdTypeChange}
         onThresholdPeriodChange={this.handleThresholdPeriodChange}
@@ -747,7 +756,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       <RuleNameOwnerForm
         disabled={disabled}
         project={project}
-        hasAlertWizardV3={hasAlertWizardV3}
+        hasAlertWizardV3={this.hasAlertWizardV3}
       />
     );
 
@@ -761,7 +770,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         }
         onComparisonTypeChange={this.handleComparisonTypeChange}
         organization={organization}
-        hasAlertWizardV3={hasAlertWizardV3}
+        hasAlertWizardV3={this.hasAlertWizardV3}
         comparisonDelta={comparisonDelta}
       />
     );
@@ -825,7 +834,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                     alertType === 'custom' || dataset === Dataset.ERRORS
                   }
                   alertType={alertType}
-                  hasAlertWizardV3={hasAlertWizardV3}
+                  hasAlertWizardV3={this.hasAlertWizardV3}
                   dataset={dataset}
                   timeWindow={timeWindow}
                   comparisonType={comparisonType}
@@ -836,14 +845,15 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   onTimeWindowChange={value =>
                     this.handleFieldChange('timeWindow', value)
                   }
+                  disableProjectSelector={disableProjectSelector}
                 />
-                {!hasAlertWizardV3 && thresholdTypeForm(disabled)}
+                {!this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
                 <AlertListItem>
-                  {hasAlertWizardV3
+                  {this.hasAlertWizardV3
                     ? t('Set thresholds')
                     : t('Set thresholds to trigger alert')}
                 </AlertListItem>
-                {hasAlertWizardV3 && thresholdTypeForm(disabled)}
+                {this.hasAlertWizardV3 && thresholdTypeForm(disabled)}
                 {triggerForm(disabled)}
                 {ruleNameOwnerForm(disabled)}
               </List>
