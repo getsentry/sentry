@@ -19,19 +19,22 @@ type Props = {
 function PerformanceContainer({organization, children, location}: Props) {
   const prevLocationPathname = useRef('');
 
-  useEffect(() => {
-    // when new perf page loads, query is pristine
-    if (location.pathname !== prevLocationPathname.current) {
-      prevLocationPathname.current = location.pathname;
-      browserHistory.push({
-        pathname: location.pathname,
-        query: {
-          ...location.query,
-          isDirty: false,
-        },
-      });
-    }
-  }, [location]);
+  useEffect(
+    function () {
+      // when new perf page loads, query is pristine
+      if (location.pathname !== prevLocationPathname.current) {
+        prevLocationPathname.current = location.pathname;
+        browserHistory.push({
+          pathname: location.pathname,
+          query: {
+            ...location.query,
+            isDirty: false,
+          },
+        });
+      }
+    },
+    [location]
+  );
 
   function renderNoAccess() {
     return (
@@ -48,10 +51,6 @@ function PerformanceContainer({organization, children, location}: Props) {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      {/* TODO remove before merging */}
-      <div style={{marginLeft: '30px'}}>
-        isDirty: {location.query?.isDirty || 'nothing set'}
-      </div>
       <MEPSettingProvider>{children}</MEPSettingProvider>
     </Feature>
   );
