@@ -17,7 +17,8 @@ export enum OnboardingTaskKey {
   FIRST_TRANSACTION = 'setup_transactions',
   METRIC_ALERT = 'setup_metric_alert_rules',
   USER_SELECTED_PROJECTS = 'setup_userselected_projects',
-  INTEGRATIONS = 'setup_integrations',
+  INTEGRATIONS = 'integrations',
+  FIRST_INTEGRATION = 'setup_integrations',
 }
 
 export type OnboardingSupplementComponentProps = {
@@ -63,6 +64,12 @@ export type OnboardingTaskDescriptor = {
    * Note that this should not be given a react component.
    */
   renderCard?: (props: OnboardingCustomComponentProps) => JSX.Element | null;
+  /**
+   * Joins with this task id for server-side onboarding state.
+   * This allows you to create alias for exising onboarding tasks or create multiple
+   * tasks for the same server-side task.
+   */
+  serverTask?: string;
 } & (
   | {
       actionType: 'app' | 'external';
