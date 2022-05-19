@@ -32,22 +32,10 @@ def update_config_cache(
     from sentry.relay import projectconfig_cache
     from sentry.relay.config import get_project_config
 
-    # At this point, we haven't marked the task as completed, so it should be
-    # debounced. If it isn't, another worker has picked a task for the same
-    # public key and marked it as done. Since we want to avoid recomputation,
-    # exit the current task.
-    if not projectconfig_debounce_cache.is_debounced(
-        public_key=public_key, project_id=None, organization_id=None
+    if not should_update_cache(
+        organization_id=organization_id, project_id=project_id, public_key=public_key
     ):
         return
-
-    # Delete key before generating configs such that we never have an outdated
-    # but valid cache.
-    #
-    # If this was running at the end of the task, it would be more effective
-    # against bursts of updates, but introduces a different race where an
-    # outdated cache may be used.
-    projectconfig_debounce_cache.mark_task_done(public_key, project_id, organization_id)
 
     if project_id:
         set_current_event_project(project_id)
@@ -104,6 +92,21 @@ def update_config_cache(
             cache_keys_to_delete.append(key.public_key)
 
         projectconfig_cache.delete_many(cache_keys_to_delete)
+
+
+def should_update_cache(organization_id=None, project_id=None, public_key=None) -> bool:
+    # Delete key before generating configs such that we never have an outdated
+    # but valid cache. Also, only run task if it's still scheduled and another
+    # worker hasn't picked it up.
+    #
+    # If this was running at the end of the task, it would be more effective
+    # against bursts of updates, but introduces a different race where an
+    # outdated cache may be used.
+    return 0 < projectconfig_debounce_cache.mark_task_done(
+        organization_id=organization_id,
+        project_id=project_id,
+        public_key=public_key,
+    )
 
 
 def schedule_update_config_cache(
