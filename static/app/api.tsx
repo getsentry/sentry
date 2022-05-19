@@ -83,7 +83,10 @@ const ALLOWED_ANON_PAGES = [
   /^\/join-request\//,
 ];
 
-const globalErrorHandlers: ((resp: ResponseMeta) => void)[] = [];
+/**
+ * Return true if we should skip calling the normal error handler
+ */
+const globalErrorHandlers: ((resp: ResponseMeta) => boolean)[] = [];
 
 export const initApiClientErrorHandling = () =>
   globalErrorHandlers.push((resp: ResponseMeta) => {
@@ -93,7 +96,7 @@ export const initApiClientErrorHandling = () =>
 
     // Ignore error unless it is a 401
     if (!resp || resp.status !== 401 || pageAllowsAnon) {
-      return;
+      return false;
     }
 
     const code = resp?.responseJSON?.detail?.code;
@@ -109,17 +112,18 @@ export const initApiClientErrorHandling = () =>
         'app-connect-authentication-error',
       ].includes(code)
     ) {
-      return;
+      return false;
     }
 
     // If user must login via SSO, redirect to org login page
     if (code === 'sso-required') {
       window.location.assign(extra.loginUrl);
-      return;
+      return true;
     }
 
     if (code === 'member-disabled-over-limit') {
       browserHistory.replace(extra.next);
+      return true;
     }
 
     // Otherwise, the user has become unauthenticated. Send them to auth
@@ -130,6 +134,7 @@ export const initApiClientErrorHandling = () =>
     } else {
       window.location.reload();
     }
+    return true;
   });
 
 /**
@@ -505,8 +510,13 @@ export class Client {
         if (ok) {
           successHandler(responseMeta, statusText, responseData);
         } else {
-          globalErrorHandlers.forEach(handler => handler(responseMeta));
-          errorHandler(responseMeta, statusText, errorReason);
+          const shouldSkipErrorHandler =
+            globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
+              .length > 0;
+
+          if (!shouldSkipErrorHandler) {
+            errorHandler(responseMeta, statusText, errorReason);
+          }
         }
 
         completeHandler(responseMeta, statusText);
