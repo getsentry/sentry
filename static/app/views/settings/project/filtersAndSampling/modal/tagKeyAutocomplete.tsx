@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import SelectField from 'sentry/components/forms/selectField';
-import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {Tag} from 'sentry/types';
 import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
 
+import {TruncatedLabel} from './truncatedLabel';
 import {formatCreateTagLabel} from './utils';
 
 type Props = {
@@ -22,7 +22,7 @@ function TagKeyAutocomplete({tags, onChange, value, disabledOptions}: Props) {
   // select doesn't play nicely with selected values that are not in the listed options
   const options = tags.map(({key}) => ({
     value: key,
-    label: <Truncate value={key} maxLength={40} expandable={false} />,
+    label: <TruncatedLabel value={key} />,
   }));
 
   if (
@@ -32,7 +32,7 @@ function TagKeyAutocomplete({tags, onChange, value, disabledOptions}: Props) {
   ) {
     options.push({
       value,
-      label: <Truncate value={value} maxLength={40} expandable={false} />,
+      label: <TruncatedLabel value={value} />,
     });
   }
 

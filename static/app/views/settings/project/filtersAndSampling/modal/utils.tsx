@@ -19,6 +19,7 @@ import {
 } from '../utils';
 
 import Conditions from './conditions';
+import {TruncatedLabel} from './truncatedLabel';
 
 type Condition = React.ComponentProps<typeof Conditions>['conditions'][0];
 
@@ -283,6 +284,6 @@ export function generateConditionCategoriesOptions(
 
 export function formatCreateTagLabel(label: string) {
   return tct('Add "[newLabel]"', {
-    newLabel: <Truncate value={label} maxLength={40} expandable={false} />,
+    newLabel: <TruncatedLabel value={label} />,
   });
 }
