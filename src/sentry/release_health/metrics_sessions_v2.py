@@ -441,12 +441,25 @@ def run_sessions_query(
         if orderby not in PREFLIGHT_QUERY_COLUMNS:
             raise exc
 
+        environment_conditions = [
+            _get_filters_for_condition(column_name="environment", condition=condition)
+            for condition in where
+        ]
+        if len(environment_conditions) > 1:
+            raise InvalidParams("Environment condition was parsed incorrectly")
+        else:
+            try:
+                env_condition = environment_conditions[0]
+            except KeyError:
+                env_condition = None
+
         preflight_query_filters = _generate_preflight_query_conditions(
             field_name=orderby,
             direction=direction,
             org_id=org_id,
             project_ids=project_ids,
             limit=query.limit,
+            env_condition=env_condition,
         )
 
         if len(preflight_query_filters) == 0:
@@ -544,6 +557,7 @@ def run_sessions_query(
                     for grp in grp_value_to_result_grp_mapping[elem]:
                         result_groups += [grp]
                 except KeyError:
+                    # ToDo(ahmed): Add project stuff too?
                     extra_groups_keys = []
                     if "session.status" in query.raw_groupby:
                         for status in SessionStatus:
@@ -640,6 +654,41 @@ def _transform_single_condition(
     return condition, None
 
 
+def _get_filters_for_condition(column_name: str, condition: Union[Condition, BooleanCondition]):
+    if isinstance(condition, Condition):
+        if condition.lhs == Function("ifNull", parameters=[Column(column_name), ""]):
+            # HACK: metrics tags are never null. We should really
+            # write our own parser for this.
+            condition = replace(condition, lhs=Column(column_name))
+
+        if condition.lhs == Column(column_name):
+            if condition.op in [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]:
+                filters = (
+                    {condition.rhs}
+                    if isinstance(condition.rhs, str)
+                    else {elem for elem in condition.rhs}
+                )
+                if condition.op in [Op.EQ, Op.IN]:
+                    op = Op.IN
+                else:
+                    op = Op.NOT_IN
+                return op, filters
+            raise InvalidParams(
+                f"Unable to resolve {column_name} filter due to unsupported op {condition.op}"
+            )
+
+    if column_name in str(condition):
+        # Anything not handled by the code above cannot be parsed for now,
+        # for two reasons:
+        # 1) Queries like session.status:healthy OR release:foo are hard to
+        #    translate, because they would require different conditions on the separate
+        #    metric fields.
+        # 2) AND and OR conditions come in the form `Condition(Function("or", [...]), Op.EQ, 1)`
+        #    where [...] can again contain any condition encoded as a Function. For this, we would
+        #    have to replicate the translation code above.
+        raise InvalidParams(f"Unable to parse condition with {column_name}")
+
+
 def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
     try:
         return frozenset([SessionStatus(status)])
@@ -703,7 +752,7 @@ def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> M
 
 
 def _generate_preflight_query_conditions(
-    field_name: str, direction: Direction, org_id: int, project_ids, limit
+    field_name: str, direction: Direction, org_id: int, project_ids, limit, env_condition
 ) -> ConditionGroup:
     queryset_results = []
     if field_name == "release.timestamp":
@@ -711,7 +760,20 @@ def _generate_preflight_query_conditions(
             organization=org_id,
             projects__id__in=project_ids,
         )
-        # ToDo env filter
+
+        if env_condition is not None:
+            op, env_filter_set = env_condition
+            if op == Op.IN:
+                queryset = queryset.filter(
+                    releaseprojectenvironment__environment__name__in=env_filter_set,
+                    releaseprojectenvironment__project_id__in=project_ids,
+                )
+            else:
+                queryset = queryset.exclude(
+                    releaseprojectenvironment__environment__name__in=env_filter_set,
+                    releaseprojectenvironment__project_id__in=project_ids,
+                )
+
         if direction == Direction.DESC:
             queryset = queryset.order_by("-date_added", "-id")
         else:

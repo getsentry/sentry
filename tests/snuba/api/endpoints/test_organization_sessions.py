@@ -1688,9 +1688,108 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
             },
         ]
 
+        # response = self.do_request(
+        #     {
+        #         "project": rando_project.id,
+        #         "statsPeriod": "1d",
+        #         "interval": "1d",
+        #         "field": ["sum(session)"],
+        #         "groupBy": ["release", "session.status", "project"],
+        #         "orderBy": "-release.timestamp",
+        #         "per_page": 3,
+        #     }
+        # )
+
     @freeze_time(MOCK_DATETIME)
     def test_order_by_with_environment_filter_on_preflight(self):
-        ...
+        rando_project = self.create_project()
+        rando_env = self.create_environment(name="rando_env", project=self.project)
+
+        # Create two releases with no metrics data and then two releases with metric data
+        release_1a = self.create_release(
+            project=rando_project, version="1A", environments=[rando_env]
+        )
+        release_1b = self.create_release(
+            project=rando_project, version="1B", environments=[rando_env]
+        )
+        release_1c = self.create_release(project=rando_project, version="1C")
+        release_1d = self.create_release(project=rando_project, version="1D")
+
+        self.store_session(
+            make_session(rando_project, release=release_1a.version, environment="rando_env")
+        )
+        self.store_session(
+            make_session(rando_project, release=release_1b.version, environment="rando_env")
+        )
+        self.store_session(make_session(rando_project, release=release_1c.version))
+        self.store_session(make_session(rando_project, release=release_1d.version))
+
+        # Test env condition with IN
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": "environment:[rando_env,rando_enc2]",
+                "groupBy": ["release", "environment"],
+                "orderBy": "-release.timestamp",
+                "per_page": 4,
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1B", "environment": "rando_env"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+            {
+                "by": {"release": "1A", "environment": "rando_env"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+        # Test env condition with NOT IN
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": "!environment:[rando_env,rando_enc2]",
+                "groupBy": ["release", "environment"],
+                "orderBy": "-release.timestamp",
+                "per_page": 4,
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D", "environment": "production"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+            {
+                "by": {"release": "1C", "environment": "production"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+        # Test env condition with invalid OR operation
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": "environment:rando_env OR environment:rando_enc2",
+                "groupBy": ["release", "environment"],
+                "orderBy": "-release.timestamp",
+                "per_page": 4,
+            }
+        )
+        assert response.json()["detail"] == "Unable to parse condition with environment"
 
     @freeze_time(MOCK_DATETIME)
     def test_order_by_without_release_groupby(self):
