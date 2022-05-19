@@ -1,5 +1,8 @@
+import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ClippedBox from 'sentry/components/clippedBox';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -13,7 +16,12 @@ type Props = {
   deviceArch?: string;
 };
 
+const CLIPPED_HEIGHT = 45;
+
 function FrameRegisters({registers, deviceArch}: Props) {
+  const [isRevealed, setIsRevealed] = useState(false);
+  const [renderedHeight, setRenderedHeight] = useState(0);
+
   // make sure that clicking on the registers does not actually do
   // anything on the containing element.
   const handlePreventToggling = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -25,19 +33,30 @@ function FrameRegisters({registers, deviceArch}: Props) {
   return (
     <Wrapper>
       <Title>{t('Registers')}</Title>
-      <Registers>
-        {sortedRegisters.map(([name, value]) => {
-          if (!defined(value)) {
-            return null;
-          }
-          return (
-            <Register key={name} onClick={handlePreventToggling}>
-              {name}
-              <Value value={value} meta={getMeta(registers, name)} />
-            </Register>
-          );
-        })}
-      </Registers>
+      <StyledClippedBox
+        isRevealed={isRevealed}
+        renderedHeight={renderedHeight}
+        clipHeight={CLIPPED_HEIGHT}
+        onReveal={() => setIsRevealed(true)}
+        onSetRenderedHeight={setRenderedHeight}
+        clipFade={({showMoreButton}) => {
+          return <ClipFade>{showMoreButton}</ClipFade>;
+        }}
+      >
+        <Registers>
+          {sortedRegisters.map(([name, value]) => {
+            if (!defined(value)) {
+              return null;
+            }
+            return (
+              <Register key={name} onClick={handlePreventToggling}>
+                {name}
+                <Value value={value} meta={getMeta(registers, name)} />
+              </Register>
+            );
+          })}
+        </Registers>
+      </StyledClippedBox>
     </Wrapper>
   );
 }
@@ -45,10 +64,12 @@ function FrameRegisters({registers, deviceArch}: Props) {
 export default FrameRegisters;
 
 const Wrapper = styled('div')`
-  padding: ${space(1)} ${space(1)} ${space(1)} calc(${space(4)} + ${space(0.25)});
+  padding: ${space(1)} ${space(1)} ${space(0.5)} calc(${space(4)} + ${space(0.25)});
   display: grid;
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1rem;
+  margin-top: ${space(0.5)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 132px 1fr;
@@ -77,4 +98,45 @@ const Register = styled('div')`
   grid-template-columns: 3em 1fr;
   align-items: center;
   color: ${p => p.theme.gray300};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: right;
+  }
+`;
+
+const StyledClippedBox = styled(ClippedBox)<{
+  isRevealed: boolean;
+  renderedHeight: number;
+}>`
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+  border: none;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+
+  ${p =>
+    !p.isRevealed &&
+    p.renderedHeight > CLIPPED_HEIGHT &&
+    css`
+      max-height: ${CLIPPED_HEIGHT * 2}px;
+
+      @media (min-width: ${p.theme.breakpoints[0]}) {
+        max-height: ${CLIPPED_HEIGHT}px;
+      }
+    `}
+`;
+
+const ClipFade = styled('div')`
+  background: ${p => p.theme.white};
+  display: flex;
+  justify-content: flex-end;
+  /* Let pointer-events pass through ClipFade to visible elements underneath it */
+  pointer-events: none;
+  /* Ensure pointer-events trigger event listeners on "Expand" button */
+  > * {
+    pointer-events: auto;
+  }
 `;

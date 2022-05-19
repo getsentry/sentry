@@ -418,14 +418,12 @@ const RegistersCell = styled('div')`
   grid-column: 1/-1;
   margin-left: -${space(0.5)};
   margin-right: -${space(0.5)};
-  padding-top: ${space(1)};
   cursor: default;
 `;
 
 const Registers = styled(Context)`
   padding: 0;
   margin: 0;
-  border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const ToggleButton = styled(Button)`
