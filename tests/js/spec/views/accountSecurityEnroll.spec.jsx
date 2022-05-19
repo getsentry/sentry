@@ -47,7 +47,7 @@ describe('AccountSecurityEnroll', function () {
     });
 
     it('has qrcode component', function () {
-      expect(wrapper.find('QRCode')).toHaveLength(1);
+      expect(wrapper.find('QRCodeCanvas')).toHaveLength(1);
     });
 
     it('can enroll', function () {

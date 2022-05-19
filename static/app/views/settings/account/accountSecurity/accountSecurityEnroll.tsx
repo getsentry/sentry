@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import QRCode from 'qrcode.react';
+import {QRCodeCanvas} from 'qrcode.react';
 
 import {
   addErrorMessage,
@@ -434,7 +434,7 @@ const Actions = styled(PanelItem)`
   justify-content: flex-end;
 `;
 
-const StyledQRCode = styled(QRCode)`
+const StyledQRCode = styled(QRCodeCanvas)`
   background: white;
   padding: ${space(2)};
 `;
