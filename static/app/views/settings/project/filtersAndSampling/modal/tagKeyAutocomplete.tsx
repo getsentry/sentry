@@ -5,6 +5,9 @@ import {t} from 'sentry/locale';
 import {Tag} from 'sentry/types';
 import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
 
+import {TruncatedLabel} from './truncatedLabel';
+import {formatCreateTagLabel} from './utils';
+
 type Props = {
   disabledOptions: string[];
   onChange: (value: string) => void;
@@ -17,13 +20,20 @@ type Props = {
  */
 function TagKeyAutocomplete({tags, onChange, value, disabledOptions}: Props) {
   // select doesn't play nicely with selected values that are not in the listed options
-  const options = tags.map(({key}) => ({value: key, label: key}));
+  const options = tags.map(({key}) => ({
+    value: key,
+    label: <TruncatedLabel value={key} />,
+  }));
+
   if (
     value &&
     value !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG &&
     !tags.some(({key}) => key === value)
   ) {
-    options.push({value, label: value});
+    options.push({
+      value,
+      label: <TruncatedLabel value={value} />,
+    });
   }
 
   return (
@@ -40,6 +50,7 @@ function TagKeyAutocomplete({tags, onChange, value, disabledOptions}: Props) {
         placeholder={t('tag')}
         onChange={onChange}
         value={value}
+        formatCreateLabel={formatCreateTagLabel}
       />
     </Wrapper>
   );
