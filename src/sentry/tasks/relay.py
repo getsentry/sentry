@@ -32,11 +32,6 @@ def update_config_cache(
     from sentry.relay import projectconfig_cache
     from sentry.relay.config import get_project_config
 
-    if not should_update_cache(
-        organization_id=organization_id, project_id=project_id, public_key=public_key
-    ):
-        return
-
     if project_id:
         set_current_event_project(project_id)
 
@@ -50,6 +45,13 @@ def update_config_cache(
 
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
+
+    # Not running this at the beginning of the task to add tags in case there's
+    # something wrong going on.
+    if not should_update_cache(
+        organization_id=organization_id, project_id=project_id, public_key=public_key
+    ):
+        return
 
     if organization_id:
         projects = list(Project.objects.filter(organization_id=organization_id))
