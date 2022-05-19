@@ -64,7 +64,7 @@ const InlinePre = styled('pre')`
   margin: 0;
   display: grid;
   grid-template-columns: 1fr max-content;
-  grid-gap: ${space(0.5)};
+  gap: ${space(0.5)};
 `;
 
 const FixedWidth = styled('span')`
