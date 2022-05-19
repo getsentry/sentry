@@ -1,7 +1,9 @@
+from collections import OrderedDict
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Callable, Mapping, Tuple, cast
 
+from django.conf import settings
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
@@ -100,6 +102,8 @@ class SnowflakeBitSegment:
     name: str
 
     def validate(self, value):
+        if self.length <= 0:
+            raise Exception("The length should be a positive number")
         if value >> self.length != 0:
             raise Exception(f"{self.name} exceed max bit value of {self.length}")
         return True
@@ -107,14 +111,22 @@ class SnowflakeBitSegment:
 
 class Snowflake:
     SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
-    SNOWFLAKE_ID_LENGTH = SnowflakeBitSegment(53, "Snowflake ID")
+    SNOWFLAKE_ID_LENGTH = getattr(settings, "SNOWFLAKE_ID_LENGTH", 53)
+    SNOWFLAKE_VERSION_ID_LENGTH = getattr(settings, "SNOWFLAKE_VERSION_ID_LENGTH", 5)
+    SNOWFLAKE_TIME_DIFFERENCE_LENGTH = getattr(settings, "SNOWFLAKE_TIME_DIFFERENCE_LENGTH", 32)
+    SNOWFLAKE_REGION_ID_LENGTH = getattr(settings, "SNOWFLAKE_REGION_ID_LENGTH", 12)
+    SNOWFLAKE_REGION_SEQUENCE_LENGTH = getattr(settings, "SNOWFLAKE_REGION_SEQUENCE_LENGTH", 4)
+    SNOWFLAKE_ID_VALIDATOR = SnowflakeBitSegment(SNOWFLAKE_ID_LENGTH, "Snowflake ID")
 
-    SEGMENT_LENGTH = {
-        "VERSION_ID": SnowflakeBitSegment(5, "Version ID"),
-        "TIME_DIFFERENCE": SnowflakeBitSegment(32, "Time difference"),
-        "REGION_ID": SnowflakeBitSegment(12, "Region ID"),
-        "REGION_SEQUENCE": SnowflakeBitSegment(4, "Region sequence"),
-    }
+    SEGMENT_LENGTH = OrderedDict()
+    SEGMENT_LENGTH["VERSION_ID"] = SnowflakeBitSegment(SNOWFLAKE_VERSION_ID_LENGTH, "Version ID")
+    SEGMENT_LENGTH["VERSION_ID"] = SnowflakeBitSegment(
+        SNOWFLAKE_TIME_DIFFERENCE_LENGTH, "Time difference"
+    )
+    SEGMENT_LENGTH["VERSION_ID"] = SnowflakeBitSegment(SNOWFLAKE_REGION_ID_LENGTH, "Region ID")
+    SEGMENT_LENGTH["VERSION_ID"] = SnowflakeBitSegment(
+        SNOWFLAKE_REGION_SEQUENCE_LENGTH, "Region sequence"
+    )
 
     SEGMENT_VALUE = {
         "VERSION_ID": 0,
@@ -130,7 +142,7 @@ class Snowflake:
         # supports up to 130 years
         self.SEGMENT_VALUE["TIME_DIFFERENCE"] = int(current_time - self.SENTRY_EPOCH_START)
 
-        total_bits_to_allocate = 53
+        total_bits_to_allocate = self.SNOWFLAKE_ID_LENGTH
         snowflake_id = 0
 
         for key, segment in self.SEGMENT_LENGTH.items():
@@ -138,7 +150,7 @@ class Snowflake:
                 total_bits_to_allocate -= segment.length
                 snowflake_id += self.SEGMENT_VALUE[key] << (total_bits_to_allocate)
 
-        self.SNOWFLAKE_ID_LENGTH.validate(snowflake_id)
+        self.SNOWFLAKE_ID_VALIDATOR.validate(snowflake_id)
 
         return snowflake_id
 
