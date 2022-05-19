@@ -115,8 +115,6 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
     - example: `field=count_if(transaction.duration,greater,300)`
 - an equation when prefixed with `equation|`, read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/)
     - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
-    - The key of this field in the `data` response will be in the format `equation[{number}]` where number is the
-      equation's position in the field list
 """,
     )
     SORT = OpenApiParameter(
@@ -131,7 +129,7 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
         location="query",
         required=False,
         type=int,
-        description="The number of rows to return in the result",
+        description="Limit the number of rows to return in the result, maximum allowed is 100",
     )
 
 

@@ -1,12 +1,10 @@
 import logging
-from typing import Any, Dict, List
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
@@ -50,6 +48,8 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
+    """Deprecated in favour of OrganizationEventsEndpoint"""
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -128,11 +128,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 )
 
 
-class EventsResponse(TypedDict):
-    data: List[Dict[str, Any]]
-    meta: Dict[str, str]
-
-
 @extend_schema(tags=["Visibility"])
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     public = {"GET"}
@@ -152,7 +147,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationEventsResponseDict", EventsResponse
+                "OrganizationEventsResponseDict", discover.EventsResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
             404: api_constants.RESPONSE_NOTFOUND,
@@ -166,26 +161,26 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             {
                                 "count_if(transaction.duration,greater,300)": 5,
                                 "count()": 10,
-                                "equation[0]": 50,
+                                "equation|count_if(transaction.duration,greater,300) / count() * 100": 50,
                                 "transaction": "foo",
                             },
                             {
                                 "count_if(transaction.duration,greater,300)": 3,
                                 "count()": 20,
-                                "equation[0]": 15,
+                                "equation|count_if(transaction.duration,greater,300) / count() * 100": 15,
                                 "transaction": "bar",
                             },
                             {
                                 "count_if(transaction.duration,greater,300)": 8,
                                 "count()": 40,
-                                "equation[0]": 20,
+                                "equation|count_if(transaction.duration,greater,300) / count() * 100": 20,
                                 "transaction": "baz",
                             },
                         ],
                         "meta": {
                             "count_if(transaction.duration,greater,300)": "integer",
                             "count()": "integer",
-                            "equation[0]": "integer",
+                            "equation|count_if(transaction.duration,greater,300) / count() * 100": "integer",
                             "transaction": "string",
                         },
                     }
@@ -196,6 +191,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization) -> Response:
         """
         Retrieves discover (aka. events) data for a given organization
+
+        This endpoint is intended to get a table of results, and is not for doing a full export of data sent to Sentry
+        Fields determine what will be returned back in the response of the endpoint both in the `data` and `meta` key.
+        - The `data` key will contain a list of results row by row for what matched the query made
+        - The `meta` key will contain general
         """
         if not self.has_feature(organization, request):
             return Response(status=404)
