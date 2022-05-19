@@ -11,8 +11,8 @@ from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
-from sentry.relay import config, projectconfig_cache, projectconfig_debounce_cache
-from sentry.tasks.relay import update_config_cache
+from sentry.relay import config, projectconfig_cache
+from sentry.tasks.relay import schedule_update_config_cache
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -93,28 +93,14 @@ class RelayProjectConfigsEndpoint(Endpoint):
         cached_config = projectconfig_cache.get(public_key)
         if cached_config:
             return cached_config
-        if projectconfig_debounce_cache.is_debounced(
-            public_key=public_key, project_id=None, organization_id=None
-        ):
-            return
 
-        update_config_cache.delay(
+        schedule_update_config_cache(
             generate=True,
             organization_id=None,
             project_id=None,
             public_key=public_key,
             update_reason="project_config.post_v3",
         )
-
-        # Checking if the project is debounced and debouncing it are two separate
-        # actions that aren't atomic. If the process marks a project as
-        # debounced and dies before scheduling it, the cache will be stale for
-        # the whole TTL. To avoid that, make sure we first schedule the task,
-        # and only then mark the project as debounced.
-        projectconfig_debounce_cache.debounce(
-            public_key=public_key, project_id=None, organization_id=None
-        )
-        return
 
     def _post_by_key(self, request: Request, full_config_requested):
         public_keys = request.relay_request_data.get("publicKeys")
