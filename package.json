@@ -198,7 +198,7 @@
   "resolutions": {
     "**/ua-parser-js": "<=0.7.28",
     "**/is-svg": ">=4.2.2",
-    "webpack": "5.66.0",
+    "webpack": "5.72.1",
     "css-loader": "^5.2.6",
     "dotenv-webpack": "^7.1.0",
     "html-webpack-plugin": "^5.0.0",
