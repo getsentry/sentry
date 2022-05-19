@@ -1,11 +1,11 @@
-from typing import List
+from typing import Any, List
 
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin
+from sentry.api.base import EnvironmentMixin, PaginateArgs
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -77,7 +77,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             )
         ],
     )
-    def get(self, request: Request, organization) -> Response:
+    @OrganizationEndpoint.paginate_decorator(OffsetPaginator)
+    def get(self, request: Request, organization) -> Any:
         """
         Return a list of projects bound to a organization.
         """
@@ -172,13 +173,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 )
                 return serialize(result, request.user, serializer)
 
-            return self.paginate(
-                request=request,
-                queryset=queryset,
-                order_by=order_by,
-                on_results=serialize_on_result,
-                paginator_cls=OffsetPaginator,
-            )
+            return PaginateArgs(request, queryset, order_by, serialize_on_result)
 
 
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):

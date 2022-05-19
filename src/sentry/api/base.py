@@ -3,11 +3,13 @@ from __future__ import annotations
 import functools
 import logging
 import time
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Callable, List, Mapping, Optional
 
 import sentry_sdk
 from django.conf import settings
+from django.db.models import QuerySet
 from django.http import HttpResponse
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
@@ -47,6 +49,14 @@ DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuth
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
+
+
+@dataclass
+class PaginateArgs:
+    request: Request
+    queryset: QuerySet
+    order_by: List[str]
+    serialization_func: Callable[[Any], Any]
 
 
 def allow_cors_options(func):
@@ -316,6 +326,25 @@ class Endpoint(APIView):
             return cursor_cls.from_string(request.GET.get(self.cursor_name))
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
+
+    def paginate_decorator(paginator_cls):
+        def decorator(func):
+            @functools.wraps(func)
+            def view_func(self, *args, **kwargs):
+                result = func(self, *args, **kwargs)
+                if isinstance(result, PaginateArgs):
+                    return self.paginate(
+                        request=result.request,
+                        queryset=result.queryset,
+                        order_by=result.order_by,
+                        on_results=result.serialization_func,
+                        paginator_cls=paginator_cls,
+                    )
+                return result
+
+            return view_func
+
+        return decorator
 
     def paginate(
         self,
