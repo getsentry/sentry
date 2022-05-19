@@ -145,7 +145,10 @@ setup-git() {
         echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
         exit 1
     )
-    pip install -r requirements-pre-commit.txt
+    if ! require pre-commit; then
+        echo 'pre-commit isn't installed. Please run make install-py-dev.'
+        exit 1
+    fi
     pre-commit install --install-hooks
     echo ""
 }

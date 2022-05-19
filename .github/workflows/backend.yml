@@ -154,8 +154,6 @@ jobs:
         uses: ./.github/actions/setup-python
         with:
           python-version: ${{ matrix.python-version }}
-          # Note this uses a different cache key than other backend-based workflows because this workflows dependencies are different
-          cache-files-hash: ${{ hashFiles('requirements-pre-commit.txt') }}
 
       - uses: actions/cache@v3
         with:
