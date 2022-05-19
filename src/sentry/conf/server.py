@@ -12,6 +12,8 @@ import tempfile
 from datetime import timedelta
 from urllib.parse import urlparse
 
+from django.conf.global_settings import *  # NOQA
+
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
