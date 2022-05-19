@@ -2,8 +2,6 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 
-import {addMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -29,7 +27,6 @@ import space from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Color} from 'sentry/utils/theme';
-import useTeams from 'sentry/utils/useTeams';
 import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
@@ -40,7 +37,13 @@ import {isIssueAlert} from '../../utils';
 
 type Props = {
   hasDuplicateAlertRules: boolean;
+  hasEditAccess: boolean;
   onDelete: (projectId: string, rule: CombinedMetricIssueAlerts) => void;
+  onOwnerChange: (
+    projectId: string,
+    rule: CombinedMetricIssueAlerts,
+    ownerValue: string
+  ) => void;
   orgId: string;
   projects: Project[];
   projectsLoaded: boolean;
@@ -62,8 +65,10 @@ function RuleListRow({
   projects,
   orgId,
   onDelete,
+  onOwnerChange,
   userTeams,
   hasDuplicateAlertRules,
+  hasEditAccess,
 }: Props) {
   const [assignee, setAssignee] = useState<string>('');
   const activeIncident =
@@ -182,8 +187,6 @@ function RuleListRow({
   const teamActor = ownerId
     ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
     : null;
-  const {teams} = useTeams();
-  const filteredTeams = teams.filter(team => team.isMember);
 
   const canEdit = ownerId ? userTeams.has(ownerId) : true;
   const alertLink = isIssueAlert(rule) ? (
@@ -234,28 +237,10 @@ function RuleListRow({
     },
   ];
 
-  function handleChange(ownerValue) {
-    setAssignee(ownerValue);
-    const api = new Client();
-    const alertPath = rule.type === 'alert_rule' ? 'alert-rules' : 'rules';
-    const endpoint = `/projects/${orgId}/${rule.projects[0]}/${alertPath}/${rule.id}/`;
-    const updatedRule = {...rule, owner: ownerValue};
-
-    return api.request(endpoint, {
-      method: 'PUT',
-      data: updatedRule,
-      success: () => {
-        addMessage(t('Updated alert rule'), 'success');
-      },
-      error: () => {
-        addMessage(t('Unable to save change'), 'error');
-      },
-    });
-  }
-
   function handleOwnerChange({value}: {value: string}) {
     const ownerValue = value && `team:${value}`;
-    handleChange(ownerValue);
+    setAssignee(ownerValue);
+    onOwnerChange(slug, rule, ownerValue);
   }
 
   const unassignedOption = {
@@ -275,8 +260,8 @@ function RuleListRow({
   const projectRowTeams = projectRow[0].teams;
   const filteredProjectTeams =
     projectRowTeams &&
-    projectRowTeams.filter(o => {
-      return filteredTeams.findIndex(data => data.id === o.id) !== -1;
+    projectRowTeams.filter(projTeam => {
+      return userTeams.has(projTeam.id);
     });
   const dropdownTeams =
     filteredProjectTeams &&
@@ -298,7 +283,8 @@ function RuleListRow({
       .concat(unassignedOption);
 
   const teamId = assignee && assignee.split(':')[1];
-  const teamName = filteredTeams.filter(team => team.id === teamId);
+  const teamName =
+    filteredProjectTeams && filteredProjectTeams.find(team => team.id === teamId);
 
   const assigneeTeamActor = assignee && {
     type: 'team' as Actor['type'],
@@ -314,10 +300,7 @@ function RuleListRow({
       tooltip={
         <TooltipWrapper>
           {tct('Assigned to [name]', {
-            name:
-              assigneeTeamActor.type === 'team'
-                ? `#${teamName[0].name}`
-                : teamName[0].name,
+            name: teamName && `#${teamName.name}`,
           })}
         </TooltipWrapper>
       }
@@ -377,35 +360,32 @@ function RuleListRow({
                 style={{height: '24px', margin: 0, marginRight: 11}}
               />
             )}
-            <Access access={['alerts:write']}>
-              {({hasAccess}) =>
-                projectsLoaded && (
-                  <DropdownAutoComplete
-                    maxHeight={400}
-                    onOpen={e => {
-                      e?.stopPropagation();
-                    }}
-                    items={dropdownTeams}
-                    alignMenu="right"
-                    onSelect={handleOwnerChange}
-                    itemSize="small"
-                    searchPlaceholder={t('Filter teams')}
-                    disableLabelPadding
-                    emptyHidesInput
-                    disabled={!hasAccess}
-                  >
-                    {({getActorProps, isOpen}) => (
-                      <DropdownButton {...getActorProps({})}>
-                        {avatarElement}
-                        {hasAccess && (
-                          <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
-                        )}
-                      </DropdownButton>
+            {projectsLoaded && (
+              <DropdownAutoComplete
+                data-test-id="alert-row-assignee"
+                maxHeight={400}
+                onOpen={e => {
+                  e?.stopPropagation();
+                }}
+                items={dropdownTeams}
+                alignMenu="right"
+                onSelect={handleOwnerChange}
+                itemSize="small"
+                searchPlaceholder={t('Filter teams')}
+                disableLabelPadding
+                emptyHidesInput
+                disabled={!hasEditAccess}
+              >
+                {({getActorProps, isOpen}) => (
+                  <DropdownButton {...getActorProps({})}>
+                    {avatarElement}
+                    {hasEditAccess && (
+                      <StyledChevron direction={isOpen ? 'up' : 'down'} size="xs" />
                     )}
-                  </DropdownAutoComplete>
-                )
-              }
-            </Access>
+                  </DropdownButton>
+                )}
+              </DropdownAutoComplete>
+            )}
           </AssigneeWrapper>
         )}
       </FlexCenter>
