@@ -307,6 +307,7 @@ const AdaptivePageCorners = styled(PageCorners)`
 `;
 
 const StyledStepper = styled(Stepper)`
+  justify-self: center;
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
   }
