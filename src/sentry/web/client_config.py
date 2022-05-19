@@ -185,6 +185,7 @@ def get_client_config(request=None):
         },
         "demoMode": settings.DEMO_MODE,
         "enableAnalytics": settings.ENABLE_ANALYTICS,
+        "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
     }
     if user and user.is_authenticated:
         context.update(
