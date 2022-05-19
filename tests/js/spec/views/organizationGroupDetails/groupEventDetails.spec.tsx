@@ -190,7 +190,9 @@ describe('groupEventDetails', () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />);
+    const {rerender} = render(<TestComponent {...props} />, {
+      organization: props.organization,
+    });
     expect(browserHistory.replace).not.toHaveBeenCalled();
 
     rerender(
@@ -204,7 +206,9 @@ describe('groupEventDetails', () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />);
+    const {rerender} = render(<TestComponent {...props} />, {
+      organization: props.organization,
+    });
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
     rerender(<TestComponent environments={[]} />);
@@ -246,6 +250,7 @@ describe('groupEventDetails', () => {
       />,
       {
         context: routerContext,
+        organization: props.organization,
       }
     );
 
@@ -273,7 +278,9 @@ describe('groupEventDetails', () => {
       })
     );
 
-    render(<TestComponent event={undefined} eventError />);
+    render(<TestComponent event={undefined} eventError />, {
+      organization: props.organization,
+    });
 
     expect(
       await screen.findByText(/events for this issue could not be found/)
@@ -324,7 +331,7 @@ describe('EventCauseEmpty', () => {
       ],
     });
 
-    render(<TestComponent project={props.project} />);
+    render(<TestComponent project={props.project} />, {organization: props.organization});
 
     expect(await screen.findByTestId(/loaded-event-cause-empty/)).toBeInTheDocument();
     expect(screen.queryByText(/event-cause/)).not.toBeInTheDocument();
@@ -373,7 +380,7 @@ describe('EventCauseEmpty', () => {
       ]
     );
 
-    render(<TestComponent project={props.project} />);
+    render(<TestComponent project={props.project} />, {organization: props.organization});
 
     expect(await screen.findByTestId(/event-cause/)).toBeInTheDocument();
     expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
@@ -405,7 +412,7 @@ describe('EventCauseEmpty', () => {
       body: [],
     });
 
-    render(<TestComponent project={props.project} />);
+    render(<TestComponent project={props.project} />, {organization: props.organization});
 
     expect(screen.queryByTestId(/loaded-event-cause-empty/)).not.toBeInTheDocument();
   });
@@ -471,7 +478,7 @@ describe('Platform Integrations', () => {
       body: [component],
     });
 
-    render(<TestComponent />);
+    render(<TestComponent />, {organization: props.organization});
 
     expect(componentsRequest).toHaveBeenCalled();
   });
