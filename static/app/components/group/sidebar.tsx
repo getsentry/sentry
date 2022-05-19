@@ -181,15 +181,11 @@ class BaseGroupSidebar extends Component<Props, State> {
     const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <Container>
-        {hasPageFilters && (
-          <PageFiltersContainer>
-            <EnvironmentPageFilter alignDropdown="right" />
-          </PageFiltersContainer>
-        )}
+        <PageFiltersContainer>
+          <EnvironmentPageFilter alignDropdown="right" />
+        </PageFiltersContainer>
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
         <GroupReleaseStats
