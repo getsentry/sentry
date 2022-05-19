@@ -153,7 +153,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     def test_superuser_sso_user_has_password_saas_product(self):
         from sentry.auth.superuser import COOKIE_NAME, Superuser
 
-        with self.settings(SENTRY_SELF_HOSTED=False):
+        with self.settings(
+            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
             org_provider = AuthProvider.objects.create(
                 organization=self.organization, provider="dummy"
             )
@@ -181,7 +183,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     def test_superuser_no_sso_user_has_password_saas_product(self):
         from sentry.auth.superuser import Superuser
 
-        with self.settings(SENTRY_SELF_HOSTED=False):
+        with self.settings(
+            SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
             AuthProvider.objects.create(organization=self.organization, provider="dummy")
 
             user = self.create_user("foo@example.com", is_superuser=True)
@@ -228,14 +232,103 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         user = self.create_user("foo@example.com", is_superuser=True)
 
         with mock.patch.object(Superuser, "org_id", None), override_settings(SUPERUSER_ORG_ID=None):
-            self.login_as(user)
-            response = self.client.put(
-                self.path,
-                data={
-                    "isSuperuserModal": True,
-                },
-            )
-            assert response.status_code == 403
+            with self.settings(SENTRY_SELF_HOSTED=True):
+                self.login_as(user)
+                response = self.client.put(
+                    self.path,
+                    data={
+                        "isSuperuserModal": True,
+                    },
+                )
+                assert response.status_code == 403
+
+    def test_superuser_no_sso_user_has_password_su_form_off_saas(self):
+        from sentry.auth.superuser import Superuser
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+            user = self.create_user("foo@example.com", is_superuser=True)
+
+            with mock.patch.object(Superuser, "org_id", None), override_settings(
+                SUPERUSER_ORG_ID=None
+            ):
+                with self.settings(SENTRY_SELF_HOSTED=True):
+                    self.login_as(user)
+                    response = self.client.put(
+                        self.path,
+                        data={
+                            "password": "admin",
+                            "isSuperuserModal": True,
+                        },
+                    )
+                    assert response.status_code == 200
+
+    def test_superuser_no_sso_su_form_off_no_password_or_u2f_saas(self):
+        from sentry.auth.superuser import Superuser
+
+        with self.settings(SENTRY_SELF_HOSTED=False):
+            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+            user = self.create_user("foo@example.com", is_superuser=True)
+
+            with mock.patch.object(Superuser, "org_id", None), override_settings(
+                SUPERUSER_ORG_ID=None
+            ):
+                self.login_as(user)
+                response = self.client.put(
+                    self.path,
+                    data={
+                        "isSuperuserModal": True,
+                    },
+                )
+                assert response.status_code == 403
+
+    def test_superuser_no_sso_user_has_password_su_form_on_self_hosted(self):
+        from sentry.auth.superuser import Superuser
+
+        with self.settings(
+            SENTRY_SELF_HOSTED=True, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
+            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+            user = self.create_user("foo@example.com", is_superuser=True)
+
+            with mock.patch.object(Superuser, "org_id", None), override_settings(
+                SUPERUSER_ORG_ID=None
+            ):
+                with self.settings(SENTRY_SELF_HOSTED=True):
+                    self.login_as(user)
+                    response = self.client.put(
+                        self.path,
+                        data={
+                            "password": "admin",
+                            "isSuperuserModal": True,
+                        },
+                    )
+                    assert response.status_code == 200
+
+    def test_superuser_no_sso_su_form_on_no_password_or_u2f_self_hosted(self):
+        from sentry.auth.superuser import Superuser
+
+        with self.settings(
+            SENTRY_SELF_HOSTED=True, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
+        ):
+            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+
+            user = self.create_user("foo@example.com", is_superuser=True)
+
+            with mock.patch.object(Superuser, "org_id", None), override_settings(
+                SUPERUSER_ORG_ID=None
+            ):
+                self.login_as(user)
+                response = self.client.put(
+                    self.path,
+                    data={
+                        "isSuperuserModal": True,
+                    },
+                )
+                assert response.status_code == 403
 
     def test_superuser_no_sso_with_referrer(self):
         from sentry.auth.superuser import Superuser
