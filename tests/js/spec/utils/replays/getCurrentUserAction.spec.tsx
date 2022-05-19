@@ -1,8 +1,22 @@
 import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
-import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
+import {getPrevUserAction} from 'sentry/utils/replays/getPrevUserAction';
 
-it('should return the current user action given a list of userActions, a timestamp and the current time', function () {
-  const userActionCrumbs: Crumb[] = [
+// Values declared in ms.
+const START_TIMESTAMP = 1651693622.951;
+const CURRENT_TIME = 15000;
+
+function createUserActionCrumbs(): Crumb[] {
+  return [
+    {
+      color: 'gray300',
+      data: {url: 'https://dev.getsentry.net:7999/organizations/sentry/performance/'},
+      description: 'Default',
+      id: 0,
+      level: BreadcrumbLevelType.INFO,
+      message: 'Start recording',
+      timestamp: '2022-05-11T22:41:32.002Z',
+      type: BreadcrumbType.INIT,
+    },
     {
       category: 'ui.click',
       color: 'purple300',
@@ -55,22 +69,43 @@ it('should return the current user action given a list of userActions, a timesta
       type: BreadcrumbType.NAVIGATION,
     },
   ];
-  const startTimestamp: number = 1651693622.951;
-  const currentTime: number = 15000;
-  const results = getCurrentUserAction(userActionCrumbs, startTimestamp, currentTime);
+}
 
-  expect(results).toMatchInlineSnapshot(`
-    Object {
-      "category": "ui.input",
-      "color": "purple300",
-      "data": undefined,
-      "description": "User Action",
-      "event_id": null,
-      "id": 4,
-      "level": "info",
-      "message": "div.App > section.padding-b-2 > div.makeStyles-search-input-2 > input",
-      "timestamp": "2022-05-04T19:47:11.086000Z",
-      "type": "ui",
-    }
-  `);
+describe('getPrevUserAction', function () {
+  it(`should return the previous user action even if the timestamp
+    is closer to the next action`, function () {
+    const userActionCrumbs: Crumb[] = createUserActionCrumbs();
+    const results = getPrevUserAction(userActionCrumbs, START_TIMESTAMP, CURRENT_TIME);
+
+    expect(results?.id).toEqual(4);
+  });
+
+  it('should return undefined when userActions is not defined', function () {
+    const userActionCrumbs = [];
+    const results = getPrevUserAction(userActionCrumbs, START_TIMESTAMP, CURRENT_TIME);
+
+    expect(results).toBeUndefined();
+  });
+
+  it('should return undefined when startTimestamp is not defined or is equal to 0', function () {
+    const userActionCrumbs: Crumb[] = createUserActionCrumbs();
+    const results = getPrevUserAction(userActionCrumbs, 0, CURRENT_TIME);
+
+    expect(results).toBeUndefined();
+  });
+
+  it('should return undefined when userActions has only item and the current time is before that item', function () {
+    const userActionscrumbs: Crumb[] = createUserActionCrumbs().slice(4, 5);
+    const results = getPrevUserAction(userActionscrumbs, START_TIMESTAMP, CURRENT_TIME);
+
+    expect(results).toBeUndefined();
+  });
+
+  it('should return the user action when timestamp matches the timestamp of a breadcrumb', function () {
+    const userActionCrumbs: Crumb[] = createUserActionCrumbs();
+    const exactCrumbTime: number = 8135;
+    const results = getPrevUserAction(userActionCrumbs, START_TIMESTAMP, exactCrumbTime);
+
+    expect(results?.id).toEqual(4);
+  });
 });
