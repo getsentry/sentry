@@ -117,7 +117,7 @@ const Context = ({
         })}
 
       {(hasContextRegisters || hasContextVars) && (
-        <Fragment>
+        <StyledClippedBox clipHeight={84}>
           {hasContextRegisters && (
             <FrameRegisters
               registers={registers}
@@ -125,7 +125,7 @@ const Context = ({
             />
           )}
           {hasContextVars && <FrameVariables data={frame.vars || {}} />}
-        </Fragment>
+        </StyledClippedBox>
       )}
 
       {hasAssembly && (
@@ -145,14 +145,7 @@ const StyledClippedBox = styled(ClippedBox)`
     margin-top: 0;
   }
 
-  :first-child {
-    margin-top: -${space(3)};
-  }
-
-  > *:first-child {
-    padding-top: 0;
-    border-top: none;
-  }
+  padding: 0;
 `;
 
 const StyledIconFlag = styled(IconFlag)`

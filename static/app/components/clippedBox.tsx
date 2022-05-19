@@ -1,7 +1,6 @@
 import {PureComponent} from 'react';
 import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
-import color from 'color';
 
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
@@ -123,14 +122,16 @@ class ClippedBox extends PureComponent<Props, State> {
         {children}
         {isClipped && (
           <ClipFade>
-            <Button
-              onClick={this.reveal}
-              priority="primary"
-              size="xsmall"
-              aria-label={btnText ?? t('Show More')}
-            >
-              {btnText}
-            </Button>
+            <ButtonWrapper>
+              <Button
+                onClick={this.reveal}
+                priority="primary"
+                size="xsmall"
+                aria-label={btnText ?? t('Show More')}
+              >
+                {btnText}
+              </Button>
+            </ButtonWrapper>
           </ClipFade>
         )}
       </ClipWrapper>
@@ -157,7 +158,7 @@ const ClipWrapper = styled('div', {
   ${p =>
     p.isClipped &&
     `
-    max-height: ${p.clipHeight}px;
+    max-height: ${p.clipHeight * 2}px;
     overflow: hidden;
   `};
 
@@ -177,13 +178,7 @@ const ClipFade = styled('div')`
   right: 0;
   bottom: 0;
   padding: 40px 0 0;
-  background-image: linear-gradient(
-    180deg,
-    ${p => color(p.theme.background).alpha(0.15).string()},
-    ${p => p.theme.background}
-  );
   text-align: center;
-  border-bottom: ${space(1.5)} solid ${p => p.theme.background};
 
   /* Let pointer-events pass through ClipFade to visible elements underneath it */
   pointer-events: none;
@@ -192,4 +187,11 @@ const ClipFade = styled('div')`
   > * {
     pointer-events: auto;
   }
+`;
+
+const ButtonWrapper = styled('div')`
+  background: ${p => p.theme.white};
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 ${space(1)} ${space(0.5)} 0;
 `;
