@@ -196,9 +196,8 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   makeHandleInputChange<E extends HTMLInputElement>(
     onChange: GetInputArgs<E>['onChange']
   ) {
-    return (e: React.ChangeEvent<E>) => {
-      const value = e.target.value;
-
+    return (maybeValue: any, e?: React.ChangeEvent<E>) => {
+      const value = e !== undefined ? e.target.value : maybeValue;
       // We force `isOpen: true` here because:
       // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
       // 2) you select an item, input still has focus, and then change input
@@ -207,7 +206,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
         inputValue: value,
       });
 
-      onChange?.(e);
+      onChange?.(e ?? maybeValue);
     };
   }
 
