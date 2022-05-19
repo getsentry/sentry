@@ -108,7 +108,7 @@ function Onboarding(props: Props) {
     );
   };
 
-  useEffect(updateCornerVariant, []);
+  useEffect(updateCornerVariant, [stepIndex, cornerVariantControl]);
 
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
@@ -120,7 +120,7 @@ function Onboarding(props: Props) {
     cornerVariantControl.start(stepObj.cornerVariant);
   };
 
-  useEffect(updateAnimationState, []);
+  useEffect(updateAnimationState, [stepObj, cornerVariantControl]);
 
   const goToStep = (step: StepDescriptor) => {
     if (!stepObj) {
@@ -247,8 +247,11 @@ const Container = styled('div')<{hasFooter: boolean}>`
 
 const Header = styled('header')`
   background: ${p => p.theme.background};
-  padding: ${space(4)};
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
   position: sticky;
+  height: 80px;
+  align-items: center;
   top: 0;
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
@@ -304,9 +307,7 @@ const AdaptivePageCorners = styled(PageCorners)`
 `;
 
 const StyledStepper = styled(Stepper)`
-  margin-left: auto;
-  margin-right: auto;
-  align-self: center;
+  justify-self: center;
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
   }
