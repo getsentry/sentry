@@ -45,8 +45,8 @@ function OnboardingPlatform(props: StepProps) {
       >
         <p>
           {tct(
-            `Variety is the spice of application monitoring.
-           Get started by selecting platforms for your Front End, Back End and/or Mobile applications.
+            `Variety is the spice of application monitoring. Identify what’s broken
+          faster by selecting all the platforms that support your application.
            [link:View the full list].`,
             {link: <ExternalLink href="https://docs.sentry.io/platforms/" />}
           )}

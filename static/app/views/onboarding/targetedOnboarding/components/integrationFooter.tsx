@@ -54,7 +54,6 @@ export default function IntegrationsFooter({
       <ButtonWrapper>
         <Button
           priority="primary"
-          disabled={integrations.length === 0}
           data-test-id="integration-select-next"
           onClick={nextOnClick}
         >
