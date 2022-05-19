@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import responses
 from django.core import mail
 from django.urls import reverse
@@ -203,6 +205,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "triggered_at": timezone.now(),
             "project_slug": self.project.slug,
             "unsubscribe_link": None,
+            "chart_url": None,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
@@ -304,3 +307,31 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         assert "prod" == generate_incident_trigger_email_context(
             self.project, incident, action.alert_rule_trigger, status, IncidentStatus.CRITICAL
         ).get("environment")
+
+    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    def test_metric_chart(self, mock_generate_chart):
+        trigger_status = TriggerStatus.ACTIVE
+        incident = self.create_incident()
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            result = generate_incident_trigger_email_context(
+                self.project,
+                incident,
+                action.alert_rule_trigger,
+                trigger_status,
+                IncidentStatus(incident.status),
+            )
+        assert result["chart_url"] == "chart-url"
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["rule"]["id"] == str(incident.alert_rule.id)
+        assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
+        series_data = chart_data["timeseriesData"][0]["data"]
+        assert len(series_data) > 0

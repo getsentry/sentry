@@ -3,10 +3,13 @@ from __future__ import annotations
 import abc
 from typing import Sequence, Set, Tuple
 
+import sentry_sdk
 from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
+from sentry import features
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
+from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models import (
     INCIDENT_STATUS,
     AlertRuleThresholdType,
@@ -209,6 +212,17 @@ def generate_incident_trigger_email_context(
         # specified
         threshold = trigger.alert_threshold
 
+    chart_url = None
+    if features.has("organizations:metric-alert-chartcuterie", incident.organization):
+        try:
+            chart_url = build_metric_alert_chart(
+                organization=incident.organization,
+                alert_rule=incident.alert_rule,
+                selected_incident=incident,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
     return {
         "link": absolute_uri(
             reverse(
@@ -245,4 +259,5 @@ def generate_incident_trigger_email_context(
         "is_critical": incident_status == IncidentStatus.CRITICAL,
         "is_warning": incident_status == IncidentStatus.WARNING,
         "unsubscribe_link": None,
+        "chart_url": chart_url,
     }
