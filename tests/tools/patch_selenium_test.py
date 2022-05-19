@@ -3,6 +3,8 @@ import re
 import sys
 from unittest import mock
 
+import pytest
+
 from tools import patch_selenium
 
 if sys.version_info >= (3, 11):
@@ -20,7 +22,8 @@ else:
             os.chdir(orig)
 
 
-def test_patching_from_getsentry(capsys, tmp_path):
+@pytest.fixture
+def getsentry_setup(tmp_path):
     # simulate a set of patches, and patching from `getsentry`
 
     tmp_path.joinpath("sentry/tools").mkdir(parents=True)
@@ -53,9 +56,22 @@ def test_patching_from_getsentry(capsys, tmp_path):
     )
 
     with mock.patch.multiple(patch_selenium, __file__=fake_file, PATCH_FILE_PATTERN=fake_patches):
-        with chdir(getsentry_dir):
-            assert patch_selenium.main() == 0
+        yield tmp_path
 
-    assert getsentry_dir.joinpath("f1").read_text() == "hello hello\n"
+
+def test_patching_from_getsentry(capsys, getsentry_setup):
+    with chdir(getsentry_setup.joinpath("getsentry")):
+        assert patch_selenium.main() == 0
+
+    assert getsentry_setup.joinpath("getsentry/f1").read_text() == "hello hello\n"
     out, _ = capsys.readouterr()
     assert out == "patching f1, you will only see this once\n"
+
+
+def test_patching_from_getsentry_called_in_sentry(capsys, getsentry_setup):
+    # getsentry *also* calls this script from sentry when setting itself up
+    with chdir(getsentry_setup.joinpath("sentry")):
+        assert patch_selenium.main() == 0
+
+    out, _ = capsys.readouterr()
+    assert out == "patch_selenium: ignoring f1 (does not exist)\n"
