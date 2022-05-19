@@ -258,33 +258,28 @@ function RuleListRow({
 
   const projectRow = projects.filter(project => project.slug === slug);
   const projectRowTeams = projectRow[0].teams;
-  const filteredProjectTeams =
-    projectRowTeams &&
-    projectRowTeams.filter(projTeam => {
-      return userTeams.has(projTeam.id);
-    });
-  const dropdownTeams =
-    filteredProjectTeams &&
-    filteredProjectTeams
-      .map((team, idx) => ({
-        value: team.id,
-        searchKey: team.slug,
-        label: ({inputValue}) => (
-          <MenuItemWrapper data-test-id="assignee-option" key={idx}>
-            <IconContainer>
-              <TeamAvatar team={team} size={24} />
-            </IconContainer>
-            <Label>
-              <Highlight text={inputValue}>{`#${team.slug}`}</Highlight>
-            </Label>
-          </MenuItemWrapper>
-        ),
-      }))
-      .concat(unassignedOption);
+  const filteredProjectTeams = projectRowTeams?.filter(projTeam => {
+    return userTeams.has(projTeam.id);
+  });
+  const dropdownTeams = filteredProjectTeams
+    ?.map((team, idx) => ({
+      value: team.id,
+      searchKey: team.slug,
+      label: ({inputValue}) => (
+        <MenuItemWrapper data-test-id="assignee-option" key={idx}>
+          <IconContainer>
+            <TeamAvatar team={team} size={24} />
+          </IconContainer>
+          <Label>
+            <Highlight text={inputValue}>{`#${team.slug}`}</Highlight>
+          </Label>
+        </MenuItemWrapper>
+      ),
+    }))
+    .concat(unassignedOption);
 
-  const teamId = assignee && assignee.split(':')[1];
-  const teamName =
-    filteredProjectTeams && filteredProjectTeams.find(team => team.id === teamId);
+  const teamId = assignee?.split(':')[1];
+  const teamName = filteredProjectTeams?.find(team => team.id === teamId);
 
   const assigneeTeamActor = assignee && {
     type: 'team' as Actor['type'],
@@ -522,20 +517,10 @@ const IconContainer = styled('div')`
   flex-shrink: 0;
 `;
 
-const MenuItemWrapper = styled('div')<{
-  disabled?: boolean;
-  py?: number;
-}>`
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'pointer')};
+const MenuItemWrapper = styled('div')`
   display: flex;
   align-items: center;
   font-size: 13px;
-  ${p =>
-    typeof p.py !== 'undefined' &&
-    `
-      padding-top: ${p.py};
-      padding-bottom: ${p.py};
-    `};
 `;
 
 const Label = styled(TextOverflow)`

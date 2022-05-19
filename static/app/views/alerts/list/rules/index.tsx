@@ -94,8 +94,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     rule: CombinedMetricIssueAlerts,
     ownerValue: string
   ) => {
-    const {params} = this.props;
-    const {orgId} = params;
+    const {orgId} = this.props.params;
     const alertPath = rule.type === 'alert_rule' ? 'alert-rules' : 'rules';
     const endpoint = `/projects/${orgId}/${projectId}/${alertPath}/${rule.id}/`;
     const updatedRule = {...rule, owner: ownerValue};
@@ -113,8 +112,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   };
 
   handleDeleteRule = async (projectId: string, rule: CombinedMetricIssueAlerts) => {
-    const {params} = this.props;
-    const {orgId} = params;
+    const {orgId} = this.props.params;
     const alertPath = isIssueAlert(rule) ? 'rules' : 'alert-rules';
 
     try {

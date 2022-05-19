@@ -125,7 +125,7 @@ describe('AlertRulesList', () => {
   it('displays team dropdown context if unassigned', async () => {
     createWrapper();
     const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
-    const btn = (await within(assignee).findAllByRole('button'))[0];
+    const btn = within(assignee).getAllByRole('button')[0];
 
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('AlertRulesList', () => {
     });
     createWrapper();
     const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
-    const btn = (await within(assignee).findAllByRole('button'))[0];
+    const btn = within(assignee).getAllByRole('button')[0];
 
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
