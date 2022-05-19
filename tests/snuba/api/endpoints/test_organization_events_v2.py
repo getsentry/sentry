@@ -9830,7 +9830,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             )
 
         _, kwargs = mock.call_args
-        self.assertEqual(kwargs["referrer"], "api.auth-token")
+        self.assertEqual(kwargs["referrer"], "api.auth-token.events")
 
     def test_limit_number_of_fields(self):
         self.create_project()

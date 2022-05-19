@@ -42,7 +42,7 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
     "api.dashboards.worldmapwidget",
 }
 
-API_TOKEN_REFERRER = "api.auth-token"
+API_TOKEN_REFERRER = "api.auth-token.events"
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
@@ -156,14 +156,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
-        # Force the referrer to "api.auth-token" for events requests authorized through a bearer token
-        referrer = (
-            API_TOKEN_REFERRER
-            if request.auth
-            else referrer
-            if referrer in ALLOWED_EVENTS_REFERRERS
-            else "api.organization-events"
-        )
+        # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
+        if request.auth:
+            referrer = API_TOKEN_REFERRER
+        elif referrer not in ALLOWED_EVENTS_REFERRERS:
+            referrer = "api.organization-events"
 
         def data_fn(offset, limit):
             query_details = {
