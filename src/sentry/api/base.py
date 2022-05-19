@@ -53,7 +53,6 @@ api_access_logger = logging.getLogger("sentry.access.api")
 
 @dataclass
 class PaginateArgs:
-    request: Request
     queryset: QuerySet
     order_by: List[str]
     serialization_func: Callable[[Any], Any]
@@ -327,14 +326,18 @@ class Endpoint(APIView):
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
 
-    def paginate_decorator(paginator_cls):
+    def response(paginated=False, paginator_cls=None):
+        if paginated and paginator_cls is None:
+            raise ValueError("Paginator Class required for paginated responses")
+
         def decorator(func):
             @functools.wraps(func)
             def view_func(self, *args, **kwargs):
+                assert isinstance(args[0], Request)
                 result = func(self, *args, **kwargs)
-                if isinstance(result, PaginateArgs):
+                if paginated and isinstance(result, PaginateArgs):
                     return self.paginate(
-                        request=result.request,
+                        request=args[0],
                         queryset=result.queryset,
                         order_by=result.order_by,
                         on_results=result.serialization_func,

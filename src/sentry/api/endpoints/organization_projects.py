@@ -77,7 +77,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             )
         ],
     )
-    @OrganizationEndpoint.paginate_decorator(OffsetPaginator)
+    @OrganizationEndpoint.response(paginated=True, paginator_cls=OffsetPaginator)
     def get(self, request: Request, organization) -> Any:
         """
         Return a list of projects bound to a organization.
@@ -173,7 +173,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 )
                 return serialize(result, request.user, serializer)
 
-            return PaginateArgs(request, queryset, order_by, serialize_on_result)
+            return PaginateArgs(queryset, order_by, serialize_on_result)
 
 
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
