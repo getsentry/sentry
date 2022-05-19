@@ -61,7 +61,6 @@ function Value({meta, value}: Props) {
 export default Value;
 
 const InlinePre = styled('pre')`
-  display: inline;
   margin: 0;
   display: grid;
   grid-template-columns: 1fr max-content;
