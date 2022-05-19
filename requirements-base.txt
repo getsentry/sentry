@@ -28,7 +28,7 @@ google-crc32c==1.1.2
 jsonschema==3.2.0
 lxml==4.6.5
 maxminddb==2.0.3
-mistune==0.8.4
+mistune==2.0.2
 mmh3==3.0.0
 packaging==21.3
 parsimonious==0.8.0
