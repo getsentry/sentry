@@ -65,6 +65,24 @@ def call_endpoint(client, relay, private_key, default_projectkey):
 
 
 @pytest.fixture
+def proj_conf_cache_redis(monkeypatch):
+    monkeypatch.setattr(
+        "django.conf.settings.SENTRY_RELAY_PROJECTCONFIG_CACHE",
+        "sentry.relay.projecteconfig_cache.redis",
+    )
+
+
+@pytest.fixture
+def never_update_cache(monkeypatch):
+    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: False)
+
+
+@pytest.fixture
+def always_update_cache(monkeypatch):
+    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: True)
+
+
+@pytest.fixture
 def projectconfig_cache_get_no_config(monkeypatch):
     monkeypatch.setattr("sentry.relay.projectconfig_cache.get", lambda *args, **kwargs: None)
 
@@ -118,7 +136,7 @@ def project_config_get_mock(monkeypatch):
 
 @pytest.mark.django_db
 def test_return_full_config_if_in_cache(
-    call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
+    call_endpoint, default_projectkey, proj_conf_cache_redis, projectconfig_cache_get_mock_config
 ):
     result, status_code = call_endpoint(full_config=True)
     assert status_code < 400
@@ -127,7 +145,7 @@ def test_return_full_config_if_in_cache(
 
 @pytest.mark.django_db
 def test_return_partial_config_if_in_cache(
-    call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
+    call_endpoint, default_projectkey, proj_conf_cache_redis, projectconfig_cache_get_mock_config
 ):
     # Partial configs aren't supported, but the endpoint must always return full
     # configs.
@@ -138,7 +156,7 @@ def test_return_partial_config_if_in_cache(
 
 @pytest.mark.django_db
 def test_proj_in_cache_and_another_pending(
-    call_endpoint, default_projectkey, single_mock_proj_cached
+    call_endpoint, default_projectkey, proj_conf_cache_redis, single_mock_proj_cached
 ):
     result, status_code = call_endpoint(
         full_config=True, public_keys=["must_exist", default_projectkey.public_key]
@@ -151,21 +169,19 @@ def test_proj_in_cache_and_another_pending(
 
 
 @patch("sentry.tasks.relay.update_config_cache.delay")
-@patch("sentry.relay.projectconfig_debounce_cache.debounce")
 @pytest.mark.django_db
 def test_enqueue_task_if_config_not_cached_not_queued(
-    task_mock,
-    cache_debounce_mock,
+    schedule_mock,
     call_endpoint,
     default_projectkey,
+    proj_conf_cache_redis,
     projectconfig_cache_get_no_config,
     projectconfig_isnt_debounced,
 ):
     result, status_code = call_endpoint(full_config=True)
     assert status_code < 400
     assert result == {"pending": [default_projectkey.public_key]}
-    assert task_mock.call_count == 1
-    assert cache_debounce_mock.call_count == 1
+    assert schedule_mock.call_count == 1
 
 
 @patch("sentry.tasks.relay.update_config_cache.delay")
@@ -174,6 +190,7 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     task_mock,
     call_endpoint,
     default_projectkey,
+    proj_conf_cache_redis,
     projectconfig_cache_get_no_config,
     projectconfig_debounced_cache,
 ):
@@ -183,10 +200,10 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     assert task_mock.call_count == 0
 
 
-@patch("sentry.relay.projectconfig_debounce_cache.mark_task_done")
+@patch("sentry.relay.projectconfig_cache.set_many")
 @pytest.mark.django_db
 def test_task_doesnt_run_if_not_debounced(
-    mark_task_done_mock, default_projectkey, projectconfig_isnt_debounced
+    cache_set_many_mock, default_projectkey, proj_conf_cache_redis, never_update_cache
 ):
     update_config_cache(
         generate=True,
@@ -195,7 +212,7 @@ def test_task_doesnt_run_if_not_debounced(
         public_key=default_projectkey.public_key,
         update_reason="test",
     )
-    assert mark_task_done_mock.call_count == 0
+    assert cache_set_many_mock.call_count == 0
 
 
 @patch("sentry.relay.projectconfig_cache.set_many")
@@ -203,6 +220,8 @@ def test_task_doesnt_run_if_not_debounced(
 def test_task_writes_config_into_cache(
     cache_set_many_mock,
     default_projectkey,
+    proj_conf_cache_redis,
+    always_update_cache,
     projectconfig_debounced_cache,
     projectconfig_mark_task_done,
     project_config_get_mock,
