@@ -92,7 +92,9 @@ class Table extends PureComponent<TableProps, TableState> {
     // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
     // the API payload response
 
-    const url = `/organizations/${organization.slug}/events/`;
+    const url = organization.features.includes('discover-frontend-use-events-endpoint')
+      ? `/organizations/${organization.slug}/events/`
+      : `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
 
     // adding user_modified property. this property will be removed once search bar experiment is complete

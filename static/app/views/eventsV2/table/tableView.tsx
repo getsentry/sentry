@@ -241,7 +241,11 @@ class TableView extends Component<TableViewProps> {
     }
 
     const columnKey = String(column.key);
-    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta, false);
+    const fieldRenderer = getFieldRenderer(
+      columnKey,
+      tableData.meta,
+      !organization.features.includes('discover-frontend-use-events-endpoint')
+    );
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
