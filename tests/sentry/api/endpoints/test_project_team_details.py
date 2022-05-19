@@ -26,7 +26,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
     def test_add_team_not_found(self):
         project = self.create_project()
 
-        self.get_success_response(
+        self.get_error_response(
             project.organization.slug, project.slug, "not-a-team", status_code=404
         )
 
@@ -79,6 +79,6 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     def test_remove_team_not_found(self):
         project = self.create_project()
 
-        self.get_success_response(
+        self.get_error_response(
             project.organization.slug, project.slug, "not-a-team", status_code=404
         )
