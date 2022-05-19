@@ -48,7 +48,7 @@ class TeamReleaseCountTest(APITestCase):
             organization_id=org.id, version="5", date_added=before_now(days=5)
         )
         release5.add_project(project3)
-        response = self.get_valid_response(org.slug, team1.slug)
+        response = self.get_success_response(org.slug, team1.slug)
 
         assert len(response.data) == 3
         assert len(response.data["release_counts"]) == 90
@@ -63,7 +63,7 @@ class TeamReleaseCountTest(APITestCase):
 
         release4.add_project(project1)  # up the last week total for project1 by 1
 
-        response = self.get_valid_response(org.slug, team1.slug)
+        response = self.get_success_response(org.slug, team1.slug)
         assert len(response.data) == 3
         assert len(response.data["release_counts"]) == 90
         assert len(response.data["project_avgs"]) == 2
@@ -92,7 +92,7 @@ class TeamReleaseCountTest(APITestCase):
         release1.add_project(project1)
         release1.add_project(project2)
 
-        response = self.get_valid_response(org.slug, team1.slug)
+        response = self.get_success_response(org.slug, team1.slug)
 
         assert project2.id not in response.data["project_avgs"]
 
@@ -139,7 +139,7 @@ class TeamReleaseCountTest(APITestCase):
             organization_id=org.id, version="5", date_added=before_now(days=5)
         )
         release5.add_project(project3)
-        response = self.get_valid_response(org.slug, team1.slug)
+        response = self.get_success_response(org.slug, team1.slug)
 
         assert len(response.data) == 3
         assert len(response.data["release_counts"]) == 90
