@@ -1,6 +1,7 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import forIn from 'lodash/forIn';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
@@ -30,11 +31,42 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
     () =>
       !searchTerm && logLevel.length === 0
         ? breadcrumbs
-        : breadcrumbs.filter(
-            breadcrumb =>
-              breadcrumb.message?.toLowerCase().includes(searchTerm) &&
-              logLevel.includes(breadcrumb.level)
-          ),
+        : breadcrumbs.filter(breadcrumb => {
+            let doesMatch = false;
+            const normalizedSearchTerm = searchTerm.toLowerCase();
+            forIn(breadcrumb.data, (value: any, key: string) => {
+              // the logger key doesn't appear in view so we ignore it.
+              if (doesMatch || key === 'logger') {
+                return;
+              }
+              switch (typeof value) {
+                case 'string':
+                  doesMatch = value.toLowerCase().includes(normalizedSearchTerm);
+                  break;
+                case 'number':
+                  doesMatch = String(value) === normalizedSearchTerm;
+                  break;
+
+                case 'object':
+                  doesMatch = JSON.stringify(value)
+                    .toLowerCase()
+                    .includes(normalizedSearchTerm);
+                  break;
+                default: {
+                  if (Array.isArray(value)) {
+                    doesMatch = value
+                      .join(' ')
+                      .toLowerCase()
+                      .includes(normalizedSearchTerm);
+                  }
+                }
+              }
+            });
+            if (logLevel.length > 0) {
+              return doesMatch && logLevel.includes(breadcrumb.level);
+            }
+            return doesMatch;
+          }),
     [logLevel, searchTerm, breadcrumbs]
   );
 
