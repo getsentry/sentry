@@ -64,13 +64,13 @@ def update_config_cache(
             keys = [ProjectKey.objects.get(public_key=public_key)]
         except ProjectKey.DoesNotExist:
             # In this particular case, where a project key got deleted and
-            # triggered an update, we at least know the public key that needs
-            # to be deleted from cache.
+            # triggered an update, we know that key doesn't exist and we want to
+            # avoid creating more tasks for it.
             #
             # In other similar cases, like an org being deleted, we potentially
             # cannot find any keys anymore, so we don't know which cache keys
             # to delete.
-            projectconfig_cache.delete_many([public_key])
+            projectconfig_cache.set_many({public_key: {"disabled": True}})
             return
 
     else:
