@@ -64,7 +64,7 @@ export function breadcrumbEntryFactory(
   rawCrumbs: RawCrumb[]
 ) {
   const initBreadcrumb = {
-    type: BreadcrumbType.SESSION,
+    type: BreadcrumbType.INIT,
     timestamp: new Date(startTimestamp).toISOString(),
     level: BreadcrumbLevelType.INFO,
     action: 'replay-init',

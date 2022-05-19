@@ -48,8 +48,8 @@ type ContainerProps = {
 
 const USER_ACTIONS = [
   BreadcrumbType.ERROR,
+  BreadcrumbType.INIT,
   BreadcrumbType.NAVIGATION,
-  BreadcrumbType.SESSION,
   BreadcrumbType.UI,
   BreadcrumbType.USER,
 ];
