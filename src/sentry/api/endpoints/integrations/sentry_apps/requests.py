@@ -11,9 +11,8 @@ from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequ
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryAppStatsPermission,)
 
-    def format_request(self, request: Request, sentry_app):
+    def format_request(self, request: Request, sentry_app, org_slug: str = None):
         response_code = request.get("response_code")
-
         formatted_request = {
             "webhookUrl": request.get("webhook_url"),
             "sentryAppSlug": sentry_app.slug,
@@ -53,16 +52,21 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
                 # If the org somehow doesn't exist, just don't add it to the result
                 pass
 
+        if org_slug and not formatted_request.get("organization", {}).get("slug") == org_slug:
+            return {}
+
         return formatted_request
 
     def get(self, request: Request, sentry_app) -> Response:
         """
         :qparam string eventType: Optionally specify a specific event type to filter requests
         :qparam bool errorsOnly: If this is true, only return error/warning requests (300-599)
+        :qparam string organizationSlug: Optionally specify an org slug to filter requests
         """
 
         event_type = request.GET.get("eventType")
         errors_only = request.GET.get("errorsOnly")
+        org_slug = request.GET.get("organizationSlug")
 
         kwargs = {}
         if event_type:
@@ -75,7 +79,7 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
         formatted_requests = [
-            self.format_request(req, sentry_app) for req in buffer.get_requests(**kwargs)
+            self.format_request(req, sentry_app, org_slug) for req in buffer.get_requests(**kwargs)
         ]
 
         return Response(formatted_requests)
