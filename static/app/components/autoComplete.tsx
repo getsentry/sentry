@@ -196,6 +196,9 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   makeHandleInputChange<E extends HTMLInputElement>(
     onChange: GetInputArgs<E>['onChange']
   ) {
+    // Some inputs (e.g. input) pass in only the event to the onChange listener and
+    // others (e.g. TextField) pass in both the value and the event to the onChange listener.
+    // This returned function is to accomodate both kinds of input components.
     return (
       valueOrEvent: string | React.ChangeEvent<E>,
       event?: React.ChangeEvent<E>
