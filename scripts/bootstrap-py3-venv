@@ -66,11 +66,11 @@ python3 -m pip install -U pip wheel || {
     echo "bootstrap failed!"
     return 1
 }
-make setup-git || {
+make install-py-dev || {
     echo "bootstrap failed!"
     return 1
 }
-make install-py-dev || {
+make setup-git || {
     echo "bootstrap failed!"
     return 1
 }

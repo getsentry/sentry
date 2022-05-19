@@ -145,7 +145,9 @@ setup-git() {
         echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
         exit 1
     )
-    pip install -r requirements-pre-commit.txt
+    if ! require pre-commit; then
+        pip install -r requirements-dev.txt
+    fi
     pre-commit install --install-hooks
     echo ""
 }
@@ -174,9 +176,9 @@ install-js-dev() {
 }
 
 develop() {
-    setup-git
     install-js-dev
     install-py-dev
+    setup-git
 }
 
 init-config() {
