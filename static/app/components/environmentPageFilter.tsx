@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import Badge from 'sentry/components/badge';
-import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
+import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import {IconWindow} from 'sentry/icons';
@@ -15,7 +15,7 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-type EnvironmentSelectorProps = React.ComponentProps<typeof MultipleEnvironmentSelector>;
+type EnvironmentSelectorProps = React.ComponentProps<typeof EnvironmentSelector>;
 
 type Props = {
   router: WithRouterProps['router'];
@@ -66,6 +66,7 @@ function EnvironmentPageFilter({
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('environments')}
+        data-test-id="global-header-environment-selector"
       >
         <DropdownTitle>
           <PageFilterPinIndicator filter="environments">
@@ -83,7 +84,11 @@ function EnvironmentPageFilter({
   };
 
   const customLoadingIndicator = (
-    <PageFilterDropdownButton showChevron={false} disabled>
+    <PageFilterDropdownButton
+      showChevron={false}
+      disabled
+      data-test-id="global-header-environment-selector"
+    >
       <DropdownTitle>
         <IconWindow />
         <TitleContainer>{t('Loading\u2026')}</TitleContainer>
@@ -92,7 +97,7 @@ function EnvironmentPageFilter({
   );
 
   return (
-    <MultipleEnvironmentSelector
+    <EnvironmentSelector
       organization={organization}
       projects={projects}
       loadingProjects={!projectsLoaded || !isReady}

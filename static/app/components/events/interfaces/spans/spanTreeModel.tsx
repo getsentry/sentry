@@ -332,6 +332,10 @@ class SpanTreeModel {
       const siblingGroupOccurrenceMap = {};
 
       const addGroupToMap = (prevSpanModel: SpanTreeModel, group: SpanTreeModel[]) => {
+        if (!group.length) {
+          return;
+        }
+
         const groupKey = `${prevSpanModel.span.op}.${prevSpanModel.span.description}`;
 
         if (!siblingGroupOccurrenceMap[groupKey]) {

@@ -18,6 +18,9 @@ import {
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
 
+import IntegrationCard from './integrationCard';
+import OnboardingProjectsCard from './onboardingCard';
+
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
     ? projects.some(({platform}) => platform && sourceMaps.includes(platform))
@@ -48,6 +51,18 @@ function getIssueAlertUrl({projects, organization}: Options) {
   const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
   const project = firstProjectWithEvents ?? projects[0];
   return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
+}
+
+function getMetricAlertUrl({projects, organization}: Options) {
+  if (!projects || !projects.length) {
+    return `/organizations/${organization.slug}/alerts/rules/`;
+  }
+  // pick the first project with transaction events if we have that, otherwise just pick the first project
+  const firstProjectWithEvents = projects.find(
+    project => !!project.firstTransactionEvent
+  );
+  const project = firstProjectWithEvents ?? projects[0];
+  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/?alert_option=trans_duration`;
 }
 
 export function getOnboardingTasks({
@@ -213,6 +228,40 @@ export function getOnboardingTasks({
       actionType: 'app',
       location: getIssueAlertUrl({projects, organization}),
       display: true,
+    },
+    {
+      task: OnboardingTaskKey.METRIC_ALERT,
+      title: t('Create a Performance Alert'),
+      description: t(
+        'See slow fast with performance alerts. Set up alerts for notifications about slow page load times, API latency, or when throughput significantly deviates from normal.'
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
+      actionType: 'app',
+      location: getMetricAlertUrl({projects, organization}),
+      display: organization.features?.includes('incidents'),
+    },
+    {
+      task: OnboardingTaskKey.USER_SELECTED_PROJECTS,
+      title: t('Projects to Setup'),
+      description: '',
+      skippable: true,
+      requisites: [],
+      actionType: 'action',
+      action: () => {},
+      display: true,
+      renderCard: OnboardingProjectsCard,
+    },
+    {
+      task: OnboardingTaskKey.INTEGRATIONS,
+      title: t('Integrations to Setup'),
+      description: '',
+      skippable: true,
+      requisites: [],
+      actionType: 'action',
+      action: () => {},
+      display: !!organization.experiments?.TargetedOnboardingIntegrationSelectExperiment,
+      renderCard: IntegrationCard,
     },
   ];
 }

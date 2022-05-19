@@ -162,15 +162,12 @@ describe('GlobalSelectionHeader', function () {
     expect(wrapper.find('ProjectSelector Content').text()).toBe('project-3');
 
     // Select environment
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper
-      .find('MultipleEnvironmentSelector MultiselectCheckbox')
-      .at(0)
-      .simulate('click');
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('EnvironmentSelector MultiselectCheckbox').at(0).simulate('click');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
-    expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe('prod');
+    expect(wrapper.find('EnvironmentSelector Content').text()).toBe('prod');
 
     expect(PageFiltersStore.getState().selection).toEqual({
       datetime: {
@@ -214,15 +211,12 @@ describe('GlobalSelectionHeader', function () {
     expect(wrapper.find('ProjectSelector Content').text()).toBe('project-2, project-3');
 
     // Select environment
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper
-      .find('MultipleEnvironmentSelector MultiselectCheckbox')
-      .at(1)
-      .simulate('click');
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('EnvironmentSelector MultiselectCheckbox').at(1).simulate('click');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
-    expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe('staging');
+    expect(wrapper.find('EnvironmentSelector Content').text()).toBe('staging');
 
     expect(PageFiltersStore.getState().selection).toEqual({
       datetime: {
@@ -260,9 +254,7 @@ describe('GlobalSelectionHeader', function () {
       environments: [],
       projects: [2],
     });
-    expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe(
-      'All Environments'
-    );
+    expect(wrapper.find('EnvironmentSelector Content').text()).toBe('All Environments');
   });
 
   it('shows environments for non-member projects', async function () {
@@ -291,8 +283,8 @@ describe('GlobalSelectionHeader', function () {
     wrapper.update();
 
     // Open environment picker
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const checkboxes = wrapper.find('MultipleEnvironmentSelector AutoCompleteItem');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
+    const checkboxes = wrapper.find('EnvironmentSelector AutoCompleteItem');
 
     expect(checkboxes).toHaveLength(1);
     expect(checkboxes.text()).toBe('staging');
@@ -771,10 +763,10 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('renders only environments from the forced project', function () {
-      wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+      wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
       wrapper.update();
 
-      const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
+      const items = wrapper.find('EnvironmentSelector PageFilterRow');
       expect(items.length).toEqual(1);
       expect(items.at(0).text()).toBe('staging');
     });
@@ -854,9 +846,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('renders the forced environment', function () {
-      expect(wrapper.find('MultipleEnvironmentSelector HeaderItem').text()).toBe(
-        'test-env'
-      );
+      expect(wrapper.find('EnvironmentSelector HeaderItem').text()).toBe('test-env');
     });
   });
 
@@ -1194,7 +1184,7 @@ describe('GlobalSelectionHeader', function () {
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // My projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select My Projects'
       );
     });
@@ -1219,7 +1209,7 @@ describe('GlobalSelectionHeader', function () {
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select All Projects'
       );
     });
@@ -1244,7 +1234,7 @@ describe('GlobalSelectionHeader', function () {
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select All Projects'
       );
     });
@@ -1269,7 +1259,7 @@ describe('GlobalSelectionHeader', function () {
       const projectSelector = wrapper.find('ProjectSelector');
 
       // My projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select My Projects'
       );
     });

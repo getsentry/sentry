@@ -29,6 +29,7 @@ export enum BreadcrumbType {
   SESSION = 'session',
   TRANSACTION = 'transaction',
   CONSOLE = 'console',
+  INIT = 'init',
 }
 
 type BreadcrumbTypeBase = {
@@ -98,6 +99,7 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.WARNING
     | BreadcrumbType.ERROR
     | BreadcrumbType.DEFAULT
+    | BreadcrumbType.INIT
     | BreadcrumbType.SESSION
     | BreadcrumbType.SYSTEM
     | BreadcrumbType.SESSION

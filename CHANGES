@@ -1,3 +1,39 @@
+22.5.0
+------
+
+### Replays v0 (ongoing)
+
+By: @billyvg (#34407, #34388)
+
+### Various fixes & improvements
+
+- ref(js): Convert DateTime to a FC (#34628) by @evanpurkhiser
+- chore: Update logo for dark or light theme (#34229) by @mattjohnsonpint
+- ref(js): Convert U2fContainer to a FC (#34630) by @evanpurkhiser
+- ref(js): Convert discover eventsV2 Breadcrumbs to a FC (#34629) by @evanpurkhiser
+- ref(js): Convert ProjectPerformanceContainer to a FC (#34624) by @evanpurkhiser
+- ref(js): Convert gridEditable/sortLink to a FC (#34615) by @evanpurkhiser
+- ref(js): Convert LoadingError to a FC (#34626) by @evanpurkhiser
+- ref(js): Convert UnlinkedAlert to a FC (#34632) by @evanpurkhiser
+- ref(js): Convert TagDistributionMeter to a FC (#34627) by @evanpurkhiser
+- style(js): Small formatting adjustment to projectSettingsLayout (#34625) by @evanpurkhiser
+- ref(js): Convert TeamAvatar to a FC (#34623) by @evanpurkhiser
+- ref(js): Convert ValueComponent to a FC (#34620) by @evanpurkhiser
+- ref(js): Convert BreadcrumbTitle to a FC (#34619) by @evanpurkhiser
+- feat(onboarding): Customized cards (#34603) by @Neo-Zhixing
+- ref(js): Convert OnboardingWizardSidebar to a FC (#34609) by @evanpurkhiser
+- chore(dashboard): Default RH field to crash_free_rate (#34285) by @shruthilayaj
+- fix(dashboard): Remove session.status as a filter tag (#34593) by @shruthilayaj
+- fix(discover): Fix bug preventing saving queries with equation (#34580) by @wmak
+- feat(crash_rate_alerts): Add logic to enforce session -> metric alerts (#34534) by @wedamija
+- feat(replays): Better console messages + add string formatting (#34501) by @billyvg
+- fix(dev): also patch invalid escape sequences in selenium.* (#34577) by @asottile-sentry
+- Revert "fix(notifications): Use `metrics_key` (#34572)" (04f013dd) by @getsentry-bot
+- ref(integrations): Update GH and GL feature descriptions (#34578) by @ceorourke
+- feat(alertWizard): Show My Projects in project selector in alert wizard (#34583) by @mikellykels
+
+_Plus 732 more_
+
 22.4.0
 ------
 
