@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import resource
 from contextlib import contextmanager
 from functools import wraps
+from typing import Any, Callable, Sequence, Type
 
 from celery.task import current
 
@@ -56,7 +59,12 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
     return wrapped
 
 
-def retry(func=None, on=(Exception,), exclude=(), ignore=()):
+def retry(
+    func: Callable[..., Any] | None = None,
+    on: Sequence[Type[Exception]] = (Exception,),
+    exclude: Sequence[Type[Exception]] = (),
+    ignore: Sequence[Type[Exception]] = (Exception,),
+) -> Callable[..., Callable[..., Any]]:
     """
     >>> @retry(on=(Exception,), exclude=(AnotherException,), ignore=(IgnorableException,))
     >>> def my_task():

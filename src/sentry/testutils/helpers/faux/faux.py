@@ -156,16 +156,3 @@ class Faux:
         if not len(kwargs):
             return None
         return ", ".join(f"{k}={v!r}" for k, v in kwargs.items())
-
-
-class Mock:
-    def __init__(self, *args, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-
-
-def faux(mock, call=None):
-    if call is not None:
-        return Faux(mock.mock_calls[call])
-    else:
-        return Faux(mock.mock_calls[-1])
