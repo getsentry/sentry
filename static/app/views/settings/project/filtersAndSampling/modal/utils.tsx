@@ -1,6 +1,5 @@
 import {css} from '@emotion/react';
 
-import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import {
   DynamicSamplingConditionLogicalInner,
