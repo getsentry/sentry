@@ -146,7 +146,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        echo 'pre-commit isn't installed. Please run make install-py-dev.'
+        echo "pre-commit isn't installed. Please run make install-py-dev."
         exit 1
     fi
     pre-commit install --install-hooks
@@ -177,9 +177,9 @@ install-js-dev() {
 }
 
 develop() {
-    setup-git
     install-js-dev
     install-py-dev
+    setup-git
 }
 
 init-config() {
