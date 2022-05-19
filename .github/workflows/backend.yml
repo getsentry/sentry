@@ -154,6 +154,8 @@ jobs:
         uses: ./.github/actions/setup-python
         with:
           python-version: ${{ matrix.python-version }}
+          # We just need requirements-dev, this lets us pull in less files.
+          cache-files-hash: ${{ hashFiles('requirements-dev.txt') }}
 
       - uses: actions/cache@v3
         with:
