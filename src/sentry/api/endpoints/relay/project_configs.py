@@ -48,12 +48,15 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version == "3":
+        no_cache = request.relay_request_data.get("no_cache") or False
+        set_tag("relay_no_cache", no_cache)
+
+        if version == "3" and not no_cache:
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
             return self._post_or_schedule_by_key(request)
-        elif version == "2":
+        elif version in ["2", "3"]:
             return self._post_by_key(
                 request=request,
                 full_config_requested=full_config_requested,
