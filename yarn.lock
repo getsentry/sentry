@@ -12861,19 +12861,10 @@ pyright@1.1.229:
   resolved "https://registry.yarnpkg.com/pyright/-/pyright-1.1.229.tgz#c48e4425b2fd7c13221d094693282ffa4bf9862a"
   integrity sha512-eEmhg/8zJRf9a4EHkchxce/ihuL7FBd5Nk3O1Y3MRjUfrZwwyNNCgHYHIFi/OYajodlNhg3GJjSc6+1poZ3vvg==
 
-qr.js@0.0.0:
-  version "0.0.0"
-  resolved "https://registry.yarnpkg.com/qr.js/-/qr.js-0.0.0.tgz#cace86386f59a0db8050fa90d9b6b0e88a1e364f"
-  integrity sha1-ys6GOG9ZoNuAUPqQ2baw6IoeNk8=
-
-qrcode.react@^1.0.1:
-  version "1.0.1"
-  resolved "https://registry.yarnpkg.com/qrcode.react/-/qrcode.react-1.0.1.tgz#2834bb50e5e275ffe5af6906eff15391fe9e38a5"
-  integrity sha512-8d3Tackk8IRLXTo67Y+c1rpaiXjoz/Dd2HpcMdW//62/x8J1Nbho14Kh8x974t9prsLHN6XqVgcnRiBGFptQmg==
-  dependencies:
-    loose-envify "^1.4.0"
-    prop-types "^15.6.0"
-    qr.js "0.0.0"
+qrcode.react@^3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/qrcode.react/-/qrcode.react-3.0.2.tgz#7ceaea165aa7066253ef670a25bf238eaec4eb9e"
+  integrity sha512-8F3SGxSkNb3fMIHdlseqjFjLbsPrF3WvF/1MOboSUUHytT537W8f/FtbdA3XFIHDrc+TrRBjTI/QLmwhAIGWWw==
 
 qs@6.7.0:
   version "6.7.0"
