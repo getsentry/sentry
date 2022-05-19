@@ -912,47 +912,6 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  it('should automatically add columns for top n widget charts according to the URL params', async function () {
-    const defaultWidgetQuery = {
-      name: '',
-      fields: ['title', 'count()', 'count_unique(user)', 'epm()', 'count()'],
-      columns: ['title'],
-      aggregates: ['count()', 'count_unique(user)', 'epm()', 'count()'],
-      conditions: 'tag:value',
-      orderby: '',
-    };
-
-    renderTestComponent({
-      query: {
-        source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-        displayType: DisplayType.TOP_N,
-        defaultTableColumns: ['title', 'count()', 'count_unique(user)', 'epm()'],
-      },
-    });
-
-    //  Top N display
-    expect(await screen.findByText('Top 5 Events')).toBeInTheDocument();
-
-    // No delete button as there is only one field.
-    expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
-
-    // Restricting to a single query
-    expect(screen.queryByLabelText('Add Query')).not.toBeInTheDocument();
-
-    // Restricting to a single y-axis
-    expect(screen.queryByLabelText('Add Overlay')).not.toBeInTheDocument();
-
-    expect(screen.getByText('Choose what to plot in the y-axis')).toBeInTheDocument();
-
-    expect(screen.getByText('Sort by a column')).toBeInTheDocument();
-
-    expect(screen.getByText('title')).toBeInTheDocument();
-    expect(screen.getAllByText('count()')).toHaveLength(2);
-    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
-    expect(screen.getByText('user')).toBeInTheDocument();
-  });
-
   it('should use defaultWidgetQuery Y-Axis and Conditions if given a defaultWidgetQuery', async function () {
     const defaultWidgetQuery = {
       name: '',
@@ -992,51 +951,6 @@ describe('WidgetBuilder', function () {
     });
 
     expect(await screen.findByText('Bar Chart')).toBeInTheDocument();
-  });
-
-  it('correctly defaults fields and orderby when in Top N display', async function () {
-    const defaultWidgetQuery = {
-      fields: ['title', 'count()', 'count_unique(user)'],
-      columns: ['title'],
-      aggregates: ['count()', 'count_unique(user)'],
-      orderby: '-count_unique(user)',
-    };
-
-    renderTestComponent({
-      query: {
-        source: DashboardWidgetSource.DISCOVERV2,
-        defaultWidgetQuery: urlEncode(defaultWidgetQuery),
-        displayType: DisplayType.TOP_N,
-        defaultTableColumns: ['title', 'count()'],
-      },
-    });
-
-    userEvent.click(await screen.findByText('Top 5 Events'));
-
-    expect(screen.getByText('count()')).toBeInTheDocument();
-    expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
-    expect(screen.getByText('user')).toBeInTheDocument();
-
-    // Sort by a column
-    expect(screen.getByText('Sort by a column')).toBeInTheDocument();
-    expect(screen.getByText('count_unique(user) desc')).toBeInTheDocument();
-  });
-
-  it('limits TopN display to one query when switching from another visualization', async () => {
-    renderTestComponent();
-
-    userEvent.click(await screen.findByText('Table'));
-    userEvent.click(screen.getByText('Bar Chart'));
-    userEvent.click(screen.getByLabelText('Add Query'));
-    userEvent.click(screen.getByLabelText('Add Query'));
-    expect(
-      screen.getAllByPlaceholderText('Search for events, users, tags, and more')
-    ).toHaveLength(3);
-    userEvent.click(screen.getByText('Bar Chart'));
-    userEvent.click(await screen.findByText('Top 5 Events'));
-    expect(
-      screen.getByPlaceholderText('Search for events, users, tags, and more')
-    ).toBeInTheDocument();
   });
 
   it('deletes the widget when the modal is confirmed', async () => {
@@ -1659,16 +1573,6 @@ describe('WidgetBuilder', function () {
 
       // SortBy step shall no longer be visible
       expect(screen.queryByText('Sort by a y-axis')).not.toBeInTheDocument();
-
-      // Update visualization to be "Top 5 Events"
-      userEvent.click(screen.getByText('Line Chart'));
-      userEvent.click(screen.getByText('Top 5 Events'));
-
-      // Tabular visualizations display "Choose your columns" step
-      expect(await screen.findByText('Choose your columns')).toBeInTheDocument();
-
-      // SortBy step shall be visible
-      expect(screen.getByText('Sort by a y-axis')).toBeInTheDocument();
     });
 
     it('allows for sorting by a custom equation', async function () {
@@ -2218,7 +2122,7 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  it('opens top-N widgets as top-N display', async function () {
+  it('opens top-N widgets as area display', async function () {
     const widget: Widget = {
       id: '1',
       title: 'Errors over time',
@@ -2252,7 +2156,7 @@ describe('WidgetBuilder', function () {
       },
     });
 
-    expect(await screen.findByText('Top 5 Events')).toBeInTheDocument();
+    expect(await screen.findByText('Area Chart')).toBeInTheDocument();
   });
 
   it('Update table header values (field alias)', async function () {
@@ -2827,6 +2731,20 @@ describe('WidgetBuilder', function () {
       expect(await screen.findByText('environment:')).toBeInTheDocument();
       expect(screen.getByText('project:')).toBeInTheDocument();
       expect(screen.getByText('release:')).toBeInTheDocument();
+    });
+
+    it('adds a function when the only column chosen in a table is a tag', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
+      });
+
+      userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
+
+      await selectEvent.select(screen.getByText('crash_free_rate(…)'), 'environment');
+
+      // 1 in the table header, 1 in the column selector, and 1 in the sort by
+      expect(screen.getAllByText(/crash_free_rate/)).toHaveLength(3);
+      expect(screen.getAllByText('environment')).toHaveLength(2);
     });
   });
 

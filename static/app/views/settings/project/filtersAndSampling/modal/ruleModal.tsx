@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, KeyboardEvent, useEffect, useState} from 'react';
 import {components, createFilter} from 'react-select';
 import styled from '@emotion/styled';
 
@@ -11,6 +11,7 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import NumberField from 'sentry/components/forms/numberField';
 import Option from 'sentry/components/forms/selectOption';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
@@ -80,6 +81,7 @@ function RuleModal({
   rule,
 }: Props) {
   const [data, setData] = useState<State>(getInitialState());
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setData(d => {
@@ -134,6 +136,7 @@ function RuleModal({
   const {errors, conditions, sampleRate} = data;
 
   async function submitRules(newRules: DynamicSamplingRules, currentRuleIndex: number) {
+    setIsSaving(true);
     try {
       const newProjectDetails = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
@@ -149,6 +152,7 @@ function RuleModal({
     } catch (error) {
       convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
+    setIsSaving(false);
   }
 
   function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
@@ -240,7 +244,9 @@ function RuleModal({
     )
     .map(({category}) => ({
       value: category,
-      label: getInnerNameLabel(category),
+      label: (
+        <Truncate value={getInnerNameLabel(category)} expandable={false} maxLength={40} />
+      ),
       disabled: true,
       tooltip: conditionAlreadyAddedTooltip,
     }));
@@ -333,6 +339,11 @@ function RuleModal({
             onChange={value => {
               setData({...data, sampleRate: !!value ? Number(value) : null});
             }}
+            onKeyDown={(_value: string, e: KeyboardEvent) => {
+              if (e.key === 'Enter') {
+                onSubmit({conditions, sampleRate, submitRules});
+              }
+            }}
             placeholder={'\u0025'}
             value={sampleRate}
             inline={false}
@@ -351,7 +362,7 @@ function RuleModal({
             priority="primary"
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
             title={submitDisabled ? t('Required fields must be filled out') : undefined}
-            disabled={submitDisabled}
+            disabled={isSaving || submitDisabled}
           >
             {t('Save Rule')}
           </Button>

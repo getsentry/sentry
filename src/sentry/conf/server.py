@@ -945,6 +945,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
+    # Enables events endpoint usage on frontend
+    "organizations:discover-frontend-use-events-endpoint": False,
     # Enable duplicating alert rules.
     "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
@@ -1085,6 +1087,10 @@ SENTRY_FEATURES = {
     "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
+    # Enable automatic horizontal scrolling on the span tree
+    "organizations:performance-span-tree-autoscroll": False,
+    # Enable transaction name only search
+    "organizations:performance-transaction-name-only-search": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See

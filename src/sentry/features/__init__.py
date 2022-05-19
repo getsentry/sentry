@@ -64,6 +64,9 @@ default_manager.add("organizations:dashboards-releases", OrganizationFeature, Tr
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
 default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
+default_manager.add(
+    "organizations:discover-frontend-use-events-endpoint", OrganizationFeature, True
+)
 default_manager.add("organizations:duplicate-alert-rule", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
@@ -108,6 +111,10 @@ default_manager.add("organizations:performance-autogroup-sibling-spans", Organiz
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
+default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
+default_manager.add(
+    "organizations:performance-transaction-name-only-search", OrganizationFeature, True
+)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)

@@ -9801,6 +9801,37 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], self.referrer)
 
+    @mock.patch("sentry.snuba.discover.query")
+    def test_api_token_referrer(self, mock):
+        mock.return_value = {}
+        # Project ID cannot be inffered when using an org API key, so that must
+        # be passed in the parameters
+        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+
+        project = self.create_project()
+        data = load_data("transaction", timestamp=before_now(hours=1))
+        self.store_event(data=data, project_id=project.id)
+
+        query = {"field": ["project.name", "environment"], "project": [project.id]}
+
+        features = {"organizations:discover-basic": True}
+        features.update(self.features)
+        url = reverse(
+            self.viewname,
+            kwargs={"organization_slug": self.organization.slug},
+        )
+
+        with self.feature(features):
+            self.client.get(
+                url,
+                query,
+                format="json",
+                HTTP_AUTHORIZATION=b"Basic " + b64encode(f"{api_key.key}:".encode()),
+            )
+
+        _, kwargs = mock.call_args
+        self.assertEqual(kwargs["referrer"], "api.auth-token.events")
+
     def test_limit_number_of_fields(self):
         self.create_project()
         for i in range(1, 25):
