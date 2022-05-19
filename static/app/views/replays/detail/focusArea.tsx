@@ -53,7 +53,12 @@ function FocusArea({replay}: Props) {
         'console',
         'error',
       ]);
-      return <Console breadcrumbs={consoleMessages ?? []} />;
+      return (
+        <Console
+          breadcrumbs={consoleMessages ?? []}
+          startTimestamp={event?.startTimestamp}
+        />
+      );
     case 'performance': {
       const nonMemorySpansEntry = {
         ...spansEntry,

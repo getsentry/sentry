@@ -2,10 +2,7 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import {
-  onlyUserActions,
-  transformCrumbs,
-} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {
   Panel as BasePanel,
   PanelBody as BasePanelBody,
@@ -19,7 +16,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
 import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
 
@@ -49,12 +46,21 @@ type ContainerProps = {
   isSelected: boolean;
 };
 
+const USER_ACTIONS = [
+  BreadcrumbType.ERROR,
+  BreadcrumbType.INIT,
+  BreadcrumbType.NAVIGATION,
+  BreadcrumbType.UI,
+  BreadcrumbType.USER,
+];
+
 function UserActionsNavigator({event, crumbs}: Props) {
   const {setCurrentTime, setCurrentHoverTime, currentHoverTime, currentTime} =
     useReplayContext();
 
   const {startTimestamp} = event || {};
-  const userActionCrumbs = crumbs && onlyUserActions(transformCrumbs(crumbs));
+  const userActionCrumbs =
+    crumbs && transformCrumbs(crumbs).filter(crumb => USER_ACTIONS.includes(crumb.type));
   const isLoaded = userActionCrumbs && startTimestamp;
 
   const currentUserAction = getCurrentUserAction(
