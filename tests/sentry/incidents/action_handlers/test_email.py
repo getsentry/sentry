@@ -316,6 +316,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
 
         with self.feature(
             [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:discover-basic",
                 "organizations:metric-alert-chartcuterie",
             ]
         ):
