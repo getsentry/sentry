@@ -7,7 +7,7 @@ class CheckedMigration(Migration):
     won't cause production issues during deploy.
     """
 
-    checked = False
+    checked = True
 
     def apply(self, project_state, schema_editor, collect_sql=False):
         if self.checked:
