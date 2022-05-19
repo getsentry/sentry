@@ -2,16 +2,21 @@ import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import EventView, {
+  isAPIPayloadSimilar,
+  LocationQuery,
+} from 'sentry/utils/discover/eventView';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
+import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 
 import TableView from './tableView';
@@ -89,8 +94,16 @@ class Table extends PureComponent<TableProps, TableState> {
 
     const url = `/organizations/${organization.slug}/events/`;
     const tableFetchID = Symbol('tableFetchID');
-    const apiPayload = eventView.getEventsAPIPayload(location);
+
+    // adding user_modified property. this property will be removed once search bar experiment is complete
+    const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
+      EventQuery & {user_modified?: string};
     apiPayload.referrer = 'api.discover.query-table';
+
+    const queryUserModified = decodeScalar(location.query.userModified);
+    if (queryUserModified !== undefined) {
+      apiPayload.user_modified = queryUserModified;
+    }
 
     setError('', 200);
 

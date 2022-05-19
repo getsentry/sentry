@@ -231,7 +231,12 @@ describe('Events > Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {...generateFields(), cursor: '0%3A50%3A0'}},
+        location: {
+          query: {
+            ...generateFields(),
+            cursor: '0%3A50%3A0',
+          },
+        },
       },
     });
 
@@ -276,6 +281,8 @@ describe('Events > Results', function () {
         ...generateFields(),
         query: 'geo:canada',
         statsPeriod: '14d',
+        // userModified added on new search for the search bar experiment
+        userModified: true,
       },
     });
     wrapper.unmount();
