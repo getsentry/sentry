@@ -112,16 +112,25 @@ class GroupKey:
             environment=dct.get("environment", None),
         )
 
-    def to_output_dict(self) -> GroupKeyDict:
+    def to_output_dict(self, set_none=False) -> GroupKeyDict:
         dct: GroupKeyDict = {}
-        if self.project:
+        if not set_none:
+            if self.project:
+                dct["project"] = self.project
+            if self.release is not None:
+                dct["release"] = self.release
+            if self.environment is not None:
+                dct["environment"] = self.environment
+            if self.session_status is not None:
+                dct["session.status"] = self.session_status.value
+        else:
             dct["project"] = self.project
-        if self.release is not None:
             dct["release"] = self.release
-        if self.environment is not None:
             dct["environment"] = self.environment
-        if self.session_status is not None:
-            dct["session.status"] = self.session_status.value
+            if not self.session_status:
+                dct["session.status"] = None
+            else:
+                dct["session.status"] = self.session_status.value
 
         return dct
 
@@ -559,20 +568,12 @@ def run_sessions_query(
                     for grp in grp_value_to_result_grp_mapping[elem]:
                         result_groups += [grp]
                 except KeyError:
-                    # ToDo(ahmed): Add project stuff too?
-                    extra_groups_keys = []
-                    if "session.status" in query.raw_groupby:
-                        for status in SessionStatus:
-                            extra_groups_keys.append(
-                                GroupKey(**{"session_status": status, post_q_orderby_field: elem})
-                            )
-                    else:
-                        extra_groups_keys.append(GroupKey(**{post_q_orderby_field: elem}))
-
-                    for extra_grp_key in extra_groups_keys:
-                        result_groups += [
-                            {"by": extra_grp_key.to_output_dict(), **default_group_gen_func()}
-                        ]
+                    group_key_dict = {post_q_orderby_field: elem}
+                    group_key_output = GroupKey(**group_key_dict).to_output_dict(set_none=True)
+                    for key in list(group_key_output.keys()):
+                        if key not in query.raw_groupby:
+                            del group_key_output[key]
+                    result_groups += [{"by": group_key_output, **default_group_gen_func()}]
 
     return {
         "groups": result_groups,

@@ -1662,43 +1662,45 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "field": ["sum(session)"],
                 "groupBy": ["release", "session.status"],
                 "orderBy": "-release.timestamp",
-                "per_page": 1,
+                "per_page": 2,
             }
         )
         assert response.data["groups"] == [
             {
-                "by": {"release": "1D", "session.status": "abnormal"},
+                "by": {"release": "1D", "session.status": None},
                 "totals": {"sum(session)": 0},
                 "series": {"sum(session)": [0]},
             },
             {
-                "by": {"release": "1D", "session.status": "crashed"},
-                "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
-            },
-            {
-                "by": {"release": "1D", "session.status": "errored"},
-                "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
-            },
-            {
-                "by": {"release": "1D", "session.status": "healthy"},
+                "by": {"release": "1C", "session.status": None},
                 "totals": {"sum(session)": 0},
                 "series": {"sum(session)": [0]},
             },
         ]
 
-        # response = self.do_request(
-        #     {
-        #         "project": rando_project.id,
-        #         "statsPeriod": "1d",
-        #         "interval": "1d",
-        #         "field": ["sum(session)"],
-        #         "groupBy": ["release", "session.status", "project"],
-        #         "orderBy": "-release.timestamp",
-        #         "per_page": 3,
-        #     }
-        # )
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release", "session.status", "project"],
+                "orderBy": "-release.timestamp",
+                "per_page": 2,
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D", "session.status": None, "project": None},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1C", "session.status": None, "project": None},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+        ]
 
     @freeze_time(MOCK_DATETIME)
     def test_order_by_with_environment_filter_on_preflight(self):
