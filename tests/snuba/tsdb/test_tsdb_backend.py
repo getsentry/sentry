@@ -498,3 +498,7 @@ class AddJitterToSeriesTest(TestCase):
             expected_start=datetime(2022, 5, 18, 9, 23, 5),
             expected_end=datetime(2022, 5, 18, 10, 23, 5),
         )
+
+    def test_empty_series(self):
+        assert self.db._add_jitter_to_series([], datetime(2022, 5, 18, 10, 23, 4), 60, 127) == []
+        assert self.db._add_jitter_to_series([], datetime(2022, 5, 18, 10, 23, 4), 60, None) == []

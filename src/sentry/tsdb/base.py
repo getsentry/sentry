@@ -386,7 +386,7 @@ class BaseTSDB(Service):
         return sum_set
 
     def _add_jitter_to_series(self, series, start, rollup, jitter_value):
-        if jitter_value:
+        if jitter_value and series:
             jitter = jitter_value % rollup
             if (start - to_datetime(series[0])).total_seconds() < jitter:
                 jitter -= rollup
