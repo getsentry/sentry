@@ -133,7 +133,7 @@ def schedule_update_config_cache(
             "One of organization_id, project_id, public_key has to be provided, not many."
         )
 
-    if projectconfig_debounce_cache.check_is_debounced(public_key, project_id, organization_id):
+    if projectconfig_debounce_cache.is_debounced(public_key, project_id, organization_id):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": update_reason},
@@ -155,3 +155,10 @@ def schedule_update_config_cache(
         public_key=public_key,
         update_reason=update_reason,
     )
+
+    # Checking if the project is debounced and debouncing it are two separate
+    # actions that aren't atomic. If the process marks a project as debounced
+    # and dies before scheduling it, the cache will be stale for the whole TTL.
+    # To avoid that, make sure we first schedule the task, and only then mark
+    # the project as debounced.
+    projectconfig_debounce_cache.debounce(public_key, project_id, organization_id)
