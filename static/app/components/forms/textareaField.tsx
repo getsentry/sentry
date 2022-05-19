@@ -19,7 +19,8 @@ export default function TextareaField({
       field={fieldProps => (
         <Textarea
           {...{monospace, rows, autosize}}
-          {...omit(fieldProps, ['onKeyDown', 'children'])}
+          // Do not forward required to `textarea` to avoid default browser behavior
+          {...omit(fieldProps, ['onKeyDown', 'children', 'required'])}
         />
       )}
     />

@@ -16,6 +16,7 @@ import {
   getMeasurementSlug,
   WebVital,
 } from 'sentry/utils/discover/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 
 import {ViewProps} from '../../../types';
@@ -140,6 +141,7 @@ function VitalsChart({
         partial
         withoutZerofill={withoutZerofill}
         referrer="api.performance.transaction-summary.vitals-chart"
+        userModified={decodeScalar(location.query.userModified)}
       >
         {({results, errored, loading, reloading, timeframe: timeFrame}) => (
           <Content
