@@ -171,7 +171,7 @@ export default Conditions;
 
 const ConditionWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: flex-start;
   padding: ${space(1)} ${space(2)};
   :not(:last-child) {
@@ -179,7 +179,7 @@ const ConditionWrapper = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 0.6fr minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(0, 0.6fr) minmax(0, 1fr) max-content;
   }
 `;
 

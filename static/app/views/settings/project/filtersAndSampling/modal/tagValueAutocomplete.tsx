@@ -9,7 +9,8 @@ import {Organization, Project} from 'sentry/types';
 import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
 import useApi from 'sentry/utils/useApi';
 
-import {getMatchFieldPlaceholder} from './utils';
+import {TruncatedLabel} from './truncatedLabel';
+import {formatCreateTagLabel, getMatchFieldPlaceholder} from './utils';
 
 type Tag = {
   value: string;
@@ -105,7 +106,7 @@ function TagValueAutocomplete({
       aria-label={getAriaLabel()}
       options={[...createdOptions, ...tagValues].map(tagValue => ({
         value: tagValue.value,
-        label: tagValue.value,
+        label: <TruncatedLabel value={tagValue.value} />,
       }))}
       value={value?.split('\n')}
       onChange={newValue => {
@@ -119,6 +120,7 @@ function TagValueAutocomplete({
           />
         ),
       }}
+      formatCreateLabel={formatCreateTagLabel}
       placeholder={getMatchFieldPlaceholder(category)}
       inline={false}
       multiple

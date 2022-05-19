@@ -11,6 +11,7 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import NumberField from 'sentry/components/forms/numberField';
 import Option from 'sentry/components/forms/selectOption';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
@@ -243,7 +244,9 @@ function RuleModal({
     )
     .map(({category}) => ({
       value: category,
-      label: getInnerNameLabel(category),
+      label: (
+        <Truncate value={getInnerNameLabel(category)} expandable={false} maxLength={40} />
+      ),
       disabled: true,
       tooltip: conditionAlreadyAddedTooltip,
     }));
