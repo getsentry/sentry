@@ -75,10 +75,12 @@ function Console({breadcrumbs}: Props) {
 const ConsoleFilters = styled('div')`
   display: grid;
   gap: ${space(1)};
-  grid-template-columns: max-content auto;
-  width: 100%;
+  grid-template-columns: max-content 1fr;
   margin-bottom: ${space(1)};
-  margin-top: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    margin-top: ${space(1)};
+  }
 `;
 
 const StyledEmptyMessage = styled(EmptyMessage)`
