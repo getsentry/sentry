@@ -17,7 +17,9 @@ export enum OnboardingTaskKey {
   FIRST_TRANSACTION = 'setup_transactions',
   METRIC_ALERT = 'setup_metric_alert_rules',
   USER_SELECTED_PROJECTS = 'setup_userselected_projects',
+  /// Customized card that shows the selected integrations during onboarding
   INTEGRATIONS = 'integrations',
+  /// Regular card that tells the user to setup integrations if no integrations were selected during onboarding
   FIRST_INTEGRATION = 'setup_integrations',
 }
 
