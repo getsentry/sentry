@@ -149,19 +149,6 @@ export function transformCrumbs(breadcrumbs: Array<RawCrumb>): Crumb[] {
   });
 }
 
-// In the future if we want to show more items at
-// the EventChapter, we should add to this array.
-const USER_ACTIONS = [
-  BreadcrumbType.USER,
-  BreadcrumbType.UI,
-  BreadcrumbType.ERROR,
-  BreadcrumbType.NAVIGATION,
-];
-
-export function onlyUserActions(crumbs: Crumb[]): Crumb[] {
-  return crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
-}
-
 function moduleToCategory(module: string | null | undefined) {
   if (!module) {
     return undefined;
