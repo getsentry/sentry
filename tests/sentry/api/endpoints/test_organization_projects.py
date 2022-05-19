@@ -59,7 +59,7 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         self.check_valid_response(response, projects)
         assert "stats" not in response.data[0]
 
-        self.get_success_response(
+        self.get_error_response(
             self.organization.slug, qs_params={"statsPeriod": "48h"}, status_code=400
         )
 
