@@ -120,11 +120,11 @@ class Snowflake:
 
     SEGMENT_LENGTH = OrderedDict()
     SEGMENT_LENGTH["VERSION_ID"] = SnowflakeBitSegment(SNOWFLAKE_VERSION_ID_LENGTH, "Version ID")
-    SEGMENT_LENGTH["VERSION_ID"] = SnowflakeBitSegment(
+    SEGMENT_LENGTH["TIME_DIFFERENCE"] = SnowflakeBitSegment(
         SNOWFLAKE_TIME_DIFFERENCE_LENGTH, "Time difference"
     )
-    SEGMENT_LENGTH["VERSION_ID"] = SnowflakeBitSegment(SNOWFLAKE_REGION_ID_LENGTH, "Region ID")
-    SEGMENT_LENGTH["VERSION_ID"] = SnowflakeBitSegment(
+    SEGMENT_LENGTH["REGION_ID"] = SnowflakeBitSegment(SNOWFLAKE_REGION_ID_LENGTH, "Region ID")
+    SEGMENT_LENGTH["REGION_SEQUENCE"] = SnowflakeBitSegment(
         SNOWFLAKE_REGION_SEQUENCE_LENGTH, "Region sequence"
     )
 
