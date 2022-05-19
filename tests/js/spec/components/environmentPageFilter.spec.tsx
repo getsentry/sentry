@@ -7,7 +7,7 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
 const {organization, router, routerContext} = initializeOrg({
-  organization: {features: ['global-views', 'selection-filters-v2']},
+  organization: {features: ['global-views']},
   project: undefined,
   projects: [
     {
@@ -93,6 +93,9 @@ describe('EnvironmentPageFilter', function () {
     userEvent.click(pinButton, undefined, {skipHover: true});
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
+
+    // Check if the pin indicator has been added
+    expect(screen.getByLabelText('Filter applied across pages')).toBeInTheDocument();
 
     expect(PageFiltersStore.getState()).toEqual(
       expect.objectContaining({

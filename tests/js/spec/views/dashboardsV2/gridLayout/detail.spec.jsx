@@ -1,7 +1,13 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -361,7 +367,7 @@ describe('Dashboards > Detail', function () {
       wrapper.update();
 
       const card = wrapper.find('WidgetCard').first();
-      card.find('StyledPanel').simulate('mouseOver');
+      card.find('WidgetCardPanel').simulate('mouseOver');
 
       // Edit the first widget
       wrapper
@@ -444,7 +450,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'widget-library',
           ],
           projects: [TestStubs.Project()],
         }),
@@ -699,6 +704,7 @@ describe('Dashboards > Detail', function () {
             fields: ['count()'],
             aggregates: ['count()'],
             columns: [],
+            orderby: '',
           },
         ],
         {
@@ -764,8 +770,9 @@ describe('Dashboards > Detail', function () {
             name: '',
             conditions: 'event.type:error',
             fields: ['count()'],
-            columns: [],
             aggregates: ['count()'],
+            columns: [],
+            orderby: '',
           },
         ],
         {
@@ -790,9 +797,9 @@ describe('Dashboards > Detail', function () {
         {context: initialData.routerContext, organization: initialData.organization}
       );
 
-      await mountGlobalModal(initialData.routerContext);
+      renderGlobalModal({context: initialData.routerContext});
 
-      userEvent.click(screen.getByRole('button', {name: 'Edit Widget'}));
+      userEvent.click(await screen.findByRole('button', {name: 'Edit Widget'}));
       expect(openEditModal).toHaveBeenCalledWith(
         expect.objectContaining({
           widget,

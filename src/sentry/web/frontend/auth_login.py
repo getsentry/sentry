@@ -23,6 +23,7 @@ from sentry.utils.auth import (
     is_valid_redirect,
     login,
 )
+from sentry.utils.client_state import get_client_state_redirect_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
@@ -230,6 +231,13 @@ class AuthLoginView(BaseView):
                             if om.user is None:
                                 request.session.pop("_next", None)
 
+                # On login, redirect to onboarding
+                active_org = self.get_active_organization(request)
+                if active_org:
+                    onboarding_redirect = get_client_state_redirect_uri(active_org.slug, None)
+                    if onboarding_redirect:
+                        request.session["_next"] = onboarding_redirect
+
                 return self.redirect(get_login_redirect(request))
             else:
                 metrics.incr(
@@ -263,10 +271,7 @@ class AuthLoginView(BaseView):
     def get(self, request: Request, **kwargs) -> Response:
         next_uri = self.get_next_uri(request)
         if request.user.is_authenticated:
-            # if the user is a superuser, but not 'superuser authenticated'
-            # we allow them to re-authenticate to gain superuser status
-            if not request.user.is_superuser or is_active_superuser(request):
-                return self.handle_authenticated(request)
+            return self.handle_authenticated(request)
 
         request.session.set_test_cookie()
 

@@ -38,7 +38,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": iso_format(before_now(minutes=3)),
                 "environment": "dev",
             },
             project_id=self.project.id,
@@ -47,7 +47,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": iso_format(before_now(minutes=2)),
                 "environment": "prod",
             },
             project_id=self.project.id,
@@ -383,7 +383,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         assert emailer.called
 
-    @patch("sentry.snuba.discover.raw_query")
+    @patch("sentry.search.events.builder.raw_snql_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_outside_retention(self, emailer, mock_query):
         """
@@ -433,7 +433,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         error = emailer.call_args[1]["message"]
         assert error == "Invalid query. Please fix the query and try again."
 
-    @patch("sentry.snuba.discover.raw_query")
+    @patch("sentry.search.events.builder.raw_snql_query")
     def test_retries_on_recoverable_snuba_errors(self, mock_query):
         de = ExportedData.objects.create(
             user=self.user,
@@ -461,7 +461,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.checksum is not None
         header, row = file.getfile().read().strip().split(b"\r\n")
 
-    @patch("sentry.snuba.discover.raw_query")
+    @patch("sentry.search.events.builder.raw_snql_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_snuba_error(self, emailer, mock_query):
         de = ExportedData.objects.create(

@@ -14,7 +14,6 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Environment
 from sentry.search.events.builder import QueryBuilder
 from sentry.utils import metrics
-from sentry.utils.compat import map
 from sentry.utils.snuba import MAX_FIELDS, Dataset
 
 from ..base import ExportQueryType
@@ -84,7 +83,6 @@ class DataExportQuerySerializer(serializers.Serializer):
                 del query_info["statsPeriodEnd"]
             query_info["start"] = start.isoformat()
             query_info["end"] = end.isoformat()
-            query_info["use_snql"] = features.has("organizations:discover-use-snql", organization)
 
             # validate the query string by trying to parse it
             processor = DiscoverProcessor(

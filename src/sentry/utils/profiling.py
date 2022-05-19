@@ -1,10 +1,10 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import google.auth.transport.requests
 import google.oauth2.id_token
 from django.conf import settings
-from django.http import HttpResponse
-from parsimonious.exceptions import ParseError  # type: ignore
+from django.http import StreamingHttpResponse
+from parsimonious.exceptions import ParseError
 from requests import Response
 
 from sentry.api.event_search import SearchFilter, parse_search_query
@@ -13,14 +13,19 @@ from sentry.http import safe_urlopen
 
 
 def get_from_profiling_service(
-    method: str, path: str, params: Optional[Dict[Any, Any]] = None
+    method: str,
+    path: str,
+    params: Optional[Dict[Any, Any]] = None,
+    headers: Optional[Dict[Any, Any]] = None,
 ) -> Response:
-    kwargs: Dict[str, Any] = {"method": method}
+    kwargs: Dict[str, Any] = {"method": method, "headers": {}, "stream": True}
     if params:
         kwargs["params"] = params
+    if headers:
+        kwargs["headers"].update(headers)
     if settings.ENVIRONMENT == "production":
         id_token = fetch_id_token_for_service(settings.SENTRY_PROFILING_SERVICE_URL)
-        kwargs["headers"] = {"Authorization": f"Bearer {id_token}"}
+        kwargs["headers"].update({"Authorization": f"Bearer {id_token}"})
     return safe_urlopen(
         f"{settings.SENTRY_PROFILING_SERVICE_URL}{path}",
         **kwargs,
@@ -28,14 +33,26 @@ def get_from_profiling_service(
 
 
 def proxy_profiling_service(
-    method: str, path: str, params: Optional[Dict[Any, Any]] = None
-) -> HttpResponse:
-    profiling_response = get_from_profiling_service(method, path, params=params)
-    response = HttpResponse(
-        content=profiling_response.content, status=profiling_response.status_code
+    method: str,
+    path: str,
+    params: Optional[Dict[str, Any]] = None,
+    headers: Optional[Dict[str, str]] = None,
+) -> StreamingHttpResponse:
+    profiling_response = get_from_profiling_service(method, path, params=params, headers=headers)
+
+    def stream():
+        yield from profiling_response.raw.stream(decode_content=False)
+
+    response = StreamingHttpResponse(
+        streaming_content=stream(),
+        status=profiling_response.status_code,
+        content_type=profiling_response.headers.get("Content_type", "application/json"),
     )
-    if "Content-Type" in profiling_response.headers:
-        response["Content-Type"] = profiling_response.headers["Content-Type"]
+
+    for h in ["Content-Encoding", "Vary"]:
+        if h in profiling_response.headers:
+            response[h] = profiling_response.headers[h]
+
     return response
 
 
@@ -59,7 +76,7 @@ PROFILE_FILTERS = {
 }
 
 
-def parse_profile_filters(query: str) -> Dict[str, List[str]]:
+def parse_profile_filters(query: str) -> Dict[str, str]:
     try:
         parsed_terms = parse_search_query(query)
     except ParseError as e:

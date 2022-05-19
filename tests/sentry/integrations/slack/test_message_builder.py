@@ -11,6 +11,7 @@ from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models import Group, Team, User
 from sentry.testutils import TestCase
 from sentry.utils.assets import get_asset_url
@@ -77,6 +78,64 @@ def build_test_message(
         "fallback": f"[{project.slug}] {title}",
         "footer_icon": "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png",
     }
+
+
+class BuildGroupAttachmentTest(TestCase):
+    def test_build_group_attachment(self):
+        group = self.create_group(project=self.project)
+
+        assert SlackIssuesMessageBuilder(group).build() == build_test_message(
+            teams={self.team},
+            users={self.user},
+            timestamp=group.last_seen,
+            group=group,
+        )
+
+        event = self.store_event(data={}, project_id=self.project.id)
+
+        assert SlackIssuesMessageBuilder(group, event).build() == build_test_message(
+            teams={self.team},
+            users={self.user},
+            timestamp=event.datetime,
+            group=group,
+            event=event,
+        )
+
+        assert SlackIssuesMessageBuilder(
+            group, event, link_to_event=True
+        ).build() == build_test_message(
+            teams={self.team},
+            users={self.user},
+            timestamp=event.datetime,
+            group=group,
+            event=event,
+            link_to_event=True,
+        )
+
+    def test_build_group_attachment_issue_alert(self):
+        issue_alert_group = self.create_group(project=self.project)
+        assert (
+            SlackIssuesMessageBuilder(issue_alert_group, issue_details=True).build()["actions"]
+            == []
+        )
+
+    def test_build_group_attachment_color_no_event_error_fallback(self):
+        group_with_no_events = self.create_group(project=self.project)
+        assert SlackIssuesMessageBuilder(group_with_no_events).build()["color"] == "#E03E2F"
+
+    def test_build_group_attachment_color_unexpected_level_error_fallback(self):
+        unexpected_level_event = self.store_event(
+            data={"level": "trace"}, project_id=self.project.id, assert_no_errors=False
+        )
+        assert SlackIssuesMessageBuilder(unexpected_level_event.group).build()["color"] == "#E03E2F"
+
+    def test_build_group_attachment_color_warning(self):
+        warning_event = self.store_event(data={"level": "warning"}, project_id=self.project.id)
+        assert SlackIssuesMessageBuilder(warning_event.group).build()["color"] == "#FFC227"
+        assert (
+            SlackIssuesMessageBuilder(warning_event.group, warning_event).build()["color"]
+            == "#FFC227"
+        )
 
 
 class BuildIncidentAttachmentTest(TestCase):
@@ -156,58 +215,159 @@ class BuildIncidentAttachmentTest(TestCase):
             "actions": [],
         }
 
-    def test_build_group_attachment(self):
-        group = self.create_group(project=self.project)
 
-        assert SlackIssuesMessageBuilder(group).build() == build_test_message(
-            teams={self.team},
-            users={self.user},
-            timestamp=group.last_seen,
-            group=group,
+class BuildMetricAlertAttachmentTest(TestCase):
+    def test_metric_alert_without_incidents(self):
+        alert_rule = self.create_alert_rule()
+        title = f"Resolved: {alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
         )
+        assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
+        }
 
-        event = self.store_event(data={}, project_id=self.project.id)
-
-        assert SlackIssuesMessageBuilder(group, event).build() == build_test_message(
-            teams={self.team},
-            users={self.user},
-            timestamp=event.datetime,
-            group=group,
-            event=event,
+    def test_metric_alert_with_selected_incident(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-
-        assert SlackIssuesMessageBuilder(
-            group, event, link_to_event=True
-        ).build() == build_test_message(
-            teams={self.team},
-            users={self.user},
-            timestamp=event.datetime,
-            group=group,
-            event=event,
-            link_to_event=True,
+        title = f"Resolved: {alert_rule.name}"
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
+            )
+            + f"?alert={incident.identifier}"
         )
+        assert SlackMetricAlertMessageBuilder(alert_rule, incident).build() == {
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n"
+                        "0 events in the last 10 minutes\n"
+                        "Filter: level:error",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
+        }
 
-    def test_build_group_attachment_issue_alert(self):
-        issue_alert_group = self.create_group(project=self.project)
-        assert (
-            SlackIssuesMessageBuilder(issue_alert_group, issue_details=True).build()["actions"]
-            == []
+    def test_metric_alert_with_active_incident(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-
-    def test_build_group_attachment_color_no_event_error_fallback(self):
-        group_with_no_events = self.create_group(project=self.project)
-        assert SlackIssuesMessageBuilder(group_with_no_events).build()["color"] == "#E03E2F"
-
-    def test_build_group_attachment_color_unexpected_level_error_fallback(self):
-        unexpected_level_event = self.store_event(
-            data={"level": "trace"}, project_id=self.project.id, assert_no_errors=False
+        title = f"Critical: {alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
         )
-        assert SlackIssuesMessageBuilder(unexpected_level_event.group).build()["color"] == "#E03E2F"
+        assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
+            "color": LEVEL_TO_COLOR["fatal"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n"
+                        "0 events in the last 10 minutes\n"
+                        "Filter: level:error",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
+        }
 
-    def test_build_group_attachment_color_warning(self):
-        warning_event = self.store_event(data={"level": "warning"}, project_id=self.project.id)
-        assert SlackIssuesMessageBuilder(warning_event.group).build()["color"] == "#FFC227"
-        assert (
-            SlackIssuesMessageBuilder(warning_event.group, warning_event).build()["color"]
-            == "#FFC227"
+    def test_metric_value(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+
+        # This test will use the action/method and not the incident to build status
+        title = f"Critical: {alert_rule.name}"
+        metric_value = 5000
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
         )
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
+        )
+        assert SlackMetricAlertMessageBuilder(
+            alert_rule, incident, IncidentStatus.CRITICAL, metric_value=metric_value
+        ).build() == {
+            "color": LEVEL_TO_COLOR["fatal"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}?alert={incident.identifier}|*{title}*>  \n"
+                        f"{metric_value} events in the last 10 minutes\n"
+                        "Filter: level:error",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
+        }
+
+    def test_metric_alert_chart(self):
+        alert_rule = self.create_alert_rule()
+        title = f"Resolved: {alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
+        )
+        assert SlackMetricAlertMessageBuilder(alert_rule, chart_url="chart_url").build() == {
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+                {"alt_text": "Metric Alert Chart", "image_url": "chart_url", "type": "image"},
+            ],
+        }

@@ -4,7 +4,6 @@ import {Manager, Popper, Reference} from 'react-popper';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
-import * as PopperJS from 'popper.js';
 
 import {GetActorPropsFn} from 'sentry/components/dropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
@@ -27,19 +26,6 @@ type State = {
 };
 
 class OperationSort extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    let portal = document.getElementById('transaction-events-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'transaction-events-portal');
-      document.body.appendChild(portal);
-    }
-    this.portalEl = portal;
-    this.menuEl = null;
-  }
-
   state: State = {
     isOpen: false,
   };
@@ -55,11 +41,9 @@ class OperationSort extends Component<Props, State> {
 
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClickOutside, true);
-    this.portalEl.remove();
   }
 
-  private portalEl: Element;
-  private menuEl: Element | null;
+  private menuEl: Element | null = null;
 
   handleClickOutside = (event: MouseEvent) => {
     if (!this.menuEl) {
@@ -129,16 +113,17 @@ class OperationSort extends Component<Props, State> {
   }
 
   renderMenu() {
-    const modifiers: PopperJS.Modifiers = {
-      hide: {
+    const modifiers = [
+      {
+        name: 'hide',
         enabled: false,
       },
-      preventOverflow: {
-        padding: 10,
+      {
+        name: 'preventOverflow',
         enabled: true,
-        boundariesElement: 'viewport',
+        options: {padding: 10},
       },
-    };
+    ];
 
     return createPortal(
       <Popper placement="top" modifiers={modifiers}>
@@ -155,7 +140,7 @@ class OperationSort extends Component<Props, State> {
           </DropdownWrapper>
         )}
       </Popper>,
-      this.portalEl
+      document.body
     );
   }
 

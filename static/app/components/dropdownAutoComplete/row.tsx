@@ -1,3 +1,4 @@
+import {memo, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import AutoComplete from 'sentry/components/autoComplete';
@@ -10,24 +11,44 @@ type AutoCompleteChildrenArgs<T> = Parameters<AutoComplete<T>['props']['children
 
 type Props<T> = Pick<
   AutoCompleteChildrenArgs<T>,
-  'highlightedIndex' | 'getItemProps' | 'inputValue'
+  'getItemProps' | 'registerVisibleItem' | 'inputValue'
 > &
   Omit<Parameters<AutoCompleteChildrenArgs<T>['getItemProps']>[0], 'index'> & {
+    /**
+     * Is the row 'active'
+     */
+    isHighlighted: boolean;
     /**
      * Size for dropdown items
      */
     itemSize?: ItemSize;
+    /**
+     * Style is used by react-virtualized for alignment
+     */
+    style?: React.CSSProperties;
   };
+
+function scrollIntoView(element: HTMLDivElement) {
+  element?.scrollIntoView?.({block: 'nearest'});
+}
 
 function Row<T extends Item>({
   item,
   style,
   itemSize,
-  highlightedIndex,
+  isHighlighted,
   inputValue,
   getItemProps,
+  registerVisibleItem,
 }: Props<T>) {
   const {index} = item;
+
+  useEffect(() => registerVisibleItem(item.index, item), [registerVisibleItem, item]);
+
+  const itemProps = useMemo(
+    () => getItemProps({item, index}),
+    [getItemProps, item, index]
+  );
 
   if (item.groupLabel) {
     return (
@@ -41,15 +62,21 @@ function Row<T extends Item>({
     <AutoCompleteItem
       itemSize={itemSize}
       disabled={item.disabled}
-      isHighlighted={index === highlightedIndex}
-      {...getItemProps({item, index, style})}
+      isHighlighted={isHighlighted}
+      style={style}
+      ref={isHighlighted ? scrollIntoView : undefined}
+      {...itemProps}
     >
       {typeof item.label === 'function' ? item.label({inputValue}) : item.label}
     </AutoCompleteItem>
   );
 }
 
-export default Row;
+// XXX(epurkhiser): We memoize the row component since there will be many of
+// them, we do not want them re-rendering every time we change the
+// highlightedIndex in the parent List.
+
+export default memo(Row);
 
 const getItemPaddingForSize = (itemSize?: ItemSize) => {
   if (itemSize === 'small') {
@@ -93,6 +120,7 @@ const AutoCompleteItem = styled('div')<{
   display: flex;
   flex-direction: column;
   justify-content: center;
+  scroll-margin: 20px 0;
 
   font-size: ${p => p.theme.fontSizeMedium};
   background-color: ${p => (p.isHighlighted ? p.theme.hover : 'transparent')};

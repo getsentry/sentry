@@ -244,6 +244,8 @@ const generateAliases = (colors: BaseColors) => ({
    */
   linkColor: colors.blue300,
   linkHoverColor: colors.blue300,
+  linkUnderline: colors.blue200,
+  linkFocus: colors.blue300,
 
   /**
    * Form placeholder text color
@@ -507,17 +509,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     focusBorder: alias.focusBorder,
     focusShadow: alias.focus,
   },
-  success: {
-    color: colors.white,
-    colorActive: colors.white,
-    background: colors.green300,
-    backgroundActive: colors.green400,
-    border: colors.green300,
-    borderActive: colors.green300,
-    borderTranslucent: colors.green300,
-    focusBorder: colors.green300,
-    focusShadow: colors.green200,
-  },
   danger: {
     color: colors.white,
     colorActive: colors.white,
@@ -564,12 +555,14 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
   },
 });
 
-const generateUtils = (colors: BaseColors) => ({
-  tooltipUnderline: {
-    textDecoration: `underline dotted ${colors.gray300}`,
+const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
+  tooltipUnderline: (underlineColor: ColorOrAlias = 'gray300') => ({
+    textDecoration: `underline dotted ${
+      colors[underlineColor] ?? aliases[underlineColor]
+    }`,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
-  },
+  }),
 });
 
 const iconSizes = {
@@ -820,7 +813,7 @@ export const lightTheme = {
     ...darkColors,
     ...darkAliases,
   },
-  ...generateUtils(lightColors),
+  ...generateUtils(lightColors, lightAliases),
   alert: generateAlertTheme(lightColors, lightAliases),
   badge: generateBadgeTheme(lightColors),
   button: generateButtonTheme(lightColors, lightAliases),
@@ -843,7 +836,7 @@ export const darkTheme: Theme = {
     ...lightColors,
     ...lightAliases,
   },
-  ...generateUtils(darkColors),
+  ...generateUtils(darkColors, lightAliases),
   alert: generateAlertTheme(darkColors, darkAliases),
   badge: generateBadgeTheme(darkColors),
   button: generateButtonTheme(darkColors, darkAliases),
@@ -858,9 +851,9 @@ export const darkTheme: Theme = {
 };
 
 export type Theme = typeof lightTheme;
-export type Aliases = typeof lightAliases;
-
 export type Color = keyof typeof lightColors;
+export type Aliases = typeof lightAliases;
+export type ColorOrAlias = keyof Aliases | Color;
 export type IconSize = keyof typeof iconSizes;
 
 export default commonTheme;

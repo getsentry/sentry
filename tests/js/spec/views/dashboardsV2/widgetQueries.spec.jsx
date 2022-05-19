@@ -1,7 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
+import {DashboardsMEPContext} from 'sentry/views/dashboardsV2/widgetCard/dashboardsMEPContext';
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
 } from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
@@ -804,5 +806,161 @@ describe('Dashboards > WidgetQueries', function () {
         ],
       ]);
     });
+  });
+
+  it('charts send metricsEnhanced requests', async function () {
+    const {organization} = initialData;
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [
+          [
+            1000,
+            [
+              {
+                count: 100,
+              },
+            ],
+          ],
+        ],
+        isMetricsData: false,
+        start: 1000,
+        end: 2000,
+      },
+    });
+    const setIsMetricsMock = jest.fn();
+
+    const children = jest.fn(() => <div />);
+
+    render(
+      <DashboardsMEPContext.Provider
+        value={{
+          isMetricsData: undefined,
+          setIsMetricsData: setIsMetricsMock,
+        }}
+      >
+        <WidgetQueries
+          api={api}
+          widget={singleQueryWidget}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'dashboards-mep'],
+          }}
+          selection={selection}
+        >
+          {children}
+        </WidgetQueries>
+      </DashboardsMEPContext.Provider>
+    );
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+      })
+    );
+
+    await waitFor(() => {
+      expect(setIsMetricsMock).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it('tables send metricsEnhanced requests', async function () {
+    const {organization} = initialData;
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/eventsv2/',
+      body: {
+        meta: {title: 'string', isMetricsData: true},
+        data: [{title: 'ValueError'}],
+      },
+    });
+    const setIsMetricsMock = jest.fn();
+
+    const children = jest.fn(() => <div />);
+
+    render(
+      <DashboardsMEPContext.Provider
+        value={{
+          isMetricsData: undefined,
+          setIsMetricsData: setIsMetricsMock,
+        }}
+      >
+        <WidgetQueries
+          api={api}
+          widget={{...singleQueryWidget, displayType: 'table'}}
+          organization={{
+            ...organization,
+            features: [...organization.features, 'dashboards-mep'],
+          }}
+          selection={selection}
+        >
+          {children}
+        </WidgetQueries>
+      </DashboardsMEPContext.Provider>
+    );
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/eventsv2/',
+      expect.objectContaining({
+        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+      })
+    );
+
+    await waitFor(() => {
+      expect(setIsMetricsMock).toHaveBeenCalledWith(true);
+    });
+  });
+
+  it('does not inject equation aliases for top N requests', async function () {
+    const testData = initializeOrg({
+      organization: {
+        ...TestStubs.Organization(),
+        features: ['new-widget-builder-experience-design'],
+      },
+    });
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const areaWidget = {
+      displayType: 'area',
+      interval: '5m',
+      queries: [
+        {
+          conditions: 'event.type:error',
+          fields: [],
+          aggregates: ['count()', 'equation|count() * 2'],
+          columns: ['project'],
+          orderby: 'equation[0]',
+          name: '',
+        },
+      ],
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={areaWidget}
+        organization={testData.organization}
+        selection={selection}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      testData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['project', 'count()', 'equation|count() * 2'],
+          orderby: 'equation[0]',
+        }),
+      })
+    );
   });
 });

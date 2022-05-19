@@ -8,6 +8,7 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
@@ -59,17 +60,10 @@ function AppStoreConnect({
   });
 
   const [stepTwoData, setStepTwoData] = useState<StepTwoData>({
-    app:
-      initialData?.appId && initialData?.appName
-        ? {
-            appId: initialData.appId,
-            name: initialData.appName,
-            bundleId: initialData.bundleId,
-          }
-        : undefined,
+    app: undefined,
   });
 
-  async function checkAppStoreConnectCredentials() {
+  async function checkCredentials() {
     setIsLoading(true);
 
     try {
@@ -86,13 +80,26 @@ function AppStoreConnect({
         }
       );
 
-      setAppStoreApps(response.apps);
+      const storeApps: AppStoreApp[] = response.apps;
+
+      if (!!initialData && !storeApps.find(app => app.appId === initialData.appId)) {
+        addErrorMessage(t('Credentials not authorized for this application'));
+        setIsLoading(false);
+        return;
+      }
+
+      setAppStoreApps(storeApps);
 
       if (
         stepTwoData.app?.appId &&
-        !response.apps.find(app => app.appId === stepTwoData.app?.appId)
+        !storeApps.find(app => app.appId === stepTwoData.app?.appId)
       ) {
-        setStepTwoData({app: response.apps[0]});
+        setStepTwoData({app: storeApps[0]});
+      }
+
+      if (!!initialData) {
+        updateCredentials();
+        return;
       }
 
       setIsLoading(false);
@@ -110,6 +117,47 @@ function AppStoreConnect({
     }
   }
 
+  function closeModal() {
+    setTimeout(() => onSubmit(), DEFAULT_TOAST_DURATION);
+  }
+
+  async function updateCredentials() {
+    if (!initialData) {
+      return;
+    }
+
+    try {
+      await api.requestPromise(
+        `/projects/${orgSlug}/${projectSlug}/appstoreconnect/${initialData.id}/`,
+        {
+          method: 'POST',
+          data: {
+            appconnectIssuer: stepOneData.issuer,
+            appconnectKey: stepOneData.keyId,
+            appconnectPrivateKey: stepOneData.privateKey,
+            appName: initialData.appName,
+            appId: initialData.appId,
+            bundleId: initialData.bundleId,
+          },
+        }
+      );
+
+      addSuccessMessage(t('Successfully updated custom repository'));
+      closeModal();
+    } catch (error) {
+      setIsLoading(false);
+      const appStoreConnnectError = getAppStoreErrorMessage(error);
+
+      if (typeof appStoreConnnectError === 'string') {
+        if (appStoreConnnectError === unexpectedErrorMessage) {
+          addErrorMessage(t('An error occurred while updating the custom repository'));
+          return;
+        }
+        addErrorMessage(appStoreConnnectError);
+      }
+    }
+  }
+
   async function persistData() {
     if (!stepTwoData.app) {
       return;
@@ -117,18 +165,8 @@ function AppStoreConnect({
 
     setIsLoading(true);
 
-    let endpoint = `/projects/${orgSlug}/${projectSlug}/appstoreconnect/`;
-    let errorMessage = t('An error occurred while adding the custom repository');
-    let successMessage = t('Successfully added custom repository');
-
-    if (!!initialData) {
-      endpoint = `${endpoint}${initialData.id}/`;
-      errorMessage = t('An error occurred while updating the custom repository');
-      successMessage = t('Successfully updated custom repository');
-    }
-
     try {
-      await api.requestPromise(endpoint, {
+      await api.requestPromise(`/projects/${orgSlug}/${projectSlug}/appstoreconnect/`, {
         method: 'POST',
         data: {
           appconnectIssuer: stepOneData.issuer,
@@ -140,15 +178,15 @@ function AppStoreConnect({
         },
       });
 
-      addSuccessMessage(successMessage);
-      onSubmit();
+      addSuccessMessage(t('Successfully added custom repository'));
+      closeModal();
     } catch (error) {
       setIsLoading(false);
       const appStoreConnnectError = getAppStoreErrorMessage(error);
 
       if (typeof appStoreConnnectError === 'string') {
         if (appStoreConnnectError === unexpectedErrorMessage) {
-          addErrorMessage(errorMessage);
+          addErrorMessage(t('An error occurred while adding the custom repository'));
           return;
         }
         addErrorMessage(appStoreConnnectError);
@@ -190,7 +228,7 @@ function AppStoreConnect({
   function handleGoNext() {
     switch (activeStep) {
       case 0:
-        checkAppStoreConnectCredentials();
+        checkCredentials();
         break;
       case 1:
         persistData();
@@ -275,7 +313,7 @@ function AppStoreConnect({
           <StepsOverview>
             {tct('[currentStep] of [totalSteps]', {
               currentStep: activeStep + 1,
-              totalSteps: steps.length,
+              totalSteps: !!initialData ? 1 : steps.length,
             })}
           </StepsOverview>
         </HeaderContent>
@@ -294,10 +332,10 @@ function AppStoreConnect({
                 <LoadingIndicator mini />
               </LoadingIndicatorWrapper>
             )}
-            {activeStep + 1 === steps.length
-              ? initialData
-                ? t('Update')
-                : t('Save')
+            {!!initialData
+              ? t('Update')
+              : activeStep + 1 === steps.length
+              ? t('Save')
               : steps[activeStep + 1]}
           </StyledButton>
         </ButtonBar>

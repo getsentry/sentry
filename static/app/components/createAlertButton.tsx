@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -27,8 +27,13 @@ import useApi from 'sentry/utils/useApi';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'sentry/views/alerts/incidentRules/constants';
+} from 'sentry/views/alerts/rules/metric/constants';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
+import {
+  AlertType,
+  AlertWizardRuleTemplates,
+  DEFAULT_WIZARD_TEMPLATE,
+} from 'sentry/views/alerts/wizard/options';
 
 /**
  * Discover query supports more features than alert rules
@@ -134,7 +139,7 @@ function IncompatibleQueryAlert({
       }
     >
       {totalErrors === 1 && (
-        <React.Fragment>
+        <Fragment>
           {hasProjectError &&
             t('An alert can use data from only one Project. Select one and try again.')}
           {hasEnvironmentError &&
@@ -153,10 +158,10 @@ function IncompatibleQueryAlert({
                 yAxis: <StyledCode>{eventView.getYAxis()}</StyledCode>,
               }
             )}
-        </React.Fragment>
+        </Fragment>
       )}
       {totalErrors > 1 && (
-        <React.Fragment>
+        <Fragment>
           {t('Yikes! That button didn’t work. Please fix the following problems:')}
           <StyledUnorderedList>
             {hasProjectError && <li>{t('Select one Project.')}</li>}
@@ -182,7 +187,7 @@ function IncompatibleQueryAlert({
               </li>
             )}
           </StyledUnorderedList>
-        </React.Fragment>
+        </Fragment>
       )}
     </StyledAlert>
   );
@@ -207,8 +212,10 @@ type CreateAlertFromViewButtonProps = ButtonProps & {
   onSuccess: () => void;
   organization: Organization;
   projects: Project[];
+  alertType?: AlertType;
   className?: string;
   referrer?: string;
+  useAlertWizardV3?: boolean;
 };
 
 function incompatibleYAxis(eventView: EventView): boolean {
@@ -263,6 +270,8 @@ function CreateAlertFromViewButton({
   referrer,
   onIncompatibleQuery,
   onSuccess,
+  useAlertWizardV3,
+  alertType,
   ...buttonProps
 }: CreateAlertFromViewButtonProps) {
   // Must have exactly one project selected and not -1 (all projects)
@@ -287,16 +296,25 @@ function CreateAlertFromViewButton({
       ''
     );
   }
-
   const hasErrors = Object.values(errors).some(x => x);
   const to = hasErrors
     ? undefined
     : {
-        pathname: `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
+        pathname: useAlertWizardV3
+          ? `/organizations/${organization.slug}/alerts/new/metric/`
+          : `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
         query: {
           ...queryParams,
           createFromDiscover: true,
           referrer,
+          ...(useAlertWizardV3
+            ? {
+                project: project?.slug,
+                ...(alertType
+                  ? AlertWizardRuleTemplates[alertType]
+                  : DEFAULT_WIZARD_TEMPLATE),
+              }
+            : {}),
         },
       };
 
@@ -408,7 +426,7 @@ const CreateAlertButton = withRouter(
         tooltipProps={{
           isHoverable: true,
           position: 'top',
-          popperStyle: {
+          overlayStyle: {
             maxWidth: '270px',
           },
         }}

@@ -45,7 +45,7 @@ export function YAxisSelector({
   noFieldsMessage,
 }: Props) {
   const organization = useOrganization();
-  const isMetricWidget = widgetType === WidgetType.METRICS;
+  const isReleaseWidget = widgetType === WidgetType.RELEASE;
 
   function handleAddOverlay(event: React.MouseEvent) {
     event.preventDefault();
@@ -94,11 +94,14 @@ export function YAxisSelector({
         return true;
       }
 
-      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
-        return true;
+      if (isReleaseWidget) {
+        if (option.value.kind === FieldValueKind.METRICS) {
+          return true;
+        }
+        return false;
       }
 
-      if (isMetricWidget || option.value.kind === FieldValueKind.METRICS) {
+      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
         return true;
       }
 
@@ -111,8 +114,11 @@ export function YAxisSelector({
         return isLegalYAxisType(primaryOutput);
       }
 
-      if (option.value.kind === FieldValueKind.FUNCTION) {
-        // Functions are not legal options as an aggregate/function parameter.
+      if (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.EQUATION
+      ) {
+        // Functions and equations are not legal options as an aggregate/function parameter.
         return false;
       }
 
@@ -181,7 +187,7 @@ export function YAxisSelector({
       {!hideAddYAxisButtons && (
         <Actions gap={1}>
           <AddButton title={t('Add Overlay')} onAdd={handleAddOverlay} />
-          {!isMetricWidget && (
+          {!isReleaseWidget && (
             <AddButton title={t('Add an Equation')} onAdd={handleAddEquation} />
           )}
         </Actions>

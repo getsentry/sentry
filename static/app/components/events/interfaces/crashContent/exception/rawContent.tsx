@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
@@ -30,7 +30,7 @@ type State = {
   loading: boolean;
 };
 
-class RawContent extends React.Component<Props, State> {
+class RawContent extends Component<Props, State> {
   state: State = {
     loading: false,
     error: false,
@@ -164,7 +164,7 @@ class RawContent extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         {values.map((exc, excIdx) => {
           const {downloadButton, content} = this.getContent(isNative, exc);
           if (!downloadButton && !content) {
@@ -177,7 +177,7 @@ class RawContent extends React.Component<Props, State> {
             </div>
           );
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

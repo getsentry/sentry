@@ -1,6 +1,7 @@
 import type {Route, RouteComponentProps} from 'react-router';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
+import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -32,7 +33,8 @@ export type Hooks = {_: any} & RouteHooks &
   FeatureDisabledHooks &
   InterfaceChromeHooks &
   OnboardingHooks &
-  SettingsHooks;
+  SettingsHooks &
+  CallbackHooks;
 
 export type HookName = keyof Hooks;
 
@@ -68,11 +70,6 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 type DashboardHeadersProps = {organization: Organization};
 
-type CodeOwnersHeaderProps = {
-  addCodeOwner: () => void;
-  handleRequest: () => void;
-};
-
 type FirstPartyIntegrationAlertProps = {
   integrations: Integration[];
   hideCTA?: boolean;
@@ -83,11 +80,19 @@ type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
 
+type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
+
+type CodeOwnersCTAProps = {
+  organization: Organization;
+  project: Project;
+  addCodeOwner?: () => void;
+  handleRequest?: () => void;
+};
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
-  'component:codeowners-header': () => React.ComponentType<CodeOwnersHeaderProps>;
+  'component:codeowners-cta': () => React.ComponentType<CodeOwnersCTAProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -201,6 +206,15 @@ export type SettingsHooks = {
   'settings:api-navigation-config': SettingsItemsHook;
   'settings:organization-navigation': OrganizationSettingsHook;
   'settings:organization-navigation-config': SettingsConfigHook;
+};
+
+/**
+ * Callback hooks.
+ * These hooks just call a function that has no return value
+ * and perform some sort of callback logic
+ */
+type CallbackHooks = {
+  'callback:on-guide-update': GuideUpdateCallback;
 };
 
 /**
@@ -508,8 +522,6 @@ type IntegrationsFeatureGatesHook = () => {
    * This component renders the list of integration features.
    */
   FeatureList: React.ComponentType<IntegrationFeatureListProps>;
-  IntegrationDirectoryFeatureList: React.ComponentType<IntegrationFeatureListProps>;
-  IntegrationDirectoryFeatures: React.ComponentType<IntegrationFeaturesProps>;
   /**
    * This is a render-prop style component that given a set of integration
    * features will call the children function with gating details about the

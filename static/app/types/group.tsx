@@ -38,6 +38,7 @@ export type SavedSearch = {
 export enum SavedSearchType {
   ISSUE = 0,
   EVENT = 1,
+  SESSION = 2,
 }
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
@@ -528,6 +529,7 @@ export type UserReport = {
 export type KeyValueListData = {
   key: string;
   subject: string;
+  actionButton?: React.ReactNode;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;

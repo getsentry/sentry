@@ -7,12 +7,15 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {generateFlamegraphRoute} from '../routes';
+import {generateFlamegraphSummaryRoute, generateFunctionsRouteWithQuery} from '../routes';
 
 import {TableColumn, TableDataRow} from './types';
+
+const REQUIRE_PROJECT_COLUMNS = new Set(['id', 'project_id', 'transaction_name']);
 
 interface ProfilingTableCellProps {
   column: TableColumn;
@@ -24,11 +27,13 @@ interface ProfilingTableCellProps {
 function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
+  const location = useLocation();
 
-  const project =
-    column.key === 'id' || column.key === 'project_id'
-      ? projects.find(proj => proj.id === dataRow.project_id)
-      : undefined;
+  // Not all columns need the project, so small optimization to avoid
+  // the linear lookup for every cell.
+  const project = REQUIRE_PROJECT_COLUMNS.has(column.key)
+    ? projects.find(proj => proj.id === dataRow.project_id)
+    : undefined;
 
   const value = dataRow[column.key];
 
@@ -36,10 +41,10 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
     case 'id':
       if (!defined(project)) {
         // should never happen but just in case
-        return <Container>{t('n/a')}</Container>;
+        return <Container>{getShortEventId(dataRow.id)}</Container>;
       }
 
-      const target = generateFlamegraphRoute({
+      const flamegraphTarget = generateFlamegraphSummaryRoute({
         orgSlug: organization.slug,
         projectSlug: project.slug,
         profileId: dataRow.id,
@@ -47,7 +52,7 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
 
       return (
         <Container>
-          <Link to={target}>{getShortEventId(dataRow.id)}</Link>
+          <Link to={flamegraphTarget}>{getShortEventId(dataRow.id)}</Link>
         </Container>
       );
     case 'project_id':
@@ -59,6 +64,27 @@ function ProfilingTableCell({column, dataRow}: ProfilingTableCellProps) {
       return (
         <Container>
           <ProjectBadge project={project} avatarSize={16} />
+        </Container>
+      );
+    case 'transaction_name':
+      if (!defined(project)) {
+        // should never happen but just in case
+        return <Container>{t('n/a')}</Container>;
+      }
+
+      const functionsTarget = generateFunctionsRouteWithQuery({
+        location,
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        transaction: dataRow.transaction_name,
+        version: dataRow.version_code
+          ? `${dataRow.version_name} (build ${dataRow.version_code})`
+          : `${dataRow.version_name}`,
+      });
+
+      return (
+        <Container>
+          <Link to={functionsTarget}>{value}</Link>
         </Container>
       );
     case 'version_name':

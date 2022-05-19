@@ -2,6 +2,7 @@ from base64 import b64encode
 from datetime import timedelta
 from unittest import mock
 
+from django.test import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -214,6 +215,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert "http://" in result
         assert f"{group.organization.slug}/issues/{group.id}" in result
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
         group = self.create_group()
@@ -263,7 +265,7 @@ class GroupUpdateTest(APITestCase):
         assert GroupResolution.objects.filter(group=group).exists()
 
     def test_snooze_duration(self):
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.RESOLVED)
 
         self.login_as(user=self.user)
 
@@ -507,6 +509,7 @@ class GroupUpdateTest(APITestCase):
         assert tombstone.project == group.project
         assert tombstone.data == group.data
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
         group = self.create_group()
@@ -549,6 +552,7 @@ class GroupDeleteTest(APITestCase):
         assert not Group.objects.filter(id=group.id).exists()
         assert not GroupHash.objects.filter(group_id=group.id).exists()
 
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_ratelimit(self):
         self.login_as(user=self.user)
         group = self.create_group()

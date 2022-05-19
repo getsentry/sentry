@@ -18,14 +18,14 @@ const DATASET_CHOICES: [DataSet, string][] = [
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
+  hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
-  widgetBuilderNewDesign: boolean;
 }
 
 export function DataSetStep({
   dataSet,
   onChange,
-  widgetBuilderNewDesign,
+  hasReleaseHealthFeature,
   displayType,
 }: Props) {
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
@@ -38,7 +38,7 @@ export function DataSetStep({
 
     if (displayType === DisplayType.WORLD_MAP) {
       disabledChoices.push([
-        DataSet.RELEASE,
+        DataSet.RELEASES,
         t(
           'This data set is restricted to big number, tabular and time series visualizations.'
         ),
@@ -62,10 +62,10 @@ export function DataSetStep({
         label="dataSet"
         value={dataSet}
         choices={
-          widgetBuilderNewDesign
+          hasReleaseHealthFeature
             ? [
                 ...DATASET_CHOICES,
-                [DataSet.RELEASE, t('Releases (sessions, crash rates)')],
+                [DataSet.RELEASES, t('Releases (sessions, crash rates)')],
               ]
             : DATASET_CHOICES
         }
@@ -79,8 +79,7 @@ export function DataSetStep({
 }
 
 const DataSetChoices = styled(RadioGroup)`
+  display: flex;
+  flex-wrap: wrap;
   gap: ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-auto-flow: column;
-  }
 `;

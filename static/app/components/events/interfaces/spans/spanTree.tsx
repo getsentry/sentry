@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -32,7 +32,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   waterfallModel: WaterfallModel;
 };
 
-class SpanTree extends React.Component<PropType> {
+class SpanTree extends Component<PropType> {
   componentDidMount() {
     setSpansOnTransaction(this.props.spans.length);
   }
@@ -150,7 +150,14 @@ class SpanTree extends React.Component<PropType> {
   };
 
   render() {
-    const {waterfallModel, spans, organization, dragProps} = this.props;
+    const {
+      waterfallModel,
+      spans,
+      organization,
+      dragProps,
+      onWheel,
+      generateContentSpanBarRef,
+    } = this.props;
     const generateBounds = waterfallModel.generateBounds({
       viewStart: dragProps.viewWindowStart,
       viewEnd: dragProps.viewWindowEnd,
@@ -223,6 +230,8 @@ class SpanTree extends React.Component<PropType> {
               spanNumber={spanNumber}
               spanGrouping={payload.spanNestedGrouping as EnhancedSpan[]}
               toggleSpanGroup={payload.toggleNestedSpanGroup as () => void}
+              onWheel={onWheel}
+              generateContentSpanBarRef={generateContentSpanBarRef}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -243,6 +252,8 @@ class SpanTree extends React.Component<PropType> {
               toggleSiblingSpanGroup={payload.toggleSiblingSpanGroup}
               isLastSibling={payload.isLastSibling ?? false}
               occurrence={payload.occurrence}
+              onWheel={onWheel}
+              generateContentSpanBarRef={generateContentSpanBarRef}
             />
           );
           acc.spanNumber = spanNumber + 1;
@@ -303,6 +314,9 @@ class SpanTree extends React.Component<PropType> {
             numOfSpans={numOfSpans}
             groupType={groupType}
             groupOccurrence={payload.groupOccurrence}
+            isEmbeddedTransactionTimeAdjusted={payload.isEmbeddedTransactionTimeAdjusted}
+            onWheel={onWheel}
+            generateContentSpanBarRef={generateContentSpanBarRef}
           />
         );
 

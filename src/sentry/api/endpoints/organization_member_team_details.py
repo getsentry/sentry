@@ -4,7 +4,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, roles
+from sentry import audit_log, features, roles
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -12,7 +12,6 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.api.serializers.models.team import TeamWithProjectsSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuditLogEntryEvent,
     Organization,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -21,6 +20,7 @@ from sentry.models import (
 )
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
+from sentry.utils import metrics
 from sentry.utils.json import JSONData
 
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
@@ -178,24 +178,21 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         except Team.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
-        except OrganizationMemberTeam.DoesNotExist:
-            if self._can_create_team_member(request, team):
-                omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
-            else:
-                self._create_access_request(request, team, member)
-                return Response(status=202)
-
-        else:
+        if OrganizationMemberTeam.objects.filter(team=team, organizationmember=member).exists():
             return Response(status=204)
+
+        if not self._can_create_team_member(request, team):
+            self._create_access_request(request, team, member)
+            return Response(status=202)
+
+        omt = OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
 
         self.create_audit_entry(
             request=request,
             organization=organization,
             target_object=omt.id,
             target_user=member.user,
-            event=AuditLogEntryEvent.MEMBER_JOIN_TEAM,
+            event=audit_log.get_event_id("MEMBER_JOIN_TEAM"),
             data=omt.get_audit_log_data(),
         )
 
@@ -246,6 +243,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """Modify a member's team-level role."""
         minimum_team_role = roles.get_minimum_team_role(team_membership.organizationmember.role)
         if team_role.priority > minimum_team_role.priority:
+            applying_minimum = False
             team_membership.update(role=team_role.id)
         else:
             # The new team role is redundant to the role that this member would
@@ -253,7 +251,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             # invisible in the UI, and it would be surprising if it were suddenly
             # left over after the user's org-level role is demoted. So, write a null
             # value to the database and let the minimum team role take over.
+            applying_minimum = True
             team_membership.update(role=None)
+
+        metrics.incr(
+            "team_roles.assign",
+            tags={"target_team_role": team_role.id, "applying_minimum": str(applying_minimum)},
+        )
 
     def delete(
         self,
@@ -283,7 +287,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
                 organization=organization,
                 target_object=omt.id,
                 target_user=member.user,
-                event=AuditLogEntryEvent.MEMBER_LEAVE_TEAM,
+                event=audit_log.get_event_id("MEMBER_LEAVE_TEAM"),
                 data=omt.get_audit_log_data(),
             )
             omt.delete()

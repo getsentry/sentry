@@ -1,9 +1,13 @@
 import responses
 
 from sentry.mediators.external_requests import AlertRuleActionRequester
+from sentry.mediators.external_requests.alert_rule_action_requester import (
+    DEFAULT_ERROR_MESSAGE,
+    DEFAULT_SUCCESS_MESSAGE,
+)
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class TestAlertRuleActionRequester(TestCase):
@@ -33,6 +37,8 @@ class TestAlertRuleActionRequester(TestCase):
             {"name": "description", "value": "threshold reached"},
             {"name": "assignee_id", "value": "user-1"},
         ]
+        self.error_message = "Channel not found!"
+        self.success_message = "Created alert!"
 
     @responses.activate
     def test_makes_successful_request(self):
@@ -41,7 +47,6 @@ class TestAlertRuleActionRequester(TestCase):
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=200,
-            json="Saved information",
         )
 
         result = AlertRuleActionRequester.run(
@@ -50,7 +55,7 @@ class TestAlertRuleActionRequester(TestCase):
             fields=self.fields,
         )
         assert result["success"]
-        assert result["message"] == 'foo: "Saved information"'
+        assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_SUCCESS_MESSAGE}"
         request = responses.calls[0].request
 
         data = {
@@ -79,13 +84,45 @@ class TestAlertRuleActionRequester(TestCase):
         assert requests[0]["event_type"] == "alert_rule_action.requested"
 
     @responses.activate
+    def test_makes_successful_request_with_message(self):
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+            json={"message": self.success_message},
+        )
+
+        result = AlertRuleActionRequester.run(
+            install=self.install,
+            uri="/sentry/alert-rule",
+            fields=self.fields,
+        )
+        assert result["success"]
+        assert result["message"] == f"{self.sentry_app.name}: {self.success_message}"
+
+    @responses.activate
+    def test_makes_successful_request_with_malformed_message(self):
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+            body=bytes(self.success_message, encoding="utf-8"),
+        )
+        result = AlertRuleActionRequester.run(
+            install=self.install,
+            uri="/sentry/alert-rule",
+            fields=self.fields,
+        )
+        assert result["success"]
+        assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_SUCCESS_MESSAGE}"
+
+    @responses.activate
     def test_makes_failed_request(self):
 
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=401,
-            json="Channel not found!",
         )
 
         result = AlertRuleActionRequester.run(
@@ -94,7 +131,7 @@ class TestAlertRuleActionRequester(TestCase):
             fields=self.fields,
         )
         assert not result["success"]
-        assert result["message"] == 'foo: "Channel not found!"'
+        assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_ERROR_MESSAGE}"
         request = responses.calls[0].request
 
         data = {
@@ -123,12 +160,12 @@ class TestAlertRuleActionRequester(TestCase):
         assert requests[0]["event_type"] == "alert_rule_action.requested"
 
     @responses.activate
-    def test_makes_failed_request_returning_only_status(self):
-
+    def test_makes_failed_request_with_message(self):
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=401,
+            json={"message": self.error_message},
         )
 
         result = AlertRuleActionRequester.run(
@@ -137,30 +174,20 @@ class TestAlertRuleActionRequester(TestCase):
             fields=self.fields,
         )
         assert not result["success"]
-        assert result["message"] == "foo: Something went wrong!"
-        request = responses.calls[0].request
+        assert result["message"] == f"{self.sentry_app.name}: {self.error_message}"
 
-        data = {
-            "fields": [
-                {"name": "title", "value": "An Alert"},
-                {"name": "description", "value": "threshold reached"},
-                {
-                    "name": "assignee_id",
-                    "value": "user-1",
-                },
-            ],
-            "installationId": self.install.uuid,
-        }
-        payload = json.loads(request.body)
-        assert payload == data
-
-        assert request.headers["Sentry-App-Signature"] == self.sentry_app.build_signature(
-            json.dumps(payload)
+    @responses.activate
+    def test_makes_failed_request_with_malformed_message(self):
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=401,
+            body=bytes(self.error_message, encoding="utf-8"),
         )
-
-        buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
-        requests = buffer.get_requests()
-
-        assert len(requests) == 1
-        assert requests[0]["response_code"] == 401
-        assert requests[0]["event_type"] == "alert_rule_action.requested"
+        result = AlertRuleActionRequester.run(
+            install=self.install,
+            uri="/sentry/alert-rule",
+            fields=self.fields,
+        )
+        assert not result["success"]
+        assert result["message"] == f"{self.sentry_app.name}: {DEFAULT_ERROR_MESSAGE}"

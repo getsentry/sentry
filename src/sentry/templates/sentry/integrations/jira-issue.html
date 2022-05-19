@@ -45,20 +45,29 @@
       </div>
       {% else %}
 
+      {% for group in groups %}
       <div>
-        <h2>{{ type }}</h2>
-        <p><a href="{{ title_url }}" target="_blank">{{title}}</a></p>
+        <h2>{{ group.type }}</h2>
+        <p><a href="{{ group.title_url }}" target="_blank">{{ group.title }}</a></p>
         <br />
+
+        <!-- EVENTS GROUP -->
         <div class="aui-group">
           <div class="aui-item">
-            <span>{% trans "Events last 24 hours:" %}</span>
-            <aui-badge>{{ stats_24hr }}</aui-badge>
+            <h4>{% trans "Events" %}</h4>
+          </div>
+        </div>
+
+        <div class="aui-group">
+          <div class="aui-item" >
+            <span>{% trans "Last 24 hours:" %}</span>
+            <aui-badge>{{ group.stats_24hr }}</aui-badge>
           </div>
         </div>
         <div class="aui-group">
           <div class="aui-item">
-            <span>{% trans "Events last 14 days:" %}</span>
-            <aui-badge>{{ stats_14d }}</aui-badge>
+            <span>{% trans "Last 14 days:" %}</span>
+            <aui-badge>{{ group.stats_14d }}</aui-badge>
           </div>
         </div>
       </div>
@@ -71,23 +80,23 @@
       </div>
 
       <div class="aui-group">
-        <div class="aui-item">
+        <div class="aui-item" style="width:75px;">
           <span class="left-grid">{% trans "Date:" %}</span>
         </div>
         <div class="aui-item">
-          <span class="right-grid">{{ first_seen }} UTC</span>
+          <span class="right-grid">{{ group.first_seen }} UTC</span>
         </div>
       </div>
 
-      {% if first_release %}
+      {% if group.first_release %}
       <div class="aui-group">
-        <div class="aui-item">
+        <div class="aui-item" style="width:75px;">
           <span class="left-grid">{% trans "Release:" %}</span>
         </div>
         <div class="aui-item">
-          <span class="right-grid"
-            ><a href="{{ first_release_url}}" target="_blank">{{first_release}}</a></span
-          >
+          <span class="right-grid">
+            <a href="{{ group.first_release_url }}" target="_blank">{{ group.first_release }}</a>
+          </span>
         </div>
       </div>
       {% endif %}
@@ -100,26 +109,34 @@
       </div>
 
       <div class="aui-group">
-        <div class="aui-item">
+        <div class="aui-item" style="width:75px;">
           <span class="left-grid">{% trans "Date:" %}</span>
         </div>
         <div class="aui-item">
-          <span class="right-grid">{{ last_seen }} UTC</span>
+          <span class="right-grid">{{ group.last_seen }} UTC</span>
         </div>
       </div>
 
-      {% if last_release %}
+      {% if group.last_release %}
       <div class="aui-group">
-        <div class="aui-item">
+        <div class="aui-item" style="width:75px;">
           <span class="left-grid">{% trans "Release:" %}</span>
         </div>
         <div class="aui-item">
-          <span class="right-grid"
-            ><a href="{{ last_release_url}}" target="_blank">{{last_release}}</a></span
-          >
+          <span class="right-grid">
+            <a href="{{ group.last_release_url }}" target="_blank">{{ group.last_release }}</a>
+          </span>
         </div>
       </div>
-      {% endif %} {% endif %}
+      {% endif %}
+
+      <br/>
+      {% if not forloop.last %}
+      <hr style="opacity:0.5;" />
+      {% endif %}
+
+      {% endfor %}
+      {% endif %}
     </div>
   </body>
 </html>

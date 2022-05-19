@@ -461,6 +461,57 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             "detail": ErrorDetail("You must specify exactly 1 project.", code="parse_error"),
         }
 
+    def test_bad_params_reverse_min_max_exclusive_time(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "min_exclusive_time": 7.0,
+                    "max_exclusive_time": 1.0,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "non_field_errors": ["min_exclusive_time cannot be greater than max_exclusive_time."]
+        }
+
+    def test_bad_params_invalid_min_exclusive_time(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "min_exclusive_time": "foo",
+                    "max_exclusive_time": 1.0,
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "min_exclusive_time": ["A valid number is required."]
+        }, "failing for min_exclusive_time"
+
+    def test_bad_params_invalid_max_exclusive_time(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "min_exclusive_time": 100,
+                    "max_exclusive_time": "bar",
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "max_exclusive_time": ["A valid number is required."]
+        }, "failing for max_exclusive_time"
+
     def test_bad_sort(self):
         with self.feature(self.FEATURES):
             response = self.client.get(
@@ -548,7 +599,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert mock_raw_snql_query.call_count == 1
 
         # the first call is the get the suspects, and should be using the specified sort
-        assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
+        assert mock_raw_snql_query.call_args_list[0][0][0].query.orderby == [
             OrderBy(
                 exp=Function(
                     "sum",
@@ -600,7 +651,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert mock_raw_snql_query.call_count == 1
 
         # the first call is the get the suspects, and should be using the specified sort
-        assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
+        assert mock_raw_snql_query.call_args_list[0][0][0].query.orderby == [
             OrderBy(exp=Function("count", [], "count"), direction=Direction.DESC),
             OrderBy(
                 exp=Function(
@@ -653,7 +704,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert mock_raw_snql_query.call_count == 1
 
         # the first call is the get the suspects, and should be using the specified sort
-        assert mock_raw_snql_query.call_args_list[0][0][0].orderby == [
+        assert mock_raw_snql_query.call_args_list[0][0][0].query.orderby == [
             OrderBy(
                 exp=Function(
                     "divide",
@@ -728,7 +779,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
             assert mock_raw_snql_query.call_count == i + 1
 
             # the first call is the get the suspects, and should be using the specified sort
-            assert mock_raw_snql_query.call_args_list[i][0][0].orderby == [
+            assert mock_raw_snql_query.call_args_list[i][0][0].query.orderby == [
                 OrderBy(
                     exp=Function(
                         f"quantile(0.{percentile.rstrip('0')})",
@@ -776,7 +827,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                 op=Op.IN,
                 rhs=Function("tuple", ["django.middleware"]),
             )
-            in mock_raw_snql_query.call_args_list[0][0][0].where
+            in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )
 
     def test_bad_group_filter(self):
@@ -833,8 +884,97 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
                 op=Op.IN,
                 rhs=Function("tuple", ["cd" * 8]),
             )
-            in mock_raw_snql_query.call_args_list[0][0][0].where
+            in mock_raw_snql_query.call_args_list[0][0][0].query.where
         )
+
+    def test_min_exclusive_time_filter(self):
+        self.create_event()
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "min_exclusive_time": 3,
+                },
+            )
+
+        expected_result = [
+            {
+                "op": "http.server",
+                "group": "abababababababab",
+                "description": "root transaction",
+                "frequency": None,
+                "count": None,
+                "avgOccurrences": None,
+                "sumExclusiveTime": 4.0,
+                "p50ExclusiveTime": None,
+                "p75ExclusiveTime": None,
+                "p95ExclusiveTime": None,
+                "p99ExclusiveTime": None,
+            },
+        ]
+
+        assert response.status_code == 200, response.content
+        assert response.data == expected_result
+
+    def test_max_exclusive_time_filter(self):
+        self.create_event()
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "max_exclusive_time": 2,
+                },
+            )
+
+        expected_result = [
+            {
+                "op": "django.view",
+                "group": "ef" * 8,
+                "description": "view span",
+                "frequency": None,
+                "count": None,
+                "avgOccurrences": None,
+                "sumExclusiveTime": 3.0,
+                "p50ExclusiveTime": None,
+                "p75ExclusiveTime": None,
+                "p95ExclusiveTime": None,
+                "p99ExclusiveTime": None,
+            }
+        ]
+        assert response.status_code == 200, response.content
+        assert response.data == expected_result
+
+    def test_min_max_exclusive_time_filter(self):
+        self.create_event()
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"project": self.project.id, "max_exclusive_time": 4, "min_exclusive_time": 2},
+            )
+
+        expected_result = [
+            {
+                "op": "django.middleware",
+                "group": "cd" * 8,
+                "description": "middleware span",
+                "frequency": None,
+                "count": None,
+                "avgOccurrences": None,
+                "sumExclusiveTime": 6.0,
+                "p50ExclusiveTime": None,
+                "p75ExclusiveTime": None,
+                "p95ExclusiveTime": None,
+                "p99ExclusiveTime": None,
+            }
+        ]
+
+        assert response.status_code == 200, response.content
+        assert response.data == expected_result
 
     @patch("sentry.api.endpoints.organization_events_spans_performance.raw_snql_query")
     def test_pagination_first_page(self, mock_raw_snql_query):
@@ -1713,7 +1853,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
             ]
 
         assert mock_raw_snql_query.call_count == 1
-        query = mock_raw_snql_query.call_args_list[0][0][0]
+        query = mock_raw_snql_query.call_args_list[0][0][0].query
 
         # ensure the specified y axes are in the select
         for percentile in ["75", "95", "99"]:

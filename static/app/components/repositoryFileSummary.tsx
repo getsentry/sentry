@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import FileChange from 'sentry/components/fileChange';
@@ -34,7 +34,7 @@ type State = {
   loading: boolean;
 };
 
-class RepositoryFileSummary extends React.Component<Props, State> {
+class RepositoryFileSummary extends Component<Props, State> {
   static defaultProps = {
     collapsible: true,
     maxWhenCollapsed: 5,

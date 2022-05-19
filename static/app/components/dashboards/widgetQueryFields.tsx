@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -51,7 +51,7 @@ function WidgetQueryFields({
   onChange,
   style,
 }: Props) {
-  const isMetricWidget = widgetType === WidgetType.METRICS;
+  const isReleaseWidget = widgetType === WidgetType.RELEASE;
 
   // Handle new fields being added.
   function handleAdd(event: React.MouseEvent) {
@@ -110,7 +110,7 @@ function WidgetQueryFields({
   const doNotValidateYAxis = displayType === 'big_number';
 
   const filterPrimaryOptions = option => {
-    if (widgetType === WidgetType.METRICS) {
+    if (widgetType === WidgetType.RELEASE) {
       if (displayType === DisplayType.TABLE) {
         return [
           FieldValueKind.FUNCTION,
@@ -155,11 +155,11 @@ function WidgetQueryFields({
         return true;
       }
 
-      if (fieldValue.kind !== 'function') {
+      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
         return true;
       }
 
-      if (isMetricWidget || option.value.kind === FieldValueKind.METRICS) {
+      if (isReleaseWidget || option.value.kind === FieldValueKind.METRICS) {
         return true;
       }
 
@@ -172,8 +172,11 @@ function WidgetQueryFields({
         return isLegalYAxisType(primaryOutput);
       }
 
-      if (option.value.kind === FieldValueKind.FUNCTION) {
-        // Functions are not legal options as an aggregate/function parameter.
+      if (
+        option.value.kind === FieldValueKind.FUNCTION ||
+        option.value.kind === FieldValueKind.EQUATION
+      ) {
+        // Functions and equations are not legal options as an aggregate/function parameter.
         return false;
       }
 
@@ -186,10 +189,6 @@ function WidgetQueryFields({
       fields.length === 3);
 
   const canDelete = fields.length > 1;
-
-  const noFieldsMessage = isMetricWidget
-    ? t('There are no metrics for this project.')
-    : undefined;
 
   if (displayType === 'table') {
     return (
@@ -208,9 +207,8 @@ function WidgetQueryFields({
           onChange={handleColumnChange}
           fieldOptions={fieldOptions}
           organization={organization}
-          filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
+          filterPrimaryOptions={isReleaseWidget ? filterPrimaryOptions : undefined}
           source={widgetType}
-          noFieldsMessage={noFieldsMessage}
         />
       </Field>
     );
@@ -221,7 +219,7 @@ function WidgetQueryFields({
     const columns = fields.slice(0, fields.length - 1);
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Field
           data-test-id="columns"
           label={t('Columns')}
@@ -237,9 +235,8 @@ function WidgetQueryFields({
             onChange={handleTopNColumnChange}
             fieldOptions={fieldOptions}
             organization={organization}
-            filterPrimaryOptions={isMetricWidget ? filterPrimaryOptions : undefined}
+            filterPrimaryOptions={isReleaseWidget ? filterPrimaryOptions : undefined}
             source={widgetType}
-            noFieldsMessage={noFieldsMessage}
           />
         </Field>
         <Field
@@ -256,18 +253,17 @@ function WidgetQueryFields({
             <QueryField
               fieldValue={fieldValue}
               fieldOptions={
-                isMetricWidget ? fieldOptions : generateFieldOptions({organization})
+                isReleaseWidget ? fieldOptions : generateFieldOptions({organization})
               }
               onChange={value => handleTopNChangeField(value)}
               filterPrimaryOptions={
-                isMetricWidget ? filterMetricsOptions : filterPrimaryOptions
+                isReleaseWidget ? filterMetricsOptions : filterPrimaryOptions
               }
               filterAggregateParameters={filterAggregateParameters(fieldValue)}
-              noFieldsMessage={noFieldsMessage}
             />
           </QueryFieldWrapper>
         </Field>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -292,7 +288,6 @@ function WidgetQueryFields({
               filterPrimaryOptions={filterPrimaryOptions}
               filterAggregateParameters={filterAggregateParameters(field)}
               otherColumns={fields}
-              noFieldsMessage={noFieldsMessage}
             />
             {(canDelete || field.kind === 'equation') && (
               <Button
@@ -312,7 +307,7 @@ function WidgetQueryFields({
           <Button size="small" icon={<IconAdd isCircled />} onClick={handleAdd}>
             {t('Add Overlay')}
           </Button>
-          {!isMetricWidget && (
+          {!isReleaseWidget && (
             <Button
               size="small"
               aria-label={t('Add an Equation')}

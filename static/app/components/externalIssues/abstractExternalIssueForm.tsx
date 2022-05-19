@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
@@ -15,9 +15,11 @@ import {
   IssueConfigField,
   SelectValue,
 } from 'sentry/types';
-import {FormField} from 'sentry/views/alerts/issueRuleEditor/ruleNode';
+import {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
+
+export type ExternalIssueFormErrors = {[key: string]: React.ReactNode};
 
 type Props = ModalRenderProps & AsyncComponent['props'];
 
@@ -39,7 +41,6 @@ type State = {
 } & AsyncComponent['state'];
 
 const DEBOUNCE_MS = 200;
-
 /**
  * @abstract
  */
@@ -175,7 +176,7 @@ export default class AbstractExternalIssueForm<
     }
     if (typeof currentOption.label === 'string') {
       currentOption.label = (
-        <React.Fragment>
+        <Fragment>
           <QuestionTooltip
             title={tct('This is your current [label].', {
               label: field.label,
@@ -183,7 +184,7 @@ export default class AbstractExternalIssueForm<
             size="xs"
           />{' '}
           {currentOption.label}
-        </React.Fragment>
+        </Fragment>
       );
     }
     const currentOptionResultIndex = result.findIndex(
@@ -318,7 +319,10 @@ export default class AbstractExternalIssueForm<
       : this.renderBody();
   }
 
-  renderForm = (formFields?: IssueConfigField[]) => {
+  renderForm = (
+    formFields?: IssueConfigField[],
+    errors: ExternalIssueFormErrors = {}
+  ) => {
     const initialData: {[key: string]: any} = (formFields || []).reduce(
       (accumulator, field: FormField) => {
         accumulator[field.name] =
@@ -332,14 +336,14 @@ export default class AbstractExternalIssueForm<
     const {Header, Body} = this.props as ModalRenderProps;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{this.getTitle()}</Header>
         {this.renderNavTabs()}
         <Body>
           {this.shouldRenderLoading ? (
             this.renderLoading()
           ) : (
-            <React.Fragment>
+            <Fragment>
               {this.renderBodyText()}
               <Form initialData={initialData} {...this.getFormProps()}>
                 {(formFields || [])
@@ -348,22 +352,26 @@ export default class AbstractExternalIssueForm<
                     ...fields,
                     noOptionsMessage: () => 'No options. Type to search.',
                   }))
-                  .map(field => (
-                    <FieldFromConfig
-                      disabled={this.state.reloading}
-                      field={field}
-                      flexibleControlStateSize
-                      inline={false}
-                      key={`${field.name}-${field.default}-${field.required}`}
-                      stacked
-                      {...this.getFieldProps(field)}
-                    />
-                  ))}
+                  .map((field, i) => {
+                    return (
+                      <Fragment key={`${field.name}-${i}`}>
+                        <FieldFromConfig
+                          disabled={this.state.reloading}
+                          field={field}
+                          flexibleControlStateSize
+                          inline={false}
+                          stacked
+                          {...this.getFieldProps(field)}
+                        />
+                        {errors[field.name] && errors[field.name]}
+                      </Fragment>
+                    );
+                  })}
               </Form>
-            </React.Fragment>
+            </Fragment>
           )}
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   };
 }

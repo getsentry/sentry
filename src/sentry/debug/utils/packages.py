@@ -1,11 +1,9 @@
 import sys
 
-from sentry.utils.compat import map
-
 try:
     import pkg_resources
 except ImportError:
-    pkg_resources = None  # NOQA
+    pkg_resources = None
 
 
 def get_package_version(module_name, app):

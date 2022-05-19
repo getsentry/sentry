@@ -18,6 +18,9 @@ import {
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
 
+import IntegrationCard from './integrationCard';
+import OnboardingProjectsCard from './onboardingCard';
+
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
   return projects !== undefined
     ? projects.some(({platform}) => platform && sourceMaps.includes(platform))
@@ -39,6 +42,28 @@ type Options = {
    */
   projects?: Project[];
 };
+
+function getIssueAlertUrl({projects, organization}: Options) {
+  if (!projects || !projects.length) {
+    return `/organizations/${organization.slug}/alerts/rules/`;
+  }
+  // pick the first project with events if we have that, otherwise just pick the first project
+  const firstProjectWithEvents = projects.find(project => !!project.firstEvent);
+  const project = firstProjectWithEvents ?? projects[0];
+  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/`;
+}
+
+function getMetricAlertUrl({projects, organization}: Options) {
+  if (!projects || !projects.length) {
+    return `/organizations/${organization.slug}/alerts/rules/`;
+  }
+  // pick the first project with transaction events if we have that, otherwise just pick the first project
+  const firstProjectWithEvents = projects.find(
+    project => !!project.firstTransactionEvent
+  );
+  const project = firstProjectWithEvents ?? projects[0];
+  return `/organizations/${organization.slug}/alerts/${project.slug}/wizard/?alert_option=trans_duration`;
+}
 
 export function getOnboardingTasks({
   organization,
@@ -194,15 +219,49 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.ALERT_RULE,
-      title: t('Get smarter alerts'),
+      title: t('Configure an Issue Alert'),
       description: t(
-        "Customize alerting rules by issue or metric. You'll get the exact information you need precisely when you need it."
+        'We all have issues. Get real-time error notifications by setting up alerts for issues that match your set criteria.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: `/organizations/${organization.slug}/alerts/rules/`,
+      location: getIssueAlertUrl({projects, organization}),
       display: true,
+    },
+    {
+      task: OnboardingTaskKey.METRIC_ALERT,
+      title: t('Create a Performance Alert'),
+      description: t(
+        'See slow fast with performance alerts. Set up alerts for notifications about slow page load times, API latency, or when throughput significantly deviates from normal.'
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
+      actionType: 'app',
+      location: getMetricAlertUrl({projects, organization}),
+      display: organization.features?.includes('incidents'),
+    },
+    {
+      task: OnboardingTaskKey.USER_SELECTED_PROJECTS,
+      title: t('Projects to Setup'),
+      description: '',
+      skippable: true,
+      requisites: [],
+      actionType: 'action',
+      action: () => {},
+      display: true,
+      renderCard: OnboardingProjectsCard,
+    },
+    {
+      task: OnboardingTaskKey.INTEGRATIONS,
+      title: t('Integrations to Setup'),
+      description: '',
+      skippable: true,
+      requisites: [],
+      actionType: 'action',
+      action: () => {},
+      display: !!organization.experiments?.TargetedOnboardingIntegrationSelectExperiment,
+      renderCard: IntegrationCard,
     },
   ];
 }

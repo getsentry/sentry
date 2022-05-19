@@ -16,11 +16,19 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "title": "Errors over time",
             "displayType": "line",
             "queries": [
-                {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]},
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                },
                 {
                     "name": "errors",
                     "conditions": "(level:error OR title:*Error*) !release:latest",
                     "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
                     "orderby": "count()",
                 },
             ],
@@ -41,7 +49,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "title": "Invalid query",
             "displayType": "line",
             "queries": [
-                {"name": "errors", "conditions": "event.type: tag:foo", "fields": ["count()"]}
+                {
+                    "name": "errors",
+                    "conditions": "event.type: tag:foo",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
             ],
         }
         response = self.do_request(
@@ -62,7 +76,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "title": "Invalid query",
             "displayType": "line",
             "queries": [
-                {"name": "errors", "conditions": "event.type:error", "fields": ["p95(user)"]}
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["p95(user)"],
+                    "columns": [],
+                    "aggregates": ["p95(user)"],
+                }
             ],
         }
         response = self.do_request(
@@ -79,7 +99,13 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "title": "Invalid query",
             "displayType": "cats",
             "queries": [
-                {"name": "errors", "conditions": "event.type:error", "fields": ["count()"]}
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["count()"],
+                    "columns": [],
+                    "aggregates": ["count()"],
+                }
             ],
         }
         response = self.do_request(
@@ -99,6 +125,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "name": "errors",
                     "conditions": "event.type:error",
                     "fields": ["equation|count()"],
+                    "columns": [],
+                    "aggregates": ["equation|count()"],
                 }
             ],
         }
@@ -119,6 +147,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "name": "errors",
                     "conditions": "event.type:error",
                     "fields": ["equation|count() * 2"],
+                    "columns": [],
+                    "aggregates": ["equation|count() * 2"],
                 }
             ],
         }
@@ -129,6 +159,74 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
+    def test_valid_orderby_equation_alias_line_widget(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["equation|count() * 2"],
+                    "columns": [],
+                    "aggregates": ["equation|count() * 2"],
+                    "orderby": "equation[0]",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_invalid_orderby_equation_alias_line_widget(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": ["equation|count() * 2"],
+                    "columns": [],
+                    "aggregates": ["equation|count() * 2"],
+                    "orderby": "equation[999999]",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
+    def test_missing_equation_for_orderby_equation_alias(self):
+        data = {
+            "title": "Invalid query",
+            "displayType": "line",
+            "queries": [
+                {
+                    "name": "errors",
+                    "conditions": "event.type:error",
+                    "fields": [""],
+                    "columns": [],
+                    "aggregates": [],
+                    "orderby": "equation[0]",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
     def test_invalid_equation_table_widget(self):
         data = {
             "title": "Invalid query",
@@ -138,6 +236,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "name": "errors",
                     "conditions": "event.type:error",
                     "fields": ["equation|count() * 2"],
+                    "columns": [],
+                    "aggregates": ["equation|count() * 2"],
                 }
             ],
         }
@@ -153,7 +253,16 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         data = {
             "title": "EPM Big Number",
             "displayType": "big_number",
-            "queries": [{"name": "", "fields": ["epm()"], "conditions": "", "orderby": ""}],
+            "queries": [
+                {
+                    "name": "",
+                    "fields": ["epm()"],
+                    "columns": [],
+                    "aggregates": ["epm()"],
+                    "conditions": "",
+                    "orderby": "",
+                }
+            ],
         }
         response = self.do_request(
             "post",
@@ -178,6 +287,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {
                     "name": "",
                     "fields": ["epm()"],
+                    "columns": [],
+                    "aggregates": ["epm()"],
                     "conditions": f"project:{self.project.name}",
                     "orderby": "",
                 }
@@ -215,6 +326,8 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                 {
                     "name": "",
                     "fields": ["epm()"],
+                    "columns": [],
+                    "aggregates": ["epm()"],
                     "conditions": f"issue:{event.group.qualified_short_id}",
                     "orderby": "",
                 }
@@ -232,7 +345,15 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "title": "Unresolved Issues",
             "displayType": "table",
             "widgetType": "issue",
-            "queries": [{"name": "unresolved", "conditions": "is:unresolved", "fields": []}],
+            "queries": [
+                {
+                    "name": "unresolved",
+                    "conditions": "is:unresolved",
+                    "fields": [],
+                    "columns": [],
+                    "aggregates": [],
+                }
+            ],
         }
         response = self.do_request(
             "post",
@@ -246,7 +367,15 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "title": "Unresolved Issues",
             "displayType": "table",
             "widgetType": "issue",
-            "queries": [{"name": "unresolved", "conditions": "is:())", "fields": []}],
+            "queries": [
+                {
+                    "name": "unresolved",
+                    "conditions": "is:())",
+                    "fields": [],
+                    "columns": [],
+                    "aggregates": [],
+                }
+            ],
         }
         response = self.do_request(
             "post",
@@ -262,7 +391,15 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             "title": "Unresolved Issues",
             "displayType": "table",
             "widgetType": "discover",
-            "queries": [{"name": "unresolved", "conditions": "is:unresolved", "fields": []}],
+            "queries": [
+                {
+                    "name": "unresolved",
+                    "conditions": "is:unresolved",
+                    "fields": [],
+                    "columns": [],
+                    "aggregates": [],
+                }
+            ],
         }
         response = self.do_request(
             "post",
@@ -272,3 +409,169 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
         assert response.data["queries"][0]["conditions"], response.data
+
+    def test_timestamp_query_with_timezone(self):
+        data = {
+            "title": "Timestamp filter",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {
+                    "name": "timestamp filter",
+                    "conditions": f"timestamp.to_day:<{iso_format(before_now(hours=1))}",
+                    "fields": [],
+                }
+            ],
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_raw_equation_in_orderby_is_valid(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "columns": [],
+                    "aggregates": [],
+                    "orderby": "equation|count() * 2",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_raw_desc_equation_in_orderby_is_valid(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "columns": [],
+                    "aggregates": [],
+                    "orderby": "-equation|count() * 2",
+                }
+            ],
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_invalid_raw_equation_in_orderby_throws_error(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "columns": [],
+                    "aggregates": [],
+                    "orderby": "-equation|thisIsNotARealEquation() * 42",
+                }
+            ],
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data
+
+    def test_save_with_orderby_from_columns(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "line",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": ["count()"],
+                    "columns": ["project"],
+                    "aggregates": ["count()"],
+                    "orderby": "-project",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_save_with_orderby_not_from_columns_or_aggregates(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "line",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "columns": ["project"],
+                    "aggregates": ["count()"],
+                    "orderby": "-epm()",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_save_with_invalid_orderby_not_from_columns_or_aggregates(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "line",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "columns": ["project"],
+                    "aggregates": ["count()"],
+                    "orderby": "-eeeeeeeepm()",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data, response.data

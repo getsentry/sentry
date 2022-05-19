@@ -22,7 +22,7 @@ from typing import (
     cast,
 )
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.api.utils import InvalidParams
@@ -44,6 +44,7 @@ from sentry.snuba.metrics.fields.snql import (
     all_transactions,
     all_users,
     apdex,
+    complement,
     crashed_sessions,
     crashed_users,
     division_float,
@@ -51,7 +52,6 @@ from sentry.snuba.metrics.fields.snql import (
     errored_preaggr_sessions,
     failure_count_transaction,
     miserable_users,
-    percentage,
     satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
@@ -60,6 +60,7 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.query import QueryDefinition
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,
@@ -74,6 +75,7 @@ from sentry.snuba.metrics.utils import (
     MetricOperationType,
     MetricType,
     NotSupportedOverCompositeEntityException,
+    OrderByNotSupportedOverCompositeEntityException,
     combine_dictionary_of_list_values,
 )
 from sentry.utils.snuba import raw_snql_query
@@ -94,9 +96,6 @@ __all__ = (
 SnubaDataType = Dict[str, Any]
 PostQueryFuncReturnType = Optional[Union[Tuple[Any, ...], ClickhouseHistogram, int, float]]
 
-if TYPE_CHECKING:
-    from sentry.snuba.metrics.query_builder import QueryDefinition
-
 
 def run_metrics_query(
     *,
@@ -112,7 +111,6 @@ def run_metrics_query(
     now = datetime.now().replace(second=0, microsecond=0)
 
     query = Query(
-        dataset=Dataset.Metrics.value,
         match=Entity(entity_key.value),
         select=select,
         groupby=groupby,
@@ -125,11 +123,31 @@ def run_metrics_query(
         + where,
         granularity=Granularity(GRANULARITY),
     )
-    result = raw_snql_query(query, referrer, use_cache=True)
+    request = Request(dataset=Dataset.Metrics.value, app_id="metrics", query=query)
+    result = raw_snql_query(request, referrer, use_cache=True)
     return cast(List[SnubaDataType], result["data"])
 
 
+def _get_known_entity_of_metric_mri(metric_mri: str) -> Optional[EntityKey]:
+    for KnownMRI in (SessionMRI, TransactionMRI):
+        try:
+            KnownMRI(metric_mri)
+            entity_prefix = metric_mri.split(":")[0]
+            return {
+                "c": EntityKey.MetricsCounters,
+                "d": EntityKey.MetricsDistributions,
+                "s": EntityKey.MetricsSets,
+            }[entity_prefix]
+        except (ValueError, IndexError, KeyError):
+            pass
+    return None
+
+
 def _get_entity_of_metric_mri(projects: Sequence[Project], metric_mri: str) -> EntityKey:
+    known_entity = _get_known_entity_of_metric_mri(metric_mri)
+    if known_entity is not None:
+        return known_entity
+
     assert projects
     org_id = org_id_from_projects(projects)
     metric_id = indexer.resolve(org_id, metric_mri)
@@ -670,7 +688,12 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
     def run_post_query_function(
         self, data: SnubaDataType, query_definition: QueryDefinition, idx: Optional[int] = None
     ) -> Any:
-        compute_func_args = [data[self.metric_mri] if idx is None else data[self.metric_mri][idx]]
+        try:
+            compute_func_args = [
+                data[self.metric_mri] if idx is None else data[self.metric_mri][idx]
+            ]
+        except KeyError:
+            compute_func_args = [self.generate_default_null_values()]
         result = self.post_query_func(*compute_func_args)
         if isinstance(result, tuple) and len(result) == 1:
             result = result[0]
@@ -701,7 +724,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         projects: Sequence[Project],
         query_definition: QueryDefinition,
     ) -> List[OrderBy]:
-        raise NotSupportedOverCompositeEntityException(
+        raise OrderByNotSupportedOverCompositeEntityException(
             f"It is not possible to orderBy field "
             f"{get_public_name_from_mri(self.metric_mri)} as it does not "
             f"have a direct mapping to a query alias"
@@ -861,19 +884,31 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_RATE.value,
+            metric_mri=SessionMRI.CRASH_RATE.value,
             metrics=[SessionMRI.CRASHED.value, SessionMRI.ALL.value],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: percentage(*args, alias=alias),
+            snql=lambda *args, org_id, metric_ids, alias=None: division_float(*args, alias=alias),
         ),
         SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
+            metric_mri=SessionMRI.CRASH_USER_RATE.value,
             metrics=[
                 SessionMRI.CRASHED_USER.value,
                 SessionMRI.ALL_USER.value,
             ],
             unit="percentage",
-            snql=lambda *args, org_id, metric_ids, alias=None: percentage(*args, alias=alias),
+            snql=lambda *args, org_id, metric_ids, alias=None: division_float(*args, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE_RATE.value,
+            metrics=[SessionMRI.CRASH_RATE.value],
+            unit="percentage",
+            snql=lambda *args, org_id, metric_ids, alias=None: complement(*args, alias=alias),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
+            metrics=[SessionMRI.CRASH_USER_RATE.value],
+            unit="percentage",
+            snql=lambda *args, org_id, metric_ids, alias=None: complement(*args, alias=alias),
         ),
         SingularEntityDerivedMetric(
             metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
@@ -957,7 +992,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             metric_mri=SessionMRI.HEALTHY.value,
             metrics=[
                 SessionMRI.ALL.value,
-                SessionMRI.ERRORED.value,
+                SessionMRI.ERRORED_ALL.value,
             ],
             unit="sessions",
             post_query_func=lambda init, errored: max(0, init - errored),
@@ -1064,7 +1099,7 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
 }
 
 
-DERIVED_OPS: Mapping[str, DerivedOp] = {
+DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
     derived_op.op: derived_op
     for derived_op in [
         DerivedOp(
@@ -1090,7 +1125,9 @@ DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
 }
 
 
-def metric_object_factory(op: Optional[str], metric_mri: str) -> MetricExpressionBase:
+def metric_object_factory(
+    op: Optional[MetricOperationType], metric_mri: str
+) -> MetricExpressionBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
     if op in DERIVED_OPS and metric_mri in DERIVED_METRICS:
         raise InvalidParams("derived ops cannot be used on derived metrics")

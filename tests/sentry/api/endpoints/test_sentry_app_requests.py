@@ -2,7 +2,7 @@ from django.urls import reverse
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class SentryAppRequestsTest(APITestCase):

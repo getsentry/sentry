@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, useContext} from 'react';
 import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
@@ -9,8 +9,10 @@ import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
 } from 'sentry/utils/discover/eventView';
-import {usePerformanceEventView} from 'sentry/utils/performance/contexts/performanceEventViewContext';
-import useOrganization from 'sentry/utils/useOrganization';
+import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
+import {OrganizationContext} from 'sentry/views/organizationContext';
+
+import {decodeScalar} from '../queryString';
 
 export class QueryError {
   message: string;
@@ -138,7 +140,7 @@ type State<T> = {
 /**
  * Generic component for discover queries
  */
-class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
+class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   state: State<T> = {
     isLoading: true,
     tableFetchID: undefined,
@@ -170,7 +172,7 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   }
 
   getPayload(props: Props<T, P>) {
-    const {cursor, limit, noPagination, referrer} = props;
+    const {cursor, limit, noPagination, referrer, location} = props;
     const payload = this.props.getRequestPayload
       ? this.props.getRequestPayload(props)
       : props.eventView.getEventsAPIPayload(props.location);
@@ -186,6 +188,13 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
     }
     if (referrer) {
       payload.referrer = referrer;
+    }
+
+    if (props.route === 'eventsv2') {
+      const queryUserModified = decodeScalar(location.query?.userModified);
+      if (queryUserModified !== undefined) {
+        payload.user_modified = queryUserModified;
+      }
     }
 
     Object.assign(payload, props.queryExtras ?? {});
@@ -300,8 +309,16 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
 // Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
 // This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
 export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
-  const orgSlug = props.orgSlug ?? useOrganization().slug;
-  const eventView = props.eventView ?? usePerformanceEventView();
+  const organizationSlug = useContext(OrganizationContext)?.slug;
+  const performanceEventView = useContext(PerformanceEventViewContext)?.eventView;
+
+  const orgSlug = props.orgSlug ?? organizationSlug;
+  const eventView = props.eventView ?? performanceEventView;
+
+  if (orgSlug === undefined || eventView === undefined) {
+    throw new Error('GenericDiscoverQuery requires both an orgSlug and eventView');
+  }
+
   const _props: Props<T, P> = {
     ...props,
     orgSlug,

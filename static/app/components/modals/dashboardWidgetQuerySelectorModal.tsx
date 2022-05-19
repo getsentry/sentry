@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -12,11 +12,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {DisplayModes} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DisplayType, Widget} from 'sentry/views/dashboardsV2/types';
-import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
+import {Widget} from 'sentry/views/dashboardsV2/types';
+import {getWidgetDiscoverUrl} from 'sentry/views/dashboardsV2/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
   organization: Organization;
@@ -30,33 +29,20 @@ type Props = ModalRenderProps &
     selection: PageFilters;
   };
 
-class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
+class DashboardWidgetQuerySelectorModal extends Component<Props> {
   renderQueries() {
     const {organization, widget, selection} = this.props;
     const querySearchBars = widget.queries.map((query, index) => {
-      const eventView = eventViewFromWidget(
-        widget.title,
-        query,
+      const discoverLocation = getWidgetDiscoverUrl(
+        {
+          ...widget,
+          queries: [query],
+        },
         selection,
-        widget.displayType
+        organization
       );
-      const discoverLocation = eventView.getResultsViewUrlTarget(organization.slug);
-      // Pull a max of 3 valid Y-Axis from the widget
-      const yAxisOptions = eventView.getYAxisOptions().map(({value}) => value);
-      discoverLocation.query.yAxis = [
-        ...new Set(
-          query.aggregates.filter(aggregate => yAxisOptions.includes(aggregate))
-        ),
-      ].slice(0, 3);
-      switch (widget.displayType) {
-        case DisplayType.BAR:
-          discoverLocation.query.display = DisplayModes.BAR;
-          break;
-        default:
-          break;
-      }
       return (
-        <React.Fragment key={index}>
+        <Fragment key={index}>
           <QueryContainer>
             <Container>
               <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
@@ -81,7 +67,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
               />
             </Link>
           </QueryContainer>
-        </React.Fragment>
+        </Fragment>
       );
     });
     return querySearchBars;
@@ -90,7 +76,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
   render() {
     const {Body, Header, widget} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>
           <h4>{widget.title}</h4>
         </Header>
@@ -102,7 +88,7 @@ class DashboardWidgetQuerySelectorModal extends React.Component<Props> {
           </p>
           {this.renderQueries()}
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

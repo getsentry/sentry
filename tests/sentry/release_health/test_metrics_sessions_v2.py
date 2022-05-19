@@ -2,12 +2,18 @@ from itertools import chain, combinations
 from typing import Iterable, List
 from unittest.mock import patch
 
+import pytest
 from django.urls import reverse
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.release_health.duplex import compare_results
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
+from sentry.release_health.metrics_sessions_v2 import (
+    SessionStatus,
+    _extract_status_filter_from_conditions,
+)
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
-from sentry.sentry_metrics.indexer.mock import MockIndexer
+from sentry.snuba.sessions_v2 import InvalidParams
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from tests.snuba.api.endpoints.test_organization_sessions import result_sorted
 
@@ -58,9 +64,6 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
         Tests whether the number of keys in the metrics implementation of
         sessions data is the same as in the sessions implementation.
 
-        Runs twice. Firstly, against sessions implementation to populate the
-        cache. Then, against the metrics implementation, and compares with
-        cached results.
         """
         interval_days = "1d"
         groupbyes = _session_groupby_powerset()
@@ -73,8 +76,6 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
                 sessions_data = result_sorted(self.get_sessions_data(groupby, interval_days))
 
             with patch(
-                "sentry.release_health.metrics_sessions_v2.indexer.resolve", MockIndexer().resolve
-            ), patch(
                 "sentry.api.endpoints.organization_sessions.release_health",
                 MetricsReleaseHealthBackend(),
             ):
@@ -91,3 +92,83 @@ class MetricsSessionsV2Test(APITestCase, SnubaTestCase):
 def _session_groupby_powerset() -> Iterable[str]:
     keys = ["project", "release", "environment", "session.status"]
     return chain.from_iterable((combinations(keys, size)) for size in range(len(keys) + 1))
+
+
+@pytest.mark.parametrize(
+    "input, expected_output, expected_status_filter",
+    [
+        (
+            [
+                Condition(Column("release"), Op.EQ, "foo"),
+                Condition(Column("session.status"), Op.IN, ["abnormal", "errored"]),
+            ],
+            [Condition(Column("release"), Op.EQ, "foo")],
+            {SessionStatus.ABNORMAL, SessionStatus.ERRORED},
+        ),
+        (
+            [
+                Condition(Column("release"), Op.EQ, "foo"),
+                Condition(Column("session.status"), Op.EQ, "bogus"),
+            ],
+            [Condition(Column("release"), Op.EQ, "foo")],
+            frozenset(),
+        ),
+        (
+            [
+                Condition(Column("release"), Op.EQ, "foo"),
+                Condition(Column("session.status"), Op.NEQ, "abnormal"),
+            ],
+            [Condition(Column("release"), Op.EQ, "foo")],
+            {SessionStatus.HEALTHY, SessionStatus.ERRORED, SessionStatus.CRASHED},
+        ),
+        (
+            [
+                Condition(Column("release"), Op.EQ, "foo"),
+                Condition(Column("session.status"), Op.NOT_IN, ["abnormal", "bogus"]),
+            ],
+            [Condition(Column("release"), Op.EQ, "foo")],
+            {SessionStatus.HEALTHY, SessionStatus.ERRORED, SessionStatus.CRASHED},
+        ),
+        (
+            [
+                Condition(Column("session.status"), Op.EQ, "abnormal"),
+                Condition(Column("session.status"), Op.EQ, "errored"),
+            ],
+            [],
+            frozenset(),
+        ),
+    ],
+)
+def test_transform_conditions(input, expected_output, expected_status_filter):
+    output, status_filter = _extract_status_filter_from_conditions(input)
+    assert output == expected_output
+    assert status_filter == expected_status_filter
+
+
+@pytest.mark.parametrize("input", [[Condition(Column("release"), Op.EQ, "foo")]])
+def test_transform_conditions_nochange(input):
+    output, status_filter = _extract_status_filter_from_conditions(input)
+    assert input == output
+    assert status_filter is None
+
+
+@pytest.mark.parametrize(
+    "input",
+    [
+        [
+            Condition(
+                Function(
+                    "or",
+                    [
+                        Function("equals", ["release", "foo"]),
+                        Function("equals", ["session.status", "foo"]),
+                    ],
+                ),
+                Op.EQ,
+                1,
+            )
+        ],
+    ],
+)
+def test_transform_conditions_illegal(input):
+    pytest.raises(InvalidParams, _extract_status_filter_from_conditions, input)

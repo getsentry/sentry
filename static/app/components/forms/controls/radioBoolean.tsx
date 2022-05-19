@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 
 type OnChangeHandler = (
   value: boolean,
@@ -14,7 +14,7 @@ type OptionProps = {
   onChange?: OnChangeHandler;
 };
 
-const Option = React.forwardRef(function Option(
+const Option = forwardRef(function Option(
   {name, disabled, label, value, checked, onChange}: OptionProps,
   ref: React.Ref<HTMLInputElement>
 ) {
@@ -52,7 +52,7 @@ type Props = {
   yesLabel?: string;
 };
 
-const RadioBoolean = React.forwardRef(function RadioBoolean(
+const RadioBoolean = forwardRef(function RadioBoolean(
   {
     disabled,
     name,

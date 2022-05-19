@@ -451,7 +451,7 @@ class Release(Model):
     date_released = models.DateTimeField(null=True, blank=True)
     # arbitrary data recorded with the release
     data = JSONField(default={})
-    # new issues (groups) that arise as a consequence of this release
+    # Deprecated, we no longer write to this field
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
     owner = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
@@ -733,14 +733,14 @@ class Release(Model):
 
         try:
             with atomic_transaction(using=router.db_for_write(ReleaseProject)):
-                ReleaseProject.objects.create(project=project, release=self)
+                created = ReleaseProject.objects.get_or_create(project=project, release=self)[1]
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))
         except IntegrityError:
-            return False
-        else:
-            return True
+            created = False
+
+        return created
 
     def handle_commit_ranges(self, refs):
         """

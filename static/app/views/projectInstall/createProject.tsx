@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -57,7 +57,7 @@ type State = {
   team: string;
 };
 
-class CreateProject extends React.Component<Props, State> {
+class CreateProject extends Component<Props, State> {
   constructor(props: Props, context) {
     super(props, context);
 
@@ -96,7 +96,7 @@ class CreateProject extends React.Component<Props, State> {
             <input
               type="text"
               name="name"
-              placeholder={t('Project name')}
+              placeholder={t('project-name')}
               autoComplete="off"
               value={projectName}
               onChange={e => this.setState({projectName: slugify(e.target.value)})}
@@ -143,10 +143,10 @@ class CreateProject extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <PageHeading withMargins>{t('Give your project a name')}</PageHeading>
         {createProjectForm}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -285,7 +285,7 @@ class CreateProject extends React.Component<Props, State> {
     const {platform, error} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {error && <Alert type="error">{error}</Alert>}
 
         <div data-test-id="onboarding-info">
@@ -312,7 +312,7 @@ class CreateProject extends React.Component<Props, State> {
           />
           {this.renderProjectForm()}
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -356,6 +356,7 @@ const ProjectNameInput = styled('div')`
 
 const TeamSelectInput = styled('div')`
   display: grid;
+  gap: ${space(1)};
   grid-template-columns: 1fr min-content;
   align-items: center;
 `;

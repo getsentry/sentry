@@ -1,0 +1,9 @@
+Finish Onboarding
+
+Hey {{ recipient_name }}
+
+Before you get started fixing all your broken and slow code, we need a few more details
+about your {{ platforms }} project{{num_platforms|pluralize}}. Click the button below when you're back at
+your computer to complete the set up for {{ organization_name }}.
+
+{{ onboarding_link }}

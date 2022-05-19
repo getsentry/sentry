@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {assignToActor, assignToUser, clearAssignment} from 'sentry/actionCreators/group';
@@ -58,7 +58,7 @@ type State = {
   suggestedOwners?: SuggestedOwner[] | null;
 };
 
-class AssigneeSelector extends React.Component<Props, State> {
+class AssigneeSelector extends Component<Props, State> {
   static defaultProps = {
     size: 20,
   };
@@ -217,6 +217,8 @@ class AssigneeSelector extends React.Component<Props, State> {
     const {size} = this.props;
     const sessionUser = ConfigStore.get('user');
 
+    const handleSelect = () => this.assignToUser(member);
+
     return {
       value: {type: 'member', assignee: member},
       searchKey: `${member.email} ${member.name}`,
@@ -224,7 +226,7 @@ class AssigneeSelector extends React.Component<Props, State> {
         <MenuItemWrapper
           data-test-id="assignee-option"
           key={buildUserId(member.id)}
-          onSelect={this.assignToUser.bind(this, member)}
+          onSelect={handleSelect}
         >
           <IconContainer>
             <UserAvatar user={member} size={size} />
@@ -253,15 +255,14 @@ class AssigneeSelector extends React.Component<Props, State> {
   ): ItemsBeforeFilter[0] {
     const {size} = this.props;
     const {id, display, team} = assignableTeam;
+
+    const handleSelect = () => this.assignToTeam(team);
+
     return {
       value: {type: 'team', assignee: team},
       searchKey: team.slug,
       label: ({inputValue}) => (
-        <MenuItemWrapper
-          data-test-id="assignee-option"
-          key={id}
-          onSelect={this.assignToTeam.bind(this, team)}
-        >
+        <MenuItemWrapper data-test-id="assignee-option" key={id} onSelect={handleSelect}>
           <IconContainer>
             <TeamAvatar team={team} size={size} />
           </IconContainer>
@@ -555,7 +556,6 @@ class AssigneeSelector extends React.Component<Props, State> {
               )
             }
             disableLabelPadding
-            menuWithArrow
             emptyHidesInput
           >
             {({getActorProps, isOpen}) => (

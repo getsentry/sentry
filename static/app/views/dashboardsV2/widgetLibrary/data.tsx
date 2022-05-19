@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
@@ -47,7 +48,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
         fields: ['transaction', 'count()'],
         aggregates: ['count()'],
         columns: ['transaction'],
-        orderby: '-count',
+        orderby: '-count()',
       },
     ],
   },
@@ -143,7 +144,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
         fields: ['error.type', 'count()'],
         aggregates: ['count()'],
         columns: ['error.type'],
-        orderby: '-count',
+        orderby: '-count()',
       },
     ],
   },
@@ -166,3 +167,16 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
 ];
+
+export function getTopNConvertedDefaultWidgets(): Readonly<Array<WidgetTemplate>> {
+  return DEFAULT_WIDGETS.map(widget => {
+    if (widget.displayType === DisplayType.TOP_N) {
+      return {
+        ...widget,
+        displayType: DisplayType.AREA,
+        limit: TOP_N,
+      };
+    }
+    return widget;
+  });
+}

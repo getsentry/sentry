@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import {withRouter, WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
@@ -152,6 +152,10 @@ type Props = WithRouterProps & {
    */
   excludeEnvironment?: boolean;
   /**
+   * A function to get documentation for a field
+   */
+  getFieldDoc?: (key: string) => React.ReactNode;
+  /**
    * List user's recent searches
    */
   hasRecentSearches?: boolean;
@@ -274,7 +278,7 @@ type State = {
   previousQuery?: string;
 };
 
-class SmartSearchBar extends React.Component<Props, State> {
+class SmartSearchBar extends Component<Props, State> {
   static defaultProps = {
     defaultQuery: '',
     query: null,
@@ -341,12 +345,12 @@ class SmartSearchBar extends React.Component<Props, State> {
   /**
    * Ref to the search element itself
    */
-  searchInput = React.createRef<HTMLTextAreaElement>();
+  searchInput = createRef<HTMLTextAreaElement>();
 
   /**
    * Ref to the search container
    */
-  containerRef = React.createRef<HTMLDivElement>();
+  containerRef = createRef<HTMLDivElement>();
 
   /**
    * Used to determine when actions should be moved to the action overflow menu
@@ -731,7 +735,7 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Returns array of possible key values that substring match `query`
    */
   getTagKeys(query: string): [SearchItem[], ItemType] {
-    const {prepareQuery, supportedTagType} = this.props;
+    const {prepareQuery, supportedTagType, getFieldDoc} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
 
@@ -751,7 +755,13 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     return [
-      tagKeys.map(value => ({value, desc: value})),
+      tagKeys
+        .map(value => ({
+          value,
+          desc: value,
+          documentation: getFieldDoc?.(value.slice(0, -1)) ?? '',
+        }))
+        .sort((a, b) => a.value.localeCompare(b.value)),
       supportedTagType ?? ItemType.TAG_KEY,
     ];
   }
@@ -1427,7 +1437,7 @@ type ContainerState = {
   members: ReturnType<typeof MemberListStore.getAll>;
 };
 
-class SmartSearchBarContainer extends React.Component<Props, ContainerState> {
+class SmartSearchBarContainer extends Component<Props, ContainerState> {
   state: ContainerState = {
     members: MemberListStore.getAll(),
   };

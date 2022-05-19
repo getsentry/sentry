@@ -1,4 +1,3 @@
-before_after==1.0.1
 docker>=3.7.0,<3.8.0
 exam>=0.5.1
 freezegun==1.1.0
@@ -12,3 +11,11 @@ pytest-sentry==0.1.9
 pytest-rerunfailures==9.1.1
 responses==0.10.12
 msgpack-types==0.2.0
+
+# pre-commit dependencies
+pre-commit==2.18.1
+black==22.3.0
+flake8==4.0.1
+flake8-bugbear==22.4.25
+pyupgrade==2.32.0
+isort==5.10.1

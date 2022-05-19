@@ -26,16 +26,17 @@ __all__ = (
     "MetricDoesNotExistException",
     "MetricDoesNotExistInIndexer",
     "NotSupportedOverCompositeEntityException",
-    "TimeRange",
+    "OrderByNotSupportedOverCompositeEntityException",
     "MetricEntity",
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
+    "get_intervals",
 )
 
 
 import re
 from abc import ABC
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import (
     Collection,
     Dict,
@@ -43,7 +44,6 @@ from typing import (
     Literal,
     Mapping,
     Optional,
-    Protocol,
     Sequence,
     Tuple,
     TypedDict,
@@ -64,7 +64,18 @@ TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
 
 #: A function that can be applied to a metric
 MetricOperationType = Literal[
-    "avg", "count", "max", "min", "p50", "p75", "p90", "p95", "p99", "histogram"
+    "avg",
+    "count",
+    "count_unique",
+    "sum",
+    "max",
+    "min",
+    "p50",
+    "p75",
+    "p90",
+    "p95",
+    "p99",
+    "histogram",
 ]
 MetricUnit = Literal["seconds"]
 #: The type of metric, which determines the snuba entity to query
@@ -72,15 +83,14 @@ MetricType = Literal["counter", "set", "distribution", "numeric"]
 
 MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
 
-OP_TO_SNUBA_FUNCTION = {
+OP_TO_SNUBA_FUNCTION: Mapping[str, Mapping[MetricOperationType, str]] = {
     "metrics_counters": {"sum": "sumIf"},
     "metrics_distributions": {
         "avg": "avgIf",
         "count": "countIf",
         "max": "maxIf",
         "min": "minIf",
-        # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
-        "p50": "quantilesIf(0.50)",
+        "p50": "quantilesIf(0.50)",  # TODO: Would be nice to use `quantile(0.50)` (singular) here, but snuba responds with an error
         "p75": "quantilesIf(0.75)",
         "p90": "quantilesIf(0.90)",
         "p95": "quantilesIf(0.95)",
@@ -201,7 +211,13 @@ class NotSupportedOverCompositeEntityException(DerivedMetricException):
     ...
 
 
-class TimeRange(Protocol):
-    start: datetime
-    end: datetime
-    rollup: int
+class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeEntityException):
+    ...
+
+
+def get_intervals(start: datetime, end: datetime, granularity: int):
+    assert granularity > 0
+    delta = timedelta(seconds=granularity)
+    while start < end:
+        yield start
+        start += delta

@@ -9,7 +9,7 @@ from sentry.testutils.helpers.slack import get_attachment, send_notification
 from sentry.types.activity import ActivityType
 
 
-class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
+class SlackNoteNotificationTest(SlackActivityNotificationTest):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_note(self, mock_func):
@@ -34,10 +34,10 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
         assert attachment["title"] == f"{self.group.title}"
         assert (
             attachment["title_link"]
-            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note-activity-slack"
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note_activity-slack"
         )
         assert attachment["text"] == notification.activity.data["text"]
         assert (
             attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=note-activity-slack-user|Notification Settings>"
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=note_activity-slack-user|Notification Settings>"
         )

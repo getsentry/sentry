@@ -16,7 +16,6 @@ from sentry.models import Environment, Group, Organization, Project, Release, Us
 from sentry.models.group import looks_like_short_id
 from sentry.signals import advanced_search_feature_gated
 from sentry.utils import metrics
-from sentry.utils.compat import zip
 from sentry.utils.cursors import Cursor, CursorResult
 
 from . import SEARCH_MAX_HITS
@@ -185,11 +184,13 @@ def prep_search(
     request: Request,
     project: "Project",
     extra_query_kwargs: Optional[Mapping[str, Any]] = None,
-) -> Tuple[CursorResult, Mapping[str, Any]]:
+) -> Tuple[CursorResult[Group], Mapping[str, Any]]:
     try:
         environment = cls._get_environment_from_request(request, project.organization_id)
     except Environment.DoesNotExist:
-        result = CursorResult([], None, None, hits=0, max_hits=SEARCH_MAX_HITS)
+        result = CursorResult[Group](
+            [], Cursor(0, 0, 0), Cursor(0, 0, 0), hits=0, max_hits=SEARCH_MAX_HITS
+        )
         query_kwargs: MutableMapping[str, Any] = {}
     else:
         environments = [environment] if environment is not None else environment

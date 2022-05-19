@@ -35,7 +35,7 @@ function ServiceIncidents({
       setStatus(await loadIncidents());
     } catch (e) {
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         scope.setFingerprint(['ServiceIncidents-fetchData']);
         Sentry.captureException(e);
       });

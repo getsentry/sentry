@@ -1,4 +1,3 @@
-import * as React from 'react';
 import type {BarSeriesOption} from 'echarts';
 
 import {Series} from 'sentry/types/echarts';
@@ -20,7 +19,7 @@ export function BarChart({series, stacked, xAxis, animation, ...props}: BarChart
   return (
     <BaseChart
       {...props}
-      xAxis={xAxis !== null ? {...(xAxis || {}), boundaryGap: true} : null}
+      xAxis={xAxis !== null ? {...(xAxis || {})} : null}
       series={series.map(({seriesName, data, ...options}) =>
         BarSeries({
           name: seriesName,

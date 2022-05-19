@@ -48,16 +48,18 @@ export type SelectValue<T> = {
   label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
-  tooltip?: string;
+  tooltip?: React.ReactNode;
 };
 
 /**
  * The 'other' option format used by checkboxes, radios and more.
  */
-export type Choices = [
+export type Choice = [
   value: string | number,
   label: string | number | React.ReactElement
-][];
+];
+
+export type Choices = Choice[];
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 // Note: the value of the enum on the frontend is plural,
@@ -97,3 +99,23 @@ export type PageFilters = {
    */
   projects: number[];
 };
+
+type InitialState = {type: 'initial'};
+
+type LoadingState = {type: 'loading'};
+
+type ResolvedState<T> = {
+  data: T;
+  type: 'resolved';
+};
+
+type ErroredState = {
+  error: string;
+  type: 'errored';
+};
+
+export type RequestState<T> =
+  | InitialState
+  | LoadingState
+  | ResolvedState<T>
+  | ErroredState;

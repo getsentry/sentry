@@ -1,15 +1,18 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'sentry/components/acl/feature';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -98,7 +101,10 @@ function SummaryContent({
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   }
 
@@ -261,27 +267,29 @@ function SummaryContent({
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Layout.Main>
-        <Search>
+        <FilterActions>
           <Filter
             organization={organization}
             currentFilter={spanOperationBreakdownFilter}
             onChangeFilter={onChangeFilter}
           />
-          <SearchBarContainer>
-            <SearchBar
-              searchSource="transaction_summary"
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={handleSearch}
-              maxQueryLength={MAX_QUERY_LENGTH}
-            />
-          </SearchBarContainer>
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+          <StyledSearchBar
+            searchSource="transaction_summary"
+            organization={organization}
+            projectIds={eventView.project}
+            query={query}
+            fields={eventView.fields}
+            onSearch={handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
+          />
           <MetricsEventsDropdown />
-        </Search>
+        </FilterActions>
         <TransactionSummaryCharts
           organization={organization}
           location={location}
@@ -381,7 +389,7 @@ function SummaryContent({
           location={location}
         />
       </Layout.Side>
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -459,14 +467,30 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-const Search = styled('div')`
-  display: flex;
-  width: 100%;
-  margin-bottom: ${space(3)};
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(2, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: auto auto 1fr;
+  }
 `;
 
-const SearchBarContainer = styled('div')`
-  flex-grow: 1;
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    order: 1;
+    grid-column: 1/4;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
+  }
 `;
 
 export default withProjects(SummaryContent);

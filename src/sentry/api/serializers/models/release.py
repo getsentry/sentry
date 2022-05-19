@@ -1,10 +1,12 @@
 from collections import defaultdict
+from typing import Mapping, Sequence, TypedDict, Union
 
 from django.core.cache import cache
 from django.db.models import Sum
 
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.db.models.query import in_iexact
 from sentry.models import (
     Commit,
@@ -19,7 +21,6 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.utils import metrics
-from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text
 
 
@@ -51,7 +52,15 @@ def _user_to_author_cache_key(organization_id, author):
     return f"get_users_for_authors:{organization_id}:{author_hash}"
 
 
-def get_users_for_authors(organization_id, authors, user=None):
+class NonMappableUser(TypedDict):
+    name: str
+    email: str
+
+
+Author = Union[UserSerializerResponse, NonMappableUser]
+
+
+def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, Author]:
     """
     Returns a dictionary of author_id => user, if a Sentry
     user object exists for that email. If there is no matching
@@ -59,8 +68,9 @@ def get_users_for_authors(organization_id, authors, user=None):
     author is returned.
     e.g.
     {
-        1: serialized(<User id=1>),
-        2: {email: 'not-a-user@example.com', name: 'dunno'},
+        '<author-id-1>': serialized(<User id=1, ...>),
+        '<author-id-2>': {'email': 'not-a-user@example.com', 'name': 'dunno'},
+        '<author-id-3>': serialized(<User id=3, ...>),
         ...
     }
     """
@@ -93,7 +103,7 @@ def get_users_for_authors(organization_id, authors, user=None):
             is_active=True,
             sentry_orgmember_set__organization_id=organization_id,
         )
-        users = serialize(list(users), user)
+        users: Sequence[UserSerializerResponse] = serialize(list(users), user)
         users_by_id = {user["id"]: user for user in users}
         # Figure out which email address matches to a user
         users_by_email = {}

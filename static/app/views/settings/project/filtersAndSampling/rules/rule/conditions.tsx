@@ -43,10 +43,10 @@ function Conditions({condition}: Props) {
 
       return (
         <Wrapper>
-          {inner.map(({value, name}, index) => (
+          {inner.map((innerItem, index) => (
             <div key={index}>
-              <Label>{getInnerNameLabel(name)}</Label>
-              {getConvertedValue(value)}
+              <Label>{getInnerNameLabel(innerItem.name)}</Label>
+              {getConvertedValue(innerItem.value)}
             </div>
           ))}
         </Wrapper>

@@ -19,6 +19,7 @@
 
 # Event Ingestion
 /src/sentry/attachments/           @getsentry/owners-ingest
+/src/sentry/api/endpoints/relay/   @getsentry/owners-ingest
 /src/sentry/coreapi.py             @getsentry/owners-ingest
 /src/sentry/ingest/                @getsentry/owners-ingest
 /src/sentry/interfaces/            @getsentry/owners-ingest
@@ -44,6 +45,7 @@
 /.github/                   @getsentry/owners-sentry-dev
 /config/hooks/              @getsentry/owners-sentry-dev
 /scripts/                   @getsentry/owners-sentry-dev
+/tools/                     @getsentry/owners-sentry-dev
 Makefile                    @getsentry/owners-sentry-dev
 .envrc                      @getsentry/owners-sentry-dev
 .pre-commit-config.yaml     @getsentry/owners-sentry-dev
@@ -77,16 +79,9 @@ build-utils/        @getsentry/owners-js-build
 
 # Owners by product feature
 
-# Releases UI
-/static/app/views/releases/                                     @getsentry/owners-releases-ui
-/tests/js/spec/views/releases/                                  @getsentry/owners-releases-ui
-
 ### Issue/Metric Alerts ###
 /static/app/views/settings/projectAlerts/                       @getsentry/workflow
 /tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
-
-/static/app/views/settings/incidentRules/                       @getsentry/workflow
-/tests/js/spec/views/settings/incidentRules/                    @getsentry/workflow
 
 /static/app/views/alerts/                                       @getsentry/workflow
 /tests/js/spec/views/alerts/                                    @getsentry/workflow
@@ -196,9 +191,12 @@ build-utils/        @getsentry/owners-js-build
 ### Emerging Tech ###
 
 ###### Replays #######
-/static/app/views/replays/        @getsentry/emerging-technology
-/static/app/components/replays/   @getsentry/emerging-technology
-/tests/js/spec/views/replays/     @getsentry/emerging-technology
+/static/app/components/replays/    @getsentry/emerging-technology
+/static/app/utils/replays/         @getsentry/emerging-technology
+/static/app/views/replays/         @getsentry/emerging-technology
+/tests/js/spec/components/replays/ @getsentry/emerging-technology
+/tests/js/spec/utils/replays/      @getsentry/emerging-technology
+/tests/js/spec/views/replays/      @getsentry/emerging-technology
 ###### End of Replays #######
 
 ### End of Emerging Tech ###
@@ -302,6 +300,9 @@ build-utils/        @getsentry/owners-js-build
 /static/app/views/organizationStats/teamInsights      @getsentry/workflow
 /tests/js/spec/views/organizationStats/teamInsights/  @getsentry/workflow
 
+/static/app/views/releases/                           @getsentry/workflow
+/tests/js/spec/views/releases/                        @getsentry/workflow
+
 ## End of Workflow ##
 
 
@@ -348,6 +349,8 @@ build-utils/        @getsentry/owners-js-build
 
 /src/sentry/snuba/metrics/                                            @getsentry/metrics
 /src/sentry/api/endpoints/organization_metrics.py                     @getsentry/metrics
+/src/sentry/api/endpoints/organization_sessions.py                    @getsentry/metrics
+src/sentry/snuba/metrics/query.py                                     @getsentry/metrics
 /tests/sentry/api/endpoints/test_organization_metric_data.py          @getsentry/metrics
 /tests/sentry/api/endpoints/test_organization_metric_details.py       @getsentry/metrics
 /tests/sentry/api/endpoints/test_organization_metric_tag_details.py   @getsentry/metrics

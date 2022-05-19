@@ -30,13 +30,15 @@ function AlertBuilderProjectProvider(props: Props) {
   const useFirstProject = hasAlertWizardV3 && projectId === undefined;
 
   // calling useProjects() without args fetches all projects
-  const {projects, initiallyLoaded, fetching, fetchError} = useFirstProject
-    ? useProjects()
-    : useProjects({
-        slugs: [projectId],
-      });
+  const {projects, initiallyLoaded, fetching, fetchError} = useProjects(
+    useFirstProject
+      ? undefined
+      : {
+          slugs: [projectId],
+        }
+  );
   const project = useFirstProject
-    ? projects.find(p => p)
+    ? projects.find(p => p.isMember)
     : projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ function AlertBuilderProjectProvider(props: Props) {
 
     // fetch members list for mail action fields
     fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [project]);
+  }, [api, organization, project]);
 
   if (!initiallyLoaded || fetching) {
     return <LoadingIndicator />;

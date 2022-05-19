@@ -1,4 +1,3 @@
-import * as React from 'react';
 import isNil from 'lodash/isNil';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';

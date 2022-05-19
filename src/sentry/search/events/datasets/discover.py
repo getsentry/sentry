@@ -73,7 +73,6 @@ from sentry.search.events.fields import (
     SnQLFieldColumn,
     SnQLFunction,
     SnQLStringArg,
-    StringArrayColumn,
     normalize_count_if_value,
     normalize_percentile_alias,
     reflective_result_type,
@@ -227,7 +226,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "count_web_vitals",
                     required_args=[
                         NumericColumn("column"),
-                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
+                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor", "any"]),
                     ],
                     snql_aggregate=self._resolve_web_vital_function,
                     default_result_type="integer",
@@ -604,7 +603,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ),
                 SnQLFunction(
                     "array_join",
-                    required_args=[StringArrayColumn("column")],
+                    required_args=[ColumnArg("column")],
                     snql_column=lambda args, alias: Function("arrayJoin", [args["column"]], alias),
                     default_result_type="string",
                     private=True,
@@ -1118,7 +1117,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         if quality == "good":
             return Function(
                 "countIf",
-                [Function("lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["meh"]])],
+                [Function("less", [column, VITAL_THRESHOLDS[column.key]["meh"]])],
                 alias,
             )
         elif quality == "meh":
@@ -1128,24 +1127,38 @@ class DiscoverDatasetConfig(DatasetConfig):
                     Function(
                         "and",
                         [
-                            Function("greater", [column, VITAL_THRESHOLDS[column.key]["meh"]]),
                             Function(
-                                "lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["poor"]]
+                                "greaterOrEquals", [column, VITAL_THRESHOLDS[column.key]["meh"]]
                             ),
+                            Function("less", [column, VITAL_THRESHOLDS[column.key]["poor"]]),
                         ],
                     )
                 ],
                 alias,
             )
-        else:
+        elif quality == "poor":
             return Function(
                 "countIf",
                 [
                     Function(
-                        "greater",
+                        "greaterOrEquals",
                         [
                             column,
                             VITAL_THRESHOLDS[column.key]["poor"],
+                        ],
+                    )
+                ],
+                alias,
+            )
+        elif quality == "any":
+            return Function(
+                "countIf",
+                [
+                    Function(
+                        "greaterOrEquals",
+                        [
+                            column,
+                            0,
                         ],
                     )
                 ],
@@ -1516,10 +1529,14 @@ class DiscoverDatasetConfig(DatasetConfig):
         build: str = search_filter.value.raw_value
 
         operator, negated = handle_operator_negation(search_filter.operator)
+        try:
+            django_op = OPERATOR_TO_DJANGO[operator]
+        except KeyError:
+            raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
         versions = list(
             Release.objects.filter_by_semver_build(
                 organization_id,
-                OPERATOR_TO_DJANGO[operator],
+                django_op,
                 build,
                 project_ids=project_ids,
                 negated=negated,

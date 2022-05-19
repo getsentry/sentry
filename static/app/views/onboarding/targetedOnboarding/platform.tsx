@@ -45,8 +45,8 @@ function OnboardingPlatform(props: StepProps) {
       >
         <p>
           {tct(
-            `Variety is the spice of application monitoring. Sentry SDKs integrate
-           with most languages and platforms your developer heart desires.
+            `Variety is the spice of application monitoring. Identify what’s broken
+          faster by selecting all the platforms that support your application.
            [link:View the full list].`,
             {link: <ExternalLink href="https://docs.sentry.io/platforms/" />}
           )}
@@ -75,4 +75,5 @@ const Wrapper = styled('div')`
   max-width: 850px;
   margin-left: auto;
   margin-right: auto;
+  width: 100%;
 `;

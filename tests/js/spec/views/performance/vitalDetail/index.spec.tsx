@@ -291,7 +291,6 @@ describe('Performance > VitalDetail', function () {
       await screen.findByLabelText('Search events'),
       'user.email:uhoh*{enter}'
     );
-
     // Check the navigation.
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -300,11 +299,12 @@ describe('Performance > VitalDetail', function () {
         project: 1,
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
+        userModified: true,
       },
     });
   });
 
-  it('Applies conditions when linking to transaction summary', async function () {
+  it('applies conditions when linking to transaction summary', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -356,7 +356,7 @@ describe('Performance > VitalDetail', function () {
     });
   });
 
-  it('Check CLS', async function () {
+  it('check CLS', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -410,7 +410,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
   });
 
-  it('can switch vitals with dropdown menu', async function () {
+  it('can switch vitals with dropdown menu', function () {
     const newRouter = {
       ...router,
       location: {
@@ -436,13 +436,13 @@ describe('Performance > VitalDetail', function () {
       organization: org,
     });
 
-    expect(
-      await screen.findByRole('button', {name: 'Web Vitals: LCP'})
-    ).toBeInTheDocument();
-    userEvent.click(screen.getByRole('button', {name: 'Web Vitals: LCP'}));
+    const button = screen.getByRole('button', {name: /web vitals: lcp/i});
+    expect(button).toBeInTheDocument();
+    userEvent.click(button);
 
-    expect(await screen.findByRole('menuitemradio', {name: 'FCP'})).toBeInTheDocument();
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'FCP'}));
+    const menuItem = screen.getByRole('menuitemradio', {name: /fcp/i});
+    expect(menuItem).toBeInTheDocument();
+    userEvent.click(menuItem);
 
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -455,7 +455,7 @@ describe('Performance > VitalDetail', function () {
     });
   });
 
-  it('Check LCP vital renders correctly', async function () {
+  it('renders LCP vital correctly', async function () {
     render(<TestComponent />, {
       context: routerContext,
       organization: org,

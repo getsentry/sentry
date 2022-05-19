@@ -10,13 +10,17 @@ import Alert from 'sentry/components/alert';
 import ButtonBar from 'sentry/components/buttonBar';
 import {getInterval} from 'sentry/components/charts/utils';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import DatePageFilter from 'sentry/components/datePageFilter';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import {MenuItemProps} from 'sentry/components/dropdownMenuItemV2';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -87,7 +91,10 @@ class VitalDetailContent extends Component<Props, State> {
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   };
 
@@ -212,14 +219,21 @@ class VitalDetailContent extends Component<Props, State> {
 
     return (
       <Fragment>
-        <StyledSearchBar
-          searchSource="performance_vitals"
-          organization={organization}
-          projectIds={project}
-          query={query}
-          fields={fields}
-          onSearch={this.handleSearch}
-        />
+        <FilterActions>
+          <PageFilterBar condensed>
+            <ProjectPageFilter />
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+          <SearchBar
+            searchSource="performance_vitals"
+            organization={organization}
+            projectIds={project}
+            query={query}
+            fields={fields}
+            onSearch={this.handleSearch}
+          />
+        </FilterActions>
         <VitalChart
           organization={organization}
           query={query}
@@ -330,10 +344,6 @@ const StyledDescription = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
-`;
-
 const StyledVitalInfo = styled('div')`
   margin-bottom: ${space(3)};
 `;
@@ -348,4 +358,14 @@ const BrowserItem = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto 1fr;
+  }
 `;

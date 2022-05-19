@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Button from 'sentry/components/button';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -33,6 +36,7 @@ export default function SpanDetailsControls({
         ...location.query,
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
+        userModified: true,
       },
     });
   };
@@ -47,7 +51,11 @@ export default function SpanDetailsControls({
   const isZoomed = () => Object.values(ZoomKeys).some(key => location.query[key]);
 
   return (
-    <StyledActions>
+    <FilterActions>
+      <PageFilterBar condensed>
+        <EnvironmentPageFilter />
+        <DatePageFilter alignDropdown="left" />
+      </PageFilterBar>
       <SearchBar
         placeholder={t('Filter Transactions')}
         organization={organization}
@@ -59,15 +67,16 @@ export default function SpanDetailsControls({
       <Button onClick={handleResetView} disabled={!isZoomed()}>
         {t('Reset View')}
       </Button>
-    </StyledActions>
+    </FilterActions>
   );
 }
 
-const StyledActions = styled('div')`
+const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: auto max-content;
-  grid-template-rows: auto;
-  align-items: center;
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto 1fr auto;
+  }
 `;

@@ -1,11 +1,12 @@
+import selectEvent from 'react-select-event';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import AlertsContainer from 'sentry/views/alerts';
-import IncidentsList from 'sentry/views/alerts/list';
-import {OrganizationContext} from 'sentry/views/organizationContext';
+import IncidentsList from 'sentry/views/alerts/list/incidents';
 
 describe('IncidentsList', () => {
   let projectMock;
@@ -24,16 +25,14 @@ describe('IncidentsList', () => {
     const router = context.router;
     return {
       component: render(
-        <OrganizationContext.Provider value={org}>
-          <AlertsContainer>
-            <IncidentsList
-              params={{orgId: org.slug}}
-              location={{query: {}, search: ''}}
-              router={router}
-            />
-          </AlertsContainer>
-        </OrganizationContext.Provider>,
-        {context: routerContext}
+        <AlertsContainer>
+          <IncidentsList
+            params={{orgId: org.slug}}
+            location={{query: {}, search: ''}}
+            router={router}
+          />
+        </AlertsContainer>,
+        {context: routerContext, organization: org}
       ),
       router,
     };
@@ -185,27 +184,18 @@ describe('IncidentsList', () => {
     expect(promptsMock).toHaveBeenCalledTimes(0);
   });
 
-  it('filters by opened issues', async () => {
+  it('filters by status', async () => {
     const {router} = renderComponent();
 
-    userEvent.click(await screen.findByTestId('filter-button'));
+    await selectEvent.select(await screen.findByText('Status'), 'Active');
 
-    const resolved = screen.getByText('Resolved');
-    expect(resolved).toBeInTheDocument();
-    expect(
-      within(resolved.parentElement).getByTestId('checkbox-fancy')
-    ).not.toBeChecked();
-
-    userEvent.click(resolved);
-
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: undefined,
-      query: {
-        expand: ['original_alert_rule'],
-        status: ['closed'],
-        team: ['myteams', 'unassigned'],
-      },
-    });
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          status: 'open',
+        },
+      })
+    );
   });
 
   it('disables the new alert button for those without alert:write', async () => {
@@ -233,7 +223,7 @@ describe('IncidentsList', () => {
   it('searches by name', async () => {
     const {router} = renderComponent();
 
-    const input = screen.getByPlaceholderText('Search by name');
+    const input = await screen.findByPlaceholderText('Search by name');
     expect(input).toBeInTheDocument();
     const testQuery = 'test name';
     userEvent.type(input, `${testQuery}{enter}`);
@@ -242,8 +232,6 @@ describe('IncidentsList', () => {
       expect.objectContaining({
         query: {
           title: testQuery,
-          expand: ['original_alert_rule'],
-          team: ['myteams', 'unassigned'],
         },
       })
     );
@@ -259,16 +247,13 @@ describe('IncidentsList', () => {
           identifier: '1',
           title: 'First incident',
           projects: projects1,
-          alertRule: TestStubs.IncidentRule({owner: `team:${team.id}`}),
+          alertRule: TestStubs.MetricRule({owner: `team:${team.id}`}),
         }),
       ],
     });
     TeamStore.getById = jest.fn().mockReturnValue(team);
-    const org = {
-      features: ['incidents', 'team-alerts-ownership'],
-    };
 
-    renderComponent({organization: org});
+    renderComponent();
     expect(await screen.findByText(team.name)).toBeInTheDocument();
   });
 });

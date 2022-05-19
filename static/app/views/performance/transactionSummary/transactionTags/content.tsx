@@ -4,9 +4,12 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
@@ -152,15 +155,19 @@ const InnerContent = (
         isLoading={isLoading}
       />
       <StyledMain>
-        <StyledActions>
-          <StyledSearchBar
+        <FilterActions>
+          <PageFilterBar condensed>
+            <EnvironmentPageFilter />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+          <SearchBar
             organization={organization}
             projectIds={eventView.project}
             query={query}
             fields={eventView.fields}
             onSearch={handleSearch}
           />
-        </StyledActions>
+        </FilterActions>
         <TagsDisplay {...props} tagKey={tagSelected} />
       </StyledMain>
     </ReversedLayoutBody>
@@ -288,12 +295,14 @@ const StyledMain = styled('div')`
   max-width: 100%;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-`;
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
-const StyledActions = styled('div')`
-  margin-bottom: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto 1fr;
+  }
 `;
 
 export default TagsPageContent;
