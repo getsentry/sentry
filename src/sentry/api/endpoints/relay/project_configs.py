@@ -66,7 +66,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
             return Response("Unsupported version, we only support versions 1 to 3.", 400)
 
     def _post_or_schedule_by_key(self, request: Request):
-        request.relay_request_data.get("publicKeys")
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
 
         configs = {}
