@@ -146,8 +146,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        echo "pre-commit isn't installed. Please run make install-py-dev."
-        exit 1
+        pip install -r requirements-dev.txt
     fi
     pre-commit install --install-hooks
     echo ""
