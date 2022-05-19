@@ -2732,6 +2732,20 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('project:')).toBeInTheDocument();
       expect(screen.getByText('release:')).toBeInTheDocument();
     });
+
+    it('adds a function when the only column chosen in a table is a tag', async function () {
+      renderTestComponent({
+        orgFeatures: releaseHealthFeatureFlags,
+      });
+
+      userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
+
+      await selectEvent.select(screen.getByText('crash_free_rate(…)'), 'environment');
+
+      // 1 in the table header, 1 in the column selector, and 1 in the sort by
+      expect(screen.getAllByText(/crash_free_rate/)).toHaveLength(3);
+      expect(screen.getAllByText('environment')).toHaveLength(2);
+    });
   });
 
   describe('Widget Library', function () {
