@@ -71,7 +71,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         configs = {}
         pending = []
         for key in public_keys:
-            computed = self._compute_proj_config(key)
+            computed = self._get_cached_or_schedule(key)
             if not computed:
                 pending.append(key)
             else:
@@ -82,7 +82,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response(configs, status=200)
 
-    def _compute_proj_config(self, public_key):
+    def _get_cached_or_schedule(self, public_key):
         """
         Returns the config of a project if it's in the cache; else, schedules a
         task to compute and write it into the cache, and returns False.
