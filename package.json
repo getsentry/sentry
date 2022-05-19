@@ -111,7 +111,7 @@
     "process": "^0.11.10",
     "prop-types": "^15.8.1",
     "pyright": "1.1.229",
-    "qrcode.react": "^1.0.1",
+    "qrcode.react": "^3.0.2",
     "query-string": "7.0.1",
     "react": "17.0.2",
     "react-aria": "^3.12.0",
