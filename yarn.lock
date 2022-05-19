@@ -2860,15 +2860,17 @@
     "@react-types/overlays" "^3.5.1"
     "@react-types/shared" "^3.8.0"
 
-"@sentry-internal/global-search@^0.0.43":
-  version "0.0.43"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.43.tgz#d390a8f78ea302e588e98e23cc5daf20f88254af"
-  integrity sha512-C6qXxSslugJ9c1M2hr+MhVAVQ/5feNKziIgZNUi0kdv4to5pS9zHV78x7HKVIIIybOxt+8L3N9e1aAgShLsZ6w==
+"@sentry-internal/global-search@^0.2.0":
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.2.0.tgz#c46d429b6b61c689fcb173a181ac06bacc8a306d"
+  integrity sha512-fw1yFJ7FmqaqbjW8uhTJeh4kjeF8R+8SYkKpQZYvpDyYvkLT6/59y4EUq1mEAqg4zc7eVoVdDUFmc1sJmkRdTg==
   dependencies:
     "@types/dompurify" "^2.0.4"
     "@types/react" ">=16"
     "@types/react-dom" ">=16"
     algoliasearch "^4.3.1"
+    css-select "^4.1.3"
+    domhandler "^4.2.0"
     dompurify "^2.2.7"
     htmlparser2 "^4.1.0"
     title-case "^3.0.2"
