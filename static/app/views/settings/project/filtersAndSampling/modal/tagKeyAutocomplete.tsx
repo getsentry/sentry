@@ -1,46 +1,47 @@
-import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import SelectField from 'sentry/components/forms/selectField';
 import {t} from 'sentry/locale';
-import {Organization, Project, Tag} from 'sentry/types';
-import useApi from 'sentry/utils/useApi';
+import {Tag} from 'sentry/types';
+import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
+
+import {TruncatedLabel} from './truncatedLabel';
+import {formatCreateTagLabel} from './utils';
 
 type Props = {
+  disabledOptions: string[];
   onChange: (value: string) => void;
-  orgSlug: Organization['slug'];
-  projectSlug: Project['slug'];
+  tags: Tag[];
   value?: string;
 };
 
 /**
  * This component is used for the autocomplete of custom tag key
  */
-function TagKeyAutocomplete({onChange, orgSlug, projectSlug, value}: Props) {
-  const [tags, setTags] = useState<Tag[]>(value ? [{key: value, name: value}] : []);
-  const api = useApi();
+function TagKeyAutocomplete({tags, onChange, value, disabledOptions}: Props) {
+  // select doesn't play nicely with selected values that are not in the listed options
+  const options = tags.map(({key}) => ({
+    value: key,
+    label: <TruncatedLabel value={key} />,
+  }));
 
-  const fetchProjectTags = useCallback(async () => {
-    try {
-      // TODO(sampling): cache this request so that it's not called for every custom tag condition
-      const response = await api.requestPromise(
-        `/projects/${orgSlug}/${projectSlug}/tags/`
-      );
-      setTags(response);
-    } catch {
-      // Do nothing, just autocomplete won't suggest any results
-    }
-  }, [api, orgSlug, projectSlug]);
-
-  useEffect(() => {
-    fetchProjectTags();
-  }, [fetchProjectTags]);
+  if (
+    value &&
+    value !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG &&
+    !tags.some(({key}) => key === value)
+  ) {
+    options.push({
+      value,
+      label: <TruncatedLabel value={value} />,
+    });
+  }
 
   return (
     <Wrapper>
       <SelectField
         name="customTagKey"
-        options={tags.map(({key}) => ({value: key, label: key}))}
+        options={options}
+        isOptionDisabled={option => disabledOptions.includes(option.value)}
         inline={false}
         stacked
         hideControlState
@@ -49,6 +50,7 @@ function TagKeyAutocomplete({onChange, orgSlug, projectSlug, value}: Props) {
         placeholder={t('tag')}
         onChange={onChange}
         value={value}
+        formatCreateLabel={formatCreateTagLabel}
       />
     </Wrapper>
   );

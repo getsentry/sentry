@@ -26,7 +26,11 @@ export type SessionsOperation =
   | 'p95'
   | 'p99'
   | 'crash_rate'
-  | 'crash_free_rate';
+  | 'crash_free_rate'
+  | 'count_abnormal'
+  | 'count_errored'
+  | 'count_healthy'
+  | 'count_crashed';
 
 export type SessionAggregationColumn = {
   columnTypes: string[];

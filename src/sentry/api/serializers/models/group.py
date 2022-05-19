@@ -59,7 +59,6 @@ from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.compat import zip
 from sentry.utils.hashlib import hash_values
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute

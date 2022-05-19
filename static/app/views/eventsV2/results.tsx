@@ -82,9 +82,13 @@ function readShowTagsState() {
 }
 
 function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQuery) {
-  return location.query.yAxis
-    ? decodeList(location.query.yAxis)
-    : savedQuery?.yAxis && savedQuery.yAxis.length > 0
+  if (location.query.yAxis) {
+    return decodeList(location.query.yAxis);
+  }
+  if (location.query.yAxis === null) {
+    return [];
+  }
+  return savedQuery?.yAxis && savedQuery?.yAxis.length > 0
     ? decodeList(savedQuery?.yAxis)
     : [eventView.getYAxis()];
 }
@@ -134,11 +138,7 @@ class Results extends Component<Props, State> {
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
     const yAxisArray = getYAxis(location, eventView, savedQuery);
-    const prevYAxisArray = getYAxis(
-      prevProps.location,
-      prevState.eventView,
-      prevState.savedQuery
-    );
+    const prevYAxisArray = getYAxis(prevProps.location, eventView, prevState.savedQuery);
 
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
@@ -314,7 +314,10 @@ class Results extends Component<Props, State> {
 
     router.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   };
 
@@ -326,7 +329,7 @@ class Results extends Component<Props, State> {
 
     const newQuery = {
       ...location.query,
-      yAxis: value,
+      yAxis: value.length > 0 ? value : [null],
       // If using Multi Y-axis and not in a supported display, change to the default display mode
       display:
         value.length > 1 && !isDisplayMultiYAxisSupported

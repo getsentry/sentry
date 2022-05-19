@@ -58,6 +58,7 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('datetime')}
+        data-test-id="global-header-timerange-selector"
         {...getActorProps()}
       >
         <DropdownTitle>

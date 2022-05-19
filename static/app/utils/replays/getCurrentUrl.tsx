@@ -9,13 +9,12 @@ function findUrlTag(tags: EventTag[]) {
   return tags.find(tag => tag.key === 'url');
 }
 
-function getCurrentUrl(replay: ReplayReader, currentTime: number) {
+function getCurrentUrl(replay: ReplayReader, currentOffsetMS: number) {
   const event = replay.getEvent();
   const crumbs = replay.getRawCrumbs();
 
-  const currentOffsetMs = Math.floor(currentTime);
   const startTimestampMs = event.startTimestamp * 1000;
-  const currentTimeMs = startTimestampMs + currentOffsetMs;
+  const currentTimeMs = startTimestampMs + Math.floor(currentOffsetMS);
 
   const navigationCrumbs = transformCrumbs(crumbs).filter(
     crumb => crumb.type === BreadcrumbType.NAVIGATION

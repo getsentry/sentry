@@ -18,14 +18,14 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {Color} from 'sentry/utils/theme';
-import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
 type AlertsTriggered = Record<string, number>;
 
-type AlertsTriggeredRule = IncidentRule & {
+type AlertsTriggeredRule = MetricRule & {
   totalThisWeek: number;
   weeklyAvg: number;
 };

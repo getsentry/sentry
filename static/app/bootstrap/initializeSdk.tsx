@@ -7,7 +7,6 @@ import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {DISABLE_RR_WEB, SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
-import {init as initApiSentryClient} from 'sentry/utils/apiSentryClient';
 import {LongTaskObserver} from 'sentry/utils/performanceForSentry';
 
 /**
@@ -61,10 +60,6 @@ function getSentryIntegrations(hasReplays: boolean = false, routes?: Function) {
  * entrypoints require this.
  */
 export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}) {
-  if (config.dsn_requests) {
-    initApiSentryClient(config.dsn_requests);
-  }
-
   const {apmSampling, sentryConfig, userIdentity} = config;
   const tracesSampleRate = apmSampling ?? 0;
 
@@ -82,7 +77,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * deployed separately from backend.
      */
     release: SENTRY_RELEASE_VERSION ?? sentryConfig?.release,
-    whitelistUrls: SPA_DSN
+    allowUrls: SPA_DSN
       ? ['localhost', 'dev.getsentry.net', 'sentry.dev', 'webpack-internal://']
       : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(hasReplays, routes),

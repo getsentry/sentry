@@ -12,7 +12,7 @@ type Integration = {
   slug: string;
 };
 // TODO: We might want to put this on the backend eventually for centralized source of truth.
-const availabledIntegrations: Integration[] = [
+export const onboardingIntegrations: Integration[] = [
   {
     slug: 'slack',
     name: 'Slack',
@@ -93,7 +93,7 @@ export default function IntegrationMultiSelect(props: Props) {
       </IntegrationItem>
     );
   };
-  return <Wrapper>{availabledIntegrations.map(oneIntegration)}</Wrapper>;
+  return <Wrapper>{onboardingIntegrations.map(oneIntegration)}</Wrapper>;
 }
 
 const Wrapper = styled('div')`

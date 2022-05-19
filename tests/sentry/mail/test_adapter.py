@@ -138,10 +138,10 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
     def test_default_prefix(self):
-        assert build_subject_prefix(self.project) == "[Sentry] "
+        assert build_subject_prefix(self.project) == "[Sentry]"
 
     def test_project_level_prefix(self):
-        prefix = "[Example prefix] "
+        prefix = "[Example prefix]"
         ProjectOption.objects.set_value(
             project=self.project, key="mail:subject_prefix", value=prefix
         )

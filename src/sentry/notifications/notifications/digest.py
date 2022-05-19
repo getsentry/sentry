@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 class DigestNotification(ProjectNotification):
     message_builder = "DigestNotificationMessageBuilder"
-    referrer_base = "digest"
+    metrics_key = "digest"
     template_path = "sentry/emails/digests/body"
 
     def __init__(
@@ -52,12 +52,6 @@ class DigestNotification(ProjectNotification):
         self.digest = digest
         self.target_type = target_type
         self.target_identifier = target_identifier
-
-    def get_category(self) -> str:
-        return "digest_email"
-
-    def get_type(self) -> str:
-        return "notify.digest"
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "project", self.project.id, "alert_digest"

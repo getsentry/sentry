@@ -38,7 +38,7 @@ describe('ProjectSelector', function () {
     memberProjects: [testProject, anotherProject],
     nonMemberProjects: [],
     value: [],
-    onUpdate: () => {},
+    onApplyChange: () => {},
     onChange: () => {},
     menuFooter: () => {},
   };
@@ -143,8 +143,8 @@ describe('ProjectSelector', function () {
   });
 
   it('calls callback when project is selected', function () {
-    const onUpdateMock = jest.fn();
-    render(<ProjectSelector {...props} onUpdate={onUpdateMock} />, {
+    const onApplyChangeMock = jest.fn();
+    render(<ProjectSelector {...props} onApplyChange={onApplyChangeMock} />, {
       context: routerContext,
     });
     openMenu();
@@ -152,14 +152,18 @@ describe('ProjectSelector', function () {
     // Select first project
     userEvent.click(screen.getByText(testProject.slug));
 
-    expect(onUpdateMock).toHaveBeenCalledWith([parseInt(testProject.id, 10)]);
+    expect(onApplyChangeMock).toHaveBeenCalledWith([parseInt(testProject.id, 10)]);
   });
 
   it('does not call `onUpdate` when using multi select', function () {
     const onChangeMock = jest.fn();
-    const onUpdateMock = jest.fn();
+    const onApplyChangeMock = jest.fn();
     render(
-      <ProjectSelector {...props} onChange={onChangeMock} onUpdate={onUpdateMock} />,
+      <ProjectSelector
+        {...props}
+        onChange={onChangeMock}
+        onApplyChange={onApplyChangeMock}
+      />,
       {context: routerContext}
     );
     openMenu();
@@ -168,7 +172,7 @@ describe('ProjectSelector', function () {
     userEvent.click(screen.getByRole('checkbox', {name: testProject.slug}));
 
     expect(onChangeMock).toHaveBeenCalled();
-    expect(onUpdateMock).not.toHaveBeenCalled();
+    expect(onApplyChangeMock).not.toHaveBeenCalled();
   });
 
   it('displays multi projects with non member projects', function () {
