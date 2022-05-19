@@ -723,9 +723,9 @@ function WidgetBuilder({
 
           const keepCurrentOrderby =
             isFromAggregates || isCustomEquation || isUsedInGrouping;
-          const firstAggregateAlias = isEquation(newQuery.aggregates[0])
+          const firstAggregateAlias = isEquation(newQuery.aggregates[0] ?? '')
             ? `equation[${getNumEquations(newQuery.aggregates) - 1}]`
-            : newQuery.aggregates[0];
+            : fieldStrings[0];
 
           newQuery.orderby = widgetBuilderNewDesign
             ? (keepCurrentOrderby && newQuery.orderby) ||
