@@ -96,7 +96,7 @@ function TagValueAutocomplete({
   const createdOptions: Tag[] = !value
     ? []
     : value
-        .split(',')
+        .split('\n')
         .filter(v => !tagValues.some(tagValue => tagValue.value === v))
         .map(v => ({value: v}));
 
@@ -108,9 +108,9 @@ function TagValueAutocomplete({
         value: tagValue.value,
         label: <TruncatedLabel value={tagValue.value} />,
       }))}
-      value={value?.split(',')}
+      value={value?.split('\n')}
       onChange={newValue => {
-        onChange(newValue?.join(','));
+        onChange(newValue?.join('\n'));
       }}
       components={{
         MultiValue: (multiValueProps: MultiValueProps<{}>) => (

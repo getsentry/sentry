@@ -36,6 +36,7 @@ type Options = {
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
+  userModified?: string;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
@@ -85,8 +86,13 @@ export const doEventsRequest = (
     generatePathname,
     queryExtras,
     excludeOther,
+    userModified,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
+  const pathname =
+    generatePathname?.(organization) ??
+    `/organizations/${organization.slug}/events-stats/`;
+
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = Object.fromEntries(
     Object.entries({
@@ -104,6 +110,7 @@ export const doEventsRequest = (
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
       excludeOther: excludeOther ? '1' : undefined,
+      user_modified: pathname.includes('events-stats') ? userModified : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -119,10 +126,6 @@ export const doEventsRequest = (
       ...queryExtras,
     },
   };
-
-  const pathname =
-    generatePathname?.(organization) ??
-    `/organizations/${organization.slug}/events-stats/`;
 
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, pathname, queryObject);

@@ -109,6 +109,9 @@ default_manager.add("organizations:performance-onboarding-checklist", Organizati
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
+default_manager.add(
+    "organizations:performance-transaction-name-only-search", OrganizationFeature, True
+)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
