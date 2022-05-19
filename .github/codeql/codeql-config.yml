@@ -1,2 +1,4 @@
+name: "Sentry CodeQL Config"
+
 paths-ignore:
   -'**/tests/**'
