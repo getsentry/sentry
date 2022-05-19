@@ -442,7 +442,9 @@ def run_sessions_query(
             raise exc
 
         environment_conditions = [
-            _get_filters_for_condition(column_name="environment", condition=condition)
+            _get_filters_for_preflight_query_condition(
+                column_name="environment", condition=condition
+            )
             for condition in where
         ]
         if len(environment_conditions) > 1:
@@ -450,7 +452,7 @@ def run_sessions_query(
         else:
             try:
                 env_condition = environment_conditions[0]
-            except KeyError:
+            except IndexError:
                 env_condition = None
 
         preflight_query_filters = _generate_preflight_query_conditions(
@@ -654,13 +656,10 @@ def _transform_single_condition(
     return condition, None
 
 
-def _get_filters_for_condition(column_name: str, condition: Union[Condition, BooleanCondition]):
+def _get_filters_for_preflight_query_condition(
+    column_name: str, condition: Union[Condition, BooleanCondition]
+):
     if isinstance(condition, Condition):
-        if condition.lhs == Function("ifNull", parameters=[Column(column_name), ""]):
-            # HACK: metrics tags are never null. We should really
-            # write our own parser for this.
-            condition = replace(condition, lhs=Column(column_name))
-
         if condition.lhs == Column(column_name):
             if condition.op in [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]:
                 filters = (
@@ -668,10 +667,9 @@ def _get_filters_for_condition(column_name: str, condition: Union[Condition, Boo
                     if isinstance(condition.rhs, str)
                     else {elem for elem in condition.rhs}
                 )
-                if condition.op in [Op.EQ, Op.IN]:
-                    op = Op.IN
-                else:
-                    op = Op.NOT_IN
+                op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[
+                    condition.op
+                ]
                 return op, filters
             raise InvalidParams(
                 f"Unable to resolve {column_name} filter due to unsupported op {condition.op}"
