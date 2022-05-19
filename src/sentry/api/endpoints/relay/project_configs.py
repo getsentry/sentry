@@ -1,5 +1,6 @@
 import logging
 import random
+from typing import Optional
 
 from django.conf import settings
 from rest_framework.request import Request
@@ -82,10 +83,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         return Response(configs, status=200)
 
-    def _get_cached_or_schedule(self, public_key):
+    def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
         """
         Returns the config of a project if it's in the cache; else, schedules a
-        task to compute and write it into the cache, and returns False.
+        task to compute and write it into the cache.
 
         Debouncing of the project happens after the task has been scheduled.
         """
@@ -95,7 +96,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if projectconfig_debounce_cache.is_debounced(
             public_key=public_key, project_id=None, organization_id=None
         ):
-            return False
+            return
 
         update_config_cache.delay(
             generate=True,
@@ -113,7 +114,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         projectconfig_debounce_cache.debounce(
             public_key=public_key, project_id=None, organization_id=None
         )
-        return False
+        return
 
     def _post_by_key(self, request: Request, full_config_requested):
         public_keys = request.relay_request_data.get("publicKeys")
