@@ -45,10 +45,10 @@ def call_endpoint(client, relay, private_key, default_projectkey):
             public_keys = [str(default_projectkey.public_key)]
 
         if full_config is None:
-            raw_json, signature = private_key.pack({"publicKeys": public_keys})
+            raw_json, signature = private_key.pack({"publicKeys": public_keys, "no_cache": False})
         else:
             raw_json, signature = private_key.pack(
-                {"publicKeys": public_keys, "fullConfig": full_config}
+                {"publicKeys": public_keys, "fullConfig": full_config, "no_cache": False}
             )
 
         resp = client.post(
