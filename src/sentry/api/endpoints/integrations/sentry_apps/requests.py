@@ -12,13 +12,20 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryAppStatsPermission,)
 
     def format_request(self, request: Request, sentry_app):
+        response_code = request.get("response_code")
+
         formatted_request = {
             "webhookUrl": request.get("webhook_url"),
             "sentryAppSlug": sentry_app.slug,
             "eventType": request.get("event_type"),
             "date": request.get("date"),
-            "responseCode": request.get("response_code"),
+            "responseCode": response_code,
         }
+
+        if response_code >= 400 or response_code == 0:
+            formatted_request["requestBody"] = request.get("request_body")
+            formatted_request["requestHeaders"] = request.get("request_headers")
+            formatted_request["responseBody"] = request.get("response_body")
 
         if "error_id" in request and "project_id" in request:
             try:

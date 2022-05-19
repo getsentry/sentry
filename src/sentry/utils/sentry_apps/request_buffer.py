@@ -108,7 +108,17 @@ class SentryAppWebhookRequestsBuffer:
     def get_requests(self, event=None, errors_only=False):
         return self._get_requests(event=event, error=errors_only)
 
-    def add_request(self, response_code, org_id, event, url, error_id=None, project_id=None):
+    def add_request(
+        self,
+        response_code,
+        org_id,
+        event,
+        url,
+        error_id=None,
+        project_id=None,
+        response=None,
+        headers=None,
+    ):
         if event not in EXTENDED_VALID_EVENTS:
             logger.warning(f"Event {event} is not a valid event that can be stored.")
             return
@@ -121,6 +131,12 @@ class SentryAppWebhookRequestsBuffer:
             "response_code": response_code,
             "webhook_url": url,
         }
+        if response_code >= 400 or response_code == 0:  # we use 0 for timeouts
+            request_data["request_body"] = response.request.body
+            request_data["request_headers"] = headers
+            # request_data["response_body"] = response.content
+            request_data["response_body"] = response.reason
+            # which one do we want?
 
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway
         if not self.sentry_app.is_internal:
