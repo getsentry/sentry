@@ -78,7 +78,7 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName | st
     case DynamicSamplingInnerName.EVENT_OS_NAME:
       return t('ex. Mac OS X, Windows');
     case DynamicSamplingInnerName.EVENT_OS_VERSION:
-      return t('ex. 11, 9*');
+      return t('ex. 11, 9* (Multiline)');
     case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
       return t('ex. Mac, Pixel*');
     case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
