@@ -29,6 +29,7 @@ import {
   FIELD_TO_METRICS_EXPRESSION,
   METRICS_EXPRESSION_TO_FIELD,
 } from '../widgetBuilder/releaseWidget/fields';
+import {MAX_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
@@ -226,7 +227,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       case DisplayType.BIG_NUMBER:
         return 1;
       default:
-        return limit ?? 10; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
+        return limit ?? MAX_RESULTS_LIMIT; // TODO(dam): Can be changed to undefined once [INGEST-1079] is resolved
     }
   }
 
@@ -302,7 +303,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           end,
           environment: environments,
           groupBy: columns.map(fieldsToDerivedMetrics),
-          limit: unsupportedOrderby || rawOrderby === '' ? 10 : this.limit,
+          limit: unsupportedOrderby || rawOrderby === '' ? MAX_RESULTS_LIMIT : this.limit,
           orderBy: unsupportedOrderby
             ? ''
             : isDescending
