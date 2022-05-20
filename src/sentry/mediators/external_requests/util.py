@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from sentry.http import safe_urlopen
 from sentry.models import SentryApp
 from sentry.models.integrations.sentry_app import track_response_code
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 logger = logging.getLogger(__name__)
 

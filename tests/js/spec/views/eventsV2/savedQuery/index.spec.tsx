@@ -347,11 +347,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
 
     it('opens a modal with the correct params for top 5 display mode', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const testData = initializeOrg({
         ...initializeOrg(),
@@ -407,11 +403,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
 
     it('opens a modal with the correct params for default display mode', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const testData = initializeOrg({
         ...initializeOrg(),
