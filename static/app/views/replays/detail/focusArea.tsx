@@ -55,6 +55,8 @@ function FocusArea({replay}: Props) {
       ]);
       return (
         <Console
+          setCurrentHoverTime={setCurrentHoverTime}
+          setCurrentTime={setCurrentTime}
           breadcrumbs={consoleMessages ?? []}
           startTimestamp={event?.startTimestamp}
         />

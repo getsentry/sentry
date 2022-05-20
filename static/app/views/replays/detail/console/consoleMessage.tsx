@@ -66,12 +66,18 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 
 interface ConsoleMessageProps extends MessageFormatterProps {
   isLast: boolean;
+  onClick: () => void;
+  onMouseOut: () => void;
+  onMouseOver: () => void;
   relativeTimestamp: string;
 }
 function ConsoleMessage({
   breadcrumb,
   isLast,
   relativeTimestamp = '',
+  onClick,
+  onMouseOver,
+  onMouseOut,
 }: ConsoleMessageProps) {
   const ICONS = {
     error: <IconClose isCircled size="xs" />,
@@ -88,7 +94,12 @@ function ConsoleMessage({
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
         <Hovercard body={`${t('Relative Time')}: ${relativeTimestamp}`}>
-          <DateTime date={breadcrumb.timestamp} />
+          <DateTime
+            date={breadcrumb.timestamp}
+            onClick={onClick}
+            onMouseOver={onMouseOver}
+            onMouseOut={onMouseOut}
+          />
         </Hovercard>
       </ConsoleTimestamp>
     </Fragment>

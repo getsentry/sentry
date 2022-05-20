@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
-import {showPlayerTime} from 'sentry/components/replays/utils';
+import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -15,13 +15,20 @@ import ConsoleMessage from './consoleMessage';
 
 interface Props {
   breadcrumbs: BreadcrumbTypeDefault[];
+  setCurrentHoverTime: (time: undefined | number) => void;
+  setCurrentTime: (time: number) => void;
   startTimestamp: number;
 }
 
 const getDistinctLogLevels = breadcrumbs =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
-function Console({breadcrumbs, startTimestamp = 0}: Props) {
+function Console({
+  breadcrumbs,
+  startTimestamp = 0,
+  setCurrentTime,
+  setCurrentHoverTime,
+}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
   const handleSearch = debounce(query => setSearchTerm(query), 150);
@@ -59,17 +66,31 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
 
       {filteredBreadcrumbs.length > 0 ? (
         <ConsoleTable>
-          {filteredBreadcrumbs.map((breadcrumb, i) => (
-            <ConsoleMessage
-              relativeTimestamp={showPlayerTime(
-                breadcrumb.timestamp || '',
-                startTimestamp
-              )}
-              key={i}
-              isLast={i === breadcrumbs.length - 1}
-              breadcrumb={breadcrumb}
-            />
-          ))}
+          {filteredBreadcrumbs.map((breadcrumb, i) => {
+            const onClick = () =>
+              setCurrentTime(
+                relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp)
+              );
+            const onMouseOver = () =>
+              setCurrentHoverTime(
+                relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp)
+              );
+            const onMouseOut = () => setCurrentHoverTime(undefined);
+            return (
+              <ConsoleMessage
+                onClick={onClick}
+                onMouseOver={onMouseOver}
+                onMouseOut={onMouseOut}
+                relativeTimestamp={showPlayerTime(
+                  breadcrumb.timestamp || '',
+                  startTimestamp
+                )}
+                key={i}
+                isLast={i === breadcrumbs.length - 1}
+                breadcrumb={breadcrumb}
+              />
+            );
+          })}
         </ConsoleTable>
       ) : (
         <StyledEmptyMessage title={t('No results found.')} />
