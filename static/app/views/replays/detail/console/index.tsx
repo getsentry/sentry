@@ -67,14 +67,9 @@ function Console({
       {filteredBreadcrumbs.length > 0 ? (
         <ConsoleTable>
           {filteredBreadcrumbs.map((breadcrumb, i) => {
-            const onClick = () =>
-              setCurrentTime(
-                relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp)
-              );
-            const onMouseOver = () =>
-              setCurrentHoverTime(
-                relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp)
-              );
+            const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp);
+            const onClick = () => setCurrentTime(diff);
+            const onMouseOver = () => setCurrentHoverTime(diff);
             const onMouseOut = () => setCurrentHoverTime(undefined);
             return (
               <ConsoleMessage
