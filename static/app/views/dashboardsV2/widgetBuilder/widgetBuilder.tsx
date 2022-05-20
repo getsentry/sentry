@@ -91,7 +91,7 @@ import {
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
 
-function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
+function getDataSetQuery(hasOrderby: boolean): Record<DataSet, WidgetQuery> {
   return {
     [DataSet.EVENTS]: {
       name: '',
@@ -100,7 +100,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: ['count()'],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? '-count()' : '',
+      orderby: hasOrderby ? '-count()' : '',
     },
     [DataSet.ISSUES]: {
       name: '',
@@ -109,7 +109,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: [],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
+      orderby: hasOrderby ? IssueSortOptions.DATE : '',
     },
     [DataSet.RELEASES]: {
       name: '',
@@ -118,7 +118,7 @@ function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, Widge
       fieldAliases: [],
       aggregates: [`crash_free_rate(${SessionField.SESSION})`],
       conditions: '',
-      orderby: widgetBuilderNewDesign ? `-crash_free_rate(${SessionField.SESSION})` : '',
+      orderby: hasOrderby ? `-crash_free_rate(${SessionField.SESSION})` : '',
     },
   };
 }
@@ -278,7 +278,11 @@ function WidgetBuilder({
       }
     } else {
       defaultState.queries = [
-        {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
+        {
+          ...getDataSetQuery(defaultState.displayType === DisplayType.TABLE)[
+            DataSet.EVENTS
+          ],
+        },
       ];
     }
 
@@ -462,7 +466,7 @@ function WidgetBuilder({
           'queries',
           normalizeQueries({
             displayType: newDisplayType,
-            queries: [{...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]}],
+            queries: [{...getDataSetQuery(isTabularChart)[DataSet.EVENTS]}],
             widgetType: WidgetType.DISCOVER,
             widgetBuilderNewDesign,
           })
@@ -599,7 +603,7 @@ function WidgetBuilder({
         ...(widgetToBeUpdated?.widgetType &&
         WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
           ? widgetToBeUpdated.queries
-          : [{...getDataSetQuery(widgetBuilderNewDesign)[newDataSet]}])
+          : [{...getDataSetQuery(isTabularChart)[newDataSet]}])
       );
 
       set(newState, 'userHasModified', true);
@@ -610,7 +614,7 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[prevState.dataSet]);
+      const query = cloneDeep(getDataSetQuery(isTabularChart)[prevState.dataSet]);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
