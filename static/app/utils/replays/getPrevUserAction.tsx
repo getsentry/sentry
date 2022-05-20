@@ -15,16 +15,15 @@ export function getPrevUserAction(
     return undefined;
   }
 
-  if (userActionCrumbs.length === 1) {
-    return currentHoverTime >=
-      relativeTimeInMs(userActionCrumbs[0].timestamp ?? '', startTimestamp)
-      ? userActionCrumbs[0]
-      : undefined;
-  }
-
-  return userActionCrumbs.reduce((prev, curr) => {
-    return currentHoverTime >= relativeTimeInMs(curr.timestamp ?? '', startTimestamp)
+  const prevUserAction = userActionCrumbs.reduce((prev, curr) => {
+    return curr &&
+      currentHoverTime >= relativeTimeInMs(curr.timestamp ?? '', startTimestamp)
       ? curr
       : prev;
   });
+
+  return currentHoverTime >=
+    relativeTimeInMs(prevUserAction.timestamp ?? '', startTimestamp)
+    ? prevUserAction
+    : undefined;
 }

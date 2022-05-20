@@ -1,9 +1,8 @@
 import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevUserAction} from 'sentry/utils/replays/getPrevUserAction';
 
-// Values declared in ms.
-const START_TIMESTAMP = 1651693622.951;
-const CURRENT_TIME = 15000;
+const START_TIMESTAMP_MS = 1651693622.951;
+const CURRENT_TIME_MS = 15000;
 
 function createUserActionCrumbs(): Crumb[] {
   return [
@@ -75,28 +74,40 @@ describe('getPrevUserAction', function () {
   it(`should return the previous user action even if the timestamp
     is closer to the next action`, function () {
     const userActionCrumbs: Crumb[] = createUserActionCrumbs();
-    const results = getPrevUserAction(userActionCrumbs, START_TIMESTAMP, CURRENT_TIME);
+    const results = getPrevUserAction(
+      userActionCrumbs,
+      START_TIMESTAMP_MS,
+      CURRENT_TIME_MS
+    );
 
     expect(results?.id).toEqual(4);
   });
 
   it('should return undefined when userActions is not defined', function () {
     const userActionCrumbs = [];
-    const results = getPrevUserAction(userActionCrumbs, START_TIMESTAMP, CURRENT_TIME);
+    const results = getPrevUserAction(
+      userActionCrumbs,
+      START_TIMESTAMP_MS,
+      CURRENT_TIME_MS
+    );
 
     expect(results).toBeUndefined();
   });
 
   it('should return undefined when startTimestamp is not defined or is equal to 0', function () {
     const userActionCrumbs: Crumb[] = createUserActionCrumbs();
-    const results = getPrevUserAction(userActionCrumbs, 0, CURRENT_TIME);
+    const results = getPrevUserAction(userActionCrumbs, 0, CURRENT_TIME_MS);
 
     expect(results).toBeUndefined();
   });
 
   it('should return undefined when userActions has only item and the current time is before that item', function () {
     const userActionscrumbs: Crumb[] = createUserActionCrumbs().slice(4, 5);
-    const results = getPrevUserAction(userActionscrumbs, START_TIMESTAMP, CURRENT_TIME);
+    const results = getPrevUserAction(
+      userActionscrumbs,
+      START_TIMESTAMP_MS,
+      CURRENT_TIME_MS
+    );
 
     expect(results).toBeUndefined();
   });
@@ -104,7 +115,11 @@ describe('getPrevUserAction', function () {
   it('should return the user action when timestamp matches the timestamp of a breadcrumb', function () {
     const userActionCrumbs: Crumb[] = createUserActionCrumbs();
     const exactCrumbTime: number = 8135;
-    const results = getPrevUserAction(userActionCrumbs, START_TIMESTAMP, exactCrumbTime);
+    const results = getPrevUserAction(
+      userActionCrumbs,
+      START_TIMESTAMP_MS,
+      exactCrumbTime
+    );
 
     expect(results?.id).toEqual(4);
   });
