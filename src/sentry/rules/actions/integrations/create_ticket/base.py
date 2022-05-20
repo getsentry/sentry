@@ -3,11 +3,12 @@ from __future__ import annotations
 import abc
 from typing import Any, Generator, Mapping
 
+from sentry.eventstore.models import Event
 from sentry.models import Integration
 from sentry.rules.actions.integrations.base import IntegrationEventAction
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.rules.actions.integrations.create_ticket.utils import create_issue
-from sentry.rules.base import CallbackFuture, Event, EventState
+from sentry.rules.base import CallbackFuture, EventState
 
 
 class TicketEventAction(IntegrationEventAction, abc.ABC):
