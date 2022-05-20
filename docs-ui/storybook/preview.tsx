@@ -44,6 +44,7 @@ addDecorator(WithThemeStory);
 const WithThemeDocs: DecoratorFn = ({children, context}) => {
   const isDark = useDarkMode();
   const currentTheme = isDark ? darkTheme : lightTheme;
+  currentTheme.bg = currentTheme.background;
 
   // Set @storybook/addon-backgrounds current color based on theme
   if (context.globals.theme) {
@@ -53,16 +54,12 @@ const WithThemeDocs: DecoratorFn = ({children, context}) => {
   const {hideToc} = context.parameters;
 
   return (
-    <Fragment>
-      <DocsContainer context={context}>
-        <GlobalStyles isDark={isDark} theme={currentTheme} />
-        <DocsGlobalStyles theme={currentTheme} />
-        <ThemeProvider theme={currentTheme}>{children}</ThemeProvider>
-      </DocsContainer>
-      <ThemeProvider theme={currentTheme}>
-        <TableOfContents hidden={!!hideToc} />
-      </ThemeProvider>
-    </Fragment>
+    <ThemeProvider theme={currentTheme}>
+      <GlobalStyles isDark={isDark} theme={currentTheme} />
+      <DocsGlobalStyles theme={currentTheme} />
+      <DocsContainer context={context}>{children}</DocsContainer>
+      <TableOfContents hidden={!!hideToc} />
+    </ThemeProvider>
   );
 };
 
