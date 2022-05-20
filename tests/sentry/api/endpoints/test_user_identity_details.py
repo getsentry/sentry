@@ -20,6 +20,6 @@ class DeleteUserIdentityTest(APITestCase):
             user=self.user,
         )
 
-        self.get_valid_response(self.user.id, auth_identity.id, status_code=204)
+        self.get_success_response(self.user.id, auth_identity.id, status_code=204)
 
         assert not AuthIdentity.objects.filter(id=auth_identity.id).exists()

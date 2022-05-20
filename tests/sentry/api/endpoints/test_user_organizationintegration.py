@@ -17,5 +17,5 @@ class UserOrganizationIntegationTest(APITestCase):
             organization_id=self.organization.id, integration_id=integration.id
         )
 
-        response = self.get_valid_response(self.user.id)
+        response = self.get_success_response(self.user.id)
         assert response.data[0]["organizationId"] == self.organization.id

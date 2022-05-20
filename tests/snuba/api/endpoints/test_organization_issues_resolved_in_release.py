@@ -61,7 +61,7 @@ class OrganizationIssuesResolvedInReleaseEndpointTest(APITestCase, SnubaTestCase
         if environment_names:
             params["environment"] = environment_names
 
-        response = self.get_valid_response(self.org.slug, self.release.version, **params)
+        response = self.get_success_response(self.org.slug, self.release.version, **params)
         assert len(response.data) == len(expected_groups)
         expected = set(map(str, [g.id for g in expected_groups]))
         assert {item["id"] for item in response.data} == expected

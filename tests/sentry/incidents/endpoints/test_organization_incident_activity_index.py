@@ -62,10 +62,12 @@ class OrganizationIncidentActivityIndexTest(APITestCase):
         expected = serialize(activities, user=self.user)
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(incident.organization.slug, incident.identifier, desc=0)
+            resp = self.get_success_response(
+                incident.organization.slug, incident.identifier, desc=0
+            )
         assert resp.data == expected
 
         expected.reverse()
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(incident.organization.slug, incident.identifier)
+            resp = self.get_success_response(incident.organization.slug, incident.identifier)
         assert resp.data == expected
