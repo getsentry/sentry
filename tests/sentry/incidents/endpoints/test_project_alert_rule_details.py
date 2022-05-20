@@ -16,7 +16,7 @@ from sentry.models import AuditLogEntry, Integration
 from sentry.testutils import APITestCase
 
 
-class AlertRuleDetailsBase:
+class AlertRuleDetailsBase(APITestCase):
     endpoint = "sentry-api-0-project-alert-rule-details"
 
     def setUp(self):
@@ -74,7 +74,7 @@ class AlertRuleDetailsBase:
         self.endpoint = "sentry-api-0-organization-alert-rules"
         self.method = "get"
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug)
+            resp = self.get_success_response(self.organization.slug)
             assert len(resp.data) >= 1
             serialized_alert_rule = resp.data[0]
         self.endpoint = original_endpoint
@@ -101,11 +101,11 @@ class AlertRuleDetailsBase:
         assert resp.status_code == 404
 
 
-class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
+class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         self.login_as(self.member_user)
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id
             )
 
@@ -115,12 +115,14 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase, APITestCase):
         self.login_as(self.owner_user)
         alert_rule = self.create_alert_rule(aggregate="count_unique(tags[sentry:user])")
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(self.organization.slug, self.project.slug, alert_rule.id)
+            resp = self.get_success_response(
+                self.organization.slug, self.project.slug, alert_rule.id
+            )
             assert resp.data["aggregate"] == "count_unique(user)"
             assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
 
-class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
+class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
     def setUp(self):
@@ -133,7 +135,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         test_params.update({"name": "what"})
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
@@ -154,7 +156,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         test_params["aggregate"] = self.alert_rule.snuba_query.aggregate
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, **test_params
             )
 
@@ -178,7 +180,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         alert_rule.save()
 
         with self.feature("organizations:incidents"):
-            self.get_valid_response(
+            self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 alert_rule.id,
@@ -381,7 +383,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         test_params["owner"] = None
 
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(
+            resp = self.get_success_response(
                 self.organization.slug, self.project.slug, alert_rule.id, **test_params
             )
 
@@ -413,7 +415,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
             ],
         }
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            self.get_valid_response(
+            self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 self.alert_rule.id,
@@ -467,7 +469,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         ]
 
         with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            self.get_valid_response(
+            self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 self.alert_rule.id,
@@ -531,7 +533,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase, APITestCase):
         assert error_message in resp.data["sentry_app"]
 
 
-class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
+class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase):
     method = "delete"
 
     def setUp(self):
@@ -540,7 +542,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
 
     def test_simple(self):
         with self.feature("organizations:incidents"):
-            self.get_valid_response(
+            self.get_success_response(
                 self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
             )
 
@@ -559,7 +561,7 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
             incident = self.create_incident(alert_rule=self.alert_rule)
 
             with self.feature("organizations:incidents"):
-                self.get_valid_response(
+                self.get_success_response(
                     self.organization.slug, self.project.slug, self.alert_rule.id, status_code=204
                 )
 

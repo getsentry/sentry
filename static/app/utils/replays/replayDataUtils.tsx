@@ -3,8 +3,10 @@ import type {eventWithTime} from 'rrweb/typings/types';
 
 import {getVirtualCrumb} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
-import {Entry, EntryType, Event} from 'sentry/types/event';
+import {t} from 'sentry/locale';
+import type {BreadcrumbTypeDefault, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {Entry, EntryType, Event, EventTag} from 'sentry/types/event';
 
 export function rrwebEventListFactory(
   startTimestampMS: number,
@@ -56,12 +58,25 @@ export function breadcrumbValuesFromEvents(events: Event[]) {
   return ([] as RawCrumb[]).concat(fromEntries).concat(fromEvents);
 }
 
-export function breadcrumbEntryFactory(_startTimestamp: number, rawCrumbs: RawCrumb[]) {
-  // TODO: insert init breadcrumb
+export function breadcrumbEntryFactory(
+  startTimestamp: number,
+  tags: EventTag[],
+  rawCrumbs: RawCrumb[]
+) {
+  const initBreadcrumb = {
+    type: BreadcrumbType.INIT,
+    timestamp: new Date(startTimestamp).toISOString(),
+    level: BreadcrumbLevelType.INFO,
+    action: 'replay-init',
+    message: t('Start recording'),
+    data: {
+      url: tags.find(tag => tag.key === 'url')?.value,
+    },
+  } as BreadcrumbTypeDefault;
 
   const stringified = rawCrumbs.map(value => JSON.stringify(value));
   const deduped = Array.from(new Set(stringified));
-  const values = deduped.map(value => JSON.parse(value));
+  const values = [initBreadcrumb].concat(deduped.map(value => JSON.parse(value)));
 
   values.sort((a, b) => +new Date(a?.timestamp || 0) - +new Date(b?.timestamp || 0));
 

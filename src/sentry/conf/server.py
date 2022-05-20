@@ -12,8 +12,6 @@ import tempfile
 from datetime import timedelta
 from urllib.parse import urlparse
 
-from django.conf.global_settings import *  # NOQA
-
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -945,6 +943,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
+    # Enables events endpoint usage on frontend
+    "organizations:discover-frontend-use-events-endpoint": False,
     # Enable duplicating alert rules.
     "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
@@ -2585,6 +2585,9 @@ SAMPLED_DEFAULT_RATE = 1.0
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS = {}
+
+# A set of extra tasks to sample
+ADDITIONAL_SAMPLED_TASKS = {}
 
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.

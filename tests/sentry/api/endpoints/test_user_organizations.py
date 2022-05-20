@@ -11,6 +11,6 @@ class UserOrganizationsTest(APITestCase):
     def test_simple(self):
         organization_id = self.organization.id  # force creation
 
-        response = self.get_valid_response("me")
+        response = self.get_success_response("me")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(organization_id)

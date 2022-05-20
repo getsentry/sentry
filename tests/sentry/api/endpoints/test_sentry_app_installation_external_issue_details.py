@@ -31,11 +31,11 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
 
     def test_deletes_external_issue(self):
         assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
-        self.get_valid_response(self.install.uuid, self.external_issue.id, status_code=204)
+        self.get_success_response(self.install.uuid, self.external_issue.id, status_code=204)
         assert not PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
 
     def test_handles_non_existing_external_issue(self):
-        self.get_valid_response(self.install.uuid, 999999, status_code=404)
+        self.get_error_response(self.install.uuid, 999999, status_code=404)
 
     def test_handles_issue_from_wrong_org(self):
         """
@@ -55,5 +55,5 @@ class SentryAppInstallationExternalIssueDetailsEndpointTest(APITestCase):
             organization=evil_org, slug=evil_sentry_app.slug, user=evil_user
         )
 
-        self.get_valid_response(evil_install.uuid, self.external_issue.id, status_code=404)
+        self.get_error_response(evil_install.uuid, self.external_issue.id, status_code=404)
         assert PlatformExternalIssue.objects.filter(id=self.external_issue.id).exists()
