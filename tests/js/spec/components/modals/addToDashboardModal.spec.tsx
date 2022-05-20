@@ -28,7 +28,7 @@ describe('add to dashboard modal', () => {
   const initialData = initializeOrg({
     ...initializeOrg(),
     organization: {
-      features: ['new-widget-builder-experience', 'new-widget-builder-experience-design'],
+      features: ['new-widget-builder-experience-design'],
     },
   });
   const testDashboard: DashboardDetails = {

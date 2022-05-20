@@ -312,7 +312,6 @@ describe('Dashboards > Dashboard', () => {
             'dashboards-basic',
             'dashboards-edit',
             'dashboard-grid-layout',
-            'new-widget-builder-experience',
             'new-widget-builder-experience-design',
           ],
         },

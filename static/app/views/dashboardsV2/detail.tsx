@@ -156,7 +156,7 @@ class DashboardDetail extends Component<Props, State> {
           },
           onEdit: () => {
             if (
-              organization.features.includes('new-widget-builder-experience') &&
+              organization.features.includes('new-widget-builder-experience-design') &&
               !organization.features.includes(
                 'new-widget-builder-experience-modal-access'
               )
@@ -441,7 +441,7 @@ class DashboardDetail extends Component<Props, State> {
     });
 
     if (
-      organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-design') &&
       !organization.features.includes('new-widget-builder-experience-modal-access')
     ) {
       if (dashboardId) {

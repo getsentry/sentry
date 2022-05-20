@@ -269,11 +269,7 @@ describe('EventsV2 > QueryList', function () {
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const wrapper = mountWithTheme(
         <QueryList
@@ -343,11 +339,7 @@ describe('EventsV2 > QueryList', function () {
 
     it('opens a modal with the correct params for other chart', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const wrapper = mountWithTheme(
         <QueryList
