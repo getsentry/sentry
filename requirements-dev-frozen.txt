@@ -4,92 +4,70 @@
 #
 #    pip-compile --output-file=requirements-dev-frozen.txt requirements-base.txt requirements-dev.txt
 #
-amqp==5.1.1
+amqp==2.6.1
     # via kombu
-asgiref==3.5.2
-    # via django
-async-generator==1.10
-    # via
-    #   trio
-    #   trio-websocket
 attrs==21.4.0
     # via
     #   flake8-bugbear
     #   jsonschema
     #   openapi-core
-    #   outcome
     #   pytest
-    #   trio
-backports-zoneinfo==0.2.1
-    # via django
-beautifulsoup4==4.11.1
+beautifulsoup4==4.7.1
     # via -r requirements-base.txt
-billiard==3.6.4.0
+billiard==3.6.3.0
     # via
     #   -r requirements-base.txt
     #   celery
 black==22.3.0
     # via -r requirements-dev.txt
-boto3==1.23.4
+boto3==1.13.16
     # via -r requirements-base.txt
-botocore==1.26.4
+botocore==1.16.16
     # via
     #   -r requirements-base.txt
     #   boto3
     #   s3transfer
-brotli==1.0.9
-    # via urllib3
 brotlipy==0.7.0
-    # via -r requirements-base.txt
-cachetools==5.1.0
+    # via
+    #   -r requirements-base.txt
+    #   urllib3
+cachetools==4.2.4
     # via google-auth
-celery==5.2.6
+celery==4.4.7
     # via -r requirements-base.txt
 certifi==2022.5.18.1
     # via
     #   requests
     #   sentry-sdk
-    #   urllib3
-cffi==1.15.0
+cffi==1.14.5
     # via
     #   -r requirements-base.txt
     #   brotlipy
     #   cryptography
+    #   google-crc32c
     #   milksnake
 cfgv==3.3.1
     # via pre-commit
-charset-normalizer==2.0.12
+chardet==4.0.0
     # via requests
-click==8.1.3
+click==8.0.4
     # via
     #   -r requirements-base.txt
     #   black
-    #   celery
-    #   click-didyoumean
-    #   click-plugins
-    #   click-repl
-click-didyoumean==0.3.0
-    # via celery
-click-plugins==1.1.1
-    # via celery
-click-repl==0.2.0
-    # via celery
 confluent-kafka==1.7.0
     # via
     #   -r requirements-base.txt
     #   sentry-arroyo
-coverage[toml]==6.3.3
+coverage==6.3.3
     # via pytest-cov
-croniter==1.3.5
+croniter==0.3.37
     # via -r requirements-base.txt
-cryptography==37.0.2
+cryptography==3.4.8
     # via
     #   -r requirements-base.txt
     #   fido2
-    #   pyopenssl
     #   python-u2flib-server
-    #   urllib3
-cssselect==1.1.0
+cssselect==1.0.3
     # via
     #   -r requirements-base.txt
     #   toronado
@@ -97,40 +75,44 @@ cssutils==2.4.0
     # via
     #   -r requirements-base.txt
     #   toronado
-datadog==0.44.0
+datadog==0.29.3
     # via -r requirements-base.txt
+decorator==5.1.1
+    # via datadog
 dictpath==0.1.3
     # via openapi-core
 distlib==0.3.4
     # via virtualenv
-django==4.0.4
+django==2.2.28
     # via
     #   -r requirements-base.txt
     #   django-pg-zero-downtime-migrations
     #   django-picklefield
     #   djangorestframework
     #   drf-spectacular
-django-crispy-forms==1.14.0
+django-crispy-forms==1.8.1
     # via -r requirements-base.txt
-django-pg-zero-downtime-migrations==0.11
+django-pg-zero-downtime-migrations==0.10
     # via -r requirements-base.txt
-django-picklefield==3.0.1
+django-picklefield==2.1.0
     # via -r requirements-base.txt
-djangorestframework==3.13.1
+djangorestframework==3.11.2
     # via
     #   -r requirements-base.txt
     #   drf-spectacular
-docker==3.7.3
+docker==3.7.0
     # via -r requirements-dev.txt
 docker-pycreds==0.4.0
     # via docker
+docutils==0.15.2
+    # via botocore
 drf-spectacular==0.22.1
     # via -r requirements-base.txt
 email-reply-parser==0.5.12
     # via -r requirements-base.txt
-exam==0.10.6
+exam==0.5.1
     # via -r requirements-dev.txt
-fido2==0.9.3
+fido2==0.9.2
     # via -r requirements-base.txt
 filelock==3.7.0
     # via virtualenv
@@ -140,75 +122,59 @@ flake8==4.0.1
     #   flake8-bugbear
 flake8-bugbear==22.4.25
     # via -r requirements-dev.txt
-freezegun==1.2.1
+freezegun==1.1.0
     # via -r requirements-dev.txt
-google-api-core[grpc]==2.8.0
+google-api-core[grpc]==1.25.1
     # via
     #   -r requirements-base.txt
     #   google-cloud-bigtable
     #   google-cloud-core
     #   google-cloud-pubsub
-    #   google-cloud-storage
-google-auth==2.6.6
+google-auth==1.24.0
     # via
     #   -r requirements-base.txt
     #   google-api-core
-    #   google-cloud-core
     #   google-cloud-storage
-google-cloud-bigtable==2.9.0
+google-cloud-bigtable==1.6.1
     # via -r requirements-base.txt
-google-cloud-core==2.3.0
+google-cloud-core==1.5.0
     # via
     #   -r requirements-base.txt
     #   google-cloud-bigtable
     #   google-cloud-storage
-google-cloud-pubsub==2.12.1
+google-cloud-pubsub==2.2.0
     # via -r requirements-base.txt
-google-cloud-storage==2.3.0
+google-cloud-storage==1.35.0
     # via -r requirements-base.txt
-google-crc32c==1.3.0
+google-crc32c==1.1.2
     # via
     #   -r requirements-base.txt
     #   google-resumable-media
-google-resumable-media==2.3.3
+google-resumable-media==1.3.3
     # via google-cloud-storage
-googleapis-common-protos[grpc]==1.56.1
+googleapis-common-protos[grpc]==1.56.0
     # via
     #   -r requirements-base.txt
     #   google-api-core
     #   grpc-google-iam-v1
-    #   grpcio-status
 grpc-google-iam-v1==0.12.4
     # via
     #   google-cloud-bigtable
     #   google-cloud-pubsub
-grpcio==1.46.1
+grpcio==1.40.0
     # via
     #   -r requirements-base.txt
     #   google-api-core
-    #   google-cloud-pubsub
     #   googleapis-common-protos
     #   grpc-google-iam-v1
-    #   grpcio-status
-grpcio-status==1.46.1
-    # via
-    #   google-api-core
-    #   google-cloud-pubsub
-h11==0.13.0
-    # via wsproto
-hiredis==2.0.0
+hiredis==0.3.1
     # via -r requirements-base.txt
-honcho==1.0.1
+honcho==1.0.0
     # via -r requirements-dev.txt
 identify==2.5.1
     # via pre-commit
-idna==3.3
-    # via
-    #   requests
-    #   trio
-    #   urllib3
-importlib-resources==5.7.1
-    # via jsonschema
+idna==2.10
+    # via requests
 inflection==0.5.1
     # via drf-spectacular
 iniconfig==1.1.1
@@ -219,29 +185,31 @@ isodate==0.6.1
     #   python3-saml
 isort==5.10.1
     # via -r requirements-dev.txt
-jmespath==1.0.0
+jmespath==0.10.0
     # via
     #   boto3
     #   botocore
-jsonschema==4.5.1
+jsonschema==3.2.0
     # via
     #   -r requirements-base.txt
     #   drf-spectacular
     #   openapi-schema-validator
     #   openapi-spec-validator
-kombu==5.2.4
+kombu==4.6.11
     # via
     #   -r requirements-base.txt
     #   celery
 lazy-object-proxy==1.7.1
     # via openapi-core
+libcst==0.4.3
+    # via google-cloud-pubsub
 lxml==4.6.5
     # via
     #   -r requirements-base.txt
     #   python3-saml
     #   toronado
     #   xmlsec
-maxminddb==2.2.0
+maxminddb==2.0.3
     # via -r requirements-base.txt
 mccabe==0.6.1
     # via flake8
@@ -257,7 +225,7 @@ mock==4.0.3
     # via exam
 more-itertools==8.13.0
     # via openapi-core
-msgpack==1.0.3
+msgpack==1.0.0
     # via -r requirements-base.txt
 msgpack-types==0.2.0
     # via -r requirements-dev.txt
@@ -269,6 +237,9 @@ mypy-extensions==0.4.3
     # via
     #   black
     #   mypy
+    #   typing-inspect
+natsort==8.1.0
+    # via croniter
 nodeenv==1.6.0
     # via pre-commit
 oauthlib==3.2.0
@@ -281,50 +252,42 @@ openapi-schema-validator==0.2.3
     #   openapi-spec-validator
 openapi-spec-validator==0.4.0
     # via openapi-core
-outcome==1.1.0
-    # via trio
 packaging==21.3
     # via
     #   -r requirements-base.txt
     #   pytest
 parse==1.19.0
     # via openapi-core
-parsimonious==0.9.0
+parsimonious==0.8.0
     # via -r requirements-base.txt
 pathspec==0.9.0
     # via black
 petname==2.6
     # via -r requirements-base.txt
-phabricator==0.9.1
+phabricator==0.7.0
     # via -r requirements-base.txt
-phonenumberslite==8.12.48
+phonenumberslite==8.12.0
     # via -r requirements-base.txt
-pillow==9.1.1
+pillow==9.0.1
     # via -r requirements-base.txt
 platformdirs==2.5.2
     # via
     #   black
     #   virtualenv
-pluggy==1.0.0
+pluggy==0.13.1
     # via pytest
-pre-commit==2.19.0
+pre-commit==2.18.1
     # via -r requirements-dev.txt
-progressbar2==4.0.0
+progressbar2==3.41.0
     # via -r requirements-base.txt
-prompt-toolkit==3.0.29
-    # via click-repl
 proto-plus==1.20.4
-    # via
-    #   google-cloud-bigtable
-    #   google-cloud-pubsub
+    # via google-cloud-pubsub
 protobuf==3.20.1
     # via
     #   google-api-core
-    #   google-cloud-storage
     #   googleapis-common-protos
-    #   grpcio-status
     #   proto-plus
-psycopg2-binary==2.9.3
+psycopg2-binary==2.8.6
     # via -r requirements-base.txt
 py==1.11.0
     # via pytest
@@ -340,32 +303,28 @@ pycparser==2.21
     # via cffi
 pyflakes==2.4.0
     # via flake8
-pyjwt==2.4.0
+pyjwt==2.1.0
     # via -r requirements-base.txt
-pyopenssl==22.0.0
-    # via urllib3
 pyparsing==3.0.9
     # via packaging
 pyrsistent==0.18.1
     # via jsonschema
-pysocks==1.7.1
-    # via urllib3
-pytest==7.1.2
+pytest==6.1.0
     # via
     #   -r requirements-dev.txt
     #   pytest-cov
     #   pytest-django
     #   pytest-rerunfailures
     #   pytest-sentry
-pytest-cov==3.0.0
+pytest-cov==2.11.1
     # via -r requirements-dev.txt
-pytest-django==4.5.2
+pytest-django==3.10.0
     # via -r requirements-dev.txt
-pytest-rerunfailures==10.2
+pytest-rerunfailures==9.1.1
     # via -r requirements-dev.txt
 pytest-sentry==0.1.9
     # via -r requirements-dev.txt
-python-dateutil==2.8.2
+python-dateutil==2.8.1
     # via
     #   -r requirements-base.txt
     #   botocore
@@ -373,9 +332,9 @@ python-dateutil==2.8.2
     #   freezegun
 python-memcached==1.59
     # via -r requirements-base.txt
-python-rapidjson==1.6
+python-rapidjson==1.4
     # via -r requirements-base.txt
-python-u2flib-server==5.0.1
+python-u2flib-server==5.0.0
     # via -r requirements-base.txt
 python-utils==3.2.3
     # via progressbar2
@@ -384,13 +343,15 @@ python3-saml==1.14.0
 pytz==2022.1
     # via
     #   celery
-    #   djangorestframework
-pyupgrade==2.32.1
+    #   django
+    #   google-api-core
+pyupgrade==2.32.0
     # via -r requirements-dev.txt
-pyyaml==6.0
+pyyaml==5.4
     # via
     #   -r requirements-base.txt
     #   drf-spectacular
+    #   libcst
     #   openapi-spec-validator
     #   pre-commit
 rb==1.9.0
@@ -400,139 +361,127 @@ redis==3.4.1
     #   -r requirements-base.txt
     #   rb
     #   redis-py-cluster
-redis-py-cluster==2.1.3
+redis-py-cluster==2.1.0
     # via -r requirements-base.txt
-regex==2022.4.24
-    # via parsimonious
-requests==2.27.1
+requests==2.25.1
     # via
     #   -r requirements-base.txt
     #   datadog
     #   docker
     #   google-api-core
     #   google-cloud-storage
-    #   phabricator
     #   requests-oauthlib
     #   responses
-requests-oauthlib==1.3.1
+requests-oauthlib==1.2.0
     # via -r requirements-base.txt
-responses==0.20.0
+responses==0.10.12
     # via -r requirements-dev.txt
-rfc3339-validator==0.1.4
+rfc3339-validator==0.1.2
     # via -r requirements-base.txt
 rfc3986-validator==0.1.1
     # via -r requirements-base.txt
 rsa==4.8
     # via google-auth
-s3transfer==0.5.2
+s3transfer==0.3.7
     # via boto3
-selenium==4.1.5
+selenium==3.141.0
     # via -r requirements-base.txt
-sentry-arroyo==0.0.20
+sentry-arroyo==0.0.16
     # via -r requirements-base.txt
-sentry-relay==0.8.12
+sentry-relay==0.8.11
     # via -r requirements-base.txt
-sentry-sdk==1.5.12
+sentry-sdk==1.4.3
     # via
     #   -r requirements-base.txt
     #   pytest-sentry
-simplejson==3.17.6
+simplejson==3.17.2
     # via -r requirements-base.txt
 six==1.16.0
     # via
-    #   click-repl
     #   docker
     #   docker-pycreds
     #   fido2
+    #   google-api-core
     #   google-auth
+    #   google-cloud-core
+    #   google-resumable-media
     #   grpcio
     #   isodate
+    #   jsonschema
     #   openapi-core
+    #   parsimonious
+    #   progressbar2
     #   python-dateutil
     #   python-memcached
     #   python-u2flib-server
+    #   responses
     #   rfc3339-validator
     #   virtualenv
-sniffio==1.2.0
-    # via trio
 snuba-sdk==1.0.0
     # via -r requirements-base.txt
-sortedcontainers==2.4.0
-    # via trio
 soupsieve==2.3.2.post1
     # via beautifulsoup4
-sqlparse==0.4.2
+sqlparse==0.2.4
     # via
     #   -r requirements-base.txt
     #   django
-statsd==3.3.0
+statsd==3.3
     # via -r requirements-base.txt
-structlog==21.5.0
+structlog==21.1.0
     # via -r requirements-base.txt
-symbolic==8.7.2
+symbolic==8.7.1
     # via -r requirements-base.txt
 tokenize-rt==4.2.1
     # via pyupgrade
 toml==0.10.2
-    # via pre-commit
-tomli==2.0.1
     # via
-    #   black
-    #   coverage
+    #   pre-commit
     #   pytest
+tomli==2.0.1
+    # via black
 toronado==0.1.0
     # via -r requirements-base.txt
-trio==0.20.0
-    # via
-    #   selenium
-    #   trio-websocket
-trio-websocket==0.9.2
-    # via selenium
 typed-ast==1.4.3
     # via mypy
-typing-extensions==4.2.0
+typing-extensions==3.10.0.2
     # via
     #   -r requirements-base.txt
     #   black
+    #   libcst
     #   mypy
+    #   typing-inspect
+typing-inspect==0.7.1
+    # via libcst
 ua-parser==0.10.0
     # via -r requirements-base.txt
-unidiff==0.7.3
+unidiff==0.7.1
     # via -r requirements-base.txt
 uritemplate==4.1.1
     # via drf-spectacular
-urllib3[brotli,secure,socks]==1.26.9
+urllib3[brotli]==1.25.11
     # via
     #   -r requirements-base.txt
     #   botocore
     #   requests
-    #   responses
     #   selenium
     #   sentry-sdk
-uwsgi==2.0.20
+uwsgi==2.0.19.1
     # via -r requirements-base.txt
-vine==5.0.0
+vine==1.3.0
     # via
     #   amqp
     #   celery
-    #   kombu
 virtualenv==20.14.1
     # via pre-commit
-wcwidth==0.2.5
-    # via prompt-toolkit
 websocket-client==1.3.2
     # via docker
 werkzeug==2.1.2
     # via openapi-core
 wrapt==1.14.1
     # via pytest-sentry
-wsproto==1.1.0
-    # via trio-websocket
 xmlsec==1.3.12
     # via python3-saml
-zipp==3.8.0
-    # via importlib-resources
-zstandard==0.17.0
+zstandard==0.14.1
     # via -r requirements-base.txt
 
 # The following packages are considered to be unsafe in a requirements file:
