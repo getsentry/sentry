@@ -14,8 +14,6 @@ import ConsoleMessage from './consoleMessage';
 
 interface Props {
   breadcrumbs: BreadcrumbTypeDefault[];
-  setCurrentHoverTime: (time: undefined | number) => void;
-  setCurrentTime: (time: number) => void;
   startTimestamp: number;
 }
 
