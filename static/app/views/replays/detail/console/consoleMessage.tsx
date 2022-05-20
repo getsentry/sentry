@@ -6,6 +6,8 @@ import DateTime from 'sentry/components/dateTime';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {Hovercard} from 'sentry/components/hovercard';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -66,23 +68,20 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 
 interface ConsoleMessageProps extends MessageFormatterProps {
   isLast: boolean;
-  onClick: () => void;
-  onMouseOut: () => void;
-  onMouseOver: () => void;
-  relativeTimestamp: string;
+  startTimestamp: number;
 }
-function ConsoleMessage({
-  breadcrumb,
-  isLast,
-  relativeTimestamp = '',
-  onClick,
-  onMouseOver,
-  onMouseOut,
-}: ConsoleMessageProps) {
+function ConsoleMessage({breadcrumb, isLast, startTimestamp = 0}: ConsoleMessageProps) {
   const ICONS = {
     error: <IconClose isCircled size="xs" />,
     warning: <IconWarning size="xs" />,
   };
+
+  const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
+
+  const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp);
+  const onClick = () => setCurrentTime(diff);
+  const onMouseOver = () => setCurrentHoverTime(diff);
+  const onMouseOut = () => setCurrentHoverTime(undefined);
 
   return (
     <Fragment>
@@ -93,7 +92,12 @@ function ConsoleMessage({
         <MessageFormatter breadcrumb={breadcrumb} />
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
-        <Hovercard body={`${t('Relative Time')}: ${relativeTimestamp}`}>
+        <Hovercard
+          body={`${t('Relative Time')}: ${showPlayerTime(
+            breadcrumb.timestamp || '',
+            startTimestamp
+          )}`}
+        >
           <DateTime
             timeOnly
             date={breadcrumb.timestamp}
