@@ -19,13 +19,13 @@ describe('Sidebar', function () {
 
   const getElement = props => (
     <OrganizationContext.Provider value={organization}>
-      <PersistedStoreProvider><SidebarContainer organization={organization} location={location} {...props} /></PersistedStoreProvider>
+      <PersistedStoreProvider>
+        <SidebarContainer organization={organization} location={location} {...props} />
+      </PersistedStoreProvider>
     </OrganizationContext.Provider>
   );
 
-  const renderSidebar = props =>
-    render(getElement(props)
-    );
+  const renderSidebar = props => render(getElement(props));
 
   beforeEach(function () {
     apiMocks.broadcasts = MockApiClient.addMockResponse({
@@ -144,7 +144,7 @@ describe('Sidebar', function () {
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
 
-      rerender(getElement({ location: { ...router.location, pathname: 'new-path-name' } }));
+      rerender(getElement({location: {...router.location, pathname: 'new-path-name'}}));
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
       await tick();
     });
