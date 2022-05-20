@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import {Component, createContext, createRef} from 'react';
 
 import {
@@ -245,7 +246,11 @@ export class Provider extends Component<Props, State> {
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
   initialMouseClickX: number | undefined = undefined;
 
-  performScroll = (scrollLeft: number) => {
+  performScroll = (scrollLeft: number, isAnimated?: boolean) => {
+    if (isAnimated) {
+      this.startAnimation();
+    }
+
     const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
     const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
     interactiveLayerRefDOM.scrollLeft = scrollLeft;
@@ -277,6 +282,9 @@ export class Provider extends Component<Props, State> {
       spanBarDOM.style.transformOrigin = 'left';
     });
   };
+
+  // Throttle the scroll function to prevent jankiness in the auto-adjust animations when scrolling fast
+  throttledScroll = _.throttle(this.performScroll, 300, {trailing: true});
 
   onWheel = (deltaX: number) => {
     if (this.isDragging || !this.hasInteractiveLayer()) {
@@ -467,9 +475,7 @@ export class Provider extends Component<Props, State> {
     }
 
     const left = this.spansInView.getScrollVal();
-
-    this.startAnimation();
-    this.performScroll(left);
+    this.throttledScroll(left, true);
   };
 
   markSpanInView = (spanId: string, treeDepth: number) => {
@@ -478,9 +484,7 @@ export class Provider extends Component<Props, State> {
     }
 
     const left = this.spansInView.getScrollVal();
-
-    this.startAnimation();
-    this.performScroll(left);
+    this.throttledScroll(left, true);
   };
 
   startAnimation() {
