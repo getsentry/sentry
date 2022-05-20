@@ -192,6 +192,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         organization,
                         params["project_id"],
                         data_fn(0, self.get_per_page(request)),
+                        standard_meta=True,
                     )
                 )
             else:
@@ -199,7 +200,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     request=request,
                     paginator=GenericOffsetPaginator(data_fn=data_fn),
                     on_results=lambda results: self.handle_results_with_meta(
-                        request, organization, params["project_id"], results
+                        request,
+                        organization,
+                        params["project_id"],
+                        results,
+                        standard_meta=True,
                     ),
                 )
 
