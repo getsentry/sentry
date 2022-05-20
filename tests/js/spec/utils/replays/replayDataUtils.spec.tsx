@@ -8,12 +8,12 @@ import {
 } from 'sentry/utils/replays/replayDataUtils';
 
 describe('rrwebEventListFactory', () => {
-  function createSpan(extra: Record<string, any>) {
+  function createSpan(extra: {op: string; data?: Record<string, any>}) {
     return {
-      span_id: 'spanid',
-      start_timestamp: 1,
-      timestamp: 2,
-      trace_id: 'traceid',
+      // span_id: 'spanid',
+      startTimestamp: 1,
+      endTimestamp: 2,
+      // trace_id: 'traceid',
       data: {},
       ...extra,
     };
@@ -23,6 +23,7 @@ describe('rrwebEventListFactory', () => {
     const rawSpans = [
       createSpan({
         op: 'foo',
+        data: {},
       }),
       createSpan({
         op: 'largest-contentful-paint',

@@ -59,7 +59,7 @@ function ReplayTable({replayList, selection}: Props) {
       orderby: '-min_timestamp',
       environment: selection.environments,
       projects: selection.projects,
-      query: `(title:sentry-replay-event OR event.type:error) AND (${query})`,
+      query: `(title:"sentry-replay-event-*" OR event.type:error) AND (${query})`,
     };
 
     if (selection.datetime.period) {
