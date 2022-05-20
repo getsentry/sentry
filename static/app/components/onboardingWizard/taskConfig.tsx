@@ -270,9 +270,9 @@ export function getOnboardingTasks({
     },
     {
       task: OnboardingTaskKey.FIRST_INTEGRATION,
-      title: t('Connect Sentry to your workflow'),
+      title: t('Install any of our 40+ integrations'),
       description: t(
-        'Integrate services like Slack for real-time notifications, Github to identify suspect commits, and Jira for automatic issue creation.'
+        'Get alerted in Slack. Two-way sync issues between Sentry and Jira. Notify Sentry of releases from GitHub, Vercel, or Netlify.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
