@@ -9,11 +9,12 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
+import {SpansInViewMap} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
-  markSpanInView: (spanId: string) => void;
-  markSpanOutOfView: (spanId: string, left: number) => void;
+  markSpanInView: (spanId: string, treeDepth: number) => void;
+  markSpanOutOfView: (spanId: string) => void;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
@@ -115,7 +116,7 @@ export class Provider extends Component<Props, State> {
   wheelTimeout: NodeJS.Timeout | null = null;
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
-  spansOutOfView: Map<string, number> = new Map();
+  spansInView: SpansInViewMap = new SpansInViewMap();
   animationInProgress: boolean = false;
 
   getReferenceSpanBar() {
@@ -460,30 +461,31 @@ export class Provider extends Component<Props, State> {
     }
   };
 
-  markSpanOutOfView = (spanId: string, left: number) => {
-    if (this.spansOutOfView.has(spanId)) {
+  markSpanOutOfView = (spanId: string) => {
+    if (!this.spansInView.removeSpan(spanId)) {
       return;
     }
 
-    this.spansOutOfView.set(spanId, left);
+    const left = this.spansInView.getScrollVal();
+
+    this.startAnimation();
+    this.performScroll(left);
 
     if (!this.animationInProgress) {
-      this.startAnimation();
-      this.performScroll(left);
     }
   };
 
-  markSpanInView = (spanId: string) => {
-    if (!this.spansOutOfView.has(spanId)) {
+  markSpanInView = (spanId: string, treeDepth: number) => {
+    if (!this.spansInView.addSpan(spanId, treeDepth)) {
       return;
     }
 
-    const left = this.spansOutOfView.get(spanId);
-    this.spansOutOfView.delete(spanId);
+    const left = this.spansInView.getScrollVal();
+
+    this.startAnimation();
+    this.performScroll(left);
 
     if (!this.animationInProgress) {
-      this.startAnimation();
-      this.performScroll(left!);
     }
   };
 

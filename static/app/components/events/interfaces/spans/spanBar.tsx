@@ -100,7 +100,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
   0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0,
 ];
 
-const MARGIN_LEFT = 0;
+export const MARGIN_LEFT = 0;
 
 type SpanBarProps = {
   continuingTreeDepths: Array<TreeDepthType>;
@@ -110,7 +110,7 @@ type SpanBarProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isEmbeddedTransactionTimeAdjusted: boolean;
   markSpanInView: (spanId: string, treeDepth: number) => void;
-  markSpanOutOfView: (spanId: string, treeDepth: number) => void;
+  markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
@@ -653,12 +653,9 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             }
 
             if (this.props.numOfSpanChildren !== 0) {
-              const left =
-                treeDepth === 0 ? 0 : treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
-
               // TODO: Remove this check when this feature is GA'd
               if (organization.features.includes('performance-span-tree-autoscroll')) {
-                this.props.markSpanInView(span.span_id, left);
+                this.props.markSpanInView(span.span_id, treeDepth);
               }
             }
 
@@ -674,18 +671,15 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           const inAndAboveMinimap = relativeToMinimap.bottom <= 0;
 
           if (inAndAboveMinimap) {
-            const {span, treeDepth, organization} = this.props;
+            const {span, organization} = this.props;
             if ('type' in span) {
               return;
             }
 
             if (this.props.numOfSpanChildren !== 0) {
-              const left =
-                treeDepth === 0 ? 0 : treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
-
               // TODO: Remove this check when this feature is GA'd
               if (organization.features.includes('performance-span-tree-autoscroll')) {
-                this.props.markSpanOutOfView(span.span_id, left);
+                this.props.markSpanOutOfView(span.span_id);
               }
             }
 
