@@ -56,7 +56,7 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
         return FetchType.DB_READ.value not in str(header_value)
 
 
-def _update_stale_last_seen(seen_ints: Set[int]) -> int:
+def _update_stale_last_seen(seen_ints: Set[int]) -> int:  # type: ignore
     # TODO: filter out ints that we've handled recently in memcache to reduce DB load
     # we may not need a cache, we should see as we dial up the accept rate
     return StringIndexer.objects.filter(
@@ -66,7 +66,7 @@ def _update_stale_last_seen(seen_ints: Set[int]) -> int:
 
 class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
     def __init__(self, metrics: Any) -> None:
-        self.__seen_ints = set()
+        self.__seen_ints: Set[int] = set()
         self.__metrics = metrics
 
     def submit(self, message: Message[Set[int]]) -> None:
