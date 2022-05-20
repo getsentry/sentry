@@ -118,7 +118,6 @@ export class Provider extends Component<Props, State> {
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
   spansInView: SpansInViewMap = new SpansInViewMap();
-  animationInProgress: boolean = false;
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -492,8 +491,6 @@ export class Provider extends Component<Props, State> {
       spanBarDOM.style.transition = 'transform 0.3s';
     });
 
-    this.animationInProgress = true;
-
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout);
     }
@@ -504,7 +501,6 @@ export class Provider extends Component<Props, State> {
       selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
         spanBarDOM.style.transition = '';
       });
-      this.animationInProgress = false;
       this.animationTimeout = null;
     }, 300);
   }
