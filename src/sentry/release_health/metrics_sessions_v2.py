@@ -10,6 +10,7 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from typing import (
     Any,
+    Callable,
     FrozenSet,
     Iterable,
     List,
@@ -43,7 +44,10 @@ from sentry.api.utils import InvalidParams as UtilsInvalidParams
 from sentry.models import Release
 from sentry.models.project import Project
 from sentry.release_health.base import (
+    GroupByFieldName,
+    ProjectId,
     SessionsQueryFunction,
+    SessionsQueryGroup,
     SessionsQueryResult,
     SessionsQueryValue,
 )
@@ -112,25 +116,16 @@ class GroupKey:
             environment=dct.get("environment", None),
         )
 
-    def to_output_dict(self, set_none=False) -> GroupKeyDict:
+    def to_output_dict(self) -> GroupKeyDict:
         dct: GroupKeyDict = {}
-        if not set_none:
-            if self.project:
-                dct["project"] = self.project
-            if self.release is not None:
-                dct["release"] = self.release
-            if self.environment is not None:
-                dct["environment"] = self.environment
-            if self.session_status is not None:
-                dct["session.status"] = self.session_status.value
-        else:
+        if self.project:
             dct["project"] = self.project
+        if self.release is not None:
             dct["release"] = self.release
+        if self.environment is not None:
             dct["environment"] = self.environment
-            if not self.session_status:
-                dct["session.status"] = None
-            else:
-                dct["session.status"] = self.session_status.value
+        if self.session_status is not None:
+            dct["session.status"] = self.session_status.value
 
         return dct
 
@@ -440,6 +435,10 @@ def run_sessions_query(
     try:
         orderby = _parse_orderby(query, fields)
     except NonPreflightOrderByException as exc:
+        # We hit this branch when we suspect that the orderBy columns is one of the virtual
+        # columns like `release.timestamp` that require a preflight query to be run, and so we
+        # check here if it is one of the supported preflight query columns and if so we run the
+        # preflight query. Otherwise we re-raise the exception
         orderby = query.raw_orderby[0]
         if orderby[0] == "-":
             orderby = orderby[1:]
@@ -450,28 +449,37 @@ def run_sessions_query(
         if orderby not in PREFLIGHT_QUERY_COLUMNS:
             raise exc
 
-        environment_conditions = [
-            _get_filters_for_preflight_query_condition(
-                column_name="environment", condition=condition
+        preflight_query_conditions = {
+            "orderby_field": orderby,
+            "direction": direction,
+            "org_id": org_id,
+            "project_ids": project_ids,
+            "limit": query.limit,
+        }
+
+        # For preflight queries, we need to evaluate environment conditions because these might
+        # be used in the preflight query. Example when we sort by `-release.timestamp`, and when
+        # we have environment filters applied to the query, then we need to include the
+        # environment filters otherwise we might end up with metrics queries filters that do not
+        # belong to the same environment
+        environment_conditions = []
+        for condition in where:
+            preflight_query_condition = _get_filters_for_preflight_query_condition(
+                tag_name="environment", condition=condition
             )
-            for condition in where
-        ]
+            if preflight_query_condition != (None, None):
+                environment_conditions += [preflight_query_condition]
+
         if len(environment_conditions) > 1:
+            # Should never hit this branch. Added as a fail safe
             raise InvalidParams("Environment condition was parsed incorrectly")
         else:
             try:
-                env_condition = environment_conditions[0]
+                preflight_query_conditions.update({"env_condition": environment_conditions[0]})
             except IndexError:
-                env_condition = None
+                pass
 
-        preflight_query_filters = _generate_preflight_query_conditions(
-            field_name=orderby,
-            direction=direction,
-            org_id=org_id,
-            project_ids=project_ids,
-            limit=query.limit,
-            env_condition=env_condition,
-        )
+        preflight_query_filters = _generate_preflight_query_conditions(**preflight_query_conditions)
 
         if len(preflight_query_filters) == 0:
             # If we get no results from the pre-flight query that are supposed to be used as a
@@ -482,7 +490,9 @@ def run_sessions_query(
         if orderby == "release.timestamp":
             condition_lhs = "release"
             ordered_preflight_filters[condition_lhs] = preflight_query_filters
-        where += [Condition(Column(condition_lhs), Op.IN, preflight_query_filters)]
+
+        if condition_lhs is not None:
+            where += [Condition(Column(condition_lhs), Op.IN, preflight_query_filters)]
 
         # Clear OrderBy because query is already filtered and we will re-order the results
         # according to the order of the filter list later on
@@ -522,7 +532,7 @@ def run_sessions_query(
         GroupKey.from_input_dict(group["by"]): group for group in metrics_results["groups"]
     }
 
-    default_group_gen_func = lambda: {
+    default_group_gen_func: Callable[[], Group] = lambda: {
         "totals": {field: default_for(field) for field in query.raw_fields},
         "series": {
             field: len(metrics_results["intervals"]) * [default_for(field)]
@@ -551,29 +561,9 @@ def run_sessions_query(
         {"by": group_key.to_output_dict(), **group}  # type: ignore
         for group_key, group in output_groups.items()
     ]
-
-    # If a preflight query was run, then we need to preserve the order of results returned by the
-    # preflight query
-    if len(ordered_preflight_filters) == 1:
-        post_q_orderby_field = list(ordered_preflight_filters.keys())[0]
-        grp_value_to_result_grp_mapping = {}
-        if post_q_orderby_field in query.raw_groupby:
-            for result_group in result_groups:
-                grp_value = result_group["by"][post_q_orderby_field]
-                grp_value_to_result_grp_mapping.setdefault(grp_value, []).append(result_group)
-
-            result_groups = []
-            for elem in ordered_preflight_filters[post_q_orderby_field]:
-                try:
-                    for grp in grp_value_to_result_grp_mapping[elem]:
-                        result_groups += [grp]
-                except KeyError:
-                    group_key_dict = {post_q_orderby_field: elem}
-                    group_key_output = GroupKey(**group_key_dict).to_output_dict(set_none=True)
-                    for key in list(group_key_output.keys()):
-                        if key not in query.raw_groupby:
-                            del group_key_output[key]
-                    result_groups += [{"by": group_key_output, **default_group_gen_func()}]
+    result_groups = _reorder_result_groups_according_to_preflight_query_results(
+        ordered_preflight_filters, query.raw_groupby, result_groups, default_group_gen_func
+    )
 
     return {
         "groups": result_groups,
@@ -582,6 +572,82 @@ def run_sessions_query(
         "intervals": [isoformat_z(ts) for ts in metrics_results["intervals"]],
         "query": query.query,
     }
+
+
+def _reorder_result_groups_according_to_preflight_query_results(
+    ordered_preflight_filters: Mapping[Union[str, int], Sequence[SessionsQueryGroup]],
+    groupby: GroupByFieldName,
+    result_groups: Sequence[SessionsQueryGroup],
+    default_group_gen_func: Callable[[], Group],
+) -> Sequence[SessionsQueryGroup]:
+    """
+    Function that If a preflight query was run, then we want to preserve the order of results
+    returned by the preflight query
+    We create a mapping between the group value to the result group, so we are able
+    to easily sort the resulting groups.
+    For example, if we are ordering by `-release.timestamp`, we might get from
+    postgres a list of results ['1B', '1A'], and results from metrics dataset
+    [
+        {
+            "by": {"release": "1A"},
+            "totals": {"sum(session)": 0},
+            "series": {"sum(session)": [0]},
+        },
+        {
+            "by": {"release": "1B"},
+            "totals": {"sum(session)": 10},
+            "series": {"sum(session)": [10]},
+        },
+    ]
+    Then we create a mapping from release value to the result group:
+    {
+        "1A": [
+            {
+                "by": {"release": "1A"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+        ],
+        "1B": [
+            {
+                "by": {"release": "1B"},
+                "totals": {"sum(session)": 10},
+                "series": {"sum(session)": [10]},
+            },
+        ],
+    }
+    Then loop over the releases list sequentially, and rebuild the result_groups
+    array based on that order by appending to the list the values from that mapping
+    and accessing it through the key which is the group value
+    """
+    if len(ordered_preflight_filters) == 1:
+        orderby_field = list(ordered_preflight_filters.keys())[0]
+        grp_value_to_result_grp_mapping = {}
+        # If the preflight query occurs, but the relevant column is not in the groupBy then there
+        # is no need to re-order the results
+        if orderby_field in groupby:
+            for result_group in result_groups:
+                grp_value = result_group["by"][orderby_field]
+                grp_value_to_result_grp_mapping.setdefault(grp_value, []).append(result_group)
+            result_groups = []
+            for elem in ordered_preflight_filters[orderby_field]:
+                try:
+                    for grp in grp_value_to_result_grp_mapping[elem]:
+                        result_groups += [grp]
+                except KeyError:
+                    # We get into this branch if there are groups in the preflight query that do
+                    # not have matching data in the metrics dataset, and since we want to show
+                    # those groups in the output, we add them but null out the fields requested
+                    # This could occur for example, when ordering by `-release.timestamp` and
+                    # some of the latest releases in Postgres do not have matching data in
+                    # metrics dataset
+                    group_key_dict = {orderby_field: elem}
+                    for key in groupby:
+                        if key == orderby_field:
+                            continue
+                        group_key_dict.update({key: None})
+                    result_groups += [{"by": group_key_dict, **default_group_gen_func()}]
+    return result_groups
 
 
 def _empty_result(query: QueryDefinition) -> SessionsQueryResult:
@@ -658,10 +724,15 @@ def _transform_single_condition(
 
 
 def _get_filters_for_preflight_query_condition(
-    column_name: str, condition: Union[Condition, BooleanCondition]
-):
+    tag_name: str, condition: Union[Condition, BooleanCondition]
+) -> Tuple[Optional[Op], Optional[Set[str]]]:
+    """
+    Function that takes a tag name and a condition, and checks if that condition is for that tag
+    and if so returns a tuple of the op applied either Op.IN or Op.NOT_IN and a set of the tag
+    values
+    """
     if isinstance(condition, Condition):
-        if condition.lhs == Column(column_name):
+        if condition.lhs == Column(tag_name):
             if condition.op in [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]:
                 filters = (
                     {condition.rhs}
@@ -673,10 +744,10 @@ def _get_filters_for_preflight_query_condition(
                 ]
                 return op, filters
             raise InvalidParams(
-                f"Unable to resolve {column_name} filter due to unsupported op {condition.op}"
+                f"Unable to resolve {tag_name} filter due to unsupported op {condition.op}"
             )
 
-    if column_name in str(condition):
+    if tag_name in str(condition):
         # Anything not handled by the code above cannot be parsed for now,
         # for two reasons:
         # 1) Queries like session.status:healthy OR release:foo are hard to
@@ -685,7 +756,8 @@ def _get_filters_for_preflight_query_condition(
         # 2) AND and OR conditions come in the form `Condition(Function("or", [...]), Op.EQ, 1)`
         #    where [...] can again contain any condition encoded as a Function. For this, we would
         #    have to replicate the translation code above.
-        raise InvalidParams(f"Unable to parse condition with {column_name}")
+        raise InvalidParams(f"Unable to parse condition with {tag_name}")
+    return None, None
 
 
 def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
@@ -719,6 +791,11 @@ def _parse_orderby(
     orderby = orderbys[0]
 
     if "session.status" in query.raw_groupby:
+        # We can allow grouping by `session.status` when having an orderBy column to be a field
+        # that if the orderBy columns is one of the virtual columns that indicates that a preflight
+        # query (like `release.timestamp`) needs to be run to evaluate the query, and so we raise an
+        # instance of `NonPreflightOrderByException` and delegate handling this case to the
+        # `run_sessions_query` function
         raise NonPreflightOrderByException("Cannot use 'orderBy' when grouping by sessions.status")
 
     direction = Direction.ASC
@@ -728,6 +805,11 @@ def _parse_orderby(
 
     assert query.raw_fields
     if orderby not in query.raw_fields:
+        # We can allow orderBy column to be a field that is not requested in the select
+        # statements if it is one of the virtual columns that indicated a preflight query needs
+        # to be run to evaluate the query, and so we raise an instance of
+        # `NonPreflightOrderByException` and delegate handling this case to the
+        # `run_sessions_query` function
         raise NonPreflightOrderByException("'orderBy' must be one of the provided 'fields'")
 
     field = fields[orderby]
@@ -751,27 +833,33 @@ def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> M
 
 
 def _generate_preflight_query_conditions(
-    field_name: str, direction: Direction, org_id: int, project_ids, limit, env_condition
-) -> ConditionGroup:
+    orderby_field: MetricField,
+    direction: Direction,
+    org_id: int,
+    project_ids: Sequence[ProjectId],
+    limit: int,
+    env_condition: Optional[Tuple[Op, Set[str]]] = None,
+) -> Sequence[str]:
+    """
+    Function that fetches the preflight query filters that need to be applied to the subsequent
+    metrics query
+    """
     queryset_results = []
-    if field_name == "release.timestamp":
+    if orderby_field == "release.timestamp":
         queryset = Release.objects.filter(
             organization=org_id,
             projects__id__in=project_ids,
         )
-
         if env_condition is not None:
             op, env_filter_set = env_condition
+            environment_orm_conditions = {
+                "releaseprojectenvironment__environment__name__in": env_filter_set,
+                "releaseprojectenvironment__project_id__in": project_ids,
+            }
             if op == Op.IN:
-                queryset = queryset.filter(
-                    releaseprojectenvironment__environment__name__in=env_filter_set,
-                    releaseprojectenvironment__project_id__in=project_ids,
-                )
+                queryset = queryset.filter(**environment_orm_conditions)
             else:
-                queryset = queryset.exclude(
-                    releaseprojectenvironment__environment__name__in=env_filter_set,
-                    releaseprojectenvironment__project_id__in=project_ids,
-                )
+                queryset = queryset.exclude(**environment_orm_conditions)
 
         if direction == Direction.DESC:
             queryset = queryset.order_by("-date_added", "-id")
