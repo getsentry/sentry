@@ -395,7 +395,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       # We don't call setup-sentry, because we don't need devservices.
-      # TODO: add no devservices flag. tools-tests could use this as well.
       - name: Setup backend typing
         run: |
           sudo apt-get update
