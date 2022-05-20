@@ -1470,8 +1470,6 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
         """
         Test that ensures that we are able to get the crash_free_rate for the most 2 recent
         releases when grouping by release
-
-        ToDo(ahmed): Disambiguate
         """
         # Step 1: Create 3 releases
         release1b = self.create_release(version="1B")
