@@ -38,7 +38,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": iso_format(before_now(minutes=3)),
                 "environment": "dev",
             },
             project_id=self.project.id,
@@ -47,7 +47,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             data={
                 "tags": {"foo": "bar2"},
                 "fingerprint": ["group-1"],
-                "timestamp": iso_format(before_now(minutes=1)),
+                "timestamp": iso_format(before_now(minutes=2)),
                 "environment": "prod",
             },
             project_id=self.project.id,

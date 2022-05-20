@@ -157,6 +157,11 @@ class TriggerFormContainer extends Component<TriggerFormContainerProps> {
   };
 
   getThresholdUnits(aggregate: string, comparisonType: AlertRuleComparisonType) {
+    // cls is a number not a measurement of time
+    if (aggregate.includes('measurements.cls')) {
+      return '';
+    }
+
     if (aggregate.includes('duration') || aggregate.includes('measurements')) {
       return 'ms';
     }

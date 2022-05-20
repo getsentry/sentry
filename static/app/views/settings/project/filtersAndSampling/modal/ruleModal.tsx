@@ -11,6 +11,7 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import NumberField from 'sentry/components/forms/numberField';
 import Option from 'sentry/components/forms/selectOption';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
@@ -22,6 +23,7 @@ import {
   DynamicSamplingRules,
 } from 'sentry/types/dynamicSampling';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {getInnerNameLabel, isCustomTagName} from '../utils';
@@ -152,6 +154,25 @@ function RuleModal({
       convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
     setIsSaving(false);
+
+    if (defined(rule)) {
+      trackAdvancedAnalyticsEvent('sampling.settings.rule.update', {
+        organization,
+        project_id: project.id,
+        sampling_rate: sampleRate,
+        conditions: conditions.map(condition => condition.category),
+        old_conditions: rule.condition.inner.map(({name}) => name),
+        old_sampling_rate: rule.sampleRate * 100,
+      });
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.create', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: conditions.map(condition => condition.category),
+    });
   }
 
   function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
@@ -178,6 +199,13 @@ function RuleModal({
           !previousCategories.includes(value)
       )
       .map(({value}) => value);
+
+    trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+      organization,
+      project_id: project.id,
+      conditions: addedCategories,
+    });
+
     setData({
       ...data,
       conditions: [
@@ -243,7 +271,9 @@ function RuleModal({
     )
     .map(({category}) => ({
       value: category,
-      label: getInnerNameLabel(category),
+      label: (
+        <Truncate value={getInnerNameLabel(category)} expandable={false} maxLength={40} />
+      ),
       disabled: true,
       tooltip: conditionAlreadyAddedTooltip,
     }));

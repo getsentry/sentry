@@ -11,7 +11,7 @@ inputs:
   cache-files-hash:
     description: 'A single hash for a set of files. Used for caching.'
     required: false
-    default: ${{ hashFiles('requirements-*.txt', '!requirements-pre-commit.txt') }}
+    default: ${{ hashFiles('requirements-*.txt') }}
   pip-cache-version:
     description: 'pip cache version in order to bust cache'
     required: false
