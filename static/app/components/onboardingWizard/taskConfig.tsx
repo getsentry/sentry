@@ -33,11 +33,11 @@ type FirstEventWaiterProps = OnboardingSupplementComponentProps & {
 };
 
 type Options = {
-  onboardingState?: OnboardingState;
   /**
    * The organization to show onboarding tasks for
    */
   organization: Organization;
+  onboardingState?: OnboardingState;
 
   /**
    * A list of the organizations projects. This is used for some onboarding
