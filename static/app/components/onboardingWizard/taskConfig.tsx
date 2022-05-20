@@ -17,6 +17,7 @@ import {
 } from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
+import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
 
 import IntegrationCard from './integrationCard';
 import OnboardingProjectsCard from './onboardingCard';
@@ -36,6 +37,8 @@ type Options = {
    * The organization to show onboarding tasks for
    */
   organization: Organization;
+  onboardingState?: OnboardingState;
+
   /**
    * A list of the organizations projects. This is used for some onboarding
    * tasks to show additional task details (such as for suggesting sourcemaps)
@@ -68,6 +71,7 @@ function getMetricAlertUrl({projects, organization}: Options) {
 export function getOnboardingTasks({
   organization,
   projects,
+  onboardingState,
 }: Options): OnboardingTaskDescriptor[] {
   return [
     {
@@ -226,7 +230,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT],
       actionType: 'app',
-      location: getIssueAlertUrl({projects, organization}),
+      location: getIssueAlertUrl({projects, organization, onboardingState}),
       display: true,
     },
     {
@@ -238,7 +242,7 @@ export function getOnboardingTasks({
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_TRANSACTION],
       actionType: 'app',
-      location: getMetricAlertUrl({projects, organization}),
+      location: getMetricAlertUrl({projects, organization, onboardingState}),
       display: organization.features?.includes('incidents'),
     },
     {
@@ -261,13 +265,26 @@ export function getOnboardingTasks({
       actionType: 'action',
       action: () => {},
       display: !!organization.experiments?.TargetedOnboardingIntegrationSelectExperiment,
+      serverTask: OnboardingTaskKey.FIRST_INTEGRATION,
       renderCard: IntegrationCard,
+    },
+    {
+      task: OnboardingTaskKey.FIRST_INTEGRATION,
+      title: t('Install any of our 40+ integrations'),
+      description: t(
+        'Get alerted in Slack. Two-way sync issues between Sentry and Jira. Notify Sentry of releases from GitHub, Vercel, or Netlify.'
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      actionType: 'app',
+      location: `/settings/${organization.slug}/integrations/`,
+      display: (onboardingState?.selectedIntegrations.length ?? 0) === 0,
     },
   ];
 }
 
-export function getMergedTasks({organization, projects}: Options) {
-  const taskDescriptors = getOnboardingTasks({organization, projects});
+export function getMergedTasks({organization, projects, onboardingState}: Options) {
+  const taskDescriptors = getOnboardingTasks({organization, projects, onboardingState});
   const serverTasks = organization.onboardingTasks;
 
   // Map server task state (i.e. completed status) with tasks objects
@@ -275,7 +292,10 @@ export function getMergedTasks({organization, projects}: Options) {
     desc =>
       ({
         ...desc,
-        ...serverTasks.find(serverTask => serverTask.task === desc.task),
+        ...serverTasks.find(
+          serverTask =>
+            serverTask.task === desc.task || serverTask.task === desc.serverTask
+        ),
         requisiteTasks: [],
       } as OnboardingTask)
   );
