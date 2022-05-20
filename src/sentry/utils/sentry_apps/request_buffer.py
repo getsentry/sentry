@@ -10,7 +10,7 @@ from sentry.utils import json, redis
 BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
 
-logger = logging.getLogger("sentry.utils.sentryappwebhookrequests")
+logger = logging.getLogger("sentry.utils.sentry_apps")
 
 EXTENDED_VALID_EVENTS = VALID_EVENTS + (
     "event_alert.triggered",
