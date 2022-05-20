@@ -1097,6 +1097,32 @@ describe('transformSessionsResponseToSeries', function () {
     ]);
   });
 
+  it('returns a single series with 0 as values when there are no groups returned', () => {
+    expect(
+      transformSessionsResponseToSeries(TestStubs.SessionEmptyGroupedResponse(), [], [])
+    ).toEqual([
+      {
+        seriesName: '(no results)',
+        data: [
+          {name: '2022-01-15T00:00:00Z', value: 0},
+          {name: '2022-01-16T00:00:00Z', value: 0},
+          {name: '2022-01-17T00:00:00Z', value: 0},
+          {name: '2022-01-18T00:00:00Z', value: 0},
+          {name: '2022-01-19T00:00:00Z', value: 0},
+          {name: '2022-01-20T00:00:00Z', value: 0},
+          {name: '2022-01-21T00:00:00Z', value: 0},
+          {name: '2022-01-22T00:00:00Z', value: 0},
+          {name: '2022-01-23T00:00:00Z', value: 0},
+          {name: '2022-01-24T00:00:00Z', value: 0},
+          {name: '2022-01-25T00:00:00Z', value: 0},
+          {name: '2022-01-26T00:00:00Z', value: 0},
+          {name: '2022-01-27T00:00:00Z', value: 0},
+          {name: '2022-01-28T00:00:00Z', value: 0},
+        ],
+      },
+    ]);
+  });
+
   it('supports legend aliases', () => {
     expect(
       transformSessionsResponseToSeries(
