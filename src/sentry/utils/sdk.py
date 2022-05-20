@@ -105,6 +105,9 @@ SAMPLED_TASKS = {
     "sentry.tasks.reports.deliver_organization_user_report": 0.01,
 }
 
+if settings.ADDITIONAL_SAMPLED_TASKS:
+    SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
+
 
 UNSAFE_TAG = "_unsafe"
 
