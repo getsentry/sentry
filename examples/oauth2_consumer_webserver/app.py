@@ -1,7 +1,7 @@
 import json  # noqa
 import os
 
-from flask import Flask, redirect, request, session, url_for
+from flask import Flask, escape, redirect, request, session, url_for
 from flask_oauth import OAuth
 
 BASE_URL = os.environ.get("BASE_URL", "http://dev.getsentry.net:8000")
@@ -71,7 +71,7 @@ def login():
 def authorized(resp):
     if "error" in request.args:
         return ("<h1>Error</h1>" "<p>{}</p>" '<p><a href="{}">Try again</a></p>').format(
-            request.args["error"], url_for("login")
+            escape(request.args["error"]), url_for("login")
         )
     access_token = resp["access_token"]
     session["access_token"] = access_token
