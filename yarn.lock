@@ -8664,14 +8664,6 @@ get-value@^2.0.3, get-value@^2.0.6:
   resolved "https://registry.yarnpkg.com/get-value/-/get-value-2.0.6.tgz#dc15ca1c672387ca76bd37ac0a395ba2042a2c28"
   integrity sha1-3BXKHGcjh8p2vTesCjlbogQqLCg=
 
-gettext-parser@1.3.1:
-  version "1.3.1"
-  resolved "https://registry.yarnpkg.com/gettext-parser/-/gettext-parser-1.3.1.tgz#74b7a99e4b5fa8daab11fa515e8a582480448a12"
-  integrity sha512-W4t55eB/c7WrH0gbCHFiHuaEnJ1WiPJVnbFFiNEoh2QkOmuSLxs0PmJDGAmCQuTJCU740Fmb6D+2D/2xECWZGQ==
-  dependencies:
-    encoding "^0.1.12"
-    safe-buffer "^5.1.1"
-
 gettext-parser@1.4.0:
   version "1.4.0"
   resolved "https://registry.yarnpkg.com/gettext-parser/-/gettext-parser-1.4.0.tgz#f8baf34a292f03d5e42f02df099d301f167a7ace"
