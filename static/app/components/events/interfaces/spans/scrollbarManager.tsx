@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import {throttle} from 'lodash';
 import {Component, createContext, createRef} from 'react';
 
 import {
@@ -283,7 +283,7 @@ export class Provider extends Component<Props, State> {
   };
 
   // Throttle the scroll function to prevent jankiness in the auto-adjust animations when scrolling fast
-  throttledScroll = _.throttle(this.performScroll, 300, {trailing: true});
+  throttledScroll = throttle(this.performScroll, 300, {trailing: true});
 
   onWheel = (deltaX: number) => {
     if (this.isDragging || !this.hasInteractiveLayer()) {
