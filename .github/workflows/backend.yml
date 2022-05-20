@@ -394,14 +394,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Since we don't call the setup-sentry action we need to install libxmlsec1-dev
+      # We don't call setup-sentry, because we don't need devservices.
+      # TODO: add no devservices flag. tools-tests could use this as well.
       - name: Setup backend typing
-        env:
-          SENTRY_LIGHT_BUILD: 1
         run: |
-          #sudo apt-get update
-          #sudo apt-get install -y --no-install-recommends libxmlsec1-dev
-          #python setup.py install_egg_info
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxmlsec1-dev
+          # python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have `wheel` installed by default
           pip install -r requirements-dev-only-frozen.txt
 
