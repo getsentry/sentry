@@ -60,8 +60,10 @@ function UserActionsNavigator({event, crumbs}: Props) {
 
   const {startTimestamp} = event || {};
   const userActionCrumbs =
-    crumbs && transformCrumbs(crumbs).filter(crumb => USER_ACTIONS.includes(crumb.type));
-  const isLoaded = userActionCrumbs && startTimestamp;
+    (crumbs &&
+      transformCrumbs(crumbs).filter(crumb => USER_ACTIONS.includes(crumb.type))) ||
+    [];
+  const isLoaded = startTimestamp;
 
   const currentUserAction = getPrevUserAction(
     userActionCrumbs,
@@ -72,7 +74,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
   const closestUserAction = getPrevUserAction(
     userActionCrumbs,
     startTimestamp,
-    currentHoverTime
+    currentHoverTime ?? 0
   );
 
   const onMouseEnter = useCallback(
