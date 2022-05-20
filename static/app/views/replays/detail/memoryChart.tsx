@@ -244,6 +244,7 @@ function MemoryChartContainer({
 }: MemoryChartContainerProps) {
   const chart = useRef<ReactEchartsRef>(null);
   const theme = useTheme();
+
   useEffect(() => {
     if (!chart.current) {
       return;
