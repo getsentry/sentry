@@ -163,9 +163,9 @@ def test_consumer_start_from_committed_offset(requires_kafka):
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
-        Consumer(
-            {"bootstrap.servers": SENTRY_KAFKA_HOSTS, "group.id": consumer_group}
-        ).commit(message=messages_delivered[topic][0], asynchronous=False)
+        Consumer({"bootstrap.servers": SENTRY_KAFKA_HOSTS, "group.id": consumer_group}).commit(
+            message=messages_delivered[topic][0], asynchronous=False
+        )
 
         # Create the synchronized consumer.
         consumer = SynchronizedConsumer(
@@ -374,9 +374,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
-        Consumer(
-            {"bootstrap.servers": SENTRY_KAFKA_HOSTS, "group.id": consumer_group}
-        ).commit(
+        Consumer({"bootstrap.servers": SENTRY_KAFKA_HOSTS, "group.id": consumer_group}).commit(
             offsets=[
                 TopicPartition(message.topic(), message.partition(), message.offset() + 1)
                 for message in messages_delivered[topic][:2]
