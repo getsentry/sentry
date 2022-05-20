@@ -74,6 +74,10 @@ const Wrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 132px 1fr;
   }
+
+  > *:nth-child(2) {
+    border-top: none;
+  }
 `;
 
 const Title = styled('div')`
@@ -111,7 +115,6 @@ const StyledClippedBox = styled(ClippedBox)<{
   margin-left: 0;
   margin-right: 0;
   padding: 0;
-  border: none;
 
   &:first-of-type {
     margin-top: 0;

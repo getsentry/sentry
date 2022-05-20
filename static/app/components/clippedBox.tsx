@@ -158,6 +158,12 @@ export default ClippedBox;
 
 const Wrapper = styled('div')`
   position: relative;
+  border-top: 1px solid ${p => p.theme.backgroundSecondary};
+
+  :first-of-type {
+    margin-top: -${space(2)};
+    border: 0;
+  }
 `;
 
 const ClipWrapper = styled('div', {
@@ -167,12 +173,6 @@ const ClipWrapper = styled('div', {
   margin-left: -${space(3)};
   margin-right: -${space(3)};
   padding: ${space(2)} ${space(3)} 0;
-  border-top: 1px solid ${p => p.theme.backgroundSecondary};
-
-  :first-of-type {
-    margin-top: -${space(2)};
-    border: 0;
-  }
 
   /* For "Show More" animation */
   ${p =>
