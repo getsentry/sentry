@@ -51,7 +51,11 @@ function OnboardingStatus({
     return null;
   }
 
-  const tasks = getMergedTasks({ organization: org, projects, onboardingState: onboardingState || undefined });
+  const tasks = getMergedTasks({
+    organization: org,
+    projects,
+    onboardingState: onboardingState || undefined,
+  });
 
   const allDisplayedTasks = tasks
     .filter(task => task.display)
