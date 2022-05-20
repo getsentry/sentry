@@ -114,8 +114,8 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     # remove debug information we don't need anymore
     profile.pop("debug_meta")
 
-    # save the symbolicated frames on the profile
-    profile["profile"] = profile["sampled_profile"]
+    # rename the profile key to suggest it has been processed
+    profile["profile"] = profile.pop("sampled_profile")
 
     return profile
 
