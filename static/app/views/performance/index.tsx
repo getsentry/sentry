@@ -30,6 +30,7 @@ function PerformanceContainer({organization, children, location}: Props) {
             ...location.query,
             userModified: undefined,
           },
+          hash: location.hash,
         });
       }
     },
