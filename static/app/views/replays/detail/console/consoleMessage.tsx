@@ -121,6 +121,7 @@ const Common = styled('div')<{isLast: boolean; level: string}>`
 const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
   padding: ${space(1)};
   border-left: 1px solid ${p => p.theme.innerBorder};
+  cursor: pointer;
 `;
 
 const Icon = styled(Common)`
