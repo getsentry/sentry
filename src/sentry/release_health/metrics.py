@@ -20,6 +20,7 @@ from typing import (
 )
 
 import pytz
+from requests import session
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 from snuba_sdk.expressions import Expression, Granularity, Limit, Offset
 from snuba_sdk.query import SelectableExpression
@@ -64,6 +65,8 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.metrics import QueryDefinition as MetricsQuery
+from sentry.snuba.metrics import get_series
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
@@ -848,21 +851,28 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         aggregates: List[SelectableExpression] = [
             Column(release_column_name),
             Column("project_id"),
-            Column(session_status_column_name),
         ]
 
         # Count of users and crashed users
         rv_users: Dict[Tuple[int, str, str], int] = {}
 
         # Avoid mutating input parameters here
-        select = aggregates + [Function("uniq", [Column("value")], "value")]
+        select = aggregates + [
+            Function(
+                "uniqIf",
+                [
+                    Column("value"),
+                    Function(
+                        "equals",
+                        [Column(session_status_column_name), resolve_weak(org_id, "crashed")],
+                    ),
+                ],
+                alias="crashed_users",
+            ),
+            Function("uniq", [Column("value")], alias="all_users"),
+        ]
         where = where + [
             Condition(Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.USER.value)),
-            Condition(
-                Column(session_status_column_name),
-                Op.IN,
-                resolve_many_weak(org_id, ["crashed", "init"]),
-            ),
         ]
 
         for row in raw_snql_query(
@@ -879,12 +889,14 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ),
             referrer="release_health.metrics.get_users_and_crashed_users_for_overview",
         )["data"]:
-            key = (
-                row["project_id"],
-                reverse_resolve(row[release_column_name]),
-                reverse_resolve(row[session_status_column_name]),
-            )
-            rv_users[key] = row["value"]
+            release = reverse_resolve(row[release_column_name])
+            for subkey in ("crashed_users", "all_users"):
+                key = (
+                    row["project_id"],
+                    release,
+                    subkey,
+                )
+                rv_users[key] = row[subkey]
 
         return rv_users
 
