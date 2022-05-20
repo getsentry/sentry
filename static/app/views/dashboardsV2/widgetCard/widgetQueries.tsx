@@ -310,11 +310,16 @@ class WidgetQueries extends Component<Props, State> {
         params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
       }
 
+      const eventsUrl = organization.features.includes(
+        'discover-frontend-use-events-endpoint'
+      )
+        ? `/organizations/${organization.slug}/events/`
+        : `/organizations/${organization.slug}/eventsv2/`;
       if (widget.displayType === 'table') {
-        url = `/organizations/${organization.slug}/eventsv2/`;
+        url = eventsUrl;
         params.referrer = 'api.dashboards.tablewidget';
       } else if (widget.displayType === 'big_number') {
-        url = `/organizations/${organization.slug}/eventsv2/`;
+        url = eventsUrl;
         params.per_page = 1;
         params.referrer = 'api.dashboards.bignumberwidget';
       } else if (widget.displayType === 'world_map') {
