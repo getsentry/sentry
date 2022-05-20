@@ -390,7 +390,7 @@ sentry-arroyo==0.0.16
     # via -r requirements-base.txt
 sentry-relay==0.8.11
     # via -r requirements-base.txt
-sentry-sdk==1.4.3
+sentry-sdk==1.5.12
     # via
     #   -r requirements-base.txt
     #   pytest-sentry
