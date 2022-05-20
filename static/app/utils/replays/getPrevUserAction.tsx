@@ -12,7 +12,7 @@ export function getPrevUserAction(
 
   const prevUserAction = userActionCrumbs.reduce((prev, curr) => {
     return curr &&
-      currentHoverTime >= relativeTimeInMs(curr.timestamp ?? '', startTimestamp)
+      currentHoverTime > relativeTimeInMs(curr.timestamp ?? '', startTimestamp)
       ? curr
       : prev;
   });

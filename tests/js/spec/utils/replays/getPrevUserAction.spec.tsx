@@ -1,7 +1,7 @@
 import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {getPrevUserAction} from 'sentry/utils/replays/getPrevUserAction';
 
-const START_TIMESTAMP_MS = 1651693622.951;
+const START_TIMESTAMP_SEC = 1651693622.951;
 const CURRENT_TIME_MS = 15000;
 
 function createUserActionCrumbs(): Crumb[] {
@@ -76,7 +76,7 @@ describe('getPrevUserAction', function () {
     const userActionCrumbs: Crumb[] = createUserActionCrumbs();
     const results = getPrevUserAction(
       userActionCrumbs,
-      START_TIMESTAMP_MS,
+      START_TIMESTAMP_SEC,
       CURRENT_TIME_MS
     );
 
@@ -87,7 +87,7 @@ describe('getPrevUserAction', function () {
     const userActionCrumbs = [];
     const results = getPrevUserAction(
       userActionCrumbs,
-      START_TIMESTAMP_MS,
+      START_TIMESTAMP_SEC,
       CURRENT_TIME_MS
     );
 
@@ -105,7 +105,7 @@ describe('getPrevUserAction', function () {
     const userActionscrumbs: Crumb[] = createUserActionCrumbs().slice(4, 5);
     const results = getPrevUserAction(
       userActionscrumbs,
-      START_TIMESTAMP_MS,
+      START_TIMESTAMP_SEC,
       CURRENT_TIME_MS
     );
 
@@ -117,10 +117,10 @@ describe('getPrevUserAction', function () {
     const exactCrumbTime: number = 8135;
     const results = getPrevUserAction(
       userActionCrumbs,
-      START_TIMESTAMP_MS,
+      START_TIMESTAMP_SEC,
       exactCrumbTime
     );
 
-    expect(results?.id).toEqual(4);
+    expect(results?.id).toEqual(3);
   });
 });

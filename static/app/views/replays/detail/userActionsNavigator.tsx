@@ -59,10 +59,9 @@ function UserActionsNavigator({event, crumbs}: Props) {
     useReplayContext();
 
   const {startTimestamp} = event || {};
-  const userActionCrumbs =
-    (crumbs &&
-      transformCrumbs(crumbs).filter(crumb => USER_ACTIONS.includes(crumb.type))) ||
-    [];
+  const userActionCrumbs = transformCrumbs(crumbs || []).filter(crumb =>
+    USER_ACTIONS.includes(crumb.type)
+  );
   const isLoaded = startTimestamp;
 
   const currentUserAction = getPrevUserAction(
