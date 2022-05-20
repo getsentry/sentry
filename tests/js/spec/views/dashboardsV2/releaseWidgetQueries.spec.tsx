@@ -536,6 +536,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           interval: '30m',
           project: [1],
           statsPeriod: '14d',
+          per_page: 10,
         },
       })
     );
@@ -551,6 +552,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           project: [1],
           query: 'environment:prod',
           statsPeriod: '14d',
+          per_page: 10,
         },
       })
     );
