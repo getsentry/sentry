@@ -402,7 +402,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends libxmlsec1-dev
           # python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have `wheel` installed by default
-          pip install -r requirements-dev-only-frozen.txt
+          pip install -r requirements-dev-frozen.txt
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         run: |
