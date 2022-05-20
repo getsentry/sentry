@@ -5,11 +5,13 @@ from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import EnvironmentMixin, PaginateArgs
+from sentry.api.base import EnvironmentMixin, PaginateArgs, query_params, responds_with
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import (
+    OrganizationProjectHiddenQuerySerializer,
+    OrganizationProjectQuerySerializer,
     OrganizationProjectResponse,
     ProjectSummarySerializer,
 )
@@ -77,7 +79,10 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             )
         ],
     )
-    @OrganizationEndpoint.response(paginated=True, paginator_cls=OffsetPaginator)
+    @query_params(
+        OrganizationProjectQuerySerializer, hidden=[OrganizationProjectHiddenQuerySerializer]
+    )
+    @responds_with(paginated=True, paginator_cls=OffsetPaginator)
     def get(self, request: Request, organization) -> Any:
         """
         Return a list of projects bound to a organization.

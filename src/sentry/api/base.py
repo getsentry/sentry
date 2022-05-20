@@ -18,6 +18,7 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
 
 from sentry import analytics, tsdb
@@ -56,6 +57,42 @@ class PaginateArgs:
     queryset: QuerySet
     order_by: List[str]
     serialization_func: Callable[[Any], Any]
+
+
+def query_params(serializer: Serializer, hidden: List[Serializer] = None):
+    def wrapper(func):
+        @functools.wraps(func)
+        def view_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return view_func
+
+    return wrapper
+
+
+def responds_with(paginated=False, paginator_cls=None):
+    if paginated and paginator_cls is None:
+        raise ValueError("Paginator Class required for paginated responses")
+
+    def decorator(func):
+        @functools.wraps(func)
+        def view_func(self, request: Request, *args, **kwargs):
+            result = func(self, request, *args, **kwargs)
+
+            if paginated and isinstance(result, PaginateArgs):
+                return self.paginate(
+                    request=request,
+                    queryset=result.queryset,
+                    order_by=result.order_by,
+                    on_results=result.serialization_func,
+                    paginator_cls=paginator_cls,
+                )
+
+            return result
+
+        return view_func
+
+    return decorator
 
 
 def allow_cors_options(func):
@@ -325,29 +362,6 @@ class Endpoint(APIView):
             return cursor_cls.from_string(request.GET.get(self.cursor_name))
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
-
-    def response(paginated=False, paginator_cls=None):
-        if paginated and paginator_cls is None:
-            raise ValueError("Paginator Class required for paginated responses")
-
-        def decorator(func):
-            @functools.wraps(func)
-            def view_func(self, *args, **kwargs):
-                assert isinstance(args[0], Request)
-                result = func(self, *args, **kwargs)
-                if paginated and isinstance(result, PaginateArgs):
-                    return self.paginate(
-                        request=args[0],
-                        queryset=result.queryset,
-                        order_by=result.order_by,
-                        on_results=result.serialization_func,
-                        paginator_cls=paginator_cls,
-                    )
-                return result
-
-            return view_func
-
-        return decorator
 
     def paginate(
         self,
