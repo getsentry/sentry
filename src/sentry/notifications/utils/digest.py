@@ -4,21 +4,22 @@ import itertools
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Counter, Mapping
 
-from django.utils import dateformat
-
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base import Notification
+from sentry.utils.dates import to_timestamp
 
 if TYPE_CHECKING:
     from sentry.models import Group
 
 
 def get_digest_subject(group: Group, counts: Counter[Group], date: datetime) -> str:
-    return "{short_id} - {count} new {noun} since {date}".format(
-        short_id=group.qualified_short_id,
+
+    return "<!date^{:.0f}^{count} {noun} detected in {project} {date} | Digest Report".format(
+        to_timestamp(date),
         count=len(counts),
-        noun="alert" if len(counts) == 1 else "alerts",
-        date=dateformat.format(date, "N j, Y, P e"),
+        noun="issue" if len(counts) == 1 else "issues",
+        project=group.project.name,
+        date="{date_pretty}",
     )
 
 
