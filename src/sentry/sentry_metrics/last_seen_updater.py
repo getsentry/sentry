@@ -34,6 +34,7 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
     def should_drop(self, message: Message[KafkaPayload]) -> bool:
         feature_enabled: float = options.get("sentry-metrics.last-seen-updater.accept-rate")
         if random.random() > feature_enabled:
+            self.__metrics.incr("last_seen_updater.accept_rate_bypass")
             return True
 
         header_value: Optional[str] = next(
@@ -44,9 +45,9 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
             ),
             None,
         )
-        logger.debug(f"header_value={header_value}")
 
         if not header_value:
+            self.__metrics.incr("last_seen_updater.header_not_present")
             return False
 
         return FetchType.DB_READ.value not in str(header_value)
