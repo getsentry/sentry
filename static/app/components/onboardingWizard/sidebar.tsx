@@ -95,7 +95,7 @@ function OnboardingWizardSidebar({
   }
 
   const {allTasks, customTasks, active, upcoming, complete} = useMemo(() => {
-    const all = getMergedTasks({organization, projects, onboardingState}).filter(
+    const all = getMergedTasks({ organization, projects, onboardingState: onboardingState || undefined }).filter(
       task => task.display
     );
     const tasks = all.filter(task => !task.renderCard);
