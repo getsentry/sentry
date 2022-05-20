@@ -1,6 +1,6 @@
 import {isReplayTab, ReplayTabs} from '../types';
 
-const DEFAULT_TAB = ReplayTabs.PERFORMANCE;
+const DEFAULT_TAB = ReplayTabs.CONSOLE;
 
 function useActiveTabFromLocation() {
   const hash = location.hash.replace(/^#/, '');
