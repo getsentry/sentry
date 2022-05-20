@@ -88,7 +88,7 @@ function ConsoleMessage({
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
         <Hovercard body={`${t('Relative Time')}: ${relativeTimestamp}`}>
-          <DateTime date={breadcrumb.timestamp} />
+          <DateTime date={breadcrumb.timestamp} timeOnly />
         </Hovercard>
       </ConsoleTimestamp>
     </Fragment>
