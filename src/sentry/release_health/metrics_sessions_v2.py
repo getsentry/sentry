@@ -654,8 +654,8 @@ def _reorder_result_groups_according_to_preflight_query_results(
                         # preflight query but not in the metrics dataset
                         group_key_dict.update({key: None})  # type: ignore
                     result_groups += [
-                        {"by": group_key_dict, **default_group_gen_func()}
-                    ]  # type: ignore
+                        {"by": group_key_dict, **default_group_gen_func()}  # type: ignore
+                    ]
     return result_groups
 
 
