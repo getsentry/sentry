@@ -26,7 +26,7 @@ class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
         return super().get_response(self.org.slug, key, **kwargs)
 
     def run_test(self, key, expected, **kwargs):
-        response = self.get_valid_response(key, **kwargs)
+        response = self.get_success_response(key, **kwargs)
         assert [(val["value"], val["count"]) for val in response.data] == expected
 
     @fixture
