@@ -148,7 +148,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.16.7",
-    "@pmmmwh/react-refresh-webpack-plugin": "0.5.4",
+    "@pmmmwh/react-refresh-webpack-plugin": "0.5.6",
     "@size-limit/preset-small-lib": "^5.0.5",
     "@storybook/addon-a11y": "6.3.13",
     "@storybook/addon-actions": "6.3.13",
@@ -179,7 +179,7 @@
     "jest-sentry-environment": "1.7.1",
     "postcss-jsx": "0.36.4",
     "postcss-syntax": "0.36.2",
-    "react-refresh": "0.11.0",
+    "react-refresh": "0.13.0",
     "react-test-renderer": "17.0.2",
     "size-limit": "^5.0.5",
     "storybook-dark-mode": "^1.0.9",
