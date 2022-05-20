@@ -1,4 +1,4 @@
-from typing import Any, Dict, MutableMapping, Optional, Sequence, cast
+from typing import Any, Dict, MutableMapping, Optional, Sequence, Tuple, cast
 
 import msgpack
 from confluent_kafka import Message
@@ -31,11 +31,14 @@ class ProfilesConsumer(AbstractBatchWorker):  # type: ignore
                 "received": message["received"],
             }
         )
-        return profile
+        return (message.get("key_id"), profile)
 
-    def flush_batch(self, profiles: Sequence[MutableMapping[str, Any]]) -> None:
-        for profile in profiles:
-            process_profile.s(profile=profile).apply_async()
+    def flush_batch(
+        self, messages: Tuple[Optional[int], Sequence[MutableMapping[str, Any]]]
+    ) -> None:
+        for message in messages:
+            key_id, profile = message
+            process_profile.s(profile=profile, key_id=key_id).apply_async()
 
     def shutdown(self) -> None:
         pass

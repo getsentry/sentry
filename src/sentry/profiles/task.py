@@ -1,6 +1,6 @@
 from datetime import datetime
 from time import sleep, time
-from typing import Any, MutableMapping
+from typing import Any, MutableMapping, Optional
 
 from django.conf import settings
 from pytz import UTC
@@ -26,8 +26,11 @@ processed_profiles_publisher = None
     max_retries=5,
     acks_late=True,
 )
-def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
+def process_profile(
+    profile: MutableMapping[str, Any], key_id: Optional[int], **kwargs: Any
+) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
+
     if profile["platform"] == "cocoa":
         profile = _symbolicate(profile=profile, project=project)
     elif profile["platform"] == "android":
@@ -51,7 +54,7 @@ def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
     track_outcome(
         org_id=project.organization_id,
         project_id=project.id,
-        key_id=None,
+        key_id=key_id,
         outcome=Outcome.ACCEPTED,
         reason=None,
         timestamp=datetime.utcnow().replace(tzinfo=UTC),
