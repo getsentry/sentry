@@ -194,11 +194,6 @@ runs:
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
-          # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
-          # differently if these are set.
-          echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
-          echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2181" >> $GITHUB_ENV
-
           # This is *not* the production version. Unclear reason as to why this was chosen
           # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L631
           docker run \
