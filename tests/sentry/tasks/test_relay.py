@@ -38,6 +38,12 @@ def redis_cache(monkeypatch):
         "sentry.relay.projectconfig_debounce_cache.check_is_debounced",
         debounce_cache.check_is_debounced,
     )
+    monkeypatch.setattr(
+        "sentry.relay.projectconfig_debounce_cache.debounce", debounce_cache.debounce
+    )
+    monkeypatch.setattr(
+        "sentry.relay.projectconfig_debounce_cache.is_debounced", debounce_cache.is_debounced
+    )
 
     return cache
 
@@ -51,8 +57,15 @@ def test_no_cache(monkeypatch, default_project):
     schedule_update_config_cache(generate=True, project_id=default_project.id)
 
 
+@pytest.fixture
+def always_update_cache(monkeypatch):
+    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: True)
+
+
 @pytest.mark.django_db
-def test_debounce(monkeypatch, default_project, default_organization, redis_cache):
+def test_debounce(
+    monkeypatch, default_project, default_organization, redis_cache, always_update_cache
+):
     tasks = []
 
     def apply_async(args, kwargs):
@@ -95,6 +108,7 @@ def test_generate(
     task_runner,
     entire_organization,
     redis_cache,
+    always_update_cache,
 ):
     assert not redis_cache.get(default_projectkey.public_key)
 
@@ -130,6 +144,7 @@ def test_invalidate(
     task_runner,
     entire_organization,
     redis_cache,
+    always_update_cache,
 ):
 
     cfg = {"foo": "bar"}
