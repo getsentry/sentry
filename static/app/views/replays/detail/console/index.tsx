@@ -1,7 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
-import forIn from 'lodash/forIn';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
@@ -22,6 +21,17 @@ interface Props {
 const getDistinctLogLevels = breadcrumbs =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
+export const filterBreadcrumbs = (breadcrumb, searchTerm, logLevel) => {
+  const normalizedSearchTerm = searchTerm.toLowerCase();
+  const doesMatch = JSON.stringify(breadcrumb.data)
+    .toLowerCase()
+    .includes(normalizedSearchTerm);
+  if (logLevel.length > 0) {
+    return doesMatch && logLevel.includes(breadcrumb.level);
+  }
+  return doesMatch;
+};
+
 function Console({breadcrumbs, startTimestamp = 0}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
@@ -31,42 +41,9 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
     () =>
       !searchTerm && logLevel.length === 0
         ? breadcrumbs
-        : breadcrumbs.filter(breadcrumb => {
-            let doesMatch = false;
-            const normalizedSearchTerm = searchTerm.toLowerCase();
-            forIn(breadcrumb.data, (value: any, key: string) => {
-              // the logger key doesn't appear in view so we ignore it.
-              if (doesMatch || key === 'logger') {
-                return;
-              }
-              switch (typeof value) {
-                case 'string':
-                  doesMatch = value.toLowerCase().includes(normalizedSearchTerm);
-                  break;
-                case 'number':
-                  doesMatch = String(value) === normalizedSearchTerm;
-                  break;
-
-                case 'object':
-                  doesMatch = JSON.stringify(value)
-                    .toLowerCase()
-                    .includes(normalizedSearchTerm);
-                  break;
-                default: {
-                  if (Array.isArray(value)) {
-                    doesMatch = value
-                      .join(' ')
-                      .toLowerCase()
-                      .includes(normalizedSearchTerm);
-                  }
-                }
-              }
-            });
-            if (logLevel.length > 0) {
-              return doesMatch && logLevel.includes(breadcrumb.level);
-            }
-            return doesMatch;
-          }),
+        : breadcrumbs.filter(breadcrumb =>
+            filterBreadcrumbs(breadcrumb, searchTerm, logLevel)
+          ),
     [logLevel, searchTerm, breadcrumbs]
   );
 
