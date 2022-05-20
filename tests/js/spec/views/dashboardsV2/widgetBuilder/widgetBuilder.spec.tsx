@@ -1942,18 +1942,7 @@ describe('WidgetBuilder', function () {
         query: {source: DashboardWidgetSource.DISCOVERV2},
       });
 
-      expect(await screen.findByText('Choose your dashboard')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          "Choose which dashboard you'd like to add this query to. It will appear as a widget."
-        )
-      ).toBeInTheDocument();
-
-      await selectEvent.select(
-        screen.getByText('Select a dashboard'),
-        '+ Create New Dashboard'
-      );
-      userEvent.click(screen.getByText('Add Widget'));
+      userEvent.click(await screen.findByText('Add Widget'));
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledWith(
@@ -1966,7 +1955,7 @@ describe('WidgetBuilder', function () {
               queryNames: [''],
               queryConditions: [''],
               queryFields: ['count()'],
-              queryOrderby: '',
+              queryOrderby: '-count()',
               start: null,
               end: null,
               statsPeriod: '24h',
@@ -1982,11 +1971,10 @@ describe('WidgetBuilder', function () {
     it('redirects correctly when choosing an existing dashboard', async function () {
       const {router} = renderTestComponent({
         query: {source: DashboardWidgetSource.DISCOVERV2},
+        dashboard: testDashboard,
       });
 
-      userEvent.click(await screen.findByText('Select a dashboard'));
-      userEvent.click(screen.getByText('Test Dashboard'));
-      userEvent.click(screen.getByText('Add Widget'));
+      userEvent.click(await screen.findByText('Add Widget'));
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledWith(
@@ -1999,7 +1987,7 @@ describe('WidgetBuilder', function () {
               queryNames: [''],
               queryConditions: [''],
               queryFields: ['count()'],
-              queryOrderby: '',
+              queryOrderby: '-count()',
               start: null,
               end: null,
               statsPeriod: '24h',
