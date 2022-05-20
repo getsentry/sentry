@@ -655,7 +655,12 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             if (this.props.numOfSpanChildren !== 0) {
               // TODO: Remove this check when this feature is GA'd
               if (organization.features.includes('performance-span-tree-autoscroll')) {
-                this.props.markSpanInView(span.span_id, treeDepth);
+                // If isIntersecting is false, this means the span is out of view below the viewport
+                if (!entry.isIntersecting) {
+                  this.props.markSpanOutOfView(span.span_id);
+                } else {
+                  this.props.markSpanInView(span.span_id, treeDepth);
+                }
               }
             }
 

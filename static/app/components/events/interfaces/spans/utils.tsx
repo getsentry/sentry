@@ -789,6 +789,7 @@ export class SpansInViewMap {
     }
 
     this.spanDepthsInView.set(spanId, treeDepth);
+    console.log(`Added span with ID ${spanId} at depth ${treeDepth}`);
     this.length += 1;
     this.treeDepthSum += treeDepth;
 
@@ -810,6 +811,7 @@ export class SpansInViewMap {
     }
 
     const treeDepth = this.spanDepthsInView.get(spanId);
+    // console.log(`Deleted span with ID ${spanId} at depth ${treeDepth}`);
     this.spanDepthsInView.delete(spanId);
     this.length -= 1;
     this.treeDepthSum -= treeDepth!;
@@ -827,6 +829,7 @@ export class SpansInViewMap {
     }
 
     const avgDepth = Math.round(this.treeDepthSum / this.length);
+    // console.log(`Current average depth: ${avgDepth}`);
     return avgDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
   }
 }

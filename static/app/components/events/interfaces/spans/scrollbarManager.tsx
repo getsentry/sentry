@@ -470,9 +470,6 @@ export class Provider extends Component<Props, State> {
 
     this.startAnimation();
     this.performScroll(left);
-
-    if (!this.animationInProgress) {
-    }
   };
 
   markSpanInView = (spanId: string, treeDepth: number) => {
@@ -484,9 +481,6 @@ export class Provider extends Component<Props, State> {
 
     this.startAnimation();
     this.performScroll(left);
-
-    if (!this.animationInProgress) {
-    }
   };
 
   startAnimation() {
