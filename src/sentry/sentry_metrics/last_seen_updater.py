@@ -27,18 +27,25 @@ def get_metrics():  # type: ignore
     return metrics
 
 
-class LastSeenUpdaterMessageFilter(StreamMessageFilter[KafkaPayload]):  # type: ignore
+class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]):  # type: ignore
     # We want to ignore messages where the mapping_sources header is present
     # and does not contain the DB_READ ('d') character (this should be the vast
     # majority of messages).
-    def should_drop(self, message: KafkaPayload) -> bool:
+    def should_drop(self, message: Message[KafkaPayload]) -> bool:
         feature_enabled: float = options.get("sentry-metrics.last-seen-updater.accept-rate")
         if random.random() > feature_enabled:
             return True
 
         header_value: Optional[str] = next(
-            (str(header[1]) for header in message.headers if header[0] == "mapping_sources"), None
+            (
+                str(header[1])
+                for header in message.payload.headers
+                if header[0] == "mapping_sources"
+            ),
+            None,
         )
+        logger.debug(f"header_value={header_value}")
+
         if not header_value:
             return False
 
