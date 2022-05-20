@@ -79,9 +79,9 @@ function ConsoleMessage({breadcrumb, isLast, startTimestamp = 0}: ConsoleMessage
   const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
 
   const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp);
-  const onClick = () => setCurrentTime(diff);
-  const onMouseOver = () => setCurrentHoverTime(diff);
-  const onMouseOut = () => setCurrentHoverTime(undefined);
+  const handleOnClick = () => setCurrentTime(diff);
+  const handleOnMouseOver = () => setCurrentHoverTime(diff);
+  const handleOnMouseOut = () => setCurrentHoverTime(undefined);
 
   return (
     <Fragment>
@@ -101,9 +101,9 @@ function ConsoleMessage({breadcrumb, isLast, startTimestamp = 0}: ConsoleMessage
           <DateTime
             timeOnly
             date={breadcrumb.timestamp}
-            onClick={onClick}
-            onMouseOver={onMouseOver}
-            onMouseOut={onMouseOut}
+            onClick={handleOnClick}
+            onMouseOver={handleOnMouseOver}
+            onMouseOut={handleOnMouseOut}
           />
         </Hovercard>
       </ConsoleTimestamp>
