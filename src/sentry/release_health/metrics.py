@@ -6,7 +6,6 @@ from operator import itemgetter
 from typing import (
     Any,
     Callable,
-    Collection,
     DefaultDict,
     Dict,
     List,
@@ -21,7 +20,6 @@ from typing import (
 )
 
 import pytz
-from requests import session
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
 from snuba_sdk.expressions import Expression, Granularity, Limit, Offset
 from snuba_sdk.query import SelectableExpression
@@ -66,8 +64,6 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve,
 )
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics import QueryDefinition as MetricsQuery
-from sentry.snuba.metrics import get_series
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets, parse_snuba_datetime
 from sentry.snuba.sessions_v2 import AllowedResolution, QueryDefinition
@@ -1054,7 +1050,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             total_sessions = rv_sessions.get((project_id, release, "init"))
 
-            total_users = rv_users.get((project_id, release, "init"))
+            total_users = rv_users.get((project_id, release, "all_users"))
             has_health_data = bool(total_sessions)
 
             # has_health_data is supposed to be irrespective of the currently
@@ -1066,7 +1062,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             sessions_crashed = rv_sessions.get((project_id, release, "crashed"), 0)
 
-            users_crashed = rv_users.get((project_id, release, "crashed"), 0)
+            users_crashed = rv_users.get((project_id, release, "crashed_users"), 0)
 
             rv_row = rv[project_id, release] = {
                 "adoption": adoption_info.get("adoption"),
@@ -1241,8 +1237,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     )["data"]
                     assert len(data) == 1
                     row = data[0]
-                    total = row["total"]
-                    crashed = row["crashed"]
+                    total = int(row["total"])
+                    crashed = int(row["crashed"])
 
                 return total, crashed
 
@@ -1740,8 +1736,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 if is_totals:
                     target = totals
                 else:
-                    dt = parse_snuba_datetime(row["bucketed_time"])
+                    dt = parse_snuba_datetime(row.pop("bucketed_time"))
                     target = series[dt]
+
+                # Map everything to integers
+                for key in list(row.keys()):
+                    row[key] = int(row[key])
 
                 # 1:1 fields:
                 target["users"] = row["all"]
@@ -1756,9 +1756,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 target["users_errored"] = row["errored"] - row["abnormal"] - row["crashed"]
 
         # Replace negative values
-        for data in itertools.chain(series.values(), [totals]):
-            data["users_healthy"] = max(0, data["users_healthy"])
-            data["users_errored"] = max(0, data["users_errored"])
+        for item in itertools.chain(series.values(), [totals]):
+            item["users_healthy"] = max(0, item["users_healthy"])
+            item["users_errored"] = max(0, item["users_errored"])
 
         return series, totals
 
