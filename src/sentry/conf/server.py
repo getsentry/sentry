@@ -2586,6 +2586,9 @@ SAMPLED_DEFAULT_RATE = 1.0
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS = {}
 
+# A set of extra tasks to sample
+ADDITIONAL_SAMPLED_TASKS = {}
+
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
