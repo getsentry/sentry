@@ -80,7 +80,7 @@ function RuleListRow({
   function renderLastIncidentDate(): React.ReactNode {
     if (isIssueAlert(rule)) {
       if (!rule.lastTriggered) {
-        return '-';
+        return t('Alerts not triggered yet');
       }
       return (
         <div>
@@ -91,7 +91,7 @@ function RuleListRow({
     }
 
     if (!rule.latestIncident) {
-      return '-';
+      return t('Alerts not triggered yet');
     }
 
     if (activeIncident) {
