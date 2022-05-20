@@ -267,11 +267,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 filter_projects_by_project_release(project_releases),
                 Condition(Column("timestamp"), Op.GTE, start),
                 Condition(Column("timestamp"), Op.LT, now),
-                Condition(
-                    Column(resolve_tag_key(org_id, "session.status")),
-                    Op.EQ,
-                    resolve_weak(org_id, "init"),
-                ),
             ]
 
             if environments is not None:
@@ -309,6 +304,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 + [
                     Condition(
                         Column("metric_id"), Op.EQ, resolve(org_id, SessionMRI.SESSION.value)
+                    ),
+                    Condition(
+                        Column(resolve_tag_key(org_id, "session.status")),
+                        Op.EQ,
+                        resolve_weak(org_id, "init"),
                     ),
                 ],
                 groupby=_get_common_groupby(total),
@@ -926,6 +926,22 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             org_id, {"sessions": SessionMRI.SESSION, "users": SessionMRI.USER}[stat].value
         )
 
+        where = where + [
+            Condition(Column("metric_id"), Op.EQ, metric_name),
+            Condition(Column("timestamp"), Op.GTE, stats_start),
+            Condition(Column("timestamp"), Op.LT, now),
+        ]
+
+        if stat == "sessions":
+            # For sessions, only count init. For users, count all distinct.
+            where.append(
+                Condition(
+                    Column(session_status_column_name),
+                    Op.EQ,
+                    session_init_tag_value,
+                ),
+            )
+
         for row in raw_snql_query(
             Request(
                 dataset=Dataset.Metrics.value,
@@ -933,17 +949,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 query=Query(
                     match=Entity(entity),
                     select=aggregates + [value_column],
-                    where=where
-                    + [
-                        Condition(Column("metric_id"), Op.EQ, metric_name),
-                        Condition(Column("timestamp"), Op.GTE, stats_start),
-                        Condition(Column("timestamp"), Op.LT, now),
-                        Condition(
-                            Column(session_status_column_name),
-                            Op.EQ,
-                            session_init_tag_value,
-                        ),
-                    ],
+                    where=where,
                     granularity=Granularity(stats_rollup),
                     groupby=aggregates,
                 ),
@@ -2031,12 +2037,9 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                                 ],
                             ),
                             Function(
-                                "uniqIf",
+                                "uniq",
                                 parameters=[
                                     Column("value"),
-                                    Function(
-                                        "equals", [Column(session_status_column_name), status_init]
-                                    ),
                                 ],
                             ),
                         ],
