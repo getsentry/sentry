@@ -10438,7 +10438,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response.data["data"][0]["equation|spans.http / 3"]
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
-        assert response.data["meta"]["equation|spans.http / 3"] == "number"
+        assert response.data["meta"]["fields"]["equation|spans.http / 3"] == "number"
 
     def test_equation_sort(self):
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
