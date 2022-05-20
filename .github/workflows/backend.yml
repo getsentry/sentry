@@ -154,8 +154,9 @@ jobs:
         uses: ./.github/actions/setup-python
         with:
           python-version: ${{ matrix.python-version }}
-          # We just need requirements-dev, this lets us pull in less files.
-          cache-files-hash: ${{ hashFiles('requirements-dev.txt') }}
+          # We just need dev requirements, this lets us pull in less files.
+          # This is what's installed by make setup-git.
+          cache-files-hash: ${{ hashFiles('requirements-dev-only-frozen.txt') }}
 
       - uses: actions/cache@v3
         with:
@@ -182,7 +183,7 @@ jobs:
           filters: |
             all:
               - added|modified: '**/*.py'
-              - added|modified: 'requirements-base.txt'
+              - added|modified: 'requirements-dev-only-frozen.txt'
 
       - name: Run pre-commit on changed files
         run: |
@@ -398,11 +399,11 @@ jobs:
         env:
           SENTRY_LIGHT_BUILD: 1
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libxmlsec1-dev
-          python setup.py install_egg_info
+          #sudo apt-get update
+          #sudo apt-get install -y --no-install-recommends libxmlsec1-dev
+          #python setup.py install_egg_info
           pip install wheel # GitHub Actions does not have `wheel` installed by default
-          pip install -U -e ".[dev]"
+          pip install -r requirements-dev-only-frozen.txt
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
         run: |

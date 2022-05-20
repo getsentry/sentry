@@ -48,7 +48,7 @@ ENV \
   GRPC_POLL_STRATEGY=epoll1
 
 # Copy and install dependencies first to leverage Docker layer caching.
-COPY /dist/requirements.txt /tmp/dist/requirements.txt
+COPY /dist/requirements-frozen.txt /tmp/dist/requirements-frozen.txt
 RUN set -x \
   && buildDeps="" \
   # uwsgi
@@ -67,7 +67,7 @@ RUN set -x \
   " \
   && apt-get update \
   && apt-get install -y --no-install-recommends $buildDeps \
-  && pip install -r /tmp/dist/requirements.txt \
+  && pip install -r /tmp/dist/requirements-frozen.txt \
   && mkdir /tmp/uwsgi-dogstatsd \
   && wget -O - https://github.com/eventbrite/uwsgi-dogstatsd/archive/filters-and-tags.tar.gz | \
   tar -xzf - -C /tmp/uwsgi-dogstatsd --strip-components=1 \
