@@ -164,7 +164,8 @@ runs:
         # These are all real slow steps, so do them all in parallel.
         pip install wheel & \
         pip install -r requirements-dev-frozen.txt & \
-        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
+        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e . & \
+        wait
         cd -
 
     - name: Start devservices
