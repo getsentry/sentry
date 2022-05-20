@@ -15,6 +15,7 @@ from typing import (
     FrozenSet,
     Iterable,
     List,
+    Literal,
     Mapping,
     MutableMapping,
     Optional,
@@ -395,6 +396,7 @@ FIELD_MAP: Mapping[SessionsQueryFunction, Type[Field]] = {
     "crash_free_rate(user)": SimpleForwardingField,
 }
 PREFLIGHT_QUERY_COLUMNS = {"release.timestamp"}
+VirtualOrderByName = Literal["release.timestamp"]
 
 
 def run_sessions_query(
@@ -433,7 +435,7 @@ def run_sessions_query(
     project_ids = filter_keys.pop("project_id")
     assert not filter_keys
 
-    ordered_preflight_filters = {}
+    ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]] = {}
     try:
         orderby = _parse_orderby(query, fields)
     except NonPreflightOrderByException as exc:
@@ -441,18 +443,18 @@ def run_sessions_query(
         # columns like `release.timestamp` that require a preflight query to be run, and so we
         # check here if it is one of the supported preflight query columns and if so we run the
         # preflight query. Otherwise we re-raise the exception
-        orderby = query.raw_orderby[0]
-        if orderby[0] == "-":
-            orderby = orderby[1:]
+        raw_orderby = query.raw_orderby[0]
+        if raw_orderby[0] == "-":
+            raw_orderby = raw_orderby[1:]
             direction = Direction.DESC
         else:
             direction = Direction.ASC
 
-        if orderby not in PREFLIGHT_QUERY_COLUMNS:
+        if raw_orderby not in PREFLIGHT_QUERY_COLUMNS:
             raise exc
 
         preflight_query_conditions = {
-            "orderby_field": orderby,
+            "orderby_field": raw_orderby,
             "direction": direction,
             "org_id": org_id,
             "project_ids": project_ids,
@@ -488,8 +490,8 @@ def run_sessions_query(
             # filter in the metrics query, then there is no point in running the metrics query
             return _empty_result(query)
 
-        condition_lhs = None
-        if orderby == "release.timestamp":
+        condition_lhs: Optional[GroupByFieldName] = None
+        if raw_orderby == "release.timestamp":
             condition_lhs = "release"
             ordered_preflight_filters[condition_lhs] = preflight_query_filters
 
@@ -558,7 +560,7 @@ def run_sessions_query(
                 # Create entry in default dict:
                 output_groups[GroupKey(session_status=status)]
 
-    result_groups = [
+    result_groups: Sequence[SessionsQueryGroup] = [
         # Convert group keys back to dictionaries:
         {"by": group_key.to_output_dict(), **group}  # type: ignore
         for group_key, group in output_groups.items()
@@ -577,7 +579,7 @@ def run_sessions_query(
 
 
 def _reorder_result_groups_according_to_preflight_query_results(
-    ordered_preflight_filters: Mapping[Union[str, int], Sequence[SessionsQueryGroup]],
+    ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]],
     groupby: GroupByFieldName,
     result_groups: Sequence[SessionsQueryGroup],
     default_group_gen_func: Callable[[], Group],
@@ -647,8 +649,13 @@ def _reorder_result_groups_according_to_preflight_query_results(
                     for key in groupby:
                         if key == orderby_field:
                             continue
-                        group_key_dict.update({key: None})
-                    result_groups += [{"by": group_key_dict, **default_group_gen_func()}]
+                        # Added a mypy ignore here because this is a one off as result groups
+                        # will never have null group values except when the group exists in the
+                        # preflight query but not in the metrics dataset
+                        group_key_dict.update({key: None})  # type: ignore
+                    result_groups += [
+                        {"by": group_key_dict, **default_group_gen_func()}
+                    ]  # type: ignore
     return result_groups
 
 
@@ -826,7 +833,7 @@ def _get_primary_field(fields: Sequence[Field], raw_groupby: Sequence[str]) -> M
 
 
 def _generate_preflight_query_conditions(
-    orderby_field: MetricField,
+    orderby_field: VirtualOrderByName,
     direction: Direction,
     org_id: int,
     project_ids: Sequence[ProjectId],
