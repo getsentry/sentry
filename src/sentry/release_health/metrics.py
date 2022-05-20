@@ -6,6 +6,7 @@ from operator import itemgetter
 from typing import (
     Any,
     Callable,
+    Collection,
     DefaultDict,
     Dict,
     List,
@@ -1663,6 +1664,23 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         session_status_key: str,
         rollup: int,
     ) -> Tuple[Mapping[datetime, UserCounts], UserCounts]:
+        def user_count(status: str) -> Function:
+            return Function(
+                "uniqIf",
+                [
+                    Column("value"),
+                    Function(
+                        "equals",
+                        [
+                            Column(session_status_key),
+                            resolve(
+                                org_id, status
+                            ),  # all statuses are shared strings, so this should not throw
+                        ],
+                    ),
+                ],
+                alias=status,
+            )
 
         user_series_data = raw_snql_query(
             Request(
@@ -1678,9 +1696,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     granularity=Granularity(rollup),
                     match=Entity(EntityKey.MetricsSets.value),
                     select=[
-                        Function("uniq", [Column("value")], alias="value"),
+                        Function("uniq", [Column("value")], alias="all"),
+                        user_count("abnormal"),
+                        user_count("crashed"),
+                        user_count("errored"),
                     ],
-                    groupby=[Column("bucketed_time"), Column(session_status_key)],
+                    groupby=[Column("bucketed_time")],
                 ),
             ),
             referrer="release_health.metrics.get_project_release_stats_user_series",
@@ -1700,9 +1721,12 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
                     match=Entity(EntityKey.MetricsSets.value),
                     select=[
-                        Function("uniq", [Column("value")], alias="value"),
+                        Function("uniq", [Column("value")], alias="all"),
+                        user_count("abnormal"),
+                        user_count("crashed"),
+                        user_count("errored"),
                     ],
-                    groupby=[Column(session_status_key)],
+                    groupby=[],
                 ),
             ),
             referrer="release_health.metrics.get_project_release_stats_user_totals",
@@ -1718,25 +1742,18 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 else:
                     dt = parse_snuba_datetime(row["bucketed_time"])
                     target = series[dt]
-                status = reverse_resolve(row[session_status_key])
-                value = int(row["value"])
-                if status == "init":
-                    target["users"] = value
-                    # Set same value for 'healthy', this will later be subtracted by errors
-                    target["users_healthy"] += value
-                else:
-                    if status == "abnormal":
-                        # Subtract this special error state from sum of all errors
-                        target["users_abnormal"] += value
-                        target["users_errored"] -= value
-                    elif status == "crashed":
-                        # Subtract this special error state from sum of all errors
-                        target["users_crashed"] += value
-                        target["users_errored"] -= value
-                    elif status == "errored":
-                        # Subtract sum of all errors from healthy sessions
-                        target["users_errored"] += value
-                        target["users_healthy"] -= value
+
+                # 1:1 fields:
+                target["users"] = row["all"]
+                target["users_abnormal"] = row["abnormal"]
+                target["users_crashed"] = row["crashed"]
+
+                # Derived fields:
+                target["users_healthy"] = row["all"] - row["errored"]
+
+                # NOTE: This is not valid set arithmetic, because abnormal and crashed could be overlapping sets
+                #       Keeping it for now to get the same results as the sessions impl at https://github.com/getsentry/sentry/blob/b8a692fdc31256b4374c58791d463fdd672e885b/src/sentry/snuba/sessions.py#L624
+                target["users_errored"] = row["errored"] - row["abnormal"] - row["crashed"]
 
         # Replace negative values
         for data in itertools.chain(series.values(), [totals]):
