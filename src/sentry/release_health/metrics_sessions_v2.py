@@ -11,6 +11,7 @@ from enum import Enum
 from typing import (
     Any,
     Callable,
+    Dict,
     FrozenSet,
     Iterable,
     List,
@@ -59,6 +60,7 @@ from sentry.snuba.metrics.query import QueryDefinition as MetricsQuery
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
     InvalidParams,
+    NonPreflightOrderByException,
     QueryDefinition,
     finite_or_none,
     get_timestamps,
@@ -622,7 +624,7 @@ def _reorder_result_groups_according_to_preflight_query_results(
     """
     if len(ordered_preflight_filters) == 1:
         orderby_field = list(ordered_preflight_filters.keys())[0]
-        grp_value_to_result_grp_mapping = {}
+        grp_value_to_result_grp_mapping: Dict[Union[int, str], List[SessionsQueryGroup]] = {}
         # If the preflight query occurs, but the relevant column is not in the groupBy then there
         # is no need to re-order the results
         if orderby_field in groupby:
@@ -765,15 +767,6 @@ def _parse_session_status(status: Any) -> FrozenSet[SessionStatus]:
         return frozenset([SessionStatus(status)])
     except ValueError:
         return frozenset()
-
-
-class NonPreflightOrderByException(InvalidParams):
-    """
-    An exception that is raised when parsing orderBy, to indicate that this is only an exception
-    in the case where we don't run a preflight query on an accepted pre-flight query field
-    """
-
-    ...
 
 
 def _parse_orderby(
