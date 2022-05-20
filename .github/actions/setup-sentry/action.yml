@@ -81,7 +81,6 @@ runs:
         fi
 
         echo "PIP_DISABLE_PIP_VERSION_CHECK=on" >> $GITHUB_ENV
-        echo "SENTRY_LIGHT_BUILD=1" >> $GITHUB_ENV
         echo "SENTRY_SKIP_BACKEND_VALIDATION=1" >> $GITHUB_ENV
 
         ### node configuration ###
@@ -159,8 +158,13 @@ runs:
       run: |
         cd "$WORKDIR"
         python setup.py install_egg_info
-        pip install wheel # GitHub Actions does not have `wheel` installed by default
-        pip install ".[dev]"
+        # GitHub Actions does not have `wheel` installed by default.
+        # Also, we need to install editable otherwise things like check migration
+        # will fail.
+        # These are all real slow steps, so do them all in parallel.
+        pip install wheel & \
+        pip install -r requirements-dev-frozen.txt & \
+        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e .
         cd -
 
     - name: Start devservices
