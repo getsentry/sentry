@@ -225,7 +225,7 @@ class Dashboard extends Component<Props, State> {
       paramDashboardId,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience')) {
+    if (organization.features.includes('new-widget-builder-experience-design')) {
       if (paramDashboardId) {
         router.push({
           pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
@@ -335,7 +335,7 @@ class Dashboard extends Component<Props, State> {
     } = this.props;
 
     if (
-      organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-design') &&
       (!organization.features.includes('new-widget-builder-experience-modal-access') ||
         isEditing)
     ) {

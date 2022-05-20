@@ -95,6 +95,7 @@ function ConsoleMessage({
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
         <Hovercard body={`${t('Relative Time')}: ${relativeTimestamp}`}>
           <DateTime
+            timeOnly
             date={breadcrumb.timestamp}
             onClick={onClick}
             onMouseOver={onMouseOver}

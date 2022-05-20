@@ -22,7 +22,9 @@ class RecentSearchesListTest(APITestCase):
         kwargs = {}
         if query:
             kwargs["query"] = query
-        response = self.get_valid_response(self.organization.slug, type=search_type.value, **kwargs)
+        response = self.get_success_response(
+            self.organization.slug, type=search_type.value, **kwargs
+        )
         assert response.data == serialize(expected)
 
     def test_simple(self):

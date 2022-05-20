@@ -5,10 +5,7 @@ from rest_framework.response import Response
 from sentry import eventstore
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
 from sentry.models import Organization, Project
-from sentry.utils.sentryappwebhookrequests import (
-    EXTENDED_VALID_EVENTS,
-    SentryAppWebhookRequestsBuffer,
-)
+from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequestsBuffer
 
 
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
