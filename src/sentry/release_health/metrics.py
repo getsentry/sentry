@@ -1173,12 +1173,57 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     ]
 
                     if entity_key == EntityKey.MetricsCounters:
-                        aggregation_function = "sum"
+                        columns = [
+                            Function(
+                                "sumIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column(status_key),
+                                            resolve_weak(org_id, "crashed"),
+                                        ],
+                                    ),
+                                ],
+                                alias="crashed",
+                            ),
+                            Function(
+                                "sumIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column(status_key),
+                                            resolve_weak(org_id, "init"),
+                                        ],
+                                    ),
+                                ],
+                                alias="total",
+                            ),
+                        ]
+
                     elif entity_key == EntityKey.MetricsSets:
-                        aggregation_function = "uniq"
+                        columns = [
+                            Function(
+                                "uniqIf",
+                                [
+                                    Column("value"),
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column(status_key),
+                                            resolve_weak(org_id, "crashed"),
+                                        ],
+                                    ),
+                                ],
+                                alias="crashed",
+                            ),
+                            Function("uniq", [Column("value")], alias="total"),
+                        ]
                     else:
                         raise NotImplementedError(f"No support for entity: {entity_key}")
-                    columns = [Function(aggregation_function, [Column("value")], "value")]
 
                     data = raw_snql_query(
                         Request(
@@ -1188,17 +1233,15 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                                 match=Entity(entity_key.value),
                                 select=columns,
                                 where=where,
-                                groupby=[Column(status_key)],
                                 granularity=Granularity(LEGACY_SESSIONS_DEFAULT_ROLLUP),
                             ),
                         ),
                         referrer=referrer,
                     )["data"]
-                    for row in data:
-                        if row[status_key] == status_init:
-                            total = int(row["value"])
-                        elif row[status_key] == status_crashed:
-                            crashed = int(row["value"])
+                    assert len(data) == 1
+                    row = data[0]
+                    total = row["total"]
+                    crashed = row["crashed"]
 
                 return total, crashed
 
