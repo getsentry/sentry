@@ -28,6 +28,9 @@ def get_metrics():  # type: ignore
 
 
 class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]):  # type: ignore
+    def __init__(self, metrics: Any) -> None:
+        self.__metrics = metrics
+
     # We want to ignore messages where the mapping_sources header is present
     # and does not contain the DB_READ ('d') character (this should be the vast
     # majority of messages).
@@ -114,7 +117,7 @@ def get_last_seen_updater(
         input_block_size=None,
         output_block_size=None,
         process_message=retrieve_db_read_keys,
-        prefilter=LastSeenUpdaterMessageFilter(),
+        prefilter=LastSeenUpdaterMessageFilter(metrics=get_metrics()),
         collector=lambda: LastSeenUpdaterCollector(metrics=get_metrics()),
     )
     return StreamProcessor(
