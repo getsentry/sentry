@@ -1,7 +1,6 @@
 import 'focus-visible';
 import 'docs-ui/index.js';
 
-import {Fragment} from 'react';
 import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
 import {themes} from '@storybook/theming';

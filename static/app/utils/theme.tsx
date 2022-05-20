@@ -865,7 +865,16 @@ type MyTheme = Theme;
  */
 declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-shadow
-  export interface Theme extends MyTheme {}
+  export interface Theme extends MyTheme {
+    /**
+     * [For Storybook only, do not use inside the app.]
+     *
+     * Substitute for the "background" property in Storybook components
+     * (anything inside docs-ui), since Storybook overrides "background" with
+     * its own object value.
+     */
+    bg?: string;
+  }
 }
 
 // This should never be used directly (except in storybook)
