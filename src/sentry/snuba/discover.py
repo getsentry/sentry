@@ -272,6 +272,8 @@ def query(
                 translated_columns.get(column): function_details
                 for column, function_details in builder.function_alias_map.items()
             }
+            for index, equation in enumerate(equations):
+                translated_columns[f"equation[{index}]"] = f"equation|{equation}"
         result = transform_results(
             result,
             function_alias_map,

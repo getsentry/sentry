@@ -10432,12 +10432,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "organizations:discover-basic": True,
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert (
-            response.data["data"][0]["equation[0]"]
+            response.data["data"][0]["equation|spans.http / 3"]
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
+        assert response.data["meta"]["equation|spans.http / 3"] == "number"
 
     def test_equation_sort(self):
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -10451,7 +10452,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": ["spans.http", "equation|spans.http / 3"],
             "project": [self.project.id],
-            "orderby": "equation[0]",
+            "orderby": "equation|spans.http / 3",
             "query": "event.type:transaction",
         }
         response = self.do_request(
@@ -10460,14 +10461,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "organizations:discover-basic": True,
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         assert (
-            response.data["data"][0]["equation[0]"]
+            response.data["data"][0]["equation|spans.http / 3"]
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
         assert (
-            response.data["data"][1]["equation[0]"]
+            response.data["data"][1]["equation|spans.http / 3"]
             == event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
 
