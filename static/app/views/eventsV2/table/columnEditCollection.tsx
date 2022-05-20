@@ -332,6 +332,19 @@ class ColumnEditCollection extends Component<Props, State> {
     );
   };
 
+  isRemainingReleaseHealthAggregate = (columnIndex: number) => {
+    const {source, columns} = this.props;
+    const column = columns[columnIndex];
+    const aggregateCount = columns.filter(
+      col => col.kind === FieldValueKind.FUNCTION
+    ).length;
+    return (
+      aggregateCount <= 1 &&
+      source === WidgetType.RELEASE &&
+      column.kind === FieldValueKind.FUNCTION
+    );
+  };
+
   onDragEnd = (event: MouseEvent | TouchEvent) => {
     if (!this.state.isDragging || !['mouseup', 'touchend'].includes(event.type)) {
       return;
@@ -578,6 +591,14 @@ class ColumnEditCollection extends Component<Props, State> {
               canDrag,
               gridColumns,
               disabled: true,
+            });
+          }
+          if (this.isRemainingReleaseHealthAggregate(i)) {
+            return this.renderItem(col, i, {
+              singleColumn,
+              canDelete: false,
+              canDrag,
+              gridColumns,
             });
           }
           return this.renderItem(col, i, {

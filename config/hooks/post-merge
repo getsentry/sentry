@@ -10,7 +10,6 @@ trap "rm -f ${files_changed_upstream}" EXIT
 
 git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD > "$files_changed_upstream"
 
-grep -E --quiet 'requirements-pre-commit\.txt' "$files_changed_upstream" && pc="setup-git "
 grep -E --quiet 'requirements-(base|dev)\.txt' "$files_changed_upstream" && py="install-py-dev "
 grep -E --quiet 'yarn\.lock' "$files_changed_upstream"                   && js="install-js-dev "
 grep -E --quiet 'migrations' "$files_changed_upstream"                   && migrations="apply-migrations "

@@ -135,7 +135,7 @@ class TestAccessLogRateLimited(LogCaptureAPITestCase):
     endpoint = "ratelimit-endpoint"
 
     def test_access_log_rate_limited(self):
-        self._caplog.set_level(logging.INFO, logger="api.access")
+        self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_error_response(status_code=429)
         self.assert_access_log_recorded()
         # no token because the endpoint was not hit
@@ -151,7 +151,7 @@ class TestAccessLogConcurrentRateLimited(LogCaptureAPITestCase):
     endpoint = "concurrent-ratelimit-endpoint"
 
     def test_concurrent_request_finishes(self):
-        self._caplog.set_level(logging.INFO, logger="api.access")
+        self._caplog.set_level(logging.INFO, logger="sentry")
         for i in range(10):
             self.get_success_response()
         # these requests were done in succession, so we should not have any
@@ -175,6 +175,7 @@ class TestAccessLogSuccess(LogCaptureAPITestCase):
     endpoint = "dummy-endpoint"
 
     def test_access_log_success(self):
+        self._caplog.set_level(logging.INFO, logger="sentry")
         token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
         self.login_as(user=self.create_user())
         self.get_success_response(extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"})
@@ -209,6 +210,7 @@ class TestOrganizationIdPresent(LogCaptureAPITestCase):
         self.login_as(user=self.user)
 
     def test_org_id_populated(self):
+        self._caplog.set_level(logging.INFO, logger="sentry")
         self.get_success_response(
             self.organization.slug,
             qs_params={
