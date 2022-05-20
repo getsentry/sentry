@@ -6,15 +6,14 @@ import responses
 from exam import fixture
 
 from sentry.incidents.models import AlertRule, AlertRuleTriggerAction
-from sentry.integrations.slack.tasks import (
-    RedisRuleStatus,
+from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
+from sentry.models import Rule
+from sentry.receivers.rules import DEFAULT_RULE_LABEL
+from sentry.tasks.integrations.slack import (
     find_channel_id_for_alert_rule,
     find_channel_id_for_rule,
     post_message,
 )
-from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
-from sentry.models import Rule
-from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.utils import json
