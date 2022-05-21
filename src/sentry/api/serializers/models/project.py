@@ -165,10 +165,22 @@ def get_features_for_projects(
     return features_by_project
 
 
-class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
+class SentryBaseResponseDict(TypedDict):
+    pass
+    # @classmethod  # pyright: ignore
+    # @abstractmethod
+    # def example(cls):
+    #     raise NotImplementedError
+
+
+class _ProjectSerializerOptionalBaseResponse(SentryBaseResponseDict, total=False):
     stats: Any
     transactionStats: Any
     sessionStats: Any
+
+    # @classmethod  # pyright: ignore
+    # def example(cls):
+    #     return cls()
 
 
 class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
@@ -184,6 +196,25 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasSessions: bool
     platform: Optional[str]
     firstEvent: Optional[datetime]
+
+    # @classmethod  # pyright: ignore
+    # def example(cls):
+    #     ex_dict = cls(
+    #         id="3",
+    #         name="Prime Mover",
+    #         slug="prime-mover",
+    #         isBookmarked=False,
+    #         isMember=True,
+    #         hasAccess=True,
+    #         dateCreated="2018-11-06T21:19:58.536Z",
+    #         features=["releases"],
+    #         firstTransactionEvent=True,
+    #         hasSessions=True,
+    #         platform="",
+    #         firstEvent=None,
+    #     )
+    #     ex_dict.update(_ProjectSerializerOptionalBaseResponse.example())
+    #     return ex_dict
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -464,15 +495,23 @@ class OrganizationProjectHiddenQuerySerializer(drf_serializers.Serializer):
     all_projects = drf_serializers.IntegerField(default=0)
 
 
-class TeamResponseDict(TypedDict):
+class TeamResponseDict(SentryBaseResponseDict):
     id: str
     name: str
     slug: str
+
+    # @classmethod  # pyright: ignore
+    # def example(cls, id=2):
+    #     return cls(id=f"{id}", name="Powerful Abolitionist", slug="powerful-abolitionist")
 
 
 class ProjectWithTeamResponseDict(ProjectSerializerResponse):
     team: TeamResponseDict
     teams: List[TeamResponseDict]
+
+    # @classmethod  # pyright: ignore
+    # def example(cls):
+    #     return cls(team=TeamResponseDict, teams=[TeamResponseDict])
 
 
 class ProjectWithTeamSerializer(ProjectSerializer):
@@ -513,16 +552,28 @@ class ProjectWithTeamSerializer(ProjectSerializer):
         return data
 
 
-class EventProcessingDict(TypedDict):
+class EventProcessingDict(SentryBaseResponseDict):
     symbolicationDegraded: bool
 
+    # @classmethod  # pyright: ignore
+    # def example(cls):
+    #     return cls(symbolicationDegraded=False)
 
-class LatestReleaseDict(TypedDict):
+
+class LatestReleaseDict(SentryBaseResponseDict):
     version: str
 
+    # @classmethod  # pyright: ignore
+    # def example(cls):
+    #     return "3.2.1"
 
-class _OrganizationProjectOptionalResponse(TypedDict, total=False):
+
+class _OrganizationProjectOptionalResponse(SentryBaseResponseDict, total=False):
     latestDeploys: Optional[Dict[str, Dict[str, str]]]
+
+    # @classmethod  # pyright: ignore
+    # def example(cls):
+    #     return cls()
 
 
 class OrganizationProjectResponse(
@@ -535,6 +586,20 @@ class OrganizationProjectResponse(
     hasUserReports: bool
     environments: List[str]
     latestRelease: Optional[LatestReleaseDict]
+
+    # @classmethod  # pyright: ignore
+    # def example(cls):
+    #     example_dict = cls(
+    #         eventProcessing=EventProcessingDict,
+    #         platforms=[],
+    #         hasUserReports=False,
+    #         environments=["local"],
+    #         latestRelease=None,
+    #     )
+    #     example_dict.update(_OrganizationProjectOptionalResponse.example())
+    #     example_dict.update(ProjectSerializerBaseResponse.example())
+    #     example_dict.update(ProjectWithTeamResponseDict.example())
+    #     return example_dict
 
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
