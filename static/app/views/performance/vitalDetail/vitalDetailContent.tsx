@@ -91,7 +91,10 @@ class VitalDetailContent extends Component<Props, State> {
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   };
 

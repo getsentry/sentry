@@ -25,10 +25,10 @@ class UserSubscriptionsNewsletterTest(APITestCase):
         newsletter.backend.enable()
 
     def test_get_subscriptions(self):
-        self.get_valid_response(self.user.id, method="get")
+        self.get_success_response(self.user.id, method="get")
 
     def test_subscribe(self):
-        self.get_valid_response(self.user.id, listId="123", subscribed=True, status_code=204)
+        self.get_success_response(self.user.id, listId="123", subscribed=True, status_code=204)
         results = newsletter.get_subscriptions(self.user)["subscriptions"]
         assert len(results) == 1
         assert results[0].list_id == 123
@@ -36,14 +36,14 @@ class UserSubscriptionsNewsletterTest(APITestCase):
         assert results[0].verified
 
     def test_requires_subscribed(self):
-        self.get_valid_response(self.user.id, listId="123", status_code=400)
+        self.get_error_response(self.user.id, listId="123", status_code=400)
 
     def test_unverified_emails(self):
         UserEmail.objects.get(email=self.user.email).update(is_verified=False)
-        self.get_valid_response(self.user.id, listId="123", subscribed=True, status_code=204)
+        self.get_success_response(self.user.id, listId="123", subscribed=True, status_code=204)
 
     def test_unsubscribe(self):
-        self.get_valid_response(self.user.id, listId="123", subscribed=False, status_code=204)
+        self.get_success_response(self.user.id, listId="123", subscribed=False, status_code=204)
         results = newsletter.get_subscriptions(self.user)["subscriptions"]
         assert len(results) == 1
         assert results[0].list_id == 123
@@ -51,7 +51,7 @@ class UserSubscriptionsNewsletterTest(APITestCase):
         assert results[0].verified
 
     def test_default_subscription(self):
-        self.get_valid_response(self.user.id, method="post", subscribed=True, status_code=204)
+        self.get_success_response(self.user.id, method="post", subscribed=True, status_code=204)
         results = newsletter.get_subscriptions(self.user)["subscriptions"]
         assert len(results) == 1
         assert results[0].list_id == newsletter.get_default_list_id()

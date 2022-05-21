@@ -42,7 +42,7 @@ MESSAGE_LIBRARY = [
 
 
 class IntegrationNudgeNotification(BaseNotification):
-    category = "integration_nudge"
+    metrics_key = "integration_nudge"
     template_path = "integration-nudge"
     type = "integration.nudge"
 
@@ -94,12 +94,6 @@ class IntegrationNudgeNotification(BaseNotification):
         return None
 
     def build_attachment_title(self, recipient: Team | User) -> str:
-        return ""
-
-    def get_category(self) -> str:
-        return ""
-
-    def get_type(self) -> str:
         return ""
 
     def build_notification_footer(self, recipient: Team | User) -> str:

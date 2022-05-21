@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, KeyboardEvent, useEffect, useState} from 'react';
 import {components, createFilter} from 'react-select';
 import styled from '@emotion/styled';
 
@@ -11,6 +11,7 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import NumberField from 'sentry/components/forms/numberField';
 import Option from 'sentry/components/forms/selectOption';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
@@ -22,6 +23,7 @@ import {
   DynamicSamplingRules,
 } from 'sentry/types/dynamicSampling';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {getInnerNameLabel, isCustomTagName} from '../utils';
@@ -80,6 +82,7 @@ function RuleModal({
   rule,
 }: Props) {
   const [data, setData] = useState<State>(getInitialState());
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setData(d => {
@@ -134,6 +137,7 @@ function RuleModal({
   const {errors, conditions, sampleRate} = data;
 
   async function submitRules(newRules: DynamicSamplingRules, currentRuleIndex: number) {
+    setIsSaving(true);
     try {
       const newProjectDetails = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
@@ -149,6 +153,26 @@ function RuleModal({
     } catch (error) {
       convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
+    setIsSaving(false);
+
+    if (defined(rule)) {
+      trackAdvancedAnalyticsEvent('sampling.settings.rule.update', {
+        organization,
+        project_id: project.id,
+        sampling_rate: sampleRate,
+        conditions: conditions.map(condition => condition.category),
+        old_conditions: rule.condition.inner.map(({name}) => name),
+        old_sampling_rate: rule.sampleRate * 100,
+      });
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.create', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: conditions.map(condition => condition.category),
+    });
   }
 
   function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
@@ -175,6 +199,13 @@ function RuleModal({
           !previousCategories.includes(value)
       )
       .map(({value}) => value);
+
+    trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+      organization,
+      project_id: project.id,
+      conditions: addedCategories,
+    });
+
     setData({
       ...data,
       conditions: [
@@ -240,7 +271,9 @@ function RuleModal({
     )
     .map(({category}) => ({
       value: category,
-      label: getInnerNameLabel(category),
+      label: (
+        <Truncate value={getInnerNameLabel(category)} expandable={false} maxLength={40} />
+      ),
       disabled: true,
       tooltip: conditionAlreadyAddedTooltip,
     }));
@@ -333,6 +366,11 @@ function RuleModal({
             onChange={value => {
               setData({...data, sampleRate: !!value ? Number(value) : null});
             }}
+            onKeyDown={(_value: string, e: KeyboardEvent) => {
+              if (e.key === 'Enter') {
+                onSubmit({conditions, sampleRate, submitRules});
+              }
+            }}
             placeholder={'\u0025'}
             value={sampleRate}
             inline={false}
@@ -351,7 +389,7 @@ function RuleModal({
             priority="primary"
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
             title={submitDisabled ? t('Required fields must be filled out') : undefined}
-            disabled={submitDisabled}
+            disabled={isSaving || submitDisabled}
           >
             {t('Save Rule')}
           </Button>

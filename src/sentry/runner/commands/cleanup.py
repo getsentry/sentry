@@ -153,9 +153,11 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
 
         from sentry import models
         from sentry.app import nodestore
+        from sentry.constants import ObjectStatus
         from sentry.data_export.models import ExportedData
         from sentry.db.deletion import BulkDeleteQuery
         from sentry.utils import metrics
+        from sentry.utils.query import RangeQuerySetWrapper
 
         start_time = None
         if timed:
@@ -184,6 +186,13 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         # (model, datetime_field, order_by)
         DELETES = [
             (models.EventAttachment, "date_added", "date_added"),
+        ]
+        # Deletions that we run per project. In some cases we can't use an index on just the date
+        # column, so as an alternative we use `(project_id, <date_col>)` instead
+        DELETES_BY_PROJECT = [
+            # Having an index on `last_seen` sometimes caused the planner to make a bad plan that
+            # used this index instead of a more appropriate one. This was causing a lot of postgres
+            # load, so we had to remove it.
             (models.Group, "last_seen", "last_seen"),
         ]
 
@@ -303,12 +312,51 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
                     project_id=project_id,
                     order_by=order_by,
                 )
-                q.using = db_router.db_for_read(model, replica=True)
 
                 for chunk in q.iterator(chunk_size=100):
                     task_queue.put((imp, chunk))
 
                 task_queue.join()
+
+        project_deletion_query = models.Project.objects.filter(status=ObjectStatus.VISIBLE)
+        if project:
+            project_deletion_query = models.Project.objects.filter(id=project_id)
+
+        to_delete_by_project = []
+        for model in DELETES_BY_PROJECT:
+            if is_filtered(model[0]):
+                if not silent:
+                    click.echo(">> Skipping %s" % model[0].__name__)
+            else:
+                to_delete_by_project.append(model)
+
+        if to_delete_by_project:
+            for project_id_for_deletion in RangeQuerySetWrapper(
+                project_deletion_query.values_list("id", flat=True),
+                result_value_getter=lambda item: item,
+            ):
+                for model, dtfield, order_by in to_delete_by_project:
+                    if not silent:
+                        click.echo(
+                            "Removing {model} for days={days} project={project}".format(
+                                model=model.__name__, days=days, project=project_id_for_deletion
+                            )
+                        )
+
+                    imp = ".".join((model.__module__, model.__name__))
+
+                    q = BulkDeleteQuery(
+                        model=model,
+                        dtfield=dtfield,
+                        days=days,
+                        project_id=project_id_for_deletion,
+                        order_by=order_by,
+                    )
+
+                    for chunk in q.iterator(chunk_size=100):
+                        task_queue.put((imp, chunk))
+
+        task_queue.join()
 
         # Clean up FileBlob instances which are no longer used and aren't super
         # recent (as there could be a race between blob creation and reference)

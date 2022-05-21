@@ -1,36 +1,23 @@
-from datetime import datetime
 from typing import Optional
 
 from sentry.incidents.models import AlertRule, Incident, IncidentStatus
 from sentry.integrations.metric_alerts import metric_alert_attachment_info
-from sentry.integrations.slack.message_builder import INCIDENT_COLOR_MAPPING, SlackBody
-from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
-from sentry.utils.dates import to_timestamp
+from sentry.integrations.slack.message_builder import (
+    INCIDENT_COLOR_MAPPING,
+    LEVEL_TO_COLOR,
+    SlackBody,
+)
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 
 
-def get_footer(
-    incident_triggered_date: Optional[datetime], last_triggered_date: Optional[datetime]
-) -> str:
-    if incident_triggered_date:
-        return "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
-            to_timestamp(incident_triggered_date), "{date_pretty}", "{time}"
-        )
-
-    if last_triggered_date:
-        return "<!date^{:.0f}^Metric Alert - Last Triggered {} at {} | Metric Alert>".format(
-            to_timestamp(last_triggered_date), "{date_pretty}", "{time}"
-        )
-
-    return "Metric Alert"
-
-
-class SlackMetricAlertMessageBuilder(SlackMessageBuilder):
+class SlackMetricAlertMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
         alert_rule: AlertRule,
         incident: Optional[Incident] = None,
         new_status: Optional[IncidentStatus] = None,
         metric_value: Optional[int] = None,
+        chart_url: Optional[str] = None,
     ) -> None:
         """
         Builds a metric alert attachment for slack unfurling.
@@ -46,19 +33,24 @@ class SlackMetricAlertMessageBuilder(SlackMessageBuilder):
         self.incident = incident
         self.metric_value = metric_value
         self.new_status = new_status
+        self.chart_url = chart_url
 
     def build(self) -> SlackBody:
         data = metric_alert_attachment_info(
             self.alert_rule, self.incident, self.new_status, self.metric_value
         )
 
-        return self._build(
-            actions=[],
-            color=INCIDENT_COLOR_MAPPING.get(data["status"]),
-            fallback=data["title"],
-            fields=[],
-            footer=get_footer(data["date_started"], data["last_triggered_date"]),
-            text=data["text"],
-            title=data["title"],
-            title_link=data["title_link"],
+        blocks = [
+            self.get_markdown_block(
+                text=f"<{data['title_link']}|*{data['title']}*>  \n{data['text']}"
+            )
+        ]
+
+        if self.chart_url:
+            blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
+
+        color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
+        return self._build_blocks(
+            *blocks,
+            color=color,
         )

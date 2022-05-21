@@ -29,8 +29,10 @@ from sentry.discover.arithmetic import (
     OperandType,
     Operation,
     categorize_columns,
+    is_equation,
     is_equation_alias,
     resolve_equation_list,
+    strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization
@@ -125,6 +127,7 @@ class QueryBuilder:
         self.groupby: List[SelectType] = []
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
+        self.equation_alias_map: Dict[str, SelectType] = {}
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
@@ -437,6 +440,7 @@ class QueryBuilder:
                 resolved_equation = self.resolve_equation(
                     parsed_equation.equation, f"equation[{index}]"
                 )
+                self.equation_alias_map[equations[index]] = resolved_equation
                 resolved_columns.append(resolved_equation)
                 if parsed_equation.contains_functions:
                     self.aggregates.append(resolved_equation)
@@ -654,8 +658,13 @@ class QueryBuilder:
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             try:
+                # Allow ordering equations with the calculated alias (ie. equation[0])
                 if is_equation_alias(bare_orderby):
                     resolved_orderby = bare_orderby
+                # Allow ordering equations directly with the raw alias (ie. equation|a + b)
+                elif is_equation(bare_orderby):
+                    resolved_orderby = self.equation_alias_map[strip_equation(bare_orderby)]
+                    bare_orderby = resolved_orderby.alias
                 else:
                     resolved_orderby = self.resolve_column(bare_orderby)
             except (NotImplementedError, IncompatibleMetricsQuery):

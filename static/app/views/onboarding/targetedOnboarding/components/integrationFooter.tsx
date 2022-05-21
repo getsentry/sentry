@@ -4,6 +4,8 @@ import {motion} from 'framer-motion';
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import testableTransition from 'sentry/utils/testableTransition';
 
 import {OnboardingState} from '../types';
@@ -15,12 +17,14 @@ type Props = {
   genSkipOnboardingLink: () => React.ReactNode;
   integrations: string[];
   onComplete: () => void;
+  organization: Organization;
 };
 
 export default function IntegrationsFooter({
   genSkipOnboardingLink,
   integrations,
   onComplete,
+  organization,
 }: Props) {
   const [clientState, setClientState] = usePersistedOnboardingState();
 
@@ -35,6 +39,12 @@ export default function IntegrationsFooter({
       selectedIntegrations: integrations,
     };
     setClientState(nextState);
+
+    trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_integrations', {
+      integrations: integrations.join(','),
+      integration_count: integrations.length,
+      organization,
+    });
     onComplete();
   };
 
@@ -44,7 +54,6 @@ export default function IntegrationsFooter({
       <ButtonWrapper>
         <Button
           priority="primary"
-          disabled={integrations.length === 0}
           data-test-id="integration-select-next"
           onClick={nextOnClick}
         >

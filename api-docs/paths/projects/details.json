@@ -157,7 +157,7 @@
               "slug": "pump-station",
               "status": "active",
               "storeCrashReports": false,
-              "subjectPrefix": "[Sentry] ",
+              "subjectPrefix": "[Sentry]",
               "subjectTemplate": "$shortID - $title",
               "team": {
                 "id": "2",
@@ -388,7 +388,7 @@
               "slug": "plane-proxy",
               "status": "active",
               "storeCrashReports": false,
-              "subjectPrefix": "[Sentry] ",
+              "subjectPrefix": "[Sentry]",
               "subjectTemplate": "$shortID - $title",
               "team": {
                 "id": "2",

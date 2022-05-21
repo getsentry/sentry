@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -7,8 +7,9 @@ import TextareaField from 'sentry/components/forms/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Project, Tag} from 'sentry/types';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
+import useApi from 'sentry/utils/useApi';
 
 import {
   addCustomTagPrefix,
@@ -50,6 +51,24 @@ function Conditions({
   onDelete,
   onChange,
 }: Props) {
+  const api = useApi();
+  const [tags, setTags] = useState<Tag[]>([]);
+
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        const response = await api.requestPromise(
+          `/projects/${orgSlug}/${projectSlug}/tags/`
+        );
+        setTags(response);
+      } catch {
+        // Do nothing, just autocomplete won't suggest any results
+      }
+    }
+
+    fetchTags();
+  }, [api, orgSlug, projectSlug]);
+
   return (
     <Fragment>
       {conditions.map((condition, index) => {
@@ -81,8 +100,7 @@ function Conditions({
             <LeftCell>
               {isCustomTag ? (
                 <TagKeyAutocomplete
-                  orgSlug={orgSlug}
-                  projectSlug={projectSlug}
+                  tags={tags}
                   onChange={value =>
                     onChange(index, 'category', addCustomTagPrefix(value))
                   }
@@ -153,7 +171,7 @@ export default Conditions;
 
 const ConditionWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: flex-start;
   padding: ${space(1)} ${space(2)};
   :not(:last-child) {
@@ -161,7 +179,7 @@ const ConditionWrapper = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 0.6fr minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(0, 0.6fr) minmax(0, 1fr) max-content;
   }
 `;
 
@@ -172,7 +190,7 @@ const Cell = styled('div')`
 `;
 
 const LeftCell = styled(Cell)`
-  padding-right: ${space(2)};
+  padding-right: ${space(1)};
   line-height: 16px;
 `;
 

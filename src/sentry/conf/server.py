@@ -12,8 +12,6 @@ import tempfile
 from datetime import timedelta
 from urllib.parse import urlparse
 
-from django.conf.global_settings import *  # NOQA
-
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -945,6 +943,8 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
+    # Enables events endpoint usage on frontend
+    "organizations:discover-frontend-use-events-endpoint": False,
     # Enable duplicating alert rules.
     "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
@@ -993,6 +993,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Enable metric alert charts in email/slack
+    "organizations:metric-alert-chartcuterie": False,
     # Enable the new widget builder experience on Dashboards
     "organizations:new-widget-builder-experience": False,
     # Enable the new widget builder experience "design" on Dashboards
@@ -1083,6 +1085,10 @@ SENTRY_FEATURES = {
     "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
+    # Enable automatic horizontal scrolling on the span tree
+    "organizations:performance-span-tree-autoscroll": False,
+    # Enable transaction name only search
+    "organizations:performance-transaction-name-only-search": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1963,7 +1969,10 @@ SENTRY_DEVSERVICES = {
         {
             "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
-            "only_if": "bigtable" in settings.SENTRY_NODESTORE,
+            # NEED_BIGTABLE is set by CI so we don't have to pass
+            # --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_BIGTABLE", False)
+            or "bigtable" in settings.SENTRY_NODESTORE,
         }
     ),
     "memcached": lambda settings, options: (
@@ -2004,7 +2013,9 @@ SENTRY_DEVSERVICES = {
                 "CHARTCUTERIE_CONFIG_POLLING": "true",
             },
             "ports": {"9090/tcp": 7901},
-            "only_if": options.get("chart-rendering.enabled"),
+            # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
+            or options.get("chart-rendering.enabled"),
         }
     ),
     "cdc": lambda settings, options: (
@@ -2579,6 +2590,9 @@ SAMPLED_DEFAULT_RATE = 1.0
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS = {}
+
+# A set of extra tasks to sample
+ADDITIONAL_SAMPLED_TASKS = {}
 
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
