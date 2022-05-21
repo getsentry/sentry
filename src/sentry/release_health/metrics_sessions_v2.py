@@ -472,7 +472,7 @@ def run_sessions_query(
                 tag_name="environment", condition=condition
             )
             if preflight_query_condition != (None, None):
-                environment_conditions += [preflight_query_condition]
+                environment_conditions.append(preflight_query_condition)
 
         if len(environment_conditions) > 1:
             # Should never hit this branch. Added as a fail safe
@@ -565,7 +565,7 @@ def run_sessions_query(
         {"by": group_key.to_output_dict(), **group}  # type: ignore
         for group_key, group in output_groups.items()
     ]
-    result_groups = _reorder_result_groups_according_to_preflight_query_results(
+    result_groups = _order_by_preflight_query_results(
         ordered_preflight_filters, query.raw_groupby, result_groups, default_group_gen_func
     )
 
@@ -578,7 +578,7 @@ def run_sessions_query(
     }
 
 
-def _reorder_result_groups_according_to_preflight_query_results(
+def _order_by_preflight_query_results(
     ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]],
     groupby: GroupByFieldName,
     result_groups: Sequence[SessionsQueryGroup],
@@ -740,21 +740,18 @@ def _get_filters_for_preflight_query_condition(
     and if so returns a tuple of the op applied either Op.IN or Op.NOT_IN and a set of the tag
     values
     """
-    if isinstance(condition, Condition):
-        if condition.lhs == Column(tag_name):
-            if condition.op in [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]:
-                filters = (
-                    {condition.rhs}
-                    if isinstance(condition.rhs, str)
-                    else {elem for elem in condition.rhs}
-                )
-                op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[
-                    condition.op
-                ]
-                return op, filters
-            raise InvalidParams(
-                f"Unable to resolve {tag_name} filter due to unsupported op {condition.op}"
+    if isinstance(condition, Condition) and condition.lhs == Column(tag_name):
+        if condition.op in [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]:
+            filters = (
+                {condition.rhs}
+                if isinstance(condition.rhs, str)
+                else {elem for elem in condition.rhs}
             )
+            op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[condition.op]
+            return op, filters
+        raise InvalidParams(
+            f"Unable to resolve {tag_name} filter due to unsupported op {condition.op}"
+        )
 
     if tag_name in str(condition):
         # Anything not handled by the code above cannot be parsed for now,
