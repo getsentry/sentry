@@ -124,8 +124,20 @@ test-python:
 
 test-python-ci:
 	make build-platform-assets
-	@echo "--> Running CI Python tests"
-	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	@echo "--> Running backend tests, except those that require Kafka"
+	pytest tests/integration tests/sentry \
+		--ignore tests/sentry/eventstream/kafka \
+		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
+		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	@echo ""
+
+test-kafka:
+	@echo "--> Running backend tests that require Kafka"
+	# This needs to be synced with the --ignores above in test-python-ci.
+	pytest \
+		tests/sentry/eventstream/kafka \
+		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
+		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
