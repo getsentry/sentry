@@ -136,9 +136,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
     assert transaction_message.data["contexts"]["trace"]
 
 
-def test_ingest_consumer_fails_when_not_autocreating_topics(
-    kafka_admin, random_group_id
-):
+def test_ingest_consumer_fails_when_not_autocreating_topics(kafka_admin, random_group_id):
     topic_event_name = ConsumerType.get_topic_name(ConsumerType.Events)
 
     admin = kafka_admin(settings)
