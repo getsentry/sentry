@@ -62,8 +62,17 @@ class PaginateArgs:
 def query_params(serializer: Serializer, hidden: List[Serializer] = None):
     def wrapper(func):
         @functools.wraps(func)
-        def view_func(*args, **kwargs):
-            return func(*args, **kwargs)
+        def view_func(self, request: Request, organization, *args, **kwargs):
+            serialized_data = serializer(data=request.GET)
+            if serialized_data.is_valid():
+                return func(
+                    self,
+                    request,
+                    organization,
+                    *args,
+                    *serialized_data.validated_data.values(),
+                    **kwargs,
+                )
 
         return view_func
 

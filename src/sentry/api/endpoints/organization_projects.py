@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, List
 
 from django.db.models import Q
@@ -83,11 +85,18 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         OrganizationProjectQuerySerializer, hidden=[OrganizationProjectHiddenQuerySerializer]
     )
     @responds_with(paginated=True, paginator_cls=OffsetPaginator)
-    def get(self, request: Request, organization) -> Any:
+    def get(
+        self,
+        request: Request,
+        organization,
+        stats_period: str | None,
+        transactionStats: str | None,
+        sessionStats: str | None,
+        query: str | None,
+    ) -> Any:
         """
         Return a list of projects bound to a organization.
         """
-        stats_period = request.GET.get("statsPeriod")
         collapse = request.GET.getlist("collapse", [])
         if stats_period not in (None, "", "1h", "24h", "7d", "14d", "30d"):
             return Response(
@@ -129,7 +138,6 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             )
             order_by.insert(0, "-is_bookmarked")
 
-        query = request.GET.get("query")
         if query:
             tokens = tokenize_query(query)
             for key, value in tokens.items():
@@ -163,9 +171,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
             )
         else:
             expand = set()
-            if request.GET.get("transactionStats"):
+            if transactionStats is not None:
                 expand.add("transaction_stats")
-            if request.GET.get("sessionStats"):
+            if sessionStats is not None:
                 expand.add("session_stats")
 
             def serialize_on_result(result):
