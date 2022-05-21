@@ -175,7 +175,7 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
     raise InvalidParams("Unable to resolve conditions")
 
 
-def parse_query(query_string: str, projects) -> Sequence[Condition]:
+def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
@@ -186,7 +186,7 @@ def parse_query(query_string: str, projects) -> Sequence[Condition]:
         query_builder = UnresolvedQuery(
             Dataset.Sessions,
             params={
-                "project_id": projects,
+                "project_id": 0,
             },
         )
         where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
