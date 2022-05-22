@@ -38,7 +38,7 @@ def create_topic(partitions=1, replication_factor=1):
     topic = f"test-{uuid.uuid1().hex}"
     subprocess.check_call(
         command
-        + (
+        + [
             "--create",
             "--topic",
             topic,
@@ -46,12 +46,12 @@ def create_topic(partitions=1, replication_factor=1):
             f"{partitions}",
             "--replication-factor",
             f"{replication_factor}",
-        )
+        ]
     )
     try:
         yield topic
     finally:
-        subprocess.check_call(command + ("--delete", "--topic", topic))
+        subprocess.check_call(command + ["--delete", "--topic", topic])
 
 
 def test_consumer_start_from_partition_start():
