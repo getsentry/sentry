@@ -122,14 +122,23 @@ test-python:
 	# This gets called by getsentry
 	pytest tests/integration tests/sentry
 
+# TODO: need a better way of marking tests as kafka or snuba
+#       than keeping these ignores synced
 test-python-ci:
 	make build-platform-assets
-	@echo "--> Running backend tests, except those that require Kafka"
+	@echo "--> Running backend tests"
 	pytest tests/integration tests/sentry \
 		--ignore tests/sentry/eventstream/kafka \
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
-		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+		--ignore tests/sentry/incidents/endpoints/test_organization_alert_rule_index.py \
+		--ignore tests/sentry/incidents/endpoints/test_project_alert_rule_index.py \
+		--ignore tests/sentry/incidents/test_subscription_processor.py \
+		\
+		--ignore tests/sentry/snuba \
+		--ignore tests/sentry/search/events
 	@echo ""
+
+#       --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 
 test-kafka:
 	@echo "--> Running backend tests that require Kafka"
@@ -137,13 +146,19 @@ test-kafka:
 	pytest \
 		tests/sentry/eventstream/kafka \
 		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
-		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+		tests/sentry/incidents/endpoints/test_project_alert_rule_index.py \
+		tests/sentry/incidents/test_subscription_processor.py \
 	@echo ""
 
+#       --cov . --cov-report="xml:.artifacts/kafka.coverage.xml" --junit-xml=".artifacts/kafka.junit.xml" || exit 1
+
+# TODO: remove kafka from snuba tests and see if there's more to be moved over
+#       otherwise just move kafka tests into snuba
 test-snuba:
 	@echo "--> Running snuba tests"
-	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	pytest tests/snuba tests/sentry/snuba tests/sentry/search/events
 	@echo ""
+#		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 
 test-tools:
 	@echo "--> Running tools tests"
