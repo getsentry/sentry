@@ -130,9 +130,6 @@ test-python-ci:
 	pytest tests/integration tests/sentry \
 		--ignore tests/sentry/eventstream/kafka \
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
-		--ignore tests/sentry/incidents/endpoints/test_organization_alert_rule_index.py \
-		--ignore tests/sentry/incidents/endpoints/test_project_alert_rule_index.py \
-		--ignore tests/sentry/incidents/test_subscription_processor.py \
 		\
 		--ignore tests/sentry/snuba \
 		--ignore tests/sentry/search/events
@@ -145,9 +142,7 @@ test-kafka:
 	# This needs to be synced with the --ignores above in test-python-ci.
 	pytest \
 		tests/sentry/eventstream/kafka \
-		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
-		tests/sentry/incidents/endpoints/test_project_alert_rule_index.py \
-		tests/sentry/incidents/test_subscription_processor.py \
+		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py
 	@echo ""
 
 #       --cov . --cov-report="xml:.artifacts/kafka.coverage.xml" --junit-xml=".artifacts/kafka.junit.xml" || exit 1
