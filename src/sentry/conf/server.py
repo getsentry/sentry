@@ -1969,10 +1969,7 @@ SENTRY_DEVSERVICES = {
         {
             "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
-            # NEED_BIGTABLE is set by CI so we don't have to pass
-            # --skip-only-if when compiling which services to run.
-            "only_if": os.environ.get("NEED_BIGTABLE", False)
-            or "bigtable" in settings.SENTRY_NODESTORE,
+            "only_if": "bigtable" in settings.SENTRY_NODESTORE,
         }
     ),
     "memcached": lambda settings, options: (
@@ -2013,9 +2010,7 @@ SENTRY_DEVSERVICES = {
                 "CHARTCUTERIE_CONFIG_POLLING": "true",
             },
             "ports": {"9090/tcp": 7901},
-            # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
-            "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
-            or options.get("chart-rendering.enabled"),
+            "only_if": options.get("chart-rendering.enabled"),
         }
     ),
     "cdc": lambda settings, options: (
