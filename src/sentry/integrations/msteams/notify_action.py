@@ -6,7 +6,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import Integration
-from sentry.rules.actions.base import IntegrationEventAction
+from sentry.rules.actions import IntegrationEventAction
 from sentry.utils import metrics
 
 from .card_builder import build_group_card

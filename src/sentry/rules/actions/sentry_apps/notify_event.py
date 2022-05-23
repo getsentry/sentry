@@ -9,7 +9,7 @@ from sentry.api.serializers.models.sentry_app_component import SentryAppAlertRul
 from sentry.eventstore.models import Event
 from sentry.models import Project, SentryApp, SentryAppComponent, SentryAppInstallation
 from sentry.rules import EventState
-from sentry.rules.actions.base import SentryAppEventAction
+from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.tasks.sentry_apps import notify_sentry_app
 

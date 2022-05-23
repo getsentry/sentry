@@ -12,7 +12,7 @@ from sentry.integrations.slack.message_builder.issues import build_group_attachm
 from sentry.models import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.rules import EventState
-from sentry.rules.actions.base import IntegrationEventAction
+from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.shared_integrations.exceptions import (
     ApiError,

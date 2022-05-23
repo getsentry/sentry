@@ -10,7 +10,7 @@ from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.integrations.slack import tasks
 from sentry.mediators import project_rules
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, Team, User
-from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
+from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_created
 from sentry.web.decorators import transaction_start
 
