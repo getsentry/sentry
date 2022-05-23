@@ -1466,6 +1466,23 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
         )
         assert response.data["groups"] == []
 
+    def test_order_by_max_limit(self):
+        response = self.do_request(
+            {
+                "project": self.project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["crash_free_rate(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 103,
+            }
+        )
+        assert response.data["detail"] == (
+            "This limit is too high for queries that requests a preflight query. "
+            "Please choose a lower limit"
+        )
+
     @freeze_time(MOCK_DATETIME)
     def test_order_by(self):
         """
@@ -1622,6 +1639,9 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
 
         self.store_session(make_session(rando_project, release=release_1a.version))
         self.store_session(make_session(rando_project, release=release_1b.version))
+        self.store_session(
+            make_session(rando_project, release=release_1b.version, status="crashed")
+        )
 
         response = self.do_request(
             {
@@ -1648,8 +1668,8 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
             },
             {
                 "by": {"release": "1B"},
-                "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 2},
+                "series": {"sum(session)": [2]},
             },
         ]
 
@@ -1661,7 +1681,7 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "field": ["sum(session)"],
                 "groupBy": ["release", "session.status"],
                 "orderBy": "-release.timestamp",
-                "per_page": 2,
+                "per_page": 4,
             }
         )
         assert response.data["groups"] == [
@@ -1674,6 +1694,16 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "by": {"release": "1C", "session.status": None},
                 "totals": {"sum(session)": 0},
                 "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "crashed"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
             },
         ]
 
@@ -1727,23 +1757,10 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
             }
         )
 
-        assert response.data["groups"] == [
-            {
-                "by": {"release": "1C"},
-                "totals": {"sum(session)": 0},
-                "series": {"sum(session)": [0]},
-            },
-            {
-                "by": {"release": "1B"},
-                "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
-            },
-            {
-                "by": {"release": "1A"},
-                "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
-            },
-        ]
+        assert response.data["detail"] == (
+            "Passing an offset value greater than 0 when performing a preflight "
+            "query is not permitted"
+        )
 
     @freeze_time(MOCK_DATETIME)
     def test_order_by_with_environment_filter_on_preflight(self):
