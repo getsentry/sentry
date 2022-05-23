@@ -30,6 +30,11 @@ def redis_cache(monkeypatch):
         "sentry.relay.projectconfig_debounce_cache.redis.RedisProjectConfigDebounceCache",
     )
 
+    return cache
+
+
+@pytest.fixture
+def debounce_cache(monkeypatch):
     debounce_cache = RedisProjectConfigDebounceCache()
     monkeypatch.setattr(
         "sentry.relay.projectconfig_debounce_cache.mark_task_done", debounce_cache.mark_task_done
@@ -45,7 +50,7 @@ def redis_cache(monkeypatch):
         "sentry.relay.projectconfig_debounce_cache.is_debounced", debounce_cache.is_debounced
     )
 
-    return cache
+    return debounce_cache
 
 
 @pytest.mark.django_db
@@ -64,7 +69,12 @@ def always_update_cache(monkeypatch):
 
 @pytest.mark.django_db
 def test_debounce(
-    monkeypatch, default_project, default_organization, redis_cache, always_update_cache
+    monkeypatch,
+    default_project,
+    default_organization,
+    redis_cache,
+    debounce_cache,
+    always_update_cache,
 ):
     tasks = []
 
