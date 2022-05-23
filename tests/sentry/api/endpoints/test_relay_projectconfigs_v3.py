@@ -140,7 +140,10 @@ def test_return_full_config_if_in_cache(
 ):
     result, status_code = call_endpoint(full_config=True)
     assert status_code < 400
-    assert result == {default_projectkey.public_key: {"is_mock_config": True}}
+    assert result == {
+        "configs": {default_projectkey.public_key: {"is_mock_config": True}},
+        "pending": [],
+    }
 
 
 @pytest.mark.django_db
@@ -151,7 +154,11 @@ def test_return_partial_config_if_in_cache(
     # configs.
     result, status_code = call_endpoint(full_config=False)
     assert status_code < 400
-    assert result == {default_projectkey.public_key: {"is_mock_config": True}}
+    expected = {
+        "configs": {default_projectkey.public_key: {"is_mock_config": True}},
+        "pending": [],
+    }
+    assert result == expected
 
 
 @pytest.mark.django_db
@@ -163,7 +170,7 @@ def test_proj_in_cache_and_another_pending(
     )
     assert status_code < 400
     assert result == {
-        "must_exist": {"is_mock_config": True},
+        "configs": {"must_exist": {"is_mock_config": True}},
         "pending": [default_projectkey.public_key],
     }
 
@@ -180,7 +187,7 @@ def test_enqueue_task_if_config_not_cached_not_queued(
 ):
     result, status_code = call_endpoint(full_config=True)
     assert status_code < 400
-    assert result == {"pending": [default_projectkey.public_key]}
+    assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert schedule_mock.call_count == 1
 
 
@@ -196,7 +203,7 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
 ):
     result, status_code = call_endpoint(full_config=True)
     assert status_code < 400
-    assert result == {"pending": [default_projectkey.public_key]}
+    assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert task_mock.call_count == 0
 
 
