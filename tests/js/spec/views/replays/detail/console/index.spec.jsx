@@ -70,6 +70,7 @@ const breadcrumbs = [
       arguments: [
         'Warning: componentWillMount has been renamed, and is not recommended for use. See https://reactjs.org/link/unsafe-component-lifecycles for details.\n\n* Move code with side effects to componentDidMount, and set initial state in the constructor.\n* Rename componentWillMount to UNSAFE_componentWillMount to suppress this warning in non-strict mode. In React 18.x, only the UNSAFE_ name will work. To rename all deprecated lifecycles to their new names, you can run `npx react-codemod rename-unsafe-lifecycles` in your project source folder.\n\nPlease update the following components: %s',
         'Router, RouterContext',
+        'find me',
       ],
       logger: 'console',
     },
@@ -90,8 +91,14 @@ describe('replays/details/console', () => {
     const result = breadcrumbs.filter(breadcrumb =>
       filterBreadcrumbs(breadcrumb, 'comp', [])
     );
-
     expect(result.length).toEqual(2);
+  });
+
+  it('filters console breadcrumbs by search term where match is within data.arguments', () => {
+    const result = breadcrumbs.filter(breadcrumb =>
+      filterBreadcrumbs(breadcrumb, 'find me', [])
+    );
+    expect(result.length).toEqual(1);
   });
 
   it('filters console breadcrumbs by search term and log level', () => {
