@@ -7,7 +7,6 @@ import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconClose, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 
@@ -87,8 +86,8 @@ function ConsoleMessage({
         <MessageFormatter breadcrumb={breadcrumb} />
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
-        <Hovercard body={`${t('Relative Time')}: ${relativeTimestamp}`}>
-          <DateTime date={breadcrumb.timestamp} timeOnly />
+        <Hovercard body={<DateTime date={breadcrumb.timestamp} timeOnly />}>
+          {relativeTimestamp}
         </Hovercard>
       </ConsoleTimestamp>
     </Fragment>
