@@ -62,7 +62,7 @@ export default Value;
 
 const InlinePre = styled('pre')`
   margin: 0;
-  display: grid;
+  display: inline-grid;
   grid-template-columns: 1fr max-content;
   gap: ${space(0.5)};
 `;
