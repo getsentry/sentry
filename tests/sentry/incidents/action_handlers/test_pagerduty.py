@@ -66,7 +66,10 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
             "details": "1000 events in the last 10 minutes\nFilter: level:error"
         }
         assert data["links"][0]["text"] == f"Critical: {alert_rule.name}"
-        assert data["links"][0]["href"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["links"][0]["href"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
 
     @responses.activate
     def run_test(self, incident, method):
