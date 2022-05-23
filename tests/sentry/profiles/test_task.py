@@ -8,6 +8,7 @@ from django.urls import reverse
 from exam import fixture
 
 from sentry.constants import MODULE_ROOT
+from sentry.models import Project
 from sentry.profiles.task import _deobfuscate, _normalize
 from sentry.testutils import TestCase
 from sentry.utils import json
@@ -141,8 +142,8 @@ class ProfilesProcessTaskTest(TestCase):
                 },
             }
         )
-
-        profile = _deobfuscate(profile)
+        project = Project.objects.get_from_cache(id=profile["project_id"])
+        profile = _deobfuscate(profile, project)
         frames = profile["profile"]["methods"]
 
         assert frames[0]["name"] == "getClassContext"
@@ -193,7 +194,8 @@ class ProfilesProcessTaskTest(TestCase):
             }
         )
 
-        profile = _deobfuscate(profile)
+        project = Project.objects.get_from_cache(id=profile["project_id"])
+        profile = _deobfuscate(profile, project)
         frames = profile["profile"]["methods"]
 
         assert sum(len(f.get("inline_frames", [{}])) for f in frames) == 4
@@ -255,7 +257,8 @@ class ProfilesProcessTaskTest(TestCase):
             }
         )
 
+        project = Project.objects.get_from_cache(id=profile["project_id"])
         obfuscated_frames = profile["profile"]["methods"].copy()
-        profile = _deobfuscate(profile)
+        profile = _deobfuscate(profile, project)
 
         assert profile["profile"]["methods"] == obfuscated_frames

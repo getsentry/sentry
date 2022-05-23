@@ -18,7 +18,7 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
+from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
 from sentry.web.decorators import transaction_start
 
