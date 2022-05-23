@@ -78,7 +78,7 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     return text
 
 
-def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None, unfurl=False):
+def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None):
     alert_rule = incident.alert_rule
 
     status = INCIDENT_STATUS[new_status]
@@ -89,22 +89,17 @@ def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=
     text = get_incident_status_text(alert_rule, metric_value)
     title = f"{status}: {alert_rule.name}"
 
-    if unfurl:
-        # this URL is needed for the Slack unfurl, but nothing else
-        title_link = absolute_uri(
-            f"organizations/{incident.organization.slug}/alerts/rules/details/{incident.identifier}"
+    title_link = absolute_uri(
+        reverse(
+            "sentry-metric-alert-details",
+            kwargs={
+                "organization_slug": alert_rule.organization.slug,
+                "alert_rule_id": alert_rule.id,
+            },
         )
-
-    else:
-        title_link = absolute_uri(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": incident.organization.slug,
-                    "incident_id": incident.identifier,
-                },
-            )
-        )
+    )
+    params = parse.urlencode({"alert": str(incident.identifier)})
+    title_link += f"?{params}"
 
     return {
         "title": title,

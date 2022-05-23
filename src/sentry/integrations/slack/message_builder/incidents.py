@@ -3,23 +3,28 @@ from typing import Optional
 
 from sentry.incidents.models import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.integrations.slack.message_builder import INCIDENT_COLOR_MAPPING, SlackBody
-from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder import (
+    INCIDENT_COLOR_MAPPING,
+    LEVEL_TO_COLOR,
+    SlackBody,
+)
+from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.utils.dates import to_timestamp
 
 
-def get_footer(timestamp: datetime) -> str:
-    return "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
+def get_started_at(timestamp: datetime) -> str:
+    return "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
         to_timestamp(timestamp), "{date_pretty}", "{time}"
     )
 
 
-class SlackIncidentsMessageBuilder(SlackMessageBuilder):
+class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
     def __init__(
         self,
         incident: Incident,
         new_status: IncidentStatus,
         metric_value: Optional[int] = None,
+        chart_url: Optional[str] = None,
     ) -> None:
         """
         Builds an incident attachment for slack unfurling.
@@ -33,30 +38,22 @@ class SlackIncidentsMessageBuilder(SlackMessageBuilder):
         self.incident = incident
         self.metric_value = metric_value
         self.new_status = new_status
+        self.chart_url = chart_url
 
-    def build(self, unfurl: bool = False) -> SlackBody:
-        data = incident_attachment_info(
-            self.incident, self.new_status, self.metric_value, unfurl=unfurl
+    def build(self) -> SlackBody:
+        data = incident_attachment_info(self.incident, self.new_status, self.metric_value)
+
+        blocks = [
+            self.get_markdown_block(
+                text=f"<{data['title_link']}|*{data['title']}*>  \n{data['text']}\n{get_started_at(data['ts'])}"
+            )
+        ]
+
+        if self.chart_url:
+            blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
+
+        color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
+        return self._build_blocks(
+            *blocks,
+            color=color,
         )
-
-        return self._build(
-            actions=[],
-            color=INCIDENT_COLOR_MAPPING.get(data["status"]),
-            fallback=data["title"],
-            fields=[],
-            footer=get_footer(data["ts"]),
-            text=data["text"],
-            title=data["title"],
-            title_link=data["title_link"],
-        )
-
-
-def build_incident_attachment(
-    incident: Incident,
-    metric_value: Optional[int] = None,
-    unfurl: bool = False,
-) -> SlackBody:
-    """@deprecated"""
-    return SlackIncidentsMessageBuilder(
-        incident, IncidentStatus(incident.status), metric_value
-    ).build(unfurl=unfurl)
