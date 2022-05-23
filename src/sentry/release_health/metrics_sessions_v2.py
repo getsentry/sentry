@@ -505,7 +505,6 @@ def run_sessions_query(
         if orderby is None:
             # We only return the top-N groups, based on the first field that is being
             # queried, assuming that those are the most relevant to the user.
-            # In a future iteration we might expose an `orderBy` query parameter.
             primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
             orderby = OrderBy(primary_metric_field, Direction.DESC)
 
@@ -585,7 +584,7 @@ def _order_by_preflight_query_results(
     default_group_gen_func: Callable[[], Group],
 ) -> Sequence[SessionsQueryGroup]:
     """
-    Function that If a preflight query was run, then we want to preserve the order of results
+    If a preflight query was run, then we want to preserve the order of results
     returned by the preflight query
     We create a mapping between the group value to the result group, so we are able
     to easily sort the resulting groups.
@@ -856,6 +855,7 @@ def _generate_preflight_query_conditions(
             if op == Op.IN:
                 queryset = queryset.filter(**environment_orm_conditions)
             else:
+                assert op == Op.NOT_IN
                 queryset = queryset.exclude(**environment_orm_conditions)
 
         if direction == Direction.DESC:
@@ -865,5 +865,5 @@ def _generate_preflight_query_conditions(
 
         if limit is not None:
             queryset = queryset[: limit - 1]
-        queryset_results = [item[0] for item in queryset.values_list("version")]
+        queryset_results = list(queryset.values_list("version", flat=True))
     return queryset_results
