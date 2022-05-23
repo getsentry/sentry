@@ -48,7 +48,7 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
 
         incident = self.create_incident(seen_by=[self.user])
         with self.feature("organizations:incidents"):
-            resp = self.get_valid_response(incident.organization.slug, incident.identifier)
+            resp = self.get_success_response(incident.organization.slug, incident.identifier)
 
         expected = serialize(incident)
 
@@ -67,14 +67,14 @@ class OrganizationIncidentDetailsTest(BaseIncidentDetailsTest, APITestCase):
 class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase):
     method = "put"
 
-    def get_valid_response(self, *args, **params):
+    def get_success_response(self, *args, **params):
         params.setdefault("status", IncidentStatus.CLOSED.value)
-        return super().get_valid_response(*args, **params)
+        return super().get_success_response(*args, **params)
 
     def test_simple(self):
         incident = self.create_incident()
         with self.feature("organizations:incidents"):
-            self.get_valid_response(
+            self.get_success_response(
                 incident.organization.slug, incident.identifier, status=IncidentStatus.CLOSED.value
             )
 
@@ -95,7 +95,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
         status = IncidentStatus.CLOSED.value
         comment = "fixed"
         with self.feature("organizations:incidents"):
-            self.get_valid_response(
+            self.get_success_response(
                 incident.organization.slug, incident.identifier, status=status, comment=comment
             )
 
