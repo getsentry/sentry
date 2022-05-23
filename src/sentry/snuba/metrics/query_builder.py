@@ -197,7 +197,9 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
         # project]` filters, so I loop over the where list and when its found it popped out of
         # the list and replaced with the appropriate `project_id` filter.
         for idx, condition in enumerate(list(where)):
-            if condition.lhs == Function("ifNull", parameters=[Column("tags[project]"), ""]):
+            if isinstance(condition, Condition) and condition.lhs == Function(
+                "ifNull", parameters=[Column("tags[project]"), ""]
+            ):
                 del where[idx]
 
                 snuba_filter_conditions = get_filter(
