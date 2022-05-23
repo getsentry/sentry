@@ -143,6 +143,8 @@ class Project(Model, PendingDeletionMixin):
     objects = ProjectManager(cache_fields=["pk"])
     platform = models.CharField(max_length=64, null=True)
 
+    snowflake_redis_key = "project_snowflake_key"
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_project"
@@ -168,7 +170,7 @@ class Project(Model, PendingDeletionMixin):
     def save(self, *args, **kwargs):
         snowflake = Snowflake()
         if not self.id:
-            self.id = snowflake.snowflake_id_generation()
+            self.id = snowflake.snowflake_id_generation(self.snowflake_redis_key)
         if not self.slug:
             lock = locks.get("slug:project", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):

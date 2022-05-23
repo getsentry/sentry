@@ -1,12 +1,16 @@
+import random
+import secrets
 from collections import OrderedDict
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Callable, Mapping, Tuple, cast
 
 from django.conf import settings
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
+
+from sentry.utils import json, redis
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager, M
@@ -110,6 +114,8 @@ class SnowflakeBitSegment:
 
 
 class Snowflake:
+    _TTL = timedelta(minutes=500)
+
     SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
     SNOWFLAKE_ID_LENGTH = getattr(settings, "SNOWFLAKE_ID_LENGTH", 53)
     SNOWFLAKE_VERSION_ID_LENGTH = getattr(settings, "SNOWFLAKE_VERSION_ID_LENGTH", 5)
@@ -135,15 +141,49 @@ class Snowflake:
         "REGION_SEQUENCE": 0,
     }
 
+    # Use the good RNG for this, not `random`. If multiple nodes are spinning up at
+    # the same time, there's a chance that two of them will seed their default PRNG
+    # with the same timestamp.
+    BASE_SEED = secrets.randbits(64)
+
     id = BoundedBigAutoField(primary_key=True)
 
-    def snowflake_id_generation(self):
-        current_time = datetime.now().timestamp()
+    def __init__(self):
+        values = list(range(1 << self.SNOWFLAKE_REGION_SEQUENCE_LENGTH))
+        r = random.Random(self.BASE_SEED ^ int(datetime.now().timestamp()))
+        r.shuffle(values)
+        self.region_sequence_order = values
+
+    def snowflake_id_generation(self, redis_key: str) -> int:
+        # current_time = datetime.now().timestamp()
         # supports up to 130 years
-        self.SEGMENT_VALUE["TIME_DIFFERENCE"] = int(current_time - self.SENTRY_EPOCH_START)
+        # self.SEGMENT_VALUE["TIME_DIFFERENCE"] = int(current_time - self.SENTRY_EPOCH_START)
+
+        # for testing purposes only
+        self.SEGMENT_VALUE["TIME_DIFFERENCE"] = 18
 
         total_bits_to_allocate = self.SNOWFLAKE_ID_LENGTH
         snowflake_id = 0
+
+        self.removed_used_region_sequence_from_list(
+            self.SEGMENT_VALUE["TIME_DIFFERENCE"], redis_key
+        )
+        # do we need to check whats been used already before we assign?
+        if self.region_sequence_order:
+            self.SEGMENT_VALUE["REGION_SEQUENCE"] = self.region_sequence_order.pop()
+
+            #  store used region_seq to redis here
+            self.store_snowflake_to_redis(
+                redis_key,
+                self.SEGMENT_VALUE["TIME_DIFFERENCE"],
+                self.SEGMENT_VALUE["REGION_SEQUENCE"],
+            )
+
+        else:
+            (
+                self.SEGMENT_VALUE["TIME_DIFFERENCE"],
+                self.SEGMENT_VALUE["REGION_SEQUENCE"],
+            ) = self.get_snowflake_from_redis(redis_key)
 
         for key, segment in self.SEGMENT_LENGTH.items():
             if segment.validate(self.SEGMENT_VALUE[key]):
@@ -153,6 +193,56 @@ class Snowflake:
         self.SNOWFLAKE_ID_VALIDATOR.validate(snowflake_id)
 
         return snowflake_id
+
+    def get_redis_cluster(self, redis_key: str):
+        return redis.clusters.get("default").get_local_client_for_key(redis_key)
+
+    def store_snowflake_to_redis(
+        self, redis_key: str, timestamp: int, used_region_sequence: int
+    ) -> None:
+        cluster = self.get_redis_cluster(redis_key)
+        used_region_sequences = cluster.get(str(timestamp))
+        if used_region_sequences:
+            used_region_sequences = json.loads(used_region_sequences)
+        else:
+            used_region_sequences = []
+        used_region_sequences.append(used_region_sequence)
+        cluster.setex(
+            str(timestamp), int(self._TTL.total_seconds()), json.dumps(used_region_sequences)
+        )
+
+    def get_snowflake_from_redis(self, redis_key: str) -> Tuple[int, int]:
+        cluster = self.get_redis_cluster(redis_key)
+
+        # temp code for now, want to iterate all keys in redis scan_iter() maybe?
+        for i in range(300):
+            timestamp = self.SEGMENT_VALUE["TIME_DIFFERENCE"] - i
+            # do i need to reorder these to avoid collision?
+            used_region_sequences = cluster.get(str(timestamp))
+            if used_region_sequences:
+                used_region_sequences = json.loads(used_region_sequences)
+
+                if len(used_region_sequences) != (1 << self.SNOWFLAKE_REGION_SEQUENCE_LENGTH):
+                    for region_sequence in range(1 << self.SNOWFLAKE_REGION_SEQUENCE_LENGTH):
+                        if region_sequence not in used_region_sequences:
+                            self.store_snowflake_to_redis(redis_key, timestamp, region_sequence)
+                            return timestamp, region_sequence
+
+        raise Exception("No available ID")
+
+    def removed_used_region_sequence_from_list(self, timestamp: int, redis_key: str):
+        cluster = self.get_redis_cluster(redis_key)
+        used_region_sequences = cluster.get(str(timestamp))
+        if used_region_sequences:
+            used_region_sequences = json.loads(used_region_sequences)
+
+            used_sequence_set = set(used_region_sequences)
+
+            self.region_sequence_order = [
+                sequence
+                for sequence in self.region_sequence_order
+                if sequence not in used_sequence_set
+            ]
 
 
 class DefaultFieldsModel(Model):

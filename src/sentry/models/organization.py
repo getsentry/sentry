@@ -164,6 +164,8 @@ class Organization(Model):
 
     objects = OrganizationManager(cache_fields=("pk", "slug"))
 
+    snowflake_redis_key = "organization_snowflake_key"
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
@@ -189,7 +191,7 @@ class Organization(Model):
     def save(self, *args, **kwargs):
         snowflake = Snowflake()
         if not self.id:
-            self.id = snowflake.snowflake_id_generation()
+            self.id = snowflake.snowflake_id_generation(self.snowflake_redis_key)
         if not self.slug:
             lock = locks.get("slug:organization", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
