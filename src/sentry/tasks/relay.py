@@ -51,6 +51,9 @@ def update_config_cache(
     if not should_update_cache(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     ):
+        # XXX(iker): this approach doesn't work with celery's ack_late enabled.
+        # If ack_late is enabled and the task fails after being marked as done,
+        # the second attempt will exit early and not compute the project config.
         return
 
     if organization_id:
