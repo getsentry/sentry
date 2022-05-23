@@ -1,4 +1,4 @@
-import {isReplayTab, ReplayTabs} from '../types';
+import {isReplayTab, ReplayTabs} from 'sentry/views/replays/types';
 
 const DEFAULT_TAB = ReplayTabs.PERFORMANCE;
 

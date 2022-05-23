@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 
 import EventEntry from 'sentry/components/events/eventEntry';
 import Placeholder from 'sentry/components/placeholder';
+import useActiveTabFromLocation from 'sentry/components/replays/hooks/useActiveTabFromLocation';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TagsTable from 'sentry/components/tagsTable';
 import type {Entry, Event} from 'sentry/types/event';
@@ -14,7 +15,6 @@ import Console from './console';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 import Trace from './trace';
-import useActiveTabFromLocation from './useActiveTabFromLocation';
 
 type Props = {
   replay: ReplayReader | null;
