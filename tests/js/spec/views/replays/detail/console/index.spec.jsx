@@ -80,32 +80,27 @@ const breadcrumbs = [
 
 describe('replays/details/console', () => {
   it('filters console breadcrumbs by log level', () => {
-    const result = breadcrumbs.filter(breadcrumb =>
-      filterBreadcrumbs(breadcrumb, '', ['error', 'warning'])
-    );
-
+    const result = filterBreadcrumbs(breadcrumbs, '', ['error', 'warning']);
     expect(result.length).toEqual(2);
   });
 
   it('filters console breadcrumbs by search term', () => {
-    const result = breadcrumbs.filter(breadcrumb =>
-      filterBreadcrumbs(breadcrumb, 'comp', [])
-    );
+    const result = filterBreadcrumbs(breadcrumbs, 'comp', []);
     expect(result.length).toEqual(2);
   });
 
   it('filters console breadcrumbs by search term where match is within data.arguments', () => {
-    const result = breadcrumbs.filter(breadcrumb =>
-      filterBreadcrumbs(breadcrumb, 'find me', [])
-    );
+    const result = filterBreadcrumbs(breadcrumbs, 'find me', []);
     expect(result.length).toEqual(1);
   });
 
   it('filters console breadcrumbs by search term and log level', () => {
-    const result = breadcrumbs.filter(breadcrumb =>
-      filterBreadcrumbs(breadcrumb, 'tEs', ['error'])
-    );
-
+    const result = filterBreadcrumbs(breadcrumbs, 'tEs', ['error']);
     expect(result.length).toEqual(1);
+  });
+
+  it('does not filter if no searchTerm or logLevel filters are present', () => {
+    const result = filterBreadcrumbs(breadcrumbs, '', []);
+    expect(result.length).toEqual(4);
   });
 });

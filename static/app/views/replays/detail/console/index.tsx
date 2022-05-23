@@ -21,15 +21,24 @@ interface Props {
 const getDistinctLogLevels = breadcrumbs =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
-export const filterBreadcrumbs = (breadcrumb, searchTerm, logLevel) => {
-  const normalizedSearchTerm = searchTerm.toLowerCase();
-  const doesMatch = JSON.stringify(breadcrumb.data)
-    .toLowerCase()
-    .includes(normalizedSearchTerm);
-  if (logLevel.length > 0) {
-    return doesMatch && logLevel.includes(breadcrumb.level);
+export const filterBreadcrumbs = (
+  breadcrumbs: BreadcrumbTypeDefault[],
+  searchTerm: string,
+  logLevel: Array<string>
+) => {
+  if (!searchTerm && logLevel.length === 0) {
+    return breadcrumbs;
   }
-  return doesMatch;
+  return breadcrumbs.filter(breadcrumb => {
+    const normalizedSearchTerm = searchTerm.toLowerCase();
+    const doesMatch = JSON.stringify(breadcrumb.data)
+      .toLowerCase()
+      .includes(normalizedSearchTerm);
+    if (logLevel.length > 0) {
+      return doesMatch && logLevel.includes(breadcrumb.level);
+    }
+    return doesMatch;
+  });
 };
 
 function Console({breadcrumbs, startTimestamp = 0}: Props) {
@@ -38,12 +47,7 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
   const handleSearch = debounce(query => setSearchTerm(query), 150);
 
   const filteredBreadcrumbs = useMemo(
-    () =>
-      !searchTerm && logLevel.length === 0
-        ? breadcrumbs
-        : breadcrumbs.filter(breadcrumb =>
-            filterBreadcrumbs(breadcrumb, searchTerm, logLevel)
-          ),
+    () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
     [logLevel, searchTerm, breadcrumbs]
   );
 
