@@ -47,3 +47,4 @@ class ProjectConfigDebounceCache(Service):
 
         Returns 1 if the task was removed, 0 if it wasn't.
         """
+        return 1
