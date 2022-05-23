@@ -4,7 +4,7 @@ import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 const START_TIMESTAMP_SEC = 1651693622.951;
 const CURRENT_TIME_MS = 15000;
 
-function createUserActionCrumbs(): Crumb[] {
+function createCrumbs(): Crumb[] {
   return [
     {
       color: 'gray300',
@@ -71,20 +71,18 @@ function createUserActionCrumbs(): Crumb[] {
 }
 
 describe('getPrevBreadcrumb', () => {
-  it(`should return the previous user action even if the timestamp
-    is closer to the next action`, () => {
-    const crumbs = createUserActionCrumbs();
+  it('should return the previous crumb even if the timestamp is closer to the next crumb', () => {
+    const crumbs = createCrumbs();
     const results = getPrevBreadcrumb({
       crumbs,
       targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
-      // currentHoverTime: CURRENT_TIME_MS,
     });
 
     expect(results?.id).toEqual(4);
   });
 
   it('should return the previous crumb when the list is not sorted', () => {
-    const [one, two, three, four, five] = createUserActionCrumbs();
+    const [one, two, three, four, five] = createCrumbs();
     const results = getPrevBreadcrumb({
       crumbs: [one, four, five, three, two],
       targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
@@ -93,7 +91,7 @@ describe('getPrevBreadcrumb', () => {
     expect(results?.id).toEqual(4);
   });
 
-  it('should return undefined when userActions is not defined', () => {
+  it('should return undefined when there are no crumbs', () => {
     const crumbs = [];
     const results = getPrevBreadcrumb({
       crumbs,
@@ -103,28 +101,18 @@ describe('getPrevBreadcrumb', () => {
     expect(results).toBeUndefined();
   });
 
-  it('should return undefined when startTimestamp is not defined or is equal to 0', () => {
-    const crumbs = createUserActionCrumbs();
+  it('should return undefined when the timestamp is earlier than any crumbs', () => {
+    const crumbs = createCrumbs();
     const results = getPrevBreadcrumb({
       crumbs,
-      targetTimestampMS: CURRENT_TIME_MS,
+      targetTimestampMS: START_TIMESTAMP_SEC * 1000 - CURRENT_TIME_MS,
     });
 
     expect(results).toBeUndefined();
   });
 
-  it('should return undefined when userActions has only item and the current time is before that item', () => {
-    const crumbs = createUserActionCrumbs().slice(4, 5);
-    const results = getPrevBreadcrumb({
-      crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
-    });
-
-    expect(results).toBeUndefined();
-  });
-
-  it('should return the user action when timestamp matches the timestamp of a breadcrumb', () => {
-    const crumbs = createUserActionCrumbs();
+  it('should return the crumb previous when a crumbs timestamp exactly matches', () => {
+    const crumbs = createCrumbs();
     const exactCrumbTime = 8135;
     const results = getPrevBreadcrumb({
       crumbs,
