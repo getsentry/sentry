@@ -251,12 +251,9 @@ function Sidebar({location, organization}: Props) {
   const userFeedback = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={(_id, evt) => {
-        navigateWithPageFilters(
-          `/organizations/${organization.slug}/user-feedback/`,
-          evt
-        );
-      }}
+      onClick={(_id, evt) =>
+        navigateWithPageFilters(`/organizations/${organization.slug}/user-feedback/`, evt)
+      }
       icon={<IconSupport size="md" />}
       label={t('User Feedback')}
       to={`/organizations/${organization.slug}/user-feedback/`}
@@ -338,9 +335,9 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         index
-        onClick={(_id, evt) => {
-          navigateWithPageFilters(`/organizations/${organization.slug}/profiling/`, evt);
-        }}
+        onClick={(_id, evt) =>
+          navigateWithPageFilters(`/organizations/${organization.slug}/profiling/`, evt)
+        }
         icon={<IconSpan size="md" />}
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
