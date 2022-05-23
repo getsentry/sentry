@@ -502,13 +502,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 
         return getattr(self.client, method)(url, format="json", data=data, **headers)
 
-    def get_valid_response(self, *args, **params):
-        """Deprecated. Calls `get_response` (see above) and asserts a specific status code."""
-        status_code = params.pop("status_code", 200)
-        resp = self.get_response(*args, **params)
-        assert resp.status_code == status_code, (resp.status_code, resp.content)
-        return resp
-
     def get_success_response(self, *args, **params):
         """
         Call `get_response` (see above) and assert the response's status code.
@@ -1108,6 +1101,11 @@ class SessionMetricsTestCase(SnubaTestCase):
                     session["duration"],
                 )
 
+        # Also extract user for non-init healthy sessions
+        # (see # https://github.com/getsentry/relay/pull/1275)
+        if session["seq"] > 0 and status in ("ok", "exited") and not user_is_nil:
+            self._push_metric(session, "set", SessionMRI.USER, {"session.status": "ok"}, user)
+
     def bulk_store_sessions(self, sessions):
         for session in sessions:
             self.store_session(session)
@@ -1546,9 +1544,13 @@ class TestMigrations(TransactionTestCase):
         self.migrate_to = [(self.app, self.migrate_to)]
 
         executor = MigrationExecutor(connection)
-        self.current_migration = [
-            max(filter(lambda m: m[0] == self.app, executor.loader.applied_migrations))
-        ]
+        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
+        if not matching_migrations:
+            raise AssertionError(
+                "no migrations detected!\n\n"
+                "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
+            )
+        self.current_migration = [max(matching_migrations)]
         old_apps = executor.loader.project_state(self.migrate_from).apps
 
         # Reverse to the original migration

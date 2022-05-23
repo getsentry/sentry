@@ -1,11 +1,8 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import {
-  onlyUserActions,
-  transformCrumbs,
-} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {
   Panel as BasePanel,
   PanelBody as BasePanelBody,
@@ -19,9 +16,9 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
-import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
+import {getPrevUserAction} from 'sentry/utils/replays/getUserAction';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
@@ -49,30 +46,34 @@ type ContainerProps = {
   isSelected: boolean;
 };
 
+const USER_ACTIONS = [
+  BreadcrumbType.ERROR,
+  BreadcrumbType.INIT,
+  BreadcrumbType.NAVIGATION,
+  BreadcrumbType.UI,
+  BreadcrumbType.USER,
+];
+
 function UserActionsNavigator({event, crumbs}: Props) {
-  const {setCurrentTime, setCurrentHoverTime, currentHoverTime} = useReplayContext();
-  const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
-  const [closestUserAction, setClosestUserAction] = useState<Crumb>();
+  const {setCurrentTime, setCurrentHoverTime, currentHoverTime, currentTime} =
+    useReplayContext();
 
   const {startTimestamp} = event || {};
-  const userActionCrumbs = crumbs && onlyUserActions(transformCrumbs(crumbs));
-  const isLoaded = userActionCrumbs && startTimestamp;
+  const userActionCrumbs = transformCrumbs(crumbs || []).filter(crumb =>
+    USER_ACTIONS.includes(crumb.type)
+  );
+  const isLoaded = startTimestamp;
 
-  const getClosestUserAction = useCallback(
-    async (hovertime: number) => {
-      const closestUserActionItem = getCurrentUserAction(
-        userActionCrumbs,
-        startTimestamp,
-        hovertime
-      );
-      if (
-        closestUserActionItem &&
-        closestUserAction?.timestamp !== closestUserActionItem.timestamp
-      ) {
-        setClosestUserAction(closestUserActionItem);
-      }
-    },
-    [closestUserAction?.timestamp, startTimestamp, userActionCrumbs]
+  const currentUserAction = getPrevUserAction(
+    userActionCrumbs,
+    startTimestamp,
+    currentTime
+  );
+
+  const closestUserAction = getPrevUserAction(
+    userActionCrumbs,
+    startTimestamp,
+    currentHoverTime ?? 0
   );
 
   const onMouseEnter = useCallback(
@@ -88,14 +89,6 @@ function UserActionsNavigator({event, crumbs}: Props) {
     setCurrentHoverTime(undefined);
   }, [setCurrentHoverTime]);
 
-  useEffect(() => {
-    if (!currentHoverTime) {
-      setClosestUserAction(undefined);
-      return;
-    }
-    getClosestUserAction(currentHoverTime);
-  }, [getClosestUserAction, currentHoverTime]);
-
   return (
     <Panel>
       <PanelHeader>{t('Event Chapters')}</PanelHeader>
@@ -108,16 +101,15 @@ function UserActionsNavigator({event, crumbs}: Props) {
               key={item.id}
               onMouseEnter={() => onMouseEnter(item)}
               onMouseLeave={() => onMouseLeave()}
-              onClick={() => {
-                setCurrentUserAction(item);
-                item.timestamp
-                  ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
-                  : '';
-              }}
             >
               <Container
                 isHovered={closestUserAction?.id === item.id}
                 isSelected={currentUserAction?.id === item.id}
+                onClick={() =>
+                  item.timestamp !== undefined
+                    ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
+                    : null
+                }
               >
                 <Wrapper>
                   <Type
@@ -125,7 +117,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
                     color={item.color}
                     description={item.description}
                   />
-                  <ActionCategory category={item} />
+                  <ActionCategory action={item} />
                 </Wrapper>
                 <PlayerRelativeTime
                   relativeTime={startTimestamp}
@@ -175,15 +167,15 @@ const PanelItemCenter = styled(PanelItem)`
   cursor: pointer;
 `;
 
-const Container = styled('div')<ContainerProps>`
-  display: flex;
+const Container = styled('button')<ContainerProps>`
+  display: inline-flex;
+  width: 100%;
+  border: none;
+  background: transparent;
   justify-content: space-between;
   align-items: center;
   border-left: 4px solid transparent;
   padding: ${space(1)} ${space(1.5)};
-  &:hover {
-    background: ${p => p.theme.surface400};
-  }
   ${p => p.isHovered && `background: ${p.theme.surface400};`}
   ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
 `;

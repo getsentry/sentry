@@ -529,6 +529,7 @@ export type UserReport = {
 export type KeyValueListData = {
   key: string;
   subject: string;
+  actionButton?: React.ReactNode;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;

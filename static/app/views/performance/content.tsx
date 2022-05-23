@@ -93,7 +93,14 @@ function PerformanceContent({selection, location, demoMode}: Props) {
       loadOrganizationTags(api, organization.slug, selection);
       addRoutePerformanceContext(selection);
     }
-  }, [selection.datetime]);
+  }, [
+    selection.datetime,
+    previousDateTime,
+    selection,
+    api,
+    organization,
+    onboardingProject,
+  ]);
 
   function setError(newError?: string) {
     if (
@@ -119,6 +126,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
         isDefaultQuery: false,
+        userModified: true,
       },
     });
   }

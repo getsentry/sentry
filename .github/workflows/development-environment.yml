@@ -117,9 +117,8 @@ jobs:
           cache: 'pip'
           cache-dependency-path: |
             requirements-dev.txt
-            requirements-pre-commit.txt
       - name: install dependencies
-        run: pip install -r requirements-dev.txt -r requirements-pre-commit.txt
+        run: pip install -r requirements-dev.txt
       - name: run tests
         run: make test-tools
       - name: Handle artifacts

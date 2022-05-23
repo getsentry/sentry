@@ -3,10 +3,7 @@ import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {
-  onlyUserActions,
-  transformCrumbs,
-} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
@@ -21,9 +18,18 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {getNextUserAction} from 'sentry/utils/replays/getCurrentUserAction';
+import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {getNextUserAction} from 'sentry/utils/replays/getUserAction';
 
 const SECOND = 1000;
+
+const USER_ACTIONS = [
+  BreadcrumbType.ERROR,
+  BreadcrumbType.INIT,
+  BreadcrumbType.NAVIGATION,
+  BreadcrumbType.UI,
+  BreadcrumbType.USER,
+];
 
 interface Props {
   speedOptions?: number[];
@@ -58,7 +64,7 @@ function ReplayPlayPauseBar() {
           const startTimestampSec = replay?.getEvent().startTimestamp;
           const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
           const next = getNextUserAction({
-            crumbs: onlyUserActions(transformedCrumbs),
+            crumbs: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
             startTimestampSec,
             targetOffsetMS: currentTime + 1,
           });

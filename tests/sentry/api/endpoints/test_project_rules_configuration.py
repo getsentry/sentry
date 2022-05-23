@@ -21,7 +21,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         project1 = self.create_project(teams=[team], name="foo")
         self.create_project(teams=[team], name="baz")
 
-        response = self.get_valid_response(self.organization.slug, project1.slug)
+        response = self.get_success_response(self.organization.slug, project1.slug)
         assert len(response.data["actions"]) == 7
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 7
@@ -45,7 +45,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         if not rules:
             rules = self.rules
         with patch("sentry.api.endpoints.project_rules_configuration.rules", rules):
-            response = self.get_valid_response(
+            response = self.get_success_response(
                 self.organization.slug, self.project.slug, qs_params=querystring_params
             )
 
@@ -86,7 +86,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         self.run_mock_rules_test(0, {}, rules=rules)
 
     def test_available_actions(self):
-        response = self.get_valid_response(self.organization.slug, self.project.slug)
+        response = self.get_success_response(self.organization.slug, self.project.slug)
 
         action_ids = [action["id"] for action in response.data["actions"]]
         assert EMAIL_ACTION in action_ids
@@ -94,7 +94,7 @@ class ProjectRuleConfigurationTest(APITestCase):
 
     def test_ticket_rules_not_in_available_actions(self):
         with self.feature({"organizations:integrations-ticket-rules": False}):
-            response = self.get_valid_response(self.organization.slug, self.project.slug)
+            response = self.get_success_response(self.organization.slug, self.project.slug)
             action_ids = [action["id"] for action in response.data["actions"]]
             assert EMAIL_ACTION in action_ids
             assert JIRA_ACTION not in action_ids
@@ -112,7 +112,7 @@ class ProjectRuleConfigurationTest(APITestCase):
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
 
-        response = self.get_valid_response(self.organization.slug, project1.slug)
+        response = self.get_success_response(self.organization.slug, project1.slug)
 
         assert len(response.data["actions"]) == 8
         assert {
@@ -142,7 +142,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         install = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
-        response = self.get_valid_response(self.organization.slug, project1.slug)
+        response = self.get_success_response(self.organization.slug, project1.slug)
 
         assert len(response.data["actions"]) == 8
         assert {
