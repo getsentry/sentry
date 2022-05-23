@@ -134,17 +134,6 @@ const Context = ({
 
 export default withOrganization(Context);
 
-const StyledIconFlag = styled(IconFlag)`
-  margin-right: ${space(1)};
-`;
-
-const StyledContextLine = styled(ContextLine)`
-  background: inherit;
-  padding: 0;
-  text-indent: 20px;
-  z-index: 1000;
-`;
-
 const StyledClippedBox = styled(ClippedBox)`
   margin-left: 0;
   margin-right: 0;
@@ -158,4 +147,15 @@ const StyledClippedBox = styled(ClippedBox)`
     padding-top: 0;
     border-top: none;
   }
+`;
+
+const StyledIconFlag = styled(IconFlag)`
+  margin-right: ${space(1)};
+`;
+
+const StyledContextLine = styled(ContextLine)`
+  background: inherit;
+  padding: 0;
+  text-indent: 20px;
+  z-index: 1000;
 `;
