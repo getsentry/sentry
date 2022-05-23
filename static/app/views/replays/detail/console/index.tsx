@@ -29,8 +29,8 @@ export const filterBreadcrumbs = (
   if (!searchTerm && logLevel.length === 0) {
     return breadcrumbs;
   }
+  const normalizedSearchTerm = searchTerm.toLowerCase();
   return breadcrumbs.filter(breadcrumb => {
-    const normalizedSearchTerm = searchTerm.toLowerCase();
     const doesMatch = JSON.stringify(breadcrumb.data)
       .toLowerCase()
       .includes(normalizedSearchTerm);
