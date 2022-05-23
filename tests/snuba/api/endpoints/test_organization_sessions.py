@@ -10,6 +10,7 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.testutils.helpers.link_header import parse_link_header
+from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_timestamp
 
 
@@ -1697,6 +1698,50 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "by": {"release": "1C", "session.status": None, "project": None},
                 "totals": {"sum(session)": 0},
                 "series": {"sum(session)": [0]},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_with_limit_and_offset(self):
+        rando_project = self.create_project()
+
+        # Create two releases with no metrics data and then two releases with metric data
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+        self.create_release(project=rando_project, version="1C")
+        self.create_release(project=rando_project, version="1D")
+
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        self.store_session(make_session(rando_project, release=release_1b.version))
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 3,
+                "cursor": Cursor(0, 1),
+            }
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1C"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+            {
+                "by": {"release": "1A"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
             },
         ]
 

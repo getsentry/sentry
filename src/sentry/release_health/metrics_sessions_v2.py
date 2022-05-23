@@ -435,6 +435,8 @@ def run_sessions_query(
     project_ids = filter_keys.pop("project_id")
     assert not filter_keys
 
+    offset = Offset(query.offset or 0)
+
     ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]] = {}
     try:
         orderby = _parse_orderby(query, fields)
@@ -459,6 +461,7 @@ def run_sessions_query(
             "org_id": org_id,
             "project_ids": project_ids,
             "limit": query.limit,
+            "offset": query.offset,
         }
 
         # For preflight queries, we need to evaluate environment conditions because these might
@@ -501,6 +504,9 @@ def run_sessions_query(
         # Clear OrderBy because query is already filtered and we will re-order the results
         # according to the order of the filter list later on
         orderby = None
+
+        # Remove offset if there are preflight condition filters added
+        offset = Offset(0)
     else:
         if orderby is None:
             # We only return the top-N groups, based on the first field that is being
@@ -519,7 +525,7 @@ def run_sessions_query(
         groupby=list({column for field in fields.values() for column in field.get_groupby()}),
         orderby=orderby,
         limit=Limit(query.limit) if query.limit else None,
-        offset=Offset(query.offset or 0),
+        offset=offset,
     )
 
     # TODO: Stop passing project IDs everywhere
@@ -834,6 +840,7 @@ def _generate_preflight_query_conditions(
     org_id: int,
     project_ids: Sequence[ProjectId],
     limit: int,
+    offset: int,
     env_condition: Optional[Tuple[Op, Set[str]]] = None,
 ) -> Sequence[str]:
     """
@@ -864,6 +871,6 @@ def _generate_preflight_query_conditions(
             queryset = queryset.order_by("date_added", "id")
 
         if limit is not None:
-            queryset = queryset[: limit - 1]
+            queryset = queryset[offset : offset + limit - 1]
         queryset_results = list(queryset.values_list("version", flat=True))
     return queryset_results
