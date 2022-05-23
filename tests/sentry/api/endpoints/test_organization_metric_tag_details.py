@@ -1,5 +1,8 @@
 import time
+from datetime import datetime, timedelta
 from unittest.mock import patch
+
+from freezegun import freeze_time
 
 from sentry.sentry_metrics import indexer
 from sentry.snuba.metrics.naming_layer import get_mri
@@ -89,6 +92,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         )
         assert response.data["detail"] == "Tag name session.status is an unallowed tag"
 
+    @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_tag_values_for_derived_metrics(self):
         self.store_session(
             self.build_session(
@@ -132,6 +136,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
             "`session.crash_free_rate"
         )
 
+    @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_tag_values_for_composite_derived_metrics(self):
         self.store_session(
             self.build_session(
@@ -158,6 +163,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
         assert response.status_code == 400
         assert response.json()["detail"] == "Tag random_foo_tag is not available in the indexer"
 
+    @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.datasource.get_mri")
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
