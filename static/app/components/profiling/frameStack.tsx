@@ -11,6 +11,8 @@ import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useF
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
+import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
@@ -28,31 +30,49 @@ function makeSortFunction(
 ) {
   if (property === 'total weight') {
     return direction === 'desc'
-      ? (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return b.node.totalWeight - a.node.totalWeight;
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.node.totalWeight - a.node.node.totalWeight;
         }
-      : (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return a.node.totalWeight - b.node.totalWeight;
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.node.totalWeight - b.node.node.totalWeight;
         };
   }
 
   if (property === 'self weight') {
     return direction === 'desc'
-      ? (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return b.node.selfWeight - a.node.selfWeight;
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.node.selfWeight - a.node.node.selfWeight;
         }
-      : (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return a.node.selfWeight - b.node.selfWeight;
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.node.selfWeight - b.node.node.selfWeight;
         };
   }
 
   if (property === 'name') {
     return direction === 'desc'
-      ? (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return a.frame.name.localeCompare(b.frame.name);
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.frame.name.localeCompare(b.node.frame.name);
         }
-      : (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return b.frame.name.localeCompare(a.frame.name);
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.frame.name.localeCompare(a.node.frame.name);
         };
   }
 
@@ -66,35 +86,29 @@ interface FrameCallTreeStackProps {
 }
 
 function FrameCallTreeStack({
-  flamegraphRenderer,
   roots,
+  flamegraphRenderer,
   referenceNode,
 }: FrameCallTreeStackProps) {
   const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
-
-  const sortFunction: FrameRowProps['sortFunction'] = useMemo(() => {
-    if (sort === null) {
-      return () => 0;
-    }
-    return makeSortFunction(sort, direction);
-  }, [sort, direction]);
+  const {tree, handleExpandTreeNode, handleSortingChange} = useVirtualizedTree({roots});
 
   const onSortChange = useCallback(
     (newSort: 'total weight' | 'self weight' | 'name') => {
-      // If sort is the same, just invert the direction
-      if (newSort === sort) {
-        setDirection(direction === 'asc' ? 'desc' : 'asc');
-        return;
-      }
+      const sortFn =
+        newSort === sort
+          ? makeSortFunction(newSort, direction === 'asc' ? 'desc' : 'asc')
+          : makeSortFunction(newSort, 'desc');
 
-      // Else set the new sort and default to descending order
+      setDirection(newSort === sort ? (direction === 'asc' ? 'desc' : 'asc') : 'desc');
       setSort(newSort);
-      setDirection('desc');
+
+      handleSortingChange(sortFn);
     },
-    [sort, direction]
+    [sort, direction, handleSortingChange]
   );
 
   return (
@@ -129,15 +143,16 @@ function FrameCallTreeStack({
           </tr>
         </FrameCallersTableHeader>
         <tbody>
-          {roots.sort(sortFunction).map(r => {
+          {tree.flattened.map(r => {
             return (
               <FrameRow
-                key={r.key}
-                depth={0}
-                frame={r}
-                sortFunction={sortFunction}
+                key={r.node.key}
+                node={r}
                 referenceNode={referenceNode}
                 flamegraphRenderer={flamegraphRenderer}
+                handleExpandedClick={evt => {
+                  handleExpandTreeNode(r, {expandChildren: !!evt.metaKey});
+                }}
               />
             );
           })}
@@ -174,94 +189,57 @@ const TableHeaderButton = styled('button')`
 `;
 
 interface FrameRowProps {
-  depth: number;
   flamegraphRenderer: FlamegraphRenderer;
-  frame: FlamegraphFrame;
+  handleExpandedClick: (evt: React.MouseEvent) => void;
+  node: VirtualizedTreeNode<FlamegraphFrame>;
   referenceNode: FlamegraphFrame;
-  sortFunction: (a: FlamegraphFrame, b: FlamegraphFrame) => number;
-  initialOpen?: boolean;
 }
 
 function FrameRow({
-  depth,
-  frame,
+  node,
   flamegraphRenderer,
   referenceNode,
-  sortFunction,
-  initialOpen,
+  handleExpandedClick,
 }: FrameRowProps) {
-  const [open, setOpen] = useState<boolean>(initialOpen ?? false);
-  const [forceOpenChildren, setForceOpenChildren] = useState<boolean>(
-    initialOpen ?? false
-  );
-
-  const handleClick = useCallback(
-    (evt: React.MouseEvent<HTMLTableRowElement>) => {
-      if (evt.metaKey) {
-        setForceOpenChildren(!forceOpenChildren);
-      } else {
-        // Once a user closes the row, we don't want to reopen it on subsequent clicks
-        setForceOpenChildren(false);
-      }
-      setOpen(!open);
-    },
-    [open, forceOpenChildren]
-  );
-
   const colorString = useMemo(() => {
-    return formatColorForFrame(frame, flamegraphRenderer);
-  }, [frame, flamegraphRenderer]);
+    return formatColorForFrame(node.node, flamegraphRenderer);
+  }, [node, flamegraphRenderer]);
 
   return (
     <Fragment>
-      <FrameCallersRow onClick={handleClick}>
+      <FrameCallersRow onClick={handleExpandedClick}>
         <FrameCallersTableCell textAlign="right">
-          {flamegraphRenderer.flamegraph.formatter(frame.node.selfWeight)}
+          {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
           <Weight
             weight={computeRelativeWeight(
-              referenceNode.node.selfWeight,
-              frame.node.selfWeight
+              referenceNode.node.totalWeight,
+              node.node.node.selfWeight
             )}
           />
         </FrameCallersTableCell>
         <FrameCallersTableCell textAlign="right">
-          {flamegraphRenderer.flamegraph.formatter(frame.node.totalWeight)}
+          {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
           <Weight
             weight={computeRelativeWeight(
               referenceNode.node.totalWeight,
-              frame.node.totalWeight
+              node.node.node.totalWeight
             )}
           />
         </FrameCallersTableCell>
         <FrameCallersTableCell
           // We stretch this table to 100% width.
-          style={{paddingLeft: depth * 14 + 8, width: '100%'}}
+          style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
           colSpan={100}
         >
           <FrameNameContainer>
             <FrameColorIndicator backgroundColor={colorString} />
-            <FrameChildrenIndicator open={open}>
-              {frame.children.length > 0 ? '\u203A' : null}
+            <FrameChildrenIndicator open={node.expanded}>
+              {node.node.children.length > 0 ? '\u203A' : null}
             </FrameChildrenIndicator>
-            <FrameName>{frame.frame.name}</FrameName>
+            <FrameName>{node.node.frame.name}</FrameName>
           </FrameNameContainer>
         </FrameCallersTableCell>
       </FrameCallersRow>
-      {open
-        ? frame.children
-            .sort(sortFunction)
-            .map(c => (
-              <FrameRow
-                key={c.key}
-                frame={c}
-                referenceNode={referenceNode}
-                initialOpen={forceOpenChildren ? open : undefined}
-                flamegraphRenderer={flamegraphRenderer}
-                sortFunction={sortFunction}
-                depth={depth + 1}
-              />
-            ))
-        : null}
     </Fragment>
   );
 }
