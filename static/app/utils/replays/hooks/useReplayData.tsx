@@ -140,35 +140,32 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     );
   }, [api, eventId, orgId]);
 
-  const loadEvents = useCallback(
-    async function () {
-      setState(INITIAL_STATE);
+  const loadEvents = useCallback(async () => {
+    setState(INITIAL_STATE);
 
-      try {
-        const [event, rrwebEvents, replayEvents] = await Promise.all([
-          fetchEvent(),
-          fetchRRWebEvents(),
-          fetchReplayEvents(),
-        ]);
+    try {
+      const [event, rrwebEvents, replayEvents] = await Promise.all([
+        fetchEvent(),
+        fetchRRWebEvents(),
+        fetchReplayEvents(),
+      ]);
 
-        setState({
-          event,
-          fetchError: undefined,
-          fetching: false,
-          replayEvents,
-          rrwebEvents,
-        });
-      } catch (error) {
-        Sentry.captureException(error);
-        setState({
-          ...INITIAL_STATE,
-          fetchError: error,
-          fetching: false,
-        });
-      }
-    },
-    [fetchEvent, fetchRRWebEvents, fetchReplayEvents]
-  );
+      setState({
+        event,
+        fetchError: undefined,
+        fetching: false,
+        replayEvents,
+        rrwebEvents,
+      });
+    } catch (error) {
+      Sentry.captureException(error);
+      setState({
+        ...INITIAL_STATE,
+        fetchError: error,
+        fetching: false,
+      });
+    }
+  }, [fetchEvent, fetchRRWebEvents, fetchReplayEvents]);
 
   useEffect(() => {
     loadEvents();
