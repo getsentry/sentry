@@ -261,12 +261,8 @@ describe('flattenSpans', () => {
       );
     });
 
-    it('returns NaN without relative time', () => {
-      expect(relativeTimeInMs('2022-05-11T23:04:27.576000Z')).toEqual(NaN);
-    });
-
     it('returns invalid date if date string is malformed', () => {
-      expect(relativeTimeInMs('202223:04:27.576000Z')).toEqual(NaN);
+      expect(relativeTimeInMs('202223:04:27.576000Z', 347.90000009536743)).toEqual(NaN);
     });
   });
 
@@ -277,12 +273,10 @@ describe('flattenSpans', () => {
       );
     });
 
-    it('returns time without difference', () => {
-      expect(showPlayerTime('2022-05-11T23:04:27.576000Z')).toEqual('Invalid date');
-    });
-
     it('returns invalid date if timestamp is malformed', () => {
-      expect(showPlayerTime('20223:04:27.576000Z')).toEqual('Invalid date');
+      expect(showPlayerTime('20223:04:27.576000Z', 1652309918.676)).toEqual(
+        'Invalid date'
+      );
     });
   });
 
@@ -291,16 +285,8 @@ describe('flattenSpans', () => {
       expect(divide(81, 9)).toEqual(9);
     });
 
-    it('dividing by zero returns', () => {
+    it('dividing by zero returns zero', () => {
       expect(divide(81, 0)).toEqual(0);
-    });
-
-    it('dividing undefined by number results in', () => {
-      expect(divide(undefined, 9)).toEqual(NaN);
-    });
-
-    it('divides by string results in NaN', () => {
-      expect(divide(9, 'number')).toEqual(0);
     });
   });
 });
