@@ -30,7 +30,7 @@ export function getNextBreadcrumb({
   return crumbs.reduce<Crumb | undefined>((found, crumb) => {
     const crumbTimestampMS = +new Date(crumb.timestamp || '');
 
-    if (crumbTimestampMS < targetTimestampMS) {
+    if (crumbTimestampMS <= targetTimestampMS) {
       return found;
     }
     if (!found || crumbTimestampMS < +new Date(found.timestamp || '')) {
