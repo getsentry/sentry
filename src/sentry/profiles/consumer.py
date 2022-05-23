@@ -21,7 +21,9 @@ def get_profiles_consumer(
 
 
 class ProfilesConsumer(AbstractBatchWorker):  # type: ignore
-    def process_message(self, message: Message) -> Optional[MutableMapping[str, Any]]:
+    def process_message(
+        self, message: Message
+    ) -> Tuple[Optional[int], Optional[MutableMapping[str, Any]]]:
         message = msgpack.unpackb(message.value(), use_list=False)
         profile = cast(Dict[str, Any], json.loads(message["payload"]))
         profile.update(
@@ -34,7 +36,7 @@ class ProfilesConsumer(AbstractBatchWorker):  # type: ignore
         return (message.get("key_id"), profile)
 
     def flush_batch(
-        self, messages: Tuple[Optional[int], Sequence[MutableMapping[str, Any]]]
+        self, messages: Sequence[Tuple[Optional[int], MutableMapping[str, Any]]]
     ) -> None:
         for message in messages:
             key_id, profile = message
