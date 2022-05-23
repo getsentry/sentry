@@ -62,7 +62,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
   const userActionCrumbs = transformCrumbs(crumbs || []).filter(crumb =>
     USER_ACTIONS.includes(crumb.type)
   );
-  const isLoaded = startTimestamp;
+  const isLoaded = Boolean(event);
 
   const currentUserAction = getPrevBreadcrumb({
     crumbs: userActionCrumbs,
