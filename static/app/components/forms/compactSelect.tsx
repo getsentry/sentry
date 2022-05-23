@@ -164,6 +164,8 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
       isOpen: state.isOpen,
       shouldCloseOnBlur,
       isDismissable,
+      shouldCloseOnInteractOutside: target =>
+        target && triggerRef.current !== target && !triggerRef.current?.contains(target),
     },
     overlayRef
   );
