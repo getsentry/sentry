@@ -9,28 +9,14 @@ type Props = {
   children?: React.ReactNode;
   cta?: string;
   hasSeen?: boolean;
-  image?: string;
   link?: string;
   message?: React.ReactNode;
   title?: string;
 };
 
-const SidebarPanelItem = ({
-  hasSeen,
-  title,
-  image,
-  message,
-  link,
-  cta,
-  children,
-}: Props) => (
+const SidebarPanelItem = ({hasSeen, title, message, link, cta, children}: Props) => (
   <SidebarPanelItemRoot>
     {title && <Title hasSeen={hasSeen}>{title}</Title>}
-    {image && (
-      <ImageBox>
-        <img src={image} />
-      </ImageBox>
-    )}
     {message && <Message>{message}</Message>}
 
     {children}
@@ -53,12 +39,6 @@ const SidebarPanelItemRoot = styled('div')`
   padding: ${space(3)};
 `;
 
-const ImageBox = styled('div')`
-  border: 1px solid #e1e4e5;
-  padding: ${space(2)};
-  border-radius: 2px;
-`;
-
 const Title = styled('div')<Pick<Props, 'hasSeen'>>`
   font-size: ${p => p.theme.fontSizeLarge};
   margin-bottom: ${space(1)};
@@ -71,7 +51,7 @@ const Title = styled('div')<Pick<Props, 'hasSeen'>>`
 `;
 
 const Text = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin: ${space(0.5)} 0;
 
   &:last-child {
     margin-bottom: 0;
