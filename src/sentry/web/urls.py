@@ -40,6 +40,7 @@ from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
+from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
@@ -645,7 +646,7 @@ urlpatterns += [
     # Generic API
     url(
         r"^share/(?:group|issue)/(?P<share_id>[\w_-]+)/$",
-        GenericReactPageView.as_view(auth_required=False),
+        SharedGroupDetailsView.as_view(auth_required=False),
         name="sentry-group-shared",
     ),
     url(
