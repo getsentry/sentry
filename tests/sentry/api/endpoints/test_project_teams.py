@@ -12,7 +12,7 @@ class ProjectTeamsTest(APITestCase):
         team = self.create_team()
         project = self.create_project(teams=[team])
 
-        response = self.get_valid_response(project.organization.slug, project.slug)
+        response = self.get_success_response(project.organization.slug, project.slug)
 
         assert len(response.data) == 1
         assert response.data[0]["slug"] == team.slug

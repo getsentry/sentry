@@ -1941,7 +1941,7 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "getsentry/snuba:nightly" if not APPLE_ARM64
+            "image": "getsentry/snuba:f063336085e7be0ccbdb52791aaf97882ba7a26f" if not APPLE_ARM64
             # We cross-build arm64 images on GH's Apple Intel runners
             else "ghcr.io/getsentry/snuba-arm64-dev:latest",
             "pull": True,
@@ -1969,7 +1969,10 @@ SENTRY_DEVSERVICES = {
         {
             "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
-            "only_if": "bigtable" in settings.SENTRY_NODESTORE,
+            # NEED_BIGTABLE is set by CI so we don't have to pass
+            # --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_BIGTABLE", False)
+            or "bigtable" in settings.SENTRY_NODESTORE,
         }
     ),
     "memcached": lambda settings, options: (
@@ -2010,7 +2013,9 @@ SENTRY_DEVSERVICES = {
                 "CHARTCUTERIE_CONFIG_POLLING": "true",
             },
             "ports": {"9090/tcp": 7901},
-            "only_if": options.get("chart-rendering.enabled"),
+            # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
+            or options.get("chart-rendering.enabled"),
         }
     ),
     "cdc": lambda settings, options: (
@@ -2585,6 +2590,9 @@ SAMPLED_DEFAULT_RATE = 1.0
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS = {}
+
+# A set of extra tasks to sample
+ADDITIONAL_SAMPLED_TASKS = {}
 
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
