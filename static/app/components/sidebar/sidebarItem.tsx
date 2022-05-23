@@ -70,6 +70,9 @@ type Props = WithRouterProps & {
    */
   isNewSeenKeySuffix?: string;
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
+  /**
+   * The current organization. Useful for analytics.
+   */
   organization?: Organization;
 
   to?: string;
