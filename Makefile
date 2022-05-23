@@ -137,7 +137,7 @@ test-snuba:
 	@echo "--> Running snuba tests"
 	pytest tests/snuba \
 		tests/sentry/eventstream/kafka \
-		tests/sentry/snuba
+		tests/sentry/snuba \
 		tests/sentry/search/events \
 		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
