@@ -38,7 +38,6 @@ import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
@@ -163,19 +162,12 @@ function Sidebar({location, organization}: Props) {
     orientation,
     collapsed,
     hasPanel,
-  };
-
-  const recordAnalytics = (item: string) => {
-    trackAdvancedAnalyticsEvent('growth.clicked_sidebar', {
-      item,
-      organization: organization || null,
-    });
+    organization,
   };
 
   const projects = hasOrganization && (
     <SidebarItem
       {...sidebarItemProps}
-      onClick={() => recordAnalytics('projects')}
       index
       icon={<IconProject size="md" />}
       label={<GuideAnchor target="projects">{t('Projects')}</GuideAnchor>}
@@ -188,7 +180,6 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) => {
-        recordAnalytics('issues');
         navigateWithPageFilters(`/organizations/${organization.slug}/issues/`, evt);
       }}
       icon={<IconIssues size="md" />}
@@ -207,7 +198,6 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         onClick={(_id, evt) => {
-          recordAnalytics('discover2');
           navigateWithPageFilters(getDiscoverLandingUrl(organization), evt);
         }}
         icon={<IconTelescope size="md" />}
@@ -229,7 +219,6 @@ function Sidebar({location, organization}: Props) {
           <SidebarItem
             {...sidebarItemProps}
             onClick={(_id, evt) => {
-              recordAnalytics('performance');
               navigateWithPageFilters(
                 `/organizations/${organization.slug}/performance/`,
                 evt
@@ -250,7 +239,6 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) => {
-        recordAnalytics('releases');
         navigateWithPageFilters(`/organizations/${organization.slug}/releases/`, evt);
       }}
       icon={<IconReleases size="md" />}
@@ -264,7 +252,6 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) => {
-        recordAnalytics('userFeedback');
         navigateWithPageFilters(
           `/organizations/${organization.slug}/user-feedback/`,
           evt
@@ -281,7 +268,6 @@ function Sidebar({location, organization}: Props) {
     <SidebarItem
       {...sidebarItemProps}
       onClick={(_id, evt) => {
-        recordAnalytics('alerts');
         navigateWithPageFilters(`/organizations/${organization.slug}/alerts/rules/`, evt);
       }}
       icon={<IconSiren size="md" />}
@@ -296,7 +282,6 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         onClick={(_id, evt) => {
-          recordAnalytics('monitors');
           navigateWithPageFilters(`/organizations/${organization.slug}/monitors/`, evt);
         }}
         icon={<IconLab size="md" />}
@@ -312,7 +297,6 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         onClick={(_id, evt) => {
-          recordAnalytics('replays');
           navigateWithPageFilters(`/organizations/${organization.slug}/replays/`, evt);
         }}
         icon={<IconPlay size="md" />}
@@ -334,7 +318,6 @@ function Sidebar({location, organization}: Props) {
         {...sidebarItemProps}
         index
         onClick={(_id, evt) => {
-          recordAnalytics('dashboards');
           navigateWithPageFilters(`/organizations/${organization.slug}/dashboards/`, evt);
         }}
         icon={<IconDashboard size="md" />}
@@ -356,7 +339,6 @@ function Sidebar({location, organization}: Props) {
         {...sidebarItemProps}
         index
         onClick={(_id, evt) => {
-          recordAnalytics('profiling');
           navigateWithPageFilters(`/organizations/${organization.slug}/profiling/`, evt);
         }}
         icon={<IconSpan size="md" />}
@@ -372,7 +354,6 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconList size="md" />}
       label={t('Activity')}
-      onClick={() => recordAnalytics('activity')}
       to={`/organizations/${organization.slug}/activity/`}
       id="activity"
     />
@@ -383,7 +364,6 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconStats size="md" />}
       label={t('Stats')}
-      onClick={() => recordAnalytics('stats')}
       to={`/organizations/${organization.slug}/stats/`}
       id="stats"
     />
@@ -394,7 +374,6 @@ function Sidebar({location, organization}: Props) {
       {...sidebarItemProps}
       icon={<IconSettings size="md" />}
       label={t('Settings')}
-      onClick={() => recordAnalytics('settings')}
       to={`/settings/${organization.slug}/`}
       id="settings"
     />
@@ -459,8 +438,10 @@ function Sidebar({location, organization}: Props) {
           <SidebarSection>
             {HookStore.get('sidebar:bottom-items').length > 0 &&
               HookStore.get('sidebar:bottom-items')[0]({
+                orientation,
+                collapsed,
+                hasPanel,
                 organization,
-                ...sidebarItemProps,
               })}
             <SidebarHelp
               orientation={orientation}
