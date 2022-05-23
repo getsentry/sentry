@@ -870,7 +870,8 @@ def _generate_preflight_query_conditions(
         else:
             queryset = queryset.order_by("date_added", "id")
 
-        if limit is not None:
-            queryset = queryset[offset : offset + limit - 1]
+        assert limit is not None
+        queryset = queryset[offset : offset + limit - 1]
+
         queryset_results = list(queryset.values_list("version", flat=True))
     return queryset_results
