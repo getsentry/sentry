@@ -331,7 +331,7 @@ class SlackTasksTest(TestCase):
         assert AlertRule.objects.get(id=alert_rule.id)
 
     @responses.activate
-    @patch("sentry.integrations.slack.tasks.logger.info")
+    @patch("sentry.tasks.integrations.slack.logger.info")
     def test_post_message_success(self, mock_log_info):
         responses.add(
             responses.POST,
@@ -352,7 +352,7 @@ class SlackTasksTest(TestCase):
         assert mock_log_info.call_count == 0
 
     @responses.activate
-    @patch("sentry.integrations.slack.tasks.logger.info")
+    @patch("sentry.tasks.integrations.slack.logger.info")
     def test_post_message_failure(self, mock_log_info):
         responses.add(
             responses.POST,
