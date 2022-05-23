@@ -90,7 +90,6 @@ function useReplayData({eventSlug, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
 
   const api = useApi();
-  const [retry, setRetry] = useState(true);
   const [state, setState] = useState<State>(INITIAL_STATE);
 
   const fetchEvent = useCallback(() => {
@@ -172,24 +171,18 @@ function useReplayData({eventSlug, orgId}: Options): Result {
   );
 
   useEffect(() => {
-    if (retry) {
-      setRetry(false);
-      loadEvents();
-    }
-  }, [retry, loadEvents]);
+    loadEvents();
+  }, [loadEvents]);
 
-  const onRetry = useCallback(() => {
-    setRetry(true);
-  }, []);
-
-  const replay = useMemo(() => {
-    return ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents);
-  }, [state.event, state.rrwebEvents, state.replayEvents]);
+  const replay = useMemo(
+    () => ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents),
+    [state.event, state.rrwebEvents, state.replayEvents]
+  );
 
   return {
     fetchError: state.fetchError,
     fetching: state.fetching,
-    onRetry,
+    onRetry: loadEvents,
     replay,
   };
 }
