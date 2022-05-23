@@ -116,20 +116,18 @@ const StyledClippedBox = styled(ClippedBox)<{
   margin-right: 0;
   padding: 0;
 
-  &:first-of-type {
-    margin-top: 0;
+  > *:first-child {
+    ${p =>
+      !p.isRevealed &&
+      p.renderedHeight > CLIPPED_HEIGHT &&
+      css`
+        max-height: ${CLIPPED_HEIGHT * 2}px;
+
+        @media (min-width: ${p.theme.breakpoints[0]}) {
+          max-height: ${CLIPPED_HEIGHT}px;
+        }
+      `}
   }
-
-  ${p =>
-    !p.isRevealed &&
-    p.renderedHeight > CLIPPED_HEIGHT &&
-    css`
-      max-height: ${CLIPPED_HEIGHT * 2}px;
-
-      @media (min-width: ${p.theme.breakpoints[0]}) {
-        max-height: ${CLIPPED_HEIGHT}px;
-      }
-    `}
 `;
 
 const ClipFade = styled('div')`
