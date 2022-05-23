@@ -88,7 +88,6 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     def test_set_uniq_aggregation_on_session_status(self):
         for status, func in [
-            ("init", all_users),
             ("crashed", crashed_users),
             ("abnormal", abnormal_users),
             ("errored", errored_all_users),
@@ -116,6 +115,16 @@ class DerivedMetricSnQLTestCase(TestCase):
                 ],
                 status,
             )
+
+    def test_set_uniq_aggregation_all_users(self):
+        assert all_users(self.org_id, self.metric_ids, alias="foo") == Function(
+            "uniqIf",
+            [
+                Column("value"),
+                Function("in", [Column("metric_id"), list(self.metric_ids)]),
+            ],
+            alias="foo",
+        )
 
     def test_set_sum_aggregation_for_errored_sessions(self):
         alias = "whatever"

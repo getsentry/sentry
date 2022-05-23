@@ -2079,8 +2079,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_healthy_user_sessions(self):
         org_id = self.organization.id
         user_ts = time.time()
-        # init = 7
-        # errored_all = 5
         self._send_buckets(
             [
                 {
@@ -2092,7 +2090,19 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                         self.session_status_tag: indexer.record(org_id, "init"),
                     },
                     "type": "s",
-                    "value": [1, 2, 4, 5, 7, 8, 9],
+                    "value": [1, 2, 4, 5, 7],  # 3 and 6 did not recorded at init
+                    "retention_days": 90,
+                },
+                {
+                    "org_id": self.organization.id,
+                    "project_id": self.project.id,
+                    "metric_id": self.session_user_metric,
+                    "timestamp": user_ts,
+                    "tags": {
+                        self.session_status_tag: indexer.record(org_id, "ok"),
+                    },
+                    "type": "s",
+                    "value": [3],  # 3 was not in init, but still counts
                     "retention_days": 90,
                 },
                 {
@@ -2104,7 +2114,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                         self.session_status_tag: indexer.record(org_id, "errored"),
                     },
                     "type": "s",
-                    "value": [22, 33, 44],
+                    "value": [1, 2, 6],  # 6 was not in init, but still counts
                     "retention_days": 90,
                 },
             ],
