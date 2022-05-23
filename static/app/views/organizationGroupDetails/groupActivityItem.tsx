@@ -143,16 +143,26 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
               author,
             });
       case GroupActivityType.SET_RESOLVED_IN_COMMIT:
-        return tct('[author] marked this issue as resolved in [version]', {
-          author,
-          version: (
-            <CommitLink
-              inline
-              commitId={activity.data.commit.id}
-              repository={activity.data.commit.repository}
-            />
-          ),
-        });
+        return tct(
+          '[author] marked this issue as resolved in [version]' +
+            'This commit was released in [release]',
+          {
+            author,
+            version: (
+              <CommitLink
+                inline
+                commitId={activity.data.commit.id}
+                repository={activity.data.commit.repository}
+              />
+            ),
+            release: (
+              <CommitLink
+                commitId={activity.data.commit.id}
+                releases={activity.data.commit.releases}
+              />
+            ),
+          }
+        );
       case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
         const {data} = activity;
         const {pullRequest} = data;
