@@ -62,11 +62,13 @@ function ReplayPlayPauseBar() {
         icon={<IconNext size="sm" />}
         onClick={() => {
           const startTimestampSec = replay?.getEvent().startTimestamp;
+          if (!startTimestampSec) {
+            return;
+          }
           const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
           const next = getNextBreadcrumb({
             crumbs: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
-            startTimestampSec,
-            targetOffsetMS: currentTime + 1,
+            targetTimestampMS: startTimestampSec * 1000 + currentTime,
           });
 
           if (startTimestampSec !== undefined && next?.timestamp) {

@@ -2,18 +2,11 @@ import {Crumb} from 'sentry/types/breadcrumbs';
 
 export function getPrevBreadcrumb({
   crumbs,
-  startTimestamp,
-  currentHoverTime,
+  targetTimestampMS,
 }: {
   crumbs: Crumb[];
-  currentHoverTime: number;
-  startTimestamp: number | undefined;
+  targetTimestampMS: number;
 }) {
-  if (!startTimestamp) {
-    return undefined;
-  }
-
-  const targetTimestampMS = startTimestamp * 1000 + currentHoverTime;
   return crumbs.reduce<Crumb | undefined>((prev, crumb) => {
     const crumbTimestampMS = +new Date(crumb.timestamp || '');
 
@@ -29,18 +22,11 @@ export function getPrevBreadcrumb({
 
 export function getNextBreadcrumb({
   crumbs,
-  startTimestampSec,
-  targetOffsetMS,
+  targetTimestampMS,
 }: {
   crumbs: Crumb[];
-  startTimestampSec: number | undefined;
-  targetOffsetMS: number;
+  targetTimestampMS: number;
 }) {
-  if (startTimestampSec === undefined) {
-    return undefined;
-  }
-
-  const targetTimestampMS = startTimestampSec * 1000 + targetOffsetMS;
   return crumbs.reduce<Crumb | undefined>((found, crumb) => {
     const crumbTimestampMS = +new Date(crumb.timestamp || '');
 

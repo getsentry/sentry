@@ -58,7 +58,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
   const {setCurrentTime, setCurrentHoverTime, currentHoverTime, currentTime} =
     useReplayContext();
 
-  const {startTimestamp} = event || {};
+  const startTimestamp = event?.startTimestamp || 0;
   const userActionCrumbs = transformCrumbs(crumbs || []).filter(crumb =>
     USER_ACTIONS.includes(crumb.type)
   );
@@ -66,15 +66,16 @@ function UserActionsNavigator({event, crumbs}: Props) {
 
   const currentUserAction = getPrevBreadcrumb({
     crumbs: userActionCrumbs,
-    startTimestamp,
-    currentHoverTime: currentTime,
+    targetTimestampMS: startTimestamp * 1000 + currentTime,
   });
 
-  const closestUserAction = getPrevBreadcrumb({
-    crumbs: userActionCrumbs,
-    startTimestamp,
-    currentHoverTime: currentHoverTime ?? 0,
-  });
+  const closestUserAction =
+    currentHoverTime !== undefined
+      ? getPrevBreadcrumb({
+          crumbs: userActionCrumbs,
+          targetTimestampMS: startTimestamp * 1000 + (currentHoverTime ?? 0),
+        })
+      : undefined;
 
   const onMouseEnter = useCallback(
     (item: Crumb) => {

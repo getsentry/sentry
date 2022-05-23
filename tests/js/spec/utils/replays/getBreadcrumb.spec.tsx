@@ -76,8 +76,8 @@ describe('getPrevBreadcrumb', () => {
     const crumbs = createUserActionCrumbs();
     const results = getPrevBreadcrumb({
       crumbs,
-      startTimestamp: START_TIMESTAMP_SEC,
-      currentHoverTime: CURRENT_TIME_MS,
+      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+      // currentHoverTime: CURRENT_TIME_MS,
     });
 
     expect(results?.id).toEqual(4);
@@ -87,8 +87,7 @@ describe('getPrevBreadcrumb', () => {
     const [one, two, three, four, five] = createUserActionCrumbs();
     const results = getPrevBreadcrumb({
       crumbs: [one, four, five, three, two],
-      startTimestamp: START_TIMESTAMP_SEC,
-      currentHoverTime: CURRENT_TIME_MS,
+      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
     expect(results?.id).toEqual(4);
@@ -98,8 +97,7 @@ describe('getPrevBreadcrumb', () => {
     const crumbs = [];
     const results = getPrevBreadcrumb({
       crumbs,
-      startTimestamp: START_TIMESTAMP_SEC,
-      currentHoverTime: CURRENT_TIME_MS,
+      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
     expect(results).toBeUndefined();
@@ -109,8 +107,7 @@ describe('getPrevBreadcrumb', () => {
     const crumbs = createUserActionCrumbs();
     const results = getPrevBreadcrumb({
       crumbs,
-      startTimestamp: 0,
-      currentHoverTime: CURRENT_TIME_MS,
+      targetTimestampMS: CURRENT_TIME_MS,
     });
 
     expect(results).toBeUndefined();
@@ -120,8 +117,7 @@ describe('getPrevBreadcrumb', () => {
     const crumbs = createUserActionCrumbs().slice(4, 5);
     const results = getPrevBreadcrumb({
       crumbs,
-      startTimestamp: START_TIMESTAMP_SEC,
-      currentHoverTime: CURRENT_TIME_MS,
+      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
     expect(results).toBeUndefined();
@@ -132,8 +128,7 @@ describe('getPrevBreadcrumb', () => {
     const exactCrumbTime = 8135;
     const results = getPrevBreadcrumb({
       crumbs,
-      startTimestamp: START_TIMESTAMP_SEC,
-      currentHoverTime: exactCrumbTime,
+      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
     });
 
     expect(results?.id).toEqual(3);
