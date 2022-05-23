@@ -137,15 +137,14 @@ class ClippedBox extends PureComponent<Props, State> {
     );
 
     return (
-      <Wrapper className={className}>
-        <ClipWrapper
-          clipHeight={clipHeight}
-          isClipped={isClipped}
-          isRevealed={isRevealed}
-        >
-          {title && <Title>{title}</Title>}
-          {children}
-        </ClipWrapper>
+      <Wrapper
+        clipHeight={clipHeight}
+        isClipped={isClipped}
+        isRevealed={isRevealed}
+        className={className}
+      >
+        {title && <Title>{title}</Title>}
+        {children}
         {isClipped &&
           (clipFade?.({showMoreButton}) ?? <ClipFade>{showMoreButton}</ClipFade>)}
       </Wrapper>
@@ -155,7 +154,10 @@ class ClippedBox extends PureComponent<Props, State> {
 
 export default ClippedBox;
 
-const Wrapper = styled('div')`
+const Wrapper = styled('div', {
+  shouldForwardProp: prop =>
+    prop !== 'clipHeight' && prop !== 'isClipped' && prop !== 'isRevealed',
+})<State & {clipHeight: number}>`
   position: relative;
   border-top: 1px solid ${p => p.theme.backgroundSecondary};
   margin-left: -${space(3)};
@@ -166,12 +168,7 @@ const Wrapper = styled('div')`
     margin-top: -${space(2)};
     border: 0;
   }
-`;
 
-const ClipWrapper = styled('div', {
-  shouldForwardProp: prop =>
-    prop !== 'clipHeight' && prop !== 'isClipped' && prop !== 'isRevealed',
-})<State & {clipHeight: number}>`
   /* For "Show More" animation */
   ${p =>
     p.isRevealed &&
