@@ -1839,38 +1839,6 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
     @freeze_time(MOCK_DATETIME)
     def test_order_by_without_release_groupby(self):
         rando_project = self.create_project()
-
-        release_1a = self.create_release(project=rando_project, version="1A")
-        release_1b = self.create_release(project=rando_project, version="1B")
-        release_1c = self.create_release(project=rando_project, version="1C")
-
-        # Release 1B sessions
-        for _ in range(4):
-            self.store_session(
-                make_session(rando_project, release=release_1b.version, status="crashed")
-            )
-        for _ in range(10):
-            self.store_session(make_session(rando_project, release=release_1b.version))
-        for _ in range(3):
-            self.store_session(make_session(rando_project, errors=1, release=release_1b.version))
-
-        # Release 1A sessions
-        for _ in range(0, 2):
-            self.store_session(
-                make_session(rando_project, release=release_1a.version, status="crashed")
-            )
-        self.store_session(make_session(rando_project, release=release_1a.version))
-        for _ in range(3):
-            self.store_session(make_session(rando_project, errors=1, release=release_1a.version))
-
-        # Release 1C sessions
-        for _ in range(0, 2):
-            self.store_session(
-                make_session(rando_project, release=release_1c.version, status="crashed")
-            )
-        for _ in range(3):
-            self.store_session(make_session(rando_project, errors=1, release=release_1c.version))
-
         response = self.do_request(
             {
                 "project": rando_project.id,
@@ -1882,13 +1850,9 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "per_page": 2,
             }
         )
-        assert response.data["groups"] == [
-            {
-                "by": {},
-                "totals": {"sum(session)": 12},
-                "series": {"sum(session)": [12]},
-            },
-        ]
+        assert response.data["detail"] == (
+            "To sort by release.timestamp, tag release must be in the groupBy"
+        )
 
     @freeze_time(MOCK_DATETIME)
     def test_order_by_release_with_session_status_current_filter(self):

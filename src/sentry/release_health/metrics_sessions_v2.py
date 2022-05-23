@@ -454,6 +454,11 @@ def run_sessions_query(
 
         if raw_orderby not in PREFLIGHT_QUERY_COLUMNS:
             raise exc
+        else:
+            if raw_orderby == "release.timestamp" and "release" not in query.raw_groupby:
+                raise InvalidParams(
+                    "To sort by release.timestamp, tag release must be in the groupBy"
+                )
 
         preflight_query_conditions = {
             "orderby_field": raw_orderby,
@@ -839,7 +844,7 @@ def _generate_preflight_query_conditions(
     direction: Direction,
     org_id: int,
     project_ids: Sequence[ProjectId],
-    limit: int,
+    limit: Optional[int],
     offset: int,
     env_condition: Optional[Tuple[Op, Set[str]]] = None,
 ) -> Sequence[str]:
@@ -870,7 +875,8 @@ def _generate_preflight_query_conditions(
         else:
             queryset = queryset.order_by("date_added", "id")
 
-        assert limit is not None
+        # 100 is an arbitrary postgres limit added in other areas of the product
+        limit = limit if limit is not None else 100
         queryset = queryset[offset : offset + limit - 1]
 
         queryset_results = list(queryset.values_list("version", flat=True))
