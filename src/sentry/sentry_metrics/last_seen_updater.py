@@ -100,7 +100,9 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
     parsed_message = json.loads(message.payload.value, use_rapid_json=True)
     if MAPPING_META in parsed_message:
         if FetchType.DB_READ.value in parsed_message[MAPPING_META]:
-            return set(parsed_message[MAPPING_META][FetchType.DB_READ.value].keys())
+            return {
+                int(key) for key in parsed_message[MAPPING_META][FetchType.DB_READ.value].keys()
+            }
     return set()
 
 

@@ -48,7 +48,7 @@ def test_retrieve_db_read_keys_meta_field_present_with_db_keys():
         timestamp=datetime.now(),
     )
     key_set = retrieve_db_read_keys(message)
-    assert key_set == {"2000", "2001", "2002"}
+    assert key_set == {2000, 2001, 2002}
 
 
 @pytest.fixture
