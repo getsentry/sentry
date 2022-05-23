@@ -340,7 +340,7 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
       : provideUserTeams && !isSuperuser
       ? store.teams.filter(t => t.isMember)
       : store.teams;
-  }, [store, ids, slugs, provideUserTeams, isSuperuser]);
+  }, [store.teams, ids, slugs, provideUserTeams, isSuperuser]);
 
   const result: Result = {
     teams: filteredTeams,
