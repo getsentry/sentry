@@ -74,10 +74,6 @@ const Wrapper = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 132px 1fr;
   }
-
-  > *:nth-child(2) {
-    border-top: none;
-  }
 `;
 
 const Title = styled('div')`
