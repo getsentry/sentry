@@ -64,13 +64,21 @@ def query_params(serializer: Serializer, hidden: List[Serializer] = None):
         @functools.wraps(func)
         def view_func(self, request: Request, organization, *args, **kwargs):
             serialized_data = serializer(data=request.GET)
-            if serialized_data.is_valid():
+            hidden_serializer_data = [
+                hidden_serializer(data=request.GET) for hidden_serializer in hidden
+            ]
+            valid_hidden = [hidden_data.is_valid() for hidden_data in hidden_serializer_data]
+            if serialized_data.is_valid() and all(valid_hidden):
+                all_hidden_data = []
+                for hidden_data in hidden_serializer_data:
+                    all_hidden_data += hidden_data.validated_data.values()
                 return func(
                     self,
                     request,
                     organization,
                     *args,
                     *serialized_data.validated_data.values(),
+                    *all_hidden_data,
                     **kwargs,
                 )
 

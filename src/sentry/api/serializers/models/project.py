@@ -484,6 +484,9 @@ class OrganizationProjectQuerySerializer(drf_serializers.Serializer):
     transactionStats = drf_serializers.CharField(help_text="Transaction Stats", default=None)
     sessionStats = drf_serializers.CharField(help_text="Session Stats", default=None)
     query = drf_serializers.CharField(help_text="Sentry search query", required=False, default="")
+    collapse = drf_serializers.ListField(
+        child=drf_serializers.CharField(required=False), default=[]
+    )
 
 
 class OrganizationProjectHiddenQuerySerializer(drf_serializers.Serializer):

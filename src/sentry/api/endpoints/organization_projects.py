@@ -93,11 +93,12 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         transactionStats: str | None,
         sessionStats: str | None,
         query: str | None,
+        collapse: List[str],
+        all_projects: int,
     ) -> Any:
         """
         Return a list of projects bound to a organization.
         """
-        collapse = request.GET.getlist("collapse", [])
         if stats_period not in (None, "", "1h", "24h", "7d", "14d", "30d"):
             return Response(
                 {"error": {"params": {"stats_period": {"message": ERR_INVALID_STATS_PERIOD}}}},
@@ -162,7 +163,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
         queryset = queryset.filter(status=ProjectStatus.VISIBLE).distinct()
 
         # TODO(davidenwang): remove this after frontend requires only paginated projects
-        get_all_projects = request.GET.get("all_projects") == "1"
+        get_all_projects = all_projects == 1
 
         if get_all_projects:
             queryset = queryset.order_by("slug").select_related("organization")
