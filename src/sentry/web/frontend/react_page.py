@@ -10,8 +10,17 @@ from sentry.web.helpers import render_to_response
 
 
 class ReactMixin:
-    def handle_react(self, request: Request) -> Response:
-        context = {"CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME}
+    def meta_tags(self, request: Request, **kwargs):
+        return {}
+
+    def handle_react(self, request: Request, **kwargs) -> Response:
+        context = {
+            "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
+            "meta_tags": [
+                {"property": key, "content": value}
+                for key, value in self.meta_tags(request, **kwargs).items()
+            ],
+        }
 
         # Force a new CSRF token to be generated and set in user's
         # Cookie. Alternatively, we could use context_processor +
@@ -46,4 +55,4 @@ class ReactPageView(OrganizationView, ReactMixin):
 
 class GenericReactPageView(BaseView, ReactMixin):
     def handle(self, request: Request, **kwargs) -> Response:
-        return self.handle_react(request)
+        return self.handle_react(request, **kwargs)
