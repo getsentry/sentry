@@ -136,9 +136,7 @@ class SentryAppWebhookRequestsBuffer:
                 request_data["request_headers"] = headers
             if response:
                 request_data["request_body"] = response.get("request", {}).get("body")
-                request_data["response_body"] = response.get("reason")
-                # request_data["response_body"] = response.get("content")
-                # which one do we want?
+                request_data["response_body"] = response.get("content")
 
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway
         if not self.sentry_app.is_internal:
