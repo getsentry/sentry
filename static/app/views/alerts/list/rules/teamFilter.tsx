@@ -47,16 +47,15 @@ function TeamFilter({
 }: Props) {
   const {teams, onSearch, fetching} = useTeams({provideUserTeams: showIsMemberTeams});
 
-  const teamOptions = useMemo(() => {
-    // if (fetching) {
-    //   return [{value: 'fetching', label: t('Fetching…'), isDisabled: true}];
-    // }
-    return teams.map(team => ({
-      value: team.id,
-      label: `#${team.slug}`,
-      leadingItems: <TeamAvatar team={team} size={18} />,
-    }));
-  }, [teams]);
+  const teamOptions = useMemo(
+    () =>
+      teams.map(team => ({
+        value: team.id,
+        label: `#${team.slug}`,
+        leadingItems: <TeamAvatar team={team} size={18} />,
+      })),
+    [teams]
+  );
 
   const [triggerIcon, triggerLabel] = useMemo(() => {
     const firstSelectedSuggestion =
