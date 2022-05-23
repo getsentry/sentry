@@ -1,6 +1,6 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -115,16 +115,14 @@ const Context = ({
           );
         })}
 
-      {(hasContextRegisters || hasContextVars) && (
-        <Fragment>
-          {hasContextRegisters && (
-            <FrameRegisters
-              registers={registers}
-              deviceArch={event.contexts?.device?.arch}
-            />
-          )}
-          {hasContextVars && <FrameVariables data={frame.vars || {}} />}
-        </Fragment>
+      {hasContextVars && (
+        <StyledClippedBox clipHeight={100}>
+          <FrameVariables data={frame.vars || {}} />
+        </StyledClippedBox>
+      )}
+
+      {hasContextRegisters && (
+        <FrameRegisters registers={registers} deviceArch={event.contexts?.device?.arch} />
       )}
 
       {hasAssembly && (
@@ -145,4 +143,19 @@ const StyledContextLine = styled(ContextLine)`
   padding: 0;
   text-indent: 20px;
   z-index: 1000;
+`;
+
+const StyledClippedBox = styled(ClippedBox)`
+  margin-left: 0;
+  margin-right: 0;
+  &:first-of-type {
+    margin-top: 0;
+  }
+  :first-child {
+    margin-top: -${space(3)};
+  }
+  > *:first-child {
+    padding-top: 0;
+    border-top: none;
+  }
 `;
