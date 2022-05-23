@@ -165,7 +165,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             ),
-            "text": "0 events in the last 10 minutes",
+            "text": "",
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
@@ -267,7 +267,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "blocks": [
                 {
                     "text": {
-                        "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes",
+                        "text": f"<{link}|*{title}*>  \n",
                         "type": "mrkdwn",
                     },
                     "type": "section",

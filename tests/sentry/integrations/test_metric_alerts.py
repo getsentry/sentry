@@ -33,7 +33,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "123 events in the last 10 minutes"
+        assert data["text"] == ""
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
         assert (
@@ -89,7 +89,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         data = incident_attachment_info(incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "4 events in the last 10 minutes"
+        assert data["text"] == ""
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
         assert (
@@ -101,7 +101,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         data = incident_attachment_info(incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "4 events in the last 10 minutes"
+        assert data["text"] == ""
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
         assert (
@@ -161,7 +161,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         data = incident_attachment_info(self.incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "100.0% sessions crash free rate in the last 60 minutes"
+        assert data["text"] == ""
         assert data["ts"] == self.date_started
         assert (
             data["logo_url"]
@@ -185,7 +185,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         data = incident_attachment_info(self.incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {self.alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "100.0% users crash free rate in the last 60 minutes"
+        assert data["text"] == ""
         assert data["ts"] == self.date_started
         assert (
             data["logo_url"]
