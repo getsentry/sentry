@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
-import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
+import {getPrevUserAction} from 'sentry/utils/replays/getPrevUserAction';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
@@ -59,20 +59,21 @@ function UserActionsNavigator({event, crumbs}: Props) {
     useReplayContext();
 
   const {startTimestamp} = event || {};
-  const userActionCrumbs =
-    crumbs && transformCrumbs(crumbs).filter(crumb => USER_ACTIONS.includes(crumb.type));
-  const isLoaded = userActionCrumbs && startTimestamp;
+  const userActionCrumbs = transformCrumbs(crumbs || []).filter(crumb =>
+    USER_ACTIONS.includes(crumb.type)
+  );
+  const isLoaded = startTimestamp;
 
-  const currentUserAction = getCurrentUserAction(
+  const currentUserAction = getPrevUserAction(
     userActionCrumbs,
     startTimestamp,
     currentTime
   );
 
-  const closestUserAction = getCurrentUserAction(
+  const closestUserAction = getPrevUserAction(
     userActionCrumbs,
     startTimestamp,
-    currentHoverTime
+    currentHoverTime ?? 0
   );
 
   const onMouseEnter = useCallback(
