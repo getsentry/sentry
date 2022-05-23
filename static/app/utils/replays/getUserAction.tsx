@@ -1,16 +1,20 @@
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Crumb} from 'sentry/types/breadcrumbs';
 
-export function getPrevUserAction(
-  userActionCrumbs: Crumb[],
-  startTimestamp: number | undefined,
-  currentHoverTime: number
-) {
-  if (!startTimestamp || userActionCrumbs.length < 1) {
+export function getPrevUserAction({
+  crumbs,
+  startTimestamp,
+  currentHoverTime,
+}: {
+  crumbs: Crumb[];
+  currentHoverTime: number;
+  startTimestamp: number | undefined;
+}) {
+  if (!startTimestamp || crumbs.length < 1) {
     return undefined;
   }
 
-  const prevUserAction = userActionCrumbs.reduce((prev, curr) => {
+  const prevUserAction = crumbs.reduce((prev, curr) => {
     return curr &&
       currentHoverTime > relativeTimeInMs(curr.timestamp ?? '', startTimestamp)
       ? curr

@@ -73,53 +73,57 @@ function createUserActionCrumbs(): Crumb[] {
 describe('getPrevUserAction', function () {
   it(`should return the previous user action even if the timestamp
     is closer to the next action`, function () {
-    const userActionCrumbs: Crumb[] = createUserActionCrumbs();
-    const results = getPrevUserAction(
-      userActionCrumbs,
-      START_TIMESTAMP_SEC,
-      CURRENT_TIME_MS
-    );
+    const crumbs = createUserActionCrumbs();
+    const results = getPrevUserAction({
+      crumbs,
+      startTimestamp: START_TIMESTAMP_SEC,
+      currentHoverTime: CURRENT_TIME_MS,
+    });
 
     expect(results?.id).toEqual(4);
   });
 
   it('should return undefined when userActions is not defined', function () {
-    const userActionCrumbs = [];
-    const results = getPrevUserAction(
-      userActionCrumbs,
-      START_TIMESTAMP_SEC,
-      CURRENT_TIME_MS
-    );
+    const crumbs = [];
+    const results = getPrevUserAction({
+      crumbs,
+      startTimestamp: START_TIMESTAMP_SEC,
+      currentHoverTime: CURRENT_TIME_MS,
+    });
 
     expect(results).toBeUndefined();
   });
 
   it('should return undefined when startTimestamp is not defined or is equal to 0', function () {
-    const userActionCrumbs: Crumb[] = createUserActionCrumbs();
-    const results = getPrevUserAction(userActionCrumbs, 0, CURRENT_TIME_MS);
+    const crumbs = createUserActionCrumbs();
+    const results = getPrevUserAction({
+      crumbs,
+      startTimestamp: 0,
+      currentHoverTime: CURRENT_TIME_MS,
+    });
 
     expect(results).toBeUndefined();
   });
 
   it('should return undefined when userActions has only item and the current time is before that item', function () {
-    const userActionscrumbs: Crumb[] = createUserActionCrumbs().slice(4, 5);
-    const results = getPrevUserAction(
-      userActionscrumbs,
-      START_TIMESTAMP_SEC,
-      CURRENT_TIME_MS
-    );
+    const crumbs = createUserActionCrumbs().slice(4, 5);
+    const results = getPrevUserAction({
+      crumbs,
+      startTimestamp: START_TIMESTAMP_SEC,
+      currentHoverTime: CURRENT_TIME_MS,
+    });
 
     expect(results).toBeUndefined();
   });
 
   it('should return the user action when timestamp matches the timestamp of a breadcrumb', function () {
-    const userActionCrumbs: Crumb[] = createUserActionCrumbs();
+    const crumbs = createUserActionCrumbs();
     const exactCrumbTime: number = 8135;
-    const results = getPrevUserAction(
-      userActionCrumbs,
-      START_TIMESTAMP_SEC,
-      exactCrumbTime
-    );
+    const results = getPrevUserAction({
+      crumbs,
+      startTimestamp: START_TIMESTAMP_SEC,
+      currentHoverTime: exactCrumbTime,
+    });
 
     expect(results?.id).toEqual(3);
   });

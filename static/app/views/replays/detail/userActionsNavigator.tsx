@@ -64,17 +64,17 @@ function UserActionsNavigator({event, crumbs}: Props) {
   );
   const isLoaded = startTimestamp;
 
-  const currentUserAction = getPrevUserAction(
-    userActionCrumbs,
+  const currentUserAction = getPrevUserAction({
+    crumbs: userActionCrumbs,
     startTimestamp,
-    currentTime
-  );
+    currentHoverTime: currentTime,
+  });
 
-  const closestUserAction = getPrevUserAction(
-    userActionCrumbs,
+  const closestUserAction = getPrevUserAction({
+    crumbs: userActionCrumbs,
     startTimestamp,
-    currentHoverTime ?? 0
-  );
+    currentHoverTime: currentHoverTime ?? 0,
+  });
 
   const onMouseEnter = useCallback(
     (item: Crumb) => {
