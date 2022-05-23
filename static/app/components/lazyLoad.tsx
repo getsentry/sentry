@@ -14,7 +14,7 @@ type ComponentType = React.ComponentType<any>;
 
 type Props<C extends ComponentType> = Omit<React.ComponentProps<C>, 'route'> & {
   /**
-   * Accepts a function to trigger the import resolution of the componnet.
+   * Accepts a function to trigger the import resolution of the component.
    */
   component?: () => PromisedImport<C>;
   /**
