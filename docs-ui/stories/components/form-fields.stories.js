@@ -338,6 +338,8 @@ CompactSelectField.args = {
   menuTitle: '',
   isSearchable: false,
   isDisabled: false,
+  isClearable: false,
+  isLoading: false,
   multiple: false,
   placeholder: 'Search…',
   closeOnSelect: true,
