@@ -7,7 +7,7 @@ from django import forms
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.models import Integration
-from sentry.rules.actions.base import IntegrationNotifyServiceForm, TicketEventAction
+from sentry.rules.actions import IntegrationNotifyServiceForm, TicketEventAction
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.rules")
