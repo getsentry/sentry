@@ -388,7 +388,7 @@ selenium==3.141.0
     # via -r requirements-base.txt
 sentry-arroyo==0.0.16
     # via -r requirements-base.txt
-sentry-relay==0.8.11
+sentry-relay==0.8.12
     # via -r requirements-base.txt
 sentry-sdk==1.5.12
     # via
