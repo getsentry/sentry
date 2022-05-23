@@ -100,6 +100,8 @@ ALL_STATUSES = frozenset(iter(SessionStatus))
 #: Used to filter results by session.status
 StatusFilter = Optional[FrozenSet[SessionStatus]]
 
+DEFAULT_POSTGRES_LIMIT = 100
+
 
 @dataclass(frozen=True)
 class GroupKey:
@@ -576,7 +578,10 @@ def run_sessions_query(
         for group_key, group in output_groups.items()
     ]
     result_groups = _order_by_preflight_query_results(
-        ordered_preflight_filters, query.raw_groupby, result_groups, default_group_gen_func
+        ordered_preflight_filters,
+        query.raw_groupby,
+        result_groups,
+        default_group_gen_func,
     )
 
     return {
@@ -637,35 +642,33 @@ def _order_by_preflight_query_results(
     if len(ordered_preflight_filters) == 1:
         orderby_field = list(ordered_preflight_filters.keys())[0]
         grp_value_to_result_grp_mapping: Dict[Union[int, str], List[SessionsQueryGroup]] = {}
-        # If the preflight query occurs, but the relevant column is not in the groupBy then there
-        # is no need to re-order the results
-        if orderby_field in groupby:
-            for result_group in result_groups:
-                grp_value = result_group["by"][orderby_field]
-                grp_value_to_result_grp_mapping.setdefault(grp_value, []).append(result_group)
-            result_groups = []
-            for elem in ordered_preflight_filters[orderby_field]:
-                try:
-                    for grp in grp_value_to_result_grp_mapping[elem]:
-                        result_groups += [grp]
-                except KeyError:
-                    # We get into this branch if there are groups in the preflight query that do
-                    # not have matching data in the metrics dataset, and since we want to show
-                    # those groups in the output, we add them but null out the fields requested
-                    # This could occur for example, when ordering by `-release.timestamp` and
-                    # some of the latest releases in Postgres do not have matching data in
-                    # metrics dataset
-                    group_key_dict = {orderby_field: elem}
-                    for key in groupby:
-                        if key == orderby_field:
-                            continue
-                        # Added a mypy ignore here because this is a one off as result groups
-                        # will never have null group values except when the group exists in the
-                        # preflight query but not in the metrics dataset
-                        group_key_dict.update({key: None})  # type: ignore
-                    result_groups += [
-                        {"by": group_key_dict, **default_group_gen_func()}  # type: ignore
-                    ]
+
+        for result_group in result_groups:
+            grp_value = result_group["by"][orderby_field]
+            grp_value_to_result_grp_mapping.setdefault(grp_value, []).append(result_group)
+        result_groups = []
+        for elem in ordered_preflight_filters[orderby_field]:
+            try:
+                for grp in grp_value_to_result_grp_mapping[elem]:
+                    result_groups += [grp]
+            except KeyError:
+                # We get into this branch if there are groups in the preflight query that do
+                # not have matching data in the metrics dataset, and since we want to show
+                # those groups in the output, we add them but null out the fields requested
+                # This could occur for example, when ordering by `-release.timestamp` and
+                # some of the latest releases in Postgres do not have matching data in
+                # metrics dataset
+                group_key_dict = {orderby_field: elem}
+                for key in groupby:
+                    if key == orderby_field:
+                        continue
+                    # Added a mypy ignore here because this is a one off as result groups
+                    # will never have null group values except when the group exists in the
+                    # preflight query but not in the metrics dataset
+                    group_key_dict.update({key: None})  # type: ignore
+                result_groups += [
+                    {"by": group_key_dict, **default_group_gen_func()}  # type: ignore
+                ]
     return result_groups
 
 
@@ -876,7 +879,7 @@ def _generate_preflight_query_conditions(
             queryset = queryset.order_by("date_added", "id")
 
         # 100 is an arbitrary postgres limit added in other areas of the product
-        limit = limit if limit is not None else 100
+        limit = limit if limit is not None else DEFAULT_POSTGRES_LIMIT
         queryset = queryset[offset : offset + limit - 1]
 
         queryset_results = list(queryset.values_list("version", flat=True))
