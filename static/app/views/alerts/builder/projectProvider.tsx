@@ -1,4 +1,4 @@
-import {cloneElement, isValidElement, useEffect} from 'react';
+import {cloneElement, Fragment, isValidElement, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -61,15 +61,19 @@ function AlertBuilderProjectProvider(props: Props) {
     );
   }
 
-  return children && isValidElement(children)
-    ? cloneElement(children, {
-        ...other,
-        ...children.props,
-        project,
-        projectId: useFirstProject ? project.slug : projectId,
-        organization,
-      })
-    : children;
+  return (
+    <Fragment>
+      {children && isValidElement(children)
+        ? cloneElement(children, {
+            ...other,
+            ...children.props,
+            project,
+            projectId: useFirstProject ? project.slug : projectId,
+            organization,
+          })
+        : children}
+    </Fragment>
+  );
 }
 
 export default AlertBuilderProjectProvider;
