@@ -461,7 +461,7 @@ def run_sessions_query(
             "org_id": org_id,
             "project_ids": project_ids,
             "limit": query.limit,
-            "offset": query.offset,
+            "offset": query.offset or 0,
         }
 
         # For preflight queries, we need to evaluate environment conditions because these might
