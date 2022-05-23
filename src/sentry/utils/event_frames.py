@@ -21,7 +21,37 @@ def java_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
     return False
 
 
-PLATFORM_FRAME_MUNGER: Mapping[str, FrameMunger] = {"java": java_frame_munger}
+def cocoa_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
+    if not frame.get("package") or not frame.get("abs_path"):
+        return False
+
+    rel_path = package_relative_path(frame.get("abs_path"), frame.get("package"))
+    if rel_path:
+        frame[key] = rel_path
+        return True
+    return False
+
+
+def package_relative_path(abs_path: str, package: str) -> str | None:
+    """
+    returns the left-biased shortened path relative to the package directory
+    """
+    if not abs_path or not package:
+        return None
+
+    package = package.strip("/")
+    paths = abs_path.strip("/").split("/")
+    for idx, path in enumerate(paths):
+        if path == package:
+            return "/".join(paths[idx:])
+
+    return None
+
+
+PLATFORM_FRAME_MUNGER: Mapping[str, FrameMunger] = {
+    "java": java_frame_munger,
+    "cocoa": cocoa_frame_munger,
+}
 
 
 def munged_filename_and_frames(
