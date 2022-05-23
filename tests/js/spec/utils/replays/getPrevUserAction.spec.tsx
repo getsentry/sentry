@@ -83,6 +83,17 @@ describe('getPrevUserAction', function () {
     expect(results?.id).toEqual(4);
   });
 
+  it('should return the previous crumb when the list is not sorted', function () {
+    const [one, two, three, four, five] = createUserActionCrumbs();
+    const results = getPrevUserAction({
+      crumbs: [one, four, five, three, two],
+      startTimestamp: START_TIMESTAMP_SEC,
+      currentHoverTime: CURRENT_TIME_MS,
+    });
+
+    expect(results?.id).toEqual(4);
+  });
+
   it('should return undefined when userActions is not defined', function () {
     const crumbs = [];
     const results = getPrevUserAction({
