@@ -1101,6 +1101,11 @@ class SessionMetricsTestCase(SnubaTestCase):
                     session["duration"],
                 )
 
+        # Also extract user for non-init healthy sessions
+        # (see # https://github.com/getsentry/relay/pull/1275)
+        if session["seq"] > 0 and status in ("ok", "exited") and not user_is_nil:
+            self._push_metric(session, "set", SessionMRI.USER, {"session.status": "ok"}, user)
+
     def bulk_store_sessions(self, sessions):
         for session in sessions:
             self.store_session(session)
