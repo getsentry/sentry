@@ -72,8 +72,6 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
         "time_window": time_window,
         "interval": interval,
     }
-    if alert_rule.snuba_query.query != "":
-        text += f"\nFilter: {alert_rule.snuba_query.query}"
 
     return text
 
