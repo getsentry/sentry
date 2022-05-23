@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import React, {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
@@ -12,6 +12,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -171,9 +172,29 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
       <div>
         <SettingsPageHeader
           title={t('Developer Settings')}
-          body={t(
-            `Create integrations that interact with Sentry using the REST API and webhooks.`
-          )}
+          body={
+            <React.Fragment>
+              {t(
+                'Create integrations that interact with Sentry using the REST API and webhooks. '
+              )}
+              {tct(
+                'Looking for code snippets? Check out the [link: quick start] for Python and TypeScript examples.',
+                {
+                  link: (
+                    <ExternalLink
+                      href="https://docs.sentry.io/product/integrations/integration-platform/#quick-start"
+                      onClick={() => {
+                        trackAdvancedAnalyticsEvent('ecosystem.quick_start_clicked', {
+                          organization,
+                          view: 'developer_settings',
+                        });
+                      }}
+                    />
+                  ),
+                }
+              )}
+            </React.Fragment>
+          }
           action={
             <Fragment>
               <Button
@@ -184,6 +205,20 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
               >
                 {t('View Docs')}
               </Button>
+              <Button
+                size="small"
+                external
+                href="https://github.com/getsentry/integration-platform-example/"
+                style={{marginRight: space(1)}}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent('ecosystem.example_source_code_clicked', {
+                    organization,
+                    view: 'developer_settings',
+                  });
+                }}
+              >
+                {t('View Example')}
+              </Button>
               {action}
             </Fragment>
           }
@@ -193,7 +228,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             'Integrations can now detect when a comment on an issue is added or changes.  [link:Learn more].',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/#comments" />
+                <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/comments" />
               ),
             }
           )}

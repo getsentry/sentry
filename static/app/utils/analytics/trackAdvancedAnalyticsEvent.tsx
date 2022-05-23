@@ -1,6 +1,7 @@
 import {coreUIEventMap, CoreUIEventParameters} from './coreuiAnalyticsEvents';
 import {dashboardsEventMap, DashboardsEventParameters} from './dashboardsAnalyticsEvents';
 import {discoverEventMap, DiscoverEventParameters} from './discoverAnalyticsEvents';
+import {ecosystemEventMap, EcosystemEventParameters} from './ecosystemAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
@@ -22,7 +23,8 @@ type EventParameters = GrowthEventParameters &
   SearchEventParameters &
   SettingsEventParameters &
   CoreUIEventParameters &
-  SamplingEventParameters;
+  SamplingEventParameters &
+  EcosystemEventParameters;
 
 const allEventMap = {
   ...growthEventMap,
@@ -35,6 +37,7 @@ const allEventMap = {
   ...settingsEventMap,
   ...coreUIEventMap,
   ...samplingEventMap,
+  ...ecosystemEventMap,
 };
 
 /**

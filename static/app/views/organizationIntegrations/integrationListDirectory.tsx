@@ -29,6 +29,7 @@ import {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
@@ -479,7 +480,10 @@ export class IntegrationListDirectory extends AsyncComponent<
   };
 
   renderBody() {
-    const {orgId} = this.props.params;
+    const {
+      params: {orgId},
+      organization,
+    } = this.props;
     const {displayedList, list, searchInput, selectedCategory} = this.state;
 
     const title = t('Integrations');
@@ -492,6 +496,22 @@ export class IntegrationListDirectory extends AsyncComponent<
         {!this.props.hideHeader && (
           <SettingsPageHeader
             title={title}
+            body={tct(
+              'Want to build an integration? [link:Get started with the integration platform].',
+              {
+                link: (
+                  <ExternalLink
+                    href="https://docs.sentry.io/product/integrations/integration-platform/#quick-start"
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent('ecosystem.quick_start_clicked', {
+                        organization,
+                        view: 'integrations_directory',
+                      });
+                    }}
+                  />
+                ),
+              }
+            )}
             action={
               <ActionContainer>
                 <SelectControl
