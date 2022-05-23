@@ -1,6 +1,6 @@
 import {Crumb} from 'sentry/types/breadcrumbs';
 
-export function getPrevUserAction({
+export function getPrevBreadcrumb({
   crumbs,
   startTimestamp,
   currentHoverTime,
@@ -27,7 +27,7 @@ export function getPrevUserAction({
   }, undefined);
 }
 
-export function getNextUserAction({
+export function getNextBreadcrumb({
   crumbs,
   startTimestampSec,
   targetOffsetMS,

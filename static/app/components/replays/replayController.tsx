@@ -19,7 +19,7 @@ import {
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {getNextUserAction} from 'sentry/utils/replays/getUserAction';
+import {getNextBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 
 const SECOND = 1000;
 
@@ -63,7 +63,7 @@ function ReplayPlayPauseBar() {
         onClick={() => {
           const startTimestampSec = replay?.getEvent().startTimestamp;
           const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
-          const next = getNextUserAction({
+          const next = getNextBreadcrumb({
             crumbs: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
             startTimestampSec,
             targetOffsetMS: currentTime + 1,

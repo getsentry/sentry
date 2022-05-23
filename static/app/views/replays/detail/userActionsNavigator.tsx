@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
-import {getPrevUserAction} from 'sentry/utils/replays/getUserAction';
+import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
@@ -64,13 +64,13 @@ function UserActionsNavigator({event, crumbs}: Props) {
   );
   const isLoaded = startTimestamp;
 
-  const currentUserAction = getPrevUserAction({
+  const currentUserAction = getPrevBreadcrumb({
     crumbs: userActionCrumbs,
     startTimestamp,
     currentHoverTime: currentTime,
   });
 
-  const closestUserAction = getPrevUserAction({
+  const closestUserAction = getPrevBreadcrumb({
     crumbs: userActionCrumbs,
     startTimestamp,
     currentHoverTime: currentHoverTime ?? 0,
