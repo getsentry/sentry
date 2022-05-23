@@ -5,6 +5,7 @@ from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.utils import timezone
 from pytz import UTC
+from rest_framework import status
 
 from sentry import audit_log
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
@@ -638,7 +639,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert len(owners) > 0
 
         with self.tasks():
-            self.get_success_response(self.organization.slug, status_code=202)
+            self.get_success_response(self.organization.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=self.organization.id)
 
@@ -682,7 +683,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org = self.create_organization(owner=self.user)
         ScheduledDeletion.schedule(org, days=1)
 
-        self.get_success_response(org.slug)
+        self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION
