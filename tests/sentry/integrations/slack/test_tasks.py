@@ -331,8 +331,7 @@ class SlackTasksTest(TestCase):
         assert AlertRule.objects.get(id=alert_rule.id)
 
     @responses.activate
-    @patch("sentry.tasks.integrations.slack.logger.info")
-    def test_post_message_success(self, mock_log_info):
+    def test_post_message_success(self):
         responses.add(
             responses.POST,
             "https://slack.com/api/chat.postMessage",
@@ -349,11 +348,9 @@ class SlackTasksTest(TestCase):
             )
         data = parse_qs(responses.calls[0].request.body)
         assert data == {"key": ["val"]}
-        assert mock_log_info.call_count == 0
 
     @responses.activate
-    @patch("sentry.tasks.integrations.slack.logger.info")
-    def test_post_message_failure(self, mock_log_info):
+    def test_post_message_failure(self):
         responses.add(
             responses.POST,
             "https://slack.com/api/chat.postMessage",
@@ -370,6 +367,3 @@ class SlackTasksTest(TestCase):
             )
         data = parse_qs(responses.calls[0].request.body)
         assert data == {"key": ["val"]}
-        mock_log_info.assert_called_once_with(
-            "my_message", extra={"log_key": "log_value", "error": "my_error"}
-        )
