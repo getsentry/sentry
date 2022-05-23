@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {vec2} from 'gl-matrix';
 
 import Button from 'sentry/components/button';
 import {IconArrow} from 'sentry/icons';
@@ -270,10 +271,16 @@ interface FrameStackProps {
   flamegraphRenderer: FlamegraphRenderer;
 }
 
+const MIN_DRAWER_HEIGHT_PX = 30;
+
 function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
   const {selectedNode} = useFlamegraphProfilesValue();
+
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
+  const [drawerHeight, setDrawerHeight] = useState(
+    (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT
+  );
 
   const roots = useMemo(() => {
     if (!selectedNode) {
@@ -287,10 +294,52 @@ function FrameStack(props: FrameStackProps) {
     return invertCallTree([selectedNode]);
   }, [selectedNode, tab]);
 
+  const onMouseDown = useCallback((evt: React.MouseEvent<HTMLElement>) => {
+    let startResizeVector = vec2.fromValues(evt.clientX, evt.clientY);
+    let rafId: number | undefined;
+
+    function handleMouseMove(mvEvent: MouseEvent) {
+      if (rafId !== undefined) {
+        window.cancelAnimationFrame(rafId);
+        rafId = undefined;
+      }
+
+      window.requestAnimationFrame(() => {
+        const currentPositionVector = vec2.fromValues(mvEvent.clientX, mvEvent.clientY);
+
+        const distance = vec2.subtract(
+          vec2.fromValues(0, 0),
+          startResizeVector,
+          currentPositionVector
+        );
+
+        startResizeVector = currentPositionVector;
+
+        setDrawerHeight(h => Math.max(MIN_DRAWER_HEIGHT_PX, h + distance[1]));
+        rafId = undefined;
+      });
+    }
+
+    function handleMouseUp() {
+      document.removeEventListener('mousemove', handleMouseMove);
+    }
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+
+      if (rafId !== undefined) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
+  }, []);
+
   return selectedNode ? (
     <FrameDrawer
       style={{
-        height: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT,
+        height: drawerHeight,
       }}
     >
       <FrameTabs>
@@ -307,6 +356,7 @@ function FrameStack(props: FrameStackProps) {
             {t('Call Order')}
           </Button>
         </li>
+        <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />
       </FrameTabs>
       <FrameCallTreeStack {...props} roots={roots ?? []} referenceNode={selectedNode} />
     </FrameDrawer>
@@ -326,6 +376,7 @@ const FrameTabs = styled('ul')`
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.border};
   background-color: ${props => props.theme.surface400};
+  user-select: none;
 
   > li {
     font-size: ${p => p.theme.fontSizeSmall};
