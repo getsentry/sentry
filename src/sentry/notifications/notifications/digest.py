@@ -62,9 +62,8 @@ class DigestNotification(ProjectNotification):
             return "Digest Report"
         return get_digest_subject(context["group"], context["counts"], context["start"])
 
-    def get_notification_title(self) -> str:
-        # This shouldn't be possible but adding a message just in case.
-        return self.get_subject()
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        return self.get_subject(context)
 
     def get_title_link(self, recipient: Team | User) -> str | None:
         return None

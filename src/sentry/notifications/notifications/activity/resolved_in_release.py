@@ -31,7 +31,7 @@ class ResolvedInReleaseActivityNotification(GroupActivityNotification):
             )
         return "{author} marked {an issue} as resolved in an upcoming release", {}, {}
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         data = self.activity.data
         author = self.activity.user.get_display_name()
         release = data["version"] if data.get("version") else "an upcoming release"

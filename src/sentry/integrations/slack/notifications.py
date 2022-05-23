@@ -165,7 +165,7 @@ def _notify_recipient(
             "link_names": 1,
             "unfurl_links": False,
             "unfurl_media": False,
-            "text": notification.get_subject(shared_context),
+            "text": notification.get_notification_title(shared_context),
             "attachments": json.dumps(local_attachments),
         }
 
