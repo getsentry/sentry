@@ -7,7 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayView from 'sentry/components/replays/replayView';
-import {CrossWindowSync} from 'sentry/components/replays/useCrossWindowSync';
+import {CrossWindowSyncButton} from 'sentry/components/replays/useCrossWindowSync';
 import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -78,7 +78,7 @@ function ReplayDetails() {
         orgId={orgId}
         crumbs={replay?.getRawCrumbs()}
       >
-        <CrossWindowSync />
+        <CrossWindowSyncButton />
         <Layout.Body>
           <Layout.Main ref={fullscreenRef}>
             <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />

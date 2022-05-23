@@ -1,7 +1,9 @@
 import {useCallback, useEffect, useRef} from 'react';
 
+import Button from 'sentry/components/button';
 import type {ReplayPlayerContextProps} from 'sentry/components/replays/replayContext';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {IconOpen} from 'sentry/icons';
 import type {EventTransaction} from 'sentry/types/event';
 
 type Options = {
@@ -69,13 +71,18 @@ export default useCrossWindowSync;
 
 type Props = {};
 
-export function CrossWindowSync(_props: Props) {
-  const devtoolsWinRef = useRef<Window | null>(null);
+export function CrossWindowSyncButton(_props: Props) {
+  const devtoolsWinRef = useRef<ReturnType<typeof window.open> | null>(null);
 
   useCrossWindowSync({childWindow: devtoolsWinRef.current});
 
   const handleClick = useCallback(() => {
-    devtoolsWinRef.current = window.open(window.location.href);
+    devtoolsWinRef.current = window.open(window.location.href, undefined, 'popup=1');
   }, []);
-  return <button onClick={handleClick}>Pop out devtools</button>;
+
+  return (
+    <Button icon={<IconOpen color="gray500" size="sm" />} onClick={handleClick}>
+      Undock devtools
+    </Button>
+  );
 }
