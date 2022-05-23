@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -62,11 +64,28 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         :qparam string eventType: Optionally specify a specific event type to filter requests
         :qparam bool errorsOnly: If this is true, only return error/warning requests (300-599)
         :qparam string organizationSlug: Optionally specify an org slug to filter requests
+        :qparam string start: Optionally specify a date to begin at. Format must be YYYY-MM-DD HH:MM:SS
+        :qparam string end: Optionally specify a date to end at. Format must be YYYY-MM-DD HH:MM:SS
         """
+        date_format = "%Y-%m-%d %H:%M:%S"
+        now = datetime.now().strftime(date_format)
+        invalid_date_format_message = "Invalid date format. Format must be YYYY-MM-DD HH:MM:SS."
 
         event_type = request.GET.get("eventType")
         errors_only = request.GET.get("errorsOnly")
         org_slug = request.GET.get("organizationSlug")
+        start = request.GET.get("start", "2000-01-01 00:00:00")
+        end = request.GET.get("end", now)
+
+        try:
+            start = datetime.strptime(start, date_format)
+        except ValueError:
+            return Response({"detail": invalid_date_format_message})
+
+        try:
+            end = datetime.strptime(end, date_format)
+        except ValueError:
+            return Response({"detail": invalid_date_format_message})
 
         kwargs = {}
         if event_type:
@@ -82,4 +101,10 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
             self.format_request(req, sentry_app, org_slug) for req in buffer.get_requests(**kwargs)
         ]
 
-        return Response(formatted_requests)
+        filtered_requests = []
+        for formatted_request in formatted_requests:
+            date = datetime.strptime(formatted_request["date"], "%Y-%m-%d %H:%M:%S.%f+00:00")
+            if date >= start and date <= end:
+                filtered_requests.append(formatted_request)
+
+        return Response(filtered_requests)
