@@ -1,42 +1,52 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
 import TeamSettings from 'sentry/views/settings/organizationTeams/teamSettings';
 
-describe('TeamSettings', function () {
-  beforeEach(function () {
+describe('TeamSettings', () => {
+  const organization = TestStubs.Organization();
+
+  beforeEach(() => {
+    TeamStore.init();
+    TeamStore.loadInitialData([], false, null);
+  });
+
+  afterEach(() => {
     MockApiClient.clearMockResponses();
-    jest.spyOn(window.location, 'assign');
+    TeamStore.teardown();
   });
 
-  afterEach(function () {
-    window.location.assign.mockRestore();
-  });
-
-  it('can change slug', async function () {
+  it('can change slug', async () => {
     const team = TestStubs.Team();
+    TeamStore.loadInitialData([team]);
     const putMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'PUT',
+      body: {
+        ...team,
+        slug: 'new-slug',
+      },
     });
 
-    const wrapper = mountWithTheme(
-      <TeamSettings
-        team={team}
-        onTeamChange={() => {}}
-        params={{orgId: 'org', teamId: team.slug}}
-      />
-    );
+    render(<TeamSettings team={team} params={{orgId: 'org', teamId: team.slug}} />, {
+      organization,
+    });
 
-    wrapper
-      .find('input[name="slug"]')
-      .simulate('change', {target: {value: 'NEW SLUG'}})
-      .simulate('blur');
-
-    wrapper.find('button[aria-label="Save"]').simulate('click');
+    const slugInput = screen.getByDisplayValue('team-slug');
+    userEvent.clear(slugInput);
+    userEvent.type(slugInput, 'NEW SLUG');
+    act(() => {
+      userEvent.click(screen.getByText('Save'));
+    });
 
     expect(putMock).toHaveBeenCalledWith(
       `/teams/org/${team.slug}/`,
@@ -46,61 +56,41 @@ describe('TeamSettings', function () {
         },
       })
     );
-
-    await tick();
-    expect(browserHistory.replace).toHaveBeenCalledWith(
-      '/settings/org/teams/new-slug/settings/'
+    await waitFor(() =>
+      expect(browserHistory.replace).toHaveBeenCalledWith(
+        '/settings/org/teams/new-slug/settings/'
+      )
     );
   });
 
-  it('needs team:admin in order to see an enabled Remove Team button', function () {
+  it('needs team:admin in order to see an enabled Remove Team button', () => {
     const team = TestStubs.Team();
+    TeamStore.loadInitialData([team]);
 
-    const wrapper = mountWithTheme(
-      <TeamSettings
-        team={team}
-        onTeamChange={() => {}}
-        params={{orgId: 'org', teamId: team.slug}}
-      />,
-      TestStubs.routerContext([
-        {
-          organization: TestStubs.Organization({access: []}),
-        },
-      ])
-    );
-    expect(wrapper.find('Panel').last().find('Button').prop('disabled')).toBe(true);
+    render(<TeamSettings team={team} params={{orgId: 'org', teamId: team.slug}} />, {
+      organization: {...organization, access: []},
+    });
+
+    expect(screen.getByRole('button', {name: 'Remove Team'})).toBeDisabled();
   });
 
-  it('can remove team', async function () {
+  it('can remove team', async () => {
     const team = TestStubs.Team({hasAccess: true});
     const deleteMock = MockApiClient.addMockResponse({
       url: `/teams/org/${team.slug}/`,
       method: 'DELETE',
     });
-    jest.spyOn(TeamStore, 'trigger');
-    TeamStore.loadInitialData([
-      {
-        slug: 'team-slug',
-        hasAccess: true,
-      },
-    ]);
+    TeamStore.loadInitialData([team]);
 
-    const wrapper = mountWithTheme(
-      <TeamSettings
-        params={{orgId: 'org', teamId: team.slug}}
-        team={team}
-        onTeamChange={() => {}}
-      />
-    );
+    render(<TeamSettings params={{orgId: 'org', teamId: team.slug}} team={team} />, {
+      organization,
+    });
+    renderGlobalModal();
 
-    // Click "Remove Team button
-    wrapper.find('Button[priority="danger"] button').simulate('click');
+    userEvent.click(screen.getByRole('button', {name: 'Remove Team'}));
 
-    TeamStore.trigger.mockReset();
-
-    // Wait for modal
-    const modal = await mountGlobalModal();
-    modal.find('Button[priority="danger"] button').simulate('click');
+    // Click confirm in modal
+    userEvent.click(await screen.findByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalledWith(
       `/teams/org/${team.slug}/`,
@@ -108,13 +98,13 @@ describe('TeamSettings', function () {
         method: 'DELETE',
       })
     );
+    await waitFor(() => {
+      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/org/teams/');
+    });
 
-    await tick();
-    await tick();
-    expect(browserHistory.replace).toHaveBeenCalledWith('/settings/org/teams/');
-
-    expect(TeamStore.getAll()).toEqual([]);
-
-    TeamStore.trigger.mockRestore();
+    await waitFor(() => {
+      expect(TeamStore.getAll()[0]).toEqual(expect.objectContaining({slug: 'new-slug'}));
+    });
+    expect(TeamStore.getAll()).toHaveLength(1);
   });
 });
