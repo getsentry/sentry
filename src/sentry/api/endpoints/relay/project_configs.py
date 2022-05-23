@@ -72,19 +72,18 @@ class RelayProjectConfigsEndpoint(Endpoint):
     def _post_or_schedule_by_key(self, request: Request):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
 
-        configs = {}
+        proj_configs = {}
         pending = []
         for key in public_keys:
             computed = self._get_cached_or_schedule(key)
             if not computed:
                 pending.append(key)
             else:
-                configs[key] = computed
+                proj_configs[key] = computed
 
-        if len(pending) > 0:
-            configs["pending"] = pending
+        res = {"configs": proj_configs, "pending": pending}
 
-        return Response(configs, status=200)
+        return Response(res, status=200)
 
     def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
         """
