@@ -70,9 +70,9 @@ function createUserActionCrumbs(): Crumb[] {
   ];
 }
 
-describe('getPrevUserAction', function () {
+describe('getPrevUserAction', () => {
   it(`should return the previous user action even if the timestamp
-    is closer to the next action`, function () {
+    is closer to the next action`, () => {
     const crumbs = createUserActionCrumbs();
     const results = getPrevUserAction({
       crumbs,
@@ -83,7 +83,7 @@ describe('getPrevUserAction', function () {
     expect(results?.id).toEqual(4);
   });
 
-  it('should return the previous crumb when the list is not sorted', function () {
+  it('should return the previous crumb when the list is not sorted', () => {
     const [one, two, three, four, five] = createUserActionCrumbs();
     const results = getPrevUserAction({
       crumbs: [one, four, five, three, two],
@@ -94,7 +94,7 @@ describe('getPrevUserAction', function () {
     expect(results?.id).toEqual(4);
   });
 
-  it('should return undefined when userActions is not defined', function () {
+  it('should return undefined when userActions is not defined', () => {
     const crumbs = [];
     const results = getPrevUserAction({
       crumbs,
@@ -105,7 +105,7 @@ describe('getPrevUserAction', function () {
     expect(results).toBeUndefined();
   });
 
-  it('should return undefined when startTimestamp is not defined or is equal to 0', function () {
+  it('should return undefined when startTimestamp is not defined or is equal to 0', () => {
     const crumbs = createUserActionCrumbs();
     const results = getPrevUserAction({
       crumbs,
@@ -116,7 +116,7 @@ describe('getPrevUserAction', function () {
     expect(results).toBeUndefined();
   });
 
-  it('should return undefined when userActions has only item and the current time is before that item', function () {
+  it('should return undefined when userActions has only item and the current time is before that item', () => {
     const crumbs = createUserActionCrumbs().slice(4, 5);
     const results = getPrevUserAction({
       crumbs,
@@ -127,9 +127,9 @@ describe('getPrevUserAction', function () {
     expect(results).toBeUndefined();
   });
 
-  it('should return the user action when timestamp matches the timestamp of a breadcrumb', function () {
+  it('should return the user action when timestamp matches the timestamp of a breadcrumb', () => {
     const crumbs = createUserActionCrumbs();
-    const exactCrumbTime: number = 8135;
+    const exactCrumbTime = 8135;
     const results = getPrevUserAction({
       crumbs,
       startTimestamp: START_TIMESTAMP_SEC,
