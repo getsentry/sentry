@@ -216,10 +216,7 @@ def test_projectkeys(default_project, task_runner, redis_cache):
         pk.save()
 
     for key in deleted_pks:
-        # XXX: Ideally we would write `{"disabled": True}` into Redis, however
-        # it's fine if we don't and instead Relay starts hitting the endpoint
-        # which will write this for us.
-        assert not redis_cache.get(key.public_key)
+        assert redis_cache.get(key.public_key) == {"disabled": True}
 
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
@@ -233,7 +230,7 @@ def test_projectkeys(default_project, task_runner, redis_cache):
     with task_runner():
         pk.delete()
 
-    assert not redis_cache.get(pk.public_key)
+    assert redis_cache.get(pk.public_key) == {"disabled": True}
 
     for key in ProjectKey.objects.filter(project_id=default_project.id):
         assert not redis_cache.get(key.public_key)
