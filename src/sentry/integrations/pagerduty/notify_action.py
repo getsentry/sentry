@@ -7,7 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, PagerDutyService
-from sentry.rules.actions.base import IntegrationEventAction
+from sentry.rules.actions import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 
 from .client import PagerDutyClient
