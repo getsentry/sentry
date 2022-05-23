@@ -75,47 +75,29 @@ function StackTracePreviewContent({
   const platform = (framePlatform ?? event.platform ?? 'other') as PlatformType;
   const newestFirst = isStacktraceNewestFirst();
 
+  const commonProps = {
+    data: stacktrace,
+    expandFirstFrame: false,
+    includeSystemFrames,
+    platform,
+    newestFirst,
+    event,
+    isHoverPreviewed: true,
+  };
+
   if (orgFeatures.includes('native-stack-trace-v2') && isNativePlatform(platform)) {
     return (
-      <StackTraceContentV3
-        data={stacktrace}
-        expandFirstFrame={false}
-        includeSystemFrames={includeSystemFrames}
-        platform={platform}
-        newestFirst={newestFirst}
-        event={event}
-        groupingCurrentLevel={groupingCurrentLevel}
-        isHoverPreviewed
-      />
+      <StackTraceContentV3 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
     );
   }
 
   if (orgFeatures.includes('grouping-stacktrace-ui')) {
     return (
-      <StackTraceContentV2
-        data={stacktrace}
-        expandFirstFrame={false}
-        includeSystemFrames={includeSystemFrames}
-        platform={platform}
-        newestFirst={newestFirst}
-        event={event}
-        groupingCurrentLevel={groupingCurrentLevel}
-        isHoverPreviewed
-      />
+      <StackTraceContentV2 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
     );
   }
 
-  return (
-    <StackTraceContent
-      data={stacktrace}
-      expandFirstFrame={false}
-      includeSystemFrames={includeSystemFrames}
-      platform={platform}
-      newestFirst={newestFirst}
-      event={event}
-      isHoverPreviewed
-    />
-  );
+  return <StackTraceContent {...commonProps} />;
 }
 
 type StackTracePreviewProps = {
