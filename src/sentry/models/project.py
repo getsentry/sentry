@@ -28,7 +28,6 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.db.models.base import Snowflake
 from sentry.db.models.utils import slugify_instance
 from sentry.snuba.models import SnubaQuery
 from sentry.utils import metrics
@@ -36,6 +35,7 @@ from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
 from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import Snowflake
 
 if TYPE_CHECKING:
     from sentry.models import User
