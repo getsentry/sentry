@@ -82,7 +82,10 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["status"] == "Critical"  # Should pull from the action/trigger.
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -94,7 +97,10 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -106,7 +112,10 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         assert data["status"] == "Resolved"
         assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
