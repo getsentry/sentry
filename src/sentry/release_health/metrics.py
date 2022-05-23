@@ -1143,15 +1143,11 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             # No need to query snuba with an empty list
             return generate_defaults
 
-        status_init = indexer.resolve(org_id, "init")
-        status_crashed = indexer.resolve(org_id, "crashed")
-
         conditions = [
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column(release_key), Op.EQ, release_value),
             Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column(status_key), Op.IN, [status_init, status_crashed]),
         ]
         if environment_values is not None:
             conditions.append(Condition(Column(environment_key), Op.IN, environment_values))
