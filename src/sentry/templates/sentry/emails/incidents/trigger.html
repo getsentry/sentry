@@ -7,10 +7,10 @@
 {% block activity %}
   <div class="alert-title">
     <h3>
-      <a class="alert-title-link" href="{{ link }}">{{ incident_name }}</a>
+      <a class="alert-title-link" href="{{ link }}">{{ status }}: {{ incident_name }}</a>
     </h3>
-    <p>
-      Triggered on {{ triggered_at }}
+    <p class="alert-subtitle-{{ status_key }}">
+      Triggered {{ triggered_at }}
     </p>
   </div>
 
@@ -20,66 +20,44 @@
       controls are enabled. For more details about this alert, <a href="{{ link }}">view on Sentry.</a>
     </div>
   {% else %}
-    <div class="alert-info-container alert-container-{{ status_key }}">
-      <h4>
-        <span class="alert-badge">{{ status }} alert</span>
-      </h4>
-      <table class="alert-rule-table">
-        <thead>
-          <th>
-            Threshold
-          </th>
-          <th>
-            Metric
-          </th>
-          <th>
-            Environment
-          </th>
-        </thead>
-
-        <tbody>
+    {% if chart_url %}
+      <div class="align-center" style="margin-bottom: 16px;">
+        <img height="200" src="{{ chart_url }}" alt="{{ incident_name }} chart" />
+      </div>
+    {% endif %}
+    <div>
+      <h5 style="margin-bottom: 12px;">Alert Rule Details</h5>
+      <table class="alert-details">
         <tr>
-          {% if 'percentage' in aggregate %}
-            <td>
-              {{ threshold_direction_string }} {{ threshold }}%
-            </td>
-          {% else %}
-            <td>
-              {{ threshold_direction_string }} {{ threshold }}
-            </td>
-          {% endif %}
-          <td>
-            {{ aggregate }}
-          </td>
-          <td>
-            {{ environment }}
-          </td>
-        </tbody>
-
-        <thead>
-          <th>
-            Time Interval
-          </th>
-          <th>
-            Filter
-          </th>
-          <th>
-            Project
-          </th>
-        </thead>
-
-        <tbody>
+          <td width="25%">Project</td>
+          <td>{{ project_slug }}</td>
+        </tr>
         <tr>
+          <td width="25%">Environment</td>
+          <td>{{ environment }}</td>
+        </tr>
+        <tr>
+          <td width="25%">Threshold</td>
           <td>
-            {{ time_window }}
+            {{ threshold_direction_string }} {{ threshold }}{% if 'percentage' in aggregate %}%{% endif %}
           </td>
-          <td>
-            {{ query }}
-          </td>
-          <td>
-            {{ project_slug }}
-          </td>
-        </tbody>
+        </tr>
+        <tr>
+          <td width="25%">Time Interval</td>
+          <td>{{ time_window }}</td>
+        </tr>
+        <tr>
+          <td width="25%">Metric</td>
+          <td>{{ aggregate }}</td>
+        </tr>
+        <tr>
+          <td width="25%">Filter</td>
+          <td>{{ query }}</td>
+        </tr>
+        <tr>
+          <td width="25%">Date Created</td>
+          <td>{{ alert_date_added }}</td>
+        </tr>
       </table>
     </div>
   {% endif %}

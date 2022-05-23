@@ -1,6 +1,6 @@
 import {css} from '@emotion/react';
 
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {
   DynamicSamplingConditionLogicalInner,
   DynamicSamplingInnerName,
@@ -18,6 +18,7 @@ import {
 } from '../utils';
 
 import Conditions from './conditions';
+import {TruncatedLabel} from './truncatedLabel';
 
 type Condition = React.ComponentProps<typeof Conditions>['conditions'][0];
 
@@ -77,7 +78,7 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName | st
     case DynamicSamplingInnerName.EVENT_OS_NAME:
       return t('ex. Mac OS X, Windows');
     case DynamicSamplingInnerName.EVENT_OS_VERSION:
-      return t('ex. 11, 9*');
+      return t('ex. 11, 9* (Multiline)');
     case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
       return t('ex. Mac, Pixel*');
     case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
@@ -278,4 +279,10 @@ export function generateConditionCategoriesOptions(
     innerName,
     getInnerNameLabel(innerName),
   ]);
+}
+
+export function formatCreateTagLabel(label: string) {
+  return tct('Add "[newLabel]"', {
+    newLabel: <TruncatedLabel value={label} />,
+  });
 }
