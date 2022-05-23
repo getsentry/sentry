@@ -12,25 +12,27 @@ import getCurrentUrl from 'sentry/utils/replays/getCurrentUrl';
 function ReplayCurrentUrl() {
   const {currentTime, replay} = useReplayContext();
   if (!replay) {
-    return null;
+    return <UrlCopyInput disabled>{''}</UrlCopyInput>;
   }
 
   return <UrlCopyInput>{getCurrentUrl(replay, currentTime)}</UrlCopyInput>;
 }
 
-const UrlCopyInput = styled(TextCopyInput)`
+const UrlCopyInput = styled(TextCopyInput)<{disabled?: boolean}>`
   ${StyledInput} {
     background: white;
     border: none;
     padding: 0 ${space(0.75)};
     font-size: ${p => p.theme.fontSizeMedium};
     border-bottom-left-radius: 0;
+    ${p => (p.disabled ? 'pointer-events: none;' : '')}
   }
 
   ${StyledCopyButton} {
     border-top: none;
     border-right: none;
     border-bottom: none;
+    ${p => (p.disabled ? 'pointer-events: none;' : '')}
   }
 `;
 
