@@ -14,7 +14,7 @@ type RootElem = null | HTMLDivElement;
 // Important: Don't allow context Consumers to access `Replayer` directly.
 // It has state that, when changed, will not trigger a react render.
 // Instead only expose methods that wrap `Replayer` and manage state.
-type ReplayPlayerContextProps = {
+export type ReplayPlayerContextProps = {
   /**
    * The time, in milliseconds, where the user focus is.
    * The user focus can be reported by any collaborating object, usually on
