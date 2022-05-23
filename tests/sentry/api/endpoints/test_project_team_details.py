@@ -80,7 +80,12 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         assert r1.owner == ar1.owner is None
         assert r2.owner == ar2.owner == team.actor
 
-        self.get_success_response(project.organization.slug, another_project.slug, team.slug)
+        self.get_success_response(
+            project.organization.slug,
+            another_project.slug,
+            team.slug,
+            status_code=status.HTTP_200_OK,
+        )
 
         r1.refresh_from_db()
         r2.refresh_from_db()
