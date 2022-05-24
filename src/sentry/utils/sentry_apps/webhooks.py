@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 
 WEBHOOK_TIMEOUT = 5
+TIMEOUT_STATUS_CODE = 0
 
 logger = logging.getLogger("sentry.sentry_apps.webhooks")
 
@@ -74,9 +75,8 @@ def send_and_save_webhook_request(
             },
         )
         track_response_code(error_type, slug, event)
-        # Response code of 0 represents timeout
         buffer.add_request(
-            response_code=0,
+            response_code=TIMEOUT_STATUS_CODE,
             org_id=org_id,
             event=event,
             url=url,

@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.models.integrations.sentry_app import VALID_EVENTS
 from sentry.utils import json, redis
+from sentry.utils.sentry_apps import TIMEOUT_STATUS_CODE
 
 BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
@@ -131,7 +132,7 @@ class SentryAppWebhookRequestsBuffer:
             "response_code": response_code,
             "webhook_url": url,
         }
-        if response_code >= 400 or response_code == 0:  # we use 0 for timeouts
+        if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
             if headers:
                 request_data["request_headers"] = headers
             if response:
@@ -152,7 +153,7 @@ class SentryAppWebhookRequestsBuffer:
         self._add_to_buffer_pipeline(request_key, request_data, pipe)
 
         # If it's an error add it to the error buffer
-        if 400 <= response_code <= 599 or response_code == 0:
+        if 400 <= response_code <= 599 or response_code == TIMEOUT_STATUS_CODE:
             error_key = self._get_redis_key(event, error=True)
             self._add_to_buffer_pipeline(error_key, request_data, pipe)
 
