@@ -4,7 +4,7 @@ import {
   breadcrumbFactory,
   replayTimestamps,
   rrwebEventListFactory,
-  spanEntryFactory,
+  spansFactory,
 } from 'sentry/utils/replays/replayDataUtils';
 import type {
   MemorySpanType,
@@ -55,7 +55,7 @@ export default class ReplayReader {
       spans
     );
 
-    this.spans = spanEntryFactory(spans);
+    this.spans = spansFactory(spans);
     this.breadcrumbs = breadcrumbFactory(startTimestampMS, [event], breadcrumbs);
 
     this.rrwebEvents = rrwebEventListFactory(

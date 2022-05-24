@@ -8,6 +8,8 @@ import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {RecordingEvent, ReplayCrumb, ReplaySpan} from 'sentry/views/replays/types';
 
+import flattenListOfObjects from '../flattenListOfObjects';
+
 type State = {
   breadcrumbs: undefined | ReplayCrumb[];
 
@@ -47,6 +49,14 @@ type Options = {
   orgId: string;
 };
 
+// Errors if it is an interface
+// See https://github.com/microsoft/TypeScript/issues/15300
+type ReplayAttachment = {
+  breadcrumbs: ReplayCrumb[];
+  recording: RecordingEvent[];
+  replaySpans: ReplaySpan[];
+};
+
 interface Result extends Pick<State, 'fetchError' | 'fetching'> {
   onRetry: () => void;
   replay: ReplayReader | null;
@@ -66,12 +76,6 @@ const INITIAL_STATE: State = Object.freeze({
   spans: undefined,
   breadcrumbs: undefined,
 });
-
-interface ReplayAttachment {
-  breadcrumbs: ReplayCrumb[];
-  recording: RecordingEvent[];
-  replaySpans: ReplaySpan[];
-}
 
 /**
  * A react hook to load core replay data over the network.
@@ -119,16 +123,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     );
 
     // ReplayAttachment[] => ReplayAttachment (merge each key of ReplayAttachment)
-    const result = attachments.reduce((acc, attachment) => {
-      Object.entries(attachment).forEach(([key, value]) => {
-        if (!acc[key]) {
-          acc[key] = [];
-        }
-        acc[key] = acc[key].concat(value);
-      });
-      return acc;
-    }, {}) as ReplayAttachment;
-    return result;
+    return flattenListOfObjects(attachments);
   }, [api, eventId, orgId, projectId]);
 
   const loadEvents = useCallback(

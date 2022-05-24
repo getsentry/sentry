@@ -83,7 +83,7 @@ export function breadcrumbFactory(
   return result.sort((a, b) => +new Date(a.timestamp || 0) - +new Date(b.timestamp || 0));
 }
 
-export function spanEntryFactory(spans: ReplaySpan[]) {
+export function spansFactory(spans: ReplaySpan[]) {
   return spans.sort((a, b) => a.startTimestamp - b.startTimestamp);
 }
 
