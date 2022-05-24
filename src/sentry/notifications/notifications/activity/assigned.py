@@ -61,7 +61,7 @@ class AssignedActivityNotification(GroupActivityNotification):
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         return "{author} assigned {an issue} to {assignee}", {"assignee": self.get_assignee()}, {}
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         assignee = self.get_assignee()
 
         if not self.activity.user:

@@ -87,7 +87,7 @@ class IntegrationNudgeNotification(BaseNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         return ""
 
     def get_title_link(self, recipient: Team | User) -> str | None:

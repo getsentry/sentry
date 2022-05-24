@@ -104,7 +104,7 @@ class AlertRuleNotification(ProjectNotification):
 
         return context
 
-    def get_notification_title(self) -> Any:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
 
         title_str = "Alert triggered"
