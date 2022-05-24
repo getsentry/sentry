@@ -44,7 +44,7 @@ from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import get_group_settings_link, get_rules
 from sentry.utils import loremipsum
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import inline_css
 from sentry.utils.http import absolute_uri
 from sentry.utils.samples import load_data
@@ -410,13 +410,16 @@ def digest(request):
 
 @login_required
 def report(request):
-    from sentry.tasks import reports
+    from sentry.tasks.reports import Report
+    from sentry.tasks.reports.types.duration import DURATIONS
+    from sentry.tasks.reports.utils.notification import date_format, to_context
+    from sentry.tasks.reports.utils.util import _to_interval
 
     random = get_random(request)
 
     duration = 60 * 60 * 24 * 7
     timestamp = to_timestamp(
-        reports.floor_to_utc_day(
+        floor_to_utc_day(
             to_datetime(
                 random.randint(
                     to_timestamp(datetime(2015, 6, 1, 0, 0, 0, tzinfo=timezone.utc)),
@@ -426,7 +429,7 @@ def report(request):
         )
     )
 
-    start, stop = interval = reports._to_interval(timestamp, duration)
+    start, stop = interval = _to_interval(timestamp, duration)
 
     organization = Organization(id=1, slug="example", name="Example")
 
@@ -492,7 +495,7 @@ def report(request):
             for _ in range(0, 4)
         ]
 
-        return reports.Report(
+        return Report(
             series,
             aggregates,
             build_issue_summaries(),
@@ -511,9 +514,9 @@ def report(request):
         html_template=html_template,
         text_template="sentry/emails/reports/body.txt",
         context={
-            "duration": reports.durations[duration],
-            "interval": {"start": reports.date_format(start), "stop": reports.date_format(stop)},
-            "report": reports.to_context(
+            "duration": DURATIONS[duration],
+            "interval": {"start": date_format(start), "stop": date_format(stop)},
+            "report": to_context(
                 organization, interval, {project: build_report(project) for project in projects}
             ),
             "organization": organization,
