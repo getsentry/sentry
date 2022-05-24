@@ -26,6 +26,12 @@ def main() -> int:
     from .lib import gitroot
 
     os.chdir(gitroot())
+    base_cmd = (
+        "pip-compile",
+        "--no-header",
+        "--no-annotate",
+        "-q",
+    )
 
     threads = (
         Thread(
@@ -33,8 +39,7 @@ def main() -> int:
             args=(
                 0,
                 (
-                    "pip-compile",
-                    "-q",
+                    *base_cmd,
                     "requirements-base.txt",
                     "-o",
                     "requirements-frozen.txt",
@@ -46,8 +51,7 @@ def main() -> int:
             args=(
                 1,
                 (
-                    "pip-compile",
-                    "-q",
+                    *base_cmd,
                     "requirements-dev.txt",
                     "-o",
                     "requirements-dev-only-frozen.txt",
@@ -59,8 +63,7 @@ def main() -> int:
             args=(
                 2,
                 (
-                    "pip-compile",
-                    "-q",
+                    *base_cmd,
                     "requirements-base.txt",
                     "requirements-dev.txt",
                     "-o",
