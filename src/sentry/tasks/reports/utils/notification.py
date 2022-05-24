@@ -1,8 +1,18 @@
 from collections import defaultdict
 from functools import reduce
+from typing import TYPE_CHECKING, Mapping
 
 from sentry.app import tsdb
-from sentry.models import Activity, Group, GroupHistory, GroupHistoryStatus, GroupStatus
+from sentry.models import (
+    Activity,
+    Group,
+    GroupHistory,
+    GroupHistoryStatus,
+    GroupStatus,
+    Organization,
+    Project,
+    User,
+)
 from sentry.tasks.reports.types import DistributionType
 from sentry.tasks.reports.types.duration import DURATIONS
 from sentry.tasks.reports.utils.build import (
@@ -18,6 +28,9 @@ from sentry.utils import json
 from sentry.utils.compat import zip
 from sentry.utils.email import MessageBuilder
 from sentry.utils.math import mean
+
+if TYPE_CHECKING:
+    from sentry.tasks.reports import Report
 
 
 def fetch_personal_statistics(start__stop, organization, user):
@@ -124,7 +137,13 @@ def to_context(organization, interval, reports):
     }
 
 
-def build_message(timestamp, duration, organization, user, reports):
+def build_message(
+    timestamp: float,
+    duration: float,
+    organization: Organization,
+    user: User,
+    reports: Mapping[Project, "Report"],
+) -> MessageBuilder:
     start, stop = interval = _to_interval(timestamp, duration)
 
     duration_spec = DURATIONS[duration]

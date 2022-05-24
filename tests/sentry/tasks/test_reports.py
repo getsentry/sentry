@@ -38,6 +38,7 @@ from sentry.tasks.reports.utils.util import (
     prepare_reports_verify_key,
     safe_add,
 )
+from sentry.tasks.reports.verify_prepare_reports import VERIFY_ERROR_MESSAGE
 from sentry.testutils.cases import OutcomesSnubaTest, SnubaTestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import iso_format
@@ -241,10 +242,7 @@ class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):
     @mock.patch("sentry.tasks.reports.logger")
     def test_verify(self, logger):
         verify_prepare_reports()
-        logger.error.assert_called_once_with(
-            "Failed to verify that sentry.tasks.reports.prepare_reports successfully completed. "
-            "Confirm whether this worked via logs"
-        )
+        logger.error.assert_called_once_with(VERIFY_ERROR_MESSAGE)
         logger.reset_mock()
         prepare_reports()
         verify_prepare_reports()
@@ -260,10 +258,7 @@ class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):
             except Exception:
                 pass
         verify_prepare_reports()
-        logger.error.assert_called_once_with(
-            "Failed to verify that sentry.tasks.reports.prepare_reports successfully completed. "
-            "Confirm whether this worked via logs"
-        )
+        logger.error.assert_called_once_with(VERIFY_ERROR_MESSAGE)
 
     @mock.patch("sentry.tasks.reports.logger")
     def test_verify_weeks_dont_clash(self, logger):
@@ -274,10 +269,7 @@ class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):
 
         logger.reset_mock()
         verify_prepare_reports()
-        logger.error.assert_called_once_with(
-            "Failed to verify that sentry.tasks.reports.prepare_reports successfully completed. "
-            "Confirm whether this worked via logs"
-        )
+        logger.error.assert_called_once_with(VERIFY_ERROR_MESSAGE)
         logger.reset_mock()
         prepare_reports()
         verify_prepare_reports()
@@ -482,7 +474,9 @@ class ReportAcceptanceTest(OutcomesSnubaTest, SnubaTestCase):
             return rt
 
         mock_build_message = mock.Mock(wraps=wrapped_build_message)
-        with mock.patch("sentry.tasks.reports.build_message", mock_build_message):
+        with mock.patch(
+            "sentry.tasks.reports.utils.notification.build_message", mock_build_message
+        ):
             deliver_organization_user_report(
                 timestamp,
                 seven_days.total_seconds(),
