@@ -84,9 +84,7 @@ def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=
     if metric_value is None:
         metric_value = get_metric_count_from_incident(incident)
 
-    text = ""
-    if status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
-        text = get_incident_status_text(alert_rule, metric_value)
+    text = get_incident_status_text(alert_rule, metric_value)
     title = f"{status}: {alert_rule.name}"
 
     if unfurl:

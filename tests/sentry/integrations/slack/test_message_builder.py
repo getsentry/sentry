@@ -165,7 +165,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             ),
-            "text": "",
+            "text": "0 events in the last 10 minutes",
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
