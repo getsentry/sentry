@@ -7,7 +7,6 @@ import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {
   GroupActivity,
@@ -93,12 +92,10 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
       return tct('[author] assigned this issue to themselves', {author});
     }
 
-    assignee = MemberListStore.getById(data.assignee);
-
-    if (typeof assignee === 'object' && assignee?.email) {
+    if (data.assigneeType === 'user' && data.assigneeEmail) {
       return tct('[author] assigned this issue to [assignee]', {
         author,
-        assignee: assignee.email,
+        assignee: data.assigneeEmail,
       });
     }
 
