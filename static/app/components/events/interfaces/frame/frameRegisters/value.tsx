@@ -69,6 +69,7 @@ const InlinePre = styled('pre')`
   margin: 0;
   padding: ${space(1)};
   display: inline-grid;
+  align-items: center;
   grid-template-columns: 1fr max-content;
   gap: ${space(1)};
   text-align: left;
