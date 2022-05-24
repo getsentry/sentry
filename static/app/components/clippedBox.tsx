@@ -22,7 +22,7 @@ type Props = {
    */
   clipFade?: ({showMoreButton}: {showMoreButton: React.ReactNode}) => React.ReactNode;
   /**
-   * Its trigged when user clicks on the show more button
+   * Triggered when user clicks on the show more button
    */
   onReveal?: () => void;
   /**
