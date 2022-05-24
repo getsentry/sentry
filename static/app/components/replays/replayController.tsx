@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CompactSelect from 'sentry/components/forms/compactSelect';
-import useFullscreen from 'sentry/components/replays/hooks/useFullscreen';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconArrow, IconPause, IconPlay, IconRefresh, IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 
 import {formatTime} from './utils';
 

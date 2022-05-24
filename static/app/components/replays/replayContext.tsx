@@ -2,7 +2,7 @@ import React, {useCallback, useContext, useEffect, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 
-import useRAF from 'sentry/components/replays/hooks/useRAF';
+import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import usePrevious from 'sentry/utils/usePrevious';
 
