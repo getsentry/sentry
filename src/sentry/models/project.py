@@ -181,7 +181,12 @@ class Project(Model, PendingDeletionMixin):
                     reserved=RESERVED_PROJECT_SLUGS,
                     max_length=50,
                 )
-        super().save(*args, **kwargs)
+        try:
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+        except IntegrityError:
+            self.id = None
+            self.save(*args, **kwargs)
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):

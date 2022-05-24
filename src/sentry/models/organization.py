@@ -196,7 +196,12 @@ class Organization(Model):
             lock = locks.get("slug:organization", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
-        super().save(*args, **kwargs)
+        try:
+            with transaction.atomic():
+                super().save(*args, **kwargs)
+        except IntegrityError:
+            self.id = None
+            self.save(*args, **kwargs)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
