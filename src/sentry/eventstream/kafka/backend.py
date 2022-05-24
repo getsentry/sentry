@@ -30,8 +30,8 @@ logger = logging.getLogger(__name__)
 
 class KafkaEventStream(SnubaProtocolEventStream):
     def __init__(self, **options):
-        self.topic = settings.KAFKA_TOPICS[settings.KAFKA_EVENTS]["topic"]
-        self.transactions_topic = settings.KAFKA_TOPICS[settings.KAFKA_TRANSACTIONS]["topic"]
+        self.topic = settings.KAFKA_EVENTS
+        self.transactions_topic = settings.KAFKA_TRANSACTIONS
 
     @cached_property
     def producer(self):
