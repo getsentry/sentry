@@ -162,6 +162,7 @@ function Sidebar({location, organization}: Props) {
     orientation,
     collapsed,
     hasPanel,
+    organization,
   };
 
   const projects = hasOrganization && (
@@ -434,8 +435,10 @@ function Sidebar({location, organization}: Props) {
           <SidebarSection>
             {HookStore.get('sidebar:bottom-items').length > 0 &&
               HookStore.get('sidebar:bottom-items')[0]({
+                orientation,
+                collapsed,
+                hasPanel,
                 organization,
-                ...sidebarItemProps,
               })}
             <SidebarHelp
               orientation={orientation}
