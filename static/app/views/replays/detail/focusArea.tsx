@@ -8,6 +8,7 @@ import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import useActiveTabFromLocation from 'sentry/utils/replays/hooks/useActiveTabFromLocation';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -15,7 +16,6 @@ import Console from './console';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 import Trace from './trace';
-import useActiveTabFromLocation from './useActiveTabFromLocation';
 
 type Props = {
   replay: ReplayReader | null;

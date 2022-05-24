@@ -23,6 +23,7 @@ import {
   DynamicSamplingRules,
 } from 'sentry/types/dynamicSampling';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {getInnerNameLabel, isCustomTagName} from '../utils';
@@ -153,6 +154,42 @@ function RuleModal({
       convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
     setIsSaving(false);
+
+    const analyticsConditions = conditions.map(condition => condition.category);
+    const analyticsConditionsStringified = analyticsConditions.sort().join(', ');
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.save', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: analyticsConditions,
+      conditions_stringified: analyticsConditionsStringified,
+    });
+
+    if (defined(rule)) {
+      trackAdvancedAnalyticsEvent('sampling.settings.rule.update', {
+        organization,
+        project_id: project.id,
+        sampling_rate: sampleRate,
+        conditions: analyticsConditions,
+        conditions_stringified: analyticsConditionsStringified,
+        old_conditions: rule.condition.inner.map(({name}) => name),
+        old_conditions_stringified: rule.condition.inner
+          .map(({name}) => name)
+          .sort()
+          .join(', '),
+        old_sampling_rate: rule.sampleRate * 100,
+      });
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.create', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: analyticsConditions,
+      conditions_stringified: analyticsConditionsStringified,
+    });
   }
 
   function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
@@ -179,6 +216,13 @@ function RuleModal({
           !previousCategories.includes(value)
       )
       .map(({value}) => value);
+
+    trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+      organization,
+      project_id: project.id,
+      conditions: addedCategories,
+    });
+
     setData({
       ...data,
       conditions: [
@@ -205,6 +249,12 @@ function RuleModal({
     // If custom tag key changes, reset the value
     if (field === 'category') {
       newConditions[index].match = '';
+
+      trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+        organization,
+        project_id: project.id,
+        conditions: [value as DynamicSamplingInnerName],
+      });
     }
 
     setData({...data, conditions: newConditions});
