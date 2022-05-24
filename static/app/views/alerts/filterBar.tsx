@@ -13,7 +13,7 @@ import {getQueryStatus, getTeamParams} from './utils';
 
 interface Props {
   location: Location<any>;
-  onChangeFilter: (activeFilters: Set<string>) => void;
+  onChangeFilter: (activeFilters: string[]) => void;
   onChangeSearch: (query: string) => void;
   hasStatusFilters?: boolean;
   onChangeStatus?: (status: string) => void;
@@ -26,7 +26,7 @@ function FilterBar({
   onChangeStatus,
   hasStatusFilters,
 }: Props) {
-  const selectedTeams = new Set(getTeamParams(location.query.team));
+  const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
 
   return (

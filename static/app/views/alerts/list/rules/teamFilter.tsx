@@ -1,119 +1,119 @@
-import {useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Input from 'sentry/components/forms/controls/input';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import TeamAvatar from 'sentry/components/avatar/teamAvatar';
+import Badge from 'sentry/components/badge';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
+import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import useTeams from 'sentry/utils/useTeams';
 
-import Filter from './filter';
-
 interface Props {
-  handleChangeFilter: (activeFilters: Set<string>) => void;
-  selectedTeams: Set<string>;
-  fullWidth?: boolean;
+  handleChangeFilter: (activeFilters: string[]) => void;
+  selectedTeams: string[];
   /**
    * only show teams user is a member of
    */
   showIsMemberTeams?: boolean;
   /**
-   * show My Teams and Unassigned options
-   */
-  showMyTeamsAndUnassigned?: boolean;
-  /**
    * show My Teams as the default dropdown description
    */
   showMyTeamsDescription?: boolean;
+  /**
+   * show suggested options (My Teams and Unassigned)
+   */
+  showSuggestedOptions?: boolean;
 }
+
+const suggestedOptions = [
+  {
+    label: t('My Teams'),
+    value: 'myteams',
+  },
+  {
+    label: t('Unassigned'),
+    value: 'unassigned',
+  },
+];
 
 function TeamFilter({
   selectedTeams,
   handleChangeFilter,
-  fullWidth = false,
   showIsMemberTeams = false,
-  showMyTeamsAndUnassigned = true,
+  showSuggestedOptions = true,
   showMyTeamsDescription = false,
 }: Props) {
-  const {teams, onSearch, fetching} = useTeams();
-  const debouncedSearch = debounce(onSearch, DEFAULT_DEBOUNCE_DURATION);
-  const [teamFilterSearch, setTeamFilterSearch] = useState<string | undefined>();
-  const isSuperuser = isActiveSuperuser();
+  const {teams, onSearch, fetching} = useTeams({provideUserTeams: showIsMemberTeams});
 
-  const additionalOptions = [
-    {
-      label: t('My Teams'),
-      value: 'myteams',
-      checked: selectedTeams.has('myteams'),
-      filtered: false,
-    },
-    {
-      label: t('Unassigned'),
-      value: 'unassigned',
-      checked: selectedTeams.has('unassigned'),
-      filtered: false,
-    },
-  ];
-  const isMemberTeams = teams.filter(team => team.isMember);
-  const teamItems = (isSuperuser ? teams : showIsMemberTeams ? isMemberTeams : teams).map(
-    ({id, slug}) => ({
-      label: slug,
-      value: id,
-      filtered: teamFilterSearch
-        ? !slug.toLowerCase().includes(teamFilterSearch.toLowerCase())
-        : false,
-      checked: selectedTeams.has(id),
-    })
+  const teamOptions = useMemo(
+    () =>
+      teams.map(team => ({
+        value: team.id,
+        label: `#${team.slug}`,
+        leadingItems: <TeamAvatar team={team} size={18} />,
+      })),
+    [teams]
   );
 
+  const [triggerIcon, triggerLabel] = useMemo(() => {
+    const firstSelectedSuggestion =
+      selectedTeams[0] && suggestedOptions.find(opt => opt.value === selectedTeams[0]);
+
+    const firstSelectedTeam =
+      selectedTeams[0] && teams.find(team => team.id === selectedTeams[0]);
+
+    if (firstSelectedSuggestion) {
+      return [<IconUser key={0} />, firstSelectedSuggestion.label];
+    }
+
+    if (firstSelectedTeam) {
+      return [
+        <TeamAvatar team={firstSelectedTeam} size={16} key={0} />,
+        `#${firstSelectedTeam.slug}`,
+      ];
+    }
+
+    return [
+      <IconUser key={0} />,
+      showMyTeamsDescription ? t('My Teams') : t('All Teams'),
+    ];
+  }, [selectedTeams, teams, showMyTeamsDescription]);
+
   return (
-    <Filter
-      fullWidth={fullWidth}
-      showMyTeamsDescription={showMyTeamsDescription}
-      header={
-        <InputWrapper>
-          <StyledInput
-            autoFocus
-            placeholder={t('Filter teams')}
-            onClick={event => {
-              event.stopPropagation();
-            }}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              const search = event.target.value;
-              setTeamFilterSearch(search);
-              debouncedSearch(search);
-            }}
-            value={teamFilterSearch || ''}
-          />
-          {fetching && <StyledLoadingIndicator size={16} mini />}
-        </InputWrapper>
+    <CompactSelect
+      multiple
+      isClearable
+      isSearchable
+      isLoading={fetching}
+      menuTitle={t('Filter teams')}
+      options={
+        showSuggestedOptions
+          ? [
+              {value: '_suggested', label: t('Suggested'), options: suggestedOptions},
+              {value: '_teams', label: t('Teams'), options: teamOptions},
+            ]
+          : teamOptions
       }
-      onFilterChange={handleChangeFilter}
-      items={
-        showMyTeamsAndUnassigned ? [...additionalOptions, ...teamItems] : [...teamItems]
+      value={selectedTeams}
+      onInputChange={debounce(val => void onSearch(val), DEFAULT_DEBOUNCE_DURATION)}
+      onChange={opts => handleChangeFilter(opts.map(opt => opt.value))}
+      triggerLabel={
+        <Fragment>
+          {triggerLabel}
+          {selectedTeams.length > 1 && (
+            <StyledBadge text={`+${selectedTeams.length - 1}`} />
+          )}
+        </Fragment>
       }
+      triggerProps={{icon: triggerIcon}}
     />
   );
 }
 
 export default TeamFilter;
 
-const InputWrapper = styled('div')`
-  position: relative;
-`;
-
-const StyledInput = styled(Input)`
-  border: none;
-  border-radius: 0;
-  border-bottom: solid 1px ${p => p.theme.border};
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const StyledLoadingIndicator = styled(LoadingIndicator)`
-  position: absolute;
-  right: 0;
-  top: ${space(0.75)};
+const StyledBadge = styled(Badge)`
+  flex-shrink: 0;
 `;
