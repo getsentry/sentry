@@ -30,44 +30,29 @@ def redis_cache(monkeypatch):
         "sentry.relay.projectconfig_debounce_cache.redis.RedisProjectConfigDebounceCache",
     )
 
-    return cache
-
-
-@pytest.fixture
-def debounce_cache(monkeypatch):
     debounce_cache = RedisProjectConfigDebounceCache()
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.mark_task_done",
-        debounce_cache.mark_task_done,
+        "sentry.relay.projectconfig_debounce_cache.mark_task_done", debounce_cache.mark_task_done
     )
     monkeypatch.setattr(
         "sentry.relay.projectconfig_debounce_cache.check_is_debounced",
         debounce_cache.check_is_debounced,
     )
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.debounce",
-        debounce_cache.debounce,
-    )
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.is_debounced",
-        debounce_cache.is_debounced,
-    )
 
-    return debounce_cache
-
-
-@pytest.fixture
-def always_update_cache(monkeypatch):
-    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: True)
+    return cache
 
 
 @pytest.mark.django_db
-def test_debounce(
-    monkeypatch,
-    default_project,
-    default_organization,
-    debounce_cache,
-):
+def test_no_cache(monkeypatch, default_project):
+    def apply_async(*a, **kw):
+        assert False
+
+    monkeypatch.setattr("sentry.tasks.relay.update_config_cache.apply_async", apply_async)
+    schedule_update_config_cache(generate=True, project_id=default_project.id)
+
+
+@pytest.mark.django_db
+def test_debounce(monkeypatch, default_project, default_organization, redis_cache):
     tasks = []
 
     def apply_async(args, kwargs):
@@ -76,11 +61,9 @@ def test_debounce(
 
     monkeypatch.setattr("sentry.tasks.relay.update_config_cache.apply_async", apply_async)
 
-    debounce_cache.mark_task_done(None, default_project.id, None)
     schedule_update_config_cache(generate=True, project_id=default_project.id)
     schedule_update_config_cache(generate=False, project_id=default_project.id)
 
-    debounce_cache.mark_task_done(None, None, default_organization.id)
     schedule_update_config_cache(generate=True, organization_id=default_organization.id)
     schedule_update_config_cache(generate=False, organization_id=default_organization.id)
 
@@ -112,7 +95,6 @@ def test_generate(
     task_runner,
     entire_organization,
     redis_cache,
-    always_update_cache,
 ):
     assert not redis_cache.get(default_projectkey.public_key)
 
@@ -148,7 +130,6 @@ def test_invalidate(
     task_runner,
     entire_organization,
     redis_cache,
-    always_update_cache,
 ):
 
     cfg = {"foo": "bar"}
@@ -220,7 +201,10 @@ def test_projectkeys(default_project, task_runner, redis_cache):
         pk.save()
 
     for key in deleted_pks:
-        assert redis_cache.get(key.public_key) == {"disabled": True}
+        # XXX: Ideally we would write `{"disabled": True}` into Redis, however
+        # it's fine if we don't and instead Relay starts hitting the endpoint
+        # which will write this for us.
+        assert not redis_cache.get(key.public_key)
 
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
@@ -234,7 +218,7 @@ def test_projectkeys(default_project, task_runner, redis_cache):
     with task_runner():
         pk.delete()
 
-    assert redis_cache.get(pk.public_key) == {"disabled": True}
+    assert not redis_cache.get(pk.public_key)
 
     for key in ProjectKey.objects.filter(project_id=default_project.id):
         assert not redis_cache.get(key.public_key)
