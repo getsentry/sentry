@@ -4,7 +4,6 @@ import debounce from 'lodash/debounce';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
-import {showPlayerTime} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -59,17 +58,16 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
 
       {filteredBreadcrumbs.length > 0 ? (
         <ConsoleTable>
-          {filteredBreadcrumbs.map((breadcrumb, i) => (
-            <ConsoleMessage
-              relativeTimestamp={showPlayerTime(
-                breadcrumb.timestamp || '',
-                startTimestamp
-              )}
-              key={i}
-              isLast={i === breadcrumbs.length - 1}
-              breadcrumb={breadcrumb}
-            />
-          ))}
+          {filteredBreadcrumbs.map((breadcrumb, i) => {
+            return (
+              <ConsoleMessage
+                startTimestamp={startTimestamp}
+                key={i}
+                isLast={i === breadcrumbs.length - 1}
+                breadcrumb={breadcrumb}
+              />
+            );
+          })}
         </ConsoleTable>
       ) : (
         <StyledEmptyMessage title={t('No results found.')} />
