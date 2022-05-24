@@ -115,16 +115,14 @@ const Context = ({
           );
         })}
 
-      {(hasContextRegisters || hasContextVars) && (
+      {hasContextVars && (
         <StyledClippedBox clipHeight={100}>
-          {hasContextRegisters && (
-            <FrameRegisters
-              registers={registers}
-              deviceArch={event.contexts?.device?.arch}
-            />
-          )}
-          {hasContextVars && <FrameVariables data={frame.vars || {}} />}
+          <FrameVariables data={frame.vars || {}} />
         </StyledClippedBox>
+      )}
+
+      {hasContextRegisters && (
+        <FrameRegisters registers={registers} deviceArch={event.contexts?.device?.arch} />
       )}
 
       {hasAssembly && (
@@ -139,15 +137,12 @@ export default withOrganization(Context);
 const StyledClippedBox = styled(ClippedBox)`
   margin-left: 0;
   margin-right: 0;
-
   &:first-of-type {
     margin-top: 0;
   }
-
   :first-child {
     margin-top: -${space(3)};
   }
-
   > *:first-child {
     padding-top: 0;
     border-top: none;

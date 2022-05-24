@@ -416,11 +416,14 @@ const ExpandCell = styled(Cell)``;
 
 const RegistersCell = styled('div')`
   grid-column: 1/-1;
+  margin-left: -${space(0.5)};
+  margin-right: -${space(0.5)};
+  cursor: default;
 `;
 
 const Registers = styled(Context)`
-  margin: ${space(1)} 0 ${space(1)} ${space(0.5)};
-  padding: ${space(1)};
+  padding: 0;
+  margin: 0;
 `;
 
 const ToggleButton = styled(Button)`
