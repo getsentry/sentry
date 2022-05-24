@@ -7,11 +7,11 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayView from 'sentry/components/replays/replayView';
-import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import useReplayData from 'sentry/utils/replays/useReplayData';
+import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
