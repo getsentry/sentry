@@ -9,6 +9,7 @@ from sentry.http import safe_urlopen
 from sentry.models import SentryApp
 from sentry.models.integrations.sentry_app import track_response_code
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 logger = logging.getLogger(__name__)
 
@@ -76,9 +77,8 @@ def send_and_save_sentry_app_request(
             },
         )
         track_response_code(error_type, slug, event)
-        # Response code of 0 represents timeout
         buffer.add_request(
-            response_code=0,
+            response_code=TIMEOUT_STATUS_CODE,
             org_id=org_id,
             event=event,
             url=url,
