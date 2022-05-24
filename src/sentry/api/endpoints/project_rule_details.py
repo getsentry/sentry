@@ -7,7 +7,7 @@ from sentry.api.bases.rule import RuleEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
 from sentry.api.serializers.rest_framework.rule import RuleSerializer as DrfRuleSerializer
-from sentry.integrations.slack import tasks
+from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import (
     RuleActivity,
@@ -18,8 +18,9 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
+from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_edited
+from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
 
 
@@ -131,9 +132,9 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                     )
 
             if data.get("pending_save"):
-                client = tasks.RedisRuleStatus()
+                client = RedisRuleStatus()
                 kwargs.update({"uuid": client.uuid, "rule_id": rule.id})
-                tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
+                find_channel_id_for_rule.apply_async(kwargs=kwargs)
 
                 context = {"uuid": client.uuid}
                 return Response(context, status=202)
