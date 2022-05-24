@@ -1,7 +1,7 @@
-import time
 from datetime import datetime, timedelta
 
 from django.urls import reverse
+from freezegun import freeze_time
 
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -337,20 +337,20 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
             event="issue.assigned",
             url=self.published_app.webhook_url,
         )
-        time.sleep(1)
-        buffer.add_request(
-            response_code=200,
-            org_id=self.org.id,
-            event="issue.assigned",
-            url=self.published_app.webhook_url,
-        )
-        time.sleep(1)
-        buffer.add_request(
-            response_code=200,
-            org_id=self.org.id,
-            event="issue.assigned",
-            url=self.published_app.webhook_url,
-        )
+        with freeze_time(now + timedelta(seconds=1)):
+            buffer.add_request(
+                response_code=200,
+                org_id=self.org.id,
+                event="issue.assigned",
+                url=self.published_app.webhook_url,
+            )
+        with freeze_time(now + timedelta(seconds=2)):
+            buffer.add_request(
+                response_code=200,
+                org_id=self.org.id,
+                event="issue.assigned",
+                url=self.published_app.webhook_url,
+            )
 
         url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
         response = self.client.get(url, format="json")
