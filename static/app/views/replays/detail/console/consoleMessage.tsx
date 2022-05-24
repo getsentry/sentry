@@ -6,6 +6,8 @@ import DateTime from 'sentry/components/dateTime';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {Hovercard} from 'sentry/components/hovercard';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
@@ -65,17 +67,20 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 
 interface ConsoleMessageProps extends MessageFormatterProps {
   isLast: boolean;
-  relativeTimestamp: string;
+  startTimestamp: number;
 }
-function ConsoleMessage({
-  breadcrumb,
-  isLast,
-  relativeTimestamp = '',
-}: ConsoleMessageProps) {
+function ConsoleMessage({breadcrumb, isLast, startTimestamp = 0}: ConsoleMessageProps) {
   const ICONS = {
     error: <IconClose isCircled size="xs" />,
     warning: <IconWarning size="xs" />,
   };
+
+  const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
+
+  const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp);
+  const handleOnClick = () => setCurrentTime(diff);
+  const handleOnMouseOver = () => setCurrentHoverTime(diff);
+  const handleOnMouseOut = () => setCurrentHoverTime(undefined);
 
   return (
     <Fragment>
@@ -87,7 +92,13 @@ function ConsoleMessage({
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
         <Hovercard body={<DateTime date={breadcrumb.timestamp} timeOnly />}>
-          {relativeTimestamp}
+          <div
+            onClick={handleOnClick}
+            onMouseOver={handleOnMouseOver}
+            onMouseOut={handleOnMouseOut}
+          >
+            {relativeTimestamp}
+          </div>
         </Hovercard>
       </ConsoleTimestamp>
     </Fragment>
@@ -109,6 +120,7 @@ const Common = styled('div')<{isLast: boolean; level: string}>`
 const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
   padding: ${space(1)};
   border-left: 1px solid ${p => p.theme.innerBorder};
+  cursor: pointer;
 `;
 
 const Icon = styled(Common)`

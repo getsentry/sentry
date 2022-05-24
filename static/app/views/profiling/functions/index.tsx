@@ -111,6 +111,7 @@ function FunctionsPage(props: Props) {
               />
               <Layout.Body>
                 <FunctionsContent
+                  project={project}
                   isLoading={requestState.type === 'loading'}
                   error={requestState.type === 'errored' ? requestState.error : null}
                   version={version}

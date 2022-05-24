@@ -9,6 +9,7 @@ from sentry.release_health.base import OverviewStat
 from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -1028,6 +1029,38 @@ class GetProjectReleasesCountTest(TestCase, SnubaTestCase):
             == 0
         )
 
+    def test_with_other_metrics(self):
+        if not self.backend.is_metrics_based():
+            return
+
+        # Test no errors when no session data
+        org = self.create_organization()
+        proj = self.create_project(organization=org)
+
+        # Insert a different set metric:
+        self._send_buckets(
+            [
+                {
+                    "org_id": org.id,
+                    "project_id": proj.id,
+                    "metric_id": 666,  # any other metric ID
+                    "timestamp": time.time(),
+                    "tags": {},
+                    "type": "s",
+                    "value": [1, 2, 3],
+                    "retention_days": 90,
+                }
+            ],
+            entity=EntityKey.MetricsSets.value,
+        )
+
+        assert (
+            self.backend.get_project_releases_count(
+                org.id, [proj.id], "crash_free_users", stats_period="14d"
+            )
+            == 0
+        )
+
     def test(self):
         project_release_1 = self.create_release(self.project)
         other_project = self.create_project()
@@ -1496,11 +1529,9 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
 
         # Last returned date is generated within function, should be close to now:
         last_date = data[-1].pop("date")
-        print(last_date)
 
         assert timezone.now() - last_date < timedelta(seconds=1)
 
-        print(self.session_started)
         assert data == [
             {
                 "crash_free_sessions": None,
