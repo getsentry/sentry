@@ -6,7 +6,6 @@ from django.utils import timezone
 
 from sentry.models.integrations.sentry_app import VALID_EVENTS
 from sentry.utils import json, redis
-from sentry.utils.sentry_apps import TIMEOUT_STATUS_CODE
 
 BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
@@ -120,6 +119,8 @@ class SentryAppWebhookRequestsBuffer:
         response=None,
         headers=None,
     ):
+        from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
+
         if event not in EXTENDED_VALID_EVENTS:
             logger.warning(f"Event {event} is not a valid event that can be stored.")
             return
