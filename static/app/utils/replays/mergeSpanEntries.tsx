@@ -11,5 +11,7 @@ export default function mergeSpanEntries(events: Event[]): Entry {
     )
   );
 
+  spans.sort((a, b) => a.start_timestamp - b.start_timestamp);
+
   return {type: EntryType.SPANS, data: spans};
 }

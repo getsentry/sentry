@@ -82,9 +82,6 @@ build-utils/        @getsentry/owners-js-build
 /static/app/views/settings/projectAlerts/                       @getsentry/workflow
 /tests/js/spec/views/settings/projectAlerts/                    @getsentry/workflow
 
-/static/app/views/settings/incidentRules/                       @getsentry/workflow
-/tests/js/spec/views/settings/incidentRules/                    @getsentry/workflow
-
 /static/app/views/alerts/                                       @getsentry/workflow
 /tests/js/spec/views/alerts/                                    @getsentry/workflow
 
@@ -351,6 +348,8 @@ build-utils/        @getsentry/owners-js-build
 
 /src/sentry/snuba/metrics/                                            @getsentry/metrics
 /src/sentry/api/endpoints/organization_metrics.py                     @getsentry/metrics
+/src/sentry/api/endpoints/organization_sessions.py                    @getsentry/metrics
+src/sentry/snuba/metrics/query.py                                     @getsentry/metrics
 /tests/sentry/api/endpoints/test_organization_metric_data.py          @getsentry/metrics
 /tests/sentry/api/endpoints/test_organization_metric_details.py       @getsentry/metrics
 /tests/sentry/api/endpoints/test_organization_metric_tag_details.py   @getsentry/metrics

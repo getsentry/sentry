@@ -56,7 +56,6 @@ function ProjectSelectorItem({
           <FeatureDisabled
             features={features}
             hideHelpToggle
-            message={t('Multiple project selection disabled')}
             featureName={t('Multiple Project Selection')}
           />
         }
