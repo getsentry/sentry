@@ -13,6 +13,7 @@ import {
   DynamicSamplingRules,
   DynamicSamplingRuleType,
 } from 'sentry/types/dynamicSampling';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withProject from 'sentry/utils/withProject';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -56,6 +57,12 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   }
 
   componentDidMount() {
+    const {organization, project} = this.props;
+
+    trackAdvancedAnalyticsEvent('sampling.settings.view', {
+      organization,
+      project_id: project.id,
+    });
     this.getRules();
   }
 
@@ -136,7 +143,18 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   };
 
   handleDeleteRule = (rule: DynamicSamplingRule) => () => {
+    const {organization, project} = this.props;
     const {errorRules, transactionRules} = this.state;
+
+    const conditions = rule.condition.inner.map(({name}) => name);
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.delete', {
+      organization,
+      project_id: project.id,
+      sampling_rate: rule.sampleRate * 100,
+      conditions,
+      conditions_stringified: conditions.sort().join(', '),
+    });
 
     const newErrorRules =
       rule.type === DynamicSamplingRuleType.ERROR

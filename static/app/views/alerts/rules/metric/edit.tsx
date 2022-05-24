@@ -101,6 +101,7 @@ class MetricRulesEdit extends AsyncView<Props, State> {
         ruleId={ruleId}
         rule={rule}
         onSubmitSuccess={this.handleSubmitSuccess}
+        disableProjectSelector
       />
     );
   }

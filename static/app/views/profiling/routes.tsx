@@ -44,15 +44,18 @@ export function generateFlamegraphSummaryRoute({
 export function generateProfilingRouteWithQuery({
   location,
   orgSlug,
+  query,
 }: {
-  location: Location;
   orgSlug: Organization['slug'];
+  location?: Location;
+  query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateProfilingRoute({orgSlug});
   return {
     pathname,
     query: {
-      ...location.query,
+      ...location?.query,
+      ...query,
     },
   };
 }
@@ -63,18 +66,21 @@ export function generateFunctionsRouteWithQuery({
   projectSlug,
   transaction,
   version,
+  query,
 }: {
-  location: Location;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   transaction: string;
   version: string;
+  location?: Location;
+  query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateFunctionsRoute({orgSlug, projectSlug});
   return {
     pathname,
     query: {
-      ...location.query,
+      ...location?.query,
+      ...query,
       transaction,
       version,
     },
@@ -86,17 +92,20 @@ export function generateFlamegraphRouteWithQuery({
   orgSlug,
   projectSlug,
   profileId,
+  query,
 }: {
-  location: Location;
   orgSlug: Organization['slug'];
   profileId: Trace['id'];
   projectSlug: Project['slug'];
+  location?: Location;
+  query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateFlamegraphRoute({orgSlug, projectSlug, profileId});
   return {
     pathname,
     query: {
-      ...location.query,
+      ...location?.query,
+      ...query,
     },
   };
 }
@@ -106,17 +115,20 @@ export function generateFlamegraphSummaryRouteWithQuery({
   orgSlug,
   projectSlug,
   profileId,
+  query,
 }: {
-  location: Location;
   orgSlug: Organization['slug'];
   profileId: Trace['id'];
   projectSlug: Project['slug'];
+  location?: Location;
+  query?: Location['query'];
 }): LocationDescriptor {
   const pathname = generateFlamegraphSummaryRoute({orgSlug, projectSlug, profileId});
   return {
     pathname,
     query: {
-      ...location.query,
+      ...location?.query,
+      ...query,
     },
   };
 }
