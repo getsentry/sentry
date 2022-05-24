@@ -65,6 +65,9 @@ class DigestNotification(ProjectNotification):
         return get_digest_subject(context["group"], context["counts"], context["start"])
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        if not context:
+            return "Digest Report"
+
         return "<!date^{:.0f}^{count} {noun} detected in {project} {date} | Digest Report".format(
             to_timestamp(context["start"]),
             count=len(context["counts"]),
