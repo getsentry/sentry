@@ -4,7 +4,7 @@ from typing import Iterable, Tuple
 from sentry.utils.dates import to_datetime, to_timestamp
 
 
-def _to_interval(timestamp, duration):
+def _to_interval(timestamp: float, duration: float):
     return to_datetime(timestamp - duration), to_datetime(timestamp)
 
 

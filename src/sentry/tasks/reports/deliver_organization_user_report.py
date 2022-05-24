@@ -1,15 +1,9 @@
-import logging
-
 from sentry import features
 from sentry.models import Organization, OrganizationStatus, Project, Team, User, UserOption
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.reports import backend
 from sentry.tasks.reports.types import Skipped
-from sentry.tasks.reports.utils.notification import build_message
 from sentry.tasks.reports.utils.util import _to_interval, has_valid_aggregates
 from sentry.utils.compat import filter, zip
-
-logger = logging.getLogger(__name__)
 
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
 
@@ -27,7 +21,15 @@ def user_subscribed_to_organization_reports(user, organization):
     max_retries=5,
     acks_late=True,
 )
-def deliver_organization_user_report(timestamp, duration, organization_id, user_id, dry_run=False):
+def deliver_organization_user_report(
+    timestamp,
+    duration,
+    organization_id: int,
+    user_id: int,
+    dry_run: bool = False,
+) -> None:
+    from sentry.tasks.reports import backend, logger
+
     try:
         organization = Organization.objects.get(
             status=OrganizationStatus.VISIBLE, id=organization_id
@@ -113,6 +115,8 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
             f"Skipping report for {organization} to {user}, no qualifying reports to deliver."
         )
         return Skipped.NoReports
+
+    from sentry.tasks.reports.utils.notification import build_message
 
     message = build_message(timestamp, duration, organization, user, reports)
 

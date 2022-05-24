@@ -1,22 +1,25 @@
-import logging
+from __future__ import annotations
+
 from datetime import timedelta
+from typing import Any
 
 from django.utils import timezone
 
 from sentry.cache import default_cache
 from sentry.models import Organization, OrganizationStatus
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.reports import prepare_organization_report
 from sentry.tasks.reports.utils.constants import ONE_DAY
 from sentry.tasks.reports.utils.util import prepare_reports_verify_key
 from sentry.utils.dates import floor_to_utc_day, to_timestamp
 from sentry.utils.query import RangeQuerySetWrapper
 
-logger = logging.getLogger(__name__)
 STEP_SIZE = 10000
 
 
-def _fill_default_parameters(timestamp=None, rollup=None):
+def _fill_default_parameters(
+    timestamp: float | None = None,
+    rollup: int | None = None,
+) -> tuple[float, float]:
     if timestamp is None:
         timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
 
@@ -32,7 +35,13 @@ def _fill_default_parameters(timestamp=None, rollup=None):
     max_retries=5,
     acks_late=True,
 )
-def prepare_reports(dry_run=False, *args, **kwargs):
+def prepare_reports(
+    dry_run: bool = False,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    from sentry.tasks.reports import logger, prepare_organization_report
+
     timestamp, duration = _fill_default_parameters(*args, **kwargs)
 
     logger.info("reports.begin_prepare_report")

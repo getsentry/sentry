@@ -1,14 +1,15 @@
 import logging
 from functools import partial
 
-from .backends import backend
+from sentry.utils import redis
+
+from .backends import RedisReportBackend
 from .deliver_organization_user_report import deliver_organization_user_report
 from .prepare_organization_report import prepare_organization_report
 from .prepare_reports import prepare_reports
 from .utils.build import build_project_aggregates, build_project_issue_summaries, build_report
 from .utils.constants import BATCH_SIZE, ONE_DAY
 from .utils.merge import merge_sequences, merge_series
-from .utils.notification import build_message
 from .utils.search import (
     build_key_errors,
     build_key_transactions,
@@ -27,11 +28,11 @@ __all__ = (
     "BATCH_SIZE",
     "ONE_DAY",
     "Report",
-    "build_message",
     "logger",
 )
 
 logger = logging.getLogger(__name__)
+backend = RedisReportBackend(redis.clusters.get("default"), 60 * 60 * 3)
 
 Report, build_project_report, merge_reports = build_report(
     [
