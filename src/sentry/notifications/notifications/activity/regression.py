@@ -34,7 +34,7 @@ class RegressionActivityNotification(GroupActivityNotification):
 
         return message, params, html_params
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         text = "Issue marked as regression"
         if self.version:
             text += f" in release {self.version_parsed}"
