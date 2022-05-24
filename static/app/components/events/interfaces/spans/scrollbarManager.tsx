@@ -1,5 +1,5 @@
-import throttle from 'lodash/throttle';
 import {Component, createContext, createRef} from 'react';
+import throttle from 'lodash/throttle';
 
 import {
   clamp,
