@@ -402,4 +402,3 @@ def send_webhooks(installation, event, **kwargs):
             request_data,
             servicehook.sentry_app.webhook_url,
         )
-

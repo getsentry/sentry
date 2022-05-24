@@ -36,7 +36,11 @@ def ignore_unpublished_app_errors(func):
 
 
 @ignore_unpublished_app_errors
-def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
+def send_and_save_webhook_request(
+    sentry_app: SentryApp,
+    app_platform_event: AppPlatformEvent,
+    url: str | None = None,
+) -> Response:
     """
     Notify a SentryApp's webhook about an incident and log response on redis.
 
@@ -51,9 +55,13 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
     event = f"{app_platform_event.resource}.{app_platform_event.action}"
     slug = sentry_app.slug_for_metrics
     url = url or sentry_app.webhook_url
+
     try:
-        resp = safe_urlopen(
-            url=url, data=app_platform_event.body, headers=app_platform_event.headers, timeout=5
+        response = safe_urlopen(
+            url=url,
+            data=app_platform_event.body,
+            headers=app_platform_event.headers,
+            timeout=WEBHOOK_TIMEOUT,
         )
     except (Timeout, ConnectionError) as e:
         error_type = e.__class__.__name__.lower()
@@ -72,33 +80,32 @@ def send_and_save_webhook_request(sentry_app, app_platform_event, url=None):
             org_id=org_id,
             event=event,
             url=url,
-            response=resp,
+            response=response,
             headers=app_platform_event.headers,
         )
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
-    else:
-        track_response_code(resp.status_code, slug, event)
-        buffer.add_request(
-            response_code=resp.status_code,
-            org_id=org_id,
-            event=event,
-            url=url,
-            error_id=resp.headers.get("Sentry-Hook-Error"),
-            project_id=resp.headers.get("Sentry-Hook-Project"),
-            response=resp,
-            headers=app_platform_event.headers,
-        )
+    track_response_code(response.status_code, slug, event)
+    buffer.add_request(
+        response_code=response.status_code,
+        org_id=org_id,
+        event=event,
+        url=url,
+        error_id=response.headers.get("Sentry-Hook-Error"),
+        project_id=response.headers.get("Sentry-Hook-Project"),
+        response=response,
+        headers=app_platform_event.headers,
+    )
 
-        if resp.status_code == 503:
-            raise ApiHostError.from_request(resp.request)
+    if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+        raise ApiHostError.from_request(response.request)
 
-        elif resp.status_code == 504:
-            raise ApiTimeoutError.from_request(resp.request)
+    elif response.status_code == status.HTTP_504_GATEWAY_TIMEOUT:
+        raise ApiTimeoutError.from_request(response.request)
 
-        if 400 <= resp.status_code < 500:
-            raise ClientError(resp.status_code, url, response=resp)
+    elif 400 <= response.status_code < 500:
+        raise ClientError(response.status_code, url, response=response)
 
-        resp.raise_for_status()
-        return resp
+    response.raise_for_status()
+    return response
