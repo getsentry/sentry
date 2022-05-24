@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {generateFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -23,7 +24,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {useProfileGroup} from './profileGroupProvider';
-import {generateFlamegraphRouteWithQuery} from './routes';
 
 const RESULTS_PER_PAGE = 50;
 

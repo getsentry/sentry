@@ -1892,8 +1892,8 @@ function buildRoutes() {
         component={SafeLazyLoad}
       />
       <Route
-        path="functions/:projectId/"
-        componentPromise={() => import('sentry/views/profiling/functions')}
+        path="summary/:projectId/"
+        componentPromise={() => import('sentry/views/profiling/profileSummary')}
         component={SafeLazyLoad}
       />
       <Route
