@@ -488,9 +488,11 @@ class TableView extends Component<TableViewProps> {
   };
 
   render() {
-    const {isLoading, error, location, tableData, eventView} = this.props;
+    const {isLoading, error, location, tableData, eventView, organization} = this.props;
 
-    const columnOrder = eventView.getColumns();
+    const columnOrder = eventView.getColumns(
+      organization.features.includes('discover-frontend-use-events-endpoint')
+    );
     const columnSortBy = eventView.getSorts();
 
     const prependColumnWidths = eventView.hasAggregateField()
