@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from typing import Any, Dict
 
 from django.http import StreamingHttpResponse
@@ -37,9 +38,15 @@ class OrganizationProfilingBaseEndpoint(OrganizationEndpoint):  # type: ignore
         return params
 
 
-class OrganizationProfilingProfilesEndpoint(OrganizationProfilingBaseEndpoint):
+class OrganizationProfilingPaginatedBaseEndpoint(OrganizationProfilingBaseEndpoint, ABC):
+    profiling_feature = "organizations:profiling"
+
+    @abstractmethod
+    def get_data_fn(self, organization: Organization, kwargs: Dict[str, Any]) -> Any:
+        raise NotImplementedError
+
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:profiling", organization, actor=request.user):
+        if not features.has(self.profiling_feature, organization, actor=request.user):
             return Response(status=404)
 
         try:
@@ -47,25 +54,50 @@ class OrganizationProfilingProfilesEndpoint(OrganizationProfilingBaseEndpoint):
         except NoProjects:
             return Response([])
 
+        kwargs = {"params": params}
+        if "Accept-Encoding" in request.headers:
+            kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
+
+        return self.paginate(
+            request,
+            paginator=GenericOffsetPaginator(data_fn=self.get_data_fn(organization, kwargs)),
+            default_per_page=50,
+            max_per_page=500,
+        )
+
+
+class OrganizationProfilingTransactionsEndpoint(OrganizationProfilingPaginatedBaseEndpoint):
+    def get_data_fn(self, organization: Organization, kwargs: Dict[str, Any]) -> Any:
         def data_fn(offset: int, limit: int) -> Any:
-            params["offset"] = offset
-            params["limit"] = limit
-            kwargs = {"params": params}
-            if "Accept-Encoding" in request.headers:
-                kwargs["headers"] = {"Accept-Encoding": request.headers.get("Accept-Encoding")}
+            kwargs["params"]["offset"] = offset
+            kwargs["params"]["limit"] = limit
+
+            response = get_from_profiling_service(
+                "GET",
+                f"/organizations/{organization.id}/transactions",
+                **kwargs,
+            )
+
+            return response.json().get("transactions", [])
+
+        return data_fn
+
+
+class OrganizationProfilingProfilesEndpoint(OrganizationProfilingPaginatedBaseEndpoint):
+    def get_data_fn(self, organization: Organization, kwargs: Dict[str, Any]) -> Any:
+        def data_fn(offset: int, limit: int) -> Any:
+            kwargs["params"]["offset"] = offset
+            kwargs["params"]["limit"] = limit
+
             response = get_from_profiling_service(
                 "GET",
                 f"/organizations/{organization.id}/profiles",
                 **kwargs,
             )
+
             return response.json().get("profiles", [])
 
-        return self.paginate(
-            request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
-            default_per_page=50,
-            max_per_page=500,
-        )
+        return data_fn
 
 
 class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
