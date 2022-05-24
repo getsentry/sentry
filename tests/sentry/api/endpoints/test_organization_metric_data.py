@@ -1637,7 +1637,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "project_id": self.project.id,
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
-                    "tags": {self.session_status_tag: indexer.record(self.organization.id, "init")},
+                    "tags": {},
                     "type": "s",
                     "value": [1, 2, 4],
                     "retention_days": 90,
@@ -1676,7 +1676,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "project_id": self.project.id,
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
-                    "tags": {self.session_status_tag: indexer.record(self.organization.id, "init")},
+                    "tags": {},
                     "type": "s",
                     "value": [1, 2, 4, 7, 9],
                     "retention_days": 90,
@@ -1705,7 +1705,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: indexer.record(self.organization.id, "init"),
                         self.release_tag: indexer.record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
@@ -1731,7 +1730,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: indexer.record(self.organization.id, "init"),
                         self.release_tag: indexer.record(org_id, "foobar@2.0"),
                     },
                     "type": "s",
@@ -1773,7 +1771,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: indexer.record(org_id, "init"),
                         self.release_tag: indexer.record(org_id, "foobar@1.0"),
                     },
                     "type": "s",
@@ -1799,7 +1796,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
                     "tags": {
-                        self.session_status_tag: indexer.record(self.organization.id, "init"),
                         self.release_tag: indexer.record(org_id, "foobar@2.0"),
                     },
                     "type": "s",
@@ -2002,7 +1998,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             statsPeriod="6m",
             interval="6m",
         )
-        print(response.data["groups"])
         group = response.data["groups"][0]
         assert group["totals"]["session.healthy"] == 6
         assert group["series"]["session.healthy"] == [6]
@@ -2132,9 +2127,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
                     "project_id": self.project.id,
                     "metric_id": self.session_user_metric,
                     "timestamp": user_ts,
-                    "tags": {
-                        self.session_status_tag: indexer.record(org_id, "init"),
-                    },
+                    "tags": {},
                     "type": "s",
                     "value": [1, 2, 4, 5, 7],  # 3 and 6 did not recorded at init
                     "retention_days": 90,

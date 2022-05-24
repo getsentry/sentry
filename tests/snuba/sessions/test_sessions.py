@@ -1496,11 +1496,9 @@ class InitWithoutUserTestCase(TestCase, SnubaTestCase):
 
         # Last returned date is generated within function, should be close to now:
         last_date = data[-1].pop("date")
-        print(last_date)
 
         assert timezone.now() - last_date < timedelta(seconds=1)
 
-        print(self.session_started)
         assert data == [
             {
                 "crash_free_sessions": None,
