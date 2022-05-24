@@ -69,12 +69,13 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         """
         date_format = "%Y-%m-%d %H:%M:%S"
         now = datetime.now().strftime(date_format)
+        default_start = "2000-01-01 00:00:00"
         invalid_date_format_message = "Invalid date format. Format must be YYYY-MM-DD HH:MM:SS."
 
         event_type = request.GET.get("eventType")
         errors_only = request.GET.get("errorsOnly")
         org_slug = request.GET.get("organizationSlug")
-        start = request.GET.get("start", "2000-01-01 00:00:00")
+        start = request.GET.get("start", default_start)
         end = request.GET.get("end", now)
 
         try:
@@ -101,10 +102,16 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
             self.format_request(req, sentry_app, org_slug) for req in buffer.get_requests(**kwargs)
         ]
 
+        if start == default_start and end == now:
+            return Response(formatted_requests)
+
         filtered_requests = []
         for formatted_request in formatted_requests:
-            date = datetime.strptime(formatted_request["date"], "%Y-%m-%d %H:%M:%S.%f+00:00")
-            if date >= start and date <= end:
-                filtered_requests.append(formatted_request)
+            if formatted_request.get("date"):
+                date = datetime.strptime(
+                    formatted_request["date"], "%Y-%m-%d %H:%M:%S.%f+00:00"
+                ).replace(microsecond=0)
+                if date >= start and date <= end:
+                    filtered_requests.append(formatted_request)
 
         return Response(filtered_requests)

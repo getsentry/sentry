@@ -1,3 +1,6 @@
+import time
+from datetime import datetime, timedelta
+
 from django.urls import reverse
 
 from sentry.testutils import APITestCase
@@ -292,3 +295,82 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         assert response.data[0]["organization"]["slug"] == self.org.slug
         assert response.data[0]["sentryAppSlug"] == self.published_app.slug
         assert "errorUrl" not in response.data[0]
+
+    def test_org_slug_filter(self):
+        """Test that filtering by the qparam organizationSlug properly filters results"""
+        self.login_as(user=self.user)
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+        buffer.add_request(
+            response_code=500,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        made_up_org_response = self.client.get(f"{url}?organizationSlug=madeUpOrg", format="json")
+        assert made_up_org_response.status_code == 200
+        assert len(made_up_org_response.data) == 0
+
+        org_response = self.client.get(f"{url}?organizationSlug={self.org.slug}", format="json")
+        assert org_response.status_code == 200
+        assert len(org_response.data) == 2
+
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 2
+
+    def test_date_filter(self):
+        """Test that filtering by the qparams start and end properly filters results"""
+        self.login_as(user=self.user)
+        buffer = SentryAppWebhookRequestsBuffer(self.published_app)
+        now = datetime.now()
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+        time.sleep(1)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+        time.sleep(1)
+        buffer.add_request(
+            response_code=200,
+            org_id=self.org.id,
+            event="issue.assigned",
+            url=self.published_app.webhook_url,
+        )
+
+        url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200
+        assert len(response.data) == 3
+
+        start_date = now.strftime("%Y-%m-%d %H:%M:%S")
+        start_date_response = self.client.get(f"{url}?start={start_date}", format="json")
+        assert start_date_response.status_code == 200
+        assert len(start_date_response.data) == 3
+
+        end_date = (now + timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")
+        end_date_response = self.client.get(f"{url}?end={end_date}", format="json")
+        assert end_date_response.status_code == 200
+        assert len(end_date_response.data) == 2
+
+        new_start_date = (now + timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")
+        new_end_date = (now + timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")
+        start_end_date_response = self.client.get(
+            f"{url}?start={new_start_date}&end={new_end_date}", format="json"
+        )
+        assert start_end_date_response.status_code == 200
+        assert len(start_end_date_response.data) == 2
