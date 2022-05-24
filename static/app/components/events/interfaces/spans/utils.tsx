@@ -5,12 +5,14 @@ import isString from 'lodash/isString';
 import set from 'lodash/set';
 import moment from 'moment';
 
+import {TOGGLE_BORDER_BOX} from 'sentry/components/performance/waterfall/treeConnector';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
+import {MARGIN_LEFT} from './spanBar';
 import {
   EnhancedSpan,
   GapSpanType,
@@ -24,8 +26,6 @@ import {
   TraceContextType,
   TreeDepthType,
 } from './types';
-import {TOGGLE_BORDER_BOX} from 'sentry/components/performance/waterfall/treeConnector';
-import {MARGIN_LEFT} from './spanBar';
 
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
