@@ -260,12 +260,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return processor
 
     def assert_slack_calls(self, trigger_labels):
-        expected = [f"{label}: some rule 2" for label in trigger_labels]
+        expected_result = [f"{label}: some rule 2" for label in trigger_labels]
         actual = [
-            json.loads(call_kwargs["data"]["attachments"])[0]["title"]
+            json.loads(call_kwargs["data"]["attachments"])[0]["blocks"][0]["text"]["text"]
             for (_, call_kwargs) in self.slack_client.call_args_list
         ]
-        assert expected == actual
+
+        assert len(expected_result) == len(actual)
+        for expected, result in zip(expected_result, actual):
+            assert expected in result
         self.slack_client.reset_mock()
 
     def test_removed_alert_rule(self):
@@ -1074,6 +1077,80 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         self.assert_slack_calls(["Warning"])
         self.assert_active_incident(rule)
+
+    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    def test_slack_metric_alert_chart(self, mock_generate_chart):
+        from sentry.incidents.action_handlers import SlackActionHandler
+
+        slack_handler = SlackActionHandler
+
+        # Create Slack Integration
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.project.organization, self.user)
+
+        # Register Slack Handler
+        AlertRuleTriggerAction.register_type(
+            "slack",
+            AlertRuleTriggerAction.Type.SLACK,
+            [AlertRuleTriggerAction.TargetType.SPECIFIC],
+            integration_provider="slack",
+        )(slack_handler)
+
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule 2",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+
+        trigger = create_alert_rule_trigger(rule, "critical", 100)
+        channel_name = "#workflow"
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.SLACK,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=integration,
+            input_channel_id=channel_name,
+            target_identifier=channel_name,
+        )
+
+        # Send Critical Update
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            self.send_update(
+                rule,
+                trigger.alert_threshold + 5,
+                timedelta(minutes=-10),
+                subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+            )
+
+        self.assert_slack_calls(["Critical"])
+        incident = self.assert_active_incident(rule)
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["rule"]["id"] == str(rule.id)
+        assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
+        series_data = chart_data["timeseriesData"][0]["data"]
+        assert len(series_data) > 0
 
     def test_slack_multiple_triggers_critical_fired_twice_before_warning(self):
         """
