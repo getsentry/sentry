@@ -1,4 +1,4 @@
-import {filterBreadcrumbs} from 'sentry/views/replays/detail/console';
+import {filterBreadcrumbs} from 'sentry/views/replays/detail/console/utils';
 
 const breadcrumbs = [
   {

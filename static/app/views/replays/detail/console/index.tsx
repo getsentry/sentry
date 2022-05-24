@@ -12,6 +12,7 @@ import {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrum
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import ConsoleMessage from './consoleMessage';
+import {filterBreadcrumbs} from './utils';
 
 interface Props {
   breadcrumbs: BreadcrumbTypeDefault[];
@@ -20,26 +21,6 @@ interface Props {
 
 const getDistinctLogLevels = breadcrumbs =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
-
-export const filterBreadcrumbs = (
-  breadcrumbs: BreadcrumbTypeDefault[],
-  searchTerm: string,
-  logLevel: Array<string>
-) => {
-  if (!searchTerm && logLevel.length === 0) {
-    return breadcrumbs;
-  }
-  const normalizedSearchTerm = searchTerm.toLowerCase();
-  return breadcrumbs.filter(breadcrumb => {
-    const doesMatch = JSON.stringify(breadcrumb.data)
-      .toLowerCase()
-      .includes(normalizedSearchTerm);
-    if (logLevel.length > 0) {
-      return doesMatch && logLevel.includes(breadcrumb.level);
-    }
-    return doesMatch;
-  });
-};
 
 function Console({breadcrumbs, startTimestamp = 0}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
