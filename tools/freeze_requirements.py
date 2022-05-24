@@ -30,6 +30,7 @@ def main() -> int:
         "pip-compile",
         "--no-header",
         "--no-annotate",
+        "--allow-unsafe",
         "-q",
     )
 

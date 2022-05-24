@@ -69,4 +69,4 @@ wrapt==1.14.1
 zipp==3.8.0
 
 # The following packages are considered to be unsafe in a requirements file:
-# setuptools
+setuptools==62.3.2
