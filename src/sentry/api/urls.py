@@ -7,6 +7,7 @@ from sentry.api.endpoints.organization_codeowners_associations import (
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingProfilesEndpoint,
+    OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
@@ -1602,6 +1603,11 @@ urlpatterns = [
                                 r"^filters/$",
                                 OrganizationProfilingFiltersEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-filters",
+                            ),
+                            url(
+                                r"^transactions/$",
+                                OrganizationProfilingTransactionsEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-transactions",
                             ),
                         ],
                     ),
