@@ -1,10 +1,16 @@
-from datetime import date, datetime, timedelta
-from typing import Iterable, Tuple
+from __future__ import annotations
 
+from datetime import date, datetime, timedelta
+from typing import TYPE_CHECKING, Any, Iterable, Sequence
+
+from sentry.models import Project
 from sentry.utils.dates import to_datetime, to_timestamp
 
+if TYPE_CHECKING:
+    from sentry.tasks.reports import Report
 
-def _to_interval(timestamp: float, duration: float):
+
+def _to_interval(timestamp: float, duration: float) -> tuple[datetime | None, datetime | None]:
     return to_datetime(timestamp - duration), to_datetime(timestamp)
 
 
@@ -18,7 +24,7 @@ def change(value, reference):
     return ((value or 0) - reference) / float(reference)
 
 
-def safe_add(x, y):
+def safe_add(x: int | float | None, y: int | float | None) -> int | float | None:
     """
     Adds two values which are either numeric types or None.
 
@@ -36,7 +42,12 @@ def safe_add(x, y):
         return None
 
 
-def clean_series(start: datetime, stop: datetime, rollup: int, series: Iterable[Tuple[int, int]]):
+def clean_series(
+    start: datetime,
+    stop: datetime,
+    rollup: int,
+    series: Iterable[tuple[int, int]],
+) -> Sequence[tuple[int, int]]:
     """
     Validate a series, ensuring that it follows the specified rollup and
     boundaries. The start bound is inclusive, while the stop bound is
@@ -56,30 +67,26 @@ def clean_series(start: datetime, stop: datetime, rollup: int, series: Iterable[
     return result
 
 
-def take_max_n(x, y, n):
+def take_max_n(x: list[Any], y: list[Any], n: int) -> list[Any]:
     series = x + y
     series.sort(key=lambda group_id__count: group_id__count[1], reverse=True)
     return series[:n]
 
 
-def prepare_reports_verify_key():
+def prepare_reports_verify_key() -> str:
     today = date.today()
     week = today - timedelta(days=today.weekday())
     return f"prepare_reports_completed:{week.isoformat()}"
 
 
-def has_valid_aggregates(interval, project__report):
+def has_valid_aggregates(interval, project__report: tuple[Project, Report]) -> bool:
     project, report = project__report
     return any(bool(value) for value in report.aggregates)
 
 
-def series_map(function, series):
+def series_map(function, series: Sequence[tuple[float, Any]]):
     """
     Series: An array of (timestamp, value) tuples.Apply `function` on `value` of
     each tuple element in array.
     """
     return [(timestamp, function(value)) for timestamp, value in series]
-
-
-def build_project_report():
-    return None
