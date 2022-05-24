@@ -12,12 +12,12 @@ from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackAttachment
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
-from sentry.integrations.slack.tasks import post_message
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.integrations.slack import post_message
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json, metrics
 
