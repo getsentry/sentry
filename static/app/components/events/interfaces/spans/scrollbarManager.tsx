@@ -1,4 +1,4 @@
-import {throttle} from 'lodash';
+import throttle from 'lodash/throttle';
 import {Component, createContext, createRef} from 'react';
 
 import {
