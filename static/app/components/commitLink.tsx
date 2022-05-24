@@ -2,7 +2,7 @@ import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Repository} from 'sentry/types';
+import {BaseRelease, Repository} from 'sentry/types';
 import {getShortCommitHash} from 'sentry/utils';
 
 type CommitFormatterParameters = {
@@ -43,6 +43,7 @@ const SUPPORTED_PROVIDERS: Readonly<CommitProvider[]> = [
 type Props = {
   commitId: string;
   inline?: boolean;
+  releases?: BaseRelease[];
   repository?: Repository;
 };
 
