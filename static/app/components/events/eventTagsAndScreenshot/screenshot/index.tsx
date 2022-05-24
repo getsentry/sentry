@@ -7,6 +7,7 @@ import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DropdownLink from 'sentry/components/dropdownLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -55,13 +56,21 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
 
     return (
       <Fragment>
-        <StyledPanelBody>
+        <StyledPanelBody
+          onClick={() =>
+            handleOpenVisualizationModal(
+              screenshotAttachment,
+              `${downloadUrl}?download=1`
+            )
+          }
+        >
           <StyledImageVisualization
             attachment={screenshotAttachment}
             orgId={orgSlug}
             projectId={projectSlug}
             event={event}
           />
+          <StyledLoadingIndicator mini />
         </StyledPanelBody>
         <StyledPanelFooter>
           <StyledButtonbar gap={1}>
@@ -99,9 +108,9 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
                 title={t('Delete')}
                 onAction={() => onDelete(screenshotAttachment.id)}
                 header={t(
-                  'Screenshots help identify what the user saw when the event happened'
+                  'This image was captured around the time that the event occurred.'
                 )}
-                message={t('Are you sure you wish to delete this screenshot?')}
+                message={t('Are you sure you wish to delete this image?')}
               >
                 {t('Delete')}
               </MenuItemActionLink>
@@ -123,7 +132,7 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
           <DataSection
             title={t('Screenshot')}
             description={t(
-              'Screenshot help identify what the user saw when the event happened'
+              'This image was captured around the time that the event occurred.'
             )}
           >
             <StyledPanel>{renderContent(screenshot)}</StyledPanel>
@@ -142,22 +151,27 @@ const StyledPanel = styled(Panel)`
   justify-content: center;
   align-items: center;
   margin-bottom: 0;
-  min-height: 200px;
-  min-width: 175px;
+  max-width: 100%;
   height: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    max-width: 175px;
+  }
 `;
 
 const StyledPanelBody = styled(PanelBody)`
-  min-height: 175px;
-  height: 100%;
   overflow: hidden;
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadius};
   margin: -1px;
   width: calc(100% + 2px);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
+  cursor: pointer;
   position: relative;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
 `;
 
 const StyledPanelFooter = styled(PanelFooter)`
@@ -165,9 +179,13 @@ const StyledPanelFooter = styled(PanelFooter)`
   width: 100%;
 `;
 
-const StyledImageVisualization = styled(ImageVisualization)`
+const StyledLoadingIndicator = styled(LoadingIndicator)`
   position: absolute;
+`;
+
+const StyledImageVisualization = styled(ImageVisualization)`
   width: 100%;
+  z-index: 1;
 `;
 
 const StyledButtonbar = styled(ButtonBar)`

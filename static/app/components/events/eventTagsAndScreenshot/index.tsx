@@ -1,3 +1,4 @@
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DataSection} from 'sentry/components/events/styles';
@@ -38,6 +39,9 @@ function EventTagsAndScreenshots({
     return null;
   }
 
+  const showScreenshot = !isShare && !!screenshot;
+  const showTags = !!tags.length || hasContext;
+
   return (
     <Wrapper isBorderless={isBorderless}>
       {!isShare && !!screenshot && (
@@ -49,6 +53,7 @@ function EventTagsAndScreenshots({
           onDelete={onDeleteScreenshot}
         />
       )}
+      {showScreenshot && showTags && <Divider />}
       {(!!tags.length || hasContext) && (
         <Tags
           organization={organization}
@@ -65,36 +70,49 @@ function EventTagsAndScreenshots({
 export default EventTagsAndScreenshots;
 
 const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
-  display: grid;
-  gap: ${space(3)};
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    && {
-      padding: 0;
+  > * {
+    :first-child,
+    :last-child {
       border: 0;
+      padding: 0;
     }
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    padding-bottom: ${space(2)};
-    grid-template-columns: 1fr auto;
-    gap: ${space(4)};
-
-    > *:first-child {
-      border-bottom: 0;
-      padding-bottom: 0;
+    display: grid;
+    grid-template-columns: max-content auto 1fr;
+    padding-top: 0;
+    padding-bottom: 0;
+    && {
+      > * {
+        :first-child,
+        :last-child {
+          border: 0;
+          padding: ${space(3)} 0;
+        }
+      }
     }
   }
 
   ${p =>
     p.isBorderless &&
-    `
-    && {
-        padding: ${space(3)} 0 0 0;
-        :first-child {
-          padding-top: 0;
-          border-top: 0;
-        }
+    css`
+      && {
+        padding-left: 0;
+        padding-right: 0;
       }
     `}
+`;
+
+const Divider = styled('div')`
+  background: ${p => p.theme.innerBorder};
+  height: 1px;
+  width: 100%;
+  margin: ${space(3)} 0;
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    height: 100%;
+    width: 1px;
+    margin: 0 ${space(3)};
+  }
 `;

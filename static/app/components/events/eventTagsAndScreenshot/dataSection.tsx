@@ -57,11 +57,4 @@ const StyledEventDataSection = styled(EventDataSection)`
   ${SectionContents} {
     flex: 1;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    && {
-      padding: 0;
-      border: 0;
-    }
-  }
 `;
