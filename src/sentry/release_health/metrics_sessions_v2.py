@@ -100,6 +100,8 @@ ALL_STATUSES = frozenset(iter(SessionStatus))
 #: Used to filter results by session.status
 StatusFilter = Optional[FrozenSet[SessionStatus]]
 
+MAX_POSTGRES_LIMIT = 100
+
 
 @dataclass(frozen=True)
 class GroupKey:
@@ -435,6 +437,8 @@ def run_sessions_query(
     project_ids = filter_keys.pop("project_id")
     assert not filter_keys
 
+    limit = Limit(query.limit) if query.limit else None
+
     ordered_preflight_filters: Dict[GroupByFieldName, Sequence[str]] = {}
     try:
         orderby = _parse_orderby(query, fields)
@@ -452,13 +456,34 @@ def run_sessions_query(
 
         if raw_orderby not in PREFLIGHT_QUERY_COLUMNS:
             raise exc
+        else:
+            if raw_orderby == "release.timestamp" and "release" not in query.raw_groupby:
+                raise InvalidParams(
+                    "To sort by release.timestamp, tag release must be in the groupBy"
+                )
+
+            if query.offset and query.offset > 0:
+                raise InvalidParams(
+                    f"Passing an offset value greater than 0 when ordering by {raw_orderby} is "
+                    f"not permitted"
+                )
+
+            if query.limit is not None:
+                if query.limit > MAX_POSTGRES_LIMIT:
+                    raise InvalidParams(
+                        f"This limit is too high for queries that requests a preflight query. "
+                        f"Please choose a limit below {MAX_POSTGRES_LIMIT}"
+                    )
+                limit = Limit(query.limit)
+            else:
+                limit = Limit(MAX_POSTGRES_LIMIT)
 
         preflight_query_conditions = {
             "orderby_field": raw_orderby,
             "direction": direction,
             "org_id": org_id,
             "project_ids": project_ids,
-            "limit": query.limit,
+            "limit": limit,
         }
 
         # For preflight queries, we need to evaluate environment conditions because these might
@@ -501,6 +526,7 @@ def run_sessions_query(
         # Clear OrderBy because query is already filtered and we will re-order the results
         # according to the order of the filter list later on
         orderby = None
+
     else:
         if orderby is None:
             # We only return the top-N groups, based on the first field that is being
@@ -518,7 +544,7 @@ def run_sessions_query(
         where=where,
         groupby=list({column for field in fields.values() for column in field.get_groupby()}),
         orderby=orderby,
-        limit=Limit(query.limit) if query.limit else None,
+        limit=limit,
         offset=Offset(query.offset or 0),
     )
 
@@ -565,7 +591,7 @@ def run_sessions_query(
         for group_key, group in output_groups.items()
     ]
     result_groups = _order_by_preflight_query_results(
-        ordered_preflight_filters, query.raw_groupby, result_groups, default_group_gen_func
+        ordered_preflight_filters, query.raw_groupby, result_groups, default_group_gen_func, limit
     )
 
     return {
@@ -582,6 +608,7 @@ def _order_by_preflight_query_results(
     groupby: GroupByFieldName,
     result_groups: Sequence[SessionsQueryGroup],
     default_group_gen_func: Callable[[], Group],
+    limit: Limit,
 ) -> Sequence[SessionsQueryGroup]:
     """
     If a preflight query was run, then we want to preserve the order of results
@@ -626,35 +653,37 @@ def _order_by_preflight_query_results(
     if len(ordered_preflight_filters) == 1:
         orderby_field = list(ordered_preflight_filters.keys())[0]
         grp_value_to_result_grp_mapping: Dict[Union[int, str], List[SessionsQueryGroup]] = {}
-        # If the preflight query occurs, but the relevant column is not in the groupBy then there
-        # is no need to re-order the results
-        if orderby_field in groupby:
-            for result_group in result_groups:
-                grp_value = result_group["by"][orderby_field]
-                grp_value_to_result_grp_mapping.setdefault(grp_value, []).append(result_group)
-            result_groups = []
-            for elem in ordered_preflight_filters[orderby_field]:
-                try:
-                    for grp in grp_value_to_result_grp_mapping[elem]:
-                        result_groups += [grp]
-                except KeyError:
-                    # We get into this branch if there are groups in the preflight query that do
-                    # not have matching data in the metrics dataset, and since we want to show
-                    # those groups in the output, we add them but null out the fields requested
-                    # This could occur for example, when ordering by `-release.timestamp` and
-                    # some of the latest releases in Postgres do not have matching data in
-                    # metrics dataset
-                    group_key_dict = {orderby_field: elem}
-                    for key in groupby:
-                        if key == orderby_field:
-                            continue
-                        # Added a mypy ignore here because this is a one off as result groups
-                        # will never have null group values except when the group exists in the
-                        # preflight query but not in the metrics dataset
-                        group_key_dict.update({key: None})  # type: ignore
-                    result_groups += [
-                        {"by": group_key_dict, **default_group_gen_func()}  # type: ignore
-                    ]
+
+        for result_group in result_groups:
+            grp_value = result_group["by"][orderby_field]
+            grp_value_to_result_grp_mapping.setdefault(grp_value, []).append(result_group)
+        result_groups = []
+        for elem in ordered_preflight_filters[orderby_field]:
+            try:
+                for grp in grp_value_to_result_grp_mapping[elem]:
+                    result_groups += [grp]
+            except KeyError:
+                # We get into this branch if there are groups in the preflight query that do
+                # not have matching data in the metrics dataset, and since we want to show
+                # those groups in the output, we add them but null out the fields requested
+                # This could occur for example, when ordering by `-release.timestamp` and
+                # some of the latest releases in Postgres do not have matching data in
+                # metrics dataset
+                group_key_dict = {orderby_field: elem}
+                for key in groupby:
+                    if key == orderby_field:
+                        continue
+                    # Added a mypy ignore here because this is a one off as result groups
+                    # will never have null group values except when the group exists in the
+                    # preflight query but not in the metrics dataset
+                    group_key_dict.update({key: None})  # type: ignore
+                result_groups += [
+                    {"by": group_key_dict, **default_group_gen_func()}  # type: ignore
+                ]
+
+        # Pop extra groups returned to match request limit
+        if len(result_groups) > limit.limit:
+            result_groups = result_groups[: limit.limit]
     return result_groups
 
 
@@ -833,7 +862,7 @@ def _generate_preflight_query_conditions(
     direction: Direction,
     org_id: int,
     project_ids: Sequence[ProjectId],
-    limit: int,
+    limit: Limit,
     env_condition: Optional[Tuple[Op, Set[str]]] = None,
 ) -> Sequence[str]:
     """
@@ -863,7 +892,5 @@ def _generate_preflight_query_conditions(
         else:
             queryset = queryset.order_by("date_added", "id")
 
-        if limit is not None:
-            queryset = queryset[: limit - 1]
-        queryset_results = list(queryset.values_list("version", flat=True))
+        queryset_results = list(queryset[: limit.limit].values_list("version", flat=True))
     return queryset_results
