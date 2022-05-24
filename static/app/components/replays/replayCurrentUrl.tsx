@@ -18,29 +18,22 @@ function ReplayCurrentUrl() {
   return <UrlCopyInput>{getCurrentUrl(replay, currentTime)}</UrlCopyInput>;
 }
 
-const UrlCopyInput = styled(TextCopyInput)<{disabled?: boolean}>`
+const UrlCopyInput = styled(TextCopyInput)`
   ${StyledInput} {
-    background: 'white';
+    background: ${p => p.theme.white};
     border: none;
     padding: 0 ${space(0.75)};
     font-size: ${p => p.theme.fontSizeMedium};
     border-bottom-left-radius: 0;
-    ${p =>
-      p.disabled
-        ? `
-          pointer-events: none;
-          background: ${p.theme.backgroundSecondary};
-          color: ${p.theme.gray300};
-          cursor: not-allowed;
-        `
-        : ''}
+  }
+  ${StyledInput}[disabled] {
+    border: none;
   }
 
   ${StyledCopyButton} {
     border-top: none;
     border-right: none;
     border-bottom: none;
-    ${p => (p.disabled ? 'pointer-events: none;' : '')}
   }
 `;
 
