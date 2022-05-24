@@ -1,7 +1,7 @@
 import functools
 import ipaddress
 import socket
-from ssl import wrap_socket
+from ssl import TLSVersion, create_default_context
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -160,5 +160,7 @@ def safe_socket_connect(address, timeout=30, ssl=False):
     """
     sock = safe_create_connection(address, timeout)
     if ssl:
-        sock = wrap_socket(sock)
+        context = create_default_context()
+        context.minimum_version = TLSVersion.TLSv1_2
+        sock = context.wrap_socket(sock)
     return sock
