@@ -22,6 +22,7 @@ from sentry.api.serializers.rest_framework import (
 from sentry.models import Activity, Project, Release, ReleaseCommitError, ReleaseStatus
 from sentry.models.release import UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
+from sentry.types.activity import ActivityType
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
@@ -483,7 +484,7 @@ class OrganizationReleaseDetailsEndpoint(
             if not was_released and release.date_released:
                 for project in projects:
                     Activity.objects.create(
-                        type=Activity.RELEASE,
+                        type=ActivityType.RELEASE.value,
                         project=project,
                         ident=Activity.get_version_ident(release.version),
                         data={"version": release.version},

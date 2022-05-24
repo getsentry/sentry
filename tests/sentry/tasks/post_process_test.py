@@ -29,6 +29,7 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
+from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
 
 
@@ -308,7 +309,7 @@ class PostProcessGroupTest(TestCase):
             group=group, reason=GroupInboxReason.UNIGNORED.value
         ).exists()
         assert Activity.objects.filter(
-            group=group, project=group.project, type=Activity.SET_UNRESOLVED
+            group=group, project=group.project, type=ActivityType.SET_UNRESOLVED.value
         ).exists()
         assert send_robust.called
 
