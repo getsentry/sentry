@@ -4,6 +4,8 @@ import debounce from 'lodash/debounce';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -22,6 +24,7 @@ const getDistinctLogLevels = breadcrumbs =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
 function Console({breadcrumbs, startTimestamp = 0}: Props) {
+  const {currentHoverTime} = useReplayContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
   const handleSearch = debounce(query => setSearchTerm(query), 150);
@@ -30,6 +33,20 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
     () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
     [logLevel, searchTerm, breadcrumbs]
   );
+
+  const maxActiveConsoleIndex = useMemo(() => {
+    if (filteredBreadcrumbs.length <= 0) {
+      return -1;
+    }
+
+    const foundIndex = filteredBreadcrumbs.findIndex(
+      breadcrumb =>
+        relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp) >=
+        (currentHoverTime || -1)
+    );
+
+    return foundIndex - 1;
+  }, [currentHoverTime, filteredBreadcrumbs, startTimestamp]);
 
   return (
     <Fragment>
@@ -55,6 +72,7 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
           {filteredBreadcrumbs.map((breadcrumb, i) => {
             return (
               <ConsoleMessage
+                isActive={i <= maxActiveConsoleIndex}
                 startTimestamp={startTimestamp}
                 key={i}
                 isLast={i === breadcrumbs.length - 1}
