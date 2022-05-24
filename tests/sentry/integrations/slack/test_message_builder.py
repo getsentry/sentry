@@ -167,7 +167,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes\nFilter: level:error\n{timestamp}",
+                        "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes\n{timestamp}",
                     },
                 }
             ],
@@ -209,7 +209,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"<{link}|*{title}*>  \n5000 events in the last 10 minutes\nFilter: level:error\n{timestamp}",
+                        "text": f"<{link}|*{title}*>  \n5000 events in the last 10 minutes\n{timestamp}",
                     },
                 }
             ],
@@ -246,7 +246,7 @@ class BuildIncidentAttachmentTest(TestCase):
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes\nFilter: level:error\n{timestamp}",
+                    "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes\n{timestamp}",
                 },
             },
             {"alt_text": "Metric Alert Chart", "image_url": "chart-url", "type": "image"},
