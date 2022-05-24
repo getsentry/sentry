@@ -1458,8 +1458,13 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if scope in ["users", "crash_free_users"]:
             having.append(Condition(Function("uniq", [Column("value")], "value"), Op.GT, 0))
             match = Entity(EntityKey.MetricsSets.value)
+            mri = SessionMRI.USER
         else:
             match = Entity(EntityKey.MetricsCounters.value)
+            mri = SessionMRI.SESSION
+
+        metric_id = resolve(organization_id, mri.value)
+        where.append(Condition(Column("metric_id"), Op.EQ, metric_id))
 
         query_columns = [
             Function(
