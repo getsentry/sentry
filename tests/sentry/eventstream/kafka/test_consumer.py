@@ -652,7 +652,7 @@ class BatchedConsumerTest(TestCase):
         self.commit_log_topic = f"events-commit-{uuid.uuid4().hex}"
         self.override_settings_cm = override_settings(
             KAFKA_EVENTS=self.events_topic,
-            # KAFKA_TRANSACTIONS=self.transactions_topic,
+            KAFKA_TRANSACTIONS=self.events_topic,
             KAFKA_TOPICS={
                 self.events_topic: {"cluster": "default"},
                 # self.transactions_topic: {"cluster": "default"},
@@ -682,7 +682,7 @@ class BatchedConsumerTest(TestCase):
 
         eventstream = KafkaEventStream()
         consumer = eventstream._build_consumer(
-            entity="errors",
+            entity="all",
             consumer_group=consumer_group,
             commit_log_topic=self.commit_log_topic,
             synchronize_commit_group=synchronize_commit_group,
