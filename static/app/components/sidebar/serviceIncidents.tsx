@@ -31,7 +31,7 @@ import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
 import SidebarPanelEmpty from './sidebarPanelEmpty';
 import SidebarPanelItem from './sidebarPanelItem';
-import {CommonSidebarProps} from './types';
+import {CommonSidebarProps, SidebarPanelKey} from './types';
 
 type Props = CommonSidebarProps;
 
@@ -77,7 +77,7 @@ function ServiceIncidents({
     return null;
   }
 
-  const active = currentPanel === 'statusupdate';
+  const active = currentPanel === SidebarPanelKey.ServiceIncidents;
   const isEmpty = !serviceStatus.incidents || serviceStatus.incidents.length === 0;
 
   if (isEmpty) {
