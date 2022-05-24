@@ -1,58 +1,12 @@
 from __future__ import annotations
 
-from typing import Any
-
-from django import forms
-from django.utils.translation import ugettext_lazy as _
-
+from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
+from sentry.integrations.msteams.card_builder import build_group_card
+from sentry.integrations.msteams.client import MsTeamsClient
+from sentry.integrations.msteams.utils import get_channel_id
 from sentry.models import Integration
 from sentry.rules.actions import IntegrationEventAction
 from sentry.utils import metrics
-
-from .card_builder import build_group_card
-from .client import MsTeamsClient
-from .utils import get_channel_id
-
-
-class MsTeamsNotifyServiceForm(forms.Form):
-    team = forms.ChoiceField(choices=(), widget=forms.Select())
-    channel = forms.CharField(widget=forms.TextInput())
-    channel_id = forms.HiddenInput()
-
-    def __init__(self, *args, **kwargs):
-        team_list = [(i.id, i.name) for i in kwargs.pop("integrations")]
-        self.channel_transformer = kwargs.pop("channel_transformer")
-
-        super().__init__(*args, **kwargs)
-
-        if team_list:
-            self.fields["team"].initial = team_list[0][0]
-
-        self.fields["team"].choices = team_list
-        self.fields["team"].widget.choices = self.fields["team"].choices
-
-    def clean(self) -> dict[str, Any] | None:
-        cleaned_data = super().clean()
-
-        integration_id = cleaned_data.get("team")
-        channel = cleaned_data.get("channel", "")
-        channel_id = self.channel_transformer(integration_id, channel)
-
-        if channel_id is None and integration_id is not None:
-            params = {
-                "channel": channel,
-                "team": dict(self.fields["team"].choices).get(int(integration_id)),
-            }
-
-            raise forms.ValidationError(
-                _('The channel or user "%(channel)s" could not be found in the %(team)s Team.'),
-                code="invalid",
-                params=params,
-            )
-
-        cleaned_data["channel_id"] = channel_id
-
-        return cleaned_data
 
 
 class MsTeamsNotifyServiceAction(IntegrationEventAction):

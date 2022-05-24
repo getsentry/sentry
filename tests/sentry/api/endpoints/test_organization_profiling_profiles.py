@@ -43,6 +43,40 @@ class OrganizationProfilingFiltersTest(APITestCase):
         response = self.client.get(self.url)
         assert response.status_code == 404
 
+    def test_bad_filter(self):
+        with self.feature(PROFILING_FEATURES):
+            response = self.client.get(self.url, {"query": "foo:bar"})
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="Invalid query: foo is not supported", code="parse_error")
+        }
+
+    def test_no_projects(self):
+        with self.feature(PROFILING_FEATURES):
+            response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data == []
+
+
+class OrganizationProfilingTransactionsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-profiling-transactions"
+
+    def setUp(self):
+        self.login_as(user=self.user)
+        self.url = reverse(self.endpoint, args=(self.organization.slug,))
+
+    def test_feature_flag_disabled(self):
+        response = self.client.get(self.url)
+        assert response.status_code == 404
+
+    def test_bad_filter(self):
+        with self.feature(PROFILING_FEATURES):
+            response = self.client.get(self.url, {"query": "foo:bar"})
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="Invalid query: foo is not supported", code="parse_error")
+        }
+
     def test_no_projects(self):
         with self.feature(PROFILING_FEATURES):
             response = self.client.get(self.url)

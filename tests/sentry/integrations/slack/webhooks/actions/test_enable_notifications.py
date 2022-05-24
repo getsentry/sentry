@@ -1,4 +1,4 @@
-from sentry.integrations.slack.endpoints.action import (
+from sentry.integrations.slack.webhooks.action import (
     ENABLE_SLACK_SUCCESS_MESSAGE,
     NO_IDENTITY_MESSAGE,
 )

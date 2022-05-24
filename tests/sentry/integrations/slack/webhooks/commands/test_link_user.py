@@ -1,14 +1,14 @@
 import responses
 
-from sentry.integrations.slack.endpoints.base import NOT_LINKED_MESSAGE
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (
     SUCCESS_UNLINKED_MESSAGE,
     build_unlinking_url,
 )
+from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
 from sentry.testutils.helpers import get_response_text
 from sentry.utils import json
-from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest
+from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
 class SlackCommandsLinkUserTest(SlackCommandsTest):

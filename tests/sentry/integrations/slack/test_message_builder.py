@@ -304,9 +304,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "blocks": [
                 {
                     "text": {
-                        "text": f"<{link}|*{title}*>  \n"
-                        "0 events in the last 10 minutes\n"
-                        "Filter: level:error",
+                        "text": f"<{link}|*{title}*>  \n",
                         "type": "mrkdwn",
                     },
                     "type": "section",
@@ -336,9 +334,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "blocks": [
                 {
                     "text": {
-                        "text": f"<{link}|*{title}*>  \n"
-                        "0 events in the last 10 minutes\n"
-                        "Filter: level:error",
+                        "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes",
                         "type": "mrkdwn",
                     },
                     "type": "section",
@@ -374,8 +370,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 {
                     "text": {
                         "text": f"<{link}?alert={incident.identifier}|*{title}*>  \n"
-                        f"{metric_value} events in the last 10 minutes\n"
-                        "Filter: level:error",
+                        f"{metric_value} events in the last 10 minutes",
                         "type": "mrkdwn",
                     },
                     "type": "section",
