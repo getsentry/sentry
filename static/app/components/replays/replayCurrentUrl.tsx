@@ -20,12 +20,21 @@ function ReplayCurrentUrl() {
 
 const UrlCopyInput = styled(TextCopyInput)<{disabled?: boolean}>`
   ${StyledInput} {
-    background: white;
+    background: 'white';
     border: none;
     padding: 0 ${space(0.75)};
     font-size: ${p => p.theme.fontSizeMedium};
     border-bottom-left-radius: 0;
-    ${p => (p.disabled ? 'pointer-events: none;' : '')}
+    ${p =>
+      p.disabled
+        ? `
+          pointer-events: none;
+          background: ${p.theme.backgroundSecondary};
+          color: ${p.theme.gray300};
+          border: 1px solid ${p.theme.border};
+          cursor: not-allowed;
+        `
+        : ''}
   }
 
   ${StyledCopyButton} {
