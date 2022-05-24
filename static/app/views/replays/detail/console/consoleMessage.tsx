@@ -91,7 +91,7 @@ function ConsoleMessage({breadcrumb, isLast, startTimestamp = 0}: ConsoleMessage
         <MessageFormatter breadcrumb={breadcrumb} />
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
-        <Tooltip title={<DateTime date={breadcrumb.timestamp} format="LTS" />}>
+        <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
           <div
             onClick={handleOnClick}
             onMouseOver={handleOnMouseOver}
