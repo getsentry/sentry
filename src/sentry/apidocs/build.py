@@ -80,10 +80,11 @@ OPENAPI_TAGS = [
         },
     },
     {
-        # Using Visibility here since that's the common *internal* name for d&d & performance
-        "name": "Visibility",
+        # Not using visibility here since users won't be aware what that is, this "name" is only used in the URL so not
+        # a big deal that its missing Performance
+        "name": "Discover",
         "x-sidebar-name": "Discover & Performance",
-        "description": "Discover and Performance allow you to slice and dice your Events",
+        "description": "Discover and Performance allow you to slice and dice your Error and Transaction events",
         "x-display-description": True,
         "externalDocs": {
             "description": "Found an error? Let us know.",

@@ -130,7 +130,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 )
 
 
-@extend_schema(tags=["Visibility"])
+@extend_schema(tags=["Discover"])
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     public = {"GET"}
 
@@ -180,10 +180,12 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             },
                         ],
                         "meta": {
-                            "count_if(transaction.duration,greater,300)": "integer",
-                            "count()": "integer",
-                            "equation|count_if(transaction.duration,greater,300) / count() * 100": "integer",
-                            "transaction": "string",
+                            "fields": {
+                                "count_if(transaction.duration,greater,300)": "integer",
+                                "count()": "integer",
+                                "equation|count_if(transaction.duration,greater,300) / count() * 100": "number",
+                                "transaction": "string",
+                            },
                         },
                     }
                 ],
@@ -192,12 +194,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     )
     def get(self, request: Request, organization) -> Response:
         """
-        Retrieves discover (aka. events) data for a given organization
+        Retrieves discover (aka. events) data for a given organization.
 
-        This endpoint is intended to get a table of results, and is not for doing a full export of data sent to Sentry
+        Note: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
+        Sentry.
+
         Fields determine what will be returned back in the response of the endpoint both in the `data` and `meta` key.
         - The `data` key will contain a list of results row by row for what matched the query made
-        - The `meta` key will contain general
+        - The `meta` key will contain information about the response, including the unit or type of the fields requested
         """
         if not self.has_feature(organization, request):
             return Response(status=404)

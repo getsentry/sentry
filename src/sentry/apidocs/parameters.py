@@ -37,14 +37,14 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The start of the period of time for the query, expected in ISO-8601 format. For example 2000-05-27T16:20:11.0000",
+        description="The start of the period of time for the query, expected in ISO-8601 format. For example 2001-12-34T12:34:56.7890",
     )
     END = OpenApiParameter(
         name="end",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The end of the period of time for the query, expected in ISO-8601 format. For example 2000-05-27T16:20:11.0000",
+        description="The end of the period of time for the query, expected in ISO-8601 format. For example 2001-12-34T12:34:56.7890",
     )
     PROJECT = OpenApiParameter(
         name="project",
@@ -108,10 +108,13 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
         required=True,
         type=str,
         many=True,
-        description="""The fields, functions or equations to request for the query. At most 20 fields can be passed per request.
-- can be a field, see possible events fields in the [properties table](https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#properties-table)
+        description="""The fields, functions or equations to request for the query. At most 20 fields can be passed per request. Each field can be one of the following types:
+- a built-in key field, see possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property
     - example: `field=transaction`
-- can be a function, see possible fields in the [properties table](https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#properties-table)
+- a tag, tags should use the `tag[]` formatting to avoid ambiguity with any fields
+    - example: `field=tag[isEnterprise]`
+- a function which will be in the format of `function_name(parameters,...)`, see possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions)
+    - when a function is included, discover will group by any tags or fields
     - example: `field=count_if(transaction.duration,greater,300)`
 - an equation when prefixed with `equation|`, read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/)
     - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
