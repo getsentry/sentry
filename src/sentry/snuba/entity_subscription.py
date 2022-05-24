@@ -2,7 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, TypedDict, Union
+from typing import Any, Dict, List, Mapping, Optional, Type, TypedDict, Union
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
@@ -10,14 +10,7 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models import Environment
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
-from sentry.sentry_metrics.utils import (
-    MetricIndexNotFound,
-    resolve,
-    resolve_many_weak,
-    resolve_tag_key,
-    resolve_weak,
-    reverse_resolve,
-)
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
@@ -247,7 +240,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     dataset = QueryDatasets.METRICS
     entity_key: EntityKey
     metric_key: SessionMRI
-    aggregation_func: str
 
     def __init__(
         self, aggregate: str, time_window: int, extra_fields: Optional[_EntitySpecificParams] = None
@@ -263,8 +255,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         self.session_status = resolve_tag_key(self.org_id, "session.status")
         self.time_window = time_window
 
-    def get_query_groupby(self) -> List[str]:
-        return [self.session_status]
+    @abstractmethod
+    def get_aggregations(self) -> List[List[Optional[str]]]:  # TODO: better type?
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_extra_conditions(self) -> List[List[Any]]:  # TODO: better type?
+        raise NotImplementedError
 
     def get_granularity(self) -> int:
         # Both time_window and granularity are in seconds
@@ -290,15 +287,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     ) -> Filter:
         snuba_filter = get_filter(query, params=params)
         conditions = copy(snuba_filter.conditions)
-        session_status_tag_values = resolve_many_weak(self.org_id, ["crashed", "init"])
         snuba_filter.update_with(
             {
-                "aggregations": [[f"{self.aggregation_func}(value)", None, "value"]],
+                "aggregations": self.get_aggregations(),
                 "conditions": [
                     ["metric_id", "=", resolve(self.org_id, self.metric_key.value)],
-                    [self.session_status, "IN", session_status_tag_values],
-                ],
-                "groupby": self.get_query_groupby(),
+                ]
+                + self.get_extra_conditions(),
                 "rollup": self.get_granularity(),
             }
         )
@@ -329,43 +324,29 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {
             "organization": self.org_id,
-            "groupby": self.get_query_groupby(),
             "granularity": self.get_granularity(),
         }
-
-    @staticmethod
-    def translate_sessions_tag_keys_and_values(
-        data: List[Dict[str, Any]], org_id: int, alias: Optional[str] = None
-    ) -> Tuple[int, int]:
-        value_col_name = alias if alias else "value"
-        try:
-            translated_data: Dict[str, Any] = {}
-            session_status = resolve_tag_key(org_id, "session.status")
-            for row in data:
-                tag_value = reverse_resolve(row[session_status])
-                translated_data[tag_value] = row[value_col_name]
-
-            total_session_count = translated_data.get("init", 0)
-            crash_count = translated_data.get("crashed", 0)
-        except MetricIndexNotFound:
-            metrics.incr("incidents.entity_subscription.metric_index_not_found")
-            total_session_count = crash_count = 0
-        return total_session_count, crash_count
 
     def aggregate_query_results(
         self, data: List[Dict[str, Any]], alias: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         aggregated_results: List[Dict[str, Any]]
-        total_session_count, crash_count = self.translate_sessions_tag_keys_and_values(
-            org_id=self.org_id, data=data, alias=alias
-        )
-        if total_session_count == 0:
+        if not data:
+            total_count = 0
+            crash_count = 0
+        else:
+            assert len(data) == 1
+            row = data[0]
+            total_count = row["total"]
+            crash_count = row["crashed"]
+
+        if total_count == 0:
             metrics.incr(
                 "incidents.entity_subscription.metrics.aggregate_query_results.no_session_data"
             )
             crash_free_rate = None
         else:
-            crash_free_rate = round((1 - crash_count / total_session_count) * 100, 3)
+            crash_free_rate = round((1 - crash_count / total_count) * 100, 3)
 
         col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
         aggregated_results = [{col_name: crash_free_rate}]
@@ -375,13 +356,50 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
 class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsCounters
     metric_key: SessionMRI = SessionMRI.SESSION
-    aggregation_func: str = "sum"
+
+    def get_aggregations(self) -> List[List[Optional[str]]]:
+        session_status_crashed = resolve(self.org_id, "crashed")
+        session_status_init = resolve(self.org_id, "init")
+        return [
+            [
+                f"sumIf(value, equals('{self.session_status}', {session_status_crashed}))",
+                None,
+                "crashed",
+            ],
+            [
+                f"sumIf(value, equals('{self.session_status}', {session_status_init}))",
+                None,
+                "total",
+            ],
+        ]
+
+    def get_extra_conditions(self) -> List[List[Any]]:
+        crashed = resolve(self.org_id, "crashed")
+        init = resolve(self.org_id, "init")
+        return [[self.session_status, "IN", [crashed, init]]]
 
 
 class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
     entity_key: EntityKey = EntityKey.MetricsSets
     metric_key: SessionMRI = SessionMRI.USER
-    aggregation_func: str = "uniq"
+
+    def get_aggregations(self) -> List[List[Optional[str]]]:
+        session_status_crashed = resolve(self.org_id, "crashed")
+        return [
+            [
+                f"uniqIf(value, equals('{self.session_status}', {session_status_crashed}))",
+                None,
+                "crashed",
+            ],
+            [
+                "uniq(value)",
+                None,
+                "total",
+            ],
+        ]
+
+    def get_extra_conditions(self) -> List[List[Any]]:
+        return []
 
 
 EntitySubscription = Union[
