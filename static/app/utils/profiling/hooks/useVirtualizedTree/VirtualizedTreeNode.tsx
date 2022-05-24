@@ -5,10 +5,15 @@ export class VirtualizedTreeNode<T> {
   expanded: boolean;
   depth: number;
 
-  constructor(node: T, parent: VirtualizedTreeNode<T> | null, depth: number) {
+  constructor(
+    node: T,
+    parent: VirtualizedTreeNode<T> | null,
+    depth: number,
+    expanded?: boolean
+  ) {
     this.node = node;
     this.parent = parent;
-    this.expanded = false;
+    this.expanded = expanded ?? false;
     this.children = [];
     this.depth = depth;
   }

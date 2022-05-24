@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useReducer, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
 
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
@@ -6,43 +6,126 @@ import {VirtualizedTree} from './VirtualizedTree';
 import {VirtualizedTreeNode} from './VirtualizedTreeNode';
 import {VirtualizedTreeStateReducer} from './virtualizedTreeState';
 
-function isInsideViewPort(
-  view: {bottom: number; top: number},
-  element: {bottom: number; top: number}
-) {
-  return element.top >= view.top && element.bottom <= view.bottom;
-}
-
 export interface TreeLike {
   children: TreeLike[];
 }
 
 interface UseVirtualizedListProps<T extends TreeLike> {
   roots: T[];
+  rowHeight: number;
+  scrollContainerRef: React.MutableRefObject<HTMLElement | null>;
   overscroll?: number;
+  sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
 }
+
+const DEFAULT_OVERSCROLL_ITEMS = 5;
 
 export function useVirtualizedTree<T extends TreeLike>(
   props: UseVirtualizedListProps<T>
 ) {
-  const containerRef = useRef<HTMLElement | null>(null);
-  const [tree, setTree] = useState(VirtualizedTree.fromRoots(props.roots));
+  const [tree, setTree] = useState(() => {
+    const initialTree = VirtualizedTree.fromRoots(props.roots);
+
+    if (props.sortFunction) {
+      initialTree.sort(props.sortFunction);
+    }
+
+    return initialTree;
+  });
 
   useEffectAfterFirstRender(() => {
-    setTree(VirtualizedTree.fromRoots(props.roots));
+    const newTree = VirtualizedTree.fromRoots(props.roots);
+
+    if (props.sortFunction) {
+      newTree.sort(props.sortFunction);
+    }
+
+    setTree(newTree);
   }, [props.roots]);
 
   const [state, dispatch] = useReducer(VirtualizedTreeStateReducer, {
     roots: props.roots,
-    overscroll: props.overscroll ?? 0,
+    overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
     scrollTop: 0,
-    scrollHeight: containerRef.current?.getBoundingClientRect()?.height ?? 0,
+    scrollHeight: props.scrollContainerRef.current?.getBoundingClientRect()?.height ?? 0,
   });
 
+  const items = useMemo(() => {
+    // This is overscroll height for single direction, when computing the total,
+    // we need to multiply this by 2 because we overscroll in both directions.
+    const OVERSCROLL_HEIGHT = state.overscroll * props.rowHeight;
+
+    const visibleItems: {
+      item: VirtualizedTreeNode<T>;
+      key: number;
+      styles: React.CSSProperties;
+    }[] = [];
+
+    // Clamp viewport to scrollHeight bounds [0, length * rowHeight] because some browsers may fire
+    // scrollTop with negative values when the user scrolls up past the top of the list (overscroll behavior)
+    const viewport = {
+      top: Math.max(state.scrollTop - OVERSCROLL_HEIGHT, 0),
+      bottom: Math.min(
+        state.scrollTop + state.scrollHeight + OVERSCROLL_HEIGHT,
+        tree.flattened.length * props.rowHeight
+      ),
+    };
+
+    // Points to the position inside the visible array
+    let visibleItemIndex = 0;
+    // Points to the currently iterated item
+    let indexPointer = 0;
+
+    const MAX_VISIBLE_ITEMS = Math.ceil(
+      (state.scrollHeight + OVERSCROLL_HEIGHT * 2) / props.rowHeight
+    );
+    const ALL_ITEMS = tree.flattened.length;
+
+    // While number of visible items is less than max visible items, and we haven't reached the end of the list
+    while (visibleItemIndex < MAX_VISIBLE_ITEMS && indexPointer < ALL_ITEMS) {
+      const elementTop = indexPointer * props.rowHeight;
+      const elementBottom = elementTop + props.rowHeight;
+
+      // An element is inside a viewport if the top of the element is below the top of the viewport
+      // and the bottom of the element is above the bottom of the viewport
+      if (elementTop >= viewport.top && elementBottom <= viewport.bottom) {
+        visibleItems[visibleItemIndex] = {
+          key: indexPointer,
+          styles: {position: 'absolute', top: elementTop},
+          item: tree.flattened[indexPointer],
+        };
+
+        visibleItemIndex++;
+      }
+      indexPointer++;
+    }
+
+    return visibleItems;
+  }, [tree, state.overscroll, state.scrollHeight, state.scrollTop, props.rowHeight]);
+
+  // On scroll, we update scrollTop position.
+  // Keep a rafId reference in the unlikely event where component unmounts before raf is executed.
+  const scrollRafId = useRef<number | undefined>(undefined);
   const handleScroll = useCallback(element => {
-    dispatch({type: 'set scroll top', payload: element.target.scrollTop});
+    // use requestAnimationFrame to avoidoverupdating the UI.
+    scrollRafId.current = window.requestAnimationFrame(() => {
+      dispatch({type: 'set scroll top', payload: Math.max(element.target.scrollTop, 0)});
+      scrollRafId.current = undefined;
+    });
   }, []);
 
+  // Cleanup rafId on unmount.
+  useEffect(() => {
+    return () => {
+      if (scrollRafId.current !== undefined) {
+        window.cancelAnimationFrame(scrollRafId.current);
+      }
+    };
+  }, []);
+
+  // When a node is expanded, the underlying tree is recomputed (the flattened tree is updated)
+  // We copy the properties of the old tree by creating a new instance of VirtualizedTree
+  // and passing in the roots and its flattened representation so that no extra work is done.
   const handleExpandTreeNode = useCallback(
     (node: VirtualizedTreeNode<T>, opts?: {expandChildren: boolean}) => {
       tree.expandNode(node, !node.expanded, opts);
@@ -51,6 +134,9 @@ export function useVirtualizedTree<T extends TreeLike>(
     [tree]
   );
 
+  // When a tree is sorted, we sort all of the nodes in the tree and not just the visible ones
+  // We could probably optimize this to lazily sort as we scroll, but since we want the least amount
+  // of work during scrolling, we just sort the entire tree every time.
   const handleSortingChange = useCallback(
     (sortFn: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number) => {
       tree.sort(sortFn);
@@ -59,43 +145,58 @@ export function useVirtualizedTree<T extends TreeLike>(
     [tree]
   );
 
-  // Register scroll listener
+  // Register a resize observer for when the scroll container is resized.
+  // When the container is resized, update the scroll height in our state.
+  // Similarly to handleScroll, we use requestAnimationFrame to avoid overupdating the UI
   useEffect(() => {
-    const ref = containerRef.current;
-    if (!ref) {
+    if (!props.scrollContainerRef.current) {
       return undefined;
     }
+    let rafId: number | undefined;
 
-    ref.addEventListener('scroll', handleScroll);
+    const resizeObserver = new window.ResizeObserver(elements => {
+      rafId = window.requestAnimationFrame(() => {
+        dispatch({
+          type: 'set scroll height',
+          payload: elements[0]?.contentRect?.height ?? 0,
+        });
+      });
+    });
+
+    resizeObserver.observe(props.scrollContainerRef.current);
 
     return () => {
-      ref.removeEventListener('scroll', handleScroll);
+      if (typeof rafId === 'number') {
+        window.cancelAnimationFrame(rafId);
+      }
+      resizeObserver.disconnect();
     };
-  }, [handleScroll]);
+  }, [props.scrollContainerRef]);
 
-  const viewport = {
-    top: state.scrollTop - state.overscroll * 20,
-    bottom: state.scrollTop + state.scrollHeight + state.overscroll * 20,
-  };
+  // Basic required styles for the scroll container
+  const scrollContainerStyles: React.CSSProperties = useMemo(() => {
+    return {
+      height: '100%',
+      overflow: 'auto',
+      position: 'relative',
+      willChange: 'transform',
+      overscrollBehavior: 'contain',
+    };
+  }, []);
 
-  const items: VirtualizedTreeNode<T>[] = [];
-
-  for (let i = 0; i < tree.flattened.length; i++) {
-    const top = i * 20;
-    const bottom = top + 20;
-
-    if (isInsideViewPort(viewport, {top, bottom})) {
-      items.push(tree.flattened[i]);
-    }
-  }
+  // Basic styles for the element container. We fake the height so that the
+  // scrollbar is sized according to the number of items in the list.
+  const containerStyles: React.CSSProperties = useMemo(() => {
+    return {height: tree.flattened.length * props.rowHeight};
+  }, [tree.flattened.length, props.rowHeight]);
 
   return {
     tree,
+    items,
+    handleScroll,
     handleExpandTreeNode,
     handleSortingChange,
-    items,
-    scrollTop: state.scrollTop,
-    height: tree.flattened.length * 20,
-    containerRef,
+    scrollContainerStyles,
+    containerStyles,
   };
 }

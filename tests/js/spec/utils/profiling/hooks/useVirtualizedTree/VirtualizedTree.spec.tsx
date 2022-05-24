@@ -1,8 +1,27 @@
-import {VirtualizedTree} from './VirtualizedTree';
+import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
+import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
 const n = d => {
   return {...d, children: []};
 };
+
+function toFlattenedList(tree: VirtualizedTree<any>): VirtualizedTreeNode<any>[] {
+  const list: VirtualizedTreeNode<any>[] = [];
+
+  function visit(node: VirtualizedTreeNode<any>): void {
+    list.push(node);
+
+    for (let i = 0; i < node.children.length; i++) {
+      visit(node.children[i]);
+    }
+  }
+
+  for (let i = 0; i < tree.roots.length; i++) {
+    visit(tree.roots[i]);
+  }
+
+  return list;
+}
 
 describe('VirtualizedTree', () => {
   describe('expandNode', () => {
@@ -39,49 +58,6 @@ describe('VirtualizedTree', () => {
     });
   });
 
-  describe('toFlattenedList', () => {
-    it('flattens single level', () => {
-      const root = n({id: 'root'});
-      const child1 = n({id: 'child1'});
-      const child2 = n({id: 'child2'});
-
-      root.children = [child1, child2];
-      const tree = VirtualizedTree.fromRoots([root]);
-
-      expect(tree.toFlattenedList().map(i => i.node.id)).toEqual([
-        'root',
-        'child1',
-        'child2',
-      ]);
-    });
-
-    it('flattens via dfs', () => {
-      const root = n({id: 'root'});
-      const child1 = n({id: 'child1'});
-      const child2 = n({id: 'child2'});
-
-      const child1_1 = n({id: 'child1_1'});
-      const child1_2 = n({id: 'child1_2'});
-
-      const child1_1_1 = n({id: 'child1_1_1'});
-
-      root.children = [child1, child2];
-      child1.children = [child1_1, child1_2];
-      child1_1.children = [child1_1_1];
-
-      const tree = VirtualizedTree.fromRoots([root]);
-
-      expect(tree.toFlattenedList().map(i => i.node.id)).toEqual([
-        'root',
-        'child1',
-        'child1_1',
-        'child1_1_1',
-        'child1_2',
-        'child2',
-      ]);
-    });
-  });
-
   describe('toExpandedList', () => {
     it('skips non-expanded nodes', () => {
       const root = n({id: 'root'});
@@ -108,7 +84,7 @@ describe('VirtualizedTree', () => {
         return b.node.weight - a.node.weight;
       });
 
-      expect(tree.toFlattenedList().map(i => i.node.id)).toEqual([
+      expect(toFlattenedList(tree).map(i => i.node.id)).toEqual([
         'root',
         'child2',
         'child1',

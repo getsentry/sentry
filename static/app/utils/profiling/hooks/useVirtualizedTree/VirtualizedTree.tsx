@@ -47,13 +47,16 @@ export class VirtualizedTree<T extends TreeLike> {
     // flattened list. To do that w/o having to rebuild the entire tree, we can just remove the node and add them
     const removedOrAddedNodes = node.setExpanded(value, opts);
 
+    // If toggling the node resulted in no changes to the actual tree, do nothing
     if (!removedOrAddedNodes.length) {
-      return [];
+      return removedOrAddedNodes;
     }
 
+    // If a node was expanded, we need to add all of its children to the flattened list.
     if (node.expanded) {
       this.flattened.splice(this.flattened.indexOf(node) + 1, 0, ...removedOrAddedNodes);
     } else {
+      // If a node was collapsed, we need to remove all of its children from the flattened list.
       this.flattened.splice(this.flattened.indexOf(node) + 1, removedOrAddedNodes.length);
     }
 
@@ -91,25 +94,6 @@ export class VirtualizedTree<T extends TreeLike> {
       if (!node.expanded) {
         return;
       }
-
-      for (let i = 0; i < node.children.length; i++) {
-        visit(node.children[i]);
-      }
-    }
-
-    for (let i = 0; i < this.roots.length; i++) {
-      visit(this.roots[i]);
-    }
-
-    return list;
-  }
-
-  // Returns a list of nodes that are visible in the tree.
-  toFlattenedList(): VirtualizedTreeNode<T>[] {
-    const list: VirtualizedTreeNode<T>[] = [];
-
-    function visit(node: VirtualizedTreeNode<T>): void {
-      list.push(node);
 
       for (let i = 0; i < node.children.length; i++) {
         visit(node.children[i]);
