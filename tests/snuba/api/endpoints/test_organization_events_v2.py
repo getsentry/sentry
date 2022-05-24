@@ -64,7 +64,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        # Project ID cannot be inffered when using an org API key, so that must
+        # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
         api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
         query = {"field": ["project.name", "environment"], "project": [project.id]}
@@ -5992,7 +5992,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        # Project ID cannot be inffered when using an org API key, so that must
+        # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
         api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
         query = {"field": ["project.name", "environment"], "project": [project.id]}
@@ -9805,7 +9805,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.snuba.discover.query")
     def test_api_token_referrer(self, mock):
         mock.return_value = {}
-        # Project ID cannot be inffered when using an org API key, so that must
+        # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
         api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
 
@@ -10438,7 +10438,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             response.data["data"][0]["equation|spans.http / 3"]
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
-        assert response.data["meta"]["equation|spans.http / 3"] == "number"
+        assert response.data["meta"]["fields"]["equation|spans.http / 3"] == "number"
 
     def test_equation_sort(self):
         event_data = load_data("transaction", timestamp=before_now(minutes=1))

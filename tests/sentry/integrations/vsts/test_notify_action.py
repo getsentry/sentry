@@ -3,8 +3,8 @@ from time import time
 import responses
 from freezegun import freeze_time
 
+from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.integrations.vsts.notify_action import AzureDevopsCreateTicketAction
 from sentry.models import ExternalIssue, GroupLink, Identity, IdentityProvider, Integration, Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.types.rules import RuleFuture
