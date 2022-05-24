@@ -421,9 +421,13 @@ describe('GlobalSelectionHeader', function () {
     });
   });
 
-  it('loads from local storage when no URL parameters', async function () {
+  it('loads from local storage when no URL parameters and filters are pinned', async function () {
     getItem.mockImplementation(() =>
-      JSON.stringify({projects: [3], environments: ['staging']})
+      JSON.stringify({
+        projects: [3],
+        environments: ['staging'],
+        pinnedFilters: ['projects', 'environments'],
+      })
     );
     const initializationObj = initializeOrg({
       organization: {

@@ -13,9 +13,7 @@ jest.mock('sentry/utils/localStorage');
 
 describe('PageFilters ActionCreators', function () {
   const organization = TestStubs.Organization();
-  const pageFiltersOrganization = TestStubs.Organization({
-    features: ['selection-filters-v2'],
-  });
+
   beforeEach(function () {
     localStorage.getItem.mockClear();
     jest.spyOn(PageFiltersActions, 'updateProjects');
@@ -25,12 +23,28 @@ describe('PageFilters ActionCreators', function () {
 
   describe('initializeUrlState', function () {
     let router;
+    const key = `global-selection:${organization.slug}`;
+
     beforeEach(() => {
       router = TestStubs.router();
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          environments: [],
+          projects: [1],
+        })
+      );
     });
-    it('loads from local storage when no query params', function () {
-      const key = `global-selection:${organization.slug}`;
-      localStorage.setItem(key, JSON.stringify({environments: [], projects: [1]}));
+
+    it('loads from local storage when no query params and filters are pinned', function () {
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          environments: [],
+          projects: [1],
+          pinnedFilters: ['projects', 'environments'],
+        })
+      );
       initializeUrlState({
         organization,
         queryParams: {},
@@ -46,7 +60,7 @@ describe('PageFilters ActionCreators', function () {
           environments: [],
           projects: [1],
         }),
-        new Set()
+        new Set(['projects', 'environments'])
       );
       expect(router.replace).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -57,6 +71,7 @@ describe('PageFilters ActionCreators', function () {
         })
       );
     });
+
     it('does not load from local storage when no query params and `skipLoadLastUsed` is true', function () {
       jest.spyOn(localStorage, 'getItem');
       initializeUrlState({
@@ -226,7 +241,7 @@ describe('PageFilters ActionCreators', function () {
 
       // Initialize state with a page that shouldn't restore from local storage
       initializeUrlState({
-        organization: pageFiltersOrganization,
+        organization,
         queryParams: {},
         pathname: '/organizations/org-slug/issues/',
         router,
@@ -256,7 +271,7 @@ describe('PageFilters ActionCreators', function () {
 
       // Initialize state with a page that uses pinned filters
       initializeUrlState({
-        organization: pageFiltersOrganization,
+        organization,
         queryParams: {},
         pathname: '/organizations/org-slug/issues/',
         router,
