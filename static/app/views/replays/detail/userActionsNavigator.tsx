@@ -58,7 +58,8 @@ function UserActionsNavigator({event, crumbs}: Props) {
     useReplayContext();
 
   const {startTimestamp} = event || {};
-  const userActionCrumbs = crumbs?.filter(crumb => USER_ACTIONS.includes(crumb.type));
+  const userActionCrumbs =
+    crumbs?.filter(crumb => USER_ACTIONS.includes(crumb.type)) || [];
 
   const isLoaded = startTimestamp;
 
