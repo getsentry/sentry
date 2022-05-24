@@ -164,6 +164,13 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
     }
+
+    const {span} = this.props;
+    if ('type' in span) {
+      return;
+    }
+
+    this.props.markSpanOutOfView(span.span_id);
   }
 
   spanRowDOMRef = createRef<HTMLDivElement>();
