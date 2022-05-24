@@ -2,19 +2,19 @@ import {Crumb} from 'sentry/types/breadcrumbs';
 
 export function getPrevBreadcrumb({
   crumbs,
-  targetTimestampMS,
+  targetTimestampMs,
   allowExact = false,
 }: {
   crumbs: Crumb[];
-  targetTimestampMS: number;
+  targetTimestampMs: number;
   allowExact?: boolean;
 }) {
   return crumbs.reduce<Crumb | undefined>((prev, crumb) => {
     const crumbTimestampMS = +new Date(crumb.timestamp || '');
 
     if (
-      crumbTimestampMS > targetTimestampMS ||
-      (!allowExact && crumbTimestampMS === targetTimestampMS)
+      crumbTimestampMS > targetTimestampMs ||
+      (!allowExact && crumbTimestampMS === targetTimestampMs)
     ) {
       return prev;
     }
@@ -27,19 +27,19 @@ export function getPrevBreadcrumb({
 
 export function getNextBreadcrumb({
   crumbs,
-  targetTimestampMS,
+  targetTimestampMs,
   allowExact = false,
 }: {
   crumbs: Crumb[];
-  targetTimestampMS: number;
+  targetTimestampMs: number;
   allowExact?: boolean;
 }) {
   return crumbs.reduce<Crumb | undefined>((found, crumb) => {
     const crumbTimestampMS = +new Date(crumb.timestamp || '');
 
     if (
-      crumbTimestampMS < targetTimestampMS ||
-      (!allowExact && crumbTimestampMS === targetTimestampMS)
+      crumbTimestampMS < targetTimestampMs ||
+      (!allowExact && crumbTimestampMS === targetTimestampMs)
     ) {
       return found;
     }

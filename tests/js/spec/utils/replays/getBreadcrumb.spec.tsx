@@ -75,7 +75,7 @@ describe('getNextBreadcrumb', () => {
     const crumbs = createCrumbs();
     const results = getNextBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
     expect(results?.id).toEqual(20);
@@ -85,7 +85,7 @@ describe('getNextBreadcrumb', () => {
     const [one, two, three, four, five] = createCrumbs();
     const results = getNextBreadcrumb({
       crumbs: [one, four, five, three, two],
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
     expect(results?.id).toEqual(20);
@@ -95,7 +95,7 @@ describe('getNextBreadcrumb', () => {
     const crumbs = [];
     const results = getNextBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
     expect(results).toBeUndefined();
@@ -105,7 +105,7 @@ describe('getNextBreadcrumb', () => {
     const crumbs = createCrumbs();
     const results = getNextBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + 99999999999,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + 99999999999,
     });
 
     expect(results).toBeUndefined();
@@ -116,7 +116,7 @@ describe('getNextBreadcrumb', () => {
     const exactCrumbTime = 8135;
     const results = getNextBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
     });
 
     expect(results?.id).toEqual(20);
@@ -127,7 +127,7 @@ describe('getNextBreadcrumb', () => {
     const exactCrumbTime = 8135;
     const results = getNextBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
     });
 
     expect(results?.id).toEqual(20);
@@ -139,7 +139,7 @@ describe('getPrevBreadcrumb', () => {
     const crumbs = createCrumbs();
     const results = getPrevBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
     expect(results?.id).toEqual(4);
@@ -149,7 +149,7 @@ describe('getPrevBreadcrumb', () => {
     const [one, two, three, four, five] = createCrumbs();
     const results = getPrevBreadcrumb({
       crumbs: [one, four, five, three, two],
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
     expect(results?.id).toEqual(4);
@@ -159,7 +159,7 @@ describe('getPrevBreadcrumb', () => {
     const crumbs = [];
     const results = getPrevBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + CURRENT_TIME_MS,
     });
 
     expect(results).toBeUndefined();
@@ -169,7 +169,7 @@ describe('getPrevBreadcrumb', () => {
     const crumbs = createCrumbs();
     const results = getPrevBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 - CURRENT_TIME_MS,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 - CURRENT_TIME_MS,
     });
 
     expect(results).toBeUndefined();
@@ -180,7 +180,7 @@ describe('getPrevBreadcrumb', () => {
     const exactCrumbTime = 8135;
     const results = getPrevBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
     });
 
     expect(results?.id).toEqual(3);
@@ -191,7 +191,7 @@ describe('getPrevBreadcrumb', () => {
     const exactCrumbTime = 8135;
     const results = getPrevBreadcrumb({
       crumbs,
-      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
+      targetTimestampMs: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
       allowExact: true,
     });
 

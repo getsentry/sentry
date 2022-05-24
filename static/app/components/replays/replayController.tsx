@@ -68,7 +68,7 @@ function ReplayPlayPauseBar() {
           const transformedCrumbs = transformCrumbs(replay?.getRawCrumbs() || []);
           const next = getNextBreadcrumb({
             crumbs: transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type)),
-            targetTimestampMS: startTimestampSec * 1000 + currentTime,
+            targetTimestampMs: startTimestampSec * 1000 + currentTime,
           });
 
           if (startTimestampSec !== undefined && next?.timestamp) {
