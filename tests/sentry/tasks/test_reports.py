@@ -26,8 +26,6 @@ from sentry.tasks.reports.deliver_organization_user_report import (
 )
 from sentry.tasks.reports.types import Skipped
 from sentry.tasks.reports.utils.build import build_project_issue_summaries
-from sentry.tasks.reports.utils.color import colorize, get_percentile
-from sentry.tasks.reports.utils.date import get_calendar_range, index_to_month, month_to_index
 from sentry.tasks.reports.utils.merge import merge_mappings, merge_sequences, merge_series
 from sentry.tasks.reports.utils.notification import build_message
 from sentry.tasks.reports.utils.search import build_project_series
@@ -166,47 +164,6 @@ def test_has_valid_aggregates(interval):
     assert has_valid_aggregates(interval, (project, make_report([0] * 4))) is False
 
     assert has_valid_aggregates(interval, (project, make_report([1, 0, 0, 0]))) is True
-
-
-def test_percentiles():
-    values = [3, 6, 7, 8, 8, 9, 10, 13, 15, 16, 20]
-
-    assert get_percentile([], 0.25) == 0
-    assert get_percentile([], 1) == 0
-    assert get_percentile(values, 0.25) == 7
-    assert get_percentile(values, 0.50) == 9
-    assert get_percentile(values, 0.75) == 15
-    assert get_percentile(values, 1.00) == 20
-
-
-def test_colorize():
-    colors = ["green", "yellow", "red"]
-    values = [2, 5, 1, 3, 4, 0]
-
-    legend, results = colorize(colors, values)
-
-    assert results == [
-        (2, "yellow"),
-        (5, "red"),
-        (1, "green"),
-        (3, "yellow"),
-        (4, "red"),
-        (0, "green"),
-    ]
-
-    legend, results = colorize(colors, [])
-    assert results == []
-
-
-def test_month_indexing():
-    assert index_to_month(month_to_index(1986, 10)) == (1986, 10)
-
-
-def test_calendar_range():
-    assert get_calendar_range((None, datetime(2016, 2, 1, tzinfo=pytz.utc)), months=3) == (
-        month_to_index(2015, 11),
-        month_to_index(2016, 1),
-    )
 
 
 class ReportTestCase(OutcomesSnubaTest, SnubaTestCase):

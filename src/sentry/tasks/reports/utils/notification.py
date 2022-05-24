@@ -1,6 +1,8 @@
 from collections import defaultdict
-from functools import reduce
+from functools import partial, reduce
 from typing import TYPE_CHECKING, Mapping
+
+from django.utils import dateformat
 
 from sentry.app import tsdb
 from sentry.models import (
@@ -21,7 +23,6 @@ from sentry.tasks.reports.utils.build import (
 )
 from sentry.tasks.reports.utils.color import STATUS_TO_COLOR
 from sentry.tasks.reports.utils.constants import ONE_DAY
-from sentry.tasks.reports.utils.date import date_format
 from sentry.tasks.reports.utils.util import _to_interval, change
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -31,6 +32,8 @@ from sentry.utils.math import mean
 
 if TYPE_CHECKING:
     from sentry.tasks.reports import Report
+
+date_format = partial(dateformat.format, format_string="F jS, Y")
 
 
 def fetch_personal_statistics(start__stop, organization, user):
