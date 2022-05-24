@@ -67,6 +67,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
   const currentUserAction = getPrevBreadcrumb({
     crumbs: userActionCrumbs,
     targetTimestampMS: startTimestamp * 1000 + currentTime,
+    allowExact: true,
   });
 
   const closestUserAction =
@@ -74,6 +75,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
       ? getPrevBreadcrumb({
           crumbs: userActionCrumbs,
           targetTimestampMS: startTimestamp * 1000 + (currentHoverTime ?? 0),
+          allowExact: true,
         })
       : undefined;
 

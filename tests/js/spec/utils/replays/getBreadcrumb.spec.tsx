@@ -121,6 +121,17 @@ describe('getNextBreadcrumb', () => {
 
     expect(results?.id).toEqual(20);
   });
+
+  it('should return the crumb if timestamps exactly match and allowMatch is enabled', () => {
+    const crumbs = createCrumbs();
+    const exactCrumbTime = 8135;
+    const results = getNextBreadcrumb({
+      crumbs,
+      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
+    });
+
+    expect(results?.id).toEqual(20);
+  });
 });
 
 describe('getPrevBreadcrumb', () => {
@@ -173,5 +184,17 @@ describe('getPrevBreadcrumb', () => {
     });
 
     expect(results?.id).toEqual(3);
+  });
+
+  it('should return the crumb if timestamps exactly match and allowExact is enabled', () => {
+    const crumbs = createCrumbs();
+    const exactCrumbTime = 8135;
+    const results = getPrevBreadcrumb({
+      crumbs,
+      targetTimestampMS: START_TIMESTAMP_SEC * 1000 + exactCrumbTime,
+      allowExact: true,
+    });
+
+    expect(results?.id).toEqual(4);
   });
 });

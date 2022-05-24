@@ -3,14 +3,19 @@ import {Crumb} from 'sentry/types/breadcrumbs';
 export function getPrevBreadcrumb({
   crumbs,
   targetTimestampMS,
+  allowExact = false,
 }: {
   crumbs: Crumb[];
   targetTimestampMS: number;
+  allowExact?: boolean;
 }) {
   return crumbs.reduce<Crumb | undefined>((prev, crumb) => {
     const crumbTimestampMS = +new Date(crumb.timestamp || '');
 
-    if (crumbTimestampMS >= targetTimestampMS) {
+    if (
+      crumbTimestampMS > targetTimestampMS ||
+      (!allowExact && crumbTimestampMS === targetTimestampMS)
+    ) {
       return prev;
     }
     if (!prev || crumbTimestampMS > +new Date(prev.timestamp || '')) {
@@ -23,14 +28,19 @@ export function getPrevBreadcrumb({
 export function getNextBreadcrumb({
   crumbs,
   targetTimestampMS,
+  allowExact = false,
 }: {
   crumbs: Crumb[];
   targetTimestampMS: number;
+  allowExact?: boolean;
 }) {
   return crumbs.reduce<Crumb | undefined>((found, crumb) => {
     const crumbTimestampMS = +new Date(crumb.timestamp || '');
 
-    if (crumbTimestampMS <= targetTimestampMS) {
+    if (
+      crumbTimestampMS < targetTimestampMS ||
+      (!allowExact && crumbTimestampMS === targetTimestampMS)
+    ) {
       return found;
     }
     if (!found || crumbTimestampMS < +new Date(found.timestamp || '')) {
