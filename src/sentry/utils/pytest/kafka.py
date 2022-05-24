@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 
 import pytest
@@ -97,14 +96,6 @@ def kafka_topics_setter():
         settings.KAFKA_TOPICS[outcomes] = {"cluster": "default", "topic": outcomes}
 
     return set_test_kafka_settings
-
-
-@pytest.fixture
-def requires_kafka():
-    pytest.importorskip("confluent_kafka")
-
-    if "SENTRY_KAFKA_HOSTS" not in os.environ:
-        pytest.xfail("test requires SENTRY_KAFKA_HOSTS environment variable which is not set")
 
 
 @pytest.fixture(scope="session")
