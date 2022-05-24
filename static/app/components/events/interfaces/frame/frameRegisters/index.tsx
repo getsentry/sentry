@@ -16,7 +16,7 @@ type Props = {
   deviceArch?: string;
 };
 
-const CLIPPED_HEIGHT = 41;
+const CLIPPED_HEIGHT = 40;
 
 function FrameRegisters({registers, deviceArch}: Props) {
   const [isRevealed, setIsRevealed] = useState(false);
