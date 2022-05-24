@@ -1361,7 +1361,7 @@ SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
 
 # Which cache to use for debouncing cache updates to the projectconfig cache
 SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE = (
-    "sentry.relay.projectconfig_debounce_cache.redis.RedisProjectConfigDebounceCache"
+    "sentry.relay.projectconfig_debounce_cache.base.ProjectConfigDebounceCache"
 )
 SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS = {}
 

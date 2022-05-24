@@ -37,29 +37,23 @@ def redis_cache(monkeypatch):
 def debounce_cache(monkeypatch):
     debounce_cache = RedisProjectConfigDebounceCache()
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.mark_task_done", debounce_cache.mark_task_done
+        "sentry.relay.projectconfig_debounce_cache.mark_task_done",
+        debounce_cache.mark_task_done,
     )
     monkeypatch.setattr(
         "sentry.relay.projectconfig_debounce_cache.check_is_debounced",
         debounce_cache.check_is_debounced,
     )
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.debounce", debounce_cache.debounce
+        "sentry.relay.projectconfig_debounce_cache.debounce",
+        debounce_cache.debounce,
     )
     monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.is_debounced", debounce_cache.is_debounced
+        "sentry.relay.projectconfig_debounce_cache.is_debounced",
+        debounce_cache.is_debounced,
     )
 
     return debounce_cache
-
-
-@pytest.mark.django_db
-def test_no_cache(monkeypatch, default_project):
-    def apply_async(*a, **kw):
-        assert False
-
-    monkeypatch.setattr("sentry.tasks.relay.update_config_cache.apply_async", apply_async)
-    schedule_update_config_cache(generate=True, project_id=default_project.id)
 
 
 @pytest.fixture
@@ -72,9 +66,7 @@ def test_debounce(
     monkeypatch,
     default_project,
     default_organization,
-    redis_cache,
     debounce_cache,
-    always_update_cache,
 ):
     tasks = []
 
@@ -84,9 +76,11 @@ def test_debounce(
 
     monkeypatch.setattr("sentry.tasks.relay.update_config_cache.apply_async", apply_async)
 
+    debounce_cache.mark_task_done(None, default_project.id, None)
     schedule_update_config_cache(generate=True, project_id=default_project.id)
     schedule_update_config_cache(generate=False, project_id=default_project.id)
 
+    debounce_cache.mark_task_done(None, None, default_organization.id)
     schedule_update_config_cache(generate=True, organization_id=default_organization.id)
     schedule_update_config_cache(generate=False, organization_id=default_organization.id)
 
