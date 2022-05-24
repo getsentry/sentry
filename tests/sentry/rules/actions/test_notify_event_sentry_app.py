@@ -3,7 +3,7 @@ from unittest.mock import patch
 from exam import before
 from rest_framework import serializers
 
-from sentry.rules.actions.notify_event_sentry_app import NotifyEventSentryAppAction
+from sentry.rules.actions.sentry_apps import NotifyEventSentryAppAction
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.testutils.cases import RuleTestCase
 

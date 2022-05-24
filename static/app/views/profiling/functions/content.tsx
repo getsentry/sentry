@@ -16,15 +16,22 @@ import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearch
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Project} from 'sentry/types';
 import {FunctionCall, VersionedFunctionCalls} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
+import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {generateFlamegraphRouteWithQuery} from '../routes';
+
+import {ArrayLinks} from './arrayLinks';
+
 interface FunctionsContentProps {
   error: string | null;
   isLoading: boolean;
+  project: Project;
   version: string;
   versionedFunctions: VersionedFunctionCalls | null;
 }
@@ -56,9 +63,22 @@ function FunctionsContent(props: FunctionsContentProps) {
         p90Frequency: functionCall.frequency.p90,
         p95Frequency: functionCall.frequency.p95,
         p99Frequency: functionCall.frequency.p99,
+        profileIdToThreadId: Object.entries(functionCall.profile_id_to_thread_id).map(
+          ([profileId, threadId]) => {
+            return {
+              value: getShortEventId(profileId),
+              target: generateFlamegraphRouteWithQuery({
+                orgSlug: organization.slug,
+                projectSlug: props.project.slug,
+                profileId,
+                query: {tid: threadId.toString()},
+              }),
+            };
+          }
+        ),
       };
     });
-  }, [props.version, props.versionedFunctions]);
+  }, [organization.slug, props.project.slug, props.version, props.versionedFunctions]);
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
@@ -154,6 +174,8 @@ function ProfilingFunctionsTableCell({
           <PerformanceDuration nanoseconds={value} abbreviation />
         </NumberContainer>
       );
+    case 'profileIdToThreadId':
+      return <ArrayLinks items={value} />;
     default:
       return <Container>{value}</Container>;
   }
@@ -172,7 +194,8 @@ type TableColumnKey =
   | 'p75Frequency'
   | 'p90Frequency'
   | 'p95Frequency'
-  | 'p99Frequency';
+  | 'p99Frequency'
+  | 'profileIdToThreadId';
 
 type TableDataRow = Record<TableColumnKey, any>;
 
@@ -186,6 +209,7 @@ const COLUMN_ORDER: TableColumnKey[] = [
   'mainThreadPercent',
   'p75Frequency',
   'p99Frequency',
+  'profileIdToThreadId',
 ];
 
 // TODO: looks like these column names change depending on the platform?
@@ -253,6 +277,11 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   p99Frequency: {
     key: 'p99Frequency',
     name: t('P99 Frequency'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  profileIdToThreadId: {
+    key: 'profileIdToThreadId',
+    name: t('Example Profiles'),
     width: COL_WIDTH_UNDEFINED,
   },
 };

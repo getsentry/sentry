@@ -23,7 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {useProfileGroup} from './profileGroupProvider';
-import {generateFlamegraphRoute} from './routes';
+import {generateFlamegraphRouteWithQuery} from './routes';
 
 const RESULTS_PER_PAGE = 50;
 
@@ -212,13 +212,12 @@ function ProfilingFunctionsTableCell({
       return (
         <Container>
           <Link
-            to={
-              generateFlamegraphRoute({
-                orgSlug: orgId,
-                projectSlug: projectId,
-                profileId: eventId,
-              }) + `?tid=${dataRow.thread}`
-            }
+            to={generateFlamegraphRouteWithQuery({
+              orgSlug: orgId,
+              projectSlug: projectId,
+              profileId: eventId,
+              query: {tid: dataRow.thread},
+            })}
           >
             {value}
           </Link>

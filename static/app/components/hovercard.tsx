@@ -36,17 +36,13 @@ interface HovercardProps {
    */
   header?: React.ReactNode;
   /**
-   * Popper Modifiers
-   */
-  modifiers?: PopperProps['modifiers'];
-  /**
    * Offset for the arrow
    */
   offset?: string;
   /**
    * Position tooltip should take relative to the child element
    */
-  position?: PopperProps['placement'];
+  position?: PopperProps<[]>['placement'];
   /**
    * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
    */
@@ -77,7 +73,6 @@ function Hovercard({
   className,
   containerClassName,
   header,
-  modifiers,
   offset,
   show,
   showUnderline,
@@ -89,8 +84,6 @@ function Hovercard({
 }: HovercardProps): React.ReactElement {
   const [visible, setVisible] = useState(false);
 
-  const scheduleUpdateRef = useRef<(() => void) | null>(null);
-
   const tooltipId = useMemo(() => domId('hovercard-'), []);
 
   const showHoverCardTimeoutRef = useRef<number | undefined>(undefined);
@@ -100,14 +93,6 @@ function Hovercard({
       window.clearTimeout(showHoverCardTimeoutRef.current);
     };
   }, []);
-
-  useEffect(() => {
-    // We had a problem with popper not recalculating position when body/header changed while hovercard still opened.
-    // This can happen for example when showing a loading spinner in a hovercard and then changing it to the actual content once fetch finishes.
-    if (scheduleUpdateRef.current) {
-      scheduleUpdateRef.current();
-    }
-  }, [body, header]);
 
   const toggleHovercard = useCallback(
     (value: boolean) => {
@@ -122,19 +107,42 @@ function Hovercard({
     [displayTimeout]
   );
 
-  const popperModifiers = useMemo<PopperProps['modifiers']>(() => {
-    return {
-      hide: {
+  const modifiers = useMemo(
+    () => [
+      {
+        name: 'hide',
         enabled: false,
       },
-      preventOverflow: {
-        padding: 10,
-        enabled: true,
-        boundariesElement: 'viewport',
+      {
+        name: 'computeStyles',
+        options: {
+          // Using the `transform` attribute causes our borders to get blurry
+          // in chrome. See [0]. This just causes it to use `top` / `left`
+          // positions, which should be fine.
+          //
+          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+          gpuAcceleration: false,
+        },
       },
-      ...(modifiers || {}),
-    };
-  }, [modifiers]);
+      {
+        name: 'arrow',
+        options: {
+          // Set padding to avoid the arrow reaching the side of the tooltip
+          // and overflowing out of the rounded border
+          padding: 4,
+        },
+      },
+      {
+        name: 'preventOverflow',
+        enabled: true,
+        options: {
+          padding: 12,
+          altAxis: true,
+        },
+      },
+    ],
+    []
+  );
 
   // If show is not set, then visibility state is uncontrolled
   const isVisible = show === undefined ? visible : show;
@@ -170,11 +178,10 @@ function Hovercard({
         )}
       </Reference>
       {createPortal(
-        <Popper placement={position} modifiers={popperModifiers}>
-          {({ref, style, placement, arrowProps, scheduleUpdate}) => {
-            scheduleUpdateRef.current = scheduleUpdate;
-
-            // Element is not visible in neither controlled and uncontrolled state (show prop is not passed and card is not hovered)
+        <Popper placement={position} modifiers={modifiers}>
+          {({ref, style, placement, arrowProps}) => {
+            // Element is not visible in neither controlled and uncontrolled
+            // state (show prop is not passed and card is not hovered)
             if (!isVisible) {
               return null;
             }
@@ -185,10 +192,9 @@ function Hovercard({
             }
 
             return (
-              <HovercardContainer style={style}>
+              <HovercardContainer style={style} ref={ref}>
                 <SlideInAnimation visible={isVisible} placement={placement}>
                   <StyledHovercard
-                    ref={ref}
                     id={tooltipId}
                     placement={placement}
                     offset={offset}
@@ -227,7 +233,7 @@ function SlideInAnimation({
   children,
 }: {
   children: React.ReactNode;
-  placement: PopperProps['placement'];
+  placement: PopperProps<[]>['placement'];
   visible: boolean;
 }): React.ReactElement {
   const narrowedPlacement = getTipDirection(placement);
@@ -291,7 +297,7 @@ const HovercardContainer = styled('div')`
 `;
 
 type StyledHovercardProps = {
-  placement: PopperProps['placement'];
+  placement: PopperProps<[]>['placement'];
   offset?: string;
 };
 
@@ -339,7 +345,7 @@ const Body = styled('div')`
 export {Body};
 
 type HovercardArrowProps = {
-  placement: PopperProps['placement'];
+  placement: PopperProps<[]>['placement'];
   tipBorderColor?: string;
   tipColor?: string;
 };

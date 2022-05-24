@@ -104,6 +104,8 @@ function Menu({
       shouldCloseOnBlur,
       isDismissable,
       isOpen: true,
+      shouldCloseOnInteractOutside: target =>
+        target && triggerRef.current !== target && !triggerRef.current?.contains(target),
     },
     overlayRef
   );

@@ -20,6 +20,7 @@ from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.filter import get_filter
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
     resolve_tag_key,
@@ -174,7 +175,7 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
     raise InvalidParams("Unable to resolve conditions")
 
 
-def parse_query(query_string: str) -> Sequence[Condition]:
+def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
@@ -189,9 +190,33 @@ def parse_query(query_string: str) -> Sequence[Condition]:
             },
         )
         where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
+
+        # XXX(ahmed): Hack to accept project:slug filter as we are no longer maintaining the
+        # metrics API.
+        # Essentially prior to this change `project` slug query filters were treated as `tags[
+        # project]` filters, so I loop over the where list and when its found it popped out of
+        # the list and replaced with the appropriate `project_id` filter.
+        for idx, condition in enumerate(list(where)):
+            if isinstance(condition, Condition) and condition.lhs == Function(
+                "ifNull", parameters=[Column("tags[project]"), ""]
+            ):
+                del where[idx]
+
+                snuba_filter_conditions = get_filter(
+                    query_string, {"project_id": [p.id for p in projects]}
+                ).conditions
+                for snuba_condition in snuba_filter_conditions:
+                    if snuba_condition[0] == "project_id":
+                        where.append(
+                            Condition(
+                                Column(snuba_condition[0]),
+                                Op(snuba_condition[1]),
+                                snuba_condition[2],
+                            )
+                        )
+
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
-
     return where
 
 
@@ -210,7 +235,8 @@ class APIQueryDefinition:
         paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
-        self.parsed_query = parse_query(self.query) if self.query else None
+        self.parsed_query = parse_query(self.query, projects) if self.query else None
+
         raw_fields = query_params.getlist("field", [])
         self.groupby = query_params.getlist("groupBy", [])
 
