@@ -59,6 +59,7 @@ export type FunctionCall = {
   line: number;
   main_thread_percent: Record<string, number>;
   path: string;
+  profile_id_to_thread_id: Record<string, number>;
   profile_ids: string[];
   symbol: string;
   transaction_names;
