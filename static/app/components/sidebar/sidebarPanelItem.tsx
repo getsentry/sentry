@@ -1,22 +1,56 @@
 import styled from '@emotion/styled';
 
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import {t} from '../../locale';
-import ExternalLink from '../links/externalLink';
-
 type Props = {
+  /**
+   * Content rendered instaed the panel item
+   */
   children?: React.ReactNode;
+  /**
+   * The text for the CTA link at the bottom of the panel item
+   */
   cta?: string;
+  /**
+   * Has the item been seen? affects the styling of the panel item
+   */
   hasSeen?: boolean;
+  /**
+   * The URL to use for the CTA
+   */
   link?: string;
+  /**
+   * A message with muted styling which appears above the children content
+   */
   message?: React.ReactNode;
+  /**
+   * The title of the sidebar item
+   */
   title?: string;
+  /**
+   * Actions to the right of the title
+   */
+  titleAction?: React.ReactNode;
 };
 
-const SidebarPanelItem = ({hasSeen, title, message, link, cta, children}: Props) => (
+const SidebarPanelItem = ({
+  hasSeen,
+  title,
+  message,
+  link,
+  cta,
+  titleAction,
+  children,
+}: Props) => (
   <SidebarPanelItemRoot>
-    {title && <Title hasSeen={hasSeen}>{title}</Title>}
+    {title && (
+      <TitleWrapper>
+        <Title hasSeen={hasSeen}>{title}</Title>
+        {titleAction}
+      </TitleWrapper>
+    )}
     {message && <Message>{message}</Message>}
 
     {children}
@@ -37,6 +71,12 @@ const SidebarPanelItemRoot = styled('div')`
   background: ${p => p.theme.background};
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(3)};
+`;
+
+const TitleWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(1)};
 `;
 
 const Title = styled('div')<Pick<Props, 'hasSeen'>>`
