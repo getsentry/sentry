@@ -24,7 +24,7 @@ export type CommonSidebarProps = {
    */
   onShowPanel: () => void;
   /**
-   * THe orientation of the sidebar
+   * The orientation of the sidebar
    */
   orientation: SidebarOrientation;
 };
