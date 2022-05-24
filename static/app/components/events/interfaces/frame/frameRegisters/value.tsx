@@ -43,35 +43,36 @@ function Value({meta, value}: Props) {
 
   return (
     <InlinePre data-test-id="frame-registers-value">
-      <FixedWidth>
-        <AnnotatedText value={formatValue()} meta={meta} />
-      </FixedWidth>
-      <Tooltip title={REGISTER_VIEWS[state.view]}>
+      <AnnotatedText value={formatValue()} meta={meta} />
+      <StyledTooltip
+        title={REGISTER_VIEWS[state.view]}
+        containerDisplayMode="inline-flex"
+      >
         <Toggle
           onClick={() => {
             setState({view: (state.view + 1) % REGISTER_VIEWS.length});
           }}
           size="xs"
         />
-      </Tooltip>
+      </StyledTooltip>
     </InlinePre>
   );
 }
 
 export default Value;
 
-const InlinePre = styled('pre')`
-  margin: 0;
-  display: inline-grid;
-  grid-template-columns: 1fr max-content;
-  gap: ${space(0.5)};
+const StyledTooltip = styled(Tooltip)`
+  align-items: center;
 `;
 
-const FixedWidth = styled('span')`
-  width: 11em;
-  display: inline-block;
-  text-align: right;
-  margin-right: 1ex;
+const InlinePre = styled('pre')`
+  margin: 0;
+  padding: ${space(1)};
+  display: inline-grid;
+  grid-template-columns: 1fr max-content;
+  gap: ${space(1)};
+  text-align: left;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Toggle = styled(IconSliders)`

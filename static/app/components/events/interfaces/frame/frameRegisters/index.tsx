@@ -16,7 +16,7 @@ type Props = {
   deviceArch?: string;
 };
 
-const CLIPPED_HEIGHT = 45;
+const CLIPPED_HEIGHT = 41;
 
 function FrameRegisters({registers, deviceArch}: Props) {
   const [isRevealed, setIsRevealed] = useState(false);
@@ -111,6 +111,7 @@ const StyledClippedBox = styled(ClippedBox)<{
   margin-left: 0;
   margin-right: 0;
   padding: 0;
+  border-top: 0;
 
   ${p =>
     !p.isRevealed &&
