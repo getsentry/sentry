@@ -6,7 +6,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
   IconArrow,
@@ -20,6 +19,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {getNextBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 
 const SECOND = 1000;
 

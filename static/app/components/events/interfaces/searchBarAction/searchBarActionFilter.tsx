@@ -131,7 +131,10 @@ const StyledList = styled(List)`
   gap: 0;
 `;
 
-const StyledListItem = styled(ListItem)<{hasDescription: boolean; isChecked: boolean}>`
+const StyledListItem = styled(ListItem, {
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && !['hasDescription', 'isChecked'].includes(prop),
+})<{hasDescription: boolean; isChecked: boolean}>`
   display: grid;
   grid-template-columns: ${p =>
     p.hasDescription ? 'max-content 1fr max-content' : '1fr max-content'};
