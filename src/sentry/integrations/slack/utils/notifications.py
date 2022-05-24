@@ -43,9 +43,6 @@ def send_incident_alert_notification(
                 selected_incident=incident,
             )
         except Exception as e:
-            import traceback
-
-            traceback.print_exc()
             sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
