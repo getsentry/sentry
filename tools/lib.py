@@ -1,9 +1,11 @@
+import sys
+
 # Unbounded function cache.
 # lru_cache(maxsize=None) has a fast path since it doesn't care about bounds.
 # functools.cache is introduced in python 3.9, but is literally just what the shim is.
-try:
+if sys.version_info >= (3, 9):
     from functools import cache
-except ImportError:
+else:
     from functools import lru_cache as _lru_cache
 
     def cache(func):
