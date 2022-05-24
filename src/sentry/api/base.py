@@ -3,13 +3,11 @@ from __future__ import annotations
 import functools
 import logging
 import time
-from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, List, Mapping, Optional
+from typing import Any, List, Mapping, Optional
 
 import sentry_sdk
 from django.conf import settings
-from django.db.models import QuerySet
 from django.http import HttpResponse
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
@@ -52,26 +50,24 @@ audit_logger = logging.getLogger("sentry.audit.api")
 api_access_logger = logging.getLogger("sentry.access.api")
 
 
-@dataclass
-class PaginateArgs:
-    queryset: QuerySet
-    order_by: List[str]
-    serialization_func: Callable[[Any], Any]
-
-
 def query_params(serializer: Serializer, hidden: List[Serializer] = None):
     def wrapper(func):
         @functools.wraps(func)
         def view_func(self, request: Request, organization, *args, **kwargs):
+
             serialized_data = serializer(data=request.GET)
+
             hidden_serializer_data = [
                 hidden_serializer(data=request.GET) for hidden_serializer in hidden
             ]
             valid_hidden = [hidden_data.is_valid() for hidden_data in hidden_serializer_data]
+
             if serialized_data.is_valid() and all(valid_hidden):
+
                 all_hidden_data = []
                 for hidden_data in hidden_serializer_data:
                     all_hidden_data += hidden_data.validated_data.values()
+
                 return func(
                     self,
                     request,
@@ -80,6 +76,18 @@ def query_params(serializer: Serializer, hidden: List[Serializer] = None):
                     *serialized_data.validated_data.values(),
                     *all_hidden_data,
                     **kwargs,
+                )
+            else:
+                return Response(
+                    {
+                        "error": {
+                            "params": {
+                                parameter: {"message": error_messages[0]}
+                                for parameter, error_messages in serialized_data.errors.items()
+                            }
+                        }
+                    },
+                    status=400,
                 )
 
         return view_func
@@ -94,18 +102,21 @@ def responds_with(paginated=False, paginator_cls=None):
     def decorator(func):
         @functools.wraps(func)
         def view_func(self, request: Request, *args, **kwargs):
-            result = func(self, request, *args, **kwargs)
+            pagination_meta = {}
+            queryset = func(self, request, pagination_meta, *args, **kwargs)
 
-            if paginated and isinstance(result, PaginateArgs):
+            if paginated and not isinstance(queryset, Response):
+                assert "order_by" in pagination_meta
+                assert "on_results" in pagination_meta
                 return self.paginate(
                     request=request,
-                    queryset=result.queryset,
-                    order_by=result.order_by,
-                    on_results=result.serialization_func,
+                    queryset=queryset,
+                    order_by=pagination_meta["order_by"],
+                    on_results=pagination_meta["on_results"],
                     paginator_cls=paginator_cls,
                 )
 
-            return result
+            return queryset
 
         return view_func
 

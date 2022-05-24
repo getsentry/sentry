@@ -478,8 +478,20 @@ class ProjectWithOrganizationSerializer(ProjectSerializer):
 
 
 class OrganizationProjectQuerySerializer(drf_serializers.Serializer):
-    statsPeriod = drf_serializers.CharField(
-        help_text="Time period to gather statistics period for", default=None
+    statsPeriod = drf_serializers.ChoiceField(
+        choices=(
+            ("", None),
+            ("1h", "1h"),
+            ("24h", "24h"),
+            ("7d", "7d"),
+            ("14d", "14d"),
+            ("30d", "30d"),
+        ),
+        help_text="Time period to gather statistics period for",
+        default=None,
+        error_messages={
+            "invalid_choice": "Invalid stats_period. Valid choices are '', '24h', '14d', and '30d'"
+        },
     )
     transactionStats = drf_serializers.CharField(help_text="Transaction Stats", default=None)
     sessionStats = drf_serializers.CharField(help_text="Session Stats", default=None)
