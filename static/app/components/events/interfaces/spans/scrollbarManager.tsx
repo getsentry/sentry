@@ -1,4 +1,5 @@
 import {Component, createContext, createRef} from 'react';
+import throttle from 'lodash/throttle';
 
 import {
   clamp,
@@ -9,11 +10,12 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
+import {SpansInViewMap} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
-  markSpanInView: (spanId: string) => void;
-  markSpanOutOfView: (spanId: string, left: number) => void;
+  markSpanInView: (spanId: string, treeDepth: number) => void;
+  markSpanOutOfView: (spanId: string) => void;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
@@ -115,8 +117,7 @@ export class Provider extends Component<Props, State> {
   wheelTimeout: NodeJS.Timeout | null = null;
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
-  spansOutOfView: Map<string, number> = new Map();
-  animationInProgress: boolean = false;
+  spansInView: SpansInViewMap = new SpansInViewMap();
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -244,7 +245,11 @@ export class Provider extends Component<Props, State> {
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
   initialMouseClickX: number | undefined = undefined;
 
-  performScroll = (scrollLeft: number) => {
+  performScroll = (scrollLeft: number, isAnimated?: boolean) => {
+    if (isAnimated) {
+      this.startAnimation();
+    }
+
     const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
     const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
     interactiveLayerRefDOM.scrollLeft = scrollLeft;
@@ -276,6 +281,9 @@ export class Provider extends Component<Props, State> {
       spanBarDOM.style.transformOrigin = 'left';
     });
   };
+
+  // Throttle the scroll function to prevent jankiness in the auto-adjust animations when scrolling fast
+  throttledScroll = throttle(this.performScroll, 300, {trailing: true});
 
   onWheel = (deltaX: number) => {
     if (this.isDragging || !this.hasInteractiveLayer()) {
@@ -460,39 +468,28 @@ export class Provider extends Component<Props, State> {
     }
   };
 
-  markSpanOutOfView = (spanId: string, left: number) => {
-    if (this.spansOutOfView.has(spanId)) {
+  markSpanOutOfView = (spanId: string) => {
+    if (!this.spansInView.removeSpan(spanId)) {
       return;
     }
 
-    this.spansOutOfView.set(spanId, left);
-
-    if (!this.animationInProgress) {
-      this.startAnimation();
-      this.performScroll(left);
-    }
+    const left = this.spansInView.getScrollVal();
+    this.throttledScroll(left, true);
   };
 
-  markSpanInView = (spanId: string) => {
-    if (!this.spansOutOfView.has(spanId)) {
+  markSpanInView = (spanId: string, treeDepth: number) => {
+    if (!this.spansInView.addSpan(spanId, treeDepth)) {
       return;
     }
 
-    const left = this.spansOutOfView.get(spanId);
-    this.spansOutOfView.delete(spanId);
-
-    if (!this.animationInProgress) {
-      this.startAnimation();
-      this.performScroll(left!);
-    }
+    const left = this.spansInView.getScrollVal();
+    this.throttledScroll(left, true);
   };
 
   startAnimation() {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       spanBarDOM.style.transition = 'transform 0.3s';
     });
-
-    this.animationInProgress = true;
 
     if (this.animationTimeout) {
       clearTimeout(this.animationTimeout);
@@ -504,7 +501,6 @@ export class Provider extends Component<Props, State> {
       selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
         spanBarDOM.style.transition = '';
       });
-      this.animationInProgress = false;
       this.animationTimeout = null;
     }, 300);
   }
