@@ -1,7 +1,7 @@
 import responses
 from rest_framework import status
 
-from sentry.integrations.slack.endpoints.command import (
+from sentry.integrations.slack.webhooks.command import (
     CHANNEL_ALREADY_LINKED_MESSAGE,
     INSUFFICIENT_ROLE_MESSAGE,
     LINK_FROM_CHANNEL_MESSAGE,
@@ -11,7 +11,7 @@ from sentry.integrations.slack.endpoints.command import (
 from sentry.models import OrganizationIntegration
 from sentry.testutils.helpers import get_response_text, link_user
 from sentry.utils import json
-from tests.sentry.integrations.slack.endpoints.commands import SlackCommandsTest
+from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 OTHER_SLACK_ID = "UXXXXXXX2"
 

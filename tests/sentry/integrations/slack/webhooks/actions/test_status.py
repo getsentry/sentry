@@ -5,12 +5,9 @@ import responses
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.integrations.slack.endpoints.action import (
-    LINK_IDENTITY_MESSAGE,
-    UNLINK_IDENTITY_MESSAGE,
-)
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+from sentry.integrations.slack.webhooks.action import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
