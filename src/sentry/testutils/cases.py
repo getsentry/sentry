@@ -101,7 +101,6 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
-from sentry.rules import EventState
 from sentry.search.events.constants import (
     METRIC_FALSE_TAG_VALUE,
     METRIC_MISERABLE_TAG_KEY,
@@ -635,6 +634,8 @@ class RuleTestCase(TestCase):
         return self.rule_cls(**kwargs)
 
     def get_state(self, **kwargs):
+        from sentry.rules import EventState
+
         kwargs.setdefault("is_new", True)
         kwargs.setdefault("is_regression", True)
         kwargs.setdefault("is_new_group_environment", True)
@@ -1100,6 +1101,11 @@ class SessionMetricsTestCase(SnubaTestCase):
                     {"session.status": status},
                     session["duration"],
                 )
+
+        # Also extract user for non-init healthy sessions
+        # (see # https://github.com/getsentry/relay/pull/1275)
+        if session["seq"] > 0 and status in ("ok", "exited") and not user_is_nil:
+            self._push_metric(session, "set", SessionMRI.USER, {"session.status": "ok"}, user)
 
     def bulk_store_sessions(self, sessions):
         for session in sessions:
