@@ -259,6 +259,11 @@ const COLUMNS: TableColumnOrders = {
     name: t('Device Classification'),
     width: COL_WIDTH_UNDEFINED,
   },
+  device_os_version: {
+    key: 'device_os_version',
+    name: t('Device OS Version'),
+    width: COL_WIDTH_UNDEFINED,
+  },
 };
 
 const TableHeader = styled('div')`

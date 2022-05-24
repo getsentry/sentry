@@ -25,7 +25,7 @@ function ArrayLinks({items}: ArrayLinksProps) {
       {items.length > 1 &&
         expanded &&
         items
-          .slice(0, items.length - 1)
+          .slice(1, items.length)
           .map(item => <LinkedItem key={item.value} item={item} />)}
       {items.length > 1 ? (
         <ButtonContainer>

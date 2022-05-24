@@ -18,6 +18,7 @@ import {Project} from 'sentry/types';
 import {FunctionCall} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
+import {formatPercentage} from 'sentry/utils/formatters';
 import {generateFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -146,6 +147,8 @@ function ProfilingFunctionsTableCell({
           <Count value={value} />
         </NumberContainer>
       );
+    case 'mainThreadPercent':
+      return <NumberContainer>{formatPercentage(value)}</NumberContainer>;
     case 'p50Duration':
     case 'p75Duration':
     case 'p90Duration':
