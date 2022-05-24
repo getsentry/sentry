@@ -98,13 +98,13 @@ export function getCrashFreeRateSeries(
   return compact(
     intervals.map((interval, i) => {
       const intervalTotalSessions = groups.reduce(
-        (acc, group) => acc + group.series[field][i],
+        (acc, group) => acc + (group.series[field]?.[i] ?? 0),
         0
       );
 
       const intervalCrashedSessions =
         groups.find(group => group.by['session.status'] === SessionStatus.CRASHED)
-          ?.series[field][i] ?? 0;
+          ?.series[field]?.[i] ?? 0;
 
       const crashedSessionsPercent = percent(
         intervalCrashedSessions,
