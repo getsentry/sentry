@@ -1430,8 +1430,6 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         if scope.endswith("_24h"):
             stats_period = "24h"
 
-        metric_id = resolve(organization_id, SessionMRI.USER.value)
-
         granularity, stats_start, _ = get_rollup_starts_and_buckets(stats_period, now=now)
         where = [
             Condition(Column("timestamp"), Op.GTE, stats_start),
@@ -1465,7 +1463,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             match = Entity(EntityKey.MetricsCounters.value)
             mri = SessionMRI.SESSION
 
-        metric_id = resolve(organization_id, mri.value)  # Should not fail because shared string
+        metric_id = resolve(organization_id, mri.value)
         where.append(Condition(Column("metric_id"), Op.EQ, metric_id))
 
         query_columns = [
