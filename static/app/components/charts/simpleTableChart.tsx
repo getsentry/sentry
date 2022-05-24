@@ -121,8 +121,12 @@ function SimpleTableChart({
   }
 
   const meta = metadata ?? {};
+  const usingEvents = organization.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
   const columns = decodeColumnOrder(
-    fields.map((field, index) => ({field, alias: fieldAliases[index]}))
+    fields.map((field, index) => ({field, alias: fieldAliases[index]})),
+    usingEvents
   );
 
   return (

@@ -362,7 +362,8 @@ function WidgetViewerModal(props: Props) {
   let columnOrder = decodeColumnOrder(
     fields.map(field => ({
       field,
-    }))
+    })),
+    organization.features.includes('discover-frontend-use-events-endpoint')
   );
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
