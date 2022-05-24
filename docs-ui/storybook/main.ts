@@ -1,6 +1,6 @@
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
 
+/* eslint import/no-nodejs-modules:0 */
 import path from 'path';
 
 import {StorybookConfig} from '@storybook/core-common';
@@ -23,7 +23,6 @@ const config: StorybookConfig = {
     '@storybook/addon-links',
     'storybook-dark-mode',
   ],
-
   // For whatever reason the `babel` config override is not present in
   // storybooks StorybookConfig type.
   //
@@ -31,7 +30,6 @@ const config: StorybookConfig = {
   //
   // @ts-expect-error
   babel: babelConfig,
-
   // XXX(emotion11): Workaround because storybook still uses emotion 10
   // internally. See https://github.com/storybookjs/storybook/issues/13145
   webpackFinal: async webpackConf => ({
@@ -48,5 +46,7 @@ const config: StorybookConfig = {
     },
   }),
 };
-
 export default config;
+export const core = {
+  builder: 'webpack5',
+};
