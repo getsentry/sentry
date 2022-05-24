@@ -31,7 +31,6 @@ const UrlCopyInput = styled(TextCopyInput)<{disabled?: boolean}>`
           pointer-events: none;
           background: ${p.theme.backgroundSecondary};
           color: ${p.theme.gray300};
-          border: 1px solid ${p.theme.border};
           cursor: not-allowed;
         `
         : ''}
