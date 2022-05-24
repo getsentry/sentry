@@ -1480,7 +1480,7 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
         )
         assert response.data["detail"] == (
             "This limit is too high for queries that requests a preflight query. "
-            "Please choose a lower limit"
+            "Please choose a limit below 100"
         )
 
     @freeze_time(MOCK_DATETIME)
@@ -1758,8 +1758,8 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
         )
 
         assert response.data["detail"] == (
-            "Passing an offset value greater than 0 when performing a preflight "
-            "query is not permitted"
+            "Passing an offset value greater than 0 when ordering by release.timestamp "
+            "is not permitted"
         )
 
     @freeze_time(MOCK_DATETIME)
