@@ -12,6 +12,8 @@ export type DoMetricsRequestOptions = {
   environment?: Readonly<string[]>;
   groupBy?: string[];
   includeAllArgs?: boolean;
+  includeSeries?: number;
+  includeTotals?: number;
   interval?: string;
   limit?: number;
   orderBy?: string;
@@ -31,6 +33,8 @@ export const doMetricsRequest = (
     cursor,
     environment,
     groupBy,
+    includeSeries,
+    includeTotals,
     interval,
     limit,
     orderBy,
@@ -53,6 +57,8 @@ export const doMetricsRequest = (
       end,
       environment,
       groupBy: groupBy?.filter(g => !!g),
+      includeSeries,
+      includeTotals,
       interval: interval || getInterval({start, end, period: statsPeriod}),
       query: query || undefined,
       per_page: limit,
