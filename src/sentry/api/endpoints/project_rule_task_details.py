@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
-from sentry.integrations.slack import tasks
+from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models import Rule, RuleStatus
 
 
@@ -18,7 +18,7 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
         Return details of the rule if the task is successful
 
         """
-        client = tasks.RedisRuleStatus(task_uuid)
+        client = RedisRuleStatus(task_uuid)
         result = client.get_value()
 
         status = result["status"]
