@@ -63,7 +63,7 @@ class PagerDutyActionHandlerTest(FireTest, TestCase):
         assert data["payload"]["severity"] == "critical"
         assert data["payload"]["source"] == str(incident.identifier)
         assert data["payload"]["custom_details"] == {
-            "details": "1000 events in the last 10 minutes\nFilter: level:error"
+            "details": "1000 events in the last 10 minutes"
         }
         assert data["links"][0]["text"] == f"Critical: {alert_rule.name}"
         assert data["links"][0]["href"] == "http://testserver/organizations/baz/alerts/1/"

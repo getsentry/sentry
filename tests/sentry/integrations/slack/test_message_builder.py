@@ -165,7 +165,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             ),
-            "text": "0 events in the last 10 minutes\nFilter: level:error",
+            "text": "0 events in the last 10 minutes",
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
@@ -206,7 +206,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             ),
-            "text": f"{metric_value} events in the last 10 minutes\nFilter: level:error",
+            "text": f"{metric_value} events in the last 10 minutes",
             "fields": [],
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
@@ -267,9 +267,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "blocks": [
                 {
                     "text": {
-                        "text": f"<{link}|*{title}*>  \n"
-                        "0 events in the last 10 minutes\n"
-                        "Filter: level:error",
+                        "text": f"<{link}|*{title}*>  \n",
                         "type": "mrkdwn",
                     },
                     "type": "section",
@@ -299,9 +297,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
             "blocks": [
                 {
                     "text": {
-                        "text": f"<{link}|*{title}*>  \n"
-                        "0 events in the last 10 minutes\n"
-                        "Filter: level:error",
+                        "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes",
                         "type": "mrkdwn",
                     },
                     "type": "section",
@@ -337,8 +333,7 @@ class BuildMetricAlertAttachmentTest(TestCase):
                 {
                     "text": {
                         "text": f"<{link}?alert={incident.identifier}|*{title}*>  \n"
-                        f"{metric_value} events in the last 10 minutes\n"
-                        "Filter: level:error",
+                        f"{metric_value} events in the last 10 minutes",
                         "type": "mrkdwn",
                     },
                     "type": "section",

@@ -33,7 +33,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "123 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "123 events in the last 10 minutes"
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
         assert (
@@ -77,7 +77,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule.name
         )  # Pulls from trigger, not incident
         assert data["status"] == "Critical"  # Should pull from the action/trigger.
-        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "4 events in the last 10 minutes"
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
         assert (
@@ -89,7 +89,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         data = incident_attachment_info(incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "4 events in the last 10 minutes"
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
         assert (
@@ -101,7 +101,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         data = incident_attachment_info(incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "4 events in the last 10 minutes"
         assert data["ts"] == date_started
         assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
         assert (

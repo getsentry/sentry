@@ -72,8 +72,6 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
         "time_window": time_window,
         "interval": interval,
     }
-    if alert_rule.snuba_query.query != "":
-        text += f"\nFilter: {alert_rule.snuba_query.query}"
 
     return text
 
@@ -169,7 +167,7 @@ def metric_alert_attachment_info(
             metric_value = get_metric_count_from_incident(incident_info)
 
     text = ""
-    if metric_value is not None:
+    if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
         text = get_incident_status_text(alert_rule, metric_value)
 
     date_started = None
