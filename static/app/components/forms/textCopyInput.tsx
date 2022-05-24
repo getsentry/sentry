@@ -44,6 +44,7 @@ type Props = {
    */
   children: string;
   className?: string;
+  disabled?: boolean;
   onCopy?: (value: string, event: React.MouseEvent) => void;
   /**
    * Always show the ending of a long overflowing text in input
@@ -93,7 +94,7 @@ class TextCopyInput extends Component<Props> {
   };
 
   render() {
-    const {className, style, children, rtl} = this.props;
+    const {className, disabled, style, children, rtl} = this.props;
 
     /**
      * We are using direction: rtl; to always show the ending of a long overflowing text in input.
@@ -110,6 +111,7 @@ class TextCopyInput extends Component<Props> {
         <OverflowContainer>
           <StyledInput
             readOnly
+            disabled={disabled}
             ref={this.textRef}
             style={style}
             value={inputValue}
@@ -118,7 +120,11 @@ class TextCopyInput extends Component<Props> {
           />
         </OverflowContainer>
         <Clipboard hideUnsupported value={children}>
-          <StyledCopyButton type="button" onClick={this.handleCopyClick}>
+          <StyledCopyButton
+            type="button"
+            disabled={disabled}
+            onClick={this.handleCopyClick}
+          >
             <IconCopy />
           </StyledCopyButton>
         </Clipboard>
