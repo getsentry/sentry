@@ -125,12 +125,11 @@ export default function WizardField({
             AlertWizardRuleTemplates,
             template =>
               template.aggregate === aggregate &&
-              (template.dataset === dataset || (
-                organization.features.includes('alert-crash-free-metrics')
-                && (template.aggregate === SessionsAggregate.CRASH_FREE_SESSIONS
-                  || template.aggregate === SessionsAggregate.CRASH_FREE_USERS)
-                && (dataset === Dataset.METRICS)
-              )) &&
+              (template.dataset === dataset ||
+                (organization.features.includes('alert-crash-free-metrics') &&
+                  (template.aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
+                    template.aggregate === SessionsAggregate.CRASH_FREE_USERS) &&
+                  dataset === Dataset.METRICS)) &&
               eventTypes.includes(template.eventTypes)
           ) || 'num_errors';
 
