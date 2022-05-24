@@ -103,6 +103,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             public_key=public_key,
             update_reason="project_config.post_v3",
         )
+        return None
 
     def _post_by_key(self, request: Request, full_config_requested):
         public_keys = request.relay_request_data.get("publicKeys")
