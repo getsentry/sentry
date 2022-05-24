@@ -465,13 +465,13 @@ def run_sessions_query(
             if query.offset and query.offset > 0:
                 raise InvalidParams(
                     f"Passing an offset value greater than 0 when ordering by {raw_orderby} is "
-                    "not permitted"
+                    f"not permitted"
                 )
 
             if query.limit is not None:
                 if query.limit > MAX_POSTGRES_LIMIT:
                     raise InvalidParams(
-                        "This limit is too high for queries that requests a preflight query. "
+                        f"This limit is too high for queries that requests a preflight query. "
                         f"Please choose a limit below {MAX_POSTGRES_LIMIT}"
                     )
                 limit = Limit(query.limit)
