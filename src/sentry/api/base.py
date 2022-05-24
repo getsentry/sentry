@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional
 
 import sentry_sdk
 from django.conf import settings
@@ -12,6 +12,7 @@ from django.http import HttpResponse
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
+from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -23,6 +24,7 @@ from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
+from sentry.scmode import ServerComponentMode
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -463,3 +465,23 @@ class ReleaseAnalyticsMixin:
             project_ids=project_ids,
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
+
+
+class _InactiveEndpoint(Endpoint):
+    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
+        return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+
+
+def mode_limited(mode: ServerComponentMode) -> Callable[[type], type]:
+    """Decorate an endpoint class that should be active only in one mode."""
+
+    def decorator(decorated_class: type) -> type:
+        if not issubclass(decorated_class, Endpoint):
+            raise ValueError("`@mode_limited` must decorate an Endpoint class")
+
+        if mode.is_active():
+            return decorated_class
+        else:
+            return type(decorated_class.__name__, (_InactiveEndpoint,), {})
+
+    return decorator
