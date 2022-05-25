@@ -38,8 +38,6 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.models import Integration
-from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
-from sentry.sentry_metrics.utils import resolve_tag_key, resolve_weak
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -1656,7 +1654,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
         )
 
     def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
-        org_id = self.organization.id
         self.email_action_handler.reset_mock()
         if time_delta is None:
             time_delta = timedelta()
@@ -1679,9 +1676,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
                 else:
                     denominator = count
                     numerator = int(value * denominator)
-            session_status = resolve_tag_key(org_id, "session.status")
-            tag_value_init = resolve_weak(org_id, "init")
-            tag_value_crashed = resolve_weak(org_id, "crashed")
             processor.process_update(
                 {
                     "subscription_id": subscription.subscription_id
@@ -1689,11 +1683,10 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
                     else uuid4().hex,
                     "values": {
                         "data": [
-                            {"project_id": 8, session_status: tag_value_init, "value": denominator},
                             {
                                 "project_id": 8,
-                                session_status: tag_value_crashed,
-                                "value": numerator,
+                                "count": denominator,
+                                "crashed": numerator,
                             },
                         ]
                     },
@@ -2120,37 +2113,6 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
         self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
-
-    def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(self):
-        MetricsKeyIndexer.objects.all().delete()
-        rule = self.crash_rate_alert_rule
-        subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
-        processor = SubscriptionProcessor(subscription)
-        processor.process_update(
-            {
-                "subscription_id": subscription.subscription_id,
-                "values": {
-                    # 1001 is a random int that doesn't map to anything in the indexer
-                    "data": [{resolve_tag_key(self.organization.id, "session.status"): 1001}]
-                },
-                "timestamp": timezone.now(),
-                "interval": 1,
-                "partition": 1,
-                "offset": 1,
-            }
-        )
-        self.assert_no_active_incident(rule)
-        self.entity_subscription_metrics.incr.assert_has_calls(
-            [
-                call("incidents.entity_subscription.metric_index_not_found"),
-            ]
-        )
-        self.metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.ignore_update_no_session_data"),
-                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
-        )
 
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):
