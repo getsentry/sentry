@@ -1,5 +1,5 @@
 from sentry.rules import rules
 
-from .notify_action import PagerDutyNotifyServiceAction
+from .actions import PagerDutyNotifyServiceAction
 
 rules.add(PagerDutyNotifyServiceAction)

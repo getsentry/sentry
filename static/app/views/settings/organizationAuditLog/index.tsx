@@ -63,6 +63,10 @@ const EVENT_TYPES = [
   'trial.started',
   'plan.changed',
   'plan.cancelled',
+  'sentry-app.add',
+  'sentry-app.remove',
+  'sentry-app.install',
+  'sentry-app.uninstall',
 ];
 
 type Props = RouteComponentProps<{orgId: string}, {}> &

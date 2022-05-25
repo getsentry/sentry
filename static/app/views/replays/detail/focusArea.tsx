@@ -6,6 +6,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TagsTable from 'sentry/components/tagsTable';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import useActiveTabFromLocation from 'sentry/utils/replays/hooks/useActiveTabFromLocation';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -14,7 +15,6 @@ import Console from './console';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 import Trace from './trace';
-import useActiveTabFromLocation from './useActiveTabFromLocation';
 
 type Props = {
   replay: ReplayReader | null;
