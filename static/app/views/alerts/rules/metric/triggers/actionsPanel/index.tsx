@@ -147,20 +147,20 @@ class ActionsPanel extends PureComponent<Props> {
       return null;
     }
     return (
-          <MarginlessAlert
-            type="info"
-            showIcon
-            trailingItems={
-              <Button
-                href={"https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"}
-                size="xsmall"
-              >
-                {t('Learn More')}
-              </Button>
-            }
+      <MarginlessAlert
+        type="info"
+        showIcon
+        trailingItems={
+          <Button
+            href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+            size="xsmall"
           >
-            {t('Having rate limiting problems? Enter a channel or user ID.')}
-          </MarginlessAlert>
+            {t('Learn More')}
+          </Button>
+        }
+      >
+        {t('Having rate limiting problems? Enter a channel or user ID.')}
+      </MarginlessAlert>
     );
   }
 
