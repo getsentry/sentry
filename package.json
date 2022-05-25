@@ -177,7 +177,7 @@
     "jest-environment-jsdom": "^28.1.0",
     "jest-fetch-mock": "^3.0.3",
     "jest-junit": "13.2.0",
-    "jest-sentry-environment": "1.7.1",
+    "jest-sentry-environment": "3.0.0",
     "postcss-jsx": "0.36.4",
     "postcss-syntax": "0.36.2",
     "react-refresh": "0.13.0",
