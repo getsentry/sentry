@@ -391,3 +391,6 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # contents are a list of project IDs to message types to be randomly assigned
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
 register("kafka.send-project-events-to-random-partitions", default=[])
+
+# Rate to project_configs_v3
+register("relay.project-config-v3-enable", default=0.0)
