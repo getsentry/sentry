@@ -28,7 +28,7 @@ import EventView from 'sentry/utils/discover/eventView';
 type RouteParams = {
   groupId: string;
   orgId: string;
-  tagKey: string;
+  tagKey?: string;
 };
 
 type Props = {
@@ -95,7 +95,7 @@ class GroupTagValues extends AsyncComponent<
       const issuesQuery = tagValue.query || `${key}:"${tagValue.value}"`;
       const discoverView = EventView.fromSavedQuery({
         id: undefined,
-        name: key,
+        name: key ?? '',
         fields: [
           ...(key !== undefined ? [key] : []),
           ...discoverFields.filter(field => field !== key),

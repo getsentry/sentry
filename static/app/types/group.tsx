@@ -79,13 +79,13 @@ export type TagCollection = Record<string, Tag>;
 export type TagValue = {
   count: number;
   firstSeen: string;
-  key: string;
   lastSeen: string;
   name: string;
   value: string;
   email?: string;
   identifier?: string;
   ipAddress?: string;
+  key?: string;
   query?: string;
   username?: string;
 } & AvatarUser;
