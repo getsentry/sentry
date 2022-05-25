@@ -18,7 +18,7 @@ function withPageFilters<P extends InjectedPageFiltersProps>(
   type Props = Omit<P, keyof InjectedPageFiltersProps> & InjectedPageFiltersProps;
 
   const WithPageFilters: React.FC<Props> = props => {
-    const {selection, isGlobalSelectionReady} = usePageFilters();
+    const {selection, isReady: isGlobalSelectionReady} = usePageFilters();
 
     const selectionProps = {
       selection,
