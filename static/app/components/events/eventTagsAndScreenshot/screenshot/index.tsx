@@ -186,6 +186,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 const StyledImageVisualization = styled(ImageVisualization)`
   width: 100%;
   z-index: 1;
+  border: 0;
 `;
 
 const StyledButtonbar = styled(ButtonBar)`

@@ -34,11 +34,10 @@ const Wrapper = styled('div')`
   position: relative;
   min-width: 0;
 
-  :not(:last-child) {
-    margin-right: ${space(3)};
-  }
-
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    :not(:last-child) {
+      margin-right: ${space(3)};
+    }
     max-width: 25%;
     border: 0;
     padding: 0px 0px 0px 42px;

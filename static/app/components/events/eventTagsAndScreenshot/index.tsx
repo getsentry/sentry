@@ -43,8 +43,12 @@ function EventTagsAndScreenshots({
   const showTags = !!tags.length || hasContext;
 
   return (
-    <Wrapper isBorderless={isBorderless}>
-      {!isShare && !!screenshot && (
+    <Wrapper
+      isBorderless={isBorderless}
+      showScreenshot={showScreenshot}
+      showTags={showTags}
+    >
+      {showScreenshot && (
         <Screenshot
           organization={organization}
           event={event}
@@ -54,7 +58,7 @@ function EventTagsAndScreenshots({
         />
       )}
       {showScreenshot && showTags && <Divider />}
-      {(!!tags.length || hasContext) && (
+      {showTags && (
         <Tags
           organization={organization}
           event={event}
@@ -69,7 +73,11 @@ function EventTagsAndScreenshots({
 
 export default EventTagsAndScreenshots;
 
-const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
+const Wrapper = styled(DataSection)<{
+  isBorderless: boolean;
+  showScreenshot: boolean;
+  showTags: boolean;
+}>`
   > * {
     :first-child,
     :last-child {
@@ -80,7 +88,8 @@ const Wrapper = styled(DataSection)<{isBorderless: boolean}>`
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: grid;
-    grid-template-columns: max-content auto 1fr;
+    grid-template-columns: ${p =>
+      p.showScreenshot && p.showTags ? 'max-content auto 1fr' : '1fr'};
     padding-top: 0;
     padding-bottom: 0;
     && {
