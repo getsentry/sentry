@@ -3,7 +3,7 @@ export type SidebarOrientation = 'top' | 'left';
 export enum SidebarPanelKey {
   Broadcasts = 'broadcasts',
   OnboardingWizard = 'todos',
-  StatusUpdate = 'statusupdate',
+  ServiceIncidents = 'statusupdate',
 }
 
 export type CommonSidebarProps = {
