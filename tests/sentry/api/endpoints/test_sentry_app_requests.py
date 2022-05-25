@@ -316,8 +316,8 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
 
         url = reverse("sentry-api-0-sentry-app-requests", args=[self.published_app.slug])
         made_up_org_response = self.client.get(f"{url}?organizationSlug=madeUpOrg", format="json")
-        assert made_up_org_response.status_code == 200
-        assert len(made_up_org_response.data) == 0
+        assert made_up_org_response.status_code == 400
+        assert made_up_org_response.data["detail"] == "Invalid organization."
 
         org_response = self.client.get(f"{url}?organizationSlug={self.org.slug}", format="json")
         assert org_response.status_code == 200

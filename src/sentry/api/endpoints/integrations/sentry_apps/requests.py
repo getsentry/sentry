@@ -22,13 +22,10 @@ def filter_by_date(request: Mapping[str, Any], start: float, end: float) -> bool
     return start <= timestamp <= end
 
 
-def filter_by_org_slug(org_slug: str) -> bool:
-    if org_slug:
-        try:
-            Organization.objects.filter(slug=org_slug).get()
-        except Organization.DoesNotExist:
-            return False
-    return True
+def filter_by_organization(request: Mapping[str, Any], organization: Organization) -> bool:
+    if not organization:
+        return True
+    return request["organization_id"] == organization.id
 
 
 @dataclass
@@ -80,11 +77,17 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
             kwargs["errors_only"] = True
 
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
+        organization = None
+        if org_slug:
+            try:
+                organization = Organization.objects.get(slug=org_slug)
+            except Organization.DoesNotExist:
+                return Response({"detail": "Invalid organization."}, status=400)
 
         filtered_requests = [
             BufferedRequest(id=i, data=req)
             for i, req in enumerate(buffer.get_requests(**kwargs))
-            if filter_by_date(req, start, end) and filter_by_org_slug(org_slug)
+            if filter_by_date(req, start, end) and filter_by_organization(req, organization)
         ]
 
         return Response(serialize(filtered_requests, request.user, RequestSerializer(sentry_app)))
