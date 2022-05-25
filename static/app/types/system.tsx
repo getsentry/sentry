@@ -151,6 +151,7 @@ export interface Config {
     ip_address: string;
     isStaff: boolean;
   };
+  validateSUForm: boolean;
   version: {
     build: string;
     current: string;

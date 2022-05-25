@@ -49,10 +49,9 @@ describe('ReleaseActions', function () {
 
     userEvent.click(screen.getByLabelText('Actions'));
 
-    const actions = screen.getAllByTestId('menu-item');
-    const archiveAction = actions.at(0);
+    const archiveAction = screen.getByTestId('archive');
 
-    expect(actions.length).toBe(1);
+    expect(archiveAction).toBeInTheDocument();
     expect(archiveAction).toHaveTextContent('Archive');
 
     userEvent.click(archiveAction);
@@ -98,10 +97,9 @@ describe('ReleaseActions', function () {
 
     userEvent.click(screen.getByLabelText('Actions'));
 
-    const actions = screen.getAllByTestId('menu-item');
-    const restoreAction = actions.at(0);
+    const restoreAction = screen.getByTestId('restore');
 
-    expect(actions.length).toBe(1);
+    expect(restoreAction).toBeInTheDocument(1);
     expect(restoreAction).toHaveTextContent('Restore');
 
     userEvent.click(restoreAction);

@@ -2,7 +2,6 @@ from django.utils.encoding import force_text, python_2_unicode_compatible
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
-from sentry.utils.compat import map
 
 
 @python_2_unicode_compatible

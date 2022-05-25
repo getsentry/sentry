@@ -8,18 +8,21 @@ type Props = {
   router?: InjectedRouter;
 };
 
-// This is react-router v4 <Redirect to="path/" /> component to allow things
-// to be declarative.
+/**
+ * Like react-router v4+'s <Redirect to="path/" />, this component allows
+ * redirects to be declarative.
+ */
 function Redirect({to, router}: Props) {
-  // Redirect on mount.
   const navigate = useNavigate();
+
+  // Redirect on mount.
   useEffect(() => {
     if (router) {
       router.replace(to);
     } else {
       navigate(to, {replace: true});
     }
-  }, []);
+  }, [navigate, router, to]);
 
   return null;
 }

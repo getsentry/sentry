@@ -7,6 +7,7 @@ from sentry.api.endpoints.organization_codeowners_associations import (
 from sentry.api.endpoints.organization_profiling_profiles import (
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingProfilesEndpoint,
+    OrganizationProfilingTransactionsEndpoint,
 )
 from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from sentry.api.endpoints.project_transaction_threshold_override import (
@@ -222,6 +223,7 @@ from .endpoints.organization_environments import OrganizationEnvironmentsEndpoin
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
 from .endpoints.organization_events import (
+    OrganizationEventsEndpoint,
     OrganizationEventsGeoEndpoint,
     OrganizationEventsV2Endpoint,
 )
@@ -1089,6 +1091,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-eventsv2",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/events/$",
+                    OrganizationEventsEndpoint.as_view(),
+                    name="sentry-api-0-organization-events",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/events/(?P<project_slug>[^\/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-event-details",
@@ -1596,6 +1603,11 @@ urlpatterns = [
                                 r"^filters/$",
                                 OrganizationProfilingFiltersEndpoint.as_view(),
                                 name="sentry-api-0-organization-profiling-filters",
+                            ),
+                            url(
+                                r"^transactions/$",
+                                OrganizationProfilingTransactionsEndpoint.as_view(),
+                                name="sentry-api-0-organization-profiling-transactions",
                             ),
                         ],
                     ),

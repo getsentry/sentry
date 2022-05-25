@@ -1,14 +1,18 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization, PageFilters, Project, RequestState} from 'sentry/types';
 import {VersionedFunctionCalls} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
@@ -17,8 +21,6 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
-
-import {ProfilingHeader} from '../header';
 
 import {FunctionsContent} from './content';
 
@@ -103,14 +105,42 @@ function FunctionsPage(props: Props) {
           )}
           {project && !badParams && (
             <Fragment>
-              <ProfilingHeader
-                page="functions"
-                transaction={transaction}
-                version={version}
-                project={project}
-              />
+              <Layout.Header>
+                <Layout.HeaderContent>
+                  <Breadcrumb
+                    location={props.location}
+                    organization={organization}
+                    trails={[
+                      {type: 'landing'},
+                      {
+                        type: 'functions',
+                        payload: {
+                          projectSlug: project.slug,
+                          transaction,
+                          version,
+                        },
+                      },
+                    ]}
+                  />
+                  <Layout.Title>
+                    <Title>
+                      <IdBadge
+                        project={project}
+                        avatarSize={28}
+                        hideName
+                        avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                      />
+                      {tct('[transaction] \u2014 [version]', {
+                        transaction,
+                        version,
+                      })}
+                    </Title>
+                  </Layout.Title>
+                </Layout.HeaderContent>
+              </Layout.Header>
               <Layout.Body>
                 <FunctionsContent
+                  project={project}
                   isLoading={requestState.type === 'loading'}
                   error={requestState.type === 'errored' ? requestState.error : null}
                   version={version}
@@ -146,10 +176,15 @@ function fetchFunctions(
       method: 'GET',
       includeAllArgs: false,
       query: {
-        query: `transaction_name:${transaction} version:"${version}"`,
+        query: `transaction_name:"${transaction}" version:"${version}"`,
       },
     }
   );
 }
+
+const Title = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+`;
 
 export default withPageFilters(FunctionsPage);

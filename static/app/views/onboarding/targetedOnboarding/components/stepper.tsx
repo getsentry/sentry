@@ -1,18 +1,16 @@
-import {useRef} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
+import space from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 
-const StepperWrapper = styled('div')`
-  border-radius: 4px;
-  position: relative;
-  overflow: hidden;
-`;
 const StepperContainer = styled('div')`
   display: flex;
   flex-direction: row;
-  gap: 8px;
+  gap: ${space(1)};
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
 `;
 
 const StepperIndicator = styled('span')<{clickable?: boolean}>`
@@ -31,8 +29,9 @@ const StepperTransitionIndicator = styled(motion.span)`
 StepperTransitionIndicator.defaultProps = {
   layout: true,
   transition: testableTransition({
-    type: 'tween',
-    duration: 0.3,
+    type: 'spring',
+    stiffness: 175,
+    damping: 18,
   }),
 };
 
@@ -42,13 +41,12 @@ type Props = React.HTMLAttributes<HTMLDivElement> & {
   onClick: (stepIndex: number) => void;
 };
 
-export default function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
-  const stepperContainerRef = useRef<HTMLDivElement>(null);
-
+function Stepper({currentStepIndex, numSteps, onClick, ...props}: Props) {
   return (
-    <StepperWrapper {...props}>
-      <StepperContainer ref={stepperContainerRef}>
-        {Array.from(Array(numSteps).keys()).map((_, i) => (
+    <StepperContainer {...props}>
+      {Array(numSteps)
+        .fill(0)
+        .map((_, i) => (
           <StepperIndicator
             key={i}
             onClick={() => i < currentStepIndex && onClick(i)}
@@ -59,7 +57,8 @@ export default function Stepper({currentStepIndex, numSteps, onClick, ...props}:
             )}
           </StepperIndicator>
         ))}
-      </StepperContainer>
-    </StepperWrapper>
+    </StepperContainer>
   );
 }
+
+export default Stepper;

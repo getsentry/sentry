@@ -308,6 +308,7 @@ export type GroupActivityAssigned = GroupActivityBase & {
     assignee: string;
     assigneeType: string;
     user: Team | User;
+    assigneeEmail?: string;
   };
   type: GroupActivityType.ASSIGNED;
 };
@@ -529,6 +530,7 @@ export type UserReport = {
 export type KeyValueListData = {
   key: string;
   subject: string;
+  actionButton?: React.ReactNode;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;

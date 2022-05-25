@@ -44,7 +44,6 @@ describe('VisualizationStep', function () {
     ...initializeOrg(),
     organization: {
       features: [
-        'new-widget-builder-experience',
         'dashboards-edit',
         'global-views',
         'new-widget-builder-experience-design',
@@ -139,41 +138,5 @@ describe('VisualizationStep', function () {
     );
 
     await screen.findByText(/we've automatically adjusted your results/i);
-  });
-
-  it('displays a deprecated tag next to the top 5 display option', async function () {
-    mockRequests(organization.slug);
-
-    render(
-      <WidgetBuilder
-        route={{}}
-        router={router}
-        routes={router.routes}
-        routeParams={router.params}
-        location={router.location}
-        dashboard={{
-          id: 'new',
-          title: 'Dashboard',
-          createdBy: undefined,
-          dateCreated: '2020-01-01T00:00:00.000Z',
-          widgets: [],
-        }}
-        onSave={jest.fn()}
-        params={{
-          orgId: organization.slug,
-          dashboardId: 'new',
-        }}
-      />,
-      {
-        context: routerContext,
-        organization,
-      }
-    );
-
-    expect(screen.queryByText('deprecated')).not.toBeInTheDocument();
-    userEvent.click(await screen.findByText('Table'));
-    screen.getByText('deprecated');
-    userEvent.click(screen.getByText('Top 5 Events'));
-    screen.getByText('deprecated');
   });
 });

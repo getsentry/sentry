@@ -1,6 +1,7 @@
 import json  # noqa
 import os
 
+import markupsafe
 from flask import Flask, redirect, request, session, url_for
 from flask_oauth import OAuth
 
@@ -42,20 +43,23 @@ def index():
             url_for("login")
         )
 
-    from urllib2 import Request, URLError, urlopen
+    from urllib.error import HTTPError, URLError
+    from urllib.request import Request, urlopen
 
     headers = {"Authorization": f"Bearer {access_token}"}
     req = Request(f"{BASE_URL}/api/0/organizations/", None, headers)
     try:
         res = urlopen(req)
-    except URLError as e:
+    except HTTPError as e:
         if e.code == 401:
             # Unauthorized - bad token
             session.pop("access_token", None)
             return redirect(url_for("login"))
-        return f"{e}\n{e.read()}"
+        return markupsafe.Markup("{}\n{}").format(e.code, e.reason)
+    except URLError as e:
+        return markupsafe.Markup("{}").format(e)
 
-    return ("<h1>Hi, {}!</h1>" "<pre>{}</pre>").format(
+    return markupsafe.Markup("<h1>Hi, {}!</h1>" "<pre>{}</pre>").format(
         json.loads(session["user"])["email"], json.dumps(json.loads(res.read()), indent=2)
     )
 
@@ -70,9 +74,10 @@ def login():
 @sentry.authorized_handler
 def authorized(resp):
     if "error" in request.args:
-        return ("<h1>Error</h1>" "<p>{}</p>" '<p><a href="{}">Try again</a></p>').format(
-            request.args["error"], url_for("login")
-        )
+        return markupsafe.Markup(
+            "<h1>Error</h1>" "<p>{}</p>" '<p><a href="{}">Try again</a></p>'
+        ).format(request.args["error"], url_for("login"))
+
     access_token = resp["access_token"]
     session["access_token"] = access_token
     session["user"] = json.dumps(resp["user"])

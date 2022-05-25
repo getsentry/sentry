@@ -1,17 +1,25 @@
 import time
+from unittest import mock
 
 from django.db.models import F
 from django.utils import timezone
 
 from sentry.models import GroupRelease, Project, ReleaseProjectEnvironment, Repository
+from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
+from sentry.release_health.release_monitor.sessions import SessionReleaseMonitorBackend
 from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils import SessionMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class TestReleaseMonitor(TestCase, SnubaTestCase):
+class BaseTestReleaseMonitor:
+    backend_class = None
+
     def setUp(self):
         super().setUp()
+        backend = self.backend_class()
+        self.backend = mock.patch("sentry.release_health.tasks.release_monitor", backend)
+        self.backend.__enter__()
         self.project = self.create_project()
         self.project1 = self.create_project()
         self.project2 = self.create_project()
@@ -87,6 +95,9 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         GroupRelease.objects.create(
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )
+
+    def tearDown(self):
+        self.backend.__exit__(None, None, None)
 
     def test_simple(self):
         self.bulk_store_sessions([self.build_session(project_id=self.project1) for _ in range(11)])
@@ -506,3 +517,23 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         process_projects_with_sessions(no_release_project.organization_id, [no_release_project.id])
         no_release_project.refresh_from_db()
         assert no_release_project.flags.has_releases
+
+    def test_no_env(self):
+        no_env_project = self.create_project()
+        assert not no_env_project.flags.has_releases
+
+        # If environment is None, we shouldn't make any changes
+        self.bulk_store_sessions(
+            [self.build_session(project_id=no_env_project, release=self.release2, environment=None)]
+        )
+        process_projects_with_sessions(no_env_project.organization_id, [no_env_project.id])
+        no_env_project.refresh_from_db()
+        assert not no_env_project.flags.has_releases
+
+
+class TestSessionReleaseMonitor(BaseTestReleaseMonitor, TestCase, SnubaTestCase):
+    backend_class = SessionReleaseMonitorBackend
+
+
+class TestMetricReleaseMonitor(BaseTestReleaseMonitor, TestCase, SessionMetricsTestCase):
+    backend_class = MetricReleaseMonitorBackend

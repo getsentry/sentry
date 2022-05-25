@@ -26,6 +26,25 @@ class TestGetRateLimitValue(TestCase):
             "DELETE", RateLimitCategory.USER, rate_limit_config
         ) == get_default_rate_limits_for_group("default", RateLimitCategory.USER)
 
+    def test_cli_group_rate_limit_values(self):
+        """Ensure that the CLI Group has the correct rate limit defaults set"""
+
+        class TestEndpoint(Endpoint):
+            rate_limits = RateLimitConfig(group="CLI")
+
+        _test_endpoint = TestEndpoint.as_view()
+        rate_limit_config = get_rate_limit_config(_test_endpoint.view_class)
+
+        assert get_rate_limit_value(
+            "GET", RateLimitCategory.IP, rate_limit_config
+        ) == get_default_rate_limits_for_group("CLI", RateLimitCategory.IP)
+        assert get_rate_limit_value(
+            "POST", RateLimitCategory.ORGANIZATION, rate_limit_config
+        ) == get_default_rate_limits_for_group("CLI", RateLimitCategory.ORGANIZATION)
+        assert get_rate_limit_value(
+            "DELETE", RateLimitCategory.USER, rate_limit_config
+        ) == get_default_rate_limits_for_group("CLI", RateLimitCategory.USER)
+
     def test_override_rate_limit(self):
         """Override one or more of the default rate limits."""
 

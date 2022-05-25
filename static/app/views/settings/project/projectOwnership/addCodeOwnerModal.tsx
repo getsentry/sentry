@@ -1,10 +1,10 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
+import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import SelectField from 'sentry/components/forms/selectField';
@@ -23,33 +23,52 @@ import {
   RepositoryProjectPathConfig,
 } from 'sentry/types';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
-import withApi from 'sentry/utils/withApi';
 
 type Props = {
-  api: Client;
-  codeMappings: RepositoryProjectPathConfig[];
-  integrations: Integration[];
-  onSave: (data: CodeOwner) => void;
   organization: Organization;
   project: Project;
-} & ModalRenderProps;
+  onSave?: (data: CodeOwner) => void;
+} & ModalRenderProps &
+  AsyncComponent['props'];
 
 type State = {
   codeMappingId: string | null;
+  codeMappings: RepositoryProjectPathConfig[];
   codeownersFile: CodeownersFile | null;
   error: boolean;
   errorJSON: {raw?: string} | null;
+  integrations: Integration[];
   isLoading: boolean;
-};
+} & AsyncComponent['state'];
 
-class AddCodeOwnerModal extends Component<Props, State> {
-  state: State = {
-    codeownersFile: null,
-    codeMappingId: null,
-    isLoading: false,
-    error: false,
-    errorJSON: null,
-  };
+class AddCodeOwnerModal extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      codeownersFile: null,
+      codeMappingId: null,
+      isLoading: false,
+      error: false,
+      errorJSON: null,
+    };
+  }
+
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization, project} = this.props;
+    const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
+      [
+        'codeMappings',
+        `/organizations/${organization.slug}/code-mappings/`,
+        {query: {project: project.id}},
+      ],
+      [
+        'integrations',
+        `/organizations/${organization.slug}/integrations/`,
+        {query: {features: ['codeowners']}},
+      ],
+    ];
+    return endpoints;
+  }
 
   fetchFile = async (codeMappingId: string) => {
     const {organization} = this.props;
@@ -61,7 +80,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
       isLoading: true,
     });
     try {
-      const data: CodeownersFile = await this.props.api.requestPromise(
+      const data: CodeownersFile = await this.api.requestPromise(
         `/organizations/${organization.slug}/code-mappings/${codeMappingId}/codeowners/`,
         {
           method: 'GET',
@@ -74,8 +93,8 @@ class AddCodeOwnerModal extends Component<Props, State> {
   };
 
   addFile = async () => {
-    const {organization, project, codeMappings} = this.props;
-    const {codeownersFile, codeMappingId} = this.state;
+    const {organization, project} = this.props;
+    const {codeownersFile, codeMappingId, codeMappings} = this.state;
 
     if (codeownersFile) {
       const postData: {
@@ -87,7 +106,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
       };
 
       try {
-        const data = await this.props.api.requestPromise(
+        const data = await this.api.requestPromise(
           `/projects/${organization.slug}/${project.slug}/codeowners/`,
           {
             method: 'POST',
@@ -109,7 +128,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
   };
 
   handleAddedFile(data: CodeOwner) {
-    this.props.onSave(data);
+    this.props.onSave && this.props.onSave(data);
     this.props.closeModal();
   }
 
@@ -128,8 +147,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
   }
 
   errorMessage(baseUrl) {
-    const {errorJSON, codeMappingId} = this.state;
-    const {codeMappings} = this.props;
+    const {errorJSON, codeMappingId, codeMappings} = this.state;
     const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
     const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
     const errActors = errorJSON?.raw?.[0].split('\n').map((el, i) => <p key={i}>{el}</p>);
@@ -189,37 +207,50 @@ class AddCodeOwnerModal extends Component<Props, State> {
     );
   }
 
-  render() {
+  renderBody() {
     const {Header, Body, Footer} = this.props;
-    const {codeownersFile, error, errorJSON} = this.state;
-    const {codeMappings, integrations, organization} = this.props;
+    const {codeownersFile, error, errorJSON, codeMappings, integrations} = this.state;
+    const {organization} = this.props;
     const baseUrl = `/settings/${organization.slug}/integrations`;
 
     return (
       <Fragment>
         <Header closeButton>{t('Add Code Owner File')}</Header>
         <Body>
-          {!codeMappings.length && (
-            <Fragment>
-              <div>
-                {t(
-                  "Configure code mapping to add your CODEOWNERS file. Select the integration you'd like to use for mapping:"
-                )}
-              </div>
-              <IntegrationsList>
-                {integrations.map(integration => (
-                  <Button
-                    key={integration.id}
-                    type="button"
-                    to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
-                  >
-                    {getIntegrationIcon(integration.provider.key)}
-                    <IntegrationName>{integration.name}</IntegrationName>
+          {!codeMappings.length ? (
+            !integrations.length ? (
+              <Fragment>
+                <div>
+                  {t('Install a GitHub or GitLab integration to use this feature.')}
+                </div>
+                <Container style={{paddingTop: space(2)}}>
+                  <Button type="button" priority="primary" size="small" to={baseUrl}>
+                    Setup Integration
                   </Button>
-                ))}
-              </IntegrationsList>
-            </Fragment>
-          )}
+                </Container>
+              </Fragment>
+            ) : (
+              <Fragment>
+                <div>
+                  {t(
+                    "Configure code mapping to add your CODEOWNERS file. Select the integration you'd like to use for mapping:"
+                  )}
+                </div>
+                <IntegrationsList>
+                  {integrations.map(integration => (
+                    <Button
+                      key={integration.id}
+                      type="button"
+                      to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
+                    >
+                      {getIntegrationIcon(integration.provider.key)}
+                      <IntegrationName>{integration.name}</IntegrationName>
+                    </Button>
+                  ))}
+                </IntegrationsList>
+              </Fragment>
+            )
+          ) : null}
           {codeMappings.length > 0 && (
             <Form
               apiMethod="POST"
@@ -263,7 +294,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
   }
 }
 
-export default withApi(AddCodeOwnerModal);
+export default AddCodeOwnerModal;
 export {AddCodeOwnerModal};
 
 const StyledSelectField = styled(SelectField)`

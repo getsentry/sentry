@@ -94,9 +94,10 @@ const isSortEqualToField = (
 const fieldToSort = (
   field: Field,
   tableMeta: MetaType | undefined,
-  kind?: 'desc' | 'asc'
+  kind?: 'desc' | 'asc',
+  useFunctionFormat?: boolean
 ): Sort | undefined => {
-  const sortKey = getSortKeyFromField(field, tableMeta);
+  const sortKey = getSortKeyFromField(field, tableMeta, useFunctionFormat);
 
   if (!sortKey) {
     return void 0;
@@ -108,9 +109,13 @@ const fieldToSort = (
   };
 };
 
-function getSortKeyFromField(field: Field, tableMeta?: MetaType): string | null {
-  const alias = getAggregateAlias(field.field);
-  return getSortField(alias, tableMeta);
+function getSortKeyFromField(
+  field: Field,
+  tableMeta?: MetaType,
+  useFunctionFormat?: boolean
+): string | null {
+  const fieldString = useFunctionFormat ? field.field : getAggregateAlias(field.field);
+  return getSortField(fieldString, tableMeta);
 }
 
 export function isFieldSortable(field: Field, tableMeta?: MetaType): boolean {
@@ -234,7 +239,9 @@ const decodeTeams = (location: Location): ('myteams' | number)[] => {
     return [];
   }
   const value = location.query.team;
-  return Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)];
+  return (Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)]).filter(
+    team => team === 'myteams' || !isNaN(team)
+  );
 };
 
 const decodeProjects = (location: Location): number[] => {
@@ -1199,7 +1206,12 @@ class EventView {
     return this.sorts.find(sort => isSortEqualToField(sort, field, tableMeta));
   }
 
-  sortOnField(field: Field, tableMeta: MetaType, kind?: 'desc' | 'asc'): EventView {
+  sortOnField(
+    field: Field,
+    tableMeta: MetaType,
+    kind?: 'desc' | 'asc',
+    useFunctionFormat?: boolean
+  ): EventView {
     // check if field can be sorted
     if (!isFieldSortable(field, tableMeta)) {
       return this;
@@ -1216,8 +1228,14 @@ class EventView {
 
       const sorts = [...newEventView.sorts];
       sorts[needleIndex] = kind
-        ? setSortOrder(currentSort, kind)
-        : reverseSort(currentSort);
+        ? setSortOrder(
+            {...currentSort, ...(useFunctionFormat ? {field: field.field} : {})},
+            kind
+          )
+        : reverseSort({
+            ...currentSort,
+            ...(useFunctionFormat ? {field: field.field} : {}),
+          });
 
       newEventView.sorts = sorts;
 
@@ -1228,7 +1246,7 @@ class EventView {
     const newEventView = this.clone();
 
     // invariant: this is not falsey, since sortKey exists
-    const sort = fieldToSort(field, tableMeta, kind)!;
+    const sort = fieldToSort(field, tableMeta, kind, useFunctionFormat)!;
 
     newEventView.sorts = [sort];
 

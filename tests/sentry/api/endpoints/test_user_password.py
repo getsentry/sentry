@@ -18,7 +18,7 @@ class UserPasswordTest(APITestCase):
 
     def test_change_password(self):
         old_password = self.user.password
-        self.get_valid_response(
+        self.get_success_response(
             "me",
             status_code=204,
             **{
@@ -37,7 +37,7 @@ class UserPasswordTest(APITestCase):
         mock.Mock(return_value=[MinimumLengthValidator(min_length=6)]),
     )
     def test_password_too_short(self):
-        self.get_valid_response(
+        self.get_error_response(
             "me",
             status_code=400,
             **{
@@ -48,11 +48,11 @@ class UserPasswordTest(APITestCase):
         )
 
     def test_no_password(self):
-        self.get_valid_response("me", status_code=400, **{"password": "helloworld!"})
-        self.get_valid_response("me", status_code=400)
+        self.get_error_response("me", status_code=400, **{"password": "helloworld!"})
+        self.get_error_response("me", status_code=400)
 
     def test_require_current_password(self):
-        self.get_valid_response(
+        self.get_error_response(
             "me",
             status_code=400,
             **{
@@ -63,7 +63,7 @@ class UserPasswordTest(APITestCase):
         )
 
     def test_verifies_mismatch_password(self):
-        self.get_valid_response(
+        self.get_error_response(
             "me",
             status_code=400,
             **{
@@ -77,7 +77,7 @@ class UserPasswordTest(APITestCase):
         user = self.create_user(email="new@example.com", is_managed=True)
         self.login_as(user)
 
-        self.get_valid_response(
+        self.get_error_response(
             user.id,
             status_code=400,
             **{"passwordNew": "newpassword", "passwordVerify": "newpassword"},
@@ -89,7 +89,7 @@ class UserPasswordTest(APITestCase):
         user.save()
         self.login_as(user)
 
-        self.get_valid_response(
+        self.get_error_response(
             user.id,
             status_code=400,
             **{"passwordNew": "newpassword", "passwordVerify": "newpassword"},
@@ -99,7 +99,7 @@ class UserPasswordTest(APITestCase):
         user = self.create_user(email="new@example.com", is_superuser=False)
         self.login_as(user)
 
-        self.get_valid_response(
+        self.get_error_response(
             self.user.id,
             status_code=403,
             **{
@@ -113,7 +113,7 @@ class UserPasswordTest(APITestCase):
         user = self.create_user(email="new@example.com", is_superuser=True)
         self.login_as(user, superuser=True)
 
-        self.get_valid_response(
+        self.get_success_response(
             self.user.id,
             status_code=204,
             **{

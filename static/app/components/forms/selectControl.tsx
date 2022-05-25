@@ -183,11 +183,13 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         boxShadow: 'none',
         cursor: 'initial',
         minHeight: 'none',
-        ...(!isSearchable && {
-          height: 0,
-          padding: 0,
-          overflow: 'hidden',
-        }),
+        ...(isSearchable
+          ? {marginTop: 1}
+          : {
+              height: 0,
+              padding: 0,
+              overflow: 'hidden',
+            }),
       }),
     }),
 

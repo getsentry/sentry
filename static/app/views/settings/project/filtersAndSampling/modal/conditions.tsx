@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -7,21 +7,32 @@ import TextareaField from 'sentry/components/forms/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Project, Tag} from 'sentry/types';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
+import useApi from 'sentry/utils/useApi';
 
-import {getInnerNameLabel} from '../utils';
+import {
+  addCustomTagPrefix,
+  getInnerNameLabel,
+  isCustomTagName,
+  stripCustomTagPrefix,
+} from '../utils';
 
-import AutoComplete from './autoComplete';
 import LegacyBrowsers from './legacyBrowsers';
-import {getMatchFieldPlaceholder} from './utils';
+import {TagKeyAutocomplete} from './tagKeyAutocomplete';
+import {TagValueAutocomplete} from './tagValueAutocomplete';
+import {getMatchFieldPlaceholder, getTagKey} from './utils';
 
 type Condition = {
-  category: DynamicSamplingInnerName;
+  category: DynamicSamplingInnerName | string; // string is used for custom tags
   legacyBrowsers?: Array<LegacyBrowser>;
   match?: string;
 };
 
-type Props = Pick<React.ComponentProps<typeof AutoComplete>, 'orgSlug' | 'projectId'> & {
+type Props = Pick<
+  React.ComponentProps<typeof TagValueAutocomplete>,
+  'orgSlug' | 'projectId'
+> & {
   conditions: Condition[];
   onChange: <T extends keyof Condition>(
     index: number,
@@ -29,47 +40,90 @@ type Props = Pick<React.ComponentProps<typeof AutoComplete>, 'orgSlug' | 'projec
     value: Condition[T]
   ) => void;
   onDelete: (index: number) => void;
+  projectSlug: Project['slug'];
 };
 
-function Conditions({conditions, orgSlug, projectId, onDelete, onChange}: Props) {
+function Conditions({
+  conditions,
+  orgSlug,
+  projectId,
+  projectSlug,
+  onDelete,
+  onChange,
+}: Props) {
+  const api = useApi();
+  const [tags, setTags] = useState<Tag[]>([]);
+
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        const response = await api.requestPromise(
+          `/projects/${orgSlug}/${projectSlug}/tags/`
+        );
+        setTags(response);
+      } catch {
+        // Do nothing, just autocomplete won't suggest any results
+      }
+    }
+
+    fetchTags();
+  }, [api, orgSlug, projectSlug]);
+
   return (
     <Fragment>
-      {conditions.map(({category, match, legacyBrowsers}, index) => {
+      {conditions.map((condition, index) => {
+        const {category, match, legacyBrowsers} = condition;
         const displayLegacyBrowsers =
           category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
+        const isCustomTag = isCustomTagName(category);
 
         const isBooleanField =
-          [
-            DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS,
-            DynamicSamplingInnerName.EVENT_LOCALHOST,
-            DynamicSamplingInnerName.EVENT_WEB_CRAWLERS,
-          ].includes(category) || displayLegacyBrowsers;
+          category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+          category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
+          category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS;
+        displayLegacyBrowsers;
 
         const isAutoCompleteField =
           category === DynamicSamplingInnerName.EVENT_ENVIRONMENT ||
           category === DynamicSamplingInnerName.EVENT_RELEASE ||
           category === DynamicSamplingInnerName.EVENT_TRANSACTION ||
           category === DynamicSamplingInnerName.EVENT_OS_NAME ||
-          category === DynamicSamplingInnerName.EVENT_OS_VERSION ||
           category === DynamicSamplingInnerName.EVENT_DEVICE_FAMILY ||
           category === DynamicSamplingInnerName.EVENT_DEVICE_NAME ||
           category === DynamicSamplingInnerName.TRACE_ENVIRONMENT ||
           category === DynamicSamplingInnerName.TRACE_RELEASE ||
-          category === DynamicSamplingInnerName.TRACE_TRANSACTION;
+          category === DynamicSamplingInnerName.TRACE_TRANSACTION ||
+          isCustomTag;
 
         return (
           <ConditionWrapper key={index}>
             <LeftCell>
-              <span>
-                {getInnerNameLabel(category)}
-                <FieldRequiredBadge />
-              </span>
+              {isCustomTag ? (
+                <TagKeyAutocomplete
+                  tags={tags}
+                  onChange={value =>
+                    onChange(index, 'category', addCustomTagPrefix(value))
+                  }
+                  value={stripCustomTagPrefix(category)}
+                  disabledOptions={conditions
+                    .filter(
+                      cond => isCustomTagName(cond.category) && cond.category !== category
+                    )
+                    .map(cond => stripCustomTagPrefix(cond.category))}
+                />
+              ) : (
+                <span>
+                  {getInnerNameLabel(category)}
+                  <FieldRequiredBadge />
+                </span>
+              )}
             </LeftCell>
             <CenterCell>
               {!isBooleanField &&
                 (isAutoCompleteField ? (
-                  <AutoComplete
+                  <TagValueAutocomplete
                     category={category}
+                    tagKey={getTagKey(condition)}
                     orgSlug={orgSlug}
                     projectId={projectId}
                     value={match}
@@ -117,7 +171,7 @@ export default Conditions;
 
 const ConditionWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: flex-start;
   padding: ${space(1)} ${space(2)};
   :not(:last-child) {
@@ -125,7 +179,7 @@ const ConditionWrapper = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 0.6fr minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(0, 0.6fr) minmax(0, 1fr) max-content;
   }
 `;
 
@@ -136,7 +190,7 @@ const Cell = styled('div')`
 `;
 
 const LeftCell = styled(Cell)`
-  padding-right: ${space(2)};
+  padding-right: ${space(1)};
   line-height: 16px;
 `;
 

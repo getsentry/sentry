@@ -279,12 +279,10 @@ describe('ReleasesList', () => {
       )
     );
 
-    const sortDropdown = await screen.findByText('Sort By');
-    const sortByOptions = within(sortDropdown.closest('div')).getAllByTestId('menu-item');
+    userEvent.click(screen.getByText('Sort By'));
 
-    const dateCreatedOption = sortByOptions.at(0);
-    expect(sortByOptions).toHaveLength(7);
-    expect(dateCreatedOption).toHaveTextContent('Date Created');
+    const dateCreatedOption = screen.getByText('Date Created');
+    expect(dateCreatedOption).toBeInTheDocument();
 
     userEvent.click(dateCreatedOption);
 
@@ -316,25 +314,24 @@ describe('ReleasesList', () => {
     expect(sortDropdown.parentElement).toHaveTextContent('Sort ByDate Created');
   });
 
-  it('display the right Crash Free column', async () => {
+  it('display the right Crash Free column', () => {
     render(<ReleasesList {...props} />, {
       context: routerContext,
       organization,
     });
-    const displayDropdown = await screen.findByText('Display');
 
-    expect(displayDropdown.parentElement).toHaveTextContent('DisplaySessions');
+    // Find and click on the display menu's trigger button
+    const statusTriggerButton = screen.getByRole('button', {
+      name: 'Display Sessions',
+    });
+    expect(statusTriggerButton).toBeInTheDocument();
+    userEvent.click(statusTriggerButton);
 
-    const displayOptions = within(displayDropdown.closest('div')).getAllByTestId(
-      'menu-item'
-    );
-    expect(displayOptions).toHaveLength(2);
-
-    const crashFreeSessionsOption = displayOptions.at(0);
-    expect(crashFreeSessionsOption).toHaveTextContent('Sessions');
-
-    const crashFreeUsersOption = displayOptions.at(1);
-    expect(crashFreeUsersOption).toHaveTextContent('Users');
+    // Expect to have 2 options in the status dropdown
+    const crashFreeSessionsOption = screen.getAllByText('Sessions')[1];
+    const crashFreeUsersOption = screen.getByText('Users');
+    expect(crashFreeSessionsOption).toBeInTheDocument();
+    expect(crashFreeUsersOption).toBeInTheDocument();
 
     userEvent.click(crashFreeUsersOption);
 
@@ -370,21 +367,18 @@ describe('ReleasesList', () => {
       await screen.findByText('These releases have been archived.')
     ).toBeInTheDocument();
 
-    const statusDropdown = screen.getByText('Status');
+    // Find and click on the status menu's trigger button
+    const statusTriggerButton = screen.getByRole('button', {
+      name: 'Status Archived',
+    });
+    expect(statusTriggerButton).toBeInTheDocument();
+    userEvent.click(statusTriggerButton);
 
-    expect(statusDropdown.parentElement).toHaveTextContent('StatusArchived');
-
-    const statusOptions = within(statusDropdown.closest('div')).getAllByTestId(
-      'menu-item'
-    );
-    expect(statusOptions).toHaveLength(2);
-
-    const statusActiveOption = statusOptions.at(0);
-    const statusArchivedOption = statusOptions.at(1);
-
-    expect(statusOptions).toHaveLength(2);
-    expect(statusActiveOption).toHaveTextContent('Active');
-    expect(statusArchivedOption).toHaveTextContent('Archived');
+    // Expect to have 2 options in the status dropdown
+    const statusActiveOption = screen.getByText('Active');
+    let statusArchivedOption = screen.getAllByText('Archived')[1];
+    expect(statusActiveOption).toBeInTheDocument();
+    expect(statusArchivedOption).toBeInTheDocument();
 
     userEvent.click(statusActiveOption);
     expect(router.push).toHaveBeenLastCalledWith({
@@ -393,6 +387,8 @@ describe('ReleasesList', () => {
       }),
     });
 
+    userEvent.click(statusTriggerButton);
+    statusArchivedOption = screen.getAllByText('Archived')[1];
     userEvent.click(statusArchivedOption);
     expect(router.push).toHaveBeenLastCalledWith({
       query: expect.objectContaining({

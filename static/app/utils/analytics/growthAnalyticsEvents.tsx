@@ -28,6 +28,11 @@ type SampleEventParam = {
   platform?: PlatformKey;
 };
 
+type IntegrationParam = {
+  all_selected_integrations?: string;
+  integration?: string;
+};
+
 type InviteRequestParam = {
   invite_status: string;
   member_id: number;
@@ -54,6 +59,9 @@ export type GrowthEventParameters = {
   };
   'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;
+  'growth.clicked_sidebar': {
+    item: string;
+  };
   'growth.demo_click_docs': {};
   'growth.demo_click_get_started': {cta?: string};
   'growth.demo_click_request_demo': {};
@@ -73,6 +81,11 @@ export type GrowthEventParameters = {
   'growth.onboarding_clicked_skip': {source?: string};
   'growth.onboarding_load_choose_platform': {};
   'growth.onboarding_quick_start_cta': SampleEventParam;
+  'growth.onboarding_quick_start_cta_integration': IntegrationParam;
+  'growth.onboarding_set_up_your_integrations': {
+    integration_count: number;
+    integrations: string;
+  };
   'growth.onboarding_set_up_your_project': PlatformParam;
   'growth.onboarding_set_up_your_projects': {platform_count: number; platforms: string};
   'growth.onboarding_start_onboarding': {
@@ -135,11 +148,14 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.demo_click_get_started': 'Growth: Demo Click Get Started',
   'growth.demo_click_docs': 'Growth: Demo Click Docs',
   'growth.demo_click_request_demo': 'Growth: Demo Click Request Demo',
+  'growth.clicked_sidebar': 'Growth: Clicked Sidebar',
   'growth.onboarding_load_choose_platform':
     'Growth: Onboarding Load Choose Platform Page',
   'growth.onboarding_set_up_your_project': 'Growth: Onboarding Click Set Up Your Project',
   'growth.onboarding_set_up_your_projects':
     'Growth: Onboarding Click Set Up Your Projects',
+  'growth.onboarding_set_up_your_integrations':
+    'Growth: Onboarding Click Set Up Your Integrations',
   'growth.select_platform': 'Growth: Onboarding Choose Platform',
   'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
@@ -154,6 +170,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.onboarding_clicked_setup_integration_later':
     'Growth: Onboarding Clicked Setup Integration Later',
   'growth.onboarding_quick_start_cta': 'Growth: Quick Start Onboarding CTA',
+  'growth.onboarding_quick_start_cta_integration':
+    'Growth: Quick Start Onboarding Integration CTA',
   'invite_request.approved': 'Invite Request Approved',
   'invite_request.denied': 'Invite Request Denied',
   'growth.demo_modal_clicked_signup': 'Growth: Demo Modal Clicked Signup',

@@ -55,6 +55,7 @@ def query(
     conditions=None,
     functions_acl=None,
     dry_run=False,
+    transform_alias_to_input_format=False,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -83,7 +84,19 @@ def query(
             sentry_sdk.set_tag("query.mep_compatible", True)
             return {}
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
-        results = discover.transform_results(results, metrics_query.function_alias_map, {}, None)
+        translated_columns = {}
+        function_alias_map = metrics_query.function_alias_map
+        if transform_alias_to_input_format:
+            translated_columns = {
+                column: function_details.field
+                for column, function_details in metrics_query.function_alias_map.items()
+            }
+            function_alias_map = {
+                translated_columns.get(column): function_details
+                for column, function_details in metrics_query.function_alias_map.items()
+            }
+
+        results = discover.transform_results(results, function_alias_map, translated_columns, None)
         results = resolve_tags(results, metrics_query)
         results["meta"]["isMetricsData"] = True
         sentry_sdk.set_tag("performance.dataset", "metrics")

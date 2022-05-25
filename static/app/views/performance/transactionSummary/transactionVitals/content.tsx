@@ -6,9 +6,9 @@ import {Location} from 'history';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -99,29 +99,21 @@ function VitalsContent(props: Props) {
                       fields={eventView.fields}
                       onSearch={handleSearch}
                     />
-                    <DropdownControl
-                      buttonProps={{prefix: t('Outliers')}}
-                      label={activeFilter.label}
-                    >
-                      {FILTER_OPTIONS.map(({label, value}) => (
-                        <DropdownItem
-                          key={value}
-                          onSelect={(filterOption: string) => {
-                            trackAnalyticsEvent({
-                              eventKey: 'performance_views.vitals.filter_changed',
-                              eventName: 'Performance Views: Change vitals filter',
-                              organization_id: organization.id,
-                              value: filterOption,
-                            });
-                            handleFilterChange(filterOption);
-                          }}
-                          eventKey={value}
-                          isActive={value === activeFilter.value}
-                        >
-                          {label}
-                        </DropdownItem>
-                      ))}
-                    </DropdownControl>
+                    <CompactSelect
+                      value={activeFilter.value}
+                      options={FILTER_OPTIONS}
+                      onChange={opt => {
+                        trackAnalyticsEvent({
+                          eventKey: 'performance_views.vitals.filter_changed',
+                          eventName: 'Performance Views: Change vitals filter',
+                          organization_id: organization.id,
+                          value: opt.value,
+                        });
+                        handleFilterChange(opt.value);
+                      }}
+                      triggerProps={{prefix: t('Outliers')}}
+                      triggerLabel={activeFilter.label}
+                    />
                     <Button
                       onClick={() => {
                         trackAnalyticsEvent({

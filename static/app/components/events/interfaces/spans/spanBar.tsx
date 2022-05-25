@@ -58,7 +58,6 @@ import {
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './constants';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
@@ -101,16 +100,20 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
   0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0,
 ];
 
-const MARGIN_LEFT = 0;
+export const MARGIN_LEFT = 0;
 
 type SpanBarProps = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isEmbeddedTransactionTimeAdjusted: boolean;
+  markSpanInView: (spanId: string, treeDepth: number) => void;
+  markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
   numOfSpans: number;
+  onWheel: (deltaX: number) => void;
   organization: Organization;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
@@ -146,17 +149,53 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     if (this.spanRowDOMRef.current) {
       this.connectObservers();
     }
+
+    if (this.spanTitleRef.current) {
+      this.spanTitleRef.current.addEventListener('wheel', this.handleWheel, {
+        passive: false,
+      });
+    }
   }
 
   componentWillUnmount() {
     this._mounted = false;
     this.disconnectObservers();
+
+    if (this.spanTitleRef.current) {
+      this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
+    }
+
+    const {span} = this.props;
+    if ('type' in span) {
+      return;
+    }
+
+    this.props.markSpanOutOfView(span.span_id);
   }
 
   spanRowDOMRef = createRef<HTMLDivElement>();
+  spanTitleRef = createRef<HTMLDivElement>();
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
+
+  handleWheel = (event: WheelEvent) => {
+    // https://stackoverflow.com/q/57358640
+    // https://github.com/facebook/react/issues/14856
+    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+      return;
+    }
+
+    const {onWheel} = this.props;
+    onWheel(event.deltaX);
+  };
 
   toggleDisplayDetail = () => {
     this.setState(state => ({
@@ -427,11 +466,8 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderTitle(
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps,
-    errors: TraceError[] | null
-  ) {
-    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
+  renderTitle(errors: TraceError[] | null) {
+    const {generateContentSpanBarRef} = this.props;
     const {
       span,
       treeDepth,
@@ -618,6 +654,23 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             relativeToMinimap.top > 0 && relativeToMinimap.bottom > 0;
 
           if (rectBelowMinimap) {
+            const {span, treeDepth, organization} = this.props;
+            if ('type' in span) {
+              return;
+            }
+
+            if (this.props.numOfSpanChildren !== 0) {
+              // TODO: Remove this check when this feature is GA'd
+              if (organization.features.includes('performance-span-tree-autoscroll')) {
+                // If isIntersecting is false, this means the span is out of view below the viewport
+                if (!entry.isIntersecting) {
+                  this.props.markSpanOutOfView(span.span_id);
+                } else {
+                  this.props.markSpanInView(span.span_id, treeDepth);
+                }
+              }
+            }
+
             // if the first span is below the minimap, we scroll the minimap
             // to the top. this addresses spurious scrolling to the top of the page
             if (spanNumber <= 1) {
@@ -630,6 +683,18 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           const inAndAboveMinimap = relativeToMinimap.bottom <= 0;
 
           if (inAndAboveMinimap) {
+            const {span, organization} = this.props;
+            if ('type' in span) {
+              return;
+            }
+
+            if (this.props.numOfSpanChildren !== 0) {
+              // TODO: Remove this check when this feature is GA'd
+              if (organization.features.includes('performance-span-tree-autoscroll')) {
+                this.props.markSpanOutOfView(span.span_id);
+              }
+            }
+
             return;
           }
 
@@ -834,14 +899,12 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   }
 
   renderHeader({
-    scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
     errors,
     transactions,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     errors: TraceError[] | null;
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
     transactions: QuickTraceEvent[] | null;
   }) {
     const {span, spanBarColor, spanBarHatch, spanNumber} = this.props;
@@ -866,8 +929,9 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           onClick={() => {
             this.toggleDisplayDetail();
           }}
+          ref={this.spanTitleRef}
         >
-          {this.renderTitle(scrollbarManagerChildrenProps, errors)}
+          {this.renderTitle(errors)}
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
@@ -975,22 +1039,18 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               const transactions = this.getChildTransactions(quickTrace);
               return (
                 <Fragment>
-                  <ScrollbarManager.Consumer>
-                    {scrollbarManagerChildrenProps => (
-                      <DividerHandlerManager.Consumer>
-                        {(
-                          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                        ) =>
-                          this.renderHeader({
-                            dividerHandlerChildrenProps,
-                            scrollbarManagerChildrenProps,
-                            errors,
-                            transactions,
-                          })
-                        }
-                      </DividerHandlerManager.Consumer>
-                    )}
-                  </ScrollbarManager.Consumer>
+                  <DividerHandlerManager.Consumer>
+                    {(
+                      dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                    ) =>
+                      this.renderHeader({
+                        dividerHandlerChildrenProps,
+                        errors,
+                        transactions,
+                      })
+                    }
+                  </DividerHandlerManager.Consumer>
+
                   {this.renderDetail({
                     isVisible: isSpanVisibleInView,
                     transactions,

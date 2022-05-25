@@ -19,9 +19,14 @@ const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const TIME_FORMAT = 'HH:mm:ss';
 
-export function relativeTimeInMs(timestamp: string, relativeTime: number): number {
+/**
+ * @param timestamp The timestamp that is our reference point. Can be anything that `moment` accepts such as `'2022-05-04T19:47:52.915000Z'` or `1651664872.915`
+ * @param diffMs Number of milliseconds to adjust the timestamp by, either positive (future) or negative (past)
+ * @returns Unix timestamp of the adjusted timestamp, in milliseconds
+ */
+export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number): number {
   return moment(timestamp)
-    .diff(relativeTime * 1000)
+    .diff(diffMs * 1000)
     .valueOf();
 }
 
@@ -102,20 +107,13 @@ export function countColumns(duration: number, width: number, minWidth: number =
  * This function groups crumbs into columns based on the number of columns available
  * and the timestamp of the crumb.
  */
-export function getCrumbsByColumn(crumbs: Crumb[], totalColumns: number) {
-  // TODO(replay): we should pass in the startTimestamp and not rely on the first breadcrumb time
-  const startTime = crumbs[0]?.timestamp;
-  const endTime = crumbs[crumbs.length - 1]?.timestamp;
-
-  // If there is only one crumb then we cannot do the math, return it in the first column
-  if (crumbs.length === 1 || startTime === endTime) {
-    return new Map([[0, crumbs]]);
-  }
-
-  const startMilliSeconds = +new Date(String(startTime));
-  const endMilliSeconds = +new Date(String(endTime));
-
-  const duration = endMilliSeconds - startMilliSeconds;
+export function getCrumbsByColumn(
+  startTimestamp: number,
+  duration: number,
+  crumbs: Crumb[],
+  totalColumns: number
+) {
+  const startMilliSeconds = startTimestamp * 1000;
   const safeDuration = isNaN(duration) ? 1 : duration;
 
   const columnCrumbPairs = crumbs.map(breadcrumb => {
@@ -191,8 +189,6 @@ export function flattenSpans(rawSpans: RawSpanType[]): FlattenedSpanRange[] {
       duration: endTimestamp - startTimestamp,
     } as FlattenedSpanRange;
   });
-
-  // might need to make sure we've sorted by startTimestamp
 
   const [firstSpan, ...restSpans] = spans;
   const flatSpans = [firstSpan];

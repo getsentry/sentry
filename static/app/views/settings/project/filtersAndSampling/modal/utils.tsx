@@ -1,7 +1,6 @@
 import {css} from '@emotion/react';
-import * as Sentry from '@sentry/react';
 
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {
   DynamicSamplingConditionLogicalInner,
   DynamicSamplingInnerName,
@@ -11,9 +10,15 @@ import {
 } from 'sentry/types/dynamicSampling';
 import theme from 'sentry/utils/theme';
 
-import {LEGACY_BROWSER_LIST} from '../utils';
+import {
+  getInnerNameLabel,
+  isCustomTagName,
+  LEGACY_BROWSER_LIST,
+  stripCustomTagPrefix,
+} from '../utils';
 
 import Conditions from './conditions';
+import {TruncatedLabel} from './truncatedLabel';
 
 type Condition = React.ComponentProps<typeof Conditions>['conditions'][0];
 
@@ -39,7 +44,7 @@ export function isLegacyBrowser(
   return maybe.every(m => !!LEGACY_BROWSER_LIST[m]);
 }
 
-export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
+export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName | string) {
   switch (category) {
     case DynamicSamplingInnerName.EVENT_LEGACY_BROWSER:
       return t('Match all selected legacy browsers below');
@@ -73,14 +78,13 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
     case DynamicSamplingInnerName.EVENT_OS_NAME:
       return t('ex. Mac OS X, Windows');
     case DynamicSamplingInnerName.EVENT_OS_VERSION:
-      return t('ex. 11, 9*');
+      return t('ex. 11, 9* (Multiline)');
     case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
       return t('ex. Mac, Pixel*');
     case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
       return t('ex. Mac, Pixel*');
     default:
-      Sentry.captureException(new Error('Unknown dynamic sampling condition inner name'));
-      return ''; // this shall never happen
+      return t('tag values');
   }
 }
 
@@ -135,7 +139,8 @@ export function getNewCondition(
     condition.category === DynamicSamplingInnerName.EVENT_OS_NAME ||
     condition.category === DynamicSamplingInnerName.EVENT_OS_VERSION ||
     condition.category === DynamicSamplingInnerName.EVENT_DEVICE_FAMILY ||
-    condition.category === DynamicSamplingInnerName.EVENT_DEVICE_NAME
+    condition.category === DynamicSamplingInnerName.EVENT_DEVICE_NAME ||
+    isCustomTagName(condition.category)
   ) {
     return {
       op: DynamicSamplingInnerOperator.GLOB_MATCH,
@@ -162,7 +167,14 @@ export function getNewCondition(
   // DynamicSamplingConditionLogicalInnerEq
   return {
     op: DynamicSamplingInnerOperator.EQUAL,
-    name: condition.category,
+    // TODO(sampling): remove the cast
+    name: condition.category as
+      | DynamicSamplingInnerName.TRACE_ENVIRONMENT
+      | DynamicSamplingInnerName.TRACE_USER_ID
+      | DynamicSamplingInnerName.TRACE_USER_SEGMENT
+      | DynamicSamplingInnerName.EVENT_ENVIRONMENT
+      | DynamicSamplingInnerName.EVENT_USER_ID
+      | DynamicSamplingInnerName.EVENT_USER_SEGMENT,
     value: newValue,
     options: {
       ignoreCase: true,
@@ -216,4 +228,61 @@ export function getErrorMessage(
   }
 
   return unexpectedErrorMessage;
+}
+
+export function getTagKey(condition: Condition) {
+  switch (condition.category) {
+    case DynamicSamplingInnerName.TRACE_RELEASE:
+    case DynamicSamplingInnerName.EVENT_RELEASE:
+      return 'release';
+    case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
+    case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
+      return 'environment';
+    case DynamicSamplingInnerName.TRACE_TRANSACTION:
+    case DynamicSamplingInnerName.EVENT_TRANSACTION:
+      return 'transaction';
+    case DynamicSamplingInnerName.EVENT_OS_NAME:
+      return 'os.name';
+    case DynamicSamplingInnerName.EVENT_OS_VERSION:
+      return 'os.version';
+    case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
+      return 'device.family';
+    case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
+      return 'device.name';
+    case DynamicSamplingInnerName.EVENT_CUSTOM_TAG:
+      return '';
+    default:
+      // custom tags
+      return stripCustomTagPrefix(condition.category);
+  }
+}
+
+export function generateConditionCategoriesOptions(
+  conditionCategories: DynamicSamplingInnerName[]
+): [DynamicSamplingInnerName, string][] {
+  const hasCustomTagCategory = conditionCategories.includes(
+    DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+  );
+
+  const sortedConditionCategories = conditionCategories
+    // filter our custom tag category, we will append it to the bottom
+    .filter(category => category !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG)
+    // sort dropdown options alphabetically based on display labels
+    .sort((a, b) => getInnerNameLabel(a).localeCompare(getInnerNameLabel(b)));
+
+  if (hasCustomTagCategory) {
+    sortedConditionCategories.push(DynamicSamplingInnerName.EVENT_CUSTOM_TAG);
+  }
+
+  // massage into format that select component understands
+  return sortedConditionCategories.map(innerName => [
+    innerName,
+    getInnerNameLabel(innerName),
+  ]);
+}
+
+export function formatCreateTagLabel(label: string) {
+  return tct('Add "[newLabel]"', {
+    newLabel: <TruncatedLabel value={label} />,
+  });
 }

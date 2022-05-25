@@ -1985,7 +1985,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_run_query_with_hour_interval(self):
-        # See comment on resolve_time_column for explaination of this test
+        # See comment on resolve_time_column for explanation of this test
         self.start = datetime.datetime.now(timezone.utc).replace(
             hour=15, minute=30, second=0, microsecond=0
         )

@@ -22,7 +22,7 @@ describe('GroupTags', function () {
         location={{}}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
 
     expect(tagsMock).toHaveBeenCalledWith(

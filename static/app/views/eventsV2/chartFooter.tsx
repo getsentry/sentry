@@ -78,6 +78,10 @@ export default function ChartFooter({
         ) : (
           <OptionSelector
             multiple
+            isClearable
+            menuTitle={
+              yAxisOptions.length > 3 ? t('Select up to 3 options') : t('Y-axis')
+            }
             title={t('Y-Axis')}
             selected={yAxisValue}
             options={yAxisOptions}

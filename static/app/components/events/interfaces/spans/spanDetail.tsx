@@ -92,11 +92,7 @@ class SpanDetail extends Component<Props, State> {
     }
 
     if (this.props.childTransactions.length <= 0) {
-      return (
-        <StyledDiscoverButton size="xsmall" disabled>
-          {t('No Children')}
-        </StyledDiscoverButton>
-      );
+      return null;
     }
 
     const {span, trace, event, organization} = this.props;

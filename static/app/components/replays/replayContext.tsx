@@ -2,11 +2,11 @@ import React, {useCallback, useContext, useEffect, useRef, useState} from 'react
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from 'rrweb';
 
+import useRAF from 'sentry/utils/replays/hooks/useRAF';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import usePrevious from 'sentry/utils/usePrevious';
 
 import HighlightReplayPlugin from './highlightReplayPlugin';
-import useRAF from './useRAF';
 
 type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
@@ -130,7 +130,7 @@ const ReplayPlayerContext = React.createContext<ReplayPlayerContextProps>({
 
 type Props = {
   children: React.ReactNode;
-  replay: ReplayReader;
+  replay: ReplayReader | null;
 
   /**
    * Time, in seconds, when the video should start
@@ -150,10 +150,12 @@ function useCurrentTime(callback: () => number) {
 }
 
 export function Provider({children, replay, initialTimeOffset = 0, value = {}}: Props) {
-  const events = replay.getRRWebEvents();
+  const events = replay?.getRRWebEvents();
 
   const theme = useTheme();
   const oldEvents = usePrevious(events);
+  // Note we have to check this outside of hooks, see `usePrevious` comments
+  const hasNewEvents = events !== oldEvents;
   const replayerRef = useRef<Replayer>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
   const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
@@ -188,8 +190,13 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       }
 
       if (replayerRef.current) {
-        if (events === oldEvents) {
+        if (!hasNewEvents) {
           // Already have a player for these events, the parent node must've re-rendered
+          return;
+        }
+
+        if (replayerRef.current.iframe.contentDocument?.body.childElementCount === 0) {
+          // If this is true, then no need to clear old iframe as nothing was rendered
           return;
         }
 
@@ -231,7 +238,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
       // @ts-expect-error
       replayerRef.current = inst;
     },
-    [events, oldEvents, theme.purple200]
+    [events, theme.purple200, hasNewEvents]
   );
 
   useEffect(() => {
@@ -340,8 +347,8 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
     setBufferTime({target: -1, previous: -1});
   }
 
-  const event = replay.getEvent();
-  const duration = (event.endTimestamp - event.startTimestamp) * 1000;
+  const event = replay?.getEvent();
+  const duration = event ? (event.endTimestamp - event.startTimestamp) * 1000 : undefined;
 
   return (
     <ReplayPlayerContext.Provider

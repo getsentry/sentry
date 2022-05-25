@@ -76,7 +76,7 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                 for release_version in environment_totals["releases"]:
                     threshold = 0.1 / total_releases
                     if (
-                        environment != ""
+                        environment
                         and environment_totals["total_sessions"] != 0
                         and environment_totals["releases"][release_version]
                         / environment_totals["total_sessions"]

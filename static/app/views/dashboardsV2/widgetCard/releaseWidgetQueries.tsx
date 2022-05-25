@@ -2,12 +2,19 @@ import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import trimStart from 'lodash/trimStart';
 
+import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, PageFilters, SessionApiResponse} from 'sentry/types';
+import {
+  MetricsApiResponse,
+  OrganizationSummary,
+  PageFilters,
+  SessionApiResponse,
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
@@ -15,6 +22,13 @@ import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
+import {
+  DERIVED_STATUS_METRICS_PATTERN,
+  DerivedStatusFields,
+  DISABLED_SORT,
+  FIELD_TO_METRICS_EXPRESSION,
+  METRICS_EXPRESSION_TO_FIELD,
+} from '../widgetBuilder/releaseWidget/fields';
 
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
 import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
@@ -44,10 +58,63 @@ type State = {
   errorMessage?: string;
   pageLinks?: string;
   queryFetchID?: symbol;
-  rawResults?: SessionApiResponse[];
+  rawResults?: SessionApiResponse[] | MetricsApiResponse[];
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
 };
+
+function fieldsToDerivedMetrics(field: string): string {
+  return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
+}
+
+export function derivedMetricsToField(field: string): string {
+  return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
+}
+
+/**
+ * Given a list of requested fields, this function returns
+ * 'aggregates' which is a list of aggregate functions that
+ * can be passed to either Metrics or Sessions endpoints,
+ * 'derivedStatusFields' which need to be requested from the
+ * Metrics endpoint and 'injectFields' which are fields not
+ * requested but required to calculate the value of a derived
+ * status field so will need to be stripped away in post processing.
+ */
+function resolveDerivedStatusFields(
+  fields: string[],
+  useSessionAPI: boolean
+): {
+  aggregates: string[];
+  derivedStatusFields: string[];
+  injectedFields: string[];
+} {
+  const aggregates = fields.map(stripDerivedMetricsPrefix);
+  const derivedStatusFields = aggregates.filter(agg =>
+    Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
+  );
+
+  const injectedFields: string[] = [];
+
+  if (!!!useSessionAPI) {
+    return {aggregates, derivedStatusFields, injectedFields};
+  }
+
+  derivedStatusFields.forEach(field => {
+    const result = field.match(DERIVED_STATUS_METRICS_PATTERN);
+    if (result) {
+      if (result[2] === 'user' && !!!aggregates.includes('count_unique(user)')) {
+        injectedFields.push('count_unique(user)');
+        aggregates.push('count_unique(user)');
+      }
+      if (result[2] === 'session' && !!!aggregates.includes('sum(session)')) {
+        injectedFields.push('sum(session)');
+        aggregates.push('sum(session)');
+      }
+    }
+  });
+
+  return {aggregates, derivedStatusFields, injectedFields};
+}
 
 class ReleaseWidgetQueries extends Component<Props, State> {
   state: State = {
@@ -115,17 +182,27 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     }
 
     // If the query names have changed, then update timeseries labels
+    const useSessionAPI = widget.queries[0].columns.includes('session.status');
     if (
       !loading &&
       !isEqual(widgetQueryNames, prevWidgetQueryNames) &&
       rawResults?.length === widget.queries.length
     ) {
+      const {derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
+        widget.queries[0].aggregates,
+        useSessionAPI
+      );
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformSessionsResponseToSeries(rawResult, widget.queries[index].name)
+            transformSessionsResponseToSeries(
+              rawResult,
+              derivedStatusFields,
+              injectedFields,
+              widget.queries[index].name
+            )
           ),
         };
       });
@@ -176,32 +253,102 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const {start, end, period} = datetime;
     const interval = getWidgetInterval(widget, {start, end, period});
 
-    const promises = widget.queries.map(query => {
-      const aggregates = query.aggregates.map(stripDerivedMetricsPrefix);
-      const requestData = {
-        field: aggregates,
-        orgSlug: organization.slug,
-        end,
-        environment: environments,
-        groupBy: query.columns,
-        limit: this.limit,
-        orderBy: query.orderby,
-        interval,
-        project: projects,
-        query: query.conditions,
-        start,
-        statsPeriod: period,
-        includeAllArgs,
-        cursor,
-      };
-      return doSessionsRequest(api, requestData);
+    const promises: Promise<
+      MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
+    >[] = [];
+
+    // Only time we need to use sessions API is when session.status is requested
+    // as a group by.
+    const useSessionAPI = widget.queries[0].columns.includes('session.status');
+    const isDescending = widget.queries[0].orderby.startsWith('-');
+    const rawOrderby = trimStart(widget.queries[0].orderby, '-');
+    const unsupportedOrderby = DISABLED_SORT.includes(rawOrderby) || useSessionAPI;
+
+    const {aggregates, derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
+      widget.queries[0].aggregates,
+      useSessionAPI
+    );
+    const columns = widget.queries[0].columns;
+
+    const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
+    const includeTotals =
+      widget.displayType === DisplayType.TABLE ||
+      widget.displayType === DisplayType.BIG_NUMBER ||
+      columns.length > 0
+        ? 1
+        : 0;
+
+    widget.queries.forEach(query => {
+      let requestData;
+      let requester;
+      if (useSessionAPI) {
+        const sessionAggregates = aggregates.filter(
+          agg =>
+            !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
+        );
+        requestData = {
+          field: sessionAggregates,
+          orgSlug: organization.slug,
+          end,
+          environment: environments,
+          groupBy: columns,
+          limit: undefined,
+          orderBy: '', // Orderby not supported with session.status
+          interval,
+          project: projects,
+          query: query.conditions,
+          start,
+          statsPeriod: period,
+          includeAllArgs,
+          cursor,
+        };
+        requester = doSessionsRequest;
+      } else {
+        requestData = {
+          field: aggregates.map(fieldsToDerivedMetrics),
+          orgSlug: organization.slug,
+          end,
+          environment: environments,
+          groupBy: columns.map(fieldsToDerivedMetrics),
+          limit: columns.length === 0 ? 1 : this.limit,
+          orderBy: unsupportedOrderby
+            ? ''
+            : isDescending
+            ? `-${fieldsToDerivedMetrics(rawOrderby)}`
+            : fieldsToDerivedMetrics(rawOrderby),
+          interval,
+          project: projects,
+          query: query.conditions,
+          start,
+          statsPeriod: period,
+          includeAllArgs,
+          cursor,
+          includeSeries,
+          includeTotals,
+        };
+        requester = doMetricsRequest;
+
+        if (
+          rawOrderby &&
+          !!!unsupportedOrderby &&
+          !!!aggregates.includes(rawOrderby) &&
+          !!!columns.includes(rawOrderby)
+        ) {
+          requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
+          if (!!!injectedFields.includes(rawOrderby)) {
+            injectedFields.push(rawOrderby);
+          }
+        }
+      }
+
+      promises.push(requester(api, requestData));
     });
 
     let completed = 0;
     promises.forEach(async (promise, requestIndex) => {
       try {
         const res = await promise;
-        let data: SessionApiResponse;
+        let data: SessionApiResponse | MetricsApiResponse;
         let response: ResponseMeta;
         if (Array.isArray(res)) {
           data = res[0];
@@ -219,26 +366,39 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           }
 
           // Transform to fit the table format
-          const tableData = transformSessionsResponseToTable(data) as TableDataWithTitle; // Cast so we can add the title.
-          tableData.title = widget.queries[requestIndex]?.name ?? '';
-          const tableResults = [...(prevState.tableResults ?? []), tableData];
+          let tableResults: TableDataWithTitle[] | undefined;
+          if (includeTotals) {
+            const tableData = transformSessionsResponseToTable(
+              data,
+              derivedStatusFields,
+              injectedFields
+            ) as TableDataWithTitle; // Cast so we can add the title.
+            tableData.title = widget.queries[requestIndex]?.name ?? '';
+            tableResults = [...(prevState.tableResults ?? []), tableData];
+          } else {
+            tableResults = undefined;
+          }
 
           // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          const transformedResult = transformSessionsResponseToSeries(
-            data,
-            widget.queries[requestIndex].name
-          );
+          if (includeSeries) {
+            const transformedResult = transformSessionsResponseToSeries(
+              data,
+              derivedStatusFields,
+              injectedFields,
+              widget.queries[requestIndex].name
+            );
 
-          // When charting timeseriesData on echarts, color association to a timeseries result
-          // is order sensitive, ie series at index i on the timeseries array will use color at
-          // index i on the color array. This means that on multi series results, we need to make
-          // sure that the order of series in our results do not change between fetches to avoid
-          // coloring inconsistencies between renders.
-          transformedResult.forEach((result, resultIndex) => {
-            timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
-              result;
-          });
+            // When charting timeseriesData on echarts, color association to a timeseries result
+            // is order sensitive, ie series at index i on the timeseries array will use color at
+            // index i on the color array. This means that on multi series results, we need to make
+            // sure that the order of series in our results do not change between fetches to avoid
+            // coloring inconsistencies between renders.
+            transformedResult.forEach((result, resultIndex) => {
+              timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
+                result;
+            });
+          }
 
           onDataFetched?.({timeseriesResults, tableResults});
 

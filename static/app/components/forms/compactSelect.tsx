@@ -20,6 +20,7 @@ import SelectControl, {
   ControlProps,
   GeneralSelectValue,
 } from 'sentry/components/forms/selectControl';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
@@ -37,6 +38,11 @@ interface Props<OptionType>
    * Pass class name to the outer wrap
    */
   className?: string;
+  /**
+   * Whether new options are being loaded. When true, CompactSelect will
+   * display a loading indicator in the header.
+   */
+  isLoading?: boolean;
   onChangeValueMap?: (value: OptionType[]) => ControlProps<OptionType>['value'];
   /**
    * Tag name for the outer wrap, defaults to `div`
@@ -88,14 +94,17 @@ export const CompactSelectControl = ({
   ...props
 }: React.ComponentProps<typeof selectComponents.Control>) => {
   const {hasValue, selectProps} = props;
-  const {isSearchable, menuTitle, isClearable} = selectProps;
+  const {isSearchable, menuTitle, isClearable, isLoading} = selectProps;
 
   return (
     <Fragment>
-      {(menuTitle || isClearable) && (
+      {(menuTitle || isClearable || isLoading) && (
         <MenuHeader>
-          <MenuTitle>{menuTitle}</MenuTitle>
-          {hasValue && isClearable && (
+          <MenuTitle>
+            <span>{menuTitle}</span>
+          </MenuTitle>
+          {isLoading && <StyledLoadingIndicator size={12} mini />}
+          {hasValue && isClearable && !isLoading && (
             <ClearButton size="zero" borderless onClick={() => props.clearValue()}>
               Clear
             </ClearButton>
@@ -164,6 +173,8 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
       isOpen: state.isOpen,
       shouldCloseOnBlur,
       isDismissable,
+      shouldCloseOnInteractOutside: target =>
+        target && triggerRef.current !== target && !triggerRef.current?.contains(target),
     },
     overlayRef
   );
@@ -273,6 +284,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
           {...mergeProps(overlayProps, positionProps)}
         >
           <SelectControl
+            components={{Control: CompactSelectControl, ClearIndicator: null}}
             {...props}
             options={options}
             value={valueProp ?? internalValue}
@@ -281,7 +293,6 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             menuTitle={menuTitle}
             placeholder={placeholder}
             isSearchable={isSearchable}
-            components={{Control: CompactSelectControl, ClearIndicator: null}}
             menuPlacement="bottom"
             menuIsOpen
             isCompact
@@ -333,10 +344,13 @@ const Overlay = styled('div')<{minWidth?: number}>`
 `;
 
 const MenuHeader = styled('div')`
+  position: relative;
   display: flex;
+  align-items: center;
   justify-content: space-between;
   padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
-  border-bottom: solid 1px ${p => p.theme.innerBorder};
+  box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+  z-index: 1;
 `;
 
 const MenuTitle = styled('span')`
@@ -345,6 +359,14 @@ const MenuTitle = styled('span')`
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
   margin-right: ${space(2)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  && {
+    margin: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
+    height: ${space(1.5)};
+    width: ${space(1.5)};
+  }
 `;
 
 const ClearButton = styled(Button)`

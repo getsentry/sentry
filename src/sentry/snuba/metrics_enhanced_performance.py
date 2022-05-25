@@ -28,6 +28,7 @@ def query(
     conditions=None,
     functions_acl=None,
     dry_run=False,
+    transform_alias_to_input_format=False,
 ):
     metrics_compatible = not equations or dry_run
 
@@ -49,6 +50,7 @@ def query(
                 conditions,
                 functions_acl,
                 dry_run,
+                transform_alias_to_input_format,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery as error:
@@ -86,6 +88,7 @@ def query(
             use_aggregate_conditions=use_aggregate_conditions,
             conditions=conditions,
             functions_acl=functions_acl,
+            transform_alias_to_input_format=transform_alias_to_input_format,
         )
         results["meta"]["isMetricsData"] = False
 

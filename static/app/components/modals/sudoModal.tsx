@@ -141,7 +141,7 @@ class SudoModal extends Component<Props, State> {
     } catch {
       // ignore errors
     }
-    window.location.assign('/auth/login/');
+    window.location.assign(`/auth/login/?next=${encodeURIComponent(location.pathname)}`);
   };
 
   async getAuthenticators() {
@@ -160,6 +160,7 @@ class SudoModal extends Component<Props, State> {
     const {authenticators, error, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
+    const validateSUForm = ConfigStore.get('validateSUForm');
 
     if (errorType === ErrorCodes.invalidSSOSession) {
       this.handleLogout();
@@ -168,7 +169,7 @@ class SudoModal extends Component<Props, State> {
 
     if (
       (!user.hasPasswordAuth && authenticators.length === 0) ||
-      (isSuperuser && !isSelfHosted)
+      (isSuperuser && !isSelfHosted && validateSUForm)
     ) {
       return (
         <Fragment>

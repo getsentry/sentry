@@ -1,8 +1,11 @@
 import {
   countColumns,
+  divide,
   flattenSpans,
   formatTime,
   getCrumbsByColumn,
+  relativeTimeInMs,
+  showPlayerTime,
 } from 'sentry/components/replays/utils';
 
 const SECOND = 1000;
@@ -77,22 +80,29 @@ describe('countColumns', () => {
 });
 
 describe('getCrumbsByColumn', () => {
+  const startTimestamp = 1649945987.326; // seconds
+  const duration = 25710; // milliseconds
   const CRUMB_1 = {timestamp: '2022-04-14T14:19:47.326000Z'};
   const CRUMB_2 = {timestamp: '2022-04-14T14:19:49.249000Z'};
   const CRUMB_3 = {timestamp: '2022-04-14T14:19:51.512000Z'};
   const CRUMB_4 = {timestamp: '2022-04-14T14:19:57.326000Z'};
   const CRUMB_5 = {timestamp: '2022-04-14T14:20:13.036000Z'};
 
-  it('should return a map of buckets', () => {
+  it('should return an empty list when no crumbs exist', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn([], columnCount);
-    const expectedEntries = [[0, []]];
+    const columns = getCrumbsByColumn(startTimestamp, duration, [], columnCount);
+    const expectedEntries = [];
     expect(columns).toEqual(new Map(expectedEntries));
   });
 
   it('should put a crumbs in the first and last buckets', () => {
     const columnCount = 3;
-    const columns = getCrumbsByColumn([CRUMB_1, CRUMB_5], columnCount);
+    const columns = getCrumbsByColumn(
+      startTimestamp,
+      duration,
+      [CRUMB_1, CRUMB_5],
+      columnCount
+    );
     const expectedEntries = [
       [1, [CRUMB_1]],
       [3, [CRUMB_5]],
@@ -104,6 +114,8 @@ describe('getCrumbsByColumn', () => {
     // 6 columns gives is 5s granularity
     const columnCount = 6;
     const columns = getCrumbsByColumn(
+      startTimestamp,
+      duration,
       [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
       columnCount
     );
@@ -240,5 +252,41 @@ describe('flattenSpans', () => {
         startTimestamp: 10000,
       },
     ]);
+  });
+
+  describe('relativeTimeinMs', () => {
+    it('returns relative time in MS', () => {
+      expect(relativeTimeInMs('2022-05-11T23:04:27.576000Z', 347.90000009536743)).toEqual(
+        1652309919676
+      );
+    });
+
+    it('returns invalid date if date string is malformed', () => {
+      expect(relativeTimeInMs('202223:04:27.576000Z', 347.90000009536743)).toEqual(NaN);
+    });
+  });
+
+  describe('showPlayerTime', () => {
+    it('returns time formatted for player', () => {
+      expect(showPlayerTime('2022-05-11T23:04:27.576000Z', 1652309918.676)).toEqual(
+        '00:05:48'
+      );
+    });
+
+    it('returns invalid date if timestamp is malformed', () => {
+      expect(showPlayerTime('20223:04:27.576000Z', 1652309918.676)).toEqual(
+        'Invalid date'
+      );
+    });
+  });
+
+  describe('divide', () => {
+    it('divides numbers safely', () => {
+      expect(divide(81, 9)).toEqual(9);
+    });
+
+    it('dividing by zero returns zero', () => {
+      expect(divide(81, 0)).toEqual(0);
+    });
   });
 });

@@ -48,7 +48,6 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
-from sentry.utils.compat import zip
 
 STATUS_LABELS = {
     ProjectStatus.VISIBLE: "active",
@@ -165,23 +164,32 @@ def get_features_for_projects(
     return features_by_project
 
 
-class ProjectSerializerResponse(TypedDict):
+class _ProjectSerializerOptionalBaseResponse(TypedDict, total=False):
+    stats: Any
+    transactionStats: Any
+    sessionStats: Any
+
+
+class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     id: str
-    slug: str
     name: str  # TODO: add deprecation about this field (not used in app)
-    isPublic: bool
+    slug: str
     isBookmarked: bool
-    color: str
-    dateCreated: datetime
-    firstEvent: datetime
-    firstTransactionEvent: bool
-    hasSessions: bool
-    features: List[str]
-    status: str  # TODO enum/literal
-    platform: str
-    isInternal: bool
     isMember: bool
     hasAccess: bool
+    dateCreated: datetime
+    features: List[str]
+    firstTransactionEvent: bool
+    hasSessions: bool
+    platform: Optional[str]
+    firstEvent: Optional[datetime]
+
+
+class ProjectSerializerResponse(ProjectSerializerBaseResponse):
+    isPublic: bool
+    color: str
+    status: str  # TODO enum/literal
+    isInternal: bool
     avatar: Any  # TODO: use Avatar type from other serializers
 
 
@@ -494,31 +502,18 @@ class LatestReleaseDict(TypedDict):
     version: str
 
 
-class _OrganizationProjectResponseDictOptional(TypedDict, total=False):
+class _OrganizationProjectOptionalResponse(TypedDict, total=False):
     latestDeploys: Optional[Dict[str, Dict[str, str]]]
-    stats: Any
-    transactionStats: Any
-    sessionStats: Any
 
 
-class OrganizationProjectResponseDict(_OrganizationProjectResponseDictOptional):
+class OrganizationProjectResponse(
+    _OrganizationProjectOptionalResponse, ProjectSerializerBaseResponse
+):
     team: Optional[TeamResponseDict]
     teams: List[TeamResponseDict]
-    id: str
-    name: str
-    slug: str
-    isBookmarked: bool
-    isMember: bool
-    hasAccess: bool
-    dateCreated: str
     eventProcessing: EventProcessingDict
-    features: List[str]
-    firstTransactionEvent: bool
-    hasSessions: bool
-    platform: Optional[str]
     platforms: List[str]
     hasUserReports: bool
-    firstEvent: Optional[str]
     environments: List[str]
     latestRelease: Optional[LatestReleaseDict]
 
@@ -620,38 +615,38 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
 
         return attrs
 
-    def serialize(self, obj, attrs, user) -> OrganizationProjectResponseDict:  # type: ignore
-        context: OrganizationProjectResponseDict = {
-            "team": attrs["teams"][0] if attrs["teams"] else None,
-            "teams": attrs["teams"],
-            "id": str(obj.id),
-            "name": obj.name,
-            "slug": obj.slug,
-            "isBookmarked": attrs["is_bookmarked"],
-            "isMember": attrs["is_member"],
-            "hasAccess": attrs["has_access"],
-            "dateCreated": obj.date_added,
-            "environments": attrs["environments"],
-            "eventProcessing": {
+    def serialize(self, obj, attrs, user) -> OrganizationProjectResponse:  # type: ignore
+        context = OrganizationProjectResponse(
+            team=attrs["teams"][0] if attrs["teams"] else None,
+            teams=attrs["teams"],
+            id=str(obj.id),
+            name=obj.name,
+            slug=obj.slug,
+            isBookmarked=attrs["is_bookmarked"],
+            isMember=attrs["is_member"],
+            hasAccess=attrs["has_access"],
+            dateCreated=obj.date_added,
+            environments=attrs["environments"],
+            eventProcessing={
                 "symbolicationDegraded": should_demote_symbolication(obj.id),
             },
-            "features": attrs["features"],
-            "firstEvent": obj.first_event,
-            "firstTransactionEvent": bool(obj.flags.has_transactions),
-            "hasSessions": bool(obj.flags.has_sessions),
-            "platform": obj.platform,
-            "platforms": attrs["platforms"],
-            "latestRelease": attrs["latest_release"],
-            "hasUserReports": attrs["has_user_reports"],
-        }
+            features=attrs["features"],
+            firstEvent=obj.first_event,
+            firstTransactionEvent=bool(obj.flags.has_transactions),
+            hasSessions=bool(obj.flags.has_sessions),
+            platform=obj.platform,
+            platforms=attrs["platforms"],
+            latestRelease=attrs["latest_release"],
+            hasUserReports=attrs["has_user_reports"],
+        )
         if not self._collapse(LATEST_DEPLOYS_KEY):
             context[LATEST_DEPLOYS_KEY] = attrs["deploys"]
         if "stats" in attrs:
-            context["stats"] = attrs["stats"]
+            context.update(stats=attrs["stats"])
         if "transactionStats" in attrs:
-            context["transactionStats"] = attrs["transactionStats"]
+            context.update(transactionStats=attrs["transactionStats"])
         if "sessionStats" in attrs:
-            context["sessionStats"] = attrs["sessionStats"]
+            context.update(sessionStats=attrs["sessionStats"])
 
         return context
 

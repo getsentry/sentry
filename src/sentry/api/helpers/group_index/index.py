@@ -16,7 +16,6 @@ from sentry.models import Environment, Group, Organization, Project, Release, Us
 from sentry.models.group import looks_like_short_id
 from sentry.signals import advanced_search_feature_gated
 from sentry.utils import metrics
-from sentry.utils.compat import zip
 from sentry.utils.cursors import Cursor, CursorResult
 
 from . import SEARCH_MAX_HITS

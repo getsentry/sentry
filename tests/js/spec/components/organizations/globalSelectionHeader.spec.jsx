@@ -153,24 +153,21 @@ describe('GlobalSelectionHeader', function () {
     mockRouterPush(wrapper, router);
 
     // Open dropdown and select one project
-    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
-    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+    wrapper.find('ProjectSelector HeaderItem').simulate('click');
+    wrapper.find('ProjectSelector MultiselectCheckbox').at(1).simulate('click');
+    wrapper.find('ProjectSelector HeaderItem').simulate('click');
 
     await tick();
     wrapper.update();
-    expect(wrapper.find('MultipleProjectSelector Content').text()).toBe('project-3');
+    expect(wrapper.find('ProjectSelector Content').text()).toBe('project-3');
 
     // Select environment
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper
-      .find('MultipleEnvironmentSelector MultiselectCheckbox')
-      .at(0)
-      .simulate('click');
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('EnvironmentSelector MultiselectCheckbox').at(0).simulate('click');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
-    expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe('prod');
+    expect(wrapper.find('EnvironmentSelector Content').text()).toBe('prod');
 
     expect(PageFiltersStore.getState().selection).toEqual({
       datetime: {
@@ -204,27 +201,22 @@ describe('GlobalSelectionHeader', function () {
     mockRouterPush(wrapper, router);
 
     // Open dropdown and select both projects
-    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(0).simulate('click');
-    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
-    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+    wrapper.find('ProjectSelector HeaderItem').simulate('click');
+    wrapper.find('ProjectSelector MultiselectCheckbox').at(0).simulate('click');
+    wrapper.find('ProjectSelector MultiselectCheckbox').at(1).simulate('click');
+    wrapper.find('ProjectSelector HeaderItem').simulate('click');
 
     await tick();
     wrapper.update();
-    expect(wrapper.find('MultipleProjectSelector Content').text()).toBe(
-      'project-2, project-3'
-    );
+    expect(wrapper.find('ProjectSelector Content').text()).toBe('project-2, project-3');
 
     // Select environment
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    wrapper
-      .find('MultipleEnvironmentSelector MultiselectCheckbox')
-      .at(1)
-      .simulate('click');
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
+    wrapper.find('EnvironmentSelector MultiselectCheckbox').at(1).simulate('click');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
     await tick();
 
-    expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe('staging');
+    expect(wrapper.find('EnvironmentSelector Content').text()).toBe('staging');
 
     expect(PageFiltersStore.getState().selection).toEqual({
       datetime: {
@@ -243,10 +235,10 @@ describe('GlobalSelectionHeader', function () {
     });
 
     // Now change projects, first project has no environments
-    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-    wrapper.find('MultipleProjectSelector MultiselectCheckbox').at(1).simulate('click');
+    wrapper.find('ProjectSelector HeaderItem').simulate('click');
+    wrapper.find('ProjectSelector MultiselectCheckbox').at(1).simulate('click');
 
-    wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
+    wrapper.find('ProjectSelector HeaderItem').simulate('click');
 
     await tick();
     wrapper.update();
@@ -262,9 +254,7 @@ describe('GlobalSelectionHeader', function () {
       environments: [],
       projects: [2],
     });
-    expect(wrapper.find('MultipleEnvironmentSelector Content').text()).toBe(
-      'All Environments'
-    );
+    expect(wrapper.find('EnvironmentSelector Content').text()).toBe('All Environments');
   });
 
   it('shows environments for non-member projects', async function () {
@@ -293,8 +283,8 @@ describe('GlobalSelectionHeader', function () {
     wrapper.update();
 
     // Open environment picker
-    wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
-    const checkboxes = wrapper.find('MultipleEnvironmentSelector AutoCompleteItem');
+    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
+    const checkboxes = wrapper.find('EnvironmentSelector AutoCompleteItem');
 
     expect(checkboxes).toHaveLength(1);
     expect(checkboxes.text()).toBe('staging');
@@ -431,9 +421,13 @@ describe('GlobalSelectionHeader', function () {
     });
   });
 
-  it('loads from local storage when no URL parameters', async function () {
+  it('loads from local storage when no URL parameters and filters are pinned', async function () {
     getItem.mockImplementation(() =>
-      JSON.stringify({projects: [3], environments: ['staging']})
+      JSON.stringify({
+        projects: [3],
+        environments: ['staging'],
+        pinnedFilters: ['projects', 'environments'],
+      })
     );
     const initializationObj = initializeOrg({
       organization: {
@@ -554,7 +548,7 @@ describe('GlobalSelectionHeader', function () {
 
     const initializationObj = initializeOrg({
       organization: {
-        features: ['global-views', 'selection-filters-v2'],
+        features: ['global-views'],
       },
       router: {
         // we need this to be set to make sure org in context is same as
@@ -562,9 +556,6 @@ describe('GlobalSelectionHeader', function () {
         params: {orgId: 'org-slug'},
         location: {
           query: {project: ['2']},
-          // TODO: This is only temporary while selection-filters-v2 is limited
-          // to certan pages
-          pathname: '/organizations/org-slug/issues/',
         },
       },
     });
@@ -773,10 +764,10 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('renders only environments from the forced project', function () {
-      wrapper.find('MultipleEnvironmentSelector HeaderItem').simulate('click');
+      wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
       wrapper.update();
 
-      const items = wrapper.find('MultipleEnvironmentSelector PageFilterRow');
+      const items = wrapper.find('EnvironmentSelector PageFilterRow');
       expect(items.length).toEqual(1);
       expect(items.at(0).text()).toBe('staging');
     });
@@ -856,9 +847,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('renders the forced environment', function () {
-      expect(wrapper.find('MultipleEnvironmentSelector HeaderItem').text()).toBe(
-        'test-env'
-      );
+      expect(wrapper.find('EnvironmentSelector HeaderItem').text()).toBe('test-env');
     });
   });
 
@@ -1147,7 +1136,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('gets member projects', function () {
-      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
+      expect(wrapper.find('ProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
     });
@@ -1167,11 +1156,11 @@ describe('GlobalSelectionHeader', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('MultipleProjectSelector').prop('memberProjects')).toEqual([
+      expect(wrapper.find('ProjectSelector').prop('memberProjects')).toEqual([
         memberProject,
       ]);
 
-      expect(wrapper.find('MultipleProjectSelector').prop('nonMemberProjects')).toEqual([
+      expect(wrapper.find('ProjectSelector').prop('nonMemberProjects')).toEqual([
         nonMemberProject,
       ]);
     });
@@ -1190,13 +1179,13 @@ describe('GlobalSelectionHeader', function () {
       wrapper.update();
 
       // open the project menu.
-      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-      const projectSelector = wrapper.find('MultipleProjectSelector');
+      wrapper.find('ProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('ProjectSelector');
 
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // My projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select My Projects'
       );
     });
@@ -1215,13 +1204,13 @@ describe('GlobalSelectionHeader', function () {
       wrapper.update();
 
       // open the project menu.
-      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-      const projectSelector = wrapper.find('MultipleProjectSelector');
+      wrapper.find('ProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('ProjectSelector');
 
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select All Projects'
       );
     });
@@ -1240,13 +1229,13 @@ describe('GlobalSelectionHeader', function () {
       await tick();
       wrapper.update();
       // open the project menu.
-      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-      const projectSelector = wrapper.find('MultipleProjectSelector');
+      wrapper.find('ProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('ProjectSelector');
 
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select All Projects'
       );
     });
@@ -1267,11 +1256,11 @@ describe('GlobalSelectionHeader', function () {
       wrapper.update();
 
       // open the project menu.
-      wrapper.find('MultipleProjectSelector HeaderItem').simulate('click');
-      const projectSelector = wrapper.find('MultipleProjectSelector');
+      wrapper.find('ProjectSelector HeaderItem').simulate('click');
+      const projectSelector = wrapper.find('ProjectSelector');
 
       // My projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select My Projects'
       );
     });
@@ -1307,7 +1296,7 @@ describe('GlobalSelectionHeader', function () {
       await tick();
       wrapper.update();
 
-      const projectSelector = wrapper.find('MultipleProjectSelector');
+      const projectSelector = wrapper.find('ProjectSelector');
 
       expect(projectSelector.find('IconContainer svg').exists()).toBeTruthy();
       expect(projectSelector.find('PlatformIcon').exists()).toBeFalsy();
@@ -1327,7 +1316,7 @@ describe('GlobalSelectionHeader', function () {
       await tick();
       wrapper.update();
 
-      const projectSelector = wrapper.find('MultipleProjectSelector');
+      const projectSelector = wrapper.find('ProjectSelector');
 
       expect(projectSelector.find('StyledPlatformIcon').props().platform).toEqual(
         'javascript'
@@ -1349,10 +1338,10 @@ describe('GlobalSelectionHeader', function () {
       wrapper.update();
 
       // select 6 projects
-      const headerItem = wrapper.find('MultipleProjectSelector HeaderItem');
+      const headerItem = wrapper.find('ProjectSelector HeaderItem');
       headerItem.simulate('click');
       wrapper
-        .find('MultipleProjectSelector MultiselectCheckbox')
+        .find('ProjectSelector MultiselectCheckbox')
         .forEach(project => project.simulate('click'));
       headerItem.simulate('click');
 
@@ -1360,8 +1349,8 @@ describe('GlobalSelectionHeader', function () {
       wrapper.update();
 
       // assert title and icons
-      const title = wrapper.find('MultipleProjectSelector Content');
-      const icons = wrapper.find('MultipleProjectSelector StyledPlatformIcon');
+      const title = wrapper.find('ProjectSelector Content');
+      const icons = wrapper.find('ProjectSelector StyledPlatformIcon');
       expect(title.text()).toBe('javascript, other, php, python, rust, swift');
       expect(icons.length).toBe(5);
       expect(icons.at(3).props().platform).toBe('rust');

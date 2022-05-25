@@ -55,8 +55,8 @@ def setup_relay(default_project):
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
-    def inner(full_config, public_keys=None):
-        path = reverse("sentry-api-0-relay-projectconfigs") + "?version=2"
+    def inner(full_config, public_keys=None, version="2"):
+        path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
@@ -376,3 +376,15 @@ def test_exposes_features(call_endpoint, task_runner):
         for config in result["configs"].values():
             config = config["config"]
             assert config["sessionMetrics"] == {"version": 1, "drop": False}
+
+
+@pytest.mark.django_db
+def test_v3(call_endpoint):
+    # For now v2 and v3 are supposed to be identical, the payload is backwards compatible if
+    # there are no pending configs and we never generate pending configs currently.
+    # with task_runner():
+    result, status_code = call_endpoint(full_config=False, version=3)
+
+    assert status_code < 400
+    assert result.get("configs")
+    assert not result.get("pending")
