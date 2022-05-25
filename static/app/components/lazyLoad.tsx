@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -12,137 +12,111 @@ type PromisedImport<C> = Promise<{default: C}>;
 
 type ComponentType = React.ComponentType<any>;
 
-type Props<C extends ComponentType> = Omit<
-  React.ComponentProps<C>,
-  'hideBusy' | 'hideError' | 'component' | 'route'
-> & {
+type Props<C extends ComponentType> = Omit<React.ComponentProps<C>, 'route'> & {
   /**
-   * Function that returns a promise of a React.Component
+   * Accepts a function to trigger the import resolution of the component.
    */
   component?: () => PromisedImport<C>;
-  hideBusy?: boolean;
-  hideError?: boolean;
   /**
-   * Also accepts a route object from react-router that has a `componentPromise` property
+   * Accepts a route object from react-router that has a `componentPromise` property
    */
   route?: {componentPromise: () => PromisedImport<C>};
 };
 
-type State<C extends ComponentType> = {
-  LazyComponent: C | null;
-  error: any | null;
-};
+/**
+ * LazyLoad is used to dynamically load codesplit components via a `import`
+ * call. Typically this component is used as part of the routing tree, though
+ * it does have a standalone mode.
+ *
+ * Route tree usage:
+ *   <Route
+ *     path="somePath"
+ *     component={LazyLoad}
+ *     componentPromise={() => import('./somePathView')}
+ *   />
+ *
+ * Standalone usage:
+ *   <LazyLoad component={() => import('./myComponent')} someComponentProps={...} />
+ */
+function LazyLoad<C extends ComponentType>(props: Props<C>) {
+  const [LazyComponent, setLazyComponent] = useState<C | null>(null);
+  const [error, setError] = useState<any>(null);
 
-class LazyLoad<C extends ComponentType> extends Component<Props<C>, State<C>> {
-  state: State<C> = {
-    LazyComponent: null,
-    error: null,
-  };
+  const handleFetchError = useCallback(
+    (fetchError: any) => {
+      Sentry.withScope(scope => {
+        if (isWebpackChunkLoadingError(fetchError)) {
+          scope.setFingerprint(['webpack', 'error loading chunk']);
+        }
+        Sentry.captureException(fetchError);
+      });
 
-  componentDidMount() {
-    this.fetchComponent();
-  }
+      // eslint-disable-next-line no-console
+      console.error(fetchError);
+      setError(fetchError);
+    },
+    [setError]
+  );
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props<C>) {
-    // No need to refetch when component does not change
-    if (nextProps.component && nextProps.component === this.props.component) {
+  const importComponent = props.component ?? props.route?.componentPromise;
+
+  const fetchComponent = useCallback(async () => {
+    if (importComponent === undefined) {
       return;
     }
 
-    // This is to handle the following case:
-    // <Route path="a/">
-    //   <Route path="b/" component={LazyLoad} componentPromise={...} />
-    //   <Route path="c/" component={LazyLoad} componentPromise={...} />
-    // </Route>
-    //
-    // `LazyLoad` will get not fully remount when we switch between `b` and `c`,
-    // instead will just re-render.  Refetch if route paths are different
-    if (nextProps.route && nextProps.route === this.props.route) {
-      return;
-    }
+    // If we're refetching due to a change to importComponent we want to make
+    // sure the current LazyComponent is cleared out.
+    setLazyComponent(null);
 
-    // If `this.fetchComponent` is not in callback,
-    // then there's no guarantee that new Component will be rendered
-    this.setState(
-      {
-        LazyComponent: null,
-      },
-      this.fetchComponent
+    try {
+      const resolvedComponent = await retryableImport(importComponent);
+
+      // XXX: Because the resolvedComponent may be a functional component (a
+      // function) trying to pass it into the setLazyComponent will cause the
+      // useState to try and execute the function (because useState provides a
+      // "functional updates" invocation, see [0]) which is NOT what we want.
+      // So we use a functional update invocation to set the component.
+      //
+      // [0]: https://reactjs.org/docs/hooks-reference.html#functional-updates
+      setLazyComponent(() => resolvedComponent);
+    } catch (err) {
+      handleFetchError(err);
+    }
+  }, [importComponent, handleFetchError]);
+
+  // Fetch the component on mount and if the importComponent is updated
+  useEffect(() => void fetchComponent(), [fetchComponent]);
+
+  const fetchRetry = useCallback(() => {
+    setError(null);
+    fetchComponent();
+  }, [setError, fetchComponent]);
+
+  if (error) {
+    return (
+      <LoadingErrorContainer>
+        <LoadingError
+          onRetry={fetchRetry}
+          message={t('There was an error loading a component.')}
+        />
+      </LoadingErrorContainer>
     );
   }
 
-  componentDidCatch(error: any) {
-    Sentry.captureException(error);
-    this.handleError(error);
+  if (!LazyComponent) {
+    return (
+      <LoadingContainer>
+        <LoadingIndicator />
+      </LoadingContainer>
+    );
   }
 
-  get componentGetter() {
-    return this.props.component ?? this.props.route?.componentPromise;
+  if (LazyComponent === null) {
+    return null;
   }
 
-  handleFetchError = (error: any) => {
-    Sentry.withScope(scope => {
-      if (isWebpackChunkLoadingError(error)) {
-        scope.setFingerprint(['webpack', 'error loading chunk']);
-      }
-      Sentry.captureException(error);
-    });
-    this.handleError(error);
-  };
-
-  handleError = (error: any) => {
-    // eslint-disable-next-line no-console
-    console.error(error);
-    this.setState({error});
-  };
-
-  fetchComponent = async () => {
-    const getComponent = this.componentGetter;
-
-    if (getComponent === undefined) {
-      return;
-    }
-
-    try {
-      this.setState({LazyComponent: await retryableImport(getComponent)});
-    } catch (err) {
-      this.handleFetchError(err);
-    }
-  };
-
-  fetchRetry = () => {
-    this.setState({error: null}, this.fetchComponent);
-  };
-
-  render() {
-    const {LazyComponent, error} = this.state;
-    const {hideBusy, hideError, component: _component, ...otherProps} = this.props;
-
-    if (error && !hideError) {
-      return (
-        <LoadingErrorContainer>
-          <LoadingError
-            onRetry={this.fetchRetry}
-            message={t('There was an error loading a component.')}
-          />
-        </LoadingErrorContainer>
-      );
-    }
-
-    if (!LazyComponent && !hideBusy) {
-      return (
-        <LoadingContainer>
-          <LoadingIndicator />
-        </LoadingContainer>
-      );
-    }
-
-    if (LazyComponent === null) {
-      return null;
-    }
-
-    return <LazyComponent {...(otherProps as React.ComponentProps<C>)} />;
-  }
+  return <LazyComponent {...(props as React.ComponentProps<C>)} />;
 }
 
 const LoadingContainer = styled('div')`
