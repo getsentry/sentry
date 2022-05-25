@@ -67,7 +67,9 @@ describe('VirtualizedTree', () => {
       const tree = VirtualizedTree.fromRoots([root]);
 
       tree.roots[0].setExpanded(false);
-      expect(tree.toExpandedList().map(i => i.node.id)).toEqual(['root']);
+      expect(VirtualizedTree.toExpandedList(tree.roots).map(i => i.node.id)).toEqual([
+        'root',
+      ]);
     });
   });
 
