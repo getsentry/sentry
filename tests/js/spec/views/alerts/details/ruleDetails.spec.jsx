@@ -66,9 +66,15 @@ describe('AlertRuleDetails', () => {
           '<https://sentry.io/api/0/projects/org-slug/project-slug/rules/1/group-history/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
     });
+
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [project],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
     });
 
     ProjectsStore.init();
