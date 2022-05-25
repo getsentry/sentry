@@ -15,8 +15,8 @@ export type MetricsApiResponse = {
   end: string;
   groups: {
     by: Record<string, string>;
-    series: Record<string, Array<number | null>>;
-    totals: Record<string, number | null>;
+    series?: Record<string, Array<number | null>>;
+    totals?: Record<string, number | null>;
   }[];
   intervals: string[];
   query: string;
