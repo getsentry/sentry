@@ -530,8 +530,10 @@ const FrameChildrenIndicator = styled('button')<{open: boolean}>`
   transform: ${p => (p.open ? 'rotate(90deg)' : 'rotate(0deg)')};
 `;
 
+const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
+
 const FrameWeightCell = styled('div')`
-  width: 164px;
+  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
 `;
 
 const FrameNameCell = styled('div')`
@@ -565,7 +567,7 @@ const FrameCallersTableCell = styled('div')<{
   noPadding?: boolean;
   textAlign?: React.CSSProperties['textAlign'];
 }>`
-  width: 164px;
+  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
   position: relative;
   white-space: nowrap;
   flex-shrink: 0;
