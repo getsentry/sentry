@@ -483,7 +483,7 @@ class MetricChart extends PureComponent<Props, State> {
     }
 
     // If the chart duration isn't as long as the rollup duration the events-stats
-    // endpoint will return an invalid timeseriesData data set
+    // endpoint will return an invalid timeseriesData dataset
     const viableStartDate = getUtcDateString(
       moment.min(
         moment.utc(timePeriod.start),
