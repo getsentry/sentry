@@ -1,5 +1,6 @@
 import sys
 from threading import Lock
+from typing import Any, Callable
 
 # Unbounded function cache.
 # lru_cache(maxsize=None) has a fast path since it doesn't care about bounds.
@@ -9,12 +10,12 @@ if sys.version_info >= (3, 9):
 else:
     from functools import lru_cache as _lru_cache
 
-    def cache(func):
+    def cache(func: Callable[..., Any]) -> Any:
         return _lru_cache(maxsize=None)(func)
 
 
 @cache
-def gitroot():
+def gitroot() -> str:
     from os import getcwd
     from os.path import isdir, normpath
 
@@ -30,6 +31,6 @@ ts_print_lock = Lock()
 
 
 # Thread-safe print.
-def ts_print(*args, **kwargs):
+def ts_print(*args: Any, **kwargs: Any) -> None:
     with ts_print_lock:
         print(*args, **kwargs)
