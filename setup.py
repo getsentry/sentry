@@ -161,7 +161,7 @@ setup(
         "Intended Audience :: System Administrators",
         "Operating System :: POSIX :: Linux",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.8",
         "Topic :: Software Development",
         "License :: Other/Proprietary License",
     ],
