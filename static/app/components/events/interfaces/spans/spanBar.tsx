@@ -100,7 +100,7 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
   0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0,
 ];
 
-const MARGIN_LEFT = 0;
+export const MARGIN_LEFT = 0;
 
 type SpanBarProps = {
   continuingTreeDepths: Array<TreeDepthType>;
@@ -109,6 +109,8 @@ type SpanBarProps = {
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   isEmbeddedTransactionTimeAdjusted: boolean;
+  markSpanInView: (spanId: string, treeDepth: number) => void;
+  markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
   numOfSpans: number;
   onWheel: (deltaX: number) => void;
@@ -162,6 +164,13 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
     }
+
+    const {span} = this.props;
+    if ('type' in span) {
+      return;
+    }
+
+    this.props.markSpanOutOfView(span.span_id);
   }
 
   spanRowDOMRef = createRef<HTMLDivElement>();
@@ -179,6 +188,11 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     event.preventDefault();
     event.stopPropagation();
+
+    if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+      return;
+    }
+
     const {onWheel} = this.props;
     onWheel(event.deltaX);
   };
@@ -640,6 +654,23 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
             relativeToMinimap.top > 0 && relativeToMinimap.bottom > 0;
 
           if (rectBelowMinimap) {
+            const {span, treeDepth, organization} = this.props;
+            if ('type' in span) {
+              return;
+            }
+
+            if (this.props.numOfSpanChildren !== 0) {
+              // TODO: Remove this check when this feature is GA'd
+              if (organization.features.includes('performance-span-tree-autoscroll')) {
+                // If isIntersecting is false, this means the span is out of view below the viewport
+                if (!entry.isIntersecting) {
+                  this.props.markSpanOutOfView(span.span_id);
+                } else {
+                  this.props.markSpanInView(span.span_id, treeDepth);
+                }
+              }
+            }
+
             // if the first span is below the minimap, we scroll the minimap
             // to the top. this addresses spurious scrolling to the top of the page
             if (spanNumber <= 1) {
@@ -652,6 +683,18 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           const inAndAboveMinimap = relativeToMinimap.bottom <= 0;
 
           if (inAndAboveMinimap) {
+            const {span, organization} = this.props;
+            if ('type' in span) {
+              return;
+            }
+
+            if (this.props.numOfSpanChildren !== 0) {
+              // TODO: Remove this check when this feature is GA'd
+              if (organization.features.includes('performance-span-tree-autoscroll')) {
+                this.props.markSpanOutOfView(span.span_id);
+              }
+            }
+
             return;
           }
 
