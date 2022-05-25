@@ -359,20 +359,20 @@ function RuleNode({
 
     if (data.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
       return (
-          <MarginlessAlert
-            type="info"
-            showIcon
-            trailingItems={
-              <Button
-                href={"https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"}
-                size="xsmall"
-              >
-                {t('Learn More')}
-              </Button>
-            }
-          >
-            {t('Having rate limiting problems? Enter a channel or user ID.')}
-          </MarginlessAlert>
+        <MarginlessAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <Button
+              href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+              size="xsmall"
+            >
+              {t('Learn More')}
+            </Button>
+          }
+        >
+          {t('Having rate limiting problems? Enter a channel or user ID.')}
+        </MarginlessAlert>
       );
     }
 
