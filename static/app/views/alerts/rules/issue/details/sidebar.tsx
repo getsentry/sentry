@@ -42,11 +42,11 @@ class Sidebar extends PureComponent<Props> {
           const user = memberList.find(
             member => member.user.id === `${action.targetIdentifier}`
           );
-          name = t(`Send a notification to ${user?.email}`);
+          name = t('Send a notification to %s', user?.email);
         }
         if (action.targetType === 'Team') {
           const team = teams.find(tm => tm.id === `${action.targetIdentifier}`);
-          name = t(`Send a notification to #${team?.name}`);
+          name = t('Send a notification to #%s', team?.name);
         }
         if (
           action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction'
