@@ -96,7 +96,10 @@ class GroupTagValues extends AsyncComponent<
       const discoverView = EventView.fromSavedQuery({
         id: undefined,
         name: key,
-        fields: [key, ...discoverFields.filter(field => field !== key)],
+        fields: [
+          ...(key !== undefined ? [key] : []),
+          ...discoverFields.filter(field => field !== key),
+        ],
         orderby: '-timestamp',
         query: `issue.id:${groupId} ${issuesQuery}`,
         projects: [Number(project?.id)],
