@@ -26,7 +26,7 @@ from sentry.db.models.utils import slugify_instance
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.snowflake import Snowflake
+from sentry.utils.snowflake import snowflake_id_generation
 
 if TYPE_CHECKING:
     from sentry.models import User
@@ -187,9 +187,8 @@ class Organization(Model):
         return f"{self.name} ({self.slug})"
 
     def save(self, *args, **kwargs):
-        snowflake = Snowflake()
         if not self.id:
-            self.id = snowflake.snowflake_id_generation()
+            self.id = snowflake_id_generation()
         if not self.slug:
             lock = locks.get("slug:organization", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):

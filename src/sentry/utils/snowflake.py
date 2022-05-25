@@ -18,39 +18,34 @@ class SnowflakeBitSegment:
         return True
 
 
-class Snowflake:
-    SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
-    ID_LENGTH = settings.SNOWFLAKE_ID_LENGTH
-    VERSION_ID_LENGTH = settings.SNOWFLAKE_VERSION_ID_LENGTH
-    TIME_DIFFERENCE_LENGTH = settings.SNOWFLAKE_TIME_DIFFERENCE_LENGTH
-    REGION_ID_LENGTH = settings.SNOWFLAKE_REGION_ID_LENGTH
-    REGION_SEQUENCE_LENGTH = settings.SNOWFLAKE_REGION_SEQUENCE_LENGTH
-    ID_VALIDATOR = SnowflakeBitSegment(ID_LENGTH, "Snowflake ID")
+SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
+ID_VALIDATOR = SnowflakeBitSegment(settings.SNOWFLAKE_ID_LENGTH, "Snowflake ID")
 
-    VERSION_ID = SnowflakeBitSegment(VERSION_ID_LENGTH, "Version ID")
-    TIME_DIFFERENCE = SnowflakeBitSegment(TIME_DIFFERENCE_LENGTH, "Time difference")
-    REGION_ID = SnowflakeBitSegment(REGION_ID_LENGTH, "Region ID")
-    REGION_SEQUENCE = SnowflakeBitSegment(REGION_SEQUENCE_LENGTH, "Region sequence")
+VERSION_ID = SnowflakeBitSegment(settings.SNOWFLAKE_VERSION_ID_LENGTH, "Version ID")
+TIME_DIFFERENCE = SnowflakeBitSegment(settings.SNOWFLAKE_TIME_DIFFERENCE_LENGTH, "Time difference")
+REGION_ID = SnowflakeBitSegment(settings.SNOWFLAKE_REGION_ID_LENGTH, "Region ID")
+REGION_SEQUENCE = SnowflakeBitSegment(settings.SNOWFLAKE_REGION_SEQUENCE_LENGTH, "Region sequence")
 
-    def snowflake_id_generation(self):
-        segment_values = OrderedDict()
-        segment_values[self.VERSION_ID] = 0
-        segment_values[self.TIME_DIFFERENCE] = 0
-        segment_values[self.REGION_ID] = 0
-        segment_values[self.REGION_SEQUENCE] = 0
 
-        current_time = datetime.now().timestamp()
-        # supports up to 130 years
-        segment_values[self.TIME_DIFFERENCE] = int(current_time - self.SENTRY_EPOCH_START)
+def snowflake_id_generation():
+    segment_values = OrderedDict()
+    segment_values[VERSION_ID] = 1
+    segment_values[TIME_DIFFERENCE] = 0
+    segment_values[REGION_ID] = 0
+    segment_values[REGION_SEQUENCE] = 0
 
-        total_bits_to_allocate = self.SNOWFLAKE_ID_LENGTH
-        snowflake_id = 0
+    current_time = datetime.now().timestamp()
+    # supports up to 130 years
+    segment_values[TIME_DIFFERENCE] = int(current_time - SENTRY_EPOCH_START)
 
-        for key, value in segment_values.items():
-            if key.validate(value):
-                total_bits_to_allocate -= key.length
-                snowflake_id += value << (total_bits_to_allocate)
+    total_bits_to_allocate = ID_VALIDATOR.length
+    snowflake_id = 0
 
-        self.SNOWFLAKE_ID_VALIDATOR.validate(snowflake_id)
+    for key, value in segment_values.items():
+        if key.validate(value):
+            total_bits_to_allocate -= key.length
+            snowflake_id += value << (total_bits_to_allocate)
 
-        return snowflake_id
+    ID_VALIDATOR.validate(snowflake_id)
+
+    return snowflake_id
