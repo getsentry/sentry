@@ -38,8 +38,8 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
   const organization = useOrganization();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
-  const profileFilters = useProfileFilters(selection);
-  const [requestState, traces, pageLinks] = useProfiles({cursor, query, selection});
+  const profileFilters = useProfileFilters({query: '', selection});
+  const profiles = useProfiles({cursor, query, selection});
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
@@ -83,7 +83,7 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
                 </ActionBar>
-                {requestState === 'errored' && (
+                {profiles.type === 'errored' && (
                   <Alert type="error" showIcon>
                     {t('Unable to load profiles')}
                   </Alert>
@@ -97,16 +97,20 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                       utc: null,
                     }
                   }
-                  traces={traces}
-                  isLoading={requestState === 'loading'}
+                  traces={profiles.type === 'resolved' ? profiles.data.traces : []}
+                  isLoading={profiles.type === 'loading'}
                 />
                 <ProfilingTable
-                  isLoading={requestState === 'loading'}
-                  error={requestState === 'errored' ? t('Unable to load profiles') : null}
+                  isLoading={profiles.type === 'initial' || profiles.type === 'loading'}
+                  error={profiles.type === 'errored' ? profiles.error : null}
                   location={location}
-                  traces={traces}
+                  traces={profiles.type === 'resolved' ? profiles.data.traces : []}
                 />
-                <Pagination pageLinks={pageLinks} />
+                <Pagination
+                  pageLinks={
+                    profiles.type === 'resolved' ? profiles.data.pageLinks : null
+                  }
+                />
               </Layout.Main>
             </Layout.Body>
           </StyledPageContent>
