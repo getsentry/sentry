@@ -110,6 +110,7 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
     sentry.snuba.json_schemas.SUBSCRIPTION_PAYLOAD_VERSIONS
     :param subscription: The `QuerySubscription` that this update is for
     """
+
     from sentry.incidents.subscription_processor import SubscriptionProcessor
 
     try:
