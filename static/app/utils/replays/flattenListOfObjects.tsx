@@ -6,18 +6,19 @@
  *
  * Any non-array values will throw an exception
  */
-export default function flattenListOfObjects(objs: Array<Record<string, any[]>>) {
+export default function flattenListOfObjects(
+  objs: Array<Record<string, any[] | undefined>>
+) {
   return objs.reduce((acc, obj) => {
     Object.entries(obj).forEach(([key, value]) => {
       if (!Array.isArray(value)) {
+        // e.g. if value is undefined (otherwise, a non-Array type will get caught by ts)
+        // TS doesn't like our test where object keys are no equivalent, so we
+        // need to allow `undefined` as a valid type in the Record.
         throw new Error('Invalid value');
       }
 
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-
-      acc[key] = acc[key].concat(value);
+      acc[key] = (acc[key] || []).concat(value);
     });
 
     return acc;

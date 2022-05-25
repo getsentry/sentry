@@ -13,9 +13,6 @@ test.each([
   expect(flattenListOfObjects(a)).toEqual(expected);
 });
 
-test.each([[[{b: {}}]], [[{b: 'foo'}]], [[{b: 2}]], [[{b: true}]]])(
-  'flattenListOfObjects throws with value %p',
-  a => {
-    expect(() => flattenListOfObjects(a)).toThrow();
-  }
-);
+test.each([[[{b: undefined}]]])('flattenListOfObjects throws with value %p', a => {
+  expect(() => flattenListOfObjects(a)).toThrow();
+});
