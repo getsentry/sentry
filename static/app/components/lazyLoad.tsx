@@ -12,31 +12,18 @@ type PromisedImport<C> = Promise<{default: C}>;
 
 type ComponentType = React.ComponentType<any>;
 
-type Props<C extends ComponentType> = Omit<React.ComponentProps<C>, 'route'> & {
+type Props<C extends ComponentType> = Omit<React.ComponentProps<C>, 'component'> & {
   /**
    * Accepts a function to trigger the import resolution of the component.
    */
   component?: () => PromisedImport<C>;
-  /**
-   * Accepts a route object from react-router that has a `componentPromise` property
-   */
-  route?: {componentPromise: () => PromisedImport<C>};
 };
 
 /**
  * LazyLoad is used to dynamically load codesplit components via a `import`
- * call. Typically this component is used as part of the routing tree, though
- * it does have a standalone mode.
+ * call. This is primarily used in our routing tree
  *
- * Route tree usage:
- *   <Route
- *     path="somePath"
- *     component={LazyLoad}
- *     componentPromise={() => import('./somePathView')}
- *   />
- *
- * Standalone usage:
- *   <LazyLoad component={() => import('./myComponent')} someComponentProps={...} />
+ * <LazyLoad component={() => import('./myComponent')} someComponentProps={...} />
  */
 function LazyLoad<C extends ComponentType>(props: Props<C>) {
   const [LazyComponent, setLazyComponent] = useState<C | null>(null);
@@ -58,7 +45,7 @@ function LazyLoad<C extends ComponentType>(props: Props<C>) {
     [setError]
   );
 
-  const importComponent = props.component ?? props.route?.componentPromise;
+  const importComponent = props.component;
 
   const fetchComponent = useCallback(async () => {
     if (importComponent === undefined) {
