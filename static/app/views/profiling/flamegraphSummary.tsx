@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
@@ -16,14 +16,45 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {Profile} from 'sentry/utils/profiling/profile/profile';
 import {generateFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
 import {useProfileGroup} from './profileGroupProvider';
+
+function collectTopProfileFrames(profile: Profile) {
+  const nodes: CallTreeNode[] = [];
+
+  profile.forEach(
+    node => {
+      if (node.selfWeight > 0) {
+        nodes.push(node);
+      }
+    },
+    () => {}
+  );
+
+  return (
+    nodes
+      .sort((a, b) => b.selfWeight - a.selfWeight)
+      // take only the slowest nodes from each thread because the rest
+      // aren't useful to display
+      .slice(0, 500)
+      .map(node => ({
+        symbol: node.frame.name,
+        image: node.frame.image,
+        thread: profile.threadId,
+        type: node.frame.is_application ? 'application' : 'system',
+        'self weight': node.selfWeight,
+        'total weight': node.totalWeight,
+      }))
+  );
+}
 
 const RESULTS_PER_PAGE = 50;
 
@@ -42,34 +73,8 @@ function FlamegraphSummary() {
   const allFunctions: TableDataRow[] = useMemo(() => {
     return state.type === 'resolved'
       ? state.data.profiles
-          .flatMap(profile => {
-            const nodes: CallTreeNode[] = [];
-
-            profile.forEach(
-              node => {
-                if (node.selfWeight > 0) {
-                  nodes.push(node);
-                }
-              },
-              () => {}
-            );
-
-            return (
-              nodes
-                .sort((a, b) => b.selfWeight - a.selfWeight)
-                // take only the slowest nodes from each thread because the rest
-                // aren't useful to display
-                .slice(0, 500)
-                .map(node => ({
-                  symbol: node.frame.name,
-                  image: node.frame.image,
-                  thread: profile.threadId,
-                  type: node.frame.is_application ? 'application' : 'system',
-                  'self weight': node.selfWeight,
-                  'total weight': node.totalWeight,
-                }))
-            );
-          })
+          .flatMap(collectTopProfileFrames)
+          // Self weight desc sort
           .sort((a, b) => b['self weight'] - a['self weight'])
       : [];
   }, [state]);
@@ -78,11 +83,29 @@ function FlamegraphSummary() {
     return new Fuse(allFunctions, {
       keys: ['symbol'],
       threshold: 0.3,
-      includeMatches: true,
     });
   }, [allFunctions]);
 
-  const [slowestFunctions, setSlowestFunctions] = useState<TableDataRow[]>([]);
+  const search = useCallback(
+    (queryString: string) => {
+      if (!queryString) {
+        return allFunctions;
+      }
+      return searchIndex
+        .search(queryString)
+        .map(result => result.item)
+        .sort((a, b) => b['self weight'] - a['self weight']);
+    },
+    [searchIndex, allFunctions]
+  );
+
+  const [slowestFunctions, setSlowestFunctions] = useState<TableDataRow[]>(() => {
+    return search(query);
+  });
+
+  useEffectAfterFirstRender(() => {
+    setSlowestFunctions(search(query));
+  }, [allFunctions]);
 
   const pageLinks = useMemo(() => {
     const prevResults = cursor >= RESULTS_PER_PAGE ? 'true' : 'false';
@@ -102,19 +125,6 @@ function FlamegraphSummary() {
     return `${prev},${next}`;
   }, [cursor, location, slowestFunctions]);
 
-  useEffect(() => {
-    if (!query) {
-      setSlowestFunctions(allFunctions);
-      return;
-    }
-
-    const filteredSlowestFunctions = searchIndex
-      .search(query)
-      .map(result => result.item)
-      .sort((a, b) => b['self weight'] - a['self weight']);
-    setSlowestFunctions(filteredSlowestFunctions);
-  }, [allFunctions, searchIndex, query]);
-
   const handleSearch = useCallback(
     searchString => {
       browserHistory.push({
@@ -125,8 +135,10 @@ function FlamegraphSummary() {
           cursor: undefined,
         },
       });
+
+      setSlowestFunctions(search(searchString));
     },
-    [location]
+    [location, search]
   );
 
   return (
@@ -142,7 +154,7 @@ function FlamegraphSummary() {
                 defaultQuery=""
                 query={query}
                 placeholder={t('Search for frames')}
-                onSearch={handleSearch}
+                onChange={handleSearch}
               />
             </ActionBar>
             <GridEditable
