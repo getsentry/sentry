@@ -1,3 +1,4 @@
+import math
 from base64 import b64encode
 from unittest import mock
 
@@ -523,6 +524,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
 
         assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_team_is_nan(self):
+        query = {"field": ["id"], "project": [self.project.id], "team": [math.nan]}
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+        assert response.data["detail"] == "Invalid Team ID: nan"
 
     def test_comparison_operators_on_numeric_field(self):
         project = self.create_project()
@@ -6453,6 +6461,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
 
         assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_team_is_nan(self):
+        query = {"field": ["id"], "project": [self.project.id], "team": [math.nan]}
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+        assert response.data["detail"] == "Invalid Team ID: nan"
 
     def test_comparison_operators_on_numeric_field(self):
         project = self.create_project()

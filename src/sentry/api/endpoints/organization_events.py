@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import InvalidParams
 from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance
 
@@ -54,6 +55,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
+        except InvalidParams as err:
+            raise ParseError(err)
 
         referrer = request.GET.get("referrer")
         use_metrics = features.has(
@@ -135,6 +138,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
+        except InvalidParams as err:
+            raise ParseError(err)
 
         referrer = request.GET.get("referrer")
         use_metrics = features.has(
