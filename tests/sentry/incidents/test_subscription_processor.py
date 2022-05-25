@@ -9,7 +9,6 @@ from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -1596,9 +1595,17 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
 
-class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
+class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetricsTestCase):
+    entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
+
     def setUp(self):
         super().setUp()
+        for status in ["exited", "crashed"]:
+            self.store_session(
+                self.build_session(
+                    status=status,
+                )
+            )
 
     @fixture
     def sub(self):
@@ -1610,7 +1617,7 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
     def crash_rate_alert_rule(self):
         rule = self.create_alert_rule(
             projects=[self.project],
-            dataset=QueryDatasets.SESSIONS,
+            dataset=QueryDatasets.METRICS,
             name="JustAValidRule",
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
@@ -1649,6 +1656,7 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
+        org_id = self.organization.id
         self.email_action_handler.reset_mock()
         if time_delta is None:
             time_delta = timedelta()
@@ -1663,6 +1671,17 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
         with self.feature(
             ["organizations:incidents", "organizations:performance-view"]
         ), self.capture_on_commit_callbacks(execute=True):
+            if value is None:
+                numerator, denominator = 0, 0
+            else:
+                if count is EMPTY:
+                    numerator, denominator = value.as_integer_ratio()
+                else:
+                    denominator = count
+                    numerator = int(value * denominator)
+            session_status = resolve_tag_key(org_id, "session.status")
+            tag_value_init = resolve_weak(org_id, "init")
+            tag_value_crashed = resolve_weak(org_id, "crashed")
             processor.process_update(
                 {
                     "subscription_id": subscription.subscription_id
@@ -1670,12 +1689,12 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
                     else uuid4().hex,
                     "values": {
                         "data": [
+                            {"project_id": 8, session_status: tag_value_init, "value": denominator},
                             {
-                                CRASH_RATE_ALERT_AGGREGATE_ALIAS: value,
-                                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS: randint(1, 100)
-                                if count is EMPTY
-                                else count,
-                            }
+                                "project_id": 8,
+                                session_status: tag_value_crashed,
+                                "value": numerator,
+                            },
                         ]
                     },
                     "timestamp": timestamp,
@@ -2101,75 +2120,6 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
-
-
-class MetricsCrashRateAlertProcessUpdateTest(
-    CrashRateAlertProcessUpdateTest, SessionMetricsTestCase
-):
-    entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
-
-    def setUp(self):
-        super().setUp()
-        for status in ["exited", "crashed"]:
-            self.store_session(
-                self.build_session(
-                    status=status,
-                )
-            )
-        rule = self.crash_rate_alert_rule
-        snuba_query = rule.snuba_query
-        snuba_query.dataset = QueryDatasets.METRICS.value
-        snuba_query.save()
-
-    def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
-        org_id = self.organization.id
-        self.email_action_handler.reset_mock()
-        if time_delta is None:
-            time_delta = timedelta()
-        processor = SubscriptionProcessor(subscription)
-
-        if time_delta is not None:
-            timestamp = timezone.now() + time_delta
-        else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
-
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
-            if value is None:
-                numerator, denominator = 0, 0
-            else:
-                if count is EMPTY:
-                    numerator, denominator = value.as_integer_ratio()
-                else:
-                    denominator = count
-                    numerator = int(value * denominator)
-            session_status = resolve_tag_key(org_id, "session.status")
-            tag_value_init = resolve_weak(org_id, "init")
-            tag_value_crashed = resolve_weak(org_id, "crashed")
-            processor.process_update(
-                {
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
-                    "values": {
-                        "data": [
-                            {"project_id": 8, session_status: tag_value_init, "value": denominator},
-                            {
-                                "project_id": 8,
-                                session_status: tag_value_crashed,
-                                "value": numerator,
-                            },
-                        ]
-                    },
-                    "timestamp": timestamp,
-                    "interval": 1,
-                    "partition": 1,
-                    "offset": 1,
-                }
-            )
-        return processor
 
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(self):
         MetricsKeyIndexer.objects.all().delete()
