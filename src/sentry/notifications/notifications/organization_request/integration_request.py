@@ -72,7 +72,7 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Your team member requested the {self.provider_name} integration on Sentry"
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         return self.get_subject()
 
     def build_attachment_title(self, recipient: Team | User) -> str:

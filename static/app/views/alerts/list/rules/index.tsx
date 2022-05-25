@@ -64,15 +64,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return [...new Set(ruleList?.map(({projects}) => projects).flat())];
   }
 
-  handleChangeFilter = (activeFilters: Set<string>) => {
+  handleChangeFilter = (activeFilters: string[]) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    const teams = [...activeFilters];
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: teams.length ? teams : '',
+        team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
   };

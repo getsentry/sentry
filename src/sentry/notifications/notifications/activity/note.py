@@ -21,7 +21,7 @@ class NoteActivityNotification(GroupActivityNotification):
         author = self.activity.user.get_display_name()
         return f"New comment by {author}"
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         return self.title
 
     def get_message_description(self, recipient: Team | User) -> Any:

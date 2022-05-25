@@ -1941,7 +1941,7 @@ SENTRY_DEVSERVICES = {
     ),
     "snuba": lambda settings, options: (
         {
-            "image": "getsentry/snuba:f063336085e7be0ccbdb52791aaf97882ba7a26f" if not APPLE_ARM64
+            "image": "getsentry/snuba:nightly" if not APPLE_ARM64
             # We cross-build arm64 images on GH's Apple Intel runners
             else "ghcr.io/getsentry/snuba-arm64-dev:latest",
             "pull": True,
