@@ -72,13 +72,11 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
         "time_window": time_window,
         "interval": interval,
     }
-    if alert_rule.snuba_query.query != "":
-        text += f"\nFilter: {alert_rule.snuba_query.query}"
 
     return text
 
 
-def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None, unfurl=False):
+def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=None):
     alert_rule = incident.alert_rule
 
     status = INCIDENT_STATUS[new_status]
@@ -89,22 +87,17 @@ def incident_attachment_info(incident, new_status: IncidentStatus, metric_value=
     text = get_incident_status_text(alert_rule, metric_value)
     title = f"{status}: {alert_rule.name}"
 
-    if unfurl:
-        # this URL is needed for the Slack unfurl, but nothing else
-        title_link = absolute_uri(
-            f"organizations/{incident.organization.slug}/alerts/rules/details/{incident.identifier}"
+    title_link = absolute_uri(
+        reverse(
+            "sentry-metric-alert-details",
+            kwargs={
+                "organization_slug": alert_rule.organization.slug,
+                "alert_rule_id": alert_rule.id,
+            },
         )
-
-    else:
-        title_link = absolute_uri(
-            reverse(
-                "sentry-metric-alert",
-                kwargs={
-                    "organization_slug": incident.organization.slug,
-                    "incident_id": incident.identifier,
-                },
-            )
-        )
+    )
+    params = parse.urlencode({"alert": str(incident.identifier)})
+    title_link += f"?{params}"
 
     return {
         "title": title,
@@ -124,12 +117,16 @@ def metric_alert_attachment_info(
 ):
     latest_incident = None
     if selected_incident is None:
-        latest_incident = Incident.objects.filter(
-            id__in=Incident.objects.filter(alert_rule=alert_rule)
-            .values("alert_rule_id")
-            .annotate(incident_id=Max("id"))
-            .values("incident_id")
-        ).first()
+        try:
+            # Use .get() instead of .first() to avoid sorting table by id
+            latest_incident = Incident.objects.filter(
+                id__in=Incident.objects.filter(alert_rule=alert_rule)
+                .values("alert_rule_id")
+                .annotate(incident_id=Max("id"))
+                .values("incident_id")
+            ).get()
+        except Incident.DoesNotExist:
+            latest_incident = None
 
     if new_status:
         status = INCIDENT_STATUS[new_status]
@@ -169,7 +166,7 @@ def metric_alert_attachment_info(
             metric_value = get_metric_count_from_incident(incident_info)
 
     text = ""
-    if metric_value is not None:
+    if metric_value is not None and status != INCIDENT_STATUS[IncidentStatus.CLOSED]:
         text = get_incident_status_text(alert_rule, metric_value)
 
     date_started = None

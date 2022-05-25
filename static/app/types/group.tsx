@@ -308,6 +308,7 @@ export type GroupActivityAssigned = GroupActivityBase & {
     assignee: string;
     assigneeType: string;
     user: Team | User;
+    assigneeEmail?: string;
   };
   type: GroupActivityType.ASSIGNED;
 };

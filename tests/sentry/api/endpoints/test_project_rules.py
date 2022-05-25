@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import responses
 from django.test import override_settings
+from rest_framework import status
 
 from sentry.models import Environment, Rule, RuleActivity, RuleActivityType, RuleStatus
 from sentry.testutils import APITestCase
@@ -37,7 +38,9 @@ class ProjectRuleBaseTestCase(APITestCase):
 class ProjectRuleListTest(ProjectRuleBaseTestCase):
     def test_simple(self):
         response = self.get_success_response(
-            self.organization.slug, self.project.slug, status_code=200
+            self.organization.slug,
+            self.project.slug,
+            status_code=status.HTTP_200_OK,
         )
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
 
@@ -142,28 +145,27 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
                 {"ok": "true", "channel": {"name": "team-team-team", "id": channel_id}}
             ),
         )
-        payload = {
-            "name": "hello world",
-            "owner": f"user:{self.user.id}",
-            "environment": None,
-            "actionMatch": "any",
-            "frequency": 5,
-            "actions": [
-                {
-                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                    "workspace": str(self.slack_integration.id),
-                    "channel": "#team-team-team",
-                    "input_channel_id": channel_id,
-                }
-            ],
-            "conditions": [
-                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-            ],
-        }
-
+        actions = [
+            {
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                "workspace": str(self.slack_integration.id),
+                "channel": "#team-team-team",
+                "input_channel_id": channel_id,
+            }
+        ]
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         response = self.get_success_response(
-            self.organization.slug, self.project.slug, status_code=200, **payload
+            self.organization.slug,
+            self.project.slug,
+            name="hello world",
+            owner=f"user:{self.user.id}",
+            environment=None,
+            actionMatch="any",
+            frequency=5,
+            actions=actions,
+            conditions=conditions,
+            status_code=status.HTTP_200_OK,
         )
         assert response.data["actions"][0]["channel_id"] == channel_id
 
@@ -178,7 +180,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             filterMatch="any",
             actions=actions,
             conditions=conditions,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
     @override_settings(MAX_ISSUE_ALERTS_PER_PROJECT=1)
@@ -197,7 +199,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             filterMatch="any",
             actions=actions,
             conditions=conditions,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert resp.data == "You may not exceed 1 rules per project"
         # Make sure pending deletions don't affect the process
@@ -215,7 +217,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             filterMatch="any",
             actions=[],
             conditions=[],
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert str(response.data["owner"][0]) == "User is not a member of this organization"
         other_team = self.create_team(self.create_organization())
@@ -228,7 +230,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             filterMatch="any",
             actions=[],
             conditions=[],
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert str(response.data["owner"][0]) == "Team is not a member of this organization"
 
@@ -248,7 +250,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             actionMatch="any",
             filterMatch="any",
             conditions=[condition],
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert (
             str(response.data["conditions"][0]) == "Ensure this value is less than or equal to 100"
@@ -266,7 +268,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             actionMatch="any",
             filterMatch="any",
             conditions=[condition],
-            status_code=200,
+            status_code=status.HTTP_200_OK,
         )
 
     def test_match_values(self):
@@ -298,7 +300,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             filterMatch="any",
             actions=actions,
             filters=filters,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
     def test_with_filters(self):
@@ -341,7 +343,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             actions=actions,
             actionMatch="any",
             frequency=30,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
         assert response.data == {
@@ -353,38 +355,47 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         self.run_test(name="no action rule", actions=[], conditions=conditions)
 
     @patch(
-        "sentry.integrations.slack.notify_action.get_channel_id",
+        "sentry.integrations.slack.actions.notification.get_channel_id",
         return_value=("#", None, True),
     )
     @patch("sentry.tasks.integrations.slack.find_channel_id_for_rule.apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
-        self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
+        self,
+        mock_uuid4,
+        mock_find_channel_id_for_alert_rule,
+        mock_get_channel_id,
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
+        actions = [
+            {
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "name": (
+                    "Send a notification to the funinthesun Slack workspace to"
+                    " #team-team-team and show tags [] in notification"
+                ),
+                "workspace": str(self.slack_integration.id),
+                "channel": "#team-team-team",
+                "channel_id": "",
+                "tags": "",
+            }
+        ]
+        conditions = [{"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}]
         payload = {
             "name": "hello world",
             "owner": f"user:{self.user.id}",
             "environment": None,
             "actionMatch": "any",
             "frequency": 5,
-            "actions": [
-                {
-                    "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
-                    "workspace": str(self.slack_integration.id),
-                    "channel": "#team-team-team",
-                    "channel_id": "",
-                    "tags": "",
-                }
-            ],
-            "conditions": [
-                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-            ],
+            "actions": actions,
+            "conditions": conditions,
         }
 
         self.get_success_response(
-            self.organization.slug, self.project.slug, status_code=202, **payload
+            self.organization.slug,
+            self.project.slug,
+            **payload,
+            status_code=status.HTTP_202_ACCEPTED,
         )
 
         assert not Rule.objects.filter(label=payload["name"]).exists()
@@ -449,7 +460,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             actions=actions,
             conditions=[condition],
             frequency=30,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert (
             str(response.data["conditions"][0])
@@ -466,7 +477,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             actions=actions,
             conditions=[condition],
             frequency=30,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert (
             str(response.data["conditions"][0])
@@ -478,7 +489,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
-            status=202,
+            status=status.HTTP_202_ACCEPTED,
         )
         actions = [
             {
@@ -500,7 +511,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         }
 
         response = self.get_success_response(
-            self.organization.slug, self.project.slug, status_code=200, **payload
+            self.organization.slug,
+            self.project.slug,
+            **payload,
+            status_code=status.HTTP_200_OK,
         )
         new_rule_id = response.data["id"]
         assert new_rule_id is not None
@@ -514,7 +528,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         responses.add(
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
-            status=500,
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             json={"message": error_message},
         )
         actions = [
@@ -537,7 +551,10 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         }
 
         response = self.get_error_response(
-            self.organization.slug, self.project.slug, status_code=400, **payload
+            self.organization.slug,
+            self.project.slug,
+            **payload,
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert len(responses.calls) == 1
         assert error_message in response.json().get("actions")[0]

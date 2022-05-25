@@ -16,10 +16,7 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/organizations/pageFilters/persistence';
 import {PageFiltersStringified} from 'sentry/components/organizations/pageFilters/types';
-import {
-  doesPathHaveNewFilters,
-  getDefaultSelection,
-} from 'sentry/components/organizations/pageFilters/utils';
+import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -120,7 +117,6 @@ function mergeDatetime(
 type InitializeUrlStateParams = {
   memberProjects: Project[];
   organization: Organization;
-  pathname: Location['pathname'];
   queryParams: Location['query'];
   router: InjectedRouter;
   shouldEnforceSingleProject: boolean;
@@ -141,7 +137,6 @@ type InitializeUrlStateParams = {
 export function initializeUrlState({
   organization,
   queryParams,
-  pathname,
   router,
   memberProjects,
   skipLoadLastUsed,
@@ -194,21 +189,15 @@ export function initializeUrlState({
   if (storedPageFilters) {
     const {state: storedState, pinnedFilters} = storedPageFilters;
 
-    const pageHasPinning = doesPathHaveNewFilters(pathname, organization);
-
-    const filtersToRestore = pageHasPinning
-      ? pinnedFilters
-      : new Set<PinnedPageFilter>(['projects', 'environments']);
-
-    if (!hasProjectOrEnvironmentInUrl && filtersToRestore.has('projects')) {
+    if (!hasProjectOrEnvironmentInUrl && pinnedFilters.has('projects')) {
       pageFilters.projects = storedState.project ?? [];
     }
 
-    if (!hasProjectOrEnvironmentInUrl && filtersToRestore.has('environments')) {
+    if (!hasProjectOrEnvironmentInUrl && pinnedFilters.has('environments')) {
       pageFilters.environments = storedState.environment ?? [];
     }
 
-    if (!hasDatetimeInUrl && filtersToRestore.has('datetime')) {
+    if (!hasDatetimeInUrl && pinnedFilters.has('datetime')) {
       pageFilters.datetime = getDatetimeFromState(storedState);
       shouldUsePinnedDatetime = true;
     }
@@ -418,7 +407,7 @@ async function updateDesyncedUrlState(router?: Router, shouldForceProject?: bool
     return;
   }
 
-  const {pathname, query} = router.location;
+  const {query} = router.location;
 
   // XXX(epurkhiser): Since this is called immediately after updating the
   // store, wait for a tick since stores are not updated fully synchronously.
@@ -435,11 +424,9 @@ async function updateDesyncedUrlState(router?: Router, shouldForceProject?: bool
   }
 
   const storedPageFilters = getPageFilterStorage(organization.slug);
-  const pageHasPinning = doesPathHaveNewFilters(pathname, organization);
 
-  // If we don't have any stored page filters OR pinning is not enabled for
-  // this page, then we do not check desynced state
-  if (!storedPageFilters || !pageHasPinning) {
+  // If we don't have any stored page filters then we do not check desynced state
+  if (!storedPageFilters) {
     PageFiltersActions.updateDesyncedFilters(new Set<PinnedPageFilter>());
     return;
   }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import TYPE_CHECKING, Any, Iterable, MutableMapping, Type
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Type
 
 from sentry.db.models import Model
 from sentry.models import Team
@@ -38,7 +38,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def determine_recipients(self) -> Iterable[Team | User]:
         return self.role_based_recipient_strategy.determine_recipients()
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         # purposely use empty string for the notification title
         return ""
 
