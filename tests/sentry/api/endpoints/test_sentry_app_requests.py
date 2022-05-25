@@ -331,7 +331,7 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         """Test that filtering by the qparams start and end properly filters results"""
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
-        now = datetime.now()
+        now = datetime.now() + timedelta(hours=-1)
         buffer.add_request(
             response_code=200,
             org_id=self.org.id,
@@ -358,16 +358,19 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         assert response.status_code == 200
         assert len(response.data) == 3
 
+        # test adding a start time
         start_date = now.strftime("%Y-%m-%d %H:%M:%S")
         start_date_response = self.client.get(f"{url}?start={start_date}", format="json")
         assert start_date_response.status_code == 200
         assert len(start_date_response.data) == 3
 
-        end_date = (now + timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")
+        # test adding an end time
+        end_date = (now + timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")
         end_date_response = self.client.get(f"{url}?end={end_date}", format="json")
         assert end_date_response.status_code == 200
         assert len(end_date_response.data) == 2
 
+        # test adding a start and end time
         new_start_date = (now + timedelta(seconds=1)).strftime("%Y-%m-%d %H:%M:%S")
         new_end_date = (now + timedelta(seconds=2)).strftime("%Y-%m-%d %H:%M:%S")
         start_end_date_response = self.client.get(
@@ -376,5 +379,6 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         assert start_end_date_response.status_code == 200
         assert len(start_end_date_response.data) == 2
 
+        # test adding an improperly formatted end time
         bad_date_format_response = self.client.get(f"{url}?end=2000-01- 00:00:00", format="json")
         assert bad_date_format_response.data["detail"] == INVALID_DATE_FORMAT_MESSAGE
