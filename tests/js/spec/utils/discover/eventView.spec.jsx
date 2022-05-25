@@ -998,6 +998,19 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       display: 'previous',
     });
   });
+
+  it('filters out invalid teams', function () {
+    const eventView = EventView.fromSavedQueryOrLocation(undefined, {
+      query: {
+        statsPeriod: '14d',
+        project: ['123'],
+        team: ['myteams', '1', 'unassigned'],
+        environment: ['staging'],
+      },
+    });
+
+    expect(eventView.team).toEqual(['myteams', 1]);
+  });
 });
 
 describe('EventView.generateQueryStringObject()', function () {
