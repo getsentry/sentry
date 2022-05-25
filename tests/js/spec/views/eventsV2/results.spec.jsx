@@ -74,7 +74,7 @@ describe('Results', function () {
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
-    const eventsResultsMockBody = {
+    const eventsV2ResultsMockBody = {
       meta: {
         id: 'string',
         title: 'string',
@@ -92,9 +92,29 @@ describe('Results', function () {
         },
       ],
     };
+    const eventsResultsMockBody = {
+      meta: {
+        fields: {
+          id: 'string',
+          title: 'string',
+          'project.name': 'string',
+          timestamp: 'date',
+          'user.id': 'string',
+        },
+      },
+      data: [
+        {
+          id: 'deadbeef',
+          'user.id': 'alberto leal',
+          title: eventTitle,
+          'project.name': 'project-slug',
+          timestamp: '2019-05-23T22:12:48+00:00',
+        },
+      ],
+    };
     eventsv2ResultsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
-      body: eventsResultsMockBody,
+      body: eventsV2ResultsMockBody,
     });
     eventsResultsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
