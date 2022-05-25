@@ -29,7 +29,7 @@ def main() -> int:
         "-q",
     )
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         futures = (
             executor.submit(
                 worker,
