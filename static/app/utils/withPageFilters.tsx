@@ -1,7 +1,7 @@
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {PageFilters} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
+
+import usePageFilters from './usePageFilters';
 
 type InjectedPageFiltersProps = {
   isGlobalSelectionReady?: boolean;
@@ -18,11 +18,11 @@ function withPageFilters<P extends InjectedPageFiltersProps>(
   type Props = Omit<P, keyof InjectedPageFiltersProps> & InjectedPageFiltersProps;
 
   const WithPageFilters: React.FC<Props> = props => {
-    const {selection, isReady} = useLegacyStore(PageFiltersStore);
+    const {selection, isGlobalSelectionReady} = usePageFilters();
 
     const selectionProps = {
       selection,
-      isGlobalSelectionReady: isReady,
+      isGlobalSelectionReady,
     };
 
     return <WrappedComponent {...selectionProps} {...(props as P)} />;
