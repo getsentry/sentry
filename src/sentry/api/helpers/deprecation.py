@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 from datetime import datetime, timedelta
 
@@ -5,9 +7,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_410_GONE as GONE
 
+from sentry.utils.settings import is_self_hosted
+
 BROWNOUT_LENGTH = timedelta(days=30)
 GONE_MESSAGE = {"message": "This API no longer exists."}
 DEPRECATION_HEADER = "X-Sentry-Deprecation-Date"
+SUGGESTED_API_HEADER = "X-Sentry-Replacement-Endpoint"
 
 
 def _track_deprecated_metrics(request: Request, deprecation_date: datetime, now: datetime):
@@ -22,11 +27,15 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime):
     return now >= deprecation_date
 
 
-def _add_deprecation_headers(response: Response, deprecation_date: datetime):
+def _add_deprecation_headers(
+    response: Response, deprecation_date: datetime, suggested_api: str | None = None
+):
     response[DEPRECATION_HEADER] = deprecation_date.isoformat()
+    if suggested_api is not None:
+        response[SUGGESTED_API_HEADER] = suggested_api
 
 
-def deprecated(deprecation_date: datetime):
+def deprecated(deprecation_date: datetime, suggested_api: str | None = None):
     """
     Deprecation decorator that handles all the overhead related to deprecated endpoints
 
@@ -46,6 +55,10 @@ def deprecated(deprecation_date: datetime):
         @functools.wraps(func)
         def endpoint_method(self, request: Request, *args, **kwargs):
 
+            # Don't do anything for deprecated endpoitns on self hosted
+            if is_self_hosted():
+                return func(self, request, *args, **kwargs)
+
             _track_deprecated_metrics(request, deprecation_date, now)
 
             if now > deprecation_date and _should_be_blocked(deprecation_date, now):
@@ -53,7 +66,7 @@ def deprecated(deprecation_date: datetime):
             else:
                 response = func(self, request, *args, **kwargs)
 
-            _add_deprecation_headers(response, deprecation_date)
+            _add_deprecation_headers(response, deprecation_date, suggested_api)
 
             return response
 
