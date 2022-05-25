@@ -10,7 +10,7 @@ import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
 import {CommonStoreDefinition} from './types';
 
 interface CommonState {
-  /**
+  /*
    * The set of page filters which have been pinned but do not match the current
    * URL state.
    */
@@ -28,7 +28,7 @@ interface CommonState {
 /**
  * External state
  */
-interface State extends CommonState {
+interface PageFiltersState extends CommonState {
   /**
    * Are page filters ready?
    */
@@ -44,7 +44,7 @@ interface InternalDefinition extends CommonState {
 
 interface PageFiltersStoreDefinition
   extends InternalDefinition,
-    CommonStoreDefinition<State> {
+    CommonStoreDefinition<PageFiltersState> {
   init(): void;
   onInitializeUrlState(newSelection: PageFilters, pinned: Set<PinnedPageFilter>): void;
   onReset(): void;
