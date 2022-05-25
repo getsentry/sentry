@@ -96,6 +96,6 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         assert response.data[-1]["filtered"] == 0, response.data
 
     def test_invalid_parameters(self):
-        url = self.path + "?resolution=1x"
+        url = self.path + "?resolution=2d"
         response = self.client.get(url)
         assert response.status_code == 400

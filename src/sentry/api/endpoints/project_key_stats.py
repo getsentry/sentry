@@ -57,13 +57,6 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         query_data["start"] = request.GET.get("start", (now - timedelta(days=30)).isoformat())
         query_data["interval"] = request.GET.get("resolution", "1d")
 
-        query_definition = QueryDefinition(
-            query_data,
-            {"organization_id": project.organization_id},
-        )
-        results = massage_outcomes_result(
-            query_definition, [], run_outcomes_query_timeseries(query_definition)
-        )
         try:
             query_definition = QueryDefinition(
                 query_data,
