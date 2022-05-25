@@ -64,6 +64,13 @@ def call_endpoint(client, relay, private_key, default_projectkey):
     return inner
 
 
+@pytest.fixture(autouse=True)
+def max_sample_rate():
+    import sentry.options
+
+    sentry.options.set("relay.project-config-v3-enable", 1)
+
+
 @pytest.fixture
 def never_update_cache(monkeypatch):
     monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: False)
