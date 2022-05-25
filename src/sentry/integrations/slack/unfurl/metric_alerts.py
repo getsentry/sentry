@@ -63,15 +63,17 @@ def unfurl_metric_alerts(
     if not alert_rule_map:
         return {}
 
-    incident_map = {
-        i.identifier: i
-        for i in Incident.objects.filter(
-            incident_filter_query,
-            # Filter by integration organization here as well to make sure that
-            # we have permission to access these incidents.
-            organization__in=all_integration_orgs,
-        )
-    }
+    incident_map = {}
+    if bool(incident_filter_query):
+        incident_map = {
+            i.identifier: i
+            for i in Incident.objects.filter(
+                incident_filter_query,
+                # Filter by integration organization here as well to make sure that
+                # we have permission to access these incidents.
+                organization__in=all_integration_orgs,
+            )
+        }
 
     orgs_by_slug: Dict[str, Organization] = {org.slug: org for org in all_integration_orgs}
 
