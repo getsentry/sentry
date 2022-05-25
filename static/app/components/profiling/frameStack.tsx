@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
@@ -11,6 +11,8 @@ import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useF
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
+import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
@@ -28,31 +30,49 @@ function makeSortFunction(
 ) {
   if (property === 'total weight') {
     return direction === 'desc'
-      ? (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return b.node.totalWeight - a.node.totalWeight;
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.node.totalWeight - a.node.node.totalWeight;
         }
-      : (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return a.node.totalWeight - b.node.totalWeight;
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.node.totalWeight - b.node.node.totalWeight;
         };
   }
 
   if (property === 'self weight') {
     return direction === 'desc'
-      ? (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return b.node.selfWeight - a.node.selfWeight;
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.node.selfWeight - a.node.node.selfWeight;
         }
-      : (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return a.node.selfWeight - b.node.selfWeight;
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.node.selfWeight - b.node.node.selfWeight;
         };
   }
 
   if (property === 'name') {
     return direction === 'desc'
-      ? (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return a.frame.name.localeCompare(b.frame.name);
+      ? (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return a.node.frame.name.localeCompare(b.node.frame.name);
         }
-      : (a: FlamegraphFrame, b: FlamegraphFrame) => {
-          return b.frame.name.localeCompare(a.frame.name);
+      : (
+          a: VirtualizedTreeNode<FlamegraphFrame>,
+          b: VirtualizedTreeNode<FlamegraphFrame>
+        ) => {
+          return b.node.frame.name.localeCompare(a.node.frame.name);
         };
   }
 
@@ -66,88 +86,115 @@ interface FrameCallTreeStackProps {
 }
 
 function FrameCallTreeStack({
-  flamegraphRenderer,
   roots,
+  flamegraphRenderer,
   referenceNode,
 }: FrameCallTreeStackProps) {
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
 
-  const sortFunction: FrameRowProps['sortFunction'] = useMemo(() => {
-    if (sort === null) {
-      return () => 0;
-    }
+  const sortFunction = useMemo(() => {
     return makeSortFunction(sort, direction);
   }, [sort, direction]);
 
+  const {
+    items,
+    scrollContainerStyles,
+    containerStyles,
+    handleExpandTreeNode,
+    handleSortingChange,
+    handleScroll,
+  } = useVirtualizedTree({
+    sortFunction,
+    scrollContainerRef,
+    rowHeight: 24,
+    roots,
+  });
+
   const onSortChange = useCallback(
     (newSort: 'total weight' | 'self weight' | 'name') => {
-      // If sort is the same, just invert the direction
-      if (newSort === sort) {
-        setDirection(direction === 'asc' ? 'desc' : 'asc');
-        return;
-      }
+      const newDirection =
+        newSort === sort ? (direction === 'asc' ? 'desc' : 'asc') : 'desc';
 
-      // Else set the new sort and default to descending order
+      setDirection(newDirection);
       setSort(newSort);
-      setDirection('desc');
+
+      const sortFn = makeSortFunction(newSort, newDirection);
+      handleSortingChange(sortFn);
     },
-    [sort, direction]
+    [sort, direction, handleSortingChange]
   );
 
   return (
     <FrameBar>
       <FrameCallersTable>
         <FrameCallersTableHeader>
-          <tr>
-            <th>
-              <TableHeaderButton onClick={() => onSortChange('self weight')}>
-                {t('Self Time ')}
-                {sort === 'self weight' ? (
-                  <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
-                ) : null}
-              </TableHeaderButton>
-            </th>
-            <th>
-              <TableHeaderButton onClick={() => onSortChange('total weight')}>
-                {t('Total Time')}{' '}
-                {sort === 'total weight' ? (
-                  <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
-                ) : null}
-              </TableHeaderButton>
-            </th>
-            <th colSpan={100}>
-              <TableHeaderButton onClick={() => onSortChange('name')}>
-                {t('Frame')}{' '}
-                {sort === 'name' ? (
-                  <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
-                ) : null}
-              </TableHeaderButton>
-            </th>
-          </tr>
+          <FrameWeightCell>
+            <TableHeaderButton onClick={() => onSortChange('self weight')}>
+              {t('Self Time ')}
+              {sort === 'self weight' ? (
+                <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
+              ) : null}
+            </TableHeaderButton>
+          </FrameWeightCell>
+          <FrameWeightCell>
+            <TableHeaderButton onClick={() => onSortChange('total weight')}>
+              {t('Total Time')}{' '}
+              {sort === 'total weight' ? (
+                <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
+              ) : null}
+            </TableHeaderButton>
+          </FrameWeightCell>
+          <FrameNameCell>
+            <TableHeaderButton onClick={() => onSortChange('name')}>
+              {t('Frame')}{' '}
+              {sort === 'name' ? (
+                <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
+              ) : null}
+            </TableHeaderButton>
+          </FrameNameCell>
         </FrameCallersTableHeader>
-        <tbody>
-          {roots.sort(sortFunction).map(r => {
-            return (
-              <FrameRow
-                key={r.key}
-                depth={0}
-                frame={r}
-                sortFunction={sortFunction}
-                referenceNode={referenceNode}
-                flamegraphRenderer={flamegraphRenderer}
-              />
-            );
-          })}
-          {/* We add a row at the end with rowSpan so that we can have that nice border-right stretched over the entire table */}
-          <tr>
-            <FrameCallersTableCell rowSpan={100} />
-            <FrameCallersTableCell rowSpan={100} />
-            <FrameCallersTableCell rowSpan={100} />
-          </tr>
-        </tbody>
+        <div
+          ref={scrollContainerRef}
+          style={scrollContainerStyles}
+          onScroll={handleScroll}
+        >
+          <div style={containerStyles}>
+            {items.map(r => {
+              return (
+                <FrameRow
+                  key={r.key}
+                  node={r.item}
+                  style={r.styles}
+                  referenceNode={referenceNode}
+                  flamegraphRenderer={flamegraphRenderer}
+                  handleExpandedClick={handleExpandTreeNode}
+                />
+              );
+            })}
+            {/*
+              This is a ghost row, we stretch its width and height to fit the entire table
+              so that borders on columns are shown across the entire table and not just the rows.
+              This is useful when number of rows does not fill up the entire table height.
+             */}
+            <div
+              style={{
+                display: 'flex',
+                width: '100%',
+                pointerEvents: 'none',
+                position: 'absolute',
+                height: '100%',
+              }}
+            >
+              <FrameCallersTableCell />
+              <FrameCallersTableCell />
+              <FrameCallersTableCell />
+            </div>
+          </div>
+        </div>
       </FrameCallersTable>
     </FrameBar>
   );
@@ -174,95 +221,67 @@ const TableHeaderButton = styled('button')`
 `;
 
 interface FrameRowProps {
-  depth: number;
   flamegraphRenderer: FlamegraphRenderer;
-  frame: FlamegraphFrame;
+  handleExpandedClick: (
+    node: VirtualizedTreeNode<FlamegraphFrame>,
+    opts?: {expandChildren: boolean}
+  ) => void;
+  node: VirtualizedTreeNode<FlamegraphFrame>;
   referenceNode: FlamegraphFrame;
-  sortFunction: (a: FlamegraphFrame, b: FlamegraphFrame) => number;
-  initialOpen?: boolean;
+  style: React.CSSProperties;
 }
 
 function FrameRow({
-  depth,
-  frame,
+  node,
   flamegraphRenderer,
   referenceNode,
-  sortFunction,
-  initialOpen,
+  handleExpandedClick,
+  style,
 }: FrameRowProps) {
-  const [open, setOpen] = useState<boolean>(initialOpen ?? false);
-  const [forceOpenChildren, setForceOpenChildren] = useState<boolean>(
-    initialOpen ?? false
-  );
-
-  const handleClick = useCallback(
-    (evt: React.MouseEvent<HTMLTableRowElement>) => {
-      if (evt.metaKey) {
-        setForceOpenChildren(!forceOpenChildren);
-      } else {
-        // Once a user closes the row, we don't want to reopen it on subsequent clicks
-        setForceOpenChildren(false);
-      }
-      setOpen(!open);
-    },
-    [open, forceOpenChildren]
-  );
-
   const colorString = useMemo(() => {
-    return formatColorForFrame(frame, flamegraphRenderer);
-  }, [frame, flamegraphRenderer]);
+    return formatColorForFrame(node.node, flamegraphRenderer);
+  }, [node, flamegraphRenderer]);
+
+  const handleExpanding = useCallback(
+    (evt: React.MouseEvent) => {
+      handleExpandedClick(node, {expandChildren: evt.metaKey});
+    },
+    [node, handleExpandedClick]
+  );
 
   return (
-    <Fragment>
-      <FrameCallersRow onClick={handleClick}>
-        <FrameCallersTableCell textAlign="right">
-          {flamegraphRenderer.flamegraph.formatter(frame.node.selfWeight)}
-          <Weight
-            weight={computeRelativeWeight(
-              referenceNode.node.selfWeight,
-              frame.node.selfWeight
-            )}
-          />
-        </FrameCallersTableCell>
-        <FrameCallersTableCell textAlign="right">
-          {flamegraphRenderer.flamegraph.formatter(frame.node.totalWeight)}
-          <Weight
-            weight={computeRelativeWeight(
-              referenceNode.node.totalWeight,
-              frame.node.totalWeight
-            )}
-          />
-        </FrameCallersTableCell>
-        <FrameCallersTableCell
-          // We stretch this table to 100% width.
-          style={{paddingLeft: depth * 14 + 8, width: '100%'}}
-          colSpan={100}
-        >
-          <FrameNameContainer>
-            <FrameColorIndicator backgroundColor={colorString} />
-            <FrameChildrenIndicator open={open}>
-              {frame.children.length > 0 ? '\u203A' : null}
-            </FrameChildrenIndicator>
-            <FrameName>{frame.frame.name}</FrameName>
-          </FrameNameContainer>
-        </FrameCallersTableCell>
-      </FrameCallersRow>
-      {open
-        ? frame.children
-            .sort(sortFunction)
-            .map(c => (
-              <FrameRow
-                key={c.key}
-                frame={c}
-                referenceNode={referenceNode}
-                initialOpen={forceOpenChildren ? open : undefined}
-                flamegraphRenderer={flamegraphRenderer}
-                sortFunction={sortFunction}
-                depth={depth + 1}
-              />
-            ))
-        : null}
-    </Fragment>
+    <FrameCallersRow onClick={handleExpanding} style={style}>
+      <FrameCallersTableCell textAlign="right">
+        {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
+        <Weight
+          weight={computeRelativeWeight(
+            referenceNode.node.totalWeight,
+            node.node.node.selfWeight
+          )}
+        />
+      </FrameCallersTableCell>
+      <FrameCallersTableCell textAlign="right">
+        {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
+        <Weight
+          weight={computeRelativeWeight(
+            referenceNode.node.totalWeight,
+            node.node.node.totalWeight
+          )}
+        />
+      </FrameCallersTableCell>
+      <FrameCallersTableCell
+        // We stretch this table to 100% width.
+        style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
+      >
+        <FrameNameContainer>
+          <FrameColorIndicator backgroundColor={colorString} />
+          <FrameChildrenIndicator open={node.expanded}>
+            {node.node.children.length > 0 ? '\u203A' : null}
+          </FrameChildrenIndicator>
+          <FrameName>{node.node.frame.name}</FrameName>
+        </FrameNameContainer>
+      </FrameCallersTableCell>
+    </FrameCallersRow>
   );
 }
 
@@ -438,23 +457,20 @@ const FrameBar = styled('div')`
   flex: 1 1 100%;
 `;
 
-const FrameCallersTable = styled('table')`
-  border-collapse: separate;
+const FrameCallersTable = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   margin: 0;
   overflow: auto;
   max-height: 100%;
   height: 100%;
   width: 100%;
-
-  tbody {
-    height: 100%;
-    overflow: auto;
-  }
+  display: flex;
+  flex-direction: column;
 `;
 
-const FrameCallersRow = styled('tr')`
-  height: 1px;
+const FrameCallersRow = styled('div')`
+  display: flex;
+  width: 100%;
 
   &:hover {
     background-color: ${p => p.theme.surface400};
@@ -476,20 +492,29 @@ const FrameChildrenIndicator = styled('span')<{open: boolean}>`
   transform: ${p => (p.open ? 'rotate(90deg)' : 'rotate(0deg)')};
 `;
 
-const FrameCallersTableHeader = styled('thead')`
+const FrameWeightCell = styled('div')`
+  width: 156px;
+`;
+
+const FrameNameCell = styled('div')`
+  flex: 1 1 100%;
+`;
+
+const FrameCallersTableHeader = styled('div')`
   top: 0;
   position: sticky;
   z-index: 1;
+  display: flex;
+  flex: 1;
 
-  th {
+  > div {
     position: relative;
     border-bottom: 1px solid ${p => p.theme.border};
     background-color: ${p => p.theme.surface400};
     white-space: nowrap;
 
-    &:first-child,
-    &:nth-child(2) {
-      min-width: 140px;
+    &:last-child {
+      flex: 1;
     }
 
     &:not(:last-child) {
@@ -498,12 +523,14 @@ const FrameCallersTableHeader = styled('thead')`
   }
 `;
 
-const FrameCallersTableCell = styled('td')<{
+const FrameCallersTableCell = styled('div')<{
   textAlign?: React.CSSProperties['textAlign'];
 }>`
+  width: 156px;
   position: relative;
   white-space: nowrap;
   padding: 0 ${space(1)};
+  flex-shrink: 0;
   text-align: ${p => p.textAlign ?? 'initial'};
 
   &:not(:last-child) {
@@ -522,6 +549,7 @@ const FrameColorIndicator = styled('div')<{
   height: 12px;
   border-radius: 2px;
   display: inline-block;
+  flex-shrink: 0;
   background-color: ${p => p.backgroundColor};
   margin-right: ${space(1)};
 `;
