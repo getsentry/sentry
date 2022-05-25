@@ -100,7 +100,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   };
 
   handleOpenRule = (type: 'error' | 'transaction', rule?: DynamicSamplingRule) => () => {
-    const {organization, project} = this.props;
+    const {organization, project, hasAccess} = this.props;
     const {errorRules, transactionRules} = this.state;
     return openModal(
       modalProps => (
@@ -114,6 +114,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           errorRules={errorRules}
           transactionRules={transactionRules}
           onSubmitSuccess={this.successfullySubmitted}
+          disabled={!hasAccess}
         />
       ),
       {
