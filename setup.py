@@ -89,7 +89,7 @@ def get_requirements(env):
 # for development, which will be rejected by PyPI when trying to upload the wheel.
 extras_require = {"rabbitmq": ["amqp==2.6.1"]}
 if not sys.argv[1:][0].startswith("bdist"):
-    extras_require["dev"] = get_requirements("dev")
+    extras_require["dev"] = get_requirements("dev-only-frozen")
 
 
 setup(
