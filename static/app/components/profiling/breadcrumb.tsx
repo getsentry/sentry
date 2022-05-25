@@ -9,7 +9,7 @@ import {
   generateFlamegraphRouteWithQuery,
   generateFunctionsRouteWithQuery,
   generateProfilingRouteWithQuery,
-} from 'sentry/views/profiling/routes';
+} from 'sentry/utils/profiling/routes';
 
 type ProfilingTrail = {
   type: 'landing';
