@@ -1,5 +1,4 @@
 .env
-tests
 .cache/
 .coverage
 .storybook-out/
