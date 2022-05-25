@@ -39,6 +39,31 @@ export class VirtualizedTree<T extends TreeLike> {
     return new VirtualizedTree<T>(roots);
   }
 
+  // Returns a list of nodes that are visible in the tree.
+  static toExpandedList<T extends TreeLike>(
+    nodes: VirtualizedTreeNode<T>[]
+  ): VirtualizedTreeNode<T>[] {
+    const list: VirtualizedTreeNode<T>[] = [];
+
+    function visit(node: VirtualizedTreeNode<T>): void {
+      list.push(node);
+
+      if (!node.expanded) {
+        return;
+      }
+
+      for (let i = 0; i < node.children.length; i++) {
+        visit(node.children[i]);
+      }
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      visit(nodes[i]);
+    }
+
+    return list;
+  }
+
   expandNode(
     node: VirtualizedTreeNode<T>,
     value: boolean,
