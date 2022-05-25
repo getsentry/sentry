@@ -43,29 +43,6 @@ export class VirtualizedTreeNode<T> {
     return count;
   }
 
-  // Returns a list of nodes that are visible in the tree.
-  toExpandedList(): VirtualizedTreeNode<T>[] {
-    const list: VirtualizedTreeNode<T>[] = [];
-
-    function visit(node: VirtualizedTreeNode<T>): void {
-      list.push(node);
-
-      if (!node.expanded) {
-        return;
-      }
-
-      for (let i = 0; i < node.children.length; i++) {
-        visit(node.children[i]);
-      }
-    }
-
-    for (let i = 0; i < this.children.length; i++) {
-      visit(this.children[i]);
-    }
-
-    return list;
-  }
-
   setExpanded(value: boolean, opts?: {expandChildren: boolean}) {
     if (value === this.expanded) {
       return [];
