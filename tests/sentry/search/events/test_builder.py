@@ -2204,7 +2204,6 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         snql_query = query.run_query("test_query")
         assert len(snql_query["data"]) == 1
-        print(snql_query["data"])
         # This data is intepolated via rebucket_histogram
         assert snql_query["data"][0]["histogram_transaction_duration"] == [
             (0.0, 100.0, 0),
@@ -2212,4 +2211,35 @@ class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
             (200.0, 300.0, 1),
             (300.0, 400.0, 1),
             (400.0, 500.0, 1),
+        ]
+
+    def test_query_normal_distribution(self):
+        for i in range(5):
+            for _ in range((5 - abs(i - 2)) ** 2):
+                self.store_metric(
+                    100 * i + 50,
+                    tags={"transaction": "foo_transaction"},
+                    timestamp=self.start + datetime.timedelta(minutes=5),
+                )
+
+        query = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=["histogram(transaction.duration)"],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        snql_query = query.run_query("test_query")
+        assert len(snql_query["data"]) == 1
+        # This data is intepolated via rebucket_histogram
+        assert snql_query["data"][0]["histogram_transaction_duration"] == [
+            (0.0, 100.0, 10),
+            (100.0, 200.0, 17),
+            (200.0, 300.0, 23),
+            (300.0, 400.0, 17),
+            (400.0, 500.0, 10),
         ]

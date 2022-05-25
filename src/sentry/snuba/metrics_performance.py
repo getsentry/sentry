@@ -282,9 +282,6 @@ def normalize_histogram_results(fields, histogram_params, results):
     :param str array_column: Array column prefix
     """
 
-    # `key_name` is only used when generating a multi histogram of measurement values.
-    # It contains the name of the corresponding measurement for that row.
-
     # zerofill and rename the columns while making sure to adjust for precision
     bucket_maps = {field: {} for field in fields}
     # Only one row in metrics result
