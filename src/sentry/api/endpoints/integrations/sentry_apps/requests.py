@@ -1,63 +1,38 @@
+from dataclasses import dataclass
 from datetime import datetime
+from typing import Any, Mapping
 
-from django.urls import reverse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstore
 from sentry.api.bases import SentryAppBaseEndpoint, SentryAppStatsPermission
-from sentry.models import Organization, Project
+from sentry.api.serializers import serialize
+from sentry.api.serializers.rest_framework import RequestSerializer
+from sentry.models import Organization
 from sentry.utils.sentry_apps import EXTENDED_VALID_EVENTS, SentryAppWebhookRequestsBuffer
+
+INVALID_DATE_FORMAT_MESSAGE = "Invalid date format. Format must be YYYY-MM-DD HH:MM:SS."
+
+
+def filter_by_date(request: Mapping[str, Any], start: float, end: float) -> bool:
+    date_str = request.get("date")
+    if not date_str:
+        return False
+    timestamp = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S.%f+00:00").replace(microsecond=0)
+    return start <= timestamp <= end
+
+
+@dataclass
+class BufferedRequest:
+    id: int
+    data: Mapping[str, Any]
+
+    def __hash__(self):
+        return self.id
 
 
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryAppStatsPermission,)
-
-    def format_request(self, request: Request, sentry_app, org_slug: str = None):
-        response_code = request.get("response_code")
-        formatted_request = {
-            "webhookUrl": request.get("webhook_url"),
-            "sentryAppSlug": sentry_app.slug,
-            "eventType": request.get("event_type"),
-            "date": request.get("date"),
-            "responseCode": response_code,
-        }
-
-        if response_code >= 400 or response_code == 0:
-            formatted_request["requestBody"] = request.get("request_body")
-            formatted_request["requestHeaders"] = request.get("request_headers")
-            formatted_request["responseBody"] = request.get("response_body")
-
-        if "error_id" in request and "project_id" in request:
-            try:
-                project = Project.objects.get_from_cache(id=request["project_id"])
-                # Make sure the project actually belongs to the org that owns the Sentry App
-                if project.organization_id == sentry_app.owner_id:
-                    # Make sure the event actually exists
-                    event = eventstore.get_event_by_id(project.id, request["error_id"])
-                    if event is not None and event.group_id is not None:
-                        error_url = reverse(
-                            "sentry-organization-event-detail",
-                            args=[project.organization.slug, event.group_id, event.event_id],
-                        )
-                        formatted_request["errorUrl"] = error_url
-
-            except Project.DoesNotExist:
-                # If the project doesn't exist, don't add the error to the result
-                pass
-
-        if "organization_id" in request:
-            try:
-                org = Organization.objects.get_from_cache(id=request["organization_id"])
-                formatted_request["organization"] = {"name": org.name, "slug": org.slug}
-            except Organization.DoesNotExist:
-                # If the org somehow doesn't exist, just don't add it to the result
-                pass
-
-        if org_slug and not formatted_request.get("organization", {}).get("slug") == org_slug:
-            return {}
-
-        return formatted_request
 
     def get(self, request: Request, sentry_app) -> Response:
         """
@@ -70,7 +45,6 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         date_format = "%Y-%m-%d %H:%M:%S"
         now = datetime.now().strftime(date_format)
         default_start = "2000-01-01 00:00:00"
-        invalid_date_format_message = "Invalid date format. Format must be YYYY-MM-DD HH:MM:SS."
 
         event_type = request.GET.get("eventType")
         errors_only = request.GET.get("errorsOnly")
@@ -81,12 +55,12 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         try:
             start = datetime.strptime(start, date_format)
         except ValueError:
-            return Response({"detail": invalid_date_format_message})
+            return Response({"detail": INVALID_DATE_FORMAT_MESSAGE})
 
         try:
             end = datetime.strptime(end, date_format)
         except ValueError:
-            return Response({"detail": invalid_date_format_message})
+            return Response({"detail": INVALID_DATE_FORMAT_MESSAGE})
 
         kwargs = {}
         if event_type:
@@ -98,20 +72,17 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
 
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
-        formatted_requests = [
-            self.format_request(req, sentry_app, org_slug) for req in buffer.get_requests(**kwargs)
+        org = None
+        if org_slug:
+            try:
+                org = Organization.objects.filter(slug=org_slug).get()
+            except Organization.DoesNotExist:
+                return Response([])
+
+        filtered_requests = [
+            BufferedRequest(id=i, data=req)
+            for i, req in enumerate(buffer.get_requests(**kwargs))
+            if filter_by_date(req, start, end) and (not org or req.get("organization_id") == org.id)
         ]
-
-        if start == default_start and end == now:
-            return Response(formatted_requests)
-
-        filtered_requests = []
-        for formatted_request in formatted_requests:
-            if formatted_request.get("date"):
-                date = datetime.strptime(
-                    formatted_request["date"], "%Y-%m-%d %H:%M:%S.%f+00:00"
-                ).replace(microsecond=0)
-                if date >= start and date <= end:
-                    filtered_requests.append(formatted_request)
-
-        return Response(filtered_requests)
+        # write a function filter_by_org_slug
+        return Response(serialize(filtered_requests, request.user, RequestSerializer(sentry_app)))
