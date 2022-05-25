@@ -132,7 +132,7 @@ const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
 const Icon = styled(Common)<{isActive: boolean}>`
   padding: ${space(0.5)} ${space(1)};
   border-left: 4px solid
-    ${p => (p.isActive ? `${p.theme.purple300}` : `${p.theme.background}`)};
+${p => (p.isActive ? p.theme.purple300 : p.theme.background)};
 `;
 const Message = styled(Common)`
   padding: ${space(0.25)} 0;
