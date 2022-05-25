@@ -154,6 +154,10 @@ export function SpanGroupBar(props: Props) {
       event.preventDefault();
       event.stopPropagation();
 
+      if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+        return;
+      }
+
       onWheel(event.deltaX);
     };
 
