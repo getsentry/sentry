@@ -1,4 +1,5 @@
 import sys
+from threading import Lock
 
 # Unbounded function cache.
 # lru_cache(maxsize=None) has a fast path since it doesn't care about bounds.
@@ -23,3 +24,12 @@ def gitroot():
         if gitroot == root:
             raise RuntimeError("failed to locate a git root directory")
     return gitroot
+
+
+ts_print_lock = Lock()
+
+
+# Thread-safe print.
+def ts_print(*args, **kwargs):
+    with ts_print_lock:
+        print(*args, **kwargs)

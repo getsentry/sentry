@@ -1,12 +1,9 @@
-import logging
-
-# logging is thread-safe, just using it as a dumb printer
-logging.basicConfig(level=logging.INFO, format="%(message)s")
-print = logging.info
-
 import os
 from concurrent.futures import ThreadPoolExecutor
 from subprocess import run
+
+from tools.lib import gitroot
+from tools.lib import ts_print as print
 
 
 def worker(cmd):
@@ -21,8 +18,6 @@ def worker(cmd):
 
 
 def main() -> int:
-    from .lib import gitroot
-
     os.chdir(gitroot())
 
     base_cmd = (
