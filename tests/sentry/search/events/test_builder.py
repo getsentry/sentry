@@ -1025,10 +1025,20 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 86400, "A day at midnight"
 
+        # If we're doing several days, allow more range
+        start = datetime.datetime(2015, 5, 18, 0, 10, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 28, 23, 59, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "Several days"
+
         # If we're on the start of the hour we should use the hour granularity
         start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "On the hour"
+
+        # If we're close to the start of the hour we should use the hour granularity
+        start = datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 21, 1, 57, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "On the hour, close"
 
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
         # granularity

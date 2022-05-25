@@ -1597,19 +1597,37 @@ class MetricsQueryBuilder(QueryBuilder):
         Seconds are ignored under the assumption that there currently isn't a valid use case to have
         to-the-second accurate information
         """
-        duration = (self.end - self.start).seconds
+        duration = (self.end - self.start).total_seconds()
 
-        # TODO: could probably allow some leeway on the start & end (a few minutes) and use a bigger granularity
-        # eg. yesterday at 11:59pm to tomorrow at 12:01am could still use the day bucket
-
-        # Query is at least an hour
-        if self.start.minute == self.end.minute == 0 and duration % 3600 == 0:
+        if (
+            # precisely going hour to hour
+            self.start.minute
+            == self.end.minute
+            == duration % 3600
+            == 0
+        ):
             # we're going from midnight -> midnight which aligns with our daily buckets
-            if self.start.hour == self.end.hour == 0 and duration % 86400 == 0:
+            if self.start.hour == self.end.hour == duration % 86400 == 0:
                 granularity = 86400
             # we're roughly going from start of hour -> next which aligns with our hourly buckets
             else:
                 granularity = 3600
+        elif (
+            # Only use approximate if over 3 days
+            (duration > 86400 * 3)
+            and (self.start.minute <= 15 or self.start.hour >= 45)
+            and (self.end.minute <= 15 or self.end.minute >= 45)
+            and (self.start.hour <= 1 or self.start.hour >= 23)
+            and (self.end.hour <= 1 or self.end.hour >= 23)
+        ):
+            granularity = 86400
+        elif (
+            # Only use approximate if over 12 hours
+            (duration > 3600 * 12)
+            and (self.start.minute <= 5 or self.start.minute >= 55)
+            and (self.end.minute <= 5 or self.end.minute >= 55)
+        ):
+            granularity = 3600
         # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
         # here
         else:
