@@ -85,7 +85,7 @@ async function renderModal({
 }
 
 describe('Modals -> WidgetViewerModal', function () {
-  let initialData;
+  let initialData, initialDataWithFlag;
   beforeEach(() => {
     initialData = initializeOrg({
       organization: {
@@ -98,6 +98,17 @@ describe('Modals -> WidgetViewerModal', function () {
       project: 1,
       projects: [],
     });
+
+    initialDataWithFlag = {
+      ...initialData,
+      organization: {
+        ...initialData.organization,
+        features: [
+          ...initialData.organization.features,
+          'discover-frontend-use-events-endpoint',
+        ],
+      },
+    };
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -126,47 +137,12 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Discover Area Chart Widget', function () {
-    let eventsv2Mock;
-    const mockQuery: WidgetQuery = {
-      conditions: 'title:/organizations/:orgId/performance/summary/',
-      fields: ['count()'],
-      aggregates: ['count()'],
-      columns: [],
-      name: 'Query Name',
-      orderby: '',
-    };
-    const additionalMockQuery: WidgetQuery = {
-      conditions: '',
-      fields: ['count()'],
-      aggregates: ['count()'],
-      columns: [],
-      name: 'Another Query Name',
-      orderby: '',
-    };
-    const mockWidget: Widget = {
-      id: '1',
-      title: 'Test Widget',
-      displayType: DisplayType.AREA,
-      interval: '5m',
-      queries: [mockQuery, additionalMockQuery],
-      widgetType: WidgetType.DISCOVER,
-    };
+    let mockQuery: WidgetQuery;
+    let additionalMockQuery: WidgetQuery;
+    let mockWidget: Widget;
 
-    beforeEach(function () {
-      (ReactEchartsCore as jest.Mock).mockClear();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events-stats/',
-        body: {
-          data: [
-            [[1646100000], [{count: 1}]],
-            [[1646120000], [{count: 1}]],
-          ],
-          start: 1646100000,
-          end: 1646120000,
-          isMetricsData: false,
-        },
-      });
-      eventsv2Mock = MockApiClient.addMockResponse({
+    function mockEventsv2() {
+      return MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
         body: {
           data: [
@@ -184,239 +160,344 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-    });
+    }
 
-    it('renders Edit and Open buttons', async function () {
-      await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Edit Widget')).toBeInTheDocument();
-      expect(screen.getByText('Open in Discover')).toBeInTheDocument();
-    });
-
-    it('renders updated table columns and orderby', async function () {
-      await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('title')).toBeInTheDocument();
-      expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
-      expect(eventsv2Mock).toHaveBeenCalledWith(
-        '/organizations/org-slug/eventsv2/',
-        expect.objectContaining({
-          query: expect.objectContaining({sort: ['-count()']}),
-        })
-      );
-    });
-
-    it('renders area chart', async function () {
-      await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('echarts mock')).toBeInTheDocument();
-    });
-
-    it('renders Discover area chart widget viewer', async function () {
-      const {container} = await renderModal({initialData, widget: mockWidget});
-      expect(container).toSnapshot();
-    });
-
-    it('redirects user to Discover when clicking Open in Discover', async function () {
-      await renderModal({initialData, widget: mockWidget});
-      userEvent.click(screen.getByText('Open in Discover'));
-      expect(initialData.router.push).toHaveBeenCalledWith(
-        '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
-      );
-    });
-
-    it('zooms into the selected time range', async function () {
-      await renderModal({initialData, widget: mockWidget});
-      act(() => {
-        // Simulate dataZoom event on chart
-        (ReactEchartsCore as jest.Mock).mock.calls[0][0].onEvents.datazoom(undefined, {
-          getModel: () => {
-            return {
-              _payload: {
-                batch: [{startValue: 1646100000000, endValue: 1646120000000}],
-              },
-            };
-          },
-        });
-      });
-      expect(initialData.router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {viewerEnd: '2022-03-01T07:33:20', viewerStart: '2022-03-01T02:00:00'},
-        })
-      );
-    });
-
-    it('renders multiquery label and selector', async function () {
-      await renderModal({initialData, widget: mockWidget});
-      expect(
-        screen.getByText(
-          'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
-        )
-      ).toBeInTheDocument();
-      expect(screen.getByText('Query Name')).toBeInTheDocument();
-    });
-
-    it('updates selected query when selected in the query dropdown', async function () {
-      const {rerender} = await renderModal({initialData, widget: mockWidget});
-      userEvent.click(screen.getByText('Query Name'));
-      userEvent.click(screen.getByText('Another Query Name'));
-      expect(initialData.router.replace).toHaveBeenCalledWith({
-        query: {query: 1},
-      });
-      // Need to manually set the new router location and rerender to simulate the dropdown selection click
-      initialData.router.location.query = {query: ['1']};
-      rerender(
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={initialData.organization}
-          widget={mockWidget}
-          onEdit={() => undefined}
-        />
-      );
-      await waitForMetaToHaveBeenCalled();
-      expect(screen.getByText('Another Query Name')).toBeInTheDocument();
-    });
-
-    it('renders the correct discover query link when there are multiple queries in a widget', async function () {
-      initialData.router.location.query = {query: ['1']};
-      await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&statsPeriod=24h&yAxis=count%28%29'
-      );
-    });
-
-    it('renders with first legend disabled by default', async function () {
-      // Rerender with first legend disabled
-      initialData.router.location.query = {legend: ['Query Name']};
-      await renderModal({initialData, widget: mockWidget});
-      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          option: expect.objectContaining({
-            legend: expect.objectContaining({
-              selected: {'Query Name': false},
-            }),
-          }),
-        }),
-        {}
-      );
-    });
-
-    it('renders total results in footer', async function () {
-      await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('33,323,612')).toBeInTheDocument();
-    });
-
-    it('renders highlighted query text and multiple queries in select dropdown', async function () {
-      const {container} = await renderModal({
-        initialData,
-        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
-      });
-      userEvent.click(screen.getByText('/organizations/:orgId/performance/summary/'));
-      expect(container).toSnapshot();
-    });
-
-    it('renders widget chart minimap', async function () {
-      initialData.organization.features.push('widget-viewer-modal-minimap');
-      await renderModal({
-        initialData,
-        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
-      });
-
-      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          option: expect.objectContaining({
-            dataZoom: expect.arrayContaining([
-              expect.objectContaining({
-                realtime: false,
-                showDetail: false,
-                end: 100,
-                start: 0,
-              }),
-            ]),
-          }),
-        }),
-        {}
-      );
-    });
-
-    it('zooming on minimap updates location query and updates echart start and end values', async function () {
-      initialData.organization.features.push('widget-viewer-modal-minimap');
-      await renderModal({
-        initialData,
-        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
-      });
-      const calls = (ReactEchartsCore as jest.Mock).mock.calls;
-      act(() => {
-        // Simulate dataZoom event on chart
-        calls[calls.length - 1][0].onEvents.datazoom(
-          {seriesStart: 1646100000000, seriesEnd: 1646120000000},
-          {
-            getModel: () => {
-              return {
-                _payload: {start: 30, end: 70},
-              };
+    function mockEvents() {
+      return MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          data: [
+            {
+              title: '/organizations/:orgId/dashboards/',
+              id: '1',
+              count: 1,
             },
-          }
+          ],
+          meta: {
+            fields: {
+              title: 'string',
+              id: 'string',
+              count: 1,
+            },
+            isMetricsData: false,
+          },
+        },
+      });
+    }
+
+    beforeEach(function () {
+      mockQuery = {
+        conditions: 'title:/organizations/:orgId/performance/summary/',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'Query Name',
+        orderby: '',
+      };
+      additionalMockQuery = {
+        conditions: '',
+        fields: ['count()'],
+        aggregates: ['count()'],
+        columns: [],
+        name: 'Another Query Name',
+        orderby: '',
+      };
+      mockWidget = {
+        id: '1',
+        title: 'Test Widget',
+        displayType: DisplayType.AREA,
+        interval: '5m',
+        queries: [mockQuery, additionalMockQuery],
+        widgetType: WidgetType.DISCOVER,
+      };
+      (ReactEchartsCore as jest.Mock).mockClear();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {
+          data: [
+            [[1646100000], [{count: 1}]],
+            [[1646120000], [{count: 1}]],
+          ],
+          start: 1646100000,
+          end: 1646120000,
+          isMetricsData: false,
+        },
+      });
+    });
+
+    describe('with eventsv2', function () {
+      it('renders Edit and Open buttons', async function () {
+        mockEventsv2();
+        await renderModal({initialData, widget: mockWidget});
+        expect(screen.getByText('Edit Widget')).toBeInTheDocument();
+        expect(screen.getByText('Open in Discover')).toBeInTheDocument();
+      });
+
+      it('renders updated table columns and orderby', async function () {
+        const eventsv2Mock = mockEventsv2();
+        await renderModal({initialData, widget: mockWidget});
+        expect(screen.getByText('title')).toBeInTheDocument();
+        expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
+        expect(eventsv2Mock).toHaveBeenCalledWith(
+          '/organizations/org-slug/eventsv2/',
+          expect.objectContaining({
+            query: expect.objectContaining({sort: ['-count()']}),
+          })
         );
       });
 
-      expect(initialData.router.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: {viewerEnd: '2022-03-01T05:53:20', viewerStart: '2022-03-01T03:40:00'},
-        })
-      );
-    });
+      it('renders area chart', async function () {
+        mockEventsv2();
+        await renderModal({initialData, widget: mockWidget});
+        expect(screen.getByText('echarts mock')).toBeInTheDocument();
+      });
 
-    it('includes group by in widget viewer table', async function () {
-      mockWidget.queries = [
-        {
-          conditions: 'title:/organizations/:orgId/performance/summary/',
-          fields: ['count()'],
-          aggregates: ['count()'],
-          columns: ['transaction'],
-          name: 'Query Name',
-          orderby: '-count()',
-        },
-      ];
-      await renderModal({initialData, widget: mockWidget});
-      screen.getByText('transaction');
-    });
+      it('renders Discover area chart widget viewer', async function () {
+        mockEventsv2();
+        const {container} = await renderModal({initialData, widget: mockWidget});
+        expect(container).toSnapshot();
+      });
 
-    it('includes order by in widget viewer table if not explicitly selected', async function () {
-      mockWidget.queries = [
-        {
-          conditions: 'title:/organizations/:orgId/performance/summary/',
-          fields: ['count()'],
-          aggregates: ['count()'],
-          columns: ['transaction'],
-          name: 'Query Name',
-          orderby: 'count_unique(user)',
-        },
-      ];
-      await renderModal({initialData, widget: mockWidget});
-      screen.getByText('count_unique(user)');
-    });
+      it('redirects user to Discover when clicking Open in Discover', async function () {
+        mockEventsv2();
+        await renderModal({initialData, widget: mockWidget});
+        userEvent.click(screen.getByText('Open in Discover'));
+        expect(initialData.router.push).toHaveBeenCalledWith(
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
+        );
+      });
 
-    it('includes a custom equation order by in widget viewer table if not explicitly selected', async function () {
-      mockWidget.queries = [
-        {
-          conditions: 'title:/organizations/:orgId/performance/summary/',
-          fields: ['count()'],
-          aggregates: ['count()'],
-          columns: ['transaction'],
-          name: 'Query Name',
-          orderby: '-equation|count_unique(user) + 1',
-        },
-      ];
-      await renderModal({initialData, widget: mockWidget});
-      screen.getByText('count_unique(user) + 1');
+      it('zooms into the selected time range', async function () {
+        mockEventsv2();
+        await renderModal({initialData, widget: mockWidget});
+        act(() => {
+          // Simulate dataZoom event on chart
+          (ReactEchartsCore as jest.Mock).mock.calls[0][0].onEvents.datazoom(undefined, {
+            getModel: () => {
+              return {
+                _payload: {
+                  batch: [{startValue: 1646100000000, endValue: 1646120000000}],
+                },
+              };
+            },
+          });
+        });
+        expect(initialData.router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: {viewerEnd: '2022-03-01T07:33:20', viewerStart: '2022-03-01T02:00:00'},
+          })
+        );
+      });
+
+      it('renders multiquery label and selector', async function () {
+        mockEventsv2();
+        await renderModal({initialData, widget: mockWidget});
+        expect(
+          screen.getByText(
+            'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
+          )
+        ).toBeInTheDocument();
+        expect(screen.getByText('Query Name')).toBeInTheDocument();
+      });
+
+      it('updates selected query when selected in the query dropdown', async function () {
+        mockEventsv2();
+        const {rerender} = await renderModal({initialData, widget: mockWidget});
+        userEvent.click(screen.getByText('Query Name'));
+        userEvent.click(screen.getByText('Another Query Name'));
+        expect(initialData.router.replace).toHaveBeenCalledWith({
+          query: {query: 1},
+        });
+        // Need to manually set the new router location and rerender to simulate the dropdown selection click
+        initialData.router.location.query = {query: ['1']};
+        rerender(
+          <WidgetViewerModal
+            Header={stubEl}
+            Footer={stubEl as ModalRenderProps['Footer']}
+            Body={stubEl as ModalRenderProps['Body']}
+            CloseButton={stubEl}
+            closeModal={() => undefined}
+            organization={initialData.organization}
+            widget={mockWidget}
+            onEdit={() => undefined}
+          />
+        );
+        await waitForMetaToHaveBeenCalled();
+        expect(screen.getByText('Another Query Name')).toBeInTheDocument();
+      });
+
+      it('renders the correct discover query link when there are multiple queries in a widget', async function () {
+        mockEventsv2();
+        initialData.router.location.query = {query: ['1']};
+        await renderModal({initialData, widget: mockWidget});
+        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
+          'href',
+          '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&statsPeriod=24h&yAxis=count%28%29'
+        );
+      });
+
+      it('renders with first legend disabled by default', async function () {
+        mockEventsv2();
+        // Rerender with first legend disabled
+        initialData.router.location.query = {legend: ['Query Name']};
+        await renderModal({initialData, widget: mockWidget});
+        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            option: expect.objectContaining({
+              legend: expect.objectContaining({
+                selected: {'Query Name': false},
+              }),
+            }),
+          }),
+          {}
+        );
+      });
+
+      it('renders total results in footer', async function () {
+        mockEventsv2();
+        await renderModal({initialData, widget: mockWidget});
+        expect(screen.getByText('33,323,612')).toBeInTheDocument();
+      });
+
+      it('renders highlighted query text and multiple queries in select dropdown', async function () {
+        mockEventsv2();
+        const {container} = await renderModal({
+          initialData,
+          widget: {
+            ...mockWidget,
+            queries: [{...mockQuery, name: ''}, additionalMockQuery],
+          },
+        });
+        userEvent.click(screen.getByText('/organizations/:orgId/performance/summary/'));
+        expect(container).toSnapshot();
+      });
+
+      it('renders widget chart minimap', async function () {
+        initialData.organization.features.push('widget-viewer-modal-minimap');
+        mockEventsv2();
+        await renderModal({
+          initialData,
+          widget: {
+            ...mockWidget,
+            queries: [{...mockQuery, name: ''}, additionalMockQuery],
+          },
+        });
+
+        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            option: expect.objectContaining({
+              dataZoom: expect.arrayContaining([
+                expect.objectContaining({
+                  realtime: false,
+                  showDetail: false,
+                  end: 100,
+                  start: 0,
+                }),
+              ]),
+            }),
+          }),
+          {}
+        );
+      });
+
+      it('zooming on minimap updates location query and updates echart start and end values', async function () {
+        initialData.organization.features.push('widget-viewer-modal-minimap');
+        mockEventsv2();
+        await renderModal({
+          initialData,
+          widget: {
+            ...mockWidget,
+            queries: [{...mockQuery, name: ''}, additionalMockQuery],
+          },
+        });
+        const calls = (ReactEchartsCore as jest.Mock).mock.calls;
+        act(() => {
+          // Simulate dataZoom event on chart
+          calls[calls.length - 1][0].onEvents.datazoom(
+            {seriesStart: 1646100000000, seriesEnd: 1646120000000},
+            {
+              getModel: () => {
+                return {
+                  _payload: {start: 30, end: 70},
+                };
+              },
+            }
+          );
+        });
+
+        expect(initialData.router.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: {viewerEnd: '2022-03-01T05:53:20', viewerStart: '2022-03-01T03:40:00'},
+          })
+        );
+      });
+
+      it('includes group by in widget viewer table', async function () {
+        mockEventsv2();
+        mockWidget.queries = [
+          {
+            conditions: 'title:/organizations/:orgId/performance/summary/',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
+            name: 'Query Name',
+            orderby: '-count()',
+          },
+        ];
+        await renderModal({initialData, widget: mockWidget});
+        screen.getByText('transaction');
+      });
+
+      it('includes order by in widget viewer table if not explicitly selected', async function () {
+        mockEventsv2();
+        mockWidget.queries = [
+          {
+            conditions: 'title:/organizations/:orgId/performance/summary/',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
+            name: 'Query Name',
+            orderby: 'count_unique(user)',
+          },
+        ];
+        await renderModal({initialData, widget: mockWidget});
+        screen.getByText('count_unique(user)');
+      });
+
+      it('includes a custom equation order by in widget viewer table if not explicitly selected', async function () {
+        mockEventsv2();
+        mockWidget.queries = [
+          {
+            conditions: 'title:/organizations/:orgId/performance/summary/',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: ['transaction'],
+            name: 'Query Name',
+            orderby: '-equation|count_unique(user) + 1',
+          },
+        ];
+        await renderModal({initialData, widget: mockWidget});
+        screen.getByText('count_unique(user) + 1');
+      });
+    });
+    describe('with events', function () {
+      it('renders updated table columns and orderby', async function () {
+        const eventsMock = mockEvents();
+        await renderModal({initialData: initialDataWithFlag, widget: mockWidget});
+        expect(screen.getByText('title')).toBeInTheDocument();
+        expect(screen.getByText('/organizations/:orgId/dashboards/')).toBeInTheDocument();
+        expect(eventsMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/events/',
+          expect.objectContaining({
+            query: expect.objectContaining({sort: ['-count()']}),
+          })
+        );
+      });
     });
   });
 
   describe('Discover TopN Chart Widget', function () {
-    let eventsStatsMock, eventsMock;
+    let eventsStatsMock, eventsMock, eventsv2Mock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['error.type', 'count()'],
@@ -447,7 +528,7 @@ describe('Modals -> WidgetViewerModal', function () {
           isMetricsData: false,
         },
       });
-      eventsMock = MockApiClient.addMockResponse({
+      eventsv2Mock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
         match: [MockApiClient.matchQuery({cursor: undefined})],
         headers: {
@@ -537,7 +618,7 @@ describe('Modals -> WidgetViewerModal', function () {
         />
       );
       await waitForMetaToHaveBeenCalled();
-      expect(eventsMock).toHaveBeenCalledWith(
+      expect(eventsv2Mock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
         expect.objectContaining({
           query: expect.objectContaining({sort: ['-count()']}),
@@ -693,7 +774,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Discover World Map Chart Widget', function () {
-    let eventsMock, eventsGeoMock;
+    let eventsMock, eventsv2Mock, eventsGeoMock;
     const mockQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['p75(measurements.lcp)'],
@@ -732,7 +813,7 @@ describe('Modals -> WidgetViewerModal', function () {
           p75_measurements_lcp: 'duration',
         },
       };
-      eventsMock = MockApiClient.addMockResponse({
+      eventsv2Mock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
         body: eventsBody,
       });
@@ -744,7 +825,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('always queries geo.country_code in the table chart', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(eventsMock).toHaveBeenCalledWith(
+      expect(eventsv2Mock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
         expect.objectContaining({
           query: expect.objectContaining({
@@ -993,7 +1074,7 @@ describe('Modals -> WidgetViewerModal', function () {
       WidgetType: WidgetType.DISCOVER,
     };
     function mockEventsv2() {
-      const eventsv2Mock = MockApiClient.addMockResponse({
+      return MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
         body: {
           data: [
@@ -1011,7 +1092,28 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         },
       });
-      return eventsv2Mock;
+    }
+    function mockEvents() {
+      return MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {
+          data: [
+            {
+              title: '/organizations/:orgId/dashboards/',
+              id: '1',
+              count: 1,
+            },
+          ],
+          meta: {
+            fields: {
+              title: 'string',
+              id: 'string',
+              count: 1,
+            },
+            isMetricsData: false,
+          },
+        },
+      });
     }
 
     it('makes eventsv2 requests when table is paginated', async function () {
@@ -1027,6 +1129,22 @@ describe('Modals -> WidgetViewerModal', function () {
       userEvent.click(screen.getByLabelText('Next'));
       await waitFor(() => {
         expect(eventsv2Mock).toHaveBeenCalled();
+      });
+    });
+
+    it('makes events requests when table is paginated', async function () {
+      const eventsMock = mockEvents();
+      await renderModal({
+        initialData: initialDataWithFlag,
+        widget: mockWidget,
+        tableData: [],
+        pageLinks:
+          '<https://sentry.io>; rel="previous"; results="false"; cursor="0:0:1", <https://sentry.io>; rel="next"; results="true"; cursor="0:20:0"',
+      });
+      expect(eventsMock).not.toHaveBeenCalled();
+      userEvent.click(screen.getByLabelText('Next'));
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalled();
       });
     });
   });
