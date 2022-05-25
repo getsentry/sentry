@@ -56,7 +56,6 @@ def test_parse_outcome(name, outcome):
     assert Outcome.parse(name) == outcome
 
 
-# TODO(ja): Run this test
 def test_track_outcome_default(settings):
     """
     Asserts an outcomes serialization roundtrip with defaults.

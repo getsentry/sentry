@@ -38,7 +38,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         manager.normalize()
         return manager.save(self.project.id)
 
-    # TODO(ja): Test this
     def __produce_event(self, *insert_args, **insert_kwargs):
         # pass arguments on to Kafka EventManager
         self.kafka_eventstream.insert(*insert_args, **insert_kwargs)

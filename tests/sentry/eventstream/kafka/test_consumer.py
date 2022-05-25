@@ -648,14 +648,12 @@ class BatchedConsumerTest(TestCase):
     def setUp(self):
         super().setUp()
         self.events_topic = f"events-{uuid.uuid4().hex}"
-        # self.transactions_topic = f"transactions-{uuid.uuid4().hex}"
         self.commit_log_topic = f"events-commit-{uuid.uuid4().hex}"
         self.override_settings_cm = override_settings(
             KAFKA_EVENTS=self.events_topic,
             KAFKA_TRANSACTIONS=self.events_topic,
             KAFKA_TOPICS={
                 self.events_topic: {"cluster": "default"},
-                # self.transactions_topic: {"cluster": "default"},
             },
         )
         self.override_settings_cm.__enter__()

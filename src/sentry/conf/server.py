@@ -2320,7 +2320,8 @@ KAFKA_CLUSTERS = {
 }
 
 # These constants define kafka topic names, as well as keys into `KAFKA_TOPICS`
-# which contains cluster mappings for these topics.
+# which contains cluster mappings for these topics. When changing or overriding
+# one of these topic names, also add a new mapping to `KAFKA_TOPICS`.
 
 KAFKA_EVENTS = "events"
 # TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
@@ -2348,6 +2349,7 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
 }
 
+# Cluster configuration for each Kafka topic by name.
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
