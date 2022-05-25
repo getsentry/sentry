@@ -7,11 +7,13 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
+import {
+  generateFlamegraphSummaryRoute,
+  generateFunctionsRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-
-import {generateFlamegraphSummaryRoute, generateFunctionsRouteWithQuery} from '../routes';
 
 import {TableColumn, TableDataRow} from './types';
 

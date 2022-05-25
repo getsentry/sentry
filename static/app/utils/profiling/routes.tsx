@@ -65,8 +65,8 @@ export function generateFunctionsRouteWithQuery({
   orgSlug,
   projectSlug,
   transaction,
-  version,
   query,
+  version,
 }: {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];

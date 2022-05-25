@@ -8,7 +8,7 @@ export class VirtualizedTree<T extends TreeLike> {
 
   constructor(roots: VirtualizedTreeNode<T>[], flattenedList?: VirtualizedTreeNode<T>[]) {
     this.roots = roots;
-    this.flattened = flattenedList || this.toExpandedList();
+    this.flattened = flattenedList || VirtualizedTree.toExpandedList(this.roots);
   }
 
   // Rebuilds the tree
@@ -37,6 +37,31 @@ export class VirtualizedTree<T extends TreeLike> {
     }
 
     return new VirtualizedTree<T>(roots);
+  }
+
+  // Returns a list of nodes that are visible in the tree.
+  static toExpandedList<T extends TreeLike>(
+    nodes: VirtualizedTreeNode<T>[]
+  ): VirtualizedTreeNode<T>[] {
+    const list: VirtualizedTreeNode<T>[] = [];
+
+    function visit(node: VirtualizedTreeNode<T>): void {
+      list.push(node);
+
+      if (!node.expanded) {
+        return;
+      }
+
+      for (let i = 0; i < node.children.length; i++) {
+        visit(node.children[i]);
+      }
+    }
+
+    for (let i = 0; i < nodes.length; i++) {
+      visit(nodes[i]);
+    }
+
+    return list;
   }
 
   expandNode(
@@ -82,29 +107,6 @@ export class VirtualizedTree<T extends TreeLike> {
       visit(sortedRoots[i]);
     }
 
-    this.flattened = this.toExpandedList();
-  }
-
-  // Returns a list of nodes that are visible in the tree.
-  toExpandedList(): VirtualizedTreeNode<T>[] {
-    const list: VirtualizedTreeNode<T>[] = [];
-
-    function visit(node: VirtualizedTreeNode<T>): void {
-      list.push(node);
-
-      if (!node.expanded) {
-        return;
-      }
-
-      for (let i = 0; i < node.children.length; i++) {
-        visit(node.children[i]);
-      }
-    }
-
-    for (let i = 0; i < this.roots.length; i++) {
-      visit(this.roots[i]);
-    }
-
-    return list;
+    this.flattened = VirtualizedTree.toExpandedList(this.roots);
   }
 }
