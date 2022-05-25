@@ -28,6 +28,7 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
     width: 0,
     height: 0,
   });
+  const [actualHeight, setActualHeight] = useState(height);
 
   // Create the `rrweb` instance which creates an iframe inside `viewEl`
   useEffect(() => initRoot(viewEl.current), [initRoot]);
@@ -57,12 +58,15 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
     if (viewEl.current) {
       const windowHeight = height === Infinity ? windowDimensions.height : height;
 
-      const scale = Math.min(
-        windowDimensions.width / videoDimensions.width,
-        windowHeight / videoDimensions.height,
-        1
-      );
+      const scaleWidth = windowDimensions.width / videoDimensions.width;
+      const scaleHeight = windowHeight / videoDimensions.height;
+      const scale = Math.min(scaleWidth, scaleHeight, 1);
       if (scale) {
+        const isConstrainedByWidth = scale === scaleWidth;
+        if (isConstrainedByWidth) {
+          // Adjust the height so we don't get 'black bars' above/below the video
+          setActualHeight(videoDimensions.height * scale);
+        }
         viewEl.current.style['transform-origin'] = 'top left';
         viewEl.current.style.transform = `scale(${scale})`;
         viewEl.current.style.width = `${videoDimensions.width * scale}px`;
@@ -72,7 +76,7 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
   }, [windowDimensions, videoDimensions, height]);
 
   return (
-    <SizingWindow ref={windowEl} className="sr-block" minHeight={height}>
+    <SizingWindow ref={windowEl} className="sr-block" minHeight={actualHeight || height}>
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
