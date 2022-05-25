@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -30,6 +30,7 @@ type Props = {
 
 function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Props) {
   const orgSlug = organization.slug;
+  const [loadingImage, setLoadingImage] = useState(true);
 
   function handleOpenVisualizationModal(
     eventAttachment: EventAttachment,
@@ -69,8 +70,10 @@ function Screenshot({event, organization, screenshot, projectSlug, onDelete}: Pr
             orgId={orgSlug}
             projectId={projectSlug}
             event={event}
+            onLoad={() => setLoadingImage(false)}
+            onError={() => setLoadingImage(false)}
           />
-          <StyledLoadingIndicator mini />
+          {loadingImage && <StyledLoadingIndicator mini />}
         </StyledPanelBody>
         <StyledPanelFooter>
           <StyledButtonbar gap={1}>
