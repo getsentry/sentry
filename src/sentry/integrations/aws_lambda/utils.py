@@ -268,7 +268,7 @@ def disable_single_lambda(lambda_client, function, layer_arn):
     updated_handler = None
 
     if runtime.startswith("python"):
-        updated_handler = env_variables["SENTRY_INITIAL_HANDLER"]
+        updated_handler = env_variables.get("SENTRY_INITIAL_HANDLER")
 
     for env_name in [
         "SENTRY_INITIAL_HANDLER",
