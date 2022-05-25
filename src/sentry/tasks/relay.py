@@ -54,6 +54,7 @@ def update_config_cache(
         # XXX(iker): this approach doesn't work with celery's ack_late enabled.
         # If ack_late is enabled and the task fails after being marked as done,
         # the second attempt will exit early and not compute the project config.
+        metrics.incr("relay.tasks.update_config_cache.early_return", amount=1, sample_rate=1)
         return
 
     if organization_id:
