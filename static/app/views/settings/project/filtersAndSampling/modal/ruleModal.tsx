@@ -305,14 +305,14 @@ function RuleModal({
 
   const predefinedConditionsOptions = conditionCategories.map(([value, label]) => {
     // Never disable the "Add Custom Tag" option, you can add more of those
-    const disabledOption =
+    const optionDisabled =
       value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
         ? false
         : conditions.some(condition => condition.category === value);
     return {
       value,
       label,
-      disabled: disabledOption,
+      disabled: optionDisabled,
       tooltip: disabled ? conditionAlreadyAddedTooltip : undefined,
     };
   });
