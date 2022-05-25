@@ -251,7 +251,6 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     });
     const {environments, projects, datetime} = selection;
     const {start, end, period} = datetime;
-    const interval = getWidgetInterval(widget, {start, end, period});
 
     const promises: Promise<
       MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
@@ -265,13 +264,19 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const unsupportedOrderby =
       DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
 
+    const isCustomReleaseSorting = !!!useSessionAPI && rawOrderby === 'release';
+    const interval = getWidgetInterval(
+      widget,
+      {start, end, period},
+      isCustomReleaseSorting ? 'low' : undefined
+    );
     let releaseCondition = '';
     const releasesArray: string[] = [];
-    if (rawOrderby === 'release') {
+    if (isCustomReleaseSorting) {
       const releaseQueryConditions = {
         sort: 'date',
         project: projects,
-        per_page: this.limit,
+        per_page: 50,
         environments,
       };
       const releases = await api.requestPromise(
@@ -339,13 +344,13 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           end,
           environment: environments,
           groupBy: columns.map(fieldsToDerivedMetrics),
-          limit: columns.length === 0 ? 1 : this.limit,
+          limit: columns.length === 0 ? 1 : rawOrderby === 'release' ? 100 : this.limit,
           orderBy: unsupportedOrderby
             ? ''
             : isDescending
             ? `-${fieldsToDerivedMetrics(rawOrderby)}`
             : fieldsToDerivedMetrics(rawOrderby),
-          interval: '1h',
+          interval,
           project: projects,
           query: query.conditions + ` ${releaseCondition}`,
           start,
@@ -394,12 +399,13 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             return prevState;
           }
 
-          if (!!!useSessionAPI && releasesArray.length) {
+          if (releasesArray.length) {
             data.groups.sort(function (group1, group2) {
               const release1 = group1.by.release;
               const release2 = group2.by.release;
               return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
             });
+            data.groups = data.groups.slice(0, this.limit);
           }
 
           // Transform to fit the table format
