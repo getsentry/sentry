@@ -144,6 +144,7 @@ def _notify_recipient(
     attachments: List[SlackAttachment],
     channel: str,
     integration: Integration,
+    shared_context: Mapping[str, Any],
 ) -> None:
     with sentry_sdk.start_span(op="notification.send_slack", description="notify_recipient"):
         # Make a local copy to which we can append.
@@ -164,7 +165,7 @@ def _notify_recipient(
             "link_names": 1,
             "unfurl_links": False,
             "unfurl_media": False,
-            "text": notification.get_notification_title(),
+            "text": notification.get_notification_title(shared_context),
             "attachments": json.dumps(local_attachments),
         }
 
@@ -213,6 +214,7 @@ def send_notification_as_slack(
                     attachments=attachments,
                     channel=channel,
                     integration=integration,
+                    shared_context=shared_context,
                 )
 
     metrics.incr(

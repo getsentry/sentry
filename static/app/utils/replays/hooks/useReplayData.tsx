@@ -99,7 +99,6 @@ function useReplayData({eventSlug, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
 
   const api = useApi();
-  const [retry, setRetry] = useState(true);
   const [state, setState] = useState<State>(INITIAL_STATE);
 
   const fetchEvent = useCallback(() => {
@@ -126,46 +125,33 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     return flattenListOfObjects(attachments);
   }, [api, eventId, orgId, projectId]);
 
-  const loadEvents = useCallback(
-    async function () {
-      setState(INITIAL_STATE);
+  const loadEvents = useCallback(async () => {
+    setState(INITIAL_STATE);
 
-      try {
-        const [event, attachments] = await Promise.all([
-          fetchEvent(),
-          fetchRRWebEvents(),
-        ]);
+    try {
+      const [event, attachments] = await Promise.all([fetchEvent(), fetchRRWebEvents()]);
 
-        setState({
-          event,
-          fetchError: undefined,
-          fetching: false,
-          rrwebEvents: attachments.recording,
-          spans: attachments.replaySpans,
-          breadcrumbs: attachments.breadcrumbs,
-        });
-      } catch (error) {
-        Sentry.captureException(error);
-        setState({
-          ...INITIAL_STATE,
-          fetchError: error,
-          fetching: false,
-        });
-      }
-    },
-    [fetchEvent, fetchRRWebEvents]
-  );
+      setState({
+        event,
+        fetchError: undefined,
+        fetching: false,
+        rrwebEvents: attachments.recording,
+        spans: attachments.replaySpans,
+        breadcrumbs: attachments.breadcrumbs,
+      });
+    } catch (error) {
+      Sentry.captureException(error);
+      setState({
+        ...INITIAL_STATE,
+        fetchError: error,
+        fetching: false,
+      });
+    }
+  }, [fetchEvent, fetchRRWebEvents]);
 
   useEffect(() => {
-    if (retry) {
-      setRetry(false);
-      loadEvents();
-    }
-  }, [retry, loadEvents]);
-
-  const onRetry = useCallback(() => {
-    setRetry(true);
-  }, []);
+    loadEvents();
+  }, [loadEvents]);
 
   const replay = useMemo(() => {
     return ReplayReader.factory({
@@ -179,7 +165,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
   return {
     fetchError: state.fetchError,
     fetching: state.fetching,
-    onRetry,
+    onRetry: loadEvents,
     replay,
   };
 }

@@ -117,12 +117,16 @@ def metric_alert_attachment_info(
 ):
     latest_incident = None
     if selected_incident is None:
-        latest_incident = Incident.objects.filter(
-            id__in=Incident.objects.filter(alert_rule=alert_rule)
-            .values("alert_rule_id")
-            .annotate(incident_id=Max("id"))
-            .values("incident_id")
-        ).first()
+        try:
+            # Use .get() instead of .first() to avoid sorting table by id
+            latest_incident = Incident.objects.filter(
+                id__in=Incident.objects.filter(alert_rule=alert_rule)
+                .values("alert_rule_id")
+                .annotate(incident_id=Max("id"))
+                .values("incident_id")
+            ).get()
+        except Incident.DoesNotExist:
+            latest_incident = None
 
     if new_status:
         status = INCIDENT_STATUS[new_status]
