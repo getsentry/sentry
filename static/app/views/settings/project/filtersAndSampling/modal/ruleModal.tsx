@@ -46,6 +46,7 @@ type State = {
 type Props = ModalRenderProps & {
   api: Client;
   conditionCategories: Array<[DynamicSamplingInnerName, string]>;
+  disabled: boolean;
   emptyMessage: string;
   onSubmit: (
     props: Omit<State, 'errors'> & {
@@ -80,6 +81,7 @@ function RuleModal({
   onChange,
   extraFields,
   rule,
+  disabled,
 }: Props) {
   const [data, setData] = useState<State>(getInitialState());
   const [isSaving, setIsSaving] = useState(false);
@@ -303,14 +305,14 @@ function RuleModal({
 
   const predefinedConditionsOptions = conditionCategories.map(([value, label]) => {
     // Never disable the "Add Custom Tag" option, you can add more of those
-    const disabled =
+    const optionDisabled =
       value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
         ? false
         : conditions.some(condition => condition.category === value);
     return {
       value,
       label,
-      disabled,
+      disabled: optionDisabled,
       tooltip: disabled ? conditionAlreadyAddedTooltip : undefined,
     };
   });
@@ -411,8 +413,14 @@ function RuleModal({
           <Button
             priority="primary"
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
-            title={submitDisabled ? t('Required fields must be filled out') : undefined}
-            disabled={isSaving || submitDisabled}
+            title={
+              disabled
+                ? t('You do not have permission to add dynamic sampling rules.')
+                : submitDisabled
+                ? t('Required fields must be filled out')
+                : undefined
+            }
+            disabled={disabled || isSaving || submitDisabled}
           >
             {t('Save Rule')}
           </Button>
