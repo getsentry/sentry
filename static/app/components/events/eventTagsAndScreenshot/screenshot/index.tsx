@@ -153,6 +153,7 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
   max-width: 100%;
   height: 100%;
+  border: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     max-width: 175px;
@@ -160,14 +161,14 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledPanelBody = styled(PanelBody)`
+  border: 1px solid ${p => p.theme.border};
+  border-top-left-radius: ${p => p.theme.borderRadius};
+  border-top-right-radius: ${p => p.theme.borderRadius};
+  width: 100%;
+  min-height: 48px;
   overflow: hidden;
-  margin: -1px;
-  width: calc(100% + 2px);
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
   cursor: pointer;
   position: relative;
-  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -177,6 +178,10 @@ const StyledPanelBody = styled(PanelBody)`
 const StyledPanelFooter = styled(PanelFooter)`
   padding: ${space(1)};
   width: 100%;
+  border: 1px solid ${p => p.theme.border};
+  border-top: 0;
+  border-bottom-left-radius: ${p => p.theme.borderRadius};
+  border-bottom-right-radius: ${p => p.theme.borderRadius};
 `;
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`

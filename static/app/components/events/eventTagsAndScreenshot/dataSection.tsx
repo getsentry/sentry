@@ -31,6 +31,7 @@ function DataSection({title, description, children, className, ...props}: Props)
         </TitleWrapper>
       }
       wrapTitle={false}
+      showPermalink={false}
     >
       {children}
     </StyledEventDataSection>
