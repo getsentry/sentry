@@ -195,7 +195,7 @@ def test_parse_query(monkeypatch, query_string, expected):
         # will be values 10000, 10001 respectively
         local_indexer.record(org_id, s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
-    parsed = resolve_tags(org_id, parse_query(query_string))
+    parsed = resolve_tags(org_id, parse_query(query_string, []))
     assert parsed == expected
 
 
@@ -209,7 +209,7 @@ def test_parse_query(monkeypatch, query_string, expected):
 )
 def test_parse_query_invalid(query_string):
     with pytest.raises(InvalidParams):
-        parse_query(query_string)
+        parse_query(query_string, projects=[])
 
 
 @freeze_time("2018-12-11 03:21:00")

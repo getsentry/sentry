@@ -64,7 +64,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        # Project ID cannot be inffered when using an org API key, so that must
+        # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
         api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
         query = {"field": ["project.name", "environment"], "project": [project.id]}
@@ -5992,7 +5992,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        # Project ID cannot be inffered when using an org API key, so that must
+        # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
         api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
         query = {"field": ["project.name", "environment"], "project": [project.id]}
@@ -6175,10 +6175,11 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert "project" not in data[0]
 
         meta = response.data["meta"]
-        assert meta["id"] == "string"
-        assert meta["user.email"] == "string"
-        assert meta["user.ip"] == "string"
-        assert meta["timestamp"] == "date"
+        field_meta = meta["fields"]
+        assert field_meta["id"] == "string"
+        assert field_meta["user.email"] == "string"
+        assert field_meta["user.ip"] == "string"
+        assert field_meta["timestamp"] == "date"
 
     def test_project_name(self):
         project = self.create_project()
@@ -6207,7 +6208,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["project"] == project.slug
-        assert response.data["meta"]["project"] == "string"
+        assert response.data["meta"]["fields"]["project"] == "string"
         assert "project.id" not in response.data["data"][0]
         assert response.data["data"][0]["environment"] == "staging"
 
@@ -6769,7 +6770,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0] == {"project.id": project.id, "issue.id": event1.group_id, "count(id)": 2}
         assert data[1] == {"project.id": project.id, "issue.id": event2.group_id, "count(id)": 1}
-        meta = response.data["meta"]
+        meta = response.data["meta"]["fields"]
         assert meta["count(id)"] == "integer"
 
     def test_orderby(self):
@@ -7994,7 +7995,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
-        assert response.data["meta"]["max(timestamp)"] == "date"
+        assert response.data["meta"]["fields"]["max(timestamp)"] == "date"
         data = response.data["data"]
         assert data[0]["issue.id"] == event.group_id
 
@@ -8211,7 +8212,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["message"] == "string"
+        assert response.data["meta"]["fields"]["message"] == "string"
 
     def test_email_wildcard_condition(self):
         project = self.create_project()
@@ -8223,7 +8224,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["message"] == "string"
+        assert response.data["meta"]["fields"]["message"] == "string"
 
     def test_release_wildcard_condition(self):
         release = self.create_release(version="test@1.2.3+123")
@@ -8255,8 +8256,8 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["transaction.duration"] == "duration"
-        assert response.data["meta"]["transaction.status"] == "string"
+        assert response.data["meta"]["fields"]["transaction.duration"] == "duration"
+        assert response.data["meta"]["fields"]["transaction.status"] == "string"
         assert response.data["data"][0]["transaction.status"] == "ok"
 
     def test_trace_columns(self):
@@ -8272,7 +8273,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
-        assert response.data["meta"]["trace"] == "string"
+        assert response.data["meta"]["fields"]["trace"] == "string"
         assert response.data["data"][0]["trace"] == data["contexts"]["trace"]["trace_id"]
 
     def test_issue_in_columns(self):
@@ -8789,7 +8790,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(query)
         assert response.status_code == 200, response.content
-        meta = response.data["meta"]
+        meta = response.data["meta"]["fields"]
         assert "string" == meta["count_diff"], "tags should not be counted as integers"
         assert "string" == meta["message"]
         assert "integer" == meta["count()"]
@@ -8867,7 +8868,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
-        meta = response.data["meta"]
+        meta = response.data["meta"]["fields"]
         assert meta["p50()"] == "duration"
         assert meta["p75()"] == "duration"
         assert meta["p95()"] == "duration"
@@ -8919,7 +8920,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         }
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
-        meta = response.data["meta"]
+        meta = response.data["meta"]["fields"]
         assert meta["p50()"] == "duration"
         assert meta["p75()"] == "duration"
         assert meta["p95()"] == "duration"
@@ -9016,7 +9017,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
-        meta = response.data["meta"]
+        meta = response.data["meta"]["fields"]
         assert meta["user_misery(300)"] == "number"
         data = response.data["data"]
         assert data[0]["user_misery(300)"] == 0
@@ -9043,7 +9044,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
-        meta = response.data["meta"]
+        meta = response.data["meta"]["fields"]
         assert meta["user_misery()"] == "number"
         data = response.data["data"]
         assert data[0]["user_misery()"] == 0
@@ -9804,7 +9805,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.snuba.discover.query")
     def test_api_token_referrer(self, mock):
         mock.return_value = {}
-        # Project ID cannot be inffered when using an org API key, so that must
+        # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
         api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
 
@@ -9874,7 +9875,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
 
         assert response.status_code == 200, response.content
-        meta = response.data["meta"]
+        meta = response.data["meta"]["fields"]
         assert meta["percentile(transaction.duration, 0.95)"] == "duration"
         assert meta["percentile(measurements.fp, 0.95)"] == "duration"
         assert meta["percentile(measurements.fcp, 0.95)"] == "duration"
@@ -10431,12 +10432,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "organizations:discover-basic": True,
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         assert (
-            response.data["data"][0]["equation[0]"]
+            response.data["data"][0]["equation|spans.http / 3"]
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
+        assert response.data["meta"]["fields"]["equation|spans.http / 3"] == "number"
 
     def test_equation_sort(self):
         event_data = load_data("transaction", timestamp=before_now(minutes=1))
@@ -10450,7 +10452,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": ["spans.http", "equation|spans.http / 3"],
             "project": [self.project.id],
-            "orderby": "equation[0]",
+            "orderby": "equation|spans.http / 3",
             "query": "event.type:transaction",
         }
         response = self.do_request(
@@ -10459,14 +10461,14 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
                 "organizations:discover-basic": True,
             },
         )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         assert (
-            response.data["data"][0]["equation[0]"]
+            response.data["data"][0]["equation|spans.http / 3"]
             == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
         assert (
-            response.data["data"][1]["equation[0]"]
+            response.data["data"][1]["equation|spans.http / 3"]
             == event_data2["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
         )
 
@@ -10633,7 +10635,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["measurements.stall_total_time"] == 12
         assert data[0]["measurements.stall_longest_time"] == 7
         assert data[0]["measurements.stall_percentage"] == 0.004
-        meta = response.data["meta"]
+        meta = response.data["meta"]["fields"]
         assert meta["measurements.frames_total"] == "number"
         assert meta["measurements.frames_slow"] == "number"
         assert meta["measurements.frames_frozen"] == "number"
@@ -10666,7 +10668,7 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["percentile(measurements.frames_slow_rate,0.5)"] == 0.1
         assert data[0]["percentile(measurements.frames_frozen_rate,0.5)"] == 0.05
         assert data[0]["percentile(measurements.stall_percentage,0.5)"] == 0.004
-        meta = response.data["meta"]
+        meta = response.data["meta"]["fields"]
         assert meta["p75(measurements.frames_slow_rate)"] == "percentage"
         assert meta["p75(measurements.frames_frozen_rate)"] == "percentage"
         assert meta["p75(measurements.stall_percentage)"] == "percentage"
@@ -11066,15 +11068,16 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["project.name"] == self.project.slug
         assert "project.id" not in data[0]
         assert data[0]["environment"] == "staging"
 
         assert meta["isMetricsData"]
-        assert meta["project.name"] == "string"
-        assert meta["environment"] == "string"
-        assert meta["epm()"] == "number"
+        assert field_meta["project.name"] == "string"
+        assert field_meta["environment"] == "string"
+        assert field_meta["epm()"] == "number"
 
     def test_title_alias(self):
         """title is an alias to transaction name"""
@@ -11096,13 +11099,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["title"] == "foo_transaction"
         assert data[0]["p50()"] == 1
 
         assert meta["isMetricsData"]
-        assert meta["title"] == "string"
-        assert meta["p50()"] == "duration"
+        assert field_meta["title"] == "string"
+        assert field_meta["p50()"] == "duration"
 
     def test_having_condition(self):
         self.store_metric(
@@ -11129,15 +11133,16 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["transaction"] == "foo_transaction"
         assert data[0]["project"] == self.project.slug
         assert data[0]["p50(transaction.duration)"] == 1
 
         assert meta["isMetricsData"]
-        assert meta["transaction"] == "string"
-        assert meta["project"] == "string"
-        assert meta["p50(transaction.duration)"] == "duration"
+        assert field_meta["transaction"] == "string"
+        assert field_meta["project"] == "string"
+        assert field_meta["p50(transaction.duration)"] == "duration"
 
     def test_having_condition_with_preventing_aggregates(self):
         self.store_metric(
@@ -11163,11 +11168,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 0
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert not meta["isMetricsData"]
-        assert meta["transaction"] == "string"
-        assert meta["project"] == "string"
-        assert meta["p50(transaction.duration)"] == "duration"
+        assert field_meta["transaction"] == "string"
+        assert field_meta["project"] == "string"
+        assert field_meta["p50(transaction.duration)"] == "duration"
 
     def test_having_condition_with_preventing_aggregate_metrics_only(self):
         """same as the previous test, but with the dataset on explicit metrics
@@ -11209,15 +11215,16 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["transaction"] == "foo_transaction"
         assert data[0]["project"] == self.project.slug
         assert data[0]["p50(transaction.duration)"] == 1
 
         assert meta["isMetricsData"]
-        assert meta["transaction"] == "string"
-        assert meta["project"] == "string"
-        assert meta["p50(transaction.duration)"] == "duration"
+        assert field_meta["transaction"] == "string"
+        assert field_meta["project"] == "string"
+        assert field_meta["p50(transaction.duration)"] == "duration"
 
     def test_non_metrics_tag_with_implicit_format(self):
         self.store_metric(
@@ -11320,6 +11327,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert len(response.data["data"]) == 1
             data = response.data["data"][0]
             meta = response.data["meta"]
+            field_meta = meta["fields"]
 
             assert data["transaction"] == "foo_transaction"
             assert data["project"] == self.project.slug
@@ -11332,15 +11340,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             assert data["user_misery()"] == 0.058
 
             assert meta["isMetricsData"]
-            assert meta["transaction"] == "string"
-            assert meta["project"] == "string"
-            assert meta["p75(measurements.fcp)"] == "duration"
-            assert meta["p75(measurements.lcp)"] == "duration"
-            assert meta["p75(measurements.fid)"] == "duration"
-            assert meta["p75(measurements.cls)"] == "duration"
-            assert meta["apdex()"] == "number"
-            assert meta["count_miserable(user)"] == "integer"
-            assert meta["user_misery()"] == "number"
+            assert field_meta["transaction"] == "string"
+            assert field_meta["project"] == "string"
+            assert field_meta["p75(measurements.fcp)"] == "duration"
+            assert field_meta["p75(measurements.lcp)"] == "duration"
+            assert field_meta["p75(measurements.fid)"] == "duration"
+            assert field_meta["p75(measurements.cls)"] == "duration"
+            assert field_meta["apdex()"] == "number"
+            assert field_meta["count_miserable(user)"] == "integer"
+            assert field_meta["user_misery()"] == "number"
 
     def test_no_team_key_transactions(self):
         self.store_metric(1, tags={"transaction": "foo_transaction"}, timestamp=self.min_ago)
@@ -11369,6 +11377,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "foo_transaction"
@@ -11376,8 +11385,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[1]["transaction"] == "bar_transaction"
 
         assert meta["isMetricsData"]
-        assert meta["team_key_transaction"] == "boolean"
-        assert meta["transaction"] == "string"
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
 
     def test_team_key_transactions_my_teams(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -11425,6 +11434,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 3
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "baz_transaction"
@@ -11434,8 +11444,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[2]["transaction"] == "foo_transaction"
 
         assert meta["isMetricsData"]
-        assert meta["team_key_transaction"] == "boolean"
-        assert meta["transaction"] == "string"
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
 
         # not specifying any teams should use my teams
         query = {
@@ -11459,6 +11469,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 3
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "baz_transaction"
@@ -11468,8 +11479,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[2]["transaction"] == "foo_transaction"
 
         assert meta["isMetricsData"]
-        assert meta["team_key_transaction"] == "boolean"
-        assert meta["transaction"] == "string"
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
 
     def test_team_key_transactions_orderby(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -11516,6 +11527,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 3
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "bar_transaction"
@@ -11525,8 +11537,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[2]["transaction"] == "baz_transaction"
 
         assert meta["isMetricsData"]
-        assert meta["team_key_transaction"] == "boolean"
-        assert meta["transaction"] == "string"
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
 
         # test descending order
         query["orderby"] = ["-team_key_transaction", "p95()"]
@@ -11535,6 +11547,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 3
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["team_key_transaction"] == 1
         assert data[0]["transaction"] == "foo_transaction"
@@ -11544,8 +11557,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[2]["transaction"] == "bar_transaction"
 
         assert meta["isMetricsData"]
-        assert meta["team_key_transaction"] == "boolean"
-        assert meta["transaction"] == "string"
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
 
     def test_team_key_transactions_query(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
@@ -11594,6 +11607,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["team_key_transaction"] == 1
         assert data[0]["transaction"] == "foo_transaction"
@@ -11601,8 +11615,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[1]["transaction"] == "baz_transaction"
 
         assert meta["isMetricsData"]
-        assert meta["team_key_transaction"] == "boolean"
-        assert meta["transaction"] == "string"
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
 
         # key transactions
         query["query"] = "team_key_transaction:true"
@@ -11611,6 +11625,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 2
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["team_key_transaction"] == 1
         assert data[0]["transaction"] == "foo_transaction"
@@ -11618,8 +11633,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[1]["transaction"] == "baz_transaction"
 
         assert meta["isMetricsData"]
-        assert meta["team_key_transaction"] == "boolean"
-        assert meta["transaction"] == "string"
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
 
         # not key transactions
         query["query"] = "!has:team_key_transaction"
@@ -11628,13 +11643,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "bar_transaction"
 
         assert meta["isMetricsData"]
-        assert meta["team_key_transaction"] == "boolean"
-        assert meta["transaction"] == "string"
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
 
         # not key transactions
         query["query"] = "team_key_transaction:false"
@@ -11643,13 +11659,14 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "bar_transaction"
 
         assert meta["isMetricsData"]
-        assert meta["team_key_transaction"] == "boolean"
-        assert meta["transaction"] == "string"
+        assert field_meta["team_key_transaction"] == "boolean"
+        assert field_meta["transaction"] == "string"
 
     def test_too_many_team_key_transactions(self):
         MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
@@ -11759,6 +11776,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         meta = response.data["meta"]
+        field_meta = meta["fields"]
 
         assert data[0]["count_web_vitals(measurements.lcp, good)"] == 1
         assert data[0]["count_web_vitals(measurements.fp, good)"] == 1
@@ -11767,11 +11785,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["count_web_vitals(measurements.cls, good)"] == 1
 
         assert meta["isMetricsData"]
-        assert meta["count_web_vitals(measurements.lcp, good)"] == "integer"
-        assert meta["count_web_vitals(measurements.fp, good)"] == "integer"
-        assert meta["count_web_vitals(measurements.fcp, meh)"] == "integer"
-        assert meta["count_web_vitals(measurements.fid, meh)"] == "integer"
-        assert meta["count_web_vitals(measurements.cls, good)"] == "integer"
+        assert field_meta["count_web_vitals(measurements.lcp, good)"] == "integer"
+        assert field_meta["count_web_vitals(measurements.fp, good)"] == "integer"
+        assert field_meta["count_web_vitals(measurements.fcp, meh)"] == "integer"
+        assert field_meta["count_web_vitals(measurements.fid, meh)"] == "integer"
+        assert field_meta["count_web_vitals(measurements.cls, good)"] == "integer"
 
     def test_measurement_rating_that_does_not_exist(self):
         self.store_metric(
@@ -11797,7 +11815,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["count_web_vitals(measurements.lcp, poor)"] == 0
 
         assert meta["isMetricsData"]
-        assert meta["count_web_vitals(measurements.lcp, poor)"] == "integer"
+        assert meta["fields"]["count_web_vitals(measurements.lcp, poor)"] == "integer"
 
     def test_count_web_vitals_invalid_vital(self):
         query = {

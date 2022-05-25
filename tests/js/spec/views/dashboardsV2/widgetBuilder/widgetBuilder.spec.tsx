@@ -4,7 +4,6 @@ import {urlEncode} from '@sentry/utils';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import * as modals from 'sentry/actionCreators/modal';
@@ -14,15 +13,13 @@ import {
   DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  MAX_WIDGETS,
   Widget,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import * as dashboardsTypes from 'sentry/views/dashboardsV2/types';
 import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboardsV2/widgetBuilder';
 
 const defaultOrgFeatures = [
-  'new-widget-builder-experience',
+  'new-widget-builder-experience-design',
   'dashboards-edit',
   'global-views',
 ];
@@ -254,7 +251,7 @@ describe('WidgetBuilder', function () {
 
     renderTestComponent({
       dashboard,
-      orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
+      orgFeatures: ['new-widget-builder-experience-design', 'dashboards-edit'],
       params: {
         widgetIndex: '2', // Out of bounds, only one widget
       },
@@ -293,7 +290,7 @@ describe('WidgetBuilder', function () {
 
     renderTestComponent({
       dashboard,
-      orgFeatures: ['new-widget-builder-experience', 'dashboards-edit'],
+      orgFeatures: ['new-widget-builder-experience-design', 'dashboards-edit'],
       params: {
         widgetIndex: '0.5', // Invalid index
       },
@@ -442,14 +439,13 @@ describe('WidgetBuilder', function () {
   it('can add query conditions', async function () {
     const {router} = renderTestComponent({
       query: {source: DashboardWidgetSource.DISCOVERV2},
+      dashboard: testDashboard,
     });
 
     userEvent.type(
       await screen.findByRole('textbox', {name: 'Search events'}),
       'color:blue{enter}'
     );
-
-    await selectEvent.select(screen.getByText('Select a dashboard'), 'Test Dashboard');
 
     userEvent.click(screen.getByText('Add Widget'));
 
@@ -464,7 +460,7 @@ describe('WidgetBuilder', function () {
             queryNames: [''],
             queryConditions: ['color:blue'],
             queryFields: ['count()'],
-            queryOrderby: '',
+            queryOrderby: '-count()',
             start: null,
             end: null,
             statsPeriod: '24h',
@@ -480,6 +476,7 @@ describe('WidgetBuilder', function () {
   it('can choose a field', async function () {
     const {router} = renderTestComponent({
       query: {source: DashboardWidgetSource.DISCOVERV2},
+      dashboard: testDashboard,
     });
 
     expect(await screen.findAllByText('Custom Widget')).toHaveLength(2);
@@ -487,11 +484,11 @@ describe('WidgetBuilder', function () {
     // No delete button as there is only one query.
     expect(screen.queryByLabelText('Remove query')).not.toBeInTheDocument();
 
+    // 1 in the table header, 1 in the column selector, 1 in the sort field
     const countFields = screen.getAllByText('count()');
-    expect(countFields).toHaveLength(2);
+    expect(countFields).toHaveLength(3);
 
     await selectEvent.select(countFields[1], ['last_seen()']);
-    await selectEvent.select(screen.getByText('Select a dashboard'), 'Test Dashboard');
 
     userEvent.click(screen.getByText('Add Widget'));
 
@@ -506,7 +503,7 @@ describe('WidgetBuilder', function () {
             queryNames: [''],
             queryConditions: [''],
             queryFields: ['last_seen()'],
-            queryOrderby: '',
+            queryOrderby: '-last_seen()',
             start: null,
             end: null,
             statsPeriod: '24h',
@@ -825,7 +822,7 @@ describe('WidgetBuilder', function () {
           fields: ['sdk.name', 'count()'],
           columns: ['sdk.name'],
           aggregates: ['count()'],
-          orderby: '',
+          orderby: '-count()',
         },
       ],
     };
@@ -854,6 +851,7 @@ describe('WidgetBuilder', function () {
     await waitFor(() => {
       expect(handleSave).toHaveBeenCalledWith([
         expect.objectContaining({
+          id: '0',
           title: 'sdk usage',
           displayType: DisplayType.TABLE,
           interval: '5m',
@@ -864,7 +862,8 @@ describe('WidgetBuilder', function () {
               fields: ['sdk.name', 'count()', 'trace'],
               aggregates: ['count()'],
               columns: ['sdk.name', 'trace'],
-              orderby: '',
+              orderby: '-count()',
+              fieldAliases: ['', '', ''],
             },
           ],
           widgetType: WidgetType.DISCOVER,
@@ -931,8 +930,8 @@ describe('WidgetBuilder', function () {
 
     expect(await screen.findByText('tag:value')).toBeInTheDocument();
 
-    // Table display and column
-    expect(screen.getAllByText('count()')).toHaveLength(2);
+    // Table display, column, and sort field
+    expect(screen.getAllByText('count()')).toHaveLength(3);
     // Table display and column
     expect(screen.getAllByText('failure_count()')).toHaveLength(2);
     // Table display
@@ -1050,38 +1049,6 @@ describe('WidgetBuilder', function () {
     });
   });
 
-  it('disables dashboards with max widgets', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [
-        {...untitledDashboard, widgetDisplay: []},
-        {...testDashboard, widgetDisplay: [DisplayType.TABLE]},
-      ],
-    });
-
-    const maxWidgetsDefaultValue = MAX_WIDGETS;
-
-    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {value: 1});
-
-    renderTestComponent({
-      query: {
-        source: DashboardWidgetSource.DISCOVERV2,
-      },
-    });
-
-    userEvent.click(await screen.findByText('Select a dashboard'));
-    userEvent.hover(screen.getByText('Test Dashboard'));
-    expect(
-      await screen.findByText(
-        textWithMarkupMatcher('Max widgets (1) per dashboard reached.')
-      )
-    ).toBeInTheDocument();
-
-    Object.defineProperty(dashboardsTypes, 'MAX_WIDGETS', {
-      value: maxWidgetsDefaultValue,
-    });
-  });
-
   it('does not error when query conditions field is blurred', async function () {
     jest.useFakeTimers();
     const widget: Widget = {
@@ -1170,8 +1137,6 @@ describe('WidgetBuilder', function () {
       },
     });
 
-    await screen.findByText('Add Widget');
-
     expect(
       await screen.findByText('count_if(transaction.duration,equals,300)*2')
     ).toBeInTheDocument();
@@ -1185,27 +1150,26 @@ describe('WidgetBuilder', function () {
       },
     });
 
-    await screen.findByText('Add a Column');
+    // Top N now opens as Area Chart
+    await screen.findByText('Area Chart');
 
-    // Add both a field and a f(x)
-    userEvent.click(screen.getByText('Add a Column'));
-    await selectEvent.select(screen.getByText('(Required)'), /count_unique/);
-    userEvent.click(screen.getByText('Add a Column'));
-    await selectEvent.select(screen.getByText('(Required)'), /project/);
+    // Add a group by
+    userEvent.click(screen.getByText('Add Overlay'));
+    await selectEvent.select(screen.getByText('Select group'), /project/);
 
     // Change the y-axis
-    await selectEvent.select(screen.getByText('count()'), 'eps()');
+    await selectEvent.select(screen.getAllByText('count()')[0], 'eps()');
 
-    // Check that no fields were lost
     await waitFor(() => {
-      expect(eventsStatsMock).toHaveBeenCalledWith(
+      expect(eventsStatsMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
           query: expect.objectContaining({
             query: '',
-            yAxis: 'eps()',
-            field: ['project', 'count_unique(user)', 'eps()'],
+            yAxis: ['eps()'],
+            field: ['project', 'eps()'],
             topEvents: TOP_N,
+            orderby: '-eps()',
           }),
         })
       );
@@ -1978,18 +1942,7 @@ describe('WidgetBuilder', function () {
         query: {source: DashboardWidgetSource.DISCOVERV2},
       });
 
-      expect(await screen.findByText('Choose your dashboard')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          "Choose which dashboard you'd like to add this query to. It will appear as a widget."
-        )
-      ).toBeInTheDocument();
-
-      await selectEvent.select(
-        screen.getByText('Select a dashboard'),
-        '+ Create New Dashboard'
-      );
-      userEvent.click(screen.getByText('Add Widget'));
+      userEvent.click(await screen.findByText('Add Widget'));
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledWith(
@@ -2002,7 +1955,7 @@ describe('WidgetBuilder', function () {
               queryNames: [''],
               queryConditions: [''],
               queryFields: ['count()'],
-              queryOrderby: '',
+              queryOrderby: '-count()',
               start: null,
               end: null,
               statsPeriod: '24h',
@@ -2018,11 +1971,10 @@ describe('WidgetBuilder', function () {
     it('redirects correctly when choosing an existing dashboard', async function () {
       const {router} = renderTestComponent({
         query: {source: DashboardWidgetSource.DISCOVERV2},
+        dashboard: testDashboard,
       });
 
-      userEvent.click(await screen.findByText('Select a dashboard'));
-      userEvent.click(screen.getByText('Test Dashboard'));
-      userEvent.click(screen.getByText('Add Widget'));
+      userEvent.click(await screen.findByText('Add Widget'));
 
       await waitFor(() => {
         expect(router.push).toHaveBeenCalledWith(
@@ -2035,7 +1987,7 @@ describe('WidgetBuilder', function () {
               queryNames: [''],
               queryConditions: [''],
               queryFields: ['count()'],
-              queryOrderby: '',
+              queryOrderby: '-count()',
               start: null,
               end: null,
               statsPeriod: '24h',
@@ -2278,7 +2230,7 @@ describe('WidgetBuilder', function () {
                 aggregates: [],
                 fieldAliases: [],
                 name: '',
-                orderby: '',
+                orderby: 'date',
               },
             ],
           }),

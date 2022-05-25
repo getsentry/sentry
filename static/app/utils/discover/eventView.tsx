@@ -239,7 +239,9 @@ const decodeTeams = (location: Location): ('myteams' | number)[] => {
     return [];
   }
   const value = location.query.team;
-  return Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)];
+  return (Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)]).filter(
+    team => team === 'myteams' || !isNaN(team)
+  );
 };
 
 const decodeProjects = (location: Location): number[] => {

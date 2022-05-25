@@ -22,7 +22,15 @@ class DummyTSDB(BaseTSDB):
         self.validate_arguments(models, environment_ids)
 
     def get_range(
-        self, model, keys, start, end, rollup=None, environment_ids=None, use_cache=False
+        self,
+        model,
+        keys,
+        start,
+        end,
+        rollup=None,
+        environment_ids=None,
+        use_cache=False,
+        jitter_value=None,
     ):
         self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
         _, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -39,7 +47,15 @@ class DummyTSDB(BaseTSDB):
         return {k: [(ts, 0) for ts in series] for k in keys}
 
     def get_distinct_counts_totals(
-        self, model, keys, start, end=None, rollup=None, environment_id=None, use_cache=False
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+        use_cache=False,
+        jitter_value=None,
     ):
         self.validate_arguments([model], [environment_id])
         return {k: 0 for k in keys}

@@ -21,7 +21,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import GlobalSelectionHeader from './globalSelectionHeader';
 import {getDatetimeFromState, getStateFromQuery} from './parse';
-import {doesPathHaveNewFilters, extractSelectionParameters} from './utils';
+import {extractSelectionParameters} from './utils';
 
 type GlobalSelectionHeaderProps = Omit<
   React.ComponentPropsWithoutRef<typeof GlobalSelectionHeader>,
@@ -82,7 +82,6 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
   const {isSuperuser} = ConfigStore.get('user');
   const isOrgAdmin = organization.access.includes('org:admin');
   const enforceSingleProject = !organization.features.includes('global-views');
-  const hasPageFilters = doesPathHaveNewFilters(location.pathname ?? '', organization);
 
   const specifiedProjects = specificProjectSlugs
     ? projects.filter(project => specificProjectSlugs.includes(project.slug))
@@ -106,7 +105,6 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     initializeUrlState({
       organization,
       queryParams: location.query,
-      pathname: location.pathname,
       router,
       skipLoadLastUsed,
       memberProjects,
@@ -152,11 +150,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     // XXX: This re-initalization is only required in new-page-filters
     // land, since we have implicit pinning in the old land which will
     // cause page filters to commonly reset.
-    if (
-      hasPageFilters &&
-      isEmpty(newSelectionQuery) &&
-      !isEqual(oldSelectionQuery, newSelectionQuery)
-    ) {
+    if (isEmpty(newSelectionQuery) && !isEqual(oldSelectionQuery, newSelectionQuery)) {
       doInitialization();
       lastQuery.current = location.query;
       return;

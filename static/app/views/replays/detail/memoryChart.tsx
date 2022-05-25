@@ -123,13 +123,17 @@ function MemoryChart({
     // the "line" of the area chart. Mouse events do not fire when interacting
     // with the "area" under the line.
     onMouseOver: ({data}) => {
-      setCurrentHoverTime((data[0] - startTimestamp) * 1000);
+      if (data[0]) {
+        setCurrentHoverTime((data[0] - startTimestamp) * 1000);
+      }
     },
     onMouseOut: () => {
       setCurrentHoverTime(undefined);
     },
     onClick: ({data}) => {
-      setCurrentTime((data[0] - startTimestamp) * 1000);
+      if (data.value) {
+        setCurrentTime((data.value - startTimestamp) * 1000);
+      }
     },
   };
 

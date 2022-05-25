@@ -4,7 +4,6 @@ import debounce from 'lodash/debounce';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
-import {showPlayerTime} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -12,6 +11,7 @@ import {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrum
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import ConsoleMessage from './consoleMessage';
+import {filterBreadcrumbs} from './utils';
 
 interface Props {
   breadcrumbs: BreadcrumbTypeDefault[];
@@ -27,14 +27,7 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
   const handleSearch = debounce(query => setSearchTerm(query), 150);
 
   const filteredBreadcrumbs = useMemo(
-    () =>
-      !searchTerm && logLevel.length === 0
-        ? breadcrumbs
-        : breadcrumbs.filter(
-            breadcrumb =>
-              breadcrumb.message?.toLowerCase().includes(searchTerm) &&
-              logLevel.includes(breadcrumb.level)
-          ),
+    () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
     [logLevel, searchTerm, breadcrumbs]
   );
 
@@ -59,17 +52,16 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
 
       {filteredBreadcrumbs.length > 0 ? (
         <ConsoleTable>
-          {filteredBreadcrumbs.map((breadcrumb, i) => (
-            <ConsoleMessage
-              relativeTimestamp={showPlayerTime(
-                breadcrumb.timestamp || '',
-                startTimestamp
-              )}
-              key={i}
-              isLast={i === breadcrumbs.length - 1}
-              breadcrumb={breadcrumb}
-            />
-          ))}
+          {filteredBreadcrumbs.map((breadcrumb, i) => {
+            return (
+              <ConsoleMessage
+                startTimestamp={startTimestamp}
+                key={i}
+                isLast={i === breadcrumbs.length - 1}
+                breadcrumb={breadcrumb}
+              />
+            );
+          })}
         </ConsoleTable>
       ) : (
         <StyledEmptyMessage title={t('No results found.')} />

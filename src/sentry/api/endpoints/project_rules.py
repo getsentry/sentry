@@ -7,11 +7,12 @@ from sentry import audit_log
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
-from sentry.integrations.slack import tasks
+from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
 from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, Team, User
-from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
+from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_created
+from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
 
 
@@ -100,10 +101,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     )
 
             if data.get("pending_save"):
-                client = tasks.RedisRuleStatus()
+                client = RedisRuleStatus()
                 uuid_context = {"uuid": client.uuid}
                 kwargs.update(uuid_context)
-                tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
+                find_channel_id_for_rule.apply_async(kwargs=kwargs)
                 return Response(uuid_context, status=202)
 
             created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
