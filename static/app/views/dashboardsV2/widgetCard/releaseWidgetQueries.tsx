@@ -230,7 +230,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     }
   }
 
-  fetchData() {
+  async fetchData() {
     const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
       this.props;
 
@@ -262,7 +262,36 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
     const isDescending = widget.queries[0].orderby.startsWith('-');
     const rawOrderby = trimStart(widget.queries[0].orderby, '-');
-    const unsupportedOrderby = DISABLED_SORT.includes(rawOrderby) || useSessionAPI;
+    const unsupportedOrderby =
+      DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
+
+    let releaseCondition = '';
+    const releasesArray: string[] = [];
+    if (rawOrderby === 'release') {
+      const releaseQueryConditions = {
+        sort: 'date',
+        project: projects,
+        per_page: this.limit,
+        environments,
+      };
+      const releases = await api.requestPromise(
+        `/organizations/${organization.slug}/releases/`,
+        {
+          method: 'GET',
+          data: releaseQueryConditions,
+        }
+      );
+
+      if (releases.length) {
+        releaseCondition += '(release:' + releases[0].version;
+        releasesArray.push(releases[0].version);
+        for (let i = 1; i < releases.length; i++) {
+          releaseCondition += ' OR release:' + releases[i].version;
+          releasesArray.push(releases[i].version);
+        }
+        releaseCondition += ')';
+      }
+    }
 
     const {aggregates, derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
       widget.queries[0].aggregates,
@@ -308,9 +337,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             : isDescending
             ? `-${fieldsToDerivedMetrics(rawOrderby)}`
             : fieldsToDerivedMetrics(rawOrderby),
-          interval,
+          interval: '1h',
           project: projects,
-          query: query.conditions,
+          query: query.conditions + ` ${releaseCondition}`,
           start,
           statsPeriod: period,
           includeAllArgs,
@@ -353,6 +382,14 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
             return prevState;
+          }
+
+          if (!!!useSessionAPI && releasesArray.length) {
+            data.groups.sort(function (group1, group2) {
+              const release1 = group1.by.release;
+              const release2 = group2.by.release;
+              return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
+            });
           }
 
           // Transform to fit the table format
