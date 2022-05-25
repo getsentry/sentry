@@ -20,11 +20,10 @@ import {Project} from 'sentry/types';
 import {FunctionCall, VersionedFunctionCalls} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
+import {generateFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-
-import {generateFlamegraphRouteWithQuery} from '../routes';
 
 import {ArrayLinks} from './arrayLinks';
 

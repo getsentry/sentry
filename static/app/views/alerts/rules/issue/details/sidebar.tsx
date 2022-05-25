@@ -10,16 +10,19 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Actor} from 'sentry/types';
+import {Actor, Member, Team} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
 
 type Props = {
+  memberList: Member[];
   rule: IssueAlertRule;
+  teams: Team[];
 };
 
 class Sidebar extends PureComponent<Props> {
   renderConditions() {
-    const {rule} = this.props;
+    const {rule, memberList, teams} = this.props;
+
     const conditions = rule.conditions.length
       ? rule.conditions.map(condition => (
           <ConditionsBadge key={condition.id}>{condition.name}</ConditionsBadge>
@@ -35,6 +38,16 @@ class Sidebar extends PureComponent<Props> {
     const actions = rule.actions.length ? (
       rule.actions.map(action => {
         let name = action.name;
+        if (action.targetType === 'Member') {
+          const user = memberList.find(
+            member => member.user.id === `${action.targetIdentifier}`
+          );
+          name = t('Send a notification to %s', user?.email);
+        }
+        if (action.targetType === 'Team') {
+          const team = teams.find(tm => tm.id === `${action.targetIdentifier}`);
+          name = t('Send a notification to #%s', team?.name);
+        }
         if (
           action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction'
         ) {
