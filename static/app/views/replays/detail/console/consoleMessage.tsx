@@ -131,13 +131,7 @@ const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
 
 const Icon = styled(Common)<{isActive: boolean}>`
   padding: ${space(0.5)} ${space(1)};
-  border-left: 4px solid
-    ${p =>
-      p.isActive
-        ? p.theme.active
-        : ['warning', 'error'].includes(p.level)
-        ? p.theme.alert[p.level].backgroundLight
-        : 'inherit'};
+  border-left: 4px solid ${p => (p.isActive ? p.theme.focus : 'transparent')};
 `;
 const Message = styled(Common)`
   padding: ${space(0.25)} 0;
