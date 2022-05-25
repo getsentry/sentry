@@ -29,36 +29,27 @@ def main() -> int:
         "-q",
     )
 
-    with ThreadPoolExecutor(max_workers=3) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         futures = (
-            #            executor.submit(
-            #                worker,
-            #                (
-            #                    *base_cmd,
-            #                    "requirements-base.txt",
-            #                    "-o",
-            #                    "requirements-frozen.txt",
-            #                ),
-            #            ),
             executor.submit(
                 worker,
                 (
                     *base_cmd,
-                    "requirements-dev.txt",
+                    "requirements-base.txt",
                     "-o",
-                    "requirements-dev-only-frozen.txt",
+                    "requirements-frozen.txt",
                 ),
             ),
-            #            executor.submit(
-            #                worker,
-            #                (
-            #                    *base_cmd,
-            #                    "requirements-base.txt",
-            #                    "requirements-dev.txt",
-            #                    "-o",
-            #                    "requirements-dev-frozen.txt",
-            #                ),
-            #            ),
+            executor.submit(
+                worker,
+                (
+                    *base_cmd,
+                    "requirements-base.txt",
+                    "requirements-dev.txt",
+                    "-o",
+                    "requirements-dev-frozen.txt",
+                ),
+            ),
         )
 
     rc = 0
@@ -68,7 +59,20 @@ def main() -> int:
         except Exception as e:
             print(f"exception occured while running `{cmd_pretty}`:\n{e}")
 
-    return rc
+    if rc != 0:
+        return rc
+
+    # TODO: check for same dep==version and dep==different_version
+    with open("requirements-frozen.txt") as f:
+        requirements_frozen = set(f)
+
+    with open("requirements-dev-frozen.txt") as f:
+        requirements_dev_frozen = set(f)
+
+    with open("requirements-dev-only-frozen.txt", "wt") as f:
+        f.writelines(sorted(requirements_dev_frozen - requirements_frozen))
+
+    return 0
 
 
 if __name__ == "__main__":
