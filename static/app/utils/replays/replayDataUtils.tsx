@@ -1,7 +1,7 @@
 import first from 'lodash/first';
 
 import {
-  // getVirtualCrumb,
+  getVirtualCrumb,
   transformCrumbs,
 } from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {t} from 'sentry/locale';
@@ -64,11 +64,9 @@ export function breadcrumbFactory(
     },
   } as BreadcrumbTypeDefault;
 
-  // TODO
-  // const errorCrumbs = [];
-  // const errorCrumbs = events
-  // .map(getVirtualCrumb)
-  // .filter((crumb: RawCrumb | undefined): crumb is RawCrumb => crumb !== undefined);
+  const errorCrumbs = events
+    .map(getVirtualCrumb)
+    .filter((crumb: RawCrumb | undefined): crumb is RawCrumb => crumb !== undefined);
 
   const result = transformCrumbs([
     initBreadcrumb,
@@ -77,7 +75,7 @@ export function breadcrumbFactory(
       type: BreadcrumbType.DEFAULT,
       timestamp: new Date(timestamp * 1000).toISOString(),
     })) as RawCrumb[]),
-    // ...errorCrumbs,
+    ...errorCrumbs,
   ]);
 
   return result.sort((a, b) => +new Date(a.timestamp || 0) - +new Date(b.timestamp || 0));
