@@ -270,6 +270,14 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     );
     const columns = widget.queries[0].columns;
 
+    const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
+    const includeTotals =
+      widget.displayType === DisplayType.TABLE ||
+      widget.displayType === DisplayType.BIG_NUMBER ||
+      columns.length > 0
+        ? 1
+        : 0;
+
     widget.queries.forEach(query => {
       let requestData;
       let requester;
@@ -302,7 +310,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           end,
           environment: environments,
           groupBy: columns.map(fieldsToDerivedMetrics),
-          limit: unsupportedOrderby || rawOrderby === '' ? undefined : this.limit,
+          limit: columns.length === 0 ? 1 : this.limit,
           orderBy: unsupportedOrderby
             ? ''
             : isDescending
@@ -315,6 +323,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           statsPeriod: period,
           includeAllArgs,
           cursor,
+          includeSeries,
+          includeTotals,
         };
         requester = doMetricsRequest;
 
@@ -356,32 +366,39 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           }
 
           // Transform to fit the table format
-          const tableData = transformSessionsResponseToTable(
-            data,
-            derivedStatusFields,
-            injectedFields
-          ) as TableDataWithTitle; // Cast so we can add the title.
-          tableData.title = widget.queries[requestIndex]?.name ?? '';
-          const tableResults = [...(prevState.tableResults ?? []), tableData];
+          let tableResults: TableDataWithTitle[] | undefined;
+          if (includeTotals) {
+            const tableData = transformSessionsResponseToTable(
+              data,
+              derivedStatusFields,
+              injectedFields
+            ) as TableDataWithTitle; // Cast so we can add the title.
+            tableData.title = widget.queries[requestIndex]?.name ?? '';
+            tableResults = [...(prevState.tableResults ?? []), tableData];
+          } else {
+            tableResults = undefined;
+          }
 
           // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          const transformedResult = transformSessionsResponseToSeries(
-            data,
-            derivedStatusFields,
-            injectedFields,
-            widget.queries[requestIndex].name
-          );
+          if (includeSeries) {
+            const transformedResult = transformSessionsResponseToSeries(
+              data,
+              derivedStatusFields,
+              injectedFields,
+              widget.queries[requestIndex].name
+            );
 
-          // When charting timeseriesData on echarts, color association to a timeseries result
-          // is order sensitive, ie series at index i on the timeseries array will use color at
-          // index i on the color array. This means that on multi series results, we need to make
-          // sure that the order of series in our results do not change between fetches to avoid
-          // coloring inconsistencies between renders.
-          transformedResult.forEach((result, resultIndex) => {
-            timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
-              result;
-          });
+            // When charting timeseriesData on echarts, color association to a timeseries result
+            // is order sensitive, ie series at index i on the timeseries array will use color at
+            // index i on the color array. This means that on multi series results, we need to make
+            // sure that the order of series in our results do not change between fetches to avoid
+            // coloring inconsistencies between renders.
+            transformedResult.forEach((result, resultIndex) => {
+              timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
+                result;
+            });
+          }
 
           onDataFetched?.({timeseriesResults, tableResults});
 
