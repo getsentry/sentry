@@ -374,7 +374,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             : fieldsToDerivedMetrics(rawOrderby),
           interval,
           project: projects,
-          query: query.conditions + ` ${releaseCondition}`,
+          query:
+            query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`),
           start,
           statsPeriod: period,
           includeAllArgs,
