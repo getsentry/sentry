@@ -9,12 +9,14 @@ type IncidentImpact = SentryServiceStatus['indicator'];
  * [0]: https://doers.statuspage.io/api/v2/incidents/
  */
 type StatuspageIncident = {
+  created_at: string;
   id: string;
   impact: IncidentImpact;
-  incident_updates: {body: string}[];
   name: string;
   shortlink: string;
   status: string;
+  components?: Array<any>;
+  incident_updates?: Array<any>;
 };
 
 function getIncidentsFromIncidentResponse(statuspageIncidents: StatuspageIncident[]): {
@@ -35,7 +37,19 @@ function getIncidentsFromIncidentResponse(statuspageIncidents: StatuspageInciden
     incidents.push({
       id: item.id,
       name: item.name,
-      updates: item.incident_updates.map(update => update.body),
+      createdAt: item.created_at,
+      updates:
+        item.incident_updates?.map(update => ({
+          body: update.body,
+          status: update.status,
+          updatedAt: update.updated_at,
+        })) ?? [],
+      affectedComponents:
+        item.components?.map(componentUpdate => ({
+          name: componentUpdate.name,
+          status: componentUpdate.status,
+          updatedAt: componentUpdate.updated_at,
+        })) ?? [],
       url: item.shortlink,
       status: item.status,
     });
@@ -50,6 +64,7 @@ export async function loadIncidents(): Promise<SentryServiceStatus | null> {
   if (!cfg || !cfg.id) {
     return null;
   }
+
   try {
     response = await fetch(
       `https://${cfg.id}.${cfg.api_host}/api/v2/incidents/unresolved.json`

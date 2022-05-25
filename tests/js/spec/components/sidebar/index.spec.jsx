@@ -249,6 +249,7 @@ describe('Sidebar', function () {
       const {container} = renderSidebar();
 
       userEvent.click(await screen.findByText('Service status'));
+      await screen.findByText('Recent service updates');
 
       expect(container).toSnapshot();
     });

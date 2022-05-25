@@ -1,17 +1,31 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import color from 'color';
+import sortBy from 'lodash/sortBy';
+import startCase from 'lodash/startCase';
 
 import {loadIncidents} from 'sentry/actionCreators/serviceIncidents';
 import Button from 'sentry/components/button';
+import List from 'sentry/components/list';
+import ListItem from 'sentry/components/list/listItem';
+import Text from 'sentry/components/text';
+import Tooltip from 'sentry/components/tooltip';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
-import {IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {
+  IconCheckmark,
+  IconFatal,
+  IconFire,
+  IconInfo,
+  IconOpen,
+  IconWarning,
+} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SentryServiceStatus} from 'sentry/types';
+import marked from 'sentry/utils/marked';
 
-import List from '../list';
-import ListItem from '../list/listItem';
+import TimeSince from '../timeSince';
 
 import SidebarItem from './sidebarItem';
 import SidebarPanel from './sidebarPanel';
@@ -21,6 +35,16 @@ import {CommonSidebarProps} from './types';
 
 type Props = CommonSidebarProps;
 
+type Status =
+  SentryServiceStatus['incidents'][number]['affectedComponents'][number]['status'];
+
+const COMPONENT_STATUS_SORT: Status[] = [
+  'operational',
+  'degraded_performance',
+  'partial_outage',
+  'major_outage',
+];
+
 function ServiceIncidents({
   currentPanel,
   onShowPanel,
@@ -28,11 +52,11 @@ function ServiceIncidents({
   collapsed,
   orientation,
 }: Props) {
-  const [status, setStatus] = useState<SentryServiceStatus | null>(null);
+  const [serviceStatus, setServiceStatus] = useState<SentryServiceStatus | null>(null);
 
   async function fetchData() {
     try {
-      setStatus(await loadIncidents());
+      setServiceStatus(await loadIncidents());
     } catch (e) {
       Sentry.withScope(scope => {
         scope.setLevel('warning');
@@ -49,12 +73,12 @@ function ServiceIncidents({
     return null;
   }
 
-  if (!status) {
+  if (!serviceStatus) {
     return null;
   }
 
   const active = currentPanel === 'statusupdate';
-  const isEmpty = !status.incidents || status.incidents.length === 0;
+  const isEmpty = !serviceStatus.incidents || serviceStatus.incidents.length === 0;
 
   if (isEmpty) {
     return null;
@@ -71,7 +95,7 @@ function ServiceIncidents({
         label={t('Service status')}
         onClick={onShowPanel}
       />
-      {active && status && (
+      {active && serviceStatus && (
         <SidebarPanel
           orientation={orientation}
           title={t('Recent service updates')}
@@ -81,36 +105,160 @@ function ServiceIncidents({
           {isEmpty && (
             <SidebarPanelEmpty>{t('There are no incidents to report')}</SidebarPanelEmpty>
           )}
-          <div className="incident-list">
-            {status.incidents.map(incident => (
-              <SidebarPanelItem
-                title={incident.name}
-                message={t('Latest updates')}
-                key={incident.id}
-              >
-                {incident.updates ? (
-                  <List>
-                    {incident.updates.map((update, key) => (
-                      <ListItem key={key}>{update}</ListItem>
-                    ))}
-                  </List>
-                ) : null}
-                <ActionBar>
-                  <Button href={incident.url} size="small" external>
-                    {t('Learn more')}
-                  </Button>
-                </ActionBar>
-              </SidebarPanelItem>
-            ))}
-          </div>
+          {serviceStatus.incidents.map(incident => (
+            <SidebarPanelItem
+              title={incident.name}
+              key={incident.id}
+              titleAction={
+                <Button
+                  size="xsmall"
+                  icon={<IconOpen size="xs" />}
+                  priority="link"
+                  href={incident.url}
+                  external
+                >
+                  {t('Full Incident Details')}
+                </Button>
+              }
+            >
+              <AffectedServices>
+                {tct(
+                  "This incident started [timeAgo]. We're experiencing the following problems with our services",
+                  {
+                    timeAgo: (
+                      <strong>
+                        <TimeSince date={incident.createdAt} />
+                      </strong>
+                    ),
+                  }
+                )}
+                <ComponentList>
+                  {sortBy(incident.affectedComponents, i =>
+                    COMPONENT_STATUS_SORT.indexOf(i.status)
+                  ).map(({name, status}, key) => (
+                    <ComponentStatus
+                      key={key}
+                      padding="24px"
+                      symbol={getStatusSymbol(status)}
+                    >
+                      {name}
+                    </ComponentStatus>
+                  ))}
+                </ComponentList>
+              </AffectedServices>
+
+              <UpdatesList>
+                {incident.updates.map(({status, body, updatedAt}, key) => (
+                  <ListItem key={key}>
+                    <UpdateHeading>
+                      <StatusTitle>{startCase(status)}</StatusTitle>
+                      <StatusDate>
+                        {tct('([time])', {time: <TimeSince date={updatedAt} />})}
+                      </StatusDate>
+                    </UpdateHeading>
+                    <Text dangerouslySetInnerHTML={{__html: marked(body)}} />
+                  </ListItem>
+                ))}
+              </UpdatesList>
+            </SidebarPanelItem>
+          ))}
         </SidebarPanel>
       )}
     </Fragment>
   );
 }
 
-export default ServiceIncidents;
+function getStatusSymbol(status: Status) {
+  return (
+    <Tooltip skipWrapper title={startCase(status)}>
+      {status === 'operational' ? (
+        <IconCheckmark size="sm" isCircled color="green300" />
+      ) : status === 'major_outage' ? (
+        <IconFatal size="sm" color="red300" />
+      ) : status === 'degraded_performance' ? (
+        <IconWarning size="sm" color="yellow300" />
+      ) : status === 'partial_outage' ? (
+        <IconFire size="sm" color="yellow300" />
+      ) : (
+        <IconInfo size="sm" color="gray300" />
+      )}
+    </Tooltip>
+  );
+}
 
-const ActionBar = styled('div')`
-  margin-top: ${space(2)};
+const AffectedServices = styled('div')`
+  margin: ${space(2)} 0;
 `;
+
+const UpdatesList = styled(List)`
+  gap: ${space(3)};
+  margin-left: ${space(1.5)};
+  position: relative;
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    height: 100%;
+    width: 2px;
+    margin: ${space(1)} 0 ${space(1)} -${space(1.5)};
+    background: ${p => p.theme.gray100};
+  }
+
+  &::after {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: -${space(1)};
+    margin-left: -${space(1.5)};
+    height: 30px;
+    width: 2px;
+    background: linear-gradient(
+      0deg,
+      ${p => p.theme.background},
+      ${p => color(p.theme.background).alpha(0).string()}
+    );
+  }
+`;
+
+const UpdateHeading = styled('div')`
+  margin-bottom: ${space(0.5)};
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+  position: relative;
+
+  &::before {
+    content: '';
+    display: block;
+    position: absolute;
+    height: 8px;
+    width: 8px;
+    margin-left: -15px;
+    border-radius: 50%;
+    background: ${p => p.theme.purple300};
+  }
+`;
+
+const StatusTitle = styled('div')`
+  color: ${p => p.theme.headingColor};
+  font-weight: bold;
+`;
+
+const StatusDate = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeRelativeSmall};
+`;
+
+const ComponentList = styled(List)`
+  margin-top: ${space(1)};
+  display: block;
+  column-count: 2;
+`;
+
+const ComponentStatus = styled(ListItem)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 2;
+`;
+
+export default ServiceIncidents;
