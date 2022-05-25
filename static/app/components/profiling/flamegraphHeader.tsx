@@ -3,14 +3,14 @@ import {Link} from 'react-router';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {t} from 'sentry/locale';
+import {
+  generateFlamegraphRouteWithQuery,
+  generateFlamegraphSummaryRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
-import {
-  generateFlamegraphRouteWithQuery,
-  generateFlamegraphSummaryRouteWithQuery,
-} from 'sentry/views/profiling/routes';
 
 function FlamegraphHeader() {
   const params = useParams();

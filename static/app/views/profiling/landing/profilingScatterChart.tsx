@@ -26,11 +26,11 @@ import {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import {getDuration} from 'sentry/utils/formatters';
+import {generateFlamegraphSummaryRoute} from 'sentry/utils/profiling/routes';
 import {Theme} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {generateFlamegraphSummaryRoute} from '../routes';
 import {COLOR_ENCODINGS, getColorEncodingFromLocation} from '../utils';
 
 interface ProfilingScatterChartProps extends WithRouterProps {
