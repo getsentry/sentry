@@ -5,11 +5,10 @@ import {sprintf, vsprintf} from 'sprintf-js';
 import DateTime from 'sentry/components/dateTime';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {Hovercard} from 'sentry/components/hovercard';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 
@@ -92,20 +91,15 @@ function ConsoleMessage({breadcrumb, isLast, startTimestamp = 0}: ConsoleMessage
         <MessageFormatter breadcrumb={breadcrumb} />
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
-        <Hovercard
-          body={`${t('Relative Time')}: ${showPlayerTime(
-            breadcrumb.timestamp || '',
-            startTimestamp
-          )}`}
-        >
-          <DateTime
-            timeOnly
-            date={breadcrumb.timestamp}
+        <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
+          <div
             onClick={handleOnClick}
             onMouseOver={handleOnMouseOver}
             onMouseOut={handleOnMouseOut}
-          />
-        </Hovercard>
+          >
+            {showPlayerTime(breadcrumb.timestamp || '', startTimestamp)}
+          </div>
+        </Tooltip>
       </ConsoleTimestamp>
     </Fragment>
   );

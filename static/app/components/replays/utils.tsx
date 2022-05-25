@@ -19,9 +19,14 @@ const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const TIME_FORMAT = 'HH:mm:ss';
 
-export function relativeTimeInMs(timestamp: string, relativeTime: number): number {
+/**
+ * @param timestamp The timestamp that is our reference point. Can be anything that `moment` accepts such as `'2022-05-04T19:47:52.915000Z'` or `1651664872.915`
+ * @param diffMs Number of milliseconds to adjust the timestamp by, either positive (future) or negative (past)
+ * @returns Unix timestamp of the adjusted timestamp, in milliseconds
+ */
+export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number): number {
   return moment(timestamp)
-    .diff(relativeTime * 1000)
+    .diff(diffMs * 1000)
     .valueOf();
 }
 

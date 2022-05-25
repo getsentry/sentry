@@ -11,6 +11,7 @@ import {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrum
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import ConsoleMessage from './consoleMessage';
+import {filterBreadcrumbs} from './utils';
 
 interface Props {
   breadcrumbs: BreadcrumbTypeDefault[];
@@ -26,14 +27,7 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
   const handleSearch = debounce(query => setSearchTerm(query), 150);
 
   const filteredBreadcrumbs = useMemo(
-    () =>
-      !searchTerm && logLevel.length === 0
-        ? breadcrumbs
-        : breadcrumbs.filter(
-            breadcrumb =>
-              breadcrumb.message?.toLowerCase().includes(searchTerm) &&
-              logLevel.includes(breadcrumb.level)
-          ),
+    () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
     [logLevel, searchTerm, breadcrumbs]
   );
 
