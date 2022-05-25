@@ -154,25 +154,6 @@ jobs:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
-      - name: Setup Python ${{ matrix.python-version }}
-        uses: ./.github/actions/setup-python
-        with:
-          python-version: ${{ matrix.python-version }}
-          # We just need dev requirements, this lets us pull in less files.
-          # This is what's installed by make setup-git.
-          cache-files-hash: ${{ hashFiles('requirements-dev-only-frozen.txt') }}
-
-      - uses: actions/cache@v3
-        with:
-          path: ~/.cache/pre-commit
-          key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
-
-      - name: Setup pre-commit
-        env:
-          SENTRY_NO_VIRTUALENV_CREATION: 1
-        run: |
-          make setup-git
-
       - uses: getsentry/paths-filter@v2
         id: files
         with:
@@ -188,6 +169,20 @@ jobs:
             all:
               - added|modified: '**/*.py'
               - added|modified: 'requirements-dev-only-frozen.txt'
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements-dev-only-frozen.txt
+
+      - name: Setup pre-commit
+        # We don't use make setup-git because we're only interested in installing
+        # requirements-dev-only-frozen.txt as a fast path.
+        run: |
+          pip install -r requirements-dev-only-frozen.txt
+          pre-commit install --install-hooks
 
       - name: Run pre-commit on changed files
         run: |
