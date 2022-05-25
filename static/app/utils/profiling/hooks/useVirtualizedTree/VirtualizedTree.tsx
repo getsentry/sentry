@@ -1,8 +1,7 @@
+import {TreeLike} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+
 import {VirtualizedTreeNode} from './VirtualizedTreeNode';
 
-interface TreeLike {
-  children: TreeLike[];
-}
 export class VirtualizedTree<T extends TreeLike> {
   roots: VirtualizedTreeNode<T>[] = [];
   flattened: VirtualizedTreeNode<T>[] = [];
