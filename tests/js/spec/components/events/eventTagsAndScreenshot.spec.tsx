@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import ModalActions from 'sentry/actions/modalActions';
 import EventTagsAndScreenshot from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventAttachment} from 'sentry/types';
 
@@ -244,7 +245,24 @@ describe('EventTagsAndScreenshot', function () {
   });
 
   describe('renders screenshot only', function () {
-    it('no context and no tags', function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/',
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/io.sentry.sample.iOS-Swift%407.2.3%2B390/deploys/',
+      body: [],
+    });
+
+    it('no context and no tags', async function () {
+      const screenshotModal = jest.spyOn(ModalActions, 'openModal');
+
       const {container} = render(
         <EventTagsAndScreenshot
           event={event}
@@ -267,6 +285,21 @@ describe('EventTagsAndScreenshot', function () {
         'src',
         `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/attachments/${attachments[1].id}/?download`
       );
+
+      // Display help text when hovering question element
+      userEvent.hover(screen.getByTestId('more-information'));
+
+      expect(
+        await screen.findByText(
+          'This image was captured around the time that the event occurred.'
+        )
+      ).toBeInTheDocument();
+
+      // Screenshot is clickable
+      userEvent.click(screen.getByRole('img'));
+
+      // Open modal
+      expect(screenshotModal).toHaveBeenCalled();
 
       expect(container).toSnapshot();
     });
