@@ -1,5 +1,5 @@
 from collections import namedtuple
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from celery import Task
@@ -43,20 +43,46 @@ def raiseException():
     raise Exception
 
 
+class ResponseMock:
+    def __init__(self, headers, content, text, ok, status_code, request):
+        self.headers = headers
+        self.content = content
+        self.text = text
+        self.ok = ok
+        self.status_code = status_code
+        self.request = request
+
+    def get(self, request=None, content=None):
+        if request:
+            return self.request
+        if content:
+            return self.content
+        return None
+
+
+mock_fail_resp = ResponseMock(
+    headers={"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
+    content={},
+    text="",
+    ok=False,
+    status_code=400,
+    request={"body": "blah blah"},
+)
+MockResponseWithHeadersInstance = MagicMock(
+    status_code=mock_fail_resp.status_code, headers=mock_fail_resp.headers
+)
+MockResponseWithHeadersInstance.__iter__.return_value = []
+
+MockFailureResponseInstance = MagicMock(
+    status_code=mock_fail_resp.status_code, headers=mock_fail_resp.headers
+)
+MockFailureResponseInstance.__iter__.return_value = []
+
 MockResponse = namedtuple(
     "MockResponse", ["headers", "content", "text", "ok", "status_code", "raise_for_status"]
 )
 MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse)
-MockFailureResponseInstance = MockResponse({}, {}, "", False, 400, raiseStatusTrue)
 MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException)
-MockResponseWithHeadersInstance = MockResponse(
-    {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
-    {},
-    "",
-    False,
-    400,
-    raiseStatusTrue,
-)
 
 
 class TestSendAlertEvent(TestCase):

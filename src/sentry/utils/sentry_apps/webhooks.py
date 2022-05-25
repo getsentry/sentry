@@ -56,7 +56,7 @@ def send_and_save_webhook_request(
     event = f"{app_platform_event.resource}.{app_platform_event.action}"
     slug = sentry_app.slug_for_metrics
     url = url or sentry_app.webhook_url
-
+    response = None
     try:
         response = safe_urlopen(
             url=url,
