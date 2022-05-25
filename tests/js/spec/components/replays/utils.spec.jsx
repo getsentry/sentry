@@ -1,8 +1,11 @@
 import {
   countColumns,
+  divide,
   flattenSpans,
   formatTime,
   getCrumbsByColumn,
+  relativeTimeInMs,
+  showPlayerTime,
 } from 'sentry/components/replays/utils';
 
 const SECOND = 1000;
@@ -249,5 +252,41 @@ describe('flattenSpans', () => {
         startTimestamp: 10000,
       },
     ]);
+  });
+
+  describe('relativeTimeinMs', () => {
+    it('returns relative time in MS', () => {
+      expect(relativeTimeInMs('2022-05-11T23:04:27.576000Z', 347.90000009536743)).toEqual(
+        1652309919676
+      );
+    });
+
+    it('returns invalid date if date string is malformed', () => {
+      expect(relativeTimeInMs('202223:04:27.576000Z', 347.90000009536743)).toEqual(NaN);
+    });
+  });
+
+  describe('showPlayerTime', () => {
+    it('returns time formatted for player', () => {
+      expect(showPlayerTime('2022-05-11T23:04:27.576000Z', 1652309918.676)).toEqual(
+        '00:05:48'
+      );
+    });
+
+    it('returns invalid date if timestamp is malformed', () => {
+      expect(showPlayerTime('20223:04:27.576000Z', 1652309918.676)).toEqual(
+        'Invalid date'
+      );
+    });
+  });
+
+  describe('divide', () => {
+    it('divides numbers safely', () => {
+      expect(divide(81, 9)).toEqual(9);
+    });
+
+    it('dividing by zero returns zero', () => {
+      expect(divide(81, 0)).toEqual(0);
+    });
   });
 });

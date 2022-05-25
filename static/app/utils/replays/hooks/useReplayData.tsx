@@ -90,7 +90,6 @@ function useReplayData({eventSlug, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
 
   const api = useApi();
-  const [retry, setRetry] = useState(true);
   const [state, setState] = useState<State>(INITIAL_STATE);
 
   const fetchEvent = useCallback(() => {
@@ -141,55 +140,46 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     );
   }, [api, eventId, orgId]);
 
-  const loadEvents = useCallback(
-    async function () {
-      setState(INITIAL_STATE);
+  const loadEvents = useCallback(async () => {
+    setState(INITIAL_STATE);
 
-      try {
-        const [event, rrwebEvents, replayEvents] = await Promise.all([
-          fetchEvent(),
-          fetchRRWebEvents(),
-          fetchReplayEvents(),
-        ]);
+    try {
+      const [event, rrwebEvents, replayEvents] = await Promise.all([
+        fetchEvent(),
+        fetchRRWebEvents(),
+        fetchReplayEvents(),
+      ]);
 
-        setState({
-          event,
-          fetchError: undefined,
-          fetching: false,
-          replayEvents,
-          rrwebEvents,
-        });
-      } catch (error) {
-        Sentry.captureException(error);
-        setState({
-          ...INITIAL_STATE,
-          fetchError: error,
-          fetching: false,
-        });
-      }
-    },
-    [fetchEvent, fetchRRWebEvents, fetchReplayEvents]
-  );
+      setState({
+        event,
+        fetchError: undefined,
+        fetching: false,
+        replayEvents,
+        rrwebEvents,
+      });
+    } catch (error) {
+      Sentry.captureException(error);
+      setState({
+        ...INITIAL_STATE,
+        fetchError: error,
+        fetching: false,
+      });
+    }
+  }, [fetchEvent, fetchRRWebEvents, fetchReplayEvents]);
 
   useEffect(() => {
-    if (retry) {
-      setRetry(false);
-      loadEvents();
-    }
-  }, [retry, loadEvents]);
+    loadEvents();
+  }, [loadEvents]);
 
-  const onRetry = useCallback(() => {
-    setRetry(true);
-  }, []);
-
-  const replay = useMemo(() => {
-    return ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents);
-  }, [state.event, state.rrwebEvents, state.replayEvents]);
+  const replay = useMemo(
+    () => ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents),
+    [state.event, state.rrwebEvents, state.replayEvents]
+  );
 
   return {
     fetchError: state.fetchError,
     fetching: state.fetching,
-    onRetry,
+    onRetry: loadEvents,
     replay,
   };
 }
