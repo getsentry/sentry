@@ -6,8 +6,11 @@ export function transformMetricsResponseToSeries(
   queryAlias?: string
 ): Series[] {
   return (
-    response?.groups.flatMap(group =>
-      Object.keys(group.series).map(field => ({
+    response?.groups.flatMap(group => {
+      if (group.series === undefined) {
+        return [];
+      }
+      return Object.keys(group.series).map(field => ({
         seriesName: `${queryAlias ? `${queryAlias}: ` : ''}${field}${Object.entries(
           group.by
         )
@@ -15,9 +18,9 @@ export function transformMetricsResponseToSeries(
           .join('')}`,
         data: response.intervals.map((interval, index) => ({
           name: interval,
-          value: group.series[field][index] ?? 0,
+          value: group.series ? group.series[field][index] ?? 0 : 0,
         })),
-      }))
-    ) ?? []
+      }));
+    }) ?? []
   );
 }
