@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from django.urls import reverse
 from freezegun import freeze_time
 
+from sentry.api.endpoints.integrations.sentry_apps.requests import INVALID_DATE_FORMAT_MESSAGE
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -374,3 +375,6 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         )
         assert start_end_date_response.status_code == 200
         assert len(start_end_date_response.data) == 2
+
+        bad_date_format_response = self.client.get(f"{url}?end=2000-01- 00:00:00", format="json")
+        assert bad_date_format_response.data["detail"] == INVALID_DATE_FORMAT_MESSAGE

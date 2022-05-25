@@ -22,6 +22,15 @@ def filter_by_date(request: Mapping[str, Any], start: float, end: float) -> bool
     return start <= timestamp <= end
 
 
+def filter_by_org_slug(org_slug: str) -> bool:
+    if org_slug:
+        try:
+            Organization.objects.filter(slug=org_slug).get()
+        except Organization.DoesNotExist:
+            return False
+    return True
+
+
 @dataclass
 class BufferedRequest:
     id: int
@@ -72,17 +81,10 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
 
         buffer = SentryAppWebhookRequestsBuffer(sentry_app)
 
-        org = None
-        if org_slug:
-            try:
-                org = Organization.objects.filter(slug=org_slug).get()
-            except Organization.DoesNotExist:
-                return Response([])
-
         filtered_requests = [
             BufferedRequest(id=i, data=req)
             for i, req in enumerate(buffer.get_requests(**kwargs))
-            if filter_by_date(req, start, end) and (not org or req.get("organization_id") == org.id)
+            if filter_by_date(req, start, end) and filter_by_org_slug(org_slug)
         ]
-        # write a function filter_by_org_slug
+
         return Response(serialize(filtered_requests, request.user, RequestSerializer(sentry_app)))
