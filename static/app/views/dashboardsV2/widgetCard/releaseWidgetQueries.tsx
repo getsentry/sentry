@@ -273,17 +273,17 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
-      const releaseQueryConditions = {
-        sort: 'date',
-        project: projects,
-        per_page: 50,
-        environments,
-      };
       const releases = await api.requestPromise(
         `/organizations/${organization.slug}/releases/`,
         {
           method: 'GET',
-          data: releaseQueryConditions,
+          data: {
+            sort: 'date',
+            project: projects,
+            per_page: 50,
+            environments,
+            summaryStatsPeriod: period,
+          },
         }
       );
 
@@ -295,6 +295,10 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           releasesArray.push(releases[i].version);
         }
         releaseCondition += ')';
+
+        if (!!!isDescending) {
+          releasesArray.reverse();
+        }
       }
     }
 
