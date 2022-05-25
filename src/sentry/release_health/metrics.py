@@ -1193,7 +1193,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                                         ],
                                     ),
                                 ],
-                                alias="total",
+                                alias="count",
                             ),
                         ]
 
@@ -1213,7 +1213,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                                 ],
                                 alias="crashed",
                             ),
-                            Function("uniq", [Column("value")], alias="total"),
+                            Function("uniq", [Column("value")], alias="count"),
                         ]
                     else:
                         raise NotImplementedError(f"No support for entity: {entity_key}")
@@ -1233,7 +1233,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                     )["data"]
                     assert len(data) == 1
                     row = data[0]
-                    total = int(row["total"])
+                    total = int(row["count"])
                     crashed = int(row["crashed"])
 
                 return total, crashed

@@ -337,7 +337,8 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         else:
             assert len(data) == 1
             row = data[0]
-            total_count = row["total"]
+            total_count = row["count"]
+
             crash_count = row["crashed"]
 
         if total_count == 0:
@@ -362,14 +363,14 @@ class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):
         session_status_init = resolve(self.org_id, "init")
         return [
             [
-                f"sumIf(value, equals('{self.session_status}', {session_status_crashed}))",
+                f"sumIf(value, equals({self.session_status}, {session_status_init}))",
                 None,
-                "crashed",
+                "count",
             ],
             [
-                f"sumIf(value, equals('{self.session_status}', {session_status_init}))",
+                f"sumIf(value, equals({self.session_status}, {session_status_crashed}))",
                 None,
-                "total",
+                "crashed",
             ],
         ]
 
@@ -387,14 +388,14 @@ class MetricsSetsEntitySubscription(BaseMetricsEntitySubscription):
         session_status_crashed = resolve(self.org_id, "crashed")
         return [
             [
-                f"uniqIf(value, equals('{self.session_status}', {session_status_crashed}))",
-                None,
-                "crashed",
-            ],
-            [
                 "uniq(value)",
                 None,
-                "total",
+                "count",
+            ],
+            [
+                f"uniqIf(value, equals({self.session_status}, {session_status_crashed}))",
+                None,
+                "crashed",
             ],
         ]
 

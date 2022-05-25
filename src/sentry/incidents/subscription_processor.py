@@ -278,7 +278,7 @@ class SubscriptionProcessor:
         - `crashed` represents the total sessions or user counts that crashed.
         """
         row = subscription_update["values"]["data"][0]
-        total_session_count = row["total"]
+        total_session_count = row["count"]
         crash_count = row["crashed"]
 
         if total_session_count == 0:
