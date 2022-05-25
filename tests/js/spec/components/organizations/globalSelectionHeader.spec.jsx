@@ -548,7 +548,7 @@ describe('GlobalSelectionHeader', function () {
 
     const initializationObj = initializeOrg({
       organization: {
-        features: ['global-views', 'selection-filters-v2'],
+        features: ['global-views'],
       },
       router: {
         // we need this to be set to make sure org in context is same as
@@ -556,9 +556,6 @@ describe('GlobalSelectionHeader', function () {
         params: {orgId: 'org-slug'},
         location: {
           query: {project: ['2']},
-          // TODO: This is only temporary while selection-filters-v2 is limited
-          // to certan pages
-          pathname: '/organizations/org-slug/issues/',
         },
       },
     });
