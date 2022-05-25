@@ -297,7 +297,6 @@ def test_filter_env_in_query(default_project):
         f"field=sum(session)&interval=2h&statsPeriod=2h&query=environment%3A{env}",
         params=params,
     )
-    print(query_def)
     assert query_def.query == f"environment:{env}"
     assert query_def.conditions == [[["environment", "=", env]]]
 

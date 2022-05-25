@@ -9,7 +9,6 @@ from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -260,12 +259,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return processor
 
     def assert_slack_calls(self, trigger_labels):
-        expected = [f"{label}: some rule 2" for label in trigger_labels]
+        expected_result = [f"{label}: some rule 2" for label in trigger_labels]
         actual = [
-            json.loads(call_kwargs["data"]["attachments"])[0]["title"]
+            json.loads(call_kwargs["data"]["attachments"])[0]["blocks"][0]["text"]["text"]
             for (_, call_kwargs) in self.slack_client.call_args_list
         ]
-        assert expected == actual
+
+        assert len(expected_result) == len(actual)
+        for expected, result in zip(expected_result, actual):
+            assert expected in result
         self.slack_client.reset_mock()
 
     def test_removed_alert_rule(self):
@@ -1075,6 +1077,80 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_slack_calls(["Warning"])
         self.assert_active_incident(rule)
 
+    @patch("sentry.incidents.charts.generate_chart", return_value="chart-url")
+    def test_slack_metric_alert_chart(self, mock_generate_chart):
+        from sentry.incidents.action_handlers import SlackActionHandler
+
+        slack_handler = SlackActionHandler
+
+        # Create Slack Integration
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.project.organization, self.user)
+
+        # Register Slack Handler
+        AlertRuleTriggerAction.register_type(
+            "slack",
+            AlertRuleTriggerAction.Type.SLACK,
+            [AlertRuleTriggerAction.TargetType.SPECIFIC],
+            integration_provider="slack",
+        )(slack_handler)
+
+        rule = self.create_alert_rule(
+            projects=[self.project, self.other_project],
+            name="some rule 2",
+            query="",
+            aggregate="count()",
+            time_window=1,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            resolve_threshold=10,
+            threshold_period=1,
+        )
+
+        trigger = create_alert_rule_trigger(rule, "critical", 100)
+        channel_name = "#workflow"
+        create_alert_rule_trigger_action(
+            trigger,
+            AlertRuleTriggerAction.Type.SLACK,
+            AlertRuleTriggerAction.TargetType.SPECIFIC,
+            integration=integration,
+            input_channel_id=channel_name,
+            target_identifier=channel_name,
+        )
+
+        # Send Critical Update
+        with self.feature(
+            [
+                "organizations:incidents",
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:metric-alert-chartcuterie",
+            ]
+        ):
+            self.send_update(
+                rule,
+                trigger.alert_threshold + 5,
+                timedelta(minutes=-10),
+                subscription=rule.snuba_query.subscriptions.filter(project=self.project).get(),
+            )
+
+        self.assert_slack_calls(["Critical"])
+        incident = self.assert_active_incident(rule)
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        chart_data = mock_generate_chart.call_args[0][1]
+        assert chart_data["rule"]["id"] == str(rule.id)
+        assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
+        series_data = chart_data["timeseriesData"][0]["data"]
+        assert len(series_data) > 0
+
     def test_slack_multiple_triggers_critical_fired_twice_before_warning(self):
         """
         Test that ensures that when we get a critical update is sent followed by a warning update,
@@ -1519,9 +1595,17 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
 
-class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
+class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetricsTestCase):
+    entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
+
     def setUp(self):
         super().setUp()
+        for status in ["exited", "crashed"]:
+            self.store_session(
+                self.build_session(
+                    status=status,
+                )
+            )
 
     @fixture
     def sub(self):
@@ -1533,7 +1617,7 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
     def crash_rate_alert_rule(self):
         rule = self.create_alert_rule(
             projects=[self.project],
-            dataset=QueryDatasets.SESSIONS,
+            dataset=QueryDatasets.METRICS,
             name="JustAValidRule",
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
@@ -1572,6 +1656,7 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
         )
 
     def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
+        org_id = self.organization.id
         self.email_action_handler.reset_mock()
         if time_delta is None:
             time_delta = timedelta()
@@ -1586,6 +1671,17 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
         with self.feature(
             ["organizations:incidents", "organizations:performance-view"]
         ), self.capture_on_commit_callbacks(execute=True):
+            if value is None:
+                numerator, denominator = 0, 0
+            else:
+                if count is EMPTY:
+                    numerator, denominator = value.as_integer_ratio()
+                else:
+                    denominator = count
+                    numerator = int(value * denominator)
+            session_status = resolve_tag_key(org_id, "session.status")
+            tag_value_init = resolve_weak(org_id, "init")
+            tag_value_crashed = resolve_weak(org_id, "crashed")
             processor.process_update(
                 {
                     "subscription_id": subscription.subscription_id
@@ -1593,12 +1689,12 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
                     else uuid4().hex,
                     "values": {
                         "data": [
+                            {"project_id": 8, session_status: tag_value_init, "value": denominator},
                             {
-                                CRASH_RATE_ALERT_AGGREGATE_ALIAS: value,
-                                CRASH_RATE_ALERT_SESSION_COUNT_ALIAS: randint(1, 100)
-                                if count is EMPTY
-                                else count,
-                            }
+                                "project_id": 8,
+                                session_status: tag_value_crashed,
+                                "value": numerator,
+                            },
                         ]
                     },
                     "timestamp": timestamp,
@@ -2024,75 +2120,6 @@ class CrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
-
-
-class MetricsCrashRateAlertProcessUpdateTest(
-    CrashRateAlertProcessUpdateTest, SessionMetricsTestCase
-):
-    entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
-
-    def setUp(self):
-        super().setUp()
-        for status in ["exited", "crashed"]:
-            self.store_session(
-                self.build_session(
-                    status=status,
-                )
-            )
-        rule = self.crash_rate_alert_rule
-        snuba_query = rule.snuba_query
-        snuba_query.dataset = QueryDatasets.METRICS.value
-        snuba_query.save()
-
-    def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
-        org_id = self.organization.id
-        self.email_action_handler.reset_mock()
-        if time_delta is None:
-            time_delta = timedelta()
-        processor = SubscriptionProcessor(subscription)
-
-        if time_delta is not None:
-            timestamp = timezone.now() + time_delta
-        else:
-            timestamp = timezone.now()
-        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
-
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
-            if value is None:
-                numerator, denominator = 0, 0
-            else:
-                if count is EMPTY:
-                    numerator, denominator = value.as_integer_ratio()
-                else:
-                    denominator = count
-                    numerator = int(value * denominator)
-            session_status = resolve_tag_key(org_id, "session.status")
-            tag_value_init = resolve_weak(org_id, "init")
-            tag_value_crashed = resolve_weak(org_id, "crashed")
-            processor.process_update(
-                {
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
-                    "values": {
-                        "data": [
-                            {"project_id": 8, session_status: tag_value_init, "value": denominator},
-                            {
-                                "project_id": 8,
-                                session_status: tag_value_crashed,
-                                "value": numerator,
-                            },
-                        ]
-                    },
-                    "timestamp": timestamp,
-                    "interval": 1,
-                    "partition": 1,
-                    "offset": 1,
-                }
-            )
-        return processor
 
     def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(self):
         MetricsKeyIndexer.objects.all().delete()

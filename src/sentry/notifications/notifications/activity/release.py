@@ -134,7 +134,7 @@ class ReleaseActivityNotification(ActivityNotification):
     def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         projects_text = ""
         if len(self.projects) == 1:
             projects_text = " for this project"

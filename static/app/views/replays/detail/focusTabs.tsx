@@ -2,8 +2,7 @@ import React from 'react';
 
 import NavTabs from 'sentry/components/navTabs';
 import {t} from 'sentry/locale';
-
-import useActiveTabFromLocation from './useActiveTabFromLocation';
+import useActiveTabFromLocation from 'sentry/utils/replays/hooks/useActiveTabFromLocation';
 
 type Props = {};
 

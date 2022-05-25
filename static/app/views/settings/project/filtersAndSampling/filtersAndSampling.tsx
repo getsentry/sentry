@@ -100,7 +100,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   };
 
   handleOpenRule = (type: 'error' | 'transaction', rule?: DynamicSamplingRule) => () => {
-    const {organization, project} = this.props;
+    const {organization, project, hasAccess} = this.props;
     const {errorRules, transactionRules} = this.state;
     return openModal(
       modalProps => (
@@ -114,6 +114,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           errorRules={errorRules}
           transactionRules={transactionRules}
           onSubmitSuccess={this.successfullySubmitted}
+          disabled={!hasAccess}
         />
       ),
       {
@@ -146,11 +147,14 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     const {organization, project} = this.props;
     const {errorRules, transactionRules} = this.state;
 
+    const conditions = rule.condition.inner.map(({name}) => name);
+
     trackAdvancedAnalyticsEvent('sampling.settings.rule.delete', {
       organization,
       project_id: project.id,
       sampling_rate: rule.sampleRate * 100,
-      conditions: rule.condition.inner.map(({name}) => name),
+      conditions,
+      conditions_stringified: conditions.sort().join(', '),
     });
 
     const newErrorRules =

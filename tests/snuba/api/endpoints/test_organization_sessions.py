@@ -10,6 +10,7 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.testutils.helpers.link_header import parse_link_header
+from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_timestamp
 
 
@@ -1465,6 +1466,23 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
         )
         assert response.data["groups"] == []
 
+    def test_order_by_max_limit(self):
+        response = self.do_request(
+            {
+                "project": self.project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["crash_free_rate(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 103,
+            }
+        )
+        assert response.data["detail"] == (
+            "This limit is too high for queries that requests a preflight query. "
+            "Please choose a limit below 100"
+        )
+
     @freeze_time(MOCK_DATETIME)
     def test_order_by(self):
         """
@@ -1621,6 +1639,9 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
 
         self.store_session(make_session(rando_project, release=release_1a.version))
         self.store_session(make_session(rando_project, release=release_1b.version))
+        self.store_session(
+            make_session(rando_project, release=release_1b.version, status="crashed")
+        )
 
         response = self.do_request(
             {
@@ -1647,8 +1668,8 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
             },
             {
                 "by": {"release": "1B"},
-                "totals": {"sum(session)": 1},
-                "series": {"sum(session)": [1]},
+                "totals": {"sum(session)": 2},
+                "series": {"sum(session)": [2]},
             },
         ]
 
@@ -1660,7 +1681,7 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "field": ["sum(session)"],
                 "groupBy": ["release", "session.status"],
                 "orderBy": "-release.timestamp",
-                "per_page": 2,
+                "per_page": 4,
             }
         )
         assert response.data["groups"] == [
@@ -1673,6 +1694,16 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "by": {"release": "1C", "session.status": None},
                 "totals": {"sum(session)": 0},
                 "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "crashed"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
             },
         ]
 
@@ -1699,6 +1730,37 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "series": {"sum(session)": [0]},
             },
         ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_with_limit_and_offset(self):
+        rando_project = self.create_project()
+
+        # Create two releases with no metrics data and then two releases with metric data
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+        self.create_release(project=rando_project, version="1C")
+        self.create_release(project=rando_project, version="1D")
+
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        self.store_session(make_session(rando_project, release=release_1b.version))
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 3,
+                "cursor": Cursor(0, 1),
+            }
+        )
+
+        assert response.data["detail"] == (
+            "Passing an offset value greater than 0 when ordering by release.timestamp "
+            "is not permitted"
+        )
 
     @freeze_time(MOCK_DATETIME)
     def test_order_by_with_environment_filter_on_preflight(self):
@@ -1794,38 +1856,6 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
     @freeze_time(MOCK_DATETIME)
     def test_order_by_without_release_groupby(self):
         rando_project = self.create_project()
-
-        release_1a = self.create_release(project=rando_project, version="1A")
-        release_1b = self.create_release(project=rando_project, version="1B")
-        release_1c = self.create_release(project=rando_project, version="1C")
-
-        # Release 1B sessions
-        for _ in range(4):
-            self.store_session(
-                make_session(rando_project, release=release_1b.version, status="crashed")
-            )
-        for _ in range(10):
-            self.store_session(make_session(rando_project, release=release_1b.version))
-        for _ in range(3):
-            self.store_session(make_session(rando_project, errors=1, release=release_1b.version))
-
-        # Release 1A sessions
-        for _ in range(0, 2):
-            self.store_session(
-                make_session(rando_project, release=release_1a.version, status="crashed")
-            )
-        self.store_session(make_session(rando_project, release=release_1a.version))
-        for _ in range(3):
-            self.store_session(make_session(rando_project, errors=1, release=release_1a.version))
-
-        # Release 1C sessions
-        for _ in range(0, 2):
-            self.store_session(
-                make_session(rando_project, release=release_1c.version, status="crashed")
-            )
-        for _ in range(3):
-            self.store_session(make_session(rando_project, errors=1, release=release_1c.version))
-
         response = self.do_request(
             {
                 "project": rando_project.id,
@@ -1837,13 +1867,9 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "per_page": 2,
             }
         )
-        assert response.data["groups"] == [
-            {
-                "by": {},
-                "totals": {"sum(session)": 12},
-                "series": {"sum(session)": [12]},
-            },
-        ]
+        assert response.data["detail"] == (
+            "To sort by release.timestamp, tag release must be in the groupBy"
+        )
 
     @freeze_time(MOCK_DATETIME)
     def test_order_by_release_with_session_status_current_filter(self):

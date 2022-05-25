@@ -1,4 +1,5 @@
 import {Component, createContext, createRef} from 'react';
+import throttle from 'lodash/throttle';
 
 import {
   clamp,
@@ -9,9 +10,12 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
+import {SpansInViewMap} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  markSpanInView: (spanId: string, treeDepth: number) => void;
+  markSpanOutOfView: (spanId: string) => void;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
@@ -28,6 +32,8 @@ const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   onScroll: () => {},
   onWheel: () => {},
   updateScrollState: () => {},
+  markSpanOutOfView: () => {},
+  markSpanInView: () => {},
 });
 
 const selectRefs = (
@@ -109,7 +115,9 @@ export class Provider extends Component<Props, State> {
   isDragging: boolean = false;
   isWheeling: boolean = false;
   wheelTimeout: NodeJS.Timeout | null = null;
+  animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
+  spansInView: SpansInViewMap = new SpansInViewMap();
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -180,6 +188,9 @@ export class Provider extends Component<Props, State> {
     if (spanBarDOM) {
       this.syncVirtualScrollbar(spanBarDOM);
     }
+
+    const left = this.spansInView.getScrollVal();
+    this.performScroll(left);
   };
 
   syncVirtualScrollbar = (spanBar: HTMLDivElement) => {
@@ -237,35 +248,13 @@ export class Provider extends Component<Props, State> {
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
   initialMouseClickX: number | undefined = undefined;
 
-  onWheel = (deltaX: number) => {
-    if (this.isDragging || !this.hasInteractiveLayer()) {
-      return;
+  performScroll = (scrollLeft: number, isAnimated?: boolean) => {
+    if (isAnimated) {
+      this.startAnimation();
     }
-
-    // Setting this here is necessary, since updating the virtual scrollbar position will also trigger the onScroll function
-    this.isWheeling = true;
-
-    if (this.wheelTimeout) {
-      clearTimeout(this.wheelTimeout);
-    }
-
-    this.wheelTimeout = setTimeout(() => {
-      this.isWheeling = false;
-      this.wheelTimeout = null;
-    }, 200);
 
     const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
-
     const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
-    const maxScrollLeft =
-      interactiveLayerRefDOM.scrollWidth - interactiveLayerRefDOM.clientWidth;
-
-    const scrollLeft = clamp(
-      interactiveLayerRefDOM.scrollLeft + deltaX,
-      0,
-      maxScrollLeft
-    );
-
     interactiveLayerRefDOM.scrollLeft = scrollLeft;
 
     // Update scroll position of the virtual scroll bar
@@ -282,7 +271,7 @@ export class Provider extends Component<Props, State> {
           clamp(virtualScrollbarPosition, 0, maxVirtualScrollableArea) *
           interactiveLayerRect.width;
 
-        virtualScrollbarDOM.style.transform = `translate3d(${virtualLeft}px, 0, 0)`;
+        virtualScrollbarDOM.style.transform = `translateX(${virtualLeft}px)`;
         virtualScrollbarDOM.style.transformOrigin = 'left';
       });
     });
@@ -291,9 +280,45 @@ export class Provider extends Component<Props, State> {
     selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
       const left = -scrollLeft;
 
-      spanBarDOM.style.transform = `translate3d(${left}px, 0, 0)`;
+      spanBarDOM.style.transform = `translateX(${left}px)`;
       spanBarDOM.style.transformOrigin = 'left';
     });
+  };
+
+  // Throttle the scroll function to prevent jankiness in the auto-adjust animations when scrolling fast
+  throttledScroll = throttle(this.performScroll, 300, {trailing: true});
+
+  onWheel = (deltaX: number) => {
+    if (this.isDragging || !this.hasInteractiveLayer()) {
+      return;
+    }
+
+    this.disableAnimation();
+
+    // Setting this here is necessary, since updating the virtual scrollbar position will also trigger the onScroll function
+    this.isWheeling = true;
+
+    if (this.wheelTimeout) {
+      clearTimeout(this.wheelTimeout);
+    }
+
+    this.wheelTimeout = setTimeout(() => {
+      this.isWheeling = false;
+      this.wheelTimeout = null;
+    }, 200);
+
+    const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
+
+    const maxScrollLeft =
+      interactiveLayerRefDOM.scrollWidth - interactiveLayerRefDOM.clientWidth;
+
+    const scrollLeft = clamp(
+      interactiveLayerRefDOM.scrollLeft + deltaX,
+      0,
+      maxScrollLeft
+    );
+
+    this.performScroll(scrollLeft);
   };
 
   onScroll = () => {
@@ -302,36 +327,9 @@ export class Provider extends Component<Props, State> {
     }
 
     const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
-
-    const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
     const scrollLeft = interactiveLayerRefDOM.scrollLeft;
 
-    // Update scroll position of the virtual scroll bar
-    selectRefs(this.scrollBarArea, (scrollBarAreaDOM: HTMLDivElement) => {
-      selectRefs(this.virtualScrollbar, (virtualScrollbarDOM: HTMLDivElement) => {
-        const scrollBarAreaRect = scrollBarAreaDOM.getBoundingClientRect();
-        const virtualScrollbarPosition = scrollLeft / scrollBarAreaRect.width;
-
-        const virtualScrollBarRect = rectOfContent(virtualScrollbarDOM);
-        const maxVirtualScrollableArea =
-          1 - virtualScrollBarRect.width / interactiveLayerRect.width;
-
-        const virtualLeft =
-          clamp(virtualScrollbarPosition, 0, maxVirtualScrollableArea) *
-          interactiveLayerRect.width;
-
-        virtualScrollbarDOM.style.transform = `translate3d(${virtualLeft}px, 0, 0)`;
-        virtualScrollbarDOM.style.transformOrigin = 'left';
-      });
-    });
-
-    // Update scroll positions of all the span bars
-    selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
-      const left = -scrollLeft;
-
-      spanBarDOM.style.transform = `translate3d(${left}px, 0, 0)`;
-      spanBarDOM.style.transformOrigin = 'left';
-    });
+    this.performScroll(scrollLeft);
   };
 
   onDragStart = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
@@ -473,6 +471,49 @@ export class Provider extends Component<Props, State> {
     }
   };
 
+  markSpanOutOfView = (spanId: string) => {
+    if (!this.spansInView.removeSpan(spanId)) {
+      return;
+    }
+
+    const left = this.spansInView.getScrollVal();
+    this.throttledScroll(left, true);
+  };
+
+  markSpanInView = (spanId: string, treeDepth: number) => {
+    if (!this.spansInView.addSpan(spanId, treeDepth)) {
+      return;
+    }
+
+    const left = this.spansInView.getScrollVal();
+    this.throttledScroll(left, true);
+  };
+
+  startAnimation() {
+    selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
+      spanBarDOM.style.transition = 'transform 0.3s';
+    });
+
+    if (this.animationTimeout) {
+      clearTimeout(this.animationTimeout);
+    }
+
+    // This timeout is set to trigger immediately after the animation ends, to disable the animation.
+    // The animation needs to be cleared, otherwise manual horizontal scrolling will be animated
+    this.animationTimeout = setTimeout(() => {
+      selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
+        spanBarDOM.style.transition = '';
+      });
+      this.animationTimeout = null;
+    }, 300);
+  }
+
+  disableAnimation() {
+    selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
+      spanBarDOM.style.transition = '';
+    });
+  }
+
   render() {
     const childrenProps: ScrollbarManagerChildrenProps = {
       generateContentSpanBarRef: this.generateContentSpanBarRef,
@@ -482,6 +523,8 @@ export class Provider extends Component<Props, State> {
       virtualScrollbarRef: this.virtualScrollbar,
       scrollBarAreaRef: this.scrollBarArea,
       updateScrollState: this.initializeScrollState,
+      markSpanOutOfView: this.markSpanOutOfView,
+      markSpanInView: this.markSpanInView,
     };
 
     return (
