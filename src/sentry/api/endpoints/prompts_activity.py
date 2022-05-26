@@ -11,7 +11,6 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.models import Organization, Project, PromptsActivity
-from sentry.utils.compat import zip
 from sentry.utils.prompts import prompt_config
 
 VALID_STATUSES = frozenset(("snoozed", "dismissed"))
@@ -20,7 +19,9 @@ VALID_STATUSES = frozenset(("snoozed", "dismissed"))
 # Endpoint to retrieve multiple PromptsActivity at once
 class PromptsActivitySerializer(serializers.Serializer):
     feature = serializers.CharField(required=True)
-    status = serializers.ChoiceField(choices=zip(VALID_STATUSES, VALID_STATUSES), required=True)
+    status = serializers.ChoiceField(
+        choices=list(zip(VALID_STATUSES, VALID_STATUSES)), required=True
+    )
 
     def validate_feature(self, value):
         if value is None:
