@@ -83,6 +83,4 @@ function InnerDropdown() {
   );
 }
 
-const DropdownContainer = styled('div')`
-  margin-left: ${space(1)};
-`;
+const DropdownContainer = styled('div')``;

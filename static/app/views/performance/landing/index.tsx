@@ -252,12 +252,12 @@ const StyledHeading = styled(PageHeading)`
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto auto auto;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
   }
 `;
