@@ -162,4 +162,4 @@ xmlsec==1.3.12
 zstandard==0.14.1
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==62.3.2
+setuptools==60.2.0
