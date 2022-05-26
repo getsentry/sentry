@@ -1,21 +1,8 @@
 import os
 from concurrent.futures import ThreadPoolExecutor
-from subprocess import run
-from typing import Tuple
+from subprocess import CalledProcessError, run
 
 from tools.lib import gitroot
-from tools.lib import ts_print as print
-
-
-def worker(cmd: Tuple[str, ...]) -> Tuple[str, int]:
-    cmd_pretty = " ".join(cmd)
-    print(f"+ {cmd_pretty}")
-    proc = run(cmd, capture_output=True)
-    rc = proc.returncode
-    print(f"+ {cmd_pretty} returned {rc}")
-    if rc != 0:
-        print(f"stdout: {proc.stdout.decode()}\nstderr: {proc.stderr.decode()}")
-    return cmd_pretty, rc
 
 
 def main() -> int:
@@ -31,42 +18,61 @@ def main() -> int:
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = (
-            #            executor.submit(
-            #                worker,
-            #                (
-            #                    *base_cmd,
-            #                    "requirements-base.txt",
-            #                    "-o",
-            #                    "requirements-frozen.txt",
-            #                ),
-            #            ),
             executor.submit(
-                worker,
+                run,
+                (
+                    *base_cmd,
+                    "requirements-base.txt",
+                    "-o",
+                    "requirements-frozen.txt",
+                ),
+                check=True,
+                capture_output=True,
+            ),
+            executor.submit(
+                run,
                 (
                     *base_cmd,
                     "requirements-dev.txt",
                     "-o",
                     "requirements-dev-only-frozen.txt",
                 ),
+                check=True,
+                capture_output=True,
             ),
-            #            executor.submit(
-            #                worker,
-            #                (
-            #                    *base_cmd,
-            #                    "requirements-base.txt",
-            #                    "requirements-dev.txt",
-            #                    "-o",
-            #                    "requirements-dev-frozen.txt",
-            #                ),
-            #            ),
+            executor.submit(
+                run,
+                (
+                    *base_cmd,
+                    "requirements-base.txt",
+                    "requirements-dev.txt",
+                    "-o",
+                    "requirements-dev-frozen.txt",
+                ),
+                check=True,
+                capture_output=True,
+            ),
         )
 
     rc = 0
     for future in futures:
         try:
-            cmd_pretty, rc = future.result()
+            proc = future.result()
+        except CalledProcessError as e:
+            rc = 1
+            print(
+                f"""`{e.cmd}` returned code {e.returncode}
+
+stdout:
+{e.stdout.decode()}
+
+stderr:
+{e.stderr.decode()}
+"""
+            )
         except Exception as e:
-            print(f"exception occured while running `{cmd_pretty}`:\n{e}")
+            rc = 1
+            print(f"exception occured while running `{proc.args}`:\n{e}")
 
     return rc
 

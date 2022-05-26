@@ -1,5 +1,4 @@
 import sys
-from threading import Lock
 from typing import Any, Callable
 
 # Unbounded function cache.
@@ -25,12 +24,3 @@ def gitroot() -> str:
         if gitroot == root:
             raise RuntimeError("failed to locate a git root directory")
     return gitroot
-
-
-ts_print_lock = Lock()
-
-
-# Thread-safe print.
-def ts_print(*args: Any, **kwargs: Any) -> None:
-    with ts_print_lock:
-        print(*args, **kwargs)
