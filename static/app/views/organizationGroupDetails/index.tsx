@@ -23,10 +23,10 @@ function OrganizationGroupDetails({selection, ...props}: Props) {
 
   useEffect(() => {
     analytics('issue_page.viewed', {
-      group_id: parseInt(props.params.groupId, 10),
+      group_id: parseInt(params.groupId, 10),
       org_id: parseInt(organization.id, 10),
     });
-  }, [organization, params]);
+  }, [organization, params.groupId]);
 
   return (
     <GroupDetails
