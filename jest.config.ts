@@ -138,7 +138,7 @@ if (
 
 /**
  * For performance we don't want to try and compile everything in the
- * node_modules, but some pakcages which use ES6 syntax only NEED to be
+ * node_modules, but some packages which use ES6 syntax only NEED to be
  * transformed.
  */
 const ESM_NODE_MODULES = ['copy-text-to-clipboard'];
