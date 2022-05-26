@@ -76,7 +76,7 @@ function Replays(props: Props) {
       orderby: getQueryParamAsString(query.sort) || '-timestamp',
       environment: selection.environments,
       projects: selection.projects,
-      query: `title:sentry-replay ${searchQuery}`, // future: change to replay event
+      query: `title:sentry-replay ${searchQuery}`,
     };
 
     if (selection.datetime.period) {
