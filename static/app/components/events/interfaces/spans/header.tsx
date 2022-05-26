@@ -731,7 +731,6 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
 
 const HeaderContainer = styled('div')`
   width: 100%;
-  position: sticky;
   left: 0;
   top: ${p => (ConfigStore.get('demoMode') ? p.theme.demo.headerSize : 0)};
   z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
