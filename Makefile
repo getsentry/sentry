@@ -118,7 +118,6 @@ test-js-ci: node-version-check
 	@echo ""
 
 test-python-ci:
-	make build-platform-assets
 	@echo "--> Running CI Python tests"
 	pytest tests/integration tests/sentry \
 		--ignore tests/sentry/eventstream/kafka \
