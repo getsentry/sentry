@@ -65,7 +65,7 @@ SENTRY_CACHE = 'sentry.cache.redis.RedisCache'
 # configuring your queue broker and workers. Sentry relies on a Python
 # framework called Celery to manage queues.
 
-BROKER_URL = 'redis://localhost:6379'
+CELERY_BROKER_URL = 'redis://localhost:6379'
 
 ###############
 # Rate Limits #

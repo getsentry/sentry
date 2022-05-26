@@ -203,7 +203,7 @@ def test_apply_legacy_settings(settings):
     settings.SENTRY_FILESTORE_OPTIONS = {"filestore-foo": "filestore-bar"}
     with pytest.warns(DeprecatedSettingWarning) as warninfo:
         apply_legacy_settings(settings)
-    assert settings.CELERY_ALWAYS_EAGER is False
+    assert settings.CELERY_TASK_ALWAYS_EAGER is False
     assert settings.SENTRY_FEATURES["auth:register"] is True
     assert settings.SENTRY_OPTIONS == {
         "system.admin-email": "admin-email",
@@ -234,7 +234,7 @@ def test_apply_legacy_settings(settings):
             ("SENTRY_SMTP_HOSTNAME", "SENTRY_OPTIONS['mail.reply-hostname']"),
             ("SENTRY_SYSTEM_MAX_EVENTS_PER_MINUTE", "SENTRY_OPTIONS['system.rate-limit']"),
             ("SENTRY_URL_PREFIX", "SENTRY_OPTIONS['system.url-prefix']"),
-            ("SENTRY_USE_QUEUE", "CELERY_ALWAYS_EAGER"),
+            ("SENTRY_USE_QUEUE", "CELERY_TASK_ALWAYS_EAGER"),
         },
     )
 

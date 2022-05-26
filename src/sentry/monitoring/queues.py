@@ -91,6 +91,6 @@ def get_queue_by_name(name):
 backends = {"redis": RedisBackend, "amqp": AmqpBackend}
 
 try:
-    backend = get_backend_for_broker(settings.BROKER_URL)
+    backend = get_backend_for_broker(settings.CELERY_BROKER_URL)
 except KeyError:
     backend = None

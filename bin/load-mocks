@@ -869,7 +869,7 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
 
 
 if __name__ == "__main__":
-    settings.CELERY_ALWAYS_EAGER = True
+    settings.CELERY_TASK_ALWAYS_EAGER = True
 
     from optparse import OptionParser
 

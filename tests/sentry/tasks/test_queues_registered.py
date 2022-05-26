@@ -6,7 +6,7 @@ from sentry.testutils import TestCase
 
 class CeleryQueueRegisteredTest(TestCase):
     def test(self):
-        queue_names = {q.name for q in settings.CELERY_QUEUES}
+        queue_names = {q.name for q in settings.CELERY_TASK_QUEUES}
         missing_queue_tasks = []
         for task in current_app.tasks.values():
             # Filter out any tasks that aren't sentry specific, or don't specify `queue`.
@@ -17,5 +17,5 @@ class CeleryQueueRegisteredTest(TestCase):
 
         assert not missing_queue_tasks, (
             "Found tasks with queues that are undefined. These must be defined in "
-            "settings.CELERY_QUEUES.\nTask Info:\n{}.".format("\n".join(missing_queue_tasks))
+            "settings.CELERY_TASK_QUEUES.\nTask Info:\n{}.".format("\n".join(missing_queue_tasks))
         )

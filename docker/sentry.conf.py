@@ -135,7 +135,7 @@ SENTRY_CACHE = "sentry.cache.redis.RedisCache"
 rabbitmq = env("SENTRY_RABBITMQ_HOST") or (env("RABBITMQ_PORT_5672_TCP_ADDR") and "rabbitmq")
 
 if rabbitmq:
-    BROKER_URL = (
+    CELERY_BROKER_URL = (
         "amqp://"
         + (env("SENTRY_RABBITMQ_USERNAME") or env("RABBITMQ_ENV_RABBITMQ_DEFAULT_USER") or "guest")
         + ":"
@@ -146,7 +146,9 @@ if rabbitmq:
         + (env("SENTRY_RABBITMQ_VHOST") or env("RABBITMQ_ENV_RABBITMQ_DEFAULT_VHOST") or "/")
     )
 else:
-    BROKER_URL = "redis://:" + redis_password + "@" + redis + ":" + redis_port + "/" + redis_db
+    CELERY_BROKER_URL = (
+        "redis://:" + redis_password + "@" + redis + ":" + redis_port + "/" + redis_db
+    )
 
 
 ###############
