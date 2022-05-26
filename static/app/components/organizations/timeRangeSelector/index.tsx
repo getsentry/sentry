@@ -448,7 +448,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                 onSelect={this.handleSelect}
                 subPanel={
                   isAbsoluteSelected && (
-                    <div>
+                    <AbsoluteRangeWrap>
                       <DateRangeHook
                         start={start ?? null}
                         end={end ?? null}
@@ -467,7 +467,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                           }
                         />
                       </SubmitRow>
-                    </div>
+                    </AbsoluteRangeWrap>
                   )
                 }
               >
@@ -525,6 +525,11 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
+`;
+
+const AbsoluteRangeWrap = styled('div')`
+  display: flex;
+  flex-direction: column;
 `;
 
 const SubmitRow = styled('div')`
