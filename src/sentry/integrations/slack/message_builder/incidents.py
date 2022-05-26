@@ -1,9 +1,13 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Tuple
 
 from sentry.incidents.models import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
-from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder import (
+    INCIDENT_COLOR_MAPPING,
+    LEVEL_TO_COLOR,
+    SlackBody,
+)
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.utils.dates import to_timestamp
 
@@ -36,19 +40,17 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.new_status = new_status
         self.chart_url = chart_url
 
-    def build(self) -> SlackBody:
+    def build(self) -> Tuple[SlackBody, str]:
         data = incident_attachment_info(self.incident, self.new_status, self.metric_value)
+        text_body = f"<{data['title_link']}|*{data['title']}*>"
 
         blocks = [
-            self.get_markdown_block(
-                text=f"<{data['title_link']}|*{data['title']}*>  \n{data['text']}\n{get_started_at(data['ts'])}"
-            ),
+            self.get_markdown_block(text=f"{data['text']}\n{get_started_at(data['ts'])}"),
         ]
 
         if self.chart_url:
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
 
-        payload = self._build_blocks(*blocks)
-        # Fallback text for notifications
-        payload["text"] = data["title"]
-        return payload
+        color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
+        attachments = self._build_blocks(*blocks, color=color)
+        return (attachments, text_body)

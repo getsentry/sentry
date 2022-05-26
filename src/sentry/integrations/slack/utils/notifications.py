@@ -46,15 +46,17 @@ def send_incident_alert_notification(
             sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
-    blocks_payload = SlackIncidentsMessageBuilder(
+    attachment, text = SlackIncidentsMessageBuilder(
         incident, new_status, metric_value, chart_url
     ).build()
 
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,
-        **blocks_payload,
-        "blocks": json.dumps(blocks_payload["blocks"]),
+        "text": text,
+        "attachments": json.dumps([attachment]),
+        # Prevent duplicate unfurl
+        "unfurl_media": False,
     }
 
     client = SlackClient()

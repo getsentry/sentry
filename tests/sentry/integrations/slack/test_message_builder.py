@@ -161,18 +161,21 @@ class BuildIncidentAttachmentTest(TestCase):
             )
             + f"?alert={incident.identifier}"
         )
-        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes\n{timestamp}",
-                    },
-                }
-            ],
-            "text": title,
-        }
+        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == (
+            {
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"0 events in the last 10 minutes\n{timestamp}",
+                        },
+                    }
+                ],
+                "color": LEVEL_TO_COLOR["_incident_resolved"],
+            },
+            f"<{link}|*{title}*>",
+        )
 
     def test_metric_value(self):
         alert_rule = self.create_alert_rule()
@@ -203,18 +206,21 @@ class BuildIncidentAttachmentTest(TestCase):
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
             incident, IncidentStatus.CRITICAL, metric_value=metric_value
-        ).build() == {
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"<{link}|*{title}*>  \n5000 events in the last 10 minutes\n{timestamp}",
-                    },
-                }
-            ],
-            "text": title,
-        }
+        ).build() == (
+            {
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"5000 events in the last 10 minutes\n{timestamp}",
+                        },
+                    }
+                ],
+                "color": LEVEL_TO_COLOR["fatal"],
+            },
+            f"<{link}|*{title}*>",
+        )
 
     def test_chart(self):
         alert_rule = self.create_alert_rule()
@@ -241,16 +247,22 @@ class BuildIncidentAttachmentTest(TestCase):
         )
         assert SlackIncidentsMessageBuilder(
             incident, IncidentStatus.CLOSED, chart_url="chart-url"
-        ).build()["blocks"] == [
+        ).build() == (
             {
-                "type": "section",
-                "text": {
-                    "type": "mrkdwn",
-                    "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes\n{timestamp}",
-                },
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": f"0 events in the last 10 minutes\n{timestamp}",
+                        },
+                    },
+                    {"alt_text": "Metric Alert Chart", "image_url": "chart-url", "type": "image"},
+                ],
+                "color": LEVEL_TO_COLOR["_incident_resolved"],
             },
-            {"alt_text": "Metric Alert Chart", "image_url": "chart-url", "type": "image"},
-        ]
+            f"<{link}|*{title}*>",
+        )
 
 
 class BuildMetricAlertAttachmentTest(TestCase):
