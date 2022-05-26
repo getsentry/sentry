@@ -86,7 +86,7 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   reset(selection) {
-    this._hasInitialState = false;
+    this._isReady = false;
     this.selection = selection || getDefaultSelection();
     this.pinnedFilters = new Set();
   },
@@ -95,7 +95,7 @@ const storeConfig: PageFiltersStoreDefinition = {
    * Initializes the page filters store data
    */
   onInitializeUrlState(newSelection, pinned) {
-    this._hasInitialState = true;
+    this._isReady = true;
 
     this.selection = newSelection;
     this.pinnedFilters = pinned;
@@ -107,7 +107,7 @@ const storeConfig: PageFiltersStoreDefinition = {
       selection: this.selection,
       pinnedFilters: this.pinnedFilters,
       desyncedFilters: this.desyncedFilters,
-      isReady: this._hasInitialState,
+      isReady: this._isReady,
     };
   },
 
