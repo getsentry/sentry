@@ -288,6 +288,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const interval = getWidgetInterval(
       widget,
       {start, end, period},
+      // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
       isCustomReleaseSorting ? 'low' : undefined
     );
     let releaseCondition = '';
