@@ -121,29 +121,31 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                             organization=team.organization,
                             platform=result.get("platform"),
                         )
+
+                        def after_commit():
+                            # XXX: create sample event?
+
+                            self.create_audit_entry(
+                                request=request,
+                                organization=team.organization,
+                                target_object=project.id,
+                                event=audit_log.get_event_id("PROJECT_ADD"),
+                                data=project.get_audit_log_data(),
+                            )
+
+                            project_created.send(
+                                project=project,
+                                user=request.user,
+                                default_rules=result.get("default_rules", True),
+                                sender=self,
+                            )
+
+                        transaction.on_commit(after_commit)
                 except IntegrityError:
                     return Response(
                         {"detail": "A project with this slug already exists."}, status=409
                     )
                 else:
                     project.add_team(team)
-
-                # XXX: create sample event?
-
-                self.create_audit_entry(
-                    request=request,
-                    organization=team.organization,
-                    target_object=project.id,
-                    event=audit_log.get_event_id("PROJECT_ADD"),
-                    data=project.get_audit_log_data(),
-                )
-
-                project_created.send(
-                    project=project,
-                    user=request.user,
-                    default_rules=result.get("default_rules", True),
-                    sender=self,
-                )
-
             return Response(serialize(project, request.user), status=201)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
