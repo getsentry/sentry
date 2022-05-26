@@ -180,9 +180,11 @@ jobs:
       - name: Setup pre-commit
         # We don't use make setup-git because we're only interested in installing
         # requirements-dev-only-frozen.txt as a fast path.
+        # We don't need pre-commit install --install-hooks since we're just interested
+        # in running the hooks.
         run: |
           pip install -r requirements-dev-only-frozen.txt
-          pre-commit install --install-hooks
+          pre-commit install-hooks
 
       - name: Run pre-commit on changed files
         run: |
