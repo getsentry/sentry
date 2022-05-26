@@ -129,12 +129,18 @@ test-python-ci:
 		--ignore tests/sentry/eventstream/kafka \
 		--ignore tests/sentry/snuba \
 		--ignore tests/sentry/search/events \
+		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	pytest tests/snuba \
+		tests/sentry/eventstream/kafka \
+		tests/sentry/snuba \
+		tests/sentry/search/events \
+		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
+		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 test-tools:
