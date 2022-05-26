@@ -6,6 +6,7 @@ import sentry_sdk
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.snuba import discover
+from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.metrics_performance import timeseries_query as metrics_timeseries_query
 from sentry.utils.snuba import SnubaTSResult
@@ -164,3 +165,79 @@ def timeseries_query(
             functions_acl,
         )
     return SnubaTSResult()
+
+
+def histogram_query(
+    fields,
+    user_query,
+    params,
+    num_buckets,
+    precision=0,
+    min_value=None,
+    max_value=None,
+    data_filter=None,
+    referrer=None,
+    group_by=None,
+    order_by=None,
+    limit_by=None,
+    histogram_rows=None,
+    extra_conditions=None,
+    normalize_results=True,
+):
+    """
+    High-level API for doing arbitrary user timeseries queries against events.
+    this API should match that of sentry.snuba.discover.histogram_query
+    """
+    # Must need to normalize results to be MEP
+    metrics_compatible = normalize_results
+    # TODO: include dry_run here
+    if metrics_compatible:
+        try:
+            return metrics_histogram_query(
+                fields,
+                user_query,
+                params,
+                num_buckets,
+                precision,
+                min_value,
+                max_value,
+                data_filter,
+                referrer,
+                group_by,
+                order_by,
+                limit_by,
+                histogram_rows,
+                extra_conditions,
+                normalize_results,
+            )
+        # raise Invalid Queries since the same thing will happen with discover
+        except InvalidSearchQuery as error:
+            raise error
+        # any remaining errors mean we should try again with discover
+        except IncompatibleMetricsQuery as error:
+            sentry_sdk.set_tag("performance.mep_incompatible", str(error))
+            metrics_compatible = False
+        except Exception as error:
+            raise error
+
+    # This isn't a query we can enhance with metrics
+    if not metrics_compatible:
+        sentry_sdk.set_tag("performance.dataset", "discover")
+        return discover.histogram_query(
+            fields,
+            user_query,
+            params,
+            num_buckets,
+            precision,
+            min_value,
+            max_value,
+            data_filter,
+            referrer,
+            group_by,
+            order_by,
+            limit_by,
+            histogram_rows,
+            extra_conditions,
+            normalize_results,
+        )
+    return {}

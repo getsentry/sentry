@@ -15,10 +15,12 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
+    HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     QueryBuilder,
     TimeseriesMetricQueryBuilder,
 )
+from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
@@ -2144,3 +2146,100 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 "user.email:foo@example.com release.build:[1.2.1]",
                 ["user.email", "release"],
             )
+
+
+class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
+    def test_histogram_columns_set_on_builder(self):
+        builder = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=[
+                "histogram(transaction.duration)",
+                "histogram(measurements.lcp)",
+                "histogram(measurements.fcp) as test",
+            ],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        self.assertCountEqual(
+            builder.histogram_aliases,
+            [
+                "histogram_transaction_duration",
+                "histogram_measurements_lcp",
+                "test",
+            ],
+        )
+
+    def test_get_query(self):
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            450,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+
+        query = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=["histogram(transaction.duration)"],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        snql_query = query.run_query("test_query")
+        assert len(snql_query["data"]) == 1
+        # This data is intepolated via rebucket_histogram
+        assert snql_query["data"][0]["histogram_transaction_duration"] == [
+            (0.0, 100.0, 0),
+            (100.0, 200.0, 2),
+            (200.0, 300.0, 1),
+            (300.0, 400.0, 1),
+            (400.0, 500.0, 1),
+        ]
+
+    def test_query_normal_distribution(self):
+        for i in range(5):
+            for _ in range((5 - abs(i - 2)) ** 2):
+                self.store_metric(
+                    100 * i + 50,
+                    tags={"transaction": "foo_transaction"},
+                    timestamp=self.start + datetime.timedelta(minutes=5),
+                )
+
+        query = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=["histogram(transaction.duration)"],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        snql_query = query.run_query("test_query")
+        assert len(snql_query["data"]) == 1
+        # This data is intepolated via rebucket_histogram
+        assert snql_query["data"][0]["histogram_transaction_duration"] == [
+            (0.0, 100.0, 10),
+            (100.0, 200.0, 17),
+            (200.0, 300.0, 23),
+            (300.0, 400.0, 17),
+            (400.0, 500.0, 10),
+        ]

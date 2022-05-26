@@ -111,6 +111,7 @@ build-utils/        @getsentry/owners-js-build
 
 ### Visibility ###
 /src/sentry/api/endpoints/organization_tags.py                  @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_histogram.py      @getsentry/visibility
 /tests/snuba/api/endpoints/                                     @getsentry/visibility
 /src/sentry/api/serializers/snuba.py                            @getsentry/visibility
 /src/sentry/snuba/discover.py                                   @getsentry/visibility
