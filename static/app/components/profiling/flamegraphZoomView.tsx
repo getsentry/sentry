@@ -14,7 +14,6 @@ import {
 } from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
@@ -326,9 +325,8 @@ function FlamegraphZoomView({
       setConfigSpaceCursor(null);
     };
 
-    const onZoomIntoFrame = (frame: FlamegraphFrame) => {
+    const onZoomIntoFrame = () => {
       setConfigSpaceCursor(null);
-      dispatchFlamegraphState({type: 'set selected node', payload: frame});
     };
 
     scheduler.on('resetZoom', onResetZoom);

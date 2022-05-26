@@ -20,11 +20,12 @@ function computeRelativeWeight(base: number, value: number) {
 
 interface FrameStackTableRowProps {
   flamegraphRenderer: FlamegraphRenderer;
-  handleExpandedClick: (
+  node: VirtualizedTreeNode<FlamegraphFrame>;
+  onContextMenu: React.MouseEventHandler<HTMLDivElement>;
+  onExpandClick: (
     node: VirtualizedTreeNode<FlamegraphFrame>,
     opts?: {expandChildren: boolean}
   ) => void;
-  node: VirtualizedTreeNode<FlamegraphFrame>;
   referenceNode: FlamegraphFrame;
   style: React.CSSProperties;
 }
@@ -33,7 +34,8 @@ export function FrameStackTableRow({
   node,
   flamegraphRenderer,
   referenceNode,
-  handleExpandedClick,
+  onExpandClick,
+  onContextMenu,
   style,
 }: FrameStackTableRowProps) {
   const colorString = useMemo(() => {
@@ -42,13 +44,13 @@ export function FrameStackTableRow({
 
   const handleExpanding = useCallback(
     (evt: React.MouseEvent) => {
-      handleExpandedClick(node, {expandChildren: evt.metaKey});
+      onExpandClick(node, {expandChildren: evt.metaKey});
     },
-    [node, handleExpandedClick]
+    [node, onExpandClick]
   );
 
   return (
-    <FrameCallersRow style={style}>
+    <FrameCallersRow style={style} onContextMenu={onContextMenu}>
       <FrameCallersTableCell textAlign="right">
         {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
         <Weight
@@ -112,6 +114,7 @@ const FrameWeightTypeContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  position: relative;
 `;
 
 const FrameTypeIndicator = styled('div')`

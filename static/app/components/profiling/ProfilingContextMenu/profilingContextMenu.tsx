@@ -22,40 +22,14 @@ const Menu = styled(
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowHeavy};
   width: auto;
+  min-width: 164px;
   overflow: auto;
-
-  &:focus {
-    outline: none;
-  }
+  padding-bottom: ${space(0.5)};
 `;
 
 export {Menu as ProfilingContextMenu};
 
-interface MenuItemCheckboxProps
-  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
-  checked?: boolean;
-}
-
-const MenuItemCheckbox = styled(
-  forwardRef(
-    (props: MenuItemCheckboxProps, ref: React.Ref<HTMLDivElement> | undefined) => {
-      const {children, checked, className, style, ...rest} = props;
-
-      return (
-        // @ts-ignore this ref is forwarded
-        <MenuItem ref={ref} {...rest}>
-          <label className={className} style={style}>
-            <MenuLeadingItem>
-              <Input type="checkbox" checked={checked} onChange={() => void 0} />
-              <IconCheckmark />
-            </MenuLeadingItem>
-            <MenuContent>{children}</MenuContent>
-          </label>
-        </MenuItem>
-      );
-    }
-  )
-)`
+const MenuContentContainer = styled('div')`
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -68,8 +42,43 @@ const MenuItemCheckbox = styled(
   &:focus {
     color: ${p => p.theme.textColor};
     background: ${p => p.theme.hover};
+    outline: none;
   }
 `;
+
+const MenuItemCheckboxLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  font-weight: normal;
+  margin: 0;
+  cursor: pointer;
+  flex: 1 1 100%;
+`;
+
+interface MenuItemCheckboxProps
+  extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
+  checked?: boolean;
+}
+
+const MenuItemCheckbox = forwardRef(
+  (props: MenuItemCheckboxProps, ref: React.Ref<HTMLDivElement> | undefined) => {
+    const {children, checked, ...rest} = props;
+
+    return (
+      <MenuContentOuterContainer>
+        <MenuContentContainer ref={ref} role="menuitem" {...rest}>
+          <MenuItemCheckboxLabel>
+            <MenuLeadingItem>
+              <Input type="checkbox" checked={checked} onChange={() => void 0} />
+              <IconCheckmark />
+            </MenuLeadingItem>
+            <MenuContent>{children}</MenuContent>
+          </MenuItemCheckboxLabel>
+        </MenuContentContainer>
+      </MenuContentOuterContainer>
+    );
+  }
+);
 
 export {MenuItemCheckbox as ProfilingContextMenuItemCheckbox};
 
@@ -131,9 +140,11 @@ const MenuItem = styled(
   forwardRef((props: MenuItemProps, ref: React.Ref<HTMLDivElement> | undefined) => {
     const {children, ...rest} = props;
     return (
-      <div ref={ref} role="menuitem" {...rest}>
-        {children}
-      </div>
+      <MenuContentOuterContainer>
+        <MenuContentContainer ref={ref} role="menuitem" {...rest}>
+          <MenuContent>{children}</MenuContent>
+        </MenuContentContainer>
+      </MenuContentOuterContainer>
     );
   })
 )`
@@ -152,6 +163,10 @@ const MenuItem = styled(
 `;
 
 export {MenuItem as ProfilingContextMenuItem};
+
+const MenuContentOuterContainer = styled('div')`
+  padding: 0 ${space(0.5)};
+`;
 
 const MenuGroup = styled('div')`
   padding-top: 0;
