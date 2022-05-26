@@ -375,7 +375,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           end,
           environment: environments,
           groupBy: columns.map(fieldsToDerivedMetrics),
-          limit: columns.length === 0 ? 1 : rawOrderby === 'release' ? 100 : this.limit,
+          limit: columns.length === 0 ? 1 : isCustomReleaseSorting ? 100 : this.limit,
           orderBy: unsupportedOrderby
             ? ''
             : isDescending
