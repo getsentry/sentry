@@ -260,22 +260,24 @@ function ReleaseAdoption({
         </SidebarSection>
       )}
       <RelativeBox>
-        <ChartLabel top="0px">
-          <ChartTitle
-            title={t('Sessions Adopted')}
-            icon={
-              <QuestionTooltip
-                position="top"
-                title={t(
-                  'Adoption compares the sessions of a release with the total sessions for this project.'
-                )}
-                size="sm"
-              />
-            }
-          />
-        </ChartLabel>
+        {!loading && (
+          <ChartLabel top="0px">
+            <ChartTitle
+              title={t('Sessions Adopted')}
+              icon={
+                <QuestionTooltip
+                  position="top"
+                  title={t(
+                    'Adoption compares the sessions of a release with the total sessions for this project.'
+                  )}
+                  size="sm"
+                />
+              }
+            />
+          </ChartLabel>
+        )}
 
-        {hasUsers && (
+        {!loading && hasUsers && (
           <ChartLabel top="140px">
             <ChartTitle
               title={t('Users Adopted')}
