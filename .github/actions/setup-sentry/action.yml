@@ -155,11 +155,8 @@ runs:
         # GitHub Actions does not have `wheel` installed by default.
         # Also, we need to install editable otherwise things like check migration
         # will fail.
-        # These are all real slow steps, so do them all in parallel.
-        pip install wheel & \
-        pip install -r requirements-dev-frozen.txt & \
-        SENTRY_LIGHT_BUILD=1 pip install --no-deps -e . & \
-        wait
+        pip install wheel
+        SENTRY_LIGHT_BUILD=1 pip install -e ".[dev]"
         cd -
 
     - name: Start devservices
