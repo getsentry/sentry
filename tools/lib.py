@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import sys
-from threading import Lock
 from typing import Any, Callable
 
 # Unbounded function cache.
@@ -14,23 +15,17 @@ else:
         return _lru_cache(maxsize=None)(func)
 
 
+# Simplified from pre-commit @ fb0ccf3546a9cb34ec3692e403270feb6d6033a2
 @cache
 def gitroot() -> str:
-    from os import getcwd
-    from os.path import isdir, normpath
+    from os.path import abspath
+    from subprocess import CalledProcessError, run
 
-    gitroot, root = getcwd(), "/"
-    while not isdir(f"{gitroot}/.git"):
-        gitroot = normpath(f"{gitroot}/..")
-        if gitroot == root:
-            raise RuntimeError("failed to locate a git root directory")
-    return gitroot
-
-
-ts_print_lock = Lock()
-
-
-# Thread-safe print.
-def ts_print(*args: Any, **kwargs: Any) -> None:
-    with ts_print_lock:
-        print(*args, **kwargs)
+    try:
+        proc = run(("git", "rev-parse", "--show-cdup"), check=True, capture_output=True)
+        root = abspath(proc.stdout.decode().strip())
+    except CalledProcessError:
+        raise SystemExit(
+            "git failed. Is it installed, and are you in a Git repository " "directory?",
+        )
+    return root
