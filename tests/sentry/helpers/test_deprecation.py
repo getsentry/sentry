@@ -9,7 +9,7 @@ from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
 from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
-from sentry.testutils import TestCase
+from sentry.testutils import APITestCase
 
 replacement_api = "replacement-api"
 test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
@@ -17,25 +17,21 @@ timeiter = croniter("* 12 * * *", test_date)
 
 
 class TestEndpoint(Endpoint):
+    __test__ = False
     permision_classes = ()
 
     @deprecated(test_date, suggested_api=replacement_api)
-    def get(self):
+    def get(self, request):
         return Response({"ok": True})
 
-    def head(self):
+    def head(self, request):
         return Response({"ok": True})
 
 
 test_endpoint = TestEndpoint.as_view()
 
 
-class TestDeprecationDecorator(TestCase):
-    def setUp(self):
-        self.user = self.create_user()
-        self.login_as(self.user)
-        super().setUp()
-
+class TestDeprecationDecorator(APITestCase):
     def assert_deprecation_metadata(self, request: Request, response: Response):
         assert hasattr(request, "is_deprecated")
         assert hasattr(request, "deprecation_date")
@@ -47,7 +43,7 @@ class TestDeprecationDecorator(TestCase):
         assert response["X-Sentry-Replacement-Endpoint"] == replacement_api
 
     def assert_not_deprecated(self, method):
-        request = self.make_request(user=self.user, method=method)
+        request = self.make_request(method=method)
         resp = test_endpoint(request)
         assert resp.status_code == HTTP_200_OK
         assert not hasattr(request, "is_deprecated")
@@ -56,13 +52,15 @@ class TestDeprecationDecorator(TestCase):
         assert "X-Sentry-Replacement-Endpoint" not in resp
 
     def assert_allowed_request(self, method):
-        request = self.make_request(user=self.user, method=method)
+        request = self.make_request(method=method)
+        request.META["HTTP_ORIGIN"] = "http://example.com"
         resp = test_endpoint(request)
+        resp.render()
         assert resp.status_code == HTTP_200_OK
         self.assert_deprecation_metadata(request, resp)
 
     def assert_denied_request(self, method):
-        request = self.make_request(user=self.user, method=method)
+        request = self.make_request(method=method)
         resp = test_endpoint(request)
         assert resp.status_code == HTTP_410_GONE
         assert resp.data == {"message": "This API no longer exists."}
