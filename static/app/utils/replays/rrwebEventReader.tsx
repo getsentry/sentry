@@ -5,7 +5,7 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 
 export default class RRWebEventReader extends ReplayReader {
   static build(event: EventTransaction, rrwebEvents: eventWithTime[] | undefined) {
-    if (!event || !rrwebEvents) {
+    if (!rrwebEvents) {
       return null;
     }
     return new RRWebEventReader(event, rrwebEvents);

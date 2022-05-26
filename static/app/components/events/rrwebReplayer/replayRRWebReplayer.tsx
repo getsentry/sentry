@@ -28,8 +28,11 @@ function ReplayRRWebPlayer({event, events, className}: Props) {
 
   const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
 
+  events?.sort((a, b) => a.timestamp - b.timestamp);
+  const duration = events ? events[events.length - 1].timestamp - events[0].timestamp : 0;
+
   return (
-    <ReplayContextProvider replay={basicReplay} value={{duration: 14500}}>
+    <ReplayContextProvider replay={basicReplay} value={{duration}}>
       <PanelNoMargin
         className={className}
         isFullscreen={isFullscreen}
