@@ -18,6 +18,7 @@ import {
   AlertRuleTriggerType,
   Dataset,
   MetricRule,
+  SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
@@ -346,12 +347,20 @@ export function getMetricAlertChartOption({
     maxThresholdValue = Math.max(maxThresholdValue, rule.resolveThreshold);
   }
 
+  const crashFreeMax =
+    rule.aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
+    rule.aggregate === SessionsAggregate.CRASH_FREE_USERS;
+
   const yAxis: YAXisComponentOption = {
     axisLabel: {
       formatter: (value: number) =>
         alertAxisFormatter(value, timeseriesData[0].seriesName, rule.aggregate),
     },
-    max: maxThresholdValue > maxSeriesValue ? maxThresholdValue : undefined,
+    max: crashFreeMax
+      ? 100
+      : maxThresholdValue > maxSeriesValue
+      ? maxThresholdValue
+      : undefined,
     min: minChartValue || undefined,
   };
 
