@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 from concurrent.futures import ThreadPoolExecutor
 from subprocess import CalledProcessError, run
@@ -18,17 +20,17 @@ def main() -> int:
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = (
-            executor.submit(
-                run,
-                (
-                    *base_cmd,
-                    "requirements-base.txt",
-                    "-o",
-                    "requirements-frozen.txt",
-                ),
-                check=True,
-                capture_output=True,
-            ),
+            # executor.submit(
+            #    run,
+            #    (
+            #        *base_cmd,
+            #        "requirements-base.txt",
+            #        "-o",
+            #        "requirements-frozen.txt",
+            #    ),
+            #    check=True,
+            #    capture_output=True,
+            # ),
             executor.submit(
                 run,
                 (
@@ -40,18 +42,18 @@ def main() -> int:
                 check=True,
                 capture_output=True,
             ),
-            executor.submit(
-                run,
-                (
-                    *base_cmd,
-                    "requirements-base.txt",
-                    "requirements-dev.txt",
-                    "-o",
-                    "requirements-dev-frozen.txt",
-                ),
-                check=True,
-                capture_output=True,
-            ),
+            # executor.submit(
+            #    run,
+            #    (
+            #        *base_cmd,
+            #        "requirements-base.txt",
+            #        "requirements-dev.txt",
+            #        "-o",
+            #        "requirements-dev-frozen.txt",
+            #    ),
+            #    check=True,
+            #    capture_output=True,
+            # ),
         )
 
     rc = 0
