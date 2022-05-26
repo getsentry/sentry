@@ -137,7 +137,7 @@ if (
 }
 
 /**
- * For performance we don't want to try and compile everythign in the
+ * For performance we don't want to try and compile everything in the
  * node_modules, but some pakcages which use ES6 syntax only NEED to be
  * transformed.
  */
