@@ -181,37 +181,44 @@ export function generateOperatorEntryMap(tag: string) {
     [TermOperator.Default]: {
       type: ItemType.TAG_OPERATOR,
       value: ':',
-      desc: `${tag}:${t('[value] is equal to')}`,
+      desc: `${tag}:${t('[value]')}`,
+      documentation: 'is equal to',
     },
     [TermOperator.GreaterThanEqual]: {
       type: ItemType.TAG_OPERATOR,
       value: ':>=',
-      desc: `${tag}:${t('>=[value] is greater than or equal to')}`,
+      desc: `${tag}:${t('>=[value]')}`,
+      documentation: 'is greater than or equal to',
     },
     [TermOperator.LessThanEqual]: {
       type: ItemType.TAG_OPERATOR,
       value: ':<=',
-      desc: `${tag}:${t('<=[value] is less than or equal to')}`,
+      desc: `${tag}:${t('<=[value]')}`,
+      documentation: 'is less than or equal to',
     },
     [TermOperator.GreaterThan]: {
       type: ItemType.TAG_OPERATOR,
       value: ':>',
-      desc: `${tag}:${t('>[value] is greater than')}`,
+      desc: `${tag}:${t('>[value]')}`,
+      documentation: 'is greater than',
     },
     [TermOperator.LessThan]: {
       type: ItemType.TAG_OPERATOR,
       value: ':<',
-      desc: `${tag}:${t('<[value] is less than')}`,
+      desc: `${tag}:${t('<[value]')}`,
+      documentation: 'is less than',
     },
     [TermOperator.Equal]: {
       type: ItemType.TAG_OPERATOR,
       value: ':=',
-      desc: `${tag}:${t('=[value] is equal to')}`,
+      desc: `${tag}:${t('=[value]')}`,
+      documentation: 'is equal to',
     },
     [TermOperator.NotEqual]: {
       type: ItemType.TAG_OPERATOR,
       value: '!:',
-      desc: `!${tag}:${t('[value] is not equal to')}`,
+      desc: `!${tag}:${t('[value]')}`,
+      documentation: 'is not equal to',
     },
   };
 }
