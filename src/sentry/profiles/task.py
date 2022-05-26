@@ -125,9 +125,7 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
                         new_frame[f"_{k}"] = v
 
                     new_frame.update(symbolicated_frame)
-                    profile["sampled_profile"]["samples"][i]["frames"][
-                        symbolicated_frame["original_index"]
-                    ] = new_frame
+                    original["frames"][symbolicated_frame["original_index"]] = new_frame
             break
         except RetrySymbolication as e:
             if (
