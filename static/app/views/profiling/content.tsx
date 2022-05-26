@@ -12,6 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
+import {ProfilesTable} from 'sentry/components/profiling/profilesTable';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -27,7 +28,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ProfilingScatterChart} from './landing/profilingScatterChart';
-import {ProfilingTable} from './landing/profilingTable';
 
 interface ProfilingContentProps {
   location: Location;
@@ -100,10 +100,11 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                   traces={profiles.type === 'resolved' ? profiles.data.traces : []}
                   isLoading={profiles.type === 'loading'}
                 />
-                <ProfilingTable
-                  isLoading={profiles.type === 'initial' || profiles.type === 'loading'}
-                  error={profiles.type === 'errored' ? profiles.error : null}
-                  location={location}
+                <ProfilesTable
+                  error={
+                    profiles.type === 'errored' ? t('Unable to load profiles') : null
+                  }
+                  isLoading={profiles.type === 'loading'}
                   traces={profiles.type === 'resolved' ? profiles.data.traces : []}
                 />
                 <Pagination
