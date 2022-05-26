@@ -50,13 +50,13 @@ def send_incident_alert_notification(
         incident, new_status, metric_value, chart_url
     ).build()
     text = attachment["text"]
-    del attachment["text"]
+    blocks = {"blocks": attachment["blocks"]}
 
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,
         "text": text,
-        "attachments": json.dumps([attachment]),
+        "attachments": json.dumps([blocks]),
         # Prevent duplicate unfurl
         "unfurl_media": False,
     }
