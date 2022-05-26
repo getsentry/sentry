@@ -9,16 +9,11 @@ import {LocationDescriptor} from 'history';
 import Link from 'sentry/components/links/link';
 import MenuListItem, {
   InnerWrap as MenuListItemInnerWrap,
+  MenuListItemProps,
 } from 'sentry/components/menuListItem';
 import {IconChevron} from 'sentry/icons';
 
-/**
- * Menu item priority. Currently there's only one option other than default,
- * but we may choose to add more in the future.
- */
-type Priority = 'danger' | 'default';
-
-export type MenuItemProps = {
+export type MenuItemProps = MenuListItemProps & {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
@@ -30,11 +25,6 @@ export type MenuItemProps = {
    */
   children?: MenuItemProps[];
   /**
-   * Optional descriptive text. Like 'label', should preferably be a string or
-   * have appropriate aria-labels.
-   */
-  details?: React.ReactNode;
-  /**
    * Hide item from the dropdown menu. Note: this will also remove the item
    * from the selection manager.
    */
@@ -45,29 +35,10 @@ export type MenuItemProps = {
    */
   isSubmenu?: boolean;
   /**
-   * Item label. Should prefereably be a string. If not, make sure that
-   * there are appropriate aria-labels.
-   */
-  label?: React.ReactNode;
-  /*
-   * Items to be added to the left of the label
-   */
-  leadingItems?: React.ReactNode;
-  /*
-   * Whether leading items should be centered with respect to the entire
-   * height of the menu item. If false (default), they will be centered with
-   * respect to the first line of the label element.
-   */
-  leadingItemsSpanFullHeight?: boolean;
-  /**
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
    */
   onAction?: (key: MenuItemProps['key']) => void;
-  /**
-   * Accented text and background (on hover) colors.
-   */
-  priority?: Priority;
   /**
    * Whether to show a line divider below this menu item
    */
@@ -81,16 +52,6 @@ export type MenuItemProps = {
    * Destination if this menu item is a link. See also: `isExternalLink`.
    */
   to?: LocationDescriptor;
-  /*
-   * Items to be added to the right of the label.
-   */
-  trailingItems?: React.ReactNode;
-  /*
-   * Whether trailing items should be centered wrt/ the entire height of the
-   * menu item. If false (default), they will be centered wrt/ the first line of the
-   * label element.
-   */
-  trailingItemsSpanFullHeight?: boolean;
 };
 
 type Props = {
