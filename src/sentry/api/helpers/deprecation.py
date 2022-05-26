@@ -68,7 +68,7 @@ def deprecated(deprecation_date: datetime, suggested_api: str | None = None):
         @functools.wraps(func)
         def endpoint_method(self, request: Request, *args, **kwargs):
 
-            # Don't do anything for deprecated endpoitns on self hosted
+            # Don't do anything for deprecated endpoints on self hosted
             if is_self_hosted():
                 return func(self, request, *args, **kwargs)
 
