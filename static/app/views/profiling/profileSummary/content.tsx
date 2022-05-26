@@ -1,9 +1,14 @@
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {SectionHeading} from 'sentry/components/charts/styles';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Pagination from 'sentry/components/pagination';
 import {FunctionsTable} from 'sentry/components/profiling/functionsTable';
 import {ProfilesTable} from 'sentry/components/profiling/profilesTable';
+import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
@@ -50,10 +55,16 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
 
   return (
     <Layout.Main fullWidth>
+      <TableHeader>
+        <SectionHeading>{t('Recent Profiles')}</SectionHeading>
+        <StyledPagination
+          pageLinks={profiles.type === 'resolved' ? profiles.data.pageLinks : null}
+          size="xsmall"
+        />
+      </TableHeader>
       <ProfilesTable
         error={profiles.type === 'errored' ? profiles.error : null}
         isLoading={profiles.type === 'initial' || profiles.type === 'loading'}
-        pageLinks={profiles.type === 'resolved' ? profiles.data.pageLinks : null}
         traces={profiles.type === 'resolved' ? profiles.data.traces : []}
         columnOrder={PROFILES_COLUMN_ORDER}
       />
@@ -66,5 +77,15 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     </Layout.Main>
   );
 }
+
+const TableHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin: 0 0 0 ${space(1)};
+`;
 
 export {ProfileSummaryContent};

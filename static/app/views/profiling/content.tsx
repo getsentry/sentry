@@ -106,7 +106,6 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                   }
                   isLoading={profiles.type === 'loading'}
                   traces={profiles.type === 'resolved' ? profiles.data.traces : []}
-                  hideHeader
                 />
                 <Pagination
                   pageLinks={
