@@ -16,8 +16,7 @@ test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
 timeiter = croniter("* 12 * * *", test_date)
 
 
-class TestEndpoint(Endpoint):
-    __test__ = False
+class DummyEndpoint(Endpoint):
     permision_classes = ()
 
     @deprecated(test_date, suggested_api=replacement_api)
@@ -28,7 +27,7 @@ class TestEndpoint(Endpoint):
         return Response({"ok": True})
 
 
-test_endpoint = TestEndpoint.as_view()
+dummy_endpoint = DummyEndpoint.as_view()
 
 
 class TestDeprecationDecorator(APITestCase):
@@ -44,7 +43,7 @@ class TestDeprecationDecorator(APITestCase):
 
     def assert_not_deprecated(self, method):
         request = self.make_request(method=method)
-        resp = test_endpoint(request)
+        resp = dummy_endpoint(request)
         assert resp.status_code == HTTP_200_OK
         assert not hasattr(request, "is_deprecated")
         assert not hasattr(request, "deprecation_date")
@@ -54,14 +53,14 @@ class TestDeprecationDecorator(APITestCase):
     def assert_allowed_request(self, method):
         request = self.make_request(method=method)
         request.META["HTTP_ORIGIN"] = "http://example.com"
-        resp = test_endpoint(request)
+        resp = dummy_endpoint(request)
         resp.render()
         assert resp.status_code == HTTP_200_OK
         self.assert_deprecation_metadata(request, resp)
 
     def assert_denied_request(self, method):
         request = self.make_request(method=method)
-        resp = test_endpoint(request)
+        resp = dummy_endpoint(request)
         assert resp.status_code == HTTP_410_GONE
         assert resp.data == {"message": "This API no longer exists."}
         self.assert_deprecation_metadata(request, resp)
