@@ -30,6 +30,8 @@ import {
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
+import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
+
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
@@ -351,7 +353,11 @@ export function getMetricAlertChartOption({
       formatter: (value: number) =>
         alertAxisFormatter(value, timeseriesData[0].seriesName, rule.aggregate),
     },
-    max: maxThresholdValue > maxSeriesValue ? maxThresholdValue : undefined,
+    max: isCrashFreeAlert(rule.dataset)
+      ? 100
+      : maxThresholdValue > maxSeriesValue
+      ? maxThresholdValue
+      : undefined,
     min: minChartValue || undefined,
   };
 
