@@ -32,7 +32,7 @@ def connect(app):
     schedule = (
         app.conf.beat_schedule
         if hasattr(app.conf, "beat_schedule")
-        else app.conf["CELERYBEAT_SCHEDULE"]
+        else app.conf["CELERY_BEAT_SCHEDULE"]
     )
     for schedule_name, monitor_id in settings.SENTRY_CELERYBEAT_MONITORS.items():
         schedule[schedule_name].setdefault("options", {}).setdefault("headers", {}).setdefault(

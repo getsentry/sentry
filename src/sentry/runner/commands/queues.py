@@ -22,7 +22,7 @@ def list(sort_size, reverse):
     if backend is None:
         raise click.ClickException("unknown broker type")
 
-    queues = backend.bulk_get_sizes([q.name for q in settings.CELERY_QUEUES])
+    queues = backend.bulk_get_sizes([q.name for q in settings.CELERY_TASK_QUEUES])
 
     if sort_size:
         queues = sorted(queues, key=lambda q: (-q[1], q[0]), reverse=reverse)

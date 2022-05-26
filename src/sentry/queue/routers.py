@@ -12,7 +12,7 @@ TRIGGER_TASKS = {
 
 class SplitQueueRouter:
     def __init__(self):
-        queues = current_app.conf["CELERY_QUEUES"]
+        queues = current_app.conf["CELERY_TASK_QUEUES"]
         self.counter_queues = itertools.cycle(
             [q.name for q in queues if q.name.startswith("counters-")]
         )

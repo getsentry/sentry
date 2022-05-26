@@ -99,9 +99,9 @@ def pytest_configure(config):
     settings.SENTRY_NEWSLETTER_OPTIONS = {}
 
     settings.BROKER_BACKEND = "memory"
-    settings.BROKER_URL = "memory://"
-    settings.CELERY_ALWAYS_EAGER = False
-    settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+    settings.CELERY_BROKER_URL = "memory://"
+    settings.CELERY_TASK_ALWAYS_EAGER = False
+    settings.CELERY_TASK_EAGER_PROPAGATES = True
 
     settings.DEBUG_VIEWS = True
     settings.SERVE_UPLOADED_FILES = True

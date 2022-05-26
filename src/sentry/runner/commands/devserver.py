@@ -217,9 +217,9 @@ def devserver(
     os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
 
     if workers:
-        if settings.CELERY_ALWAYS_EAGER:
+        if settings.CELERY_TASK_ALWAYS_EAGER:
             raise click.ClickException(
-                "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
+                "Disable CELERY_TASK_ALWAYS_EAGER in your settings file to spawn workers."
             )
 
         daemons += [_get_daemon("worker"), _get_daemon("cron")]

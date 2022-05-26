@@ -81,7 +81,7 @@ def init_plugin(plugin):
     if hasattr(plugin, "get_cron_schedule") and plugin.is_enabled():
         schedules = plugin.get_cron_schedule()
         if schedules:
-            settings.CELERYBEAT_SCHEDULE.update(schedules)
+            settings.CELERY_BEAT_SCHEDULE.update(schedules)
 
     if hasattr(plugin, "get_worker_imports") and plugin.is_enabled():
         imports = plugin.get_worker_imports()
@@ -98,7 +98,7 @@ def init_plugin(plugin):
                 name = routing_key = queue
             q = Queue(name, routing_key=routing_key)
             q.durable = False
-            settings.CELERY_QUEUES.append(q)
+            settings.CELERY_TASK_QUEUES.append(q)
 
 
 def initialize_receivers():
@@ -315,7 +315,7 @@ def initialize_app(config, skip_service_validation=False):
 
     # Commonly setups don't correctly configure themselves for production envs
     # so lets try to provide a bit more guidance
-    if settings.CELERY_ALWAYS_EAGER and not settings.DEBUG:
+    if settings.CELERY_TASK_ALWAYS_EAGER and not settings.DEBUG:
         warnings.warn(
             "Sentry is configured to run asynchronous tasks in-process. "
             "This is not recommended within production environments. "
@@ -533,11 +533,11 @@ def apply_legacy_settings(settings):
         warnings.warn(
             DeprecatedSettingWarning(
                 "SENTRY_USE_QUEUE",
-                "CELERY_ALWAYS_EAGER",
+                "CELERY_TASK_ALWAYS_EAGER",
                 "https://develop.sentry.dev/services/queue/",
             )
         )
-        settings.CELERY_ALWAYS_EAGER = not settings.SENTRY_USE_QUEUE
+        settings.CELERY_TASK_ALWAYS_EAGER = not settings.SENTRY_USE_QUEUE
 
     for old, new in (
         ("SENTRY_ADMIN_EMAIL", "system.admin-email"),

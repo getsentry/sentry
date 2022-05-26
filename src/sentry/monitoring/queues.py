@@ -83,7 +83,7 @@ def get_backend_for_broker(broker_url):
 
 def get_queue_by_name(name):
     "Lookup a celery Queue object by it's name"
-    for queue in settings.CELERY_QUEUES:
+    for queue in settings.CELERY_TASK_QUEUES:
         if queue.name == name:
             return queue
 

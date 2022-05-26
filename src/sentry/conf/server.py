@@ -510,32 +510,32 @@ SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 # Queue configuration
 from kombu import Exchange, Queue
 
-BROKER_URL = "redis://127.0.0.1:6379"
-BROKER_TRANSPORT_OPTIONS = {}
+CELERY_BROKER_URL = "redis://127.0.0.1:6379"
+CELERY_BROKER_TRANSPORT_OPTIONS = {}
 
 # Ensure workers run async by default
 # in Development you might want them to run in-process
 # though it would cause timeouts/recursions in some cases
-CELERY_ALWAYS_EAGER = False
+CELERY_TASK_ALWAYS_EAGER = False
 
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
 # things run ok.
 CELERY_TASK_PROTOCOL = 1
-CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
-CELERY_IGNORE_RESULT = True
-CELERY_SEND_EVENTS = False
+CELERY_TASK_EAGER_PROPAGATES = True
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_WORKER_SEND_TASK_EVENTS = False
 CELERY_RESULT_BACKEND = None
-CELERY_TASK_RESULT_EXPIRES = 1
-CELERY_DISABLE_RATE_LIMITS = True
-CELERY_DEFAULT_QUEUE = "default"
-CELERY_DEFAULT_EXCHANGE = "default"
-CELERY_DEFAULT_EXCHANGE_TYPE = "direct"
-CELERY_DEFAULT_ROUTING_KEY = "default"
-CELERY_CREATE_MISSING_QUEUES = True
-CELERY_REDIRECT_STDOUTS = False
-CELERYD_HIJACK_ROOT_LOGGER = False
+CELERY_RESULT_EXPIRES = 1
+CELERY_WORKER_DISABLE_RATE_LIMITS = True
+CELERY_TASK_DEFAULT_QUEUE = "default"
+CELERY_TASK_DEFAULT_EXCHANGE = "default"
+CELERY_TASK_DEFAULT_EXCHANGE_TYPE = "direct"
+CELERY_TASK_DEFAULT_ROUTING_KEY = "default"
+CELERY_TASK_CREATE_MISSING_QUEUES = True
+CELERY_WORKER_REDIRECT_STDOUTS = False
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False
 CELERY_TASK_SERIALIZER = "pickle"
 CELERY_RESULT_SERIALIZER = "pickle"
 CELERY_ACCEPT_CONTENT = {"pickle"}
@@ -587,7 +587,7 @@ CELERY_IMPORTS = (
     "sentry.release_health.duplex",
     "sentry.release_health.tasks",
 )
-CELERY_QUEUES = [
+CELERY_TASK_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
@@ -656,16 +656,16 @@ CELERY_QUEUES = [
     Queue("release_health.duplex", routing_key="release_health.duplex"),
 ]
 
-for queue in CELERY_QUEUES:
+for queue in CELERY_TASK_QUEUES:
     queue.durable = False
 
-CELERY_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
+CELERY_TASK_ROUTES = ("sentry.queue.routers.SplitQueueRouter",)
 
 
 def create_partitioned_queues(name):
     exchange = Exchange(name, type="direct")
     for num in range(1):
-        CELERY_QUEUES.append(Queue(f"{name}-{num}", exchange=exchange))
+        CELERY_TASK_QUEUES.append(Queue(f"{name}-{num}", exchange=exchange))
 
 
 create_partitioned_queues("counters")
@@ -674,8 +674,8 @@ create_partitioned_queues("triggers")
 from celery.schedules import crontab
 
 # XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
-CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
-CELERYBEAT_SCHEDULE = {
+CELERY_BEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
+CELERY_BEAT_SCHEDULE = {
     "check-auth": {
         "task": "sentry.tasks.check_auth",
         "schedule": timedelta(minutes=1),

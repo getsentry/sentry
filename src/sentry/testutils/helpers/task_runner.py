@@ -9,11 +9,11 @@ from django.conf import settings
 
 @contextmanager
 def TaskRunner():
-    settings.CELERY_ALWAYS_EAGER = True
-    current_app.conf.CELERY_ALWAYS_EAGER = True
+    settings.CELERY_TASK_ALWAYS_EAGER = True
+    current_app.conf.CELERY_TASK_ALWAYS_EAGER = True
     yield
-    current_app.conf.CELERY_ALWAYS_EAGER = False
-    settings.CELERY_ALWAYS_EAGER = False
+    current_app.conf.CELERY_TASK_ALWAYS_EAGER = False
+    settings.CELERY_TASK_ALWAYS_EAGER = False
 
 
 @contextmanager

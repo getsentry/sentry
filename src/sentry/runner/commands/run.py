@@ -151,9 +151,9 @@ def run_worker(**options):
     """
     from django.conf import settings
 
-    if settings.CELERY_ALWAYS_EAGER:
+    if settings.CELERY_TASK_ALWAYS_EAGER:
         raise click.ClickException(
-            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
+            "Disable CELERY_TASK_ALWAYS_EAGER in your settings file to spawn workers."
         )
 
     # These options are no longer used, but keeping around
@@ -231,7 +231,7 @@ def worker(ignore_unknown_queues, **options):
 
     from sentry.celery import app
 
-    known_queues = frozenset(c_queue.name for c_queue in app.conf.CELERY_QUEUES)
+    known_queues = frozenset(c_queue.name for c_queue in app.conf.CELERY_TASK_QUEUES)
 
     if options["queues"] is not None:
         if not options["queues"].issubset(known_queues):
@@ -287,9 +287,9 @@ def cron(**options):
     "Run periodic task dispatcher."
     from django.conf import settings
 
-    if settings.CELERY_ALWAYS_EAGER:
+    if settings.CELERY_TASK_ALWAYS_EAGER:
         raise click.ClickException(
-            "Disable CELERY_ALWAYS_EAGER in your settings file to spawn workers."
+            "Disable CELERY_TASK_ALWAYS_EAGER in your settings file to spawn workers."
         )
 
     from sentry.celery import app
