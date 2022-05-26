@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Mapping
+from typing import Any, Mapping
 
 import sentry_sdk
 
@@ -46,9 +46,11 @@ def send_incident_alert_notification(
             sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
-    attachment, text = SlackIncidentsMessageBuilder(
+    attachment: Any = SlackIncidentsMessageBuilder(
         incident, new_status, metric_value, chart_url
     ).build()
+    text = attachment["text"]
+    del attachment["text"]
 
     payload = {
         "token": integration.metadata["access_token"],

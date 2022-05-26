@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional
 
 from sentry.incidents.models import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
@@ -40,9 +40,8 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
         self.new_status = new_status
         self.chart_url = chart_url
 
-    def build(self) -> Tuple[SlackBody, str]:
+    def build(self) -> SlackBody:
         data = incident_attachment_info(self.incident, self.new_status, self.metric_value)
-        text_body = f"<{data['title_link']}|*{data['title']}*>"
 
         blocks = [
             self.get_markdown_block(text=f"{data['text']}\n{get_started_at(data['ts'])}"),
@@ -52,5 +51,5 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
-        attachments = self._build_blocks(*blocks, color=color)
-        return (attachments, text_body)
+        fallback_text = f"<{data['title_link']}|*{data['title']}*>"
+        return self._build_blocks(*blocks, fallback_text=fallback_text, color=color)
