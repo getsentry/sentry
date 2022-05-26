@@ -15,13 +15,13 @@ import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 const PROFILES_COLUMN_ORDER = [
-  'failed' as const,
-  'id' as const,
-  'timestamp' as const,
-  'device_model' as const,
-  'device_classification' as const,
-  'trace_duration_ms' as const,
-];
+  'failed',
+  'id',
+  'timestamp',
+  'device_model',
+  'device_classification',
+  'trace_duration_ms',
+] as const;
 
 interface ProfileSummaryContentProps {
   location: Location;
@@ -35,7 +35,7 @@ interface ProfileSummaryContentProps {
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
   const cursor = useMemo(
     () => decodeScalar(props.location.query.cursor),
-    [props.location]
+    [props.location.query.cursor]
   );
 
   const profiles = useProfiles({

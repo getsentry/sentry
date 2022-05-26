@@ -38,8 +38,12 @@ interface ProfileSummaryPageProps {
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
   const {projects} = useProjects({
-    slugs: props.params.projectId ? [props.params.projectId] : [],
+    slugs: defined(props.params.projectId) ? [props.params.projectId] : [],
   });
+
+  // Extract the project matching the provided project slug,
+  // if it doesn't exist, set this to null and handle it accordingly.
+  const project = projects.length === 1 ? projects[0] : null;
 
   const transaction = decodeScalar(props.location.query.transaction);
   // TODO: version should not be required on this page at all, it should be a search filter
@@ -65,6 +69,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   }, [rawQuery, transaction, version]);
 
   const filtersQuery = useMemo(() => {
+    // To avoid querying for the filters each time the query changes,
+    // do not pass the user query to get the filters.
     const search = new MutableSearch('');
 
     if (defined(transaction)) {
@@ -82,8 +88,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
     query: filtersQuery,
     selection: props.selection,
   });
-
-  const project = projects.length === 1 ? projects[0] : null;
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {

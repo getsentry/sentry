@@ -29,7 +29,7 @@ interface ProfilesTableProps {
   error: string | null;
   isLoading: boolean;
   traces: Trace[];
-  columnOrder?: TableColumnKey[];
+  columnOrder?: Readonly<TableColumnKey[]>;
 }
 
 function ProfilesTable(props: ProfilesTableProps) {
