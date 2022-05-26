@@ -37,11 +37,7 @@ export function FlamegraphOptionsContextMenu(props: FlameGraphOptionsContextMenu
 
   return props.contextMenu.open ? (
     <Fragment>
-      <ProfilingContextMenuLayer
-        onClick={() => {
-          props.contextMenu.setOpen(false);
-        }}
-      />
+      <ProfilingContextMenuLayer onClick={() => props.contextMenu.setOpen(false)} />
       <ProfilingContextMenu
         {...props.contextMenu.getMenuProps()}
         style={{

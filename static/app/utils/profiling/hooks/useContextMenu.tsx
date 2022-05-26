@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
@@ -39,66 +39,55 @@ export function useContextMenu({container}: UseContextMenuOptions) {
 
   // We wrap the setOpen function in a useEffect so that we also clear the keyboard
   // tabIndex when a menu is closed. This prevents tabIndex from being persisted between render
-  const wrapSetOpen = useCallback(
-    (newOpen: boolean) => {
-      if (!newOpen) {
-        itemProps.setTabIndex(null);
-      }
-      setOpen(newOpen);
-    },
-    [itemProps]
-  );
+  const wrapSetOpen = (newOpen: boolean) => {
+    if (!newOpen) {
+      itemProps.setTabIndex(null);
+    }
+    setOpen(newOpen);
+  };
 
-  const getMenuProps = useCallback(() => {
+  const getMenuProps = () => {
     const menuProps = itemProps.getMenuKeyboardEventHandlers();
 
     return {
       ...menuProps,
       onKeyDown: (evt: React.KeyboardEvent) => {
         if (evt.key === 'Escape') {
-          setOpen(false);
+          wrapSetOpen(false);
         }
         menuProps.onKeyDown(evt);
       },
     };
-  }, [itemProps]);
+  };
 
-  const getMenuItemProps = useCallback(() => {
+  const getMenuItemProps = () => {
     const menuItemProps = itemProps.getMenuItemKeyboardEventHandlers();
 
     return {
       ...menuItemProps,
       onKeyDown: (evt: React.KeyboardEvent) => {
         if (evt.key === 'Escape') {
-          setOpen(false);
+          wrapSetOpen(false);
         }
         menuItemProps.onKeyDown(evt);
       },
     };
-  }, [itemProps]);
+  };
 
-  const handleContextMenu = useCallback(
-    (evt: React.MouseEvent) => {
-      if (!container) {
-        return;
-      }
-      evt.preventDefault();
-      evt.stopPropagation();
+  const handleContextMenu = (evt: React.MouseEvent) => {
+    if (!container) {
+      return;
+    }
+    evt.preventDefault();
+    evt.stopPropagation();
 
-      const parentPosition = container.getBoundingClientRect();
+    const parentPosition = container.getBoundingClientRect();
 
-      setContextMenuCoordinates(
-        new Rect(
-          evt.clientX - parentPosition.left,
-          evt.clientY - parentPosition.top,
-          0,
-          0
-        )
-      );
-      wrapSetOpen(true);
-    },
-    [container, wrapSetOpen]
-  );
+    setContextMenuCoordinates(
+      new Rect(evt.clientX - parentPosition.left, evt.clientY - parentPosition.top, 0, 0)
+    );
+    wrapSetOpen(true);
+  };
 
   useEffect(() => {
     const listener = (event: MouseEvent | TouchEvent) => {
@@ -165,11 +154,11 @@ export function useContextMenu({container}: UseContextMenuOptions) {
 
   return {
     open,
+    setOpen: wrapSetOpen,
     position,
     containerCoordinates,
     contextMenuCoordinates: position,
     menuRef: itemProps.menuRef,
-    setOpen: wrapSetOpen,
     handleContextMenu,
     getMenuProps,
     getMenuItemProps,

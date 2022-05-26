@@ -14,17 +14,6 @@ export function useKeyboardNavigation() {
     }
   }, [menuRef, tabIndex]);
 
-  useEffect(() => {
-    if (typeof tabIndex !== 'number') {
-      return;
-    }
-    if (items[tabIndex]?.node) {
-      items[tabIndex]?.node?.focus();
-    }
-    // We only want to focus the element if the tabIndex changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tabIndex]);
-
   function getMenuKeyboardEventHandlers() {
     return {
       tabIndex: -1,
@@ -69,6 +58,9 @@ export function useKeyboardNavigation() {
       tabIndex: tabIndex === idx ? 0 : -1,
       ref: (node: HTMLElement | null) => {
         if (items[idx]) {
+          if (tabIndex === idx) {
+            node?.focus();
+          }
           items[idx].node = node;
         }
       },
