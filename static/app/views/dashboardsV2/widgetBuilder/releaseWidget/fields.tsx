@@ -60,6 +60,8 @@ export const DISABLED_SORT = [
   'session.status',
 ];
 
+export const TAG_SORT_DENY_LIST = ['project', 'environment'];
+
 export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta>>> = {
   [SessionField.SESSION]: {
     name: 'session',

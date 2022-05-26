@@ -50,7 +50,7 @@ export function useShortInterval(datetimeObj: DateTimeObject): boolean {
   return diffInMinutes <= TWENTY_FOUR_HOURS;
 }
 
-type Fidelity = 'high' | 'medium' | 'low';
+export type Fidelity = 'high' | 'medium' | 'low';
 
 export function getInterval(datetimeObj: DateTimeObject, fidelity: Fidelity = 'medium') {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
