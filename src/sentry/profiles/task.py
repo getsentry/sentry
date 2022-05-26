@@ -2,6 +2,7 @@ from datetime import datetime
 from time import sleep, time
 from typing import Any, MutableMapping, Optional
 
+import sentry_sdk
 from django.conf import settings
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
@@ -140,7 +141,8 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
                 )
                 sleep(sleep_time)
                 continue
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             break
 
     # remove debug information we don't need anymore
