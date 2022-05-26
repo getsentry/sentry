@@ -117,11 +117,6 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
-test-python:
-	@echo "--> Running Python tests"
-	# This gets called by getsentry
-	pytest tests/integration tests/sentry
-
 test-python-ci:
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
