@@ -106,13 +106,28 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
     while True:
         try:
             response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
-            for original, symbolicated in zip(
-                profile["sampled_profile"]["samples"], response["stacktraces"]
+
+            # make sure we're getting the same number of stacktraces back
+            assert len(profile["sampled_profile"]["samples"]) == len(response["stacktraces"])
+
+            for i, (original, symbolicated) in enumerate(
+                zip(profile["sampled_profile"]["samples"], response["stacktraces"])
             ):
-                for original_frame, symbolicated_frame in zip(
-                    original["frames"], symbolicated["frames"]
-                ):
-                    original_frame.update(symbolicated_frame)
+                # make sure we're getting the same number of frames back
+                assert len(original["frames"]) == len(symbolicated["frames"])
+
+                for symbolicated_frame in symbolicated["frames"]:
+                    original_frame = original["frames"][symbolicated_frame["original_index"]]
+
+                    # preserve original values
+                    new_frame = {}
+                    for k, v in original_frame.items():
+                        new_frame[f"_{k}"] = v
+
+                    new_frame.update(symbolicated_frame)
+                    profile["sampled_profile"]["samples"][i]["frames"][
+                        symbolicated_frame["original_index"]
+                    ] = new_frame
             break
         except RetrySymbolication as e:
             if (
