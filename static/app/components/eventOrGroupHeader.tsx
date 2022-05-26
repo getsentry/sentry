@@ -10,6 +10,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Tooltip from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
@@ -214,6 +215,7 @@ function Location(props) {
 
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   ${getMargin};
+  line-height: 1.2;
 `;
 
 const Message = styled('div')`
@@ -249,4 +251,7 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
   hasSeen: boolean;
 }>`
   font-weight: ${p => (p.hasSeen ? 400 : 600)};
+  line-height: 1.2;
+  position: relative;
+  top: -${space(0.25)};
 `;
