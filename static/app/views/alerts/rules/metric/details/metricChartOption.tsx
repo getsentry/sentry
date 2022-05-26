@@ -18,7 +18,6 @@ import {
   AlertRuleTriggerType,
   Dataset,
   MetricRule,
-  SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
 import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
@@ -30,6 +29,8 @@ import {
 } from 'sentry/views/alerts/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+
+import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
@@ -347,16 +348,12 @@ export function getMetricAlertChartOption({
     maxThresholdValue = Math.max(maxThresholdValue, rule.resolveThreshold);
   }
 
-  const crashFreeMax =
-    rule.aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
-    rule.aggregate === SessionsAggregate.CRASH_FREE_USERS;
-
   const yAxis: YAXisComponentOption = {
     axisLabel: {
       formatter: (value: number) =>
         alertAxisFormatter(value, timeseriesData[0].seriesName, rule.aggregate),
     },
-    max: crashFreeMax
+    max: isCrashFreeAlert(rule.dataset)
       ? 100
       : maxThresholdValue > maxSeriesValue
       ? maxThresholdValue
