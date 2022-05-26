@@ -45,9 +45,15 @@ def get_region_sequence_assignment_order():
     return values
 
 
+def MSB_ordering(value):
+    lsb_ordering = f"{value:05b}"
+    msb_ordering = lsb_ordering[::-1]
+    return int(msb_ordering, 2)
+
+
 def snowflake_id_generation(redis_key: str) -> int:
     segment_values = OrderedDict()
-    segment_values[VERSION_ID] = 1
+    segment_values[VERSION_ID] = MSB_ordering(1)
     segment_values[TIME_DIFFERENCE] = 0
     segment_values[REGION_ID] = 0
     segment_values[REGION_SEQUENCE] = 0
