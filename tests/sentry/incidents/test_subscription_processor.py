@@ -261,7 +261,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def assert_slack_calls(self, trigger_labels):
         expected_result = [f"{label}: some rule 2" for label in trigger_labels]
         actual = [
-            json.loads(call_kwargs["data"]["attachments"])[0]["blocks"][0]["text"]["text"]
+            json.loads(call_kwargs["data"]["blocks"])[0]["text"]["text"]
             for (_, call_kwargs) in self.slack_client.call_args_list
         ]
 

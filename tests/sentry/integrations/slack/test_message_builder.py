@@ -171,7 +171,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 }
             ],
-            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "text": title,
         }
 
     def test_metric_value(self):
@@ -213,7 +213,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 }
             ],
-            "color": LEVEL_TO_COLOR["fatal"],
+            "text": title,
         }
 
     def test_chart(self):
