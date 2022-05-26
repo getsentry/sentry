@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -39,7 +39,7 @@ type State = {
 type DropdownAutoCompleteProps = React.ComponentProps<typeof DropdownAutoComplete>;
 type Item = Parameters<NonNullable<DropdownAutoCompleteProps['onSelect']>>[0];
 
-class TeamProjects extends React.Component<Props, State> {
+class TeamProjects extends Component<Props, State> {
   state: State = {
     error: false,
     loading: true,
@@ -199,7 +199,7 @@ class TeamProjects extends React.Component<Props, State> {
     }));
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           <PanelHeader hasButtons>
             <div>{t('Projects')}</div>
@@ -232,7 +232,7 @@ class TeamProjects extends React.Component<Props, State> {
           <PanelBody>{this.projectPanelContents(linkedProjects)}</PanelBody>
         </Panel>
         <Pagination pageLinks={this.state.pageLinks} {...this.props} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

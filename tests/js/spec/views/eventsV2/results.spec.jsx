@@ -3,9 +3,11 @@ import {browserHistory} from 'react-router';
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
+import {triggerPress} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Results from 'sentry/views/eventsV2/results';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 const FIELDS = [
   {
@@ -32,6 +34,16 @@ describe('EventsV2 > Results', function () {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
   let eventResultsMock, mockSaved, eventsStatsMock, mockVisit;
+
+  const mountWithThemeAndOrg = (component, opts, organization) =>
+    mountWithTheme(component, {
+      ...opts,
+      wrappingComponent: ({children}) => (
+        <OrganizationContext.Provider value={organization}>
+          {children}
+        </OrganizationContext.Provider>
+      ),
+    });
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -177,13 +189,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -218,19 +231,25 @@ describe('EventsV2 > Results', function () {
     const initialData = initializeOrg({
       organization,
       router: {
-        location: {query: {...generateFields(), cursor: '0%3A50%3A0'}},
+        location: {
+          query: {
+            ...generateFields(),
+            cursor: '0%3A50%3A0',
+          },
+        },
       },
     });
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -262,6 +281,8 @@ describe('EventsV2 > Results', function () {
         ...generateFields(),
         query: 'geo:canada',
         statsPeriod: '14d',
+        // userModified added on new search for the search bar experiment
+        userModified: true,
       },
     });
     wrapper.unmount();
@@ -281,22 +302,27 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
     // y-axis selector is last.
     const selector = wrapper.find('OptionSelector').last();
 
     // Open the selector
-    selector.find('StyledDropdownButton button').simulate('click');
+    act(() => {
+      triggerPress(selector.find('button[aria-haspopup="listbox"]'));
+    });
+    await tick();
+    wrapper.update();
 
     // Click one of the options.
-    selector.find('DropdownMenu MenuItem span').first().simulate('click');
+    wrapper.find('SelectOption').first().simulate('click');
     await tick();
     wrapper.update();
 
@@ -317,13 +343,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));
@@ -334,13 +361,14 @@ describe('EventsV2 > Results', function () {
     const selector = wrapper.find('OptionSelector').first();
 
     // Open the selector
-    selector.find('StyledDropdownButton button').simulate('click');
+    act(() => {
+      triggerPress(selector.find('button[aria-haspopup="listbox"]'));
+    });
+    await tick();
+    wrapper.update();
 
     // Click the 'default' option.
-    selector
-      .find('DropdownMenu MenuItem [data-test-id="option-default"]')
-      .first()
-      .simulate('click');
+    wrapper.find('SelectOption').first().simulate('click');
     await tick();
     wrapper.update();
 
@@ -364,28 +392,32 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
     // display selector is first.
     const selector = wrapper.find('OptionSelector').first();
 
     // Open the selector
-    selector.find('StyledDropdownButton button').simulate('click');
+    act(() => {
+      triggerPress(selector.find('button[aria-haspopup="listbox"]'));
+    });
     await tick();
+    wrapper.update();
 
     // Make sure the top5 option isn't present
-    const options = selector
-      .find('DropdownMenu MenuItem')
+    const options = wrapper
+      .find('SelectOption [data-test-id]')
       .map(item => item.prop('data-test-id'));
-    expect(options).not.toContain('option-top5');
-    expect(options).not.toContain('option-dailytop5');
-    expect(options).toContain('option-default');
+    expect(options).not.toContain('top5');
+    expect(options).not.toContain('dailytop5');
+    expect(options).toContain('default');
     wrapper.unmount();
   });
 
@@ -401,13 +433,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -436,13 +469,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -465,13 +499,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -496,13 +531,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -524,13 +560,14 @@ describe('EventsV2 > Results', function () {
         location: {query: {id: '1', statsPeriod: '24h'}},
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -564,13 +601,14 @@ describe('EventsV2 > Results', function () {
         location: {query: {id: '1', statsPeriod: '24h'}},
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -604,13 +642,14 @@ describe('EventsV2 > Results', function () {
         },
       },
     });
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     await tick();
@@ -641,13 +680,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     // Should load events once
@@ -701,13 +741,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     // Should load events once
@@ -761,13 +802,14 @@ describe('EventsV2 > Results', function () {
 
     ProjectsStore.loadInitialData([TestStubs.Project()]);
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     // Should load events once
@@ -819,13 +861,14 @@ describe('EventsV2 > Results', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
+    const wrapper = mountWithThemeAndOrg(
       <Results
         organization={organization}
         location={initialData.router.location}
         router={initialData.router}
       />,
-      initialData.routerContext
+      initialData.routerContext,
+      organization
     );
 
     act(() => ProjectsStore.loadInitialData([TestStubs.Project()]));

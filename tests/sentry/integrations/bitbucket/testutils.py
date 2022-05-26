@@ -23,7 +23,7 @@ GET_LAST_COMMITS_EXAMPLE = b"""{
 }
 """
 
-COMMIT_DIFF_PATCH = br"""diff --git a/README.md b/README.md
+COMMIT_DIFF_PATCH = rb"""diff --git a/README.md b/README.md
 index 89821ce..9e09a8a 100644
 --- a/README.md
 +++ b/README.md

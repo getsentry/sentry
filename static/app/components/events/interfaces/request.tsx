@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -24,7 +24,7 @@ type State = {
   view: string;
 };
 
-class RequestInterface extends React.Component<Props, State> {
+class RequestInterface extends Component<Props, State> {
   state: State = {
     view: 'formatted',
   };

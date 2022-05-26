@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {createFilter} from 'react-select';
 
 import Alert from 'sentry/components/alert';

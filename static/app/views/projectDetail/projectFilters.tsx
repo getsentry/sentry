@@ -26,47 +26,40 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
 
   return (
     <FiltersWrapper>
-      <StyledPageFilterBar>
+      <PageFilterBar>
         <EnvironmentPageFilter />
         <DatePageFilter alignDropdown="left" />
-      </StyledPageFilterBar>
-      <SearchBarWrapper>
-        <GuideAnchor target="releases_search" position="bottom">
-          <SmartSearchBar
-            searchSource="project_filters"
-            query={query}
-            placeholder={t('Search by release version, build, package, or stage')}
-            maxSearchItems={5}
-            hasRecentSearches={false}
-            supportedTags={{
-              ...SEMVER_TAGS,
-              release: {
-                key: 'release',
-                name: 'release',
-              },
-            }}
-            onSearch={onSearch}
-            onGetTagValues={getTagValues}
-          />
-        </GuideAnchor>
-      </SearchBarWrapper>
+      </PageFilterBar>
+      <GuideAnchor target="releases_search" position="bottom">
+        <SmartSearchBar
+          searchSource="project_filters"
+          query={query}
+          placeholder={t('Search by release version, build, package, or stage')}
+          maxSearchItems={5}
+          hasRecentSearches={false}
+          supportedTags={{
+            ...SEMVER_TAGS,
+            release: {
+              key: 'release',
+              name: 'release',
+            },
+          }}
+          onSearch={onSearch}
+          onGetTagValues={getTagValues}
+        />
+      </GuideAnchor>
     </FiltersWrapper>
   );
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-  margin-right: ${space(1)};
-`;
-
 const FiltersWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-`;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) 1fr;
+  gap: ${space(2)};
 
-const SearchBarWrapper = styled('div')`
-  flex: 1;
-  flex-basis: 430px;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 export default ProjectFilters;

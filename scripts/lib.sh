@@ -30,18 +30,9 @@ configure-sentry-cli() {
     export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
     if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
-            # XXX: Temporary install version 1.74.3 until we upgrade to version 2.x
-            curl -sL https://gist.githubusercontent.com/armenzg/96481b0b653ecf807900373f5af09816/raw/caf5695e0eb6c214ec84f9fc217965aec928acc0/get-cli.sh | bash
+            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.0.4 bash
         fi
-        sentry_cli_major_version="$(sentry-cli --version | awk '{print $2}' | sed 's/\([0-9]*\).*/\1/')"
-        # XXX: Until we support version 2.x
-        if [ $sentry_cli_major_version -lt 2 ]; then
-            eval "$(sentry-cli bash-hook)"
-        else
-            echo "You are using the latest major release of sentry-cli."
-            echo "${yellow}Please remove it and we will install the correct version: rm $(which sentry-cli)${reset}"
-            exit 1
-        fi
+        eval "$(sentry-cli bash-hook)"
     fi
 }
 
@@ -136,12 +127,7 @@ install-py-dev() {
 patch-selenium() {
     # XXX: getsentry repo calls this!
     # This hack is until we can upgrade to a newer version of Selenium
-    fx_profile=.venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py
-    # Remove this block when upgrading the selenium package
-    if grep -q "or setting is" "${fx_profile}"; then
-        echo "We are patching ${fx_profile}. You will see this message only once."
-        patch -p0 <scripts/patches/firefox_profile.diff
-    fi
+    python -S -m tools.patch_selenium
 }
 
 setup-git-config() {
@@ -159,7 +145,9 @@ setup-git() {
         echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
         exit 1
     )
-    pip install -r requirements-pre-commit.txt
+    if ! require pre-commit; then
+        pip install -r requirements-dev.txt
+    fi
     pre-commit install --install-hooks
     echo ""
 }
@@ -188,9 +176,9 @@ install-js-dev() {
 }
 
 develop() {
-    setup-git
     install-js-dev
     install-py-dev
+    setup-git
 }
 
 init-config() {

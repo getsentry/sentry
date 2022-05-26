@@ -1,10 +1,10 @@
 from collections.abc import Iterable
 
+from sentry import audit_log
 from sentry.mediators import Mediator, Param
 from sentry.mediators.sentry_app_installation_tokens import (
     Creator as SentryAppInstallationTokenCreator,
 )
-from sentry.models import AuditLogEntryEvent
 
 from ..sentry_app_installations import Creator as InstallationCreator
 from .creator import Creator as SentryAppCreator
@@ -60,7 +60,7 @@ class InternalCreator(Mediator):
                 request=self.request,
                 organization=self.organization,
                 target_object=self.organization.id,
-                event=AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD,
+                event=audit_log.get_event_id("INTERNAL_INTEGRATION_ADD"),
                 data={"name": self.sentry_app.name},
             )
 

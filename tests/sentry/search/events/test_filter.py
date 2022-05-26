@@ -764,27 +764,18 @@ class GetSnubaQueryArgsTest(TestCase):
         project_2 = self.create_project()
         group = self.create_group(project=self.project, short_id=self.project.next_short_id())
         group_2 = self.create_group(project=project_2, short_id=self.project.next_short_id())
-        assert (
-            get_filter(
-                f"project.name:[{self.project.slug}, {project_2.slug}]",
-                params={"project_id": [self.project.id, project_2.id]},
-            ).conditions
-            == [["project_id", "IN", [project_2.id, self.project.id]]]
-        )
-        assert (
-            get_filter(
-                f"issue:[{group.qualified_short_id}, {group_2.qualified_short_id}]",
-                params={"organization_id": self.project.organization_id},
-            ).conditions
-            == [["issue.id", "IN", [group.id, group_2.id]]]
-        )
-        assert (
-            get_filter(
-                f"issue:[{group.qualified_short_id}, unknown]",
-                params={"organization_id": self.project.organization_id},
-            ).conditions
-            == [[["coalesce", ["issue.id", 0]], "IN", [0, group.id]]]
-        )
+        assert get_filter(
+            f"project.name:[{self.project.slug}, {project_2.slug}]",
+            params={"project_id": [self.project.id, project_2.id]},
+        ).conditions == [["project_id", "IN", [project_2.id, self.project.id]]]
+        assert get_filter(
+            f"issue:[{group.qualified_short_id}, {group_2.qualified_short_id}]",
+            params={"organization_id": self.project.organization_id},
+        ).conditions == [["issue.id", "IN", [group.id, group_2.id]]]
+        assert get_filter(
+            f"issue:[{group.qualified_short_id}, unknown]",
+            params={"organization_id": self.project.organization_id},
+        ).conditions == [[["coalesce", ["issue.id", 0]], "IN", [0, group.id]]]
         assert get_filter("environment:[prod, dev]").conditions == [
             [["environment", "IN", {"prod", "dev"}]]
         ]

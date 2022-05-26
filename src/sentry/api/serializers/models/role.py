@@ -1,9 +1,29 @@
+from typing import Any, List, Mapping
+
+from typing_extensions import TypedDict
+
 from sentry.api.serializers import Serializer
-from sentry.roles.manager import OrganizationRole, TeamRole
+from sentry.models import User
+from sentry.roles.manager import OrganizationRole, Role, TeamRole
+
+
+class RoleSerializerResponse(TypedDict):
+    id: str
+    name: str
+    desc: str
+    scopes: List[str]
+    is_global: bool
+    allowed: bool
 
 
 class RoleSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Role,
+        attrs: Mapping[str, Any],
+        user: User,
+        **kwargs: Any,
+    ) -> RoleSerializerResponse:
         allowed_roles = kwargs.get("allowed_roles") or ()
 
         return {

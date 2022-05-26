@@ -16,8 +16,8 @@ class SelectedFrameRenderer {
   draw(
     frame: Rect,
     style: {BORDER_COLOR: string; BORDER_WIDTH: number},
-    context: CanvasRenderingContext2D = this.context,
-    configViewToPhysicalSpace: mat3
+    configViewToPhysicalSpace: mat3,
+    context: CanvasRenderingContext2D = this.context
   ): void {
     const frameInPhysicalSpace = frame.transformRect(configViewToPhysicalSpace);
 

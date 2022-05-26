@@ -1,8 +1,15 @@
+import styled from '@emotion/styled';
+
 import {Flamegraph} from 'sentry/components/profiling/flamegraph';
-import {FullScreenFlamegraphContainer} from 'sentry/components/profiling/fullScreenFlamegraphContainer';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
+
+const FlamegraphContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+`;
 
 export default {
   title: 'Components/Profiling/FlamegraphZoomView',
@@ -16,9 +23,9 @@ export const EventedTrace = () => {
   return (
     <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
-        <FullScreenFlamegraphContainer>
+        <FlamegraphContainer>
           <Flamegraph profiles={eventedProfiles} />
-        </FullScreenFlamegraphContainer>
+        </FlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
   );
@@ -32,9 +39,9 @@ export const SampledTrace = () => {
   return (
     <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
-        <FullScreenFlamegraphContainer>
+        <FlamegraphContainer>
           <Flamegraph profiles={sampledTrace} />
-        </FullScreenFlamegraphContainer>
+        </FlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
   );
@@ -48,9 +55,9 @@ export const JSSelfProfiling = () => {
   return (
     <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
-        <FullScreenFlamegraphContainer>
+        <FlamegraphContainer>
           {jsSelfProfile ? <Flamegraph profiles={jsSelfProfile} /> : null}
-        </FullScreenFlamegraphContainer>
+        </FlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
   );
@@ -64,9 +71,9 @@ export const TypescriptProfile = () => {
   return (
     <FlamegraphStateProvider>
       <FlamegraphThemeProvider>
-        <FullScreenFlamegraphContainer>
+        <FlamegraphContainer>
           {typescriptProfile ? <Flamegraph profiles={typescriptProfile} /> : null}
-        </FullScreenFlamegraphContainer>
+        </FlamegraphContainer>
       </FlamegraphThemeProvider>
     </FlamegraphStateProvider>
   );

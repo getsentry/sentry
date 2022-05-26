@@ -347,11 +347,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
 
     it('opens a modal with the correct params for top 5 display mode', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const testData = initializeOrg({
         ...initializeOrg(),
@@ -361,6 +357,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         display: DisplayModes.TOP5,
         orderby: 'test',
         fields: ['test', 'count()'],
+        topEvents: '2',
       });
       mount(
         testData.router.location,
@@ -378,10 +375,11 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
           expect.objectContaining({
             widget: {
               title: 'Saved query #1',
-              displayType: DisplayType.TOP_N,
+              displayType: DisplayType.AREA,
+              limit: 2,
               queries: [
                 {
-                  aggregates: ['count()', 'count()'],
+                  aggregates: ['count()'],
                   columns: ['test'],
                   conditions: '',
                   fields: ['test', 'count()', 'count()'],
@@ -394,8 +392,8 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
               defaultTableColumns: ['test', 'count()'],
               defaultTitle: 'Saved query #1',
               defaultWidgetQuery:
-                'name=&aggregates=count()%2Ccount()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
-              displayType: DisplayType.TOP_N,
+                'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
+              displayType: DisplayType.AREA,
               source: DashboardWidgetSource.DISCOVERV2,
             }),
           })
@@ -405,11 +403,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
 
     it('opens a modal with the correct params for default display mode', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const testData = initializeOrg({
         ...initializeOrg(),
@@ -653,7 +647,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             aggregates: ['count()'],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })
@@ -680,7 +674,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             aggregates: ['count()', 'failure_count()'],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })
@@ -711,7 +705,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             ],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })

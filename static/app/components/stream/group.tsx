@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -40,7 +40,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {queryToObj} from 'sentry/utils/stream';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
+import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
@@ -80,7 +80,7 @@ type State = {
   reviewed: boolean;
 };
 
-class StreamGroup extends React.Component<Props, State> {
+class StreamGroup extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = this.getInitialState();
@@ -301,7 +301,7 @@ class StreamGroup extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StartedColumn>
           <TimeSince date={dateCreated} />
         </StartedColumn>
@@ -309,17 +309,17 @@ class StreamGroup extends React.Component<Props, State> {
           {!defined(count) ? (
             <Placeholder height="17px" />
           ) : (
-            <React.Fragment>
+            <Fragment>
               <Count value={remainingEventsToReprocess} />
               {'/'}
               <Count value={totalEvents} />
-            </React.Fragment>
+            </Fragment>
           )}
         </EventsReprocessedColumn>
         <ProgressColumn>
           <ProgressBar value={remainingEventsToReprocessPercent} />
         </ProgressColumn>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -409,7 +409,7 @@ class StreamGroup extends React.Component<Props, State> {
         {displayReprocessingLayout ? (
           this.renderReprocessingColumns()
         ) : (
-          <React.Fragment>
+          <Fragment>
             <EventUserWrapper>
               {!defined(primaryCount) ? (
                 <Placeholder height="18px" />
@@ -441,7 +441,7 @@ class StreamGroup extends React.Component<Props, State> {
                               {...getMenuProps({className: 'dropdown-menu inverted'})}
                             >
                               {data.filtered && (
-                                <React.Fragment>
+                                <Fragment>
                                   <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                     <MenuItemText>
                                       {queryFilterDescription ??
@@ -450,7 +450,7 @@ class StreamGroup extends React.Component<Props, State> {
                                     <MenuItemCount value={data.filtered.count} />
                                   </StyledMenuItem>
                                   <MenuItem divider />
-                                </React.Fragment>
+                                </Fragment>
                               )}
 
                               <StyledMenuItem to={this.getDiscoverUrl()}>
@@ -459,13 +459,13 @@ class StreamGroup extends React.Component<Props, State> {
                               </StyledMenuItem>
 
                               {data.lifetime && (
-                                <React.Fragment>
+                                <Fragment>
                                   <MenuItem divider />
                                   <StyledMenuItem>
                                     <MenuItemText>{t('Since issue began')}</MenuItemText>
                                     <MenuItemCount value={data.lifetime.count} />
                                   </StyledMenuItem>
-                                </React.Fragment>
+                                </Fragment>
                               )}
                             </StyledDropdownList>
                           )}
@@ -506,7 +506,7 @@ class StreamGroup extends React.Component<Props, State> {
                             {...getMenuProps({className: 'dropdown-menu inverted'})}
                           >
                             {data.filtered && (
-                              <React.Fragment>
+                              <Fragment>
                                 <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                   <MenuItemText>
                                     {queryFilterDescription ??
@@ -515,7 +515,7 @@ class StreamGroup extends React.Component<Props, State> {
                                   <MenuItemCount value={data.filtered.userCount} />
                                 </StyledMenuItem>
                                 <MenuItem divider />
-                              </React.Fragment>
+                              </Fragment>
                             )}
 
                             <StyledMenuItem to={this.getDiscoverUrl()}>
@@ -524,13 +524,13 @@ class StreamGroup extends React.Component<Props, State> {
                             </StyledMenuItem>
 
                             {data.lifetime && (
-                              <React.Fragment>
+                              <Fragment>
                                 <MenuItem divider />
                                 <StyledMenuItem>
                                   <MenuItemText>{t('Since issue began')}</MenuItemText>
                                   <MenuItemCount value={data.lifetime.userCount} />
                                 </StyledMenuItem>
-                              </React.Fragment>
+                              </Fragment>
                             )}
                           </StyledDropdownList>
                         )}
@@ -547,7 +547,7 @@ class StreamGroup extends React.Component<Props, State> {
                 onAssign={this.trackAssign}
               />
             </AssigneeWrapper>
-          </React.Fragment>
+          </Fragment>
         )}
       </Wrapper>
     );

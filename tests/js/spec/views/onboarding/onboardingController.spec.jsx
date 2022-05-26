@@ -7,37 +7,8 @@ import OnboardingController from 'sentry/views/onboarding/onboardingController';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('OnboardingController', function () {
-  it('Shows legacy onboarding without experiment', function () {
+  it('Shows targeted onboarding', function () {
     const {organization, router, routerContext} = initializeOrg({
-      organization: {
-        experiments: {
-          TargetedOnboardingMultiSelectExperiment: 0,
-        },
-      },
-      router: {
-        params: {
-          step: 'welcome',
-        },
-      },
-    });
-
-    render(
-      <OrganizationContext.Provider value={organization}>
-        <OnboardingController {...router} />
-      </OrganizationContext.Provider>,
-      {
-        context: routerContext,
-      }
-    );
-    expect(screen.queryByTestId('targeted-onboarding')).not.toBeInTheDocument();
-  });
-  it('Shows targeted onboarding with multi-select experiment active', function () {
-    const {organization, router, routerContext} = initializeOrg({
-      organization: {
-        experiments: {
-          TargetedOnboardingMultiSelectExperiment: 1,
-        },
-      },
       router: {
         params: {
           step: 'setup-docs',

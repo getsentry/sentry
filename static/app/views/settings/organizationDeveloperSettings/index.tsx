@@ -1,13 +1,16 @@
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
 import Access from 'sentry/components/acl/access';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
+import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
-import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -20,11 +23,30 @@ type Props = Omit<AsyncView['props'], 'params'> & {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
+type Tab = 'public' | 'internal';
 type State = AsyncView['state'] & {
   applications: SentryApp[];
+  tab: Tab;
 };
 
 class OrganizationDeveloperSettings extends AsyncView<Props, State> {
+  getDefaultState(): State {
+    const {location} = this.props;
+    const value =
+      (['public', 'internal'] as const).find(tab => tab === location?.query?.type) ||
+      'internal';
+
+    return {
+      ...super.getDefaultState(),
+      applications: [],
+      tab: value,
+    };
+  }
+
+  get tab() {
+    return this.state.tab;
+  }
+
   getTitle() {
     const {orgId} = this.props.params;
     return routeTitleGen(t('Developer Settings'), orgId, false);
@@ -46,6 +68,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   };
 
+  onTabChange = (value: Tab) => {
+    this.setState({tab: value});
+  };
+
   renderApplicationRow = (app: SentryApp) => {
     const {organization} = this.props;
     return (
@@ -59,40 +85,14 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   };
 
   renderInternalIntegrations() {
-    const {orgId} = this.props.params;
-    const {organization} = this.props;
     const integrations = this.state.applications.filter(
       (app: SentryApp) => app.status === 'internal'
     );
     const isEmpty = integrations.length === 0;
 
-    const permissionTooltipText = t(
-      'Manager or Owner permissions required to add an internal integration.'
-    );
-
-    const action = (
-      <Access organization={organization} access={['org:write']}>
-        {({hasAccess}) => (
-          <Button
-            priority="primary"
-            disabled={!hasAccess}
-            title={!hasAccess ? permissionTooltipText : undefined}
-            size="xsmall"
-            to={`/settings/${orgId}/developer-settings/new-internal/`}
-            icon={<IconAdd size="xs" isCircled />}
-          >
-            {t('New Internal Integration')}
-          </Button>
-        )}
-      </Access>
-    );
-
     return (
       <Panel>
-        <PanelHeader hasButtons>
-          {t('Internal Integrations')}
-          {action}
-        </PanelHeader>
+        <PanelHeader>{t('Internal Integrations')}</PanelHeader>
         <PanelBody>
           {!isEmpty ? (
             integrations.map(this.renderApplicationRow)
@@ -106,39 +106,13 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
-  renderExternalIntegrations() {
-    const {orgId} = this.props.params;
-    const {organization} = this.props;
+  renderPublicIntegrations() {
     const integrations = this.state.applications.filter(app => app.status !== 'internal');
     const isEmpty = integrations.length === 0;
 
-    const permissionTooltipText = t(
-      'Manager or Owner permissions required to add a public integration.'
-    );
-
-    const action = (
-      <Access organization={organization} access={['org:write']}>
-        {({hasAccess}) => (
-          <Button
-            priority="primary"
-            disabled={!hasAccess}
-            title={!hasAccess ? permissionTooltipText : undefined}
-            size="xsmall"
-            to={`/settings/${orgId}/developer-settings/new-public/`}
-            icon={<IconAdd size="xs" isCircled />}
-          >
-            {t('New Public Integration')}
-          </Button>
-        )}
-      </Access>
-    );
-
     return (
       <Panel>
-        <PanelHeader hasButtons>
-          {t('Public Integrations')}
-          {action}
-        </PanelHeader>
+        <PanelHeader>{t('Public Integrations')}</PanelHeader>
         <PanelBody>
           {!isEmpty ? (
             integrations.map(this.renderApplicationRow)
@@ -152,7 +126,47 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 
+  renderTabContent(tab: Tab) {
+    switch (tab) {
+      case 'internal':
+        return this.renderInternalIntegrations();
+      case 'public':
+      default:
+        return this.renderPublicIntegrations();
+    }
+  }
   renderBody() {
+    const {organization} = this.props;
+
+    const permissionTooltipText = t(
+      'Manager or Owner permissions are required to create a new integration'
+    );
+
+    const tabs = [
+      ['internal', t('Internal Integration')],
+      ['public', t('Public Integration')],
+    ] as [id: Tab, label: string][];
+
+    const action = (
+      <Access organization={organization} access={['org:write']}>
+        {({hasAccess}) => (
+          <Button
+            priority="primary"
+            disabled={!hasAccess}
+            title={!hasAccess ? permissionTooltipText : undefined}
+            size="small"
+            onClick={() =>
+              openCreateNewIntegrationModal({
+                orgSlug: organization.slug,
+              })
+            }
+          >
+            {t('Create New Integration')}
+          </Button>
+        )}
+      </Access>
+    );
+
     return (
       <div>
         <SettingsPageHeader
@@ -161,13 +175,17 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             `Create integrations that interact with Sentry using the REST API and webhooks.`
           )}
           action={
-            <Button
-              size="small"
-              external
-              href="https://docs.sentry.io/product/integrations/integration-platform/"
-            >
-              {t('View Docs')}
-            </Button>
+            <Fragment>
+              <Button
+                size="small"
+                external
+                href="https://docs.sentry.io/product/integrations/integration-platform/"
+                style={{marginRight: space(1)}}
+              >
+                {t('View Docs')}
+              </Button>
+              {action}
+            </Fragment>
           }
         />
         <Alert type="info">
@@ -180,8 +198,19 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             }
           )}
         </Alert>
-        {this.renderExternalIntegrations()}
-        {this.renderInternalIntegrations()}
+
+        <NavTabs underlined>
+          {tabs.map(([type, label]) => (
+            <li
+              key={type}
+              className={this.tab === type ? 'active' : ''}
+              onClick={() => this.onTabChange(type)}
+            >
+              <a>{label}</a>
+            </li>
+          ))}
+        </NavTabs>
+        {this.renderTabContent(this.tab)}
       </div>
     );
   }

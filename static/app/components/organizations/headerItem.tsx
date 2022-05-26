@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
@@ -16,7 +16,7 @@ type DefaultProps = {
 
 type Props = {
   icon: React.ReactNode;
-  forwardRef?: React.Ref<HTMLDivElement>;
+  forwardedRef?: React.Ref<HTMLDivElement>;
   hasChanges?: boolean;
   hasSelected?: boolean;
   hint?: string;
@@ -39,7 +39,7 @@ function HeaderItem({
   settingsLink,
   hint,
   loading,
-  forwardRef,
+  forwardedRef,
   onClear,
   allowClear = true,
   ...props
@@ -57,7 +57,7 @@ function HeaderItem({
 
   return (
     <StyledHeaderItem
-      ref={forwardRef}
+      ref={forwardedRef}
       loading={!!loading}
       {...omit(props, 'onClear')}
       {...textColorProps}
@@ -195,6 +195,6 @@ const StyledLock = styled(IconLock)`
   stroke-width: 1.5;
 `;
 
-export default React.forwardRef<HTMLDivElement, Props>((props, ref) => (
-  <HeaderItem forwardRef={ref} {...props} />
+export default forwardRef<HTMLDivElement, Props>((props, ref) => (
+  <HeaderItem forwardedRef={ref} {...props} />
 ));

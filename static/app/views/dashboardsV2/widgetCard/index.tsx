@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import LazyLoad from 'react-lazyload';
 import {withRouter, WithRouterProps} from 'react-router';
 import {useSortable} from '@dnd-kit/sortable';
@@ -69,7 +69,7 @@ type State = {
   totalIssuesCount?: string;
 };
 
-class WidgetCard extends React.Component<Props, State> {
+class WidgetCard extends Component<Props, State> {
   state: State = {};
   renderToolbar() {
     const {
@@ -216,7 +216,7 @@ class WidgetCard extends React.Component<Props, State> {
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         <DashboardsMEPProvider>
-          <StyledPanel isDragging={false}>
+          <WidgetCardPanel isDragging={false}>
             <WidgetHeader>
               <Tooltip
                 title={widget.title}
@@ -255,7 +255,7 @@ class WidgetCard extends React.Component<Props, State> {
               </LazyLoad>
             )}
             {this.renderToolbar()}
-          </StyledPanel>
+          </WidgetCardPanel>
           <Feature organization={organization} features={['dashboards-mep']}>
             <DashboardsMEPConsumer>
               {({isMetricsData}) =>
@@ -293,7 +293,7 @@ const ErrorCard = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-const StyledPanel = styled(Panel, {
+export const WidgetCardPanel = styled(Panel, {
   shouldForwardProp: prop => prop !== 'isDragging',
 })<{
   isDragging: boolean;

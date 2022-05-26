@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -15,17 +14,14 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 
-const defaultProps = {
-  multi: false,
-  inputValue: '',
-  isChecked: false,
-};
-
 type Props = {
+  inputValue: string;
+  isChecked: boolean;
+  multi: boolean;
   organization: Organization;
   project: Project;
   onMultiSelect?: (project: Project, event: React.MouseEvent) => void;
-} & typeof defaultProps;
+};
 
 function ProjectSelectorItem({
   project,
@@ -60,7 +56,6 @@ function ProjectSelectorItem({
           <FeatureDisabled
             features={features}
             hideHelpToggle
-            message={t('Multiple project selection disabled')}
             featureName={t('Multiple Project Selection')}
           />
         }

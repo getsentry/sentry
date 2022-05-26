@@ -67,6 +67,12 @@ FEATURES = [
         """,
         IntegrationFeatures.STACKTRACE_LINK,
     ),
+    FeatureDescription(
+        """
+        Import your GitLab [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/gitlab/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
+    ),
 ]
 
 metadata = IntegrationMetadata(

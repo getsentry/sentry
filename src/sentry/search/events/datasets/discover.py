@@ -226,7 +226,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                     "count_web_vitals",
                     required_args=[
                         NumericColumn("column"),
-                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
+                        SnQLStringArg("quality", allowed_strings=["good", "meh", "poor", "any"]),
                     ],
                     snql_aggregate=self._resolve_web_vital_function,
                     default_result_type="integer",
@@ -1117,7 +1117,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         if quality == "good":
             return Function(
                 "countIf",
-                [Function("lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["meh"]])],
+                [Function("less", [column, VITAL_THRESHOLDS[column.key]["meh"]])],
                 alias,
             )
         elif quality == "meh":
@@ -1127,24 +1127,38 @@ class DiscoverDatasetConfig(DatasetConfig):
                     Function(
                         "and",
                         [
-                            Function("greater", [column, VITAL_THRESHOLDS[column.key]["meh"]]),
                             Function(
-                                "lessOrEquals", [column, VITAL_THRESHOLDS[column.key]["poor"]]
+                                "greaterOrEquals", [column, VITAL_THRESHOLDS[column.key]["meh"]]
                             ),
+                            Function("less", [column, VITAL_THRESHOLDS[column.key]["poor"]]),
                         ],
                     )
                 ],
                 alias,
             )
-        else:
+        elif quality == "poor":
             return Function(
                 "countIf",
                 [
                     Function(
-                        "greater",
+                        "greaterOrEquals",
                         [
                             column,
                             VITAL_THRESHOLDS[column.key]["poor"],
+                        ],
+                    )
+                ],
+                alias,
+            )
+        elif quality == "any":
+            return Function(
+                "countIf",
+                [
+                    Function(
+                        "greaterOrEquals",
+                        [
+                            column,
+                            0,
                         ],
                     )
                 ],

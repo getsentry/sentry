@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Alert from 'sentry/components/alert';
-import AsyncComponent from 'sentry/components/asyncComponent';
+import {AsyncComponentProps} from 'sentry/components/asyncComponent';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NotAvailable from 'sentry/components/notAvailable';
 import {PanelItem} from 'sentry/components/panels';
@@ -676,14 +676,14 @@ function PerformanceCardTable({
   );
 }
 
-type Props = AsyncComponent['props'] & {
+interface Props extends AsyncComponentProps {
   allReleasesEventView: EventView;
   location: Location;
   organization: Organization;
   performanceType: string;
   project: ReleaseProject;
   releaseEventView: EventView;
-};
+}
 
 function PerformanceCardTableWrapper({
   organization,

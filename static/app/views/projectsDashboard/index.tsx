@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
@@ -9,9 +9,7 @@ import uniqBy from 'lodash/uniqBy';
 
 import {Client} from 'sentry/api';
 import Button from 'sentry/components/button';
-import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -28,11 +26,10 @@ import {sortProjects} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeamsForUser from 'sentry/utils/withTeamsForUser';
-import TeamFilter from 'sentry/views/alerts/rules/teamFilter';
+import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
 
 import ProjectCard from './projectCard';
 import Resources from './resources';
-import TeamSection from './teamSection';
 import {getTeamParams} from './utils';
 
 type Props = {
@@ -43,23 +40,15 @@ type Props = {
   teams: TeamWithProjects[];
 } & RouteComponentProps<{orgId: string}, {}>;
 
-function Dashboard({
-  teams,
-  params,
-  organization,
-  loadingTeams,
-  error,
-  router,
-  location,
-}: Props) {
+function Dashboard({teams, organization, loadingTeams, error, router, location}: Props) {
   useEffect(() => {
     return function cleanup() {
       ProjectsStatsStore.reset();
     };
   }, []);
   const [projectQuery, setProjectQuery] = useState('');
-  const debouncedSearchQuery = useCallback(
-    debounce(handleSearch, DEFAULT_DEBOUNCE_DURATION),
+  const debouncedSearchQuery = useMemo(
+    () => debounce(handleSearch, DEFAULT_DEBOUNCE_DURATION),
     []
   );
 
@@ -73,24 +62,17 @@ function Dashboard({
 
   const canCreateProjects = organization.access.includes('project:admin');
   const canJoinTeam = organization.access.includes('team:read');
-  const hasTeamAdminAccess = organization.access.includes('team:admin');
   const hasProjectAccess = organization.access.includes('project:read');
-  const hasProjectRedesign = organization.features.includes('projects-page-redesign');
 
-  const selectedTeams = new Set(getTeamParams(location ? location.query.team : ''));
-  const filteredTeams = teams.filter(team =>
-    hasProjectRedesign ? selectedTeams.has(team.id) : team.projects.length
-  );
+  const selectedTeams = getTeamParams(location ? location.query.team : '');
+  const filteredTeams = teams.filter(team => selectedTeams.includes(team.id));
 
-  if (!hasProjectRedesign) {
-    filteredTeams.sort((team1, team2) => team1.slug.localeCompare(team2.slug));
-  }
   const filteredTeamProjects = uniqBy(
     flatten((filteredTeams ?? teams).map(team => team.projects)),
     'id'
   );
   const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
-  const currentProjects = !selectedTeams.size ? projects : filteredTeamProjects;
+  const currentProjects = selectedTeams.length === 0 ? projects : filteredTeamProjects;
   const filteredProjects = (currentProjects ?? projects).filter(project =>
     project.slug.includes(projectQuery)
   );
@@ -103,19 +85,14 @@ function Dashboard({
     setProjectQuery(searchQuery);
   }
 
-  function handleChangeFilter(sectionId: string, activeFilters: Set<string>) {
+  function handleChangeFilter(activeFilters: string[]) {
     const {...currentQuery} = location.query;
-
-    let team = currentQuery.team;
-    if (sectionId === 'teams') {
-      team = activeFilters.size ? [...activeFilters] : '';
-    }
 
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: team.length === 0 ? '' : team,
+        team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
   }
@@ -137,23 +114,21 @@ function Dashboard({
             </Title>
             <Layout.HeaderActions>
               <ButtonContainer>
-                {hasProjectRedesign && (
-                  <Button
-                    icon={<IconUser size="xs" />}
-                    title={
-                      canJoinTeam
-                        ? undefined
-                        : t('You do not have permission to join a team.')
-                    }
-                    disabled={!canJoinTeam}
-                    to={`/settings/${organization.slug}/teams/`}
-                    data-test-id="join-team"
-                  >
-                    {t('Join a Team')}
-                  </Button>
-                )}
                 <Button
-                  priority={hasProjectRedesign ? 'primary' : 'default'}
+                  icon={<IconUser size="xs" />}
+                  title={
+                    canJoinTeam
+                      ? undefined
+                      : t('You do not have permission to join a team.')
+                  }
+                  disabled={!canJoinTeam}
+                  to={`/settings/${organization.slug}/teams/`}
+                  data-test-id="join-team"
+                >
+                  {t('Join a Team')}
+                </Button>
+                <Button
+                  priority="primary"
                   disabled={!canCreateProjects}
                   title={
                     !canCreateProjects
@@ -169,66 +144,38 @@ function Dashboard({
               </ButtonContainer>
             </Layout.HeaderActions>
           </ProjectsHeader>
-          <Body hasProjectRedesign={hasProjectRedesign}>
+          <Body>
             <Layout.Main fullWidth>
-              {hasProjectRedesign && (
-                <SearchAndSelectorWrapper>
-                  <TeamFilter
-                    selectedTeams={selectedTeams}
-                    handleChangeFilter={handleChangeFilter}
-                    fullWidth
-                    showIsMemberTeams
-                    showMyTeamsAndUnassigned={false}
-                    showMyTeamsDescription
-                  />
-                  <StyledSearchBar
-                    defaultQuery=""
-                    placeholder={t('Search for projects by name')}
-                    onChange={debouncedSearchQuery}
-                    query={projectQuery}
-                  />
-                </SearchAndSelectorWrapper>
-              )}
-              {hasProjectRedesign ? (
-                <LazyLoad once debounce={50} height={300} offset={300}>
-                  <ProjectCards>
-                    {sortProjects(filteredProjects).map(project => (
-                      <ProjectCard
-                        data-test-id={project.slug}
-                        key={project.slug}
-                        project={project}
-                        hasProjectAccess={hasProjectAccess}
-                      />
-                    ))}
-                  </ProjectCards>
-                </LazyLoad>
-              ) : (
-                filteredTeams.map((team, index) => (
-                  <LazyLoad key={team.slug} once debounce={50} height={300} offset={300}>
-                    <TeamSection
-                      orgId={params.orgId}
-                      team={team}
-                      showBorder={index !== teams.length - 1}
-                      title={
-                        hasTeamAdminAccess ? (
-                          <TeamLink
-                            to={`/settings/${organization.slug}/teams/${team.slug}/`}
-                          >
-                            <IdBadge team={team} avatarSize={22} />
-                          </TeamLink>
-                        ) : (
-                          <IdBadge team={team} avatarSize={22} />
-                        )
-                      }
-                      projects={sortProjects(team.projects)}
-                      access={new Set(organization.access)}
+              <SearchAndSelectorWrapper>
+                <TeamFilter
+                  selectedTeams={selectedTeams}
+                  handleChangeFilter={handleChangeFilter}
+                  showIsMemberTeams
+                  showSuggestedOptions={false}
+                  showMyTeamsDescription
+                />
+                <StyledSearchBar
+                  defaultQuery=""
+                  placeholder={t('Search for projects by name')}
+                  onChange={debouncedSearchQuery}
+                  query={projectQuery}
+                />
+              </SearchAndSelectorWrapper>
+              <LazyLoad once debounce={50} height={300} offset={300}>
+                <ProjectCards>
+                  {sortProjects(filteredProjects).map(project => (
+                    <ProjectCard
+                      data-test-id={project.slug}
+                      key={project.slug}
+                      project={project}
+                      hasProjectAccess={hasProjectAccess}
                     />
-                  </LazyLoad>
-                ))
-              )}
-              {showResources && <Resources organization={organization} />}
+                  ))}
+                </ProjectCards>
+              </LazyLoad>
             </Layout.Main>
           </Body>
+          {showResources && <Resources organization={organization} />}
         </Fragment>
       )}
     </Fragment>
@@ -240,11 +187,6 @@ const OrganizationDashboard = (props: Props) => (
     <Dashboard {...props} />
   </OrganizationDashboardWrapper>
 );
-
-const TeamLink = styled(Link)`
-  display: flex;
-  align-items: center;
-`;
 
 const ProjectsHeader = styled(Layout.Header)`
   border-bottom: none;
@@ -288,15 +230,9 @@ const StyledSearchBar = styled(SearchBar)`
   }
 `;
 
-const Body = styled(Layout.Body)<{hasProjectRedesign: boolean}>`
+const Body = styled(Layout.Body)`
   padding-top: ${space(2)} !important;
   background-color: ${p => p.theme.surface100};
-
-  ${p =>
-    !p.hasProjectRedesign &&
-    `
-    padding: 0 !important;
-  `}
 `;
 
 const ProjectCards = styled('div')`

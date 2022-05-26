@@ -26,7 +26,6 @@ from sentry.utils.sdk import configure_scope
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
-    "organizations:metrics-extraction",
     "organizations:profiling",
 ]
 
@@ -199,6 +198,11 @@ def get_project_config(project, full_config=True, project_keys=None):
             )
         except Exception:
             capture_exception()
+    if features.has("organizations:metrics-extraction", project.organization):
+        cfg["config"]["sessionMetrics"] = {
+            "version": 1,
+            "drop": False,
+        }
 
     if features.has("projects:performance-suspect-spans-ingestion", project=project):
         cfg["config"]["spanAttributes"] = project.get_option("sentry:span_attributes")

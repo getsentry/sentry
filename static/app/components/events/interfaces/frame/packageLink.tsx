@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
@@ -19,7 +19,7 @@ type Props = {
   isHoverPreviewed?: boolean;
 };
 
-class PackageLink extends React.Component<Props> {
+class PackageLink extends Component<Props> {
   handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     const {isClickable, onClick} = this.props;
 

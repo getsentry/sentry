@@ -1,22 +1,27 @@
-import {ComponentPropsWithoutRef} from 'react';
+import {useEffect} from 'react';
 
 import {logExperiment} from 'sentry/utils/analytics';
+import isMobile from 'sentry/utils/isMobile';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import TargetedOnboarding from './targetedOnboarding/onboarding';
-import Onboarding from './onboarding';
 
-type Props = Omit<ComponentPropsWithoutRef<typeof Onboarding>, 'projects'>;
+type Props = Omit<React.ComponentPropsWithoutRef<typeof TargetedOnboarding>, 'projects'>;
 
 function OnboardingController({...rest}: Props) {
-  logExperiment({
-    key: 'TargetedOnboardingMultiSelectExperiment',
-    organization: rest.organization,
-  });
-  if (rest.organization?.experiments.TargetedOnboardingMultiSelectExperiment) {
-    return <TargetedOnboarding {...rest} />;
-  }
-  return <Onboarding {...rest} />;
+  useEffect(() => {
+    if (isMobile()) {
+      logExperiment({
+        key: 'TargetedOnboardingMobileRedirectExperiment',
+        organization: rest.organization,
+      });
+    }
+    logExperiment({
+      key: 'TargetedOnboardingIntegrationSelectExperiment',
+      organization: rest.organization,
+    });
+  }, [rest.organization]);
+  return <TargetedOnboarding {...rest} />;
 }
 
 export default withOrganization(OnboardingController);

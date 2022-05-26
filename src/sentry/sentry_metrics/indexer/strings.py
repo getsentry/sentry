@@ -63,7 +63,7 @@ TRANSACTION_METRICS_NAMES = {
 
 # 200 - 299
 SHARED_TAG_STRINGS = {
-    # release helth
+    # release health
     "abnormal": PREFIX + 200,
     "crashed": PREFIX + 201,
     "environment": PREFIX + 202,
@@ -84,7 +84,7 @@ SHARED_TAG_STRINGS = {
     "browser.name": PREFIX + 216,
     "os.name": PREFIX + 217,
     "satisfaction": PREFIX + 218,
-    "ok": PREFIX + 219,
+    "ok": PREFIX + 219,  # now also used by release health
     "cancelled": PREFIX + 220,
     "unknown": PREFIX + 221,
     "aborted": PREFIX + 222,
@@ -96,6 +96,10 @@ SHARED_TAG_STRINGS = {
     "histogram_outlier": PREFIX + 227,
     "outlier": PREFIX + 228,
     "inlier": PREFIX + 229,
+    # added after the initial definition
+    "sdk": PREFIX + 230,  # release health
+    # GENERAL/MISC (don't have a category)
+    "": PREFIX + 1000,
 }
 SHARED_STRINGS = {**SESSION_METRIC_NAMES, **TRANSACTION_METRICS_NAMES, **SHARED_TAG_STRINGS}
 REVERSE_SHARED_STRINGS = {v: k for k, v in SHARED_STRINGS.items()}

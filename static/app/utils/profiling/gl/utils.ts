@@ -1,5 +1,8 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+
 import {clamp} from '../colors/utils';
 
 export function createShader(
@@ -231,6 +234,40 @@ export class Rect {
     return this.top + this.height;
   }
 
+  static decode(query: string | ReadonlyArray<string> | null | undefined): Rect | null {
+    let maybeEncodedRect = query;
+
+    if (typeof query === 'string') {
+      maybeEncodedRect = query.split(',');
+    }
+
+    if (!Array.isArray(maybeEncodedRect)) {
+      return null;
+    }
+
+    if (maybeEncodedRect.length !== 4) {
+      return null;
+    }
+
+    const rect = new Rect(
+      ...(maybeEncodedRect.map(p => parseFloat(p)) as [number, number, number, number])
+    );
+
+    if (rect.isValid()) {
+      return rect;
+    }
+
+    return null;
+  }
+
+  static encode(rect: Rect): string {
+    return rect.toString();
+  }
+
+  toString() {
+    return [this.x, this.y, this.width, this.height].map(n => Math.round(n)).join(',');
+  }
+
   toMatrix(): mat3 {
     const {width: w, height: h, x, y} = this;
     // it's easier to display a matrix as a 3x3 array. WebGl matrices are row first and not column first
@@ -286,36 +323,26 @@ export class Rect {
     return this.overlapsX(other) && this.overlapsY(other);
   }
 
-  // When we transform rectangles with a 3x3 matrix, we scale width with m00 and height with m11, then translate
-  // the origin of the rect separately with m02 and m12.
   transformRect(transform: mat3): Rect {
-    const configSpaceOrigin = vec2.fromValues(this.x, this.y);
-    const configSpaceSize = vec2.fromValues(this.width, this.height);
-
-    // prettier-ignore
-    const [
-      m00, m01, _m02,
-      m10, m11, _m12,
-      m20, m21, _m22
-    ] = transform
-
-    // prettier-ignore
-    const newConfigSpaceSize = [
-      configSpaceSize[0] * m00 + configSpaceSize[1] * m01, // X
-      configSpaceSize[0] * m10 + configSpaceSize[1] * m11  // Y
-    ]
-    // prettier-ignore
-    const newConfigSpaceOrigin = [
-      configSpaceOrigin[0] * m00 + configSpaceOrigin[1] * m01 + m20, // X
-      configSpaceOrigin[0] * m10 + configSpaceOrigin[1] * m11 + m21  // Y
-    ]
+    const x = this.x * transform[0] + this.y * transform[3] + transform[6];
+    const y = this.x * transform[1] + this.y * transform[4] + transform[7];
+    const width = this.width * transform[0] + this.height * transform[3];
+    const height = this.width * transform[1] + this.height * transform[4];
 
     return new Rect(
-      newConfigSpaceOrigin[0],
-      newConfigSpaceOrigin[1],
-      newConfigSpaceSize[0],
-      newConfigSpaceSize[1]
+      x + (width < 0 ? width : 0),
+      y + (height < 0 ? height : 0),
+      Math.abs(width),
+      Math.abs(height)
     );
+  }
+
+  /**
+   * Returns a transform that inverts the y axis within the rect.
+   * This causes the bottom of the rect to be the top of the rect and vice versa.
+   */
+  invertYTransform(): mat3 {
+    return mat3.fromValues(1, 0, 0, 0, -1, 0, this.x, this.y * 2 + this.height, 1);
   }
 
   withHeight(height: number): Rect {
@@ -324,6 +351,14 @@ export class Rect {
 
   withWidth(width: number): Rect {
     return new Rect(this.x, this.y, width, this.height);
+  }
+
+  withX(x: number): Rect {
+    return new Rect(x, this.y, this.width, this.height);
+  }
+
+  withY(y: number) {
+    return new Rect(this.x, y, this.width, this.height);
   }
 
   toBounds(): [number, number, number, number] {
@@ -450,6 +485,21 @@ export function findRangeBinarySearch(
       high = mid;
     }
   }
+}
+
+export function formatColorForFrame(
+  frame: FlamegraphFrame,
+  renderer: FlamegraphRenderer
+): string {
+  const color = renderer.getColorForFrame(frame);
+  if (color.length === 4) {
+    return `rgba(${color
+      .slice(0, 3)
+      .map(n => n * 255)
+      .join(',')}, ${color[3]})`;
+  }
+
+  return `rgba(${color.map(n => n * 255).join(',')}, 1.0)`;
 }
 
 export const ELLIPSIS = '\u2026';

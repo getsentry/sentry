@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, PopperProps, Reference} from 'react-popper';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
@@ -39,19 +39,6 @@ type State = {
 };
 
 class TeamKeyTransaction extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    let portal = document.getElementById('team-key-transaction-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'team-key-transaction-portal');
-      document.body.appendChild(portal);
-    }
-    this.portalEl = portal;
-    this.menuEl = null;
-  }
-
   state: State = {
     isOpen: false,
   };
@@ -67,11 +54,9 @@ class TeamKeyTransaction extends Component<Props, State> {
 
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClickOutside, true);
-    this.portalEl.remove();
   }
 
-  private portalEl: Element;
-  private menuEl: Element | null;
+  private menuEl: Element | null = null;
 
   handleClickOutside = (event: MouseEvent) => {
     if (!this.menuEl) {
@@ -207,16 +192,17 @@ class TeamKeyTransaction extends Component<Props, State> {
       return null;
     }
 
-    const modifiers: PopperProps['modifiers'] = {
-      hide: {
+    const modifiers = [
+      {
+        name: 'hide',
         enabled: false,
       },
-      preventOverflow: {
-        padding: 10,
+      {
+        name: 'preventOverflow',
         enabled: true,
-        boundariesElement: 'viewport',
+        options: {padding: 10},
       },
-    };
+    ];
 
     return createPortal(
       <Popper placement="top" modifiers={modifiers}>
@@ -233,7 +219,7 @@ class TeamKeyTransaction extends Component<Props, State> {
           </DropdownWrapper>
         )}
       </Popper>,
-      this.portalEl
+      document.body
     );
   }
 

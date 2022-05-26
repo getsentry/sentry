@@ -1,5 +1,4 @@
-import * as React from 'react';
-import {useContext} from 'react';
+import {Component, useContext} from 'react';
 import {Location} from 'history';
 
 import {EventQuery} from 'sentry/actionCreators/events';
@@ -12,6 +11,8 @@ import EventView, {
 } from 'sentry/utils/discover/eventView';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+
+import {decodeScalar} from '../queryString';
 
 export class QueryError {
   message: string;
@@ -139,7 +140,7 @@ type State<T> = {
 /**
  * Generic component for discover queries
  */
-class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
+class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   state: State<T> = {
     isLoading: true,
     tableFetchID: undefined,
@@ -171,7 +172,7 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
   }
 
   getPayload(props: Props<T, P>) {
-    const {cursor, limit, noPagination, referrer} = props;
+    const {cursor, limit, noPagination, referrer, location} = props;
     const payload = this.props.getRequestPayload
       ? this.props.getRequestPayload(props)
       : props.eventView.getEventsAPIPayload(props.location);
@@ -187,6 +188,13 @@ class _GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>>
     }
     if (referrer) {
       payload.referrer = referrer;
+    }
+
+    if (props.route === 'eventsv2') {
+      const queryUserModified = decodeScalar(location.query?.userModified);
+      if (queryUserModified !== undefined) {
+        payload.user_modified = queryUserModified;
+      }
     }
 
     Object.assign(payload, props.queryExtras ?? {});
@@ -308,7 +316,7 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
   const eventView = props.eventView ?? performanceEventView;
 
   if (orgSlug === undefined || eventView === undefined) {
-    throw new Error('GenericDiscoverQuery requires both an orgSlug adn eventView');
+    throw new Error('GenericDiscoverQuery requires both an orgSlug and eventView');
   }
 
   const _props: Props<T, P> = {

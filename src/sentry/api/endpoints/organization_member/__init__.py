@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable
+from typing import Collection
 
 from django.db import transaction
 from rest_framework.request import Request
@@ -27,32 +27,28 @@ def get_allowed_roles(
     request: Request,
     organization: Organization,
     member: OrganizationMember | None = None,
-) -> tuple[bool, Iterable[Role]]:
-    can_admin = request.access.has_scope("member:admin")
+) -> Collection[Role]:
+    """Get the set of roles that the request is allowed to manage.
 
-    allowed_roles = []
-    if can_admin and not is_active_superuser(request):
-        if member:
-            acting_member = member
-        else:
-            try:
-                acting_member = OrganizationMember.objects.get(
-                    user=request.user, organization=organization
-                )
-            except OrganizationMember.DoesNotExist:
-                # This can happen if the request was authorized by an app integration
-                # token whose proxy user does not have an OrganizationMember object.
-                return can_admin, allowed_roles
+    In order to change another member's role, the returned set must include both
+    the starting role and the new role. That is, the set contains the roles that
+    the request is allowed to promote someone to and to demote someone from.
+    """
 
-        if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
-            can_admin = False
-        else:
-            allowed_roles = acting_member.get_allowed_roles_to_invite()
-            can_admin = bool(allowed_roles)
-    elif is_active_superuser(request):
-        allowed_roles = roles.get_all()
+    if is_active_superuser(request):
+        return roles.get_all()
+    if not request.access.has_scope("member:admin"):
+        return ()
 
-    return can_admin, allowed_roles
+    if member is None:
+        try:
+            member = OrganizationMember.objects.get(user=request.user, organization=organization)
+        except OrganizationMember.DoesNotExist:
+            # This can happen if the request was authorized by an app integration
+            # token whose proxy user does not have an OrganizationMember object.
+            return ()
+
+    return member.get_allowed_roles_to_invite()
 
 
 from .details import OrganizationMemberDetailsEndpoint

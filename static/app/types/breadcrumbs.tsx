@@ -28,13 +28,14 @@ export enum BreadcrumbType {
   SYSTEM = 'system',
   SESSION = 'session',
   TRANSACTION = 'transaction',
+  INIT = 'init',
 }
 
 type BreadcrumbTypeBase = {
   level: BreadcrumbLevelType;
   // it's recommended
   category?: string | null;
-  event_id?: string;
+  event_id?: string | null;
   message?: string;
   timestamp?: string;
 };
@@ -89,6 +90,7 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.WARNING
     | BreadcrumbType.ERROR
     | BreadcrumbType.DEFAULT
+    | BreadcrumbType.INIT
     | BreadcrumbType.SESSION
     | BreadcrumbType.SYSTEM
     | BreadcrumbType.SESSION

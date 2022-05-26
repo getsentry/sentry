@@ -3,14 +3,15 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List, Mapping, Match, Optional, Set, Tuple, Union, cast
 
 import sentry_sdk
+from django.utils import timezone
 from django.utils.functional import cached_property
 from parsimonious.exceptions import ParseError
+from snuba_sdk import Flags, Request
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import And, BooleanCondition, Condition, Op, Or
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity, Limit, Offset
-from snuba_sdk.flags import Turbo
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from snuba_sdk.query import Query
@@ -28,8 +29,10 @@ from sentry.discover.arithmetic import (
     OperandType,
     Operation,
     categorize_columns,
+    is_equation,
     is_equation_alias,
     resolve_equation_list,
+    strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization
@@ -70,6 +73,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
+from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
@@ -106,7 +110,9 @@ class QueryBuilder:
         equation_config: Optional[Dict[str, bool]] = None,
     ):
         self.dataset = dataset
+
         self.params = params
+
         self.organization_id = params.get("organization_id")
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
@@ -122,11 +128,12 @@ class QueryBuilder:
         self.groupby: List[SelectType] = []
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
+        self.equation_alias_map: Dict[str, SelectType] = {}
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
-        self.turbo = Turbo(turbo)
+        self.turbo = turbo
         self.sample_rate = sample_rate
 
         (
@@ -146,6 +153,20 @@ class QueryBuilder:
             orderby=orderby,
         )
 
+    def resolve_time_conditions(self) -> None:
+        # start/end are required so that we can run a query in a reasonable amount of time
+        if "start" not in self.params or "end" not in self.params:
+            raise InvalidSearchQuery("Cannot query without a valid date range")
+
+        # TODO: this validation should be done when we create the params dataclass instead
+        assert isinstance(self.params["start"], datetime) and isinstance(
+            self.params["end"], datetime
+        ), "Both start and end params must be datetime objects"
+
+        # Strip timezone, which are ignored and assumed UTC to match filtering
+        self.start: datetime = self.params["start"].replace(tzinfo=timezone.utc)
+        self.end: datetime = self.params["end"].replace(tzinfo=timezone.utc)
+
     def resolve_column_name(self, col: str) -> str:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
@@ -159,6 +180,9 @@ class QueryBuilder:
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
+        with sentry_sdk.start_span(op="QueryBuilder", description="resolve_time_conditions"):
+            # Has to be done early, since other conditions depend on start and end
+            self.resolve_time_conditions()
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_conditions"):
             self.where, self.having = self.resolve_conditions(
                 query, use_aggregate_conditions=use_aggregate_conditions
@@ -357,22 +381,11 @@ class QueryBuilder:
         """
         conditions = []
 
-        # start/end are required so that we can run a query in a reasonable amount of time
-        if "start" not in self.params or "end" not in self.params:
-            raise InvalidSearchQuery("Cannot query without a valid date range")
-
-        start: datetime
-        end: datetime
-        start, end = self.params["start"], self.params["end"]  # type: ignore
         # Update start to be within retention
-        expired, start = outside_retention_with_modified_start(
-            start, end, Organization(self.params.get("organization_id"))
+        expired, self.start = outside_retention_with_modified_start(
+            self.start, self.end, Organization(self.params.get("organization_id"))
         )
 
-        # TODO: this validation should be done when we create the params dataclass instead
-        assert isinstance(start, datetime) and isinstance(
-            end, datetime
-        ), "Both start and end params must be datetime objects"
         project_id: List[int] = self.params.get("project_id", [])  # type: ignore
         assert all(
             isinstance(project_id, int) for project_id in project_id
@@ -382,8 +395,8 @@ class QueryBuilder:
                 "Invalid date range. Please try a more recent date range."
             )
 
-        conditions.append(Condition(self.column("timestamp"), Op.GTE, start))
-        conditions.append(Condition(self.column("timestamp"), Op.LT, end))
+        conditions.append(Condition(self.column("timestamp"), Op.GTE, self.start))
+        conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
         if "project_id" in self.params:
             conditions.append(
@@ -419,16 +432,16 @@ class QueryBuilder:
 
         sentry_sdk.set_tag("query.has_equations", equations is not None and len(equations) > 0)
         if equations:
-            _, stripped_columns, parsed_equations = resolve_equation_list(
+            stripped_columns, parsed_equations = resolve_equation_list(
                 equations,
                 stripped_columns,
-                use_snql=True,
                 **self.equation_config,
             )
             for index, parsed_equation in enumerate(parsed_equations):
                 resolved_equation = self.resolve_equation(
                     parsed_equation.equation, f"equation[{index}]"
                 )
+                self.equation_alias_map[equations[index]] = resolved_equation
                 resolved_columns.append(resolved_equation)
                 if parsed_equation.contains_functions:
                     self.aggregates.append(resolved_equation)
@@ -646,8 +659,13 @@ class QueryBuilder:
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             try:
+                # Allow ordering equations with the calculated alias (ie. equation[0])
                 if is_equation_alias(bare_orderby):
                     resolved_orderby = bare_orderby
+                # Allow ordering equations directly with the raw alias (ie. equation|a + b)
+                elif is_equation(bare_orderby):
+                    resolved_orderby = self.equation_alias_map[strip_equation(bare_orderby)]
+                    bare_orderby = resolved_orderby.alias
                 else:
                     resolved_orderby = self.resolve_column(bare_orderby)
             except (NotImplementedError, IncompatibleMetricsQuery):
@@ -985,9 +1003,9 @@ class QueryBuilder:
         if name in TIMESTAMP_FIELDS:
             if (
                 operator in ["<", "<="]
-                and value < self.params["start"]
+                and value < self.start
                 or operator in [">", ">="]
-                and value > self.params["end"]
+                and value > self.end
             ):
                 raise InvalidSearchQuery(
                     "Filter on timestamp is outside of the selected date range."
@@ -1116,22 +1134,25 @@ class QueryBuilder:
         """
         return self.function_alias_map[function.alias].field  # type: ignore
 
-    def get_snql_query(self) -> Query:
+    def get_snql_query(self) -> Request:
         self.validate_having_clause()
 
-        return Query(
+        return Request(
             dataset=self.dataset.value,
-            match=Entity(self.dataset.value, sample=self.sample_rate),
-            select=self.columns,
-            array_join=self.array_join,
-            where=self.where,
-            having=self.having,
-            groupby=self.groupby,
-            orderby=self.orderby,
-            limit=self.limit,
-            offset=self.offset,
-            limitby=self.limitby,
-            turbo=self.turbo,
+            app_id="default",
+            query=Query(
+                match=Entity(self.dataset.value, sample=self.sample_rate),
+                select=self.columns,
+                array_join=self.array_join,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=self.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                limitby=self.limitby,
+            ),
+            flags=Flags(turbo=self.turbo),
         )
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
@@ -1226,6 +1247,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
+        self.resolve_time_conditions()
         self.where, self.having = self.resolve_conditions(query, use_aggregate_conditions=False)
 
         # params depends on parse_query, and conditions being resolved first since there may be projects in conditions
@@ -1239,17 +1261,20 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         # Casting for now since QueryFields/QueryFilter are only partially typed
         return self.aggregates
 
-    def get_snql_query(self) -> Query:
-        return Query(
+    def get_snql_query(self) -> Request:
+        return Request(
             dataset=self.dataset.value,
-            match=Entity(self.dataset.value),
-            select=self.select,
-            where=self.where,
-            having=self.having,
-            groupby=self.groupby,
-            orderby=[OrderBy(self.time_column, Direction.ASC)],
-            granularity=self.granularity,
-            limit=self.limit,
+            app_id="default",
+            query=Query(
+                match=Entity(self.dataset.value),
+                select=self.select,
+                where=self.where,
+                having=self.having,
+                groupby=self.groupby,
+                orderby=[OrderBy(self.time_column, Direction.ASC)],
+                granularity=self.granularity,
+                limit=self.limit,
+            ),
         )
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
@@ -1573,17 +1598,15 @@ class MetricsQueryBuilder(QueryBuilder):
         Seconds are ignored under the assumption that there currently isn't a valid use case to have
         to-the-second accurate information
         """
-        start = cast(datetime, self.params["start"])
-        end = cast(datetime, self.params["end"])
-        duration = (end - start).seconds
+        duration = (self.end - self.start).seconds
 
         # TODO: could probably allow some leeway on the start & end (a few minutes) and use a bigger granularity
         # eg. yesterday at 11:59pm to tomorrow at 12:01am could still use the day bucket
 
         # Query is at least an hour
-        if start.minute == end.minute == 0 and duration % 3600 == 0:
+        if self.start.minute == self.end.minute == 0 and duration % 3600 == 0:
             # we're going from midnight -> midnight which aligns with our daily buckets
-            if start.hour == end.hour == 0 and duration % 86400 == 0:
+            if self.start.hour == self.end.hour == 0 and duration % 86400 == 0:
                 granularity = 86400
             # we're roughly going from start of hour -> next which aligns with our hourly buckets
             else:
@@ -1708,9 +1731,9 @@ class MetricsQueryBuilder(QueryBuilder):
         if name in TIMESTAMP_FIELDS:
             if (
                 operator in ["<", "<="]
-                and value < self.params["start"]
+                and value < self.start
                 or operator in [">", ">="]
-                and value > self.params["end"]
+                and value > self.end
             ):
                 raise InvalidSearchQuery(
                     "Filter on timestamp is outside of the selected date range."
@@ -1876,7 +1899,6 @@ class MetricsQueryBuilder(QueryBuilder):
                     referrer_suffix = "primary"
 
                 query = Query(
-                    dataset=self.dataset.value,
                     match=query_details.entity,
                     select=select,
                     array_join=self.array_join,
@@ -1887,10 +1909,15 @@ class MetricsQueryBuilder(QueryBuilder):
                     limit=self.limit,
                     offset=offset,
                     limitby=self.limitby,
-                    turbo=self.turbo,
+                )
+                request = Request(
+                    dataset=self.dataset.value,
+                    app_id="default",
+                    query=query,
+                    flags=Flags(turbo=self.turbo),
                 )
                 current_result = raw_snql_query(
-                    query,
+                    request,
                     f"{referrer}.{referrer_suffix}",
                     use_cache,
                 )
@@ -1900,7 +1927,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     groupby_key = tuple(row[key] for key in groupby_aliases)
                     value_map_key = ",".join(str(value) for value in groupby_key)
                     # First time we're seeing this value, add it to the values we're going to filter by
-                    if value_map_key not in value_map:
+                    if value_map_key not in value_map and groupby_key:
                         groupby_values.append(groupby_key)
                     value_map[value_map_key].update(row)
                 for meta in current_result["meta"]:
@@ -1908,6 +1935,70 @@ class MetricsQueryBuilder(QueryBuilder):
 
         result["data"] = list(value_map.values())
         result["meta"] = [{"name": key, "type": value} for key, value in meta_dict.items()]
+
+        # Data might be missing for fields after merging the requests, eg a transaction with no users
+        for row in result["data"]:
+            for meta in result["meta"]:
+                if meta["name"] not in row:
+                    row[meta["name"]] = self.get_default_value(meta["type"])
+
+        return result
+
+    @staticmethod
+    def get_default_value(meta_type: str) -> Any:
+        """Given a meta type return the expected default type
+
+        for example with a UInt64 (like a count_unique) return 0
+        """
+        if (
+            meta_type.startswith("Int")
+            or meta_type.startswith("UInt")
+            or meta_type.startswith("Float")
+        ):
+            return 0
+        else:
+            return None
+
+
+class HistogramMetricQueryBuilder(MetricsQueryBuilder):
+    base_function_acl = ["histogram"]
+
+    def __init__(
+        self,
+        histogram_params: HistogramParams,
+        *args: Any,
+        **kwargs: Any,
+    ):
+        self.params = kwargs["params"]
+        self.histogram_aliases: List[str] = []
+        self.num_buckets = histogram_params.num_buckets
+        self.min_bin = histogram_params.start_offset
+        self.max_bin = (
+            histogram_params.start_offset + histogram_params.bucket_size * self.num_buckets
+        )
+        if "organization_id" in self.params:
+            self.organization_id: int = cast(int, self.params["organization_id"])
+        else:
+            raise InvalidSearchQuery("Organization id required to create a metrics query")
+
+        self.zoom_params: Optional[Function] = metrics_histogram.zoom_histogram(
+            self.organization_id,
+            self.num_buckets,
+            self.min_bin,
+            self.max_bin,
+        )
+
+        kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
+        super().__init__(*args, **kwargs)
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        result = super().run_query(referrer, use_cache)
+        for row in result["data"]:
+            for key, value in row.items():
+                if key in self.histogram_aliases:
+                    row[key] = metrics_histogram.rebucket_histogram(
+                        value, self.num_buckets, self.min_bin, self.max_bin
+                    )
 
         return result
 
@@ -1983,7 +2074,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             self.time_alias,
         )
 
-    def get_snql_query(self) -> List[Query]:
+    def get_snql_query(self) -> List[Request]:
         """Because of the way metrics are structured a single request can result in >1 snql query
 
         This is because different functions will use different entities
@@ -1991,20 +2082,23 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         # No need for primary from the query framework since there's no orderby to worry about
         _, query_framework = self._create_query_framework()
 
-        queries: List[Query] = []
+        queries: List[Request] = []
         for query_details in query_framework.values():
             if len(query_details.functions) > 0:
                 queries.append(
-                    Query(
+                    Request(
                         dataset=self.dataset.value,
-                        match=query_details.entity,
-                        select=query_details.functions,
-                        where=self.where,
-                        having=self.having,
-                        groupby=self.groupby,
-                        orderby=[OrderBy(self.time_column, Direction.ASC)],
-                        granularity=self.granularity,
-                        limit=self.limit,
+                        app_id="default",
+                        query=Query(
+                            match=query_details.entity,
+                            select=query_details.functions,
+                            where=self.where,
+                            having=self.having,
+                            groupby=self.groupby,
+                            orderby=[OrderBy(self.time_column, Direction.ASC)],
+                            granularity=self.granularity,
+                            limit=self.limit,
+                        ),
                     )
                 )
 

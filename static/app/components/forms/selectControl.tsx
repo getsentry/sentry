@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import ReactSelect, {
   components as selectComponents,
   GroupedOptionsType,
@@ -79,6 +79,11 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    */
   isCompact?: boolean;
   /**
+   * Maximum width of the menu component. Menu item labels that overflow the
+   * menu's boundaries will automatically be truncated.
+   */
+  maxMenuWidth?: number | string;
+  /**
    * Used by MultiSelectControl.
    */
   multiple?: boolean;
@@ -126,7 +131,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {isCompact, isSearchable} = props;
+  const {isCompact, isSearchable, maxMenuWidth} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -178,11 +183,13 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         boxShadow: 'none',
         cursor: 'initial',
         minHeight: 'none',
-        ...(!isSearchable && {
-          height: 0,
-          padding: 0,
-          overflow: 'hidden',
-        }),
+        ...(isSearchable
+          ? {marginTop: 1}
+          : {
+              height: 0,
+              padding: 0,
+              overflow: 'hidden',
+            }),
       }),
     }),
 
@@ -196,6 +203,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       boxShadow: theme.dropShadowHeavy,
       width: 'auto',
       minWidth: '100%',
+      maxWidth: maxMenuWidth ?? 'auto',
       ...(isCompact && {
         position: 'relative',
         margin: 0,
@@ -216,7 +224,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     }),
 
     menuPortal: () => ({
-      maxWidth: '24rem',
+      maxWidth: maxMenuWidth ?? '24rem',
       zIndex: theme.zIndex.dropdown,
       width: '90%',
       position: 'fixed',
@@ -471,7 +479,7 @@ function SelectPicker<OptionType>({
 }
 
 // The generics need to be filled here as forwardRef can't expose generics.
-const RefForwardedSelectControl = React.forwardRef<
+const RefForwardedSelectControl = forwardRef<
   ReactSelect<GeneralSelectValue>,
   ControlProps<GeneralSelectValue>
 >(function RefForwardedSelectControl(props, ref) {

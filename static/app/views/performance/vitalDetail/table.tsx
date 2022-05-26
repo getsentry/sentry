@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
@@ -94,7 +94,7 @@ type State = {
   widths: number[];
 };
 
-class Table extends React.Component<Props, State> {
+class Table extends Component<Props, State> {
   state: State = {
     widths: [],
   };
@@ -384,7 +384,7 @@ class Table extends React.Component<Props, State> {
           referrer="api.performance.vital-detail"
         >
           {({pageLinks, isLoading, tableData}) => (
-            <React.Fragment>
+            <Fragment>
               <GridEditable
                 isLoading={isLoading}
                 data={tableData ? tableData.data : []}
@@ -409,7 +409,7 @@ class Table extends React.Component<Props, State> {
                 location={location}
               />
               <Pagination pageLinks={pageLinks} />
-            </React.Fragment>
+            </Fragment>
           )}
         </VitalsDetailsTableQuery>
       </div>

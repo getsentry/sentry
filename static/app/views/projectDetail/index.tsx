@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import withOrganization from 'sentry/utils/withOrganization';
 
 import ProjectDetail from './projectDetail';

@@ -14,7 +14,6 @@ import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {Theme} from 'sentry/utils/theme';
 
 import {Incident, IncidentStatus} from '../alerts/types';
 
@@ -162,7 +161,14 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
               ? tct('Resolved [date]', {
                   date: dateClosed ? <TimeSince date={dateClosed} /> : null,
                 })
-              : tct('Triggered [date]', {date: <TimeSince date={dateStarted} />})}
+              : tct('Triggered [date]', {
+                  date: (
+                    <TimeSince
+                      date={dateStarted}
+                      tooltipUnderlineColor={getStatusColor(statusProps)}
+                    />
+                  ),
+                })}
           </AlertDate>
         </AlertDetails>
       </AlertRowLink>
@@ -240,12 +246,8 @@ type StatusColorProps = {
   isWarning: boolean;
 };
 
-const getStatusColor = ({
-  theme,
-  isResolved,
-  isWarning,
-}: {theme: Theme} & StatusColorProps) =>
-  isResolved ? theme.green300 : isWarning ? theme.yellow300 : theme.red300;
+const getStatusColor = ({isResolved, isWarning}: StatusColorProps) =>
+  isResolved ? 'green300' : isWarning ? 'yellow300' : 'red300';
 
 const AlertBadgeWrapper = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
   display: flex;
@@ -270,7 +272,7 @@ const AlertTitle = styled('div')`
 `;
 
 const AlertDate = styled('span')<StatusColorProps>`
-  color: ${p => getStatusColor(p)};
+  color: ${p => p.theme[getStatusColor(p)]};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`

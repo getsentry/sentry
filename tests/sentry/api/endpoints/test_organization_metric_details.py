@@ -3,7 +3,8 @@ import time
 from unittest.mock import patch
 
 from sentry.sentry_metrics import indexer
-from sentry.snuba.metrics import SingularEntityDerivedMetric, percentage, resolve_weak
+from sentry.snuba.metrics import SingularEntityDerivedMetric, resolve_weak
+from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
@@ -20,8 +21,8 @@ MOCKED_DERIVED_METRICS_2.update(
             metric_mri="derived_metric.multiple_metrics",
             metrics=["metric_foo_doe", SessionMRI.ALL.value],
             unit="percentage",
-            snql=lambda *args, metric_ids, alias=None: percentage(
-                *args, alias=SessionMetricKey.CRASH_FREE_RATE.value
+            snql=lambda *args, metric_ids, alias=None: complement(
+                division_float(*args), alias=SessionMetricKey.CRASH_FREE_RATE.value
             ),
         )
     }

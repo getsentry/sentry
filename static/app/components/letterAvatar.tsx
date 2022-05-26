@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -110,6 +110,6 @@ LetterAvatar.defaultProps = {
   round: false,
 };
 
-export default React.forwardRef<SVGSVGElement, Props>((props, ref) => (
+export default forwardRef<SVGSVGElement, Props>((props, ref) => (
   <LetterAvatar forwardedRef={ref} {...props} />
 ));

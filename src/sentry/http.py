@@ -65,6 +65,7 @@ def safe_urlopen(
     timeout=30,
     verify_ssl=True,
     user_agent=None,
+    stream=False,
 ):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
@@ -100,6 +101,7 @@ def safe_urlopen(
             allow_redirects=allow_redirects,
             timeout=timeout,
             verify=verify_ssl,
+            stream=stream,
             **kwargs,
         )
 

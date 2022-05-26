@@ -10,7 +10,7 @@ import {openDashboardWidgetLibraryModal} from 'sentry/actionCreators/modal';
 import AddDashboardWidgetModal from 'sentry/components/modals/addDashboardWidgetModal';
 import {t} from 'sentry/locale';
 import TagStore from 'sentry/stores/tagStore';
-import {SessionMetric} from 'sentry/types';
+import {SessionField} from 'sentry/types';
 import * as types from 'sentry/views/dashboardsV2/types';
 
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -165,7 +165,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: TestStubs.MetricsField({field: SessionMetric.USER}),
+      body: TestStubs.MetricsField({field: SessionField.USER}),
     });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/metrics/meta/`,
@@ -654,7 +654,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
           fields: ['sdk.name', 'count()'],
           aggregates: ['count()'],
           columns: ['sdk.name'],
-          orderby: 'count',
+          orderby: 'count()',
         },
       ],
     };
@@ -1261,7 +1261,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       expect(
         screen.getByText('Issues (States, Assignment, Time, etc.)')
       ).toBeInTheDocument();
-      // Hide without the dashboards-metrics feature flag
+      // Hide without the dashboards-releases feature flag
       expect(screen.queryByText(/release/i)).not.toBeInTheDocument();
       wrapper.unmount();
     });
@@ -1303,7 +1303,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({
@@ -1328,7 +1328,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
       mountModalWithRtl({
         initialData,
@@ -1354,7 +1354,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({
@@ -1388,7 +1388,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({
@@ -1421,7 +1421,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({
@@ -1463,7 +1463,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
       const addWidgetMock = jest.fn();
 
@@ -1533,7 +1533,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       initialData.organization.features = [
         'performance-view',
         'discover-query',
-        'dashboards-metrics',
+        'dashboards-releases',
       ];
 
       mountModalWithRtl({

@@ -22,7 +22,7 @@ import {defined} from 'sentry/utils';
 import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
 
 import RuleModal from './ruleModal';
-import {getNewCondition} from './utils';
+import {generateConditionCategoriesOptions, getNewCondition} from './utils';
 
 type RuleModalProps = React.ComponentProps<typeof RuleModal>;
 
@@ -104,33 +104,35 @@ function TransactionRuleModal({rule, errorRules, transactionRules, ...props}: Pr
         rule ? t('Edit Transaction Sampling Rule') : t('Add Transaction Sampling Rule')
       }
       emptyMessage={t('Apply sampling rate to all transactions')}
-      conditionCategories={
+      conditionCategories={generateConditionCategoriesOptions(
         tracing
           ? [
-              [DynamicSamplingInnerName.TRACE_RELEASE, t('Release')],
-              [DynamicSamplingInnerName.TRACE_ENVIRONMENT, t('Environment')],
-              [DynamicSamplingInnerName.TRACE_USER_ID, t('User Id')],
-              [DynamicSamplingInnerName.TRACE_USER_SEGMENT, t('User Segment')],
-              [DynamicSamplingInnerName.TRACE_TRANSACTION, t('Transaction')],
+              DynamicSamplingInnerName.TRACE_RELEASE,
+              DynamicSamplingInnerName.TRACE_ENVIRONMENT,
+              DynamicSamplingInnerName.TRACE_USER_ID,
+              DynamicSamplingInnerName.TRACE_USER_SEGMENT,
+              DynamicSamplingInnerName.TRACE_TRANSACTION,
             ]
           : [
-              [DynamicSamplingInnerName.EVENT_RELEASE, t('Release')],
-              [DynamicSamplingInnerName.EVENT_ENVIRONMENT, t('Environment')],
-              [DynamicSamplingInnerName.EVENT_USER_ID, t('User Id')],
-              [DynamicSamplingInnerName.EVENT_USER_SEGMENT, t('User Segment')],
-              [
-                DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS,
-                t('Browser Extensions'),
-              ],
-              [DynamicSamplingInnerName.EVENT_LOCALHOST, t('Localhost')],
-              [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browser')],
-              [DynamicSamplingInnerName.EVENT_WEB_CRAWLERS, t('Web Crawlers')],
-              [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Address')],
-              [DynamicSamplingInnerName.EVENT_CSP, t('Content Security Policy')],
-              [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Message')],
-              [DynamicSamplingInnerName.EVENT_TRANSACTION, t('Transaction')],
+              DynamicSamplingInnerName.EVENT_RELEASE,
+              DynamicSamplingInnerName.EVENT_ENVIRONMENT,
+              DynamicSamplingInnerName.EVENT_USER_ID,
+              DynamicSamplingInnerName.EVENT_USER_SEGMENT,
+              DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS,
+              DynamicSamplingInnerName.EVENT_LOCALHOST,
+              DynamicSamplingInnerName.EVENT_LEGACY_BROWSER,
+              DynamicSamplingInnerName.EVENT_WEB_CRAWLERS,
+              DynamicSamplingInnerName.EVENT_IP_ADDRESSES,
+              DynamicSamplingInnerName.EVENT_CSP,
+              DynamicSamplingInnerName.EVENT_ERROR_MESSAGES,
+              DynamicSamplingInnerName.EVENT_TRANSACTION,
+              DynamicSamplingInnerName.EVENT_OS_NAME,
+              DynamicSamplingInnerName.EVENT_OS_VERSION,
+              DynamicSamplingInnerName.EVENT_DEVICE_FAMILY,
+              DynamicSamplingInnerName.EVENT_DEVICE_NAME,
+              DynamicSamplingInnerName.EVENT_CUSTOM_TAG,
             ]
-      }
+      )}
       rule={rule}
       onSubmit={handleSubmit}
       onChange={handleChange}
@@ -145,7 +147,7 @@ function TransactionRuleModal({rule, errorRules, transactionRules, ...props}: Pr
           <Tooltip
             title={t('This field can only be edited if there are no match conditions')}
             disabled={!isTracingDisabled}
-            popperStyle={css`
+            overlayStyle={css`
               @media (min-width: ${theme.breakpoints[0]}) {
                 max-width: 370px;
               }

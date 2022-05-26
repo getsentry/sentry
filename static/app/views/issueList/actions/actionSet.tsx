@@ -14,16 +14,14 @@ import {Organization, Project, ResolutionStatus} from 'sentry/types';
 import Projects from 'sentry/utils/projects';
 import useMedia from 'sentry/utils/useMedia';
 
-import IssueListSortOptions from '../sortOptions';
-
 import ResolveActions from './resolveActions';
 import ReviewAction from './reviewAction';
+import IssueListSortOptions from './sortOptions';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
 
 type Props = {
   allInQuerySelected: boolean;
   anySelected: boolean;
-  hasPageFilters: boolean;
   issues: Set<string>;
   multiSelected: boolean;
   onDelete: () => void;
@@ -46,7 +44,6 @@ function ActionSet({
   anySelected,
   multiSelected,
   issues,
-  hasPageFilters,
   onUpdate,
   onShouldConfirm,
   onDelete,
@@ -239,14 +236,7 @@ function ActionSet({
         disabledKeys={disabledMenuItems}
         isDisabled={!anySelected}
       />
-      {hasPageFilters && (
-        <IssueListSortOptions
-          sort={sort}
-          query={query}
-          onSelect={onSortChange}
-          hasPageFilters
-        />
-      )}
+      <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
     </Wrapper>
   );
 }

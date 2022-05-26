@@ -308,14 +308,11 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert self.ts.get_tag_value_label("sentry:user", "ip:stuff") == "stuff"
 
     def test_get_groups_user_counts(self):
-        assert (
-            self.ts.get_groups_user_counts(
-                project_ids=[self.proj1.id],
-                group_ids=[self.proj1group1.id, self.proj1group2.id],
-                environment_ids=[self.proj1env1.id],
-            )
-            == {self.proj1group1.id: 2, self.proj1group2.id: 1}
-        )
+        assert self.ts.get_groups_user_counts(
+            project_ids=[self.proj1.id],
+            group_ids=[self.proj1group1.id, self.proj1group2.id],
+            environment_ids=[self.proj1env1.id],
+        ) == {self.proj1group1.id: 2, self.proj1group2.id: 1}
 
         # test filtering by date range where there shouldn't be results
         assert (
@@ -437,65 +434,50 @@ class TagStorageTest(TestCase, SnubaTestCase):
             self.proj1.id, self.proj1group1.id, [self.proj1env1.id], {"foo": "bar"}, None, None
         ) == {"event_id__in": {"1" * 32, "2" * 32}}
 
-        assert (
-            self.ts.get_group_event_filter(
-                self.proj1.id,
-                self.proj1group1.id,
-                [self.proj1env1.id],
-                {"foo": "bar"},
-                (self.now - timedelta(seconds=1)),
-                None,
-            )
-            == {"event_id__in": {"1" * 32}}
-        )
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id],
+            {"foo": "bar"},
+            (self.now - timedelta(seconds=1)),
+            None,
+        ) == {"event_id__in": {"1" * 32}}
 
-        assert (
-            self.ts.get_group_event_filter(
-                self.proj1.id,
-                self.proj1group1.id,
-                [self.proj1env1.id],
-                {"foo": "bar"},
-                None,
-                (self.now - timedelta(seconds=1)),
-            )
-            == {"event_id__in": {"2" * 32}}
-        )
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id],
+            {"foo": "bar"},
+            None,
+            (self.now - timedelta(seconds=1)),
+        ) == {"event_id__in": {"2" * 32}}
 
-        assert (
-            self.ts.get_group_event_filter(
-                self.proj1.id,
-                self.proj1group1.id,
-                [self.proj1env1.id, self.proj1env2.id],
-                {"foo": "bar"},
-                None,
-                None,
-            )
-            == {"event_id__in": {"1" * 32, "2" * 32, "4" * 32}}
-        )
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id, self.proj1env2.id],
+            {"foo": "bar"},
+            None,
+            None,
+        ) == {"event_id__in": {"1" * 32, "2" * 32, "4" * 32}}
 
-        assert (
-            self.ts.get_group_event_filter(
-                self.proj1.id,
-                self.proj1group1.id,
-                [self.proj1env1.id],
-                {"foo": "bar", "sentry:release": "200"},  # AND
-                None,
-                None,
-            )
-            == {"event_id__in": {"2" * 32}}
-        )
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group1.id,
+            [self.proj1env1.id],
+            {"foo": "bar", "sentry:release": "200"},  # AND
+            None,
+            None,
+        ) == {"event_id__in": {"2" * 32}}
 
-        assert (
-            self.ts.get_group_event_filter(
-                self.proj1.id,
-                self.proj1group2.id,
-                [self.proj1env1.id],
-                {"browser": "chrome"},
-                None,
-                None,
-            )
-            == {"event_id__in": {"3" * 32}}
-        )
+        assert self.ts.get_group_event_filter(
+            self.proj1.id,
+            self.proj1group2.id,
+            [self.proj1env1.id],
+            {"browser": "chrome"},
+            None,
+            None,
+        ) == {"event_id__in": {"3" * 32}}
 
         assert (
             self.ts.get_group_event_filter(

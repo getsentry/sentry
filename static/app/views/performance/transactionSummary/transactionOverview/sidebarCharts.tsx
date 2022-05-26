@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {browserHistory, InjectedRouter, withRouter, WithRouterProps} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';

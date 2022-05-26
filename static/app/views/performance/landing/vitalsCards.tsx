@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -407,7 +407,7 @@ export function VitalBar(props: VitalBarProps) {
   const colorStops = getColorStopsFromPercents(percents);
 
   return (
-    <React.Fragment>
+    <Fragment>
       {showBar && (
         <StyledTooltip
           title={
@@ -442,7 +442,7 @@ export function VitalBar(props: VitalBarProps) {
           />
         </BarDetail>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 

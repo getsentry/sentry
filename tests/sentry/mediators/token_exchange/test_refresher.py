@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 from sentry.coreapi import APIUnauthorized
-from sentry.mediators.token_exchange import GrantExchanger, Refresher
+from sentry.mediators.token_exchange import Refresher
 from sentry.models import ApiApplication, ApiToken, SentryApp, SentryAppInstallation
 from sentry.testutils import TestCase
 
@@ -12,12 +12,7 @@ class TestRefresher(TestCase):
         self.client_id = self.install.sentry_app.application.client_id
         self.user = self.install.sentry_app.proxy_user
 
-        self.token = GrantExchanger.run(
-            install=self.install,
-            code=self.install.api_grant.code,
-            client_id=self.client_id,
-            user=self.user,
-        )
+        self.token = self.install.api_token
 
         self.refresher = Refresher(
             install=self.install,

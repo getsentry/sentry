@@ -6,7 +6,7 @@ import pickBy from 'lodash/pickBy';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/constants/pageFilters';
-import {Organization, PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 
 /**
  * Make a default page filters object
@@ -68,30 +68,4 @@ export function isSelectionEqual(selection: PageFilters, other: PageFilters): bo
   }
 
   return true;
-}
-
-/**
- * TODO(davidenwang): Temporarily used for when pages with the GSH live alongside new page filters
- * @param pathname
- * @param organization
- * @returns true if the pathname has new page filters
- */
-export function doesPathHaveNewFilters(pathname: string, organization: Organization) {
-  const newFilterPaths = (
-    organization.features.includes('selection-filters-v2')
-      ? [
-          'user-feedback',
-          'alerts',
-          'monitors',
-          'issues',
-          'projects',
-          'dashboard',
-          'releases',
-          'discover',
-          'performance',
-        ]
-      : ['user-feedback', 'alerts', 'monitors', 'projects', 'dashboards', 'releases']
-  ).map(route => `/organizations/${organization.slug}/${route}/`);
-
-  return newFilterPaths.some(pageFilterPath => pathname.includes(pageFilterPath));
 }

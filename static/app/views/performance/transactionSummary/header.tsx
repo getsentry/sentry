@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -76,7 +76,7 @@ type Props = {
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
-class TransactionHeader extends React.Component<Props> {
+class TransactionHeader extends Component<Props> {
   trackAlertClick(errors?: Record<string, boolean>) {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -123,6 +123,8 @@ class TransactionHeader extends React.Component<Props> {
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={this.handleCreateAlertSuccess}
         referrer="performance"
+        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
+        alertType="trans_duration"
         aria-label={t('Create Alert')}
       />
     );
@@ -273,7 +275,7 @@ class TransactionHeader extends React.Component<Props> {
             {this.renderSettingsButton()}
           </ButtonBar>
         </Layout.HeaderActions>
-        <React.Fragment>
+        <Fragment>
           <StyledNavTabs>
             <ListLink
               to={summaryTarget}
@@ -325,7 +327,7 @@ class TransactionHeader extends React.Component<Props> {
             </Feature>
             {this.renderWebVitalsTab()}
           </StyledNavTabs>
-        </React.Fragment>
+        </Fragment>
       </Layout.Header>
     );
   }

@@ -1,13 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {setTag} from '@sentry/react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
@@ -88,6 +86,14 @@ export default function SpanDetailsContentWrapper(props: Props) {
             {({tableData}) => {
               const totalCount: number | null =
                 (tableData?.data?.[0]?.count as number) ?? null;
+
+              if (totalCount) {
+                setTag('spans.totalCount', totalCount);
+                const countGroup = [
+                  1, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
+                ].find(n => totalCount <= n);
+                setTag('spans.totalCount.grouped', `<=${countGroup}`);
+              }
 
               return (
                 <SuspectSpansQuery
@@ -176,15 +182,6 @@ function SpanDetailsContent(props: ContentProps) {
 
   return (
     <Fragment>
-      <StyledPageFilterBar condensed>
-        <EnvironmentPageFilter />
-        <DatePageFilter />
-      </StyledPageFilterBar>
-      <SpanDetailsHeader
-        spanSlug={spanSlug}
-        totalCount={totalCount}
-        suspectSpan={suspectSpan}
-      />
       <Feature features={['performance-span-histogram-view']}>
         <SpanDetailsControls
           organization={organization}
@@ -192,6 +189,11 @@ function SpanDetailsContent(props: ContentProps) {
           eventView={eventView}
         />
       </Feature>
+      <SpanDetailsHeader
+        spanSlug={spanSlug}
+        totalCount={totalCount}
+        suspectSpan={suspectSpan}
+      />
       <SpanChart
         totalCount={transactionCountContainingSpan}
         organization={organization}
@@ -211,10 +213,6 @@ function SpanDetailsContent(props: ContentProps) {
     </Fragment>
   );
 }
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-`;
 
 function getSpansEventView(eventView: EventView): EventView {
   // TODO: There is a bug where if the sort is not avg occurrence,

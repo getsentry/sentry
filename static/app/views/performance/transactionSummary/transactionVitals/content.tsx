@@ -6,9 +6,9 @@ import {Location} from 'history';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
@@ -87,14 +87,11 @@ function VitalsContent(props: Props) {
                       )}
                     </Alert>
                   )}
-
-                  {organization.features.includes('selection-filters-v2') && (
-                    <StyledPageFilterBar condensed>
+                  <FilterActions>
+                    <PageFilterBar condensed>
                       <EnvironmentPageFilter />
                       <DatePageFilter alignDropdown="left" />
-                    </StyledPageFilterBar>
-                  )}
-                  <StyledActions>
+                    </PageFilterBar>
                     <StyledSearchBar
                       organization={organization}
                       projectIds={eventView.project}
@@ -102,29 +99,21 @@ function VitalsContent(props: Props) {
                       fields={eventView.fields}
                       onSearch={handleSearch}
                     />
-                    <DropdownControl
-                      buttonProps={{prefix: t('Outliers')}}
-                      label={activeFilter.label}
-                    >
-                      {FILTER_OPTIONS.map(({label, value}) => (
-                        <DropdownItem
-                          key={value}
-                          onSelect={(filterOption: string) => {
-                            trackAnalyticsEvent({
-                              eventKey: 'performance_views.vitals.filter_changed',
-                              eventName: 'Performance Views: Change vitals filter',
-                              organization_id: organization.id,
-                              value: filterOption,
-                            });
-                            handleFilterChange(filterOption);
-                          }}
-                          eventKey={value}
-                          isActive={value === activeFilter.value}
-                        >
-                          {label}
-                        </DropdownItem>
-                      ))}
-                    </DropdownControl>
+                    <CompactSelect
+                      value={activeFilter.value}
+                      options={FILTER_OPTIONS}
+                      onChange={opt => {
+                        trackAnalyticsEvent({
+                          eventKey: 'performance_views.vitals.filter_changed',
+                          eventName: 'Performance Views: Change vitals filter',
+                          organization_id: organization.id,
+                          value: opt.value,
+                        });
+                        handleFilterChange(opt.value);
+                      }}
+                      triggerProps={{prefix: t('Outliers')}}
+                      triggerLabel={activeFilter.label}
+                    />
                     <Button
                       onClick={() => {
                         trackAnalyticsEvent({
@@ -140,7 +129,7 @@ function VitalsContent(props: Props) {
                     >
                       {t('Reset View')}
                     </Button>
-                  </StyledActions>
+                  </FilterActions>
                   <VitalsPanel
                     organization={organization}
                     location={location}
@@ -158,20 +147,30 @@ function VitalsContent(props: Props) {
   );
 }
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-`;
-
-const StyledActions = styled('div')`
+const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
-  grid-template-columns: auto max-content max-content;
-  align-items: center;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(3, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: auto 1fr auto auto;
+  }
 `;
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    order: 1;
+    grid-column: 1/5;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
+  }
 `;
 
 export default VitalsContent;

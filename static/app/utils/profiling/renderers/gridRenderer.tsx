@@ -1,23 +1,10 @@
-import {mat3, vec2} from 'gl-matrix';
+import {mat3} from 'gl-matrix';
 
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, measureText, Rect} from '../gl/utils';
 
-export function getIntervalTimeAtX(configViewToPhysicalSpace: mat3, x: number): number {
-  const logicalToPhysicalSpace = mat3.fromScaling(
-    mat3.create(),
-    vec2.fromValues(window.devicePixelRatio ?? 1, window.devicePixelRatio ?? 1)
-  );
-  const physicalToConfigSpace = mat3.invert(mat3.create(), configViewToPhysicalSpace);
-
-  const logicalToConfigSpace = mat3.multiply(
-    mat3.create(),
-    physicalToConfigSpace,
-    logicalToPhysicalSpace
-  );
-
-  const vector =
-    logicalToConfigSpace[0] * x + logicalToConfigSpace[3] + logicalToConfigSpace[6];
+export function getIntervalTimeAtX(logicalSpaceToConfigView: mat3, x: number): number {
+  const vector = logicalSpaceToConfigView[0] * x + logicalSpaceToConfigView[6];
 
   if (vector > 1) {
     return Math.round(vector);
@@ -28,13 +15,13 @@ export function getIntervalTimeAtX(configViewToPhysicalSpace: mat3, x: number): 
 
 export function computeInterval(
   configView: Rect,
-  configViewToPhysicalSpace: mat3
+  logicalSpaceToConfigView: mat3
 ): number[] {
   // We want to draw an interval every 200px
   const target = 200;
   // Compute x at 200 and subtract left, so we have the interval
   const targetInterval =
-    getIntervalTimeAtX(configViewToPhysicalSpace, target) - configView.left;
+    getIntervalTimeAtX(logicalSpaceToConfigView, target) - configView.left;
 
   const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
 
@@ -80,6 +67,7 @@ class GridRenderer {
     configViewSpace: Rect,
     physicalViewRect: Rect,
     configViewToPhysicalSpace: mat3,
+    logicalSpaceToConfigView: mat3,
     context: CanvasRenderingContext2D = this.context
   ): void {
     context.font = `${this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio}px ${
@@ -110,17 +98,12 @@ class GridRenderer {
       LINE_WIDTH / 2
     );
 
-    const intervals = computeInterval(configViewSpace, configViewToPhysicalSpace);
+    const intervals = computeInterval(configViewSpace, logicalSpaceToConfigView);
 
     for (let i = 0; i < intervals.length; i++) {
       // Compute the x position of our interval from config space to physical
-      const configSpaceInterval = vec2.fromValues(intervals[i], 1);
       const physicalIntervalPosition = Math.round(
-        vec2.transformMat3(
-          vec2.create(),
-          configSpaceInterval,
-          configViewToPhysicalSpace
-        )[0]
+        intervals[i] * configViewToPhysicalSpace[0] + configViewToPhysicalSpace[6]
       );
 
       // Format the label text

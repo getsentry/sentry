@@ -24,35 +24,23 @@ class BaseNotification(abc.ABC):
     message_builder = "SlackNotificationsMessageBuilder"
     # some notifications have no settings for it
     notification_setting_type: NotificationSettingTypes | None = None
-    metrics_key: str = ""
     analytics_event: str = ""
-    referrer_base: str = ""
 
     def __init__(self, organization: Organization):
         self.organization = organization
 
     @property
-    def org_slug(self) -> str:
-        slug: str = self.organization.slug
-        return slug
-
-    @property
-    def org_name(self) -> str:
-        name: str = self.organization.name
-        return name
-
-    @property
-    def fine_tuning_key(self) -> str | None:
-        if self.notification_setting_type is None:
-            return None
-        return get_notification_setting_type_name(self.notification_setting_type)
-
-    @property
     def from_email(self) -> str | None:
         return None
 
-    def get_category(self) -> str:
-        raise NotImplementedError
+    @property
+    @abc.abstractmethod
+    def metrics_key(self) -> str:
+        """
+        When we want to collect analytics about this type of notification, we
+        will use this key. This MUST be snake_case.
+        """
+        pass
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         return {}
@@ -92,7 +80,8 @@ class BaseNotification(abc.ABC):
         # Basically a noop.
         return {**extra_context}
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        """The subject line when sending this notifications as a chat notification."""
         raise NotImplementedError
 
     def get_title_link(self, recipient: Team | User) -> str | None:
@@ -107,9 +96,6 @@ class BaseNotification(abc.ABC):
     def get_message_description(self, recipient: Team | User) -> Any:
         context = getattr(self, "context", None)
         return context["text_description"] if context else None
-
-    def get_type(self) -> str:
-        raise NotImplementedError
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
@@ -148,7 +134,7 @@ class BaseNotification(abc.ABC):
             # may want to explicitly pass in the parameters for this event
             self.record_analytics(
                 f"integrations.{provider.name}.notification_sent",
-                category=self.get_category(),
+                category=self.metrics_key,
                 **self.get_log_params(recipient),
             )
             # record an optional second event
@@ -164,7 +150,7 @@ class BaseNotification(abc.ABC):
         self, provider: ExternalProviders, recipient: Optional[Team | User] = None
     ) -> str:
         # referrer needs the provider and recipient
-        referrer = f"{self.referrer_base}-{EXTERNAL_PROVIDERS[provider]}"
+        referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
         if recipient:
             referrer += "-" + recipient.__class__.__name__.lower()
         return referrer
@@ -180,14 +166,15 @@ class BaseNotification(abc.ABC):
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
     def get_settings_url(self, recipient: Team | User, provider: ExternalProviders) -> str:
-        # settings url is dependant on the provider so we know which provider is sending them into Sentry
+        # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
-            team = Team.objects.get(id=recipient.id)
-            url_str = f"/settings/{self.org_slug}/teams/{team.slug}/notifications/"
+            url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
         else:
             url_str = "/settings/account/notifications/"
-            if self.fine_tuning_key:
-                url_str += f"{self.fine_tuning_key}/"
+            if self.notification_setting_type:
+                fine_tuning_key = get_notification_setting_type_name(self.notification_setting_type)
+                if fine_tuning_key:
+                    url_str += f"{fine_tuning_key}/"
         return str(
             urljoin(absolute_uri(url_str), self.get_sentry_query_params(provider, recipient))
         )

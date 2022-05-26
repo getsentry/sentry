@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {components as selectComponents} from 'react-select';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
@@ -10,7 +10,7 @@ import {
   useOverlay,
   useOverlayPosition,
 } from '@react-aria/overlays';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, useResizeObserver} from '@react-aria/utils';
 import {useMenuTriggerState} from '@react-stately/menu';
 
 import Badge from 'sentry/components/badge';
@@ -20,6 +20,7 @@ import SelectControl, {
   ControlProps,
   GeneralSelectValue,
 } from 'sentry/components/forms/selectControl';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import space from 'sentry/styles/space';
 
 interface TriggerRenderingProps {
@@ -36,6 +37,12 @@ interface Props<OptionType>
    * Pass class name to the outer wrap
    */
   className?: string;
+  /**
+   * Whether new options are being loaded. When true, CompactSelect will
+   * display a loading indicator in the header.
+   */
+  isLoading?: boolean;
+  onChangeValueMap?: (value: OptionType[]) => ControlProps<OptionType>['value'];
   /**
    * Tag name for the outer wrap, defaults to `div`
    */
@@ -86,14 +93,17 @@ export const CompactSelectControl = ({
   ...props
 }: React.ComponentProps<typeof selectComponents.Control>) => {
   const {hasValue, selectProps} = props;
-  const {isSearchable, menuTitle, isClearable} = selectProps;
+  const {isSearchable, menuTitle, isClearable, isLoading} = selectProps;
 
   return (
     <Fragment>
-      {(menuTitle || isClearable) && (
+      {(menuTitle || isClearable || isLoading) && (
         <MenuHeader>
-          <MenuTitle>{menuTitle}</MenuTitle>
-          {hasValue && isClearable && (
+          <MenuTitle>
+            <span>{menuTitle}</span>
+          </MenuTitle>
+          {isLoading && <StyledLoadingIndicator size={12} mini />}
+          {hasValue && isClearable && !isLoading && (
             <ClearButton size="zero" borderless onClick={() => props.clearValue()}>
               Clear
             </ClearButton>
@@ -122,6 +132,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   isSearchable = false,
   multiple,
   placeholder = 'Search…',
+  onChangeValueMap,
   // Trigger button & wrapper props
   trigger,
   triggerLabel,
@@ -161,6 +172,8 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
       isOpen: state.isOpen,
       shouldCloseOnBlur,
       isDismissable,
+      shouldCloseOnInteractOutside: target =>
+        target && triggerRef.current !== target && !triggerRef.current?.contains(target),
     },
     overlayRef
   );
@@ -177,44 +190,55 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
   // Keep an internal copy of the current select value and update the control
   // button's label when the value changes
   const [internalValue, setInternalValue] = useState(valueProp ?? defaultValue);
-  const [label, setLabel] = useState(getLabel(valueProp ?? null));
 
   // Update the button label when the value changes
-  function getLabel(newValue): React.ReactNode {
+  const getLabel = useCallback((): React.ReactNode => {
+    const newValue = valueProp ?? internalValue;
     const valueSet = Array.isArray(newValue) ? newValue : [newValue];
-    const optionSet = valueSet
+    const selectedOptions = valueSet
       .map(val => getSelectedOptions<OptionType>(options, val))
       .flat();
-    const firstOptionLabel = optionSet[0]?.label ?? '';
 
     return (
       <Fragment>
-        <ButtonLabel>{firstOptionLabel}</ButtonLabel>
-        {optionSet.length > 1 && <StyledBadge text={`+${optionSet.length - 1}`} />}
+        <ButtonLabel>{selectedOptions[0]?.label ?? ''}</ButtonLabel>
+        {selectedOptions.length > 1 && (
+          <StyledBadge text={`+${selectedOptions.length - 1}`} />
+        )}
       </Fragment>
     );
-  }
+  }, [options, valueProp, internalValue]);
 
+  const [label, setLabel] = useState<React.ReactNode>(null);
   useEffect(() => {
-    const newValue = valueProp ?? internalValue;
-    const newLabel = getLabel(newValue);
-    setLabel(newLabel);
-  }, [valueProp ?? internalValue]);
+    setLabel(getLabel());
+  }, [getLabel]);
 
-  // Calculate & update the trigger button's width, to be used as the
-  // overlay's min-width
+  // Calculate the current trigger element's width. This will be used as
+  // the min width for the menu.
   const [triggerWidth, setTriggerWidth] = useState<number>();
+  // Update triggerWidth when its size changes using useResizeObserver
+  const updateTriggerWidth = useCallback(async () => {
+    // Wait until the trigger element finishes rendering, otherwise
+    // ResizeObserver might throw an infinite loop error.
+    await new Promise(resolve => window.setTimeout(resolve));
+
+    const newTriggerWidth = triggerRef.current?.offsetWidth;
+    newTriggerWidth && setTriggerWidth(newTriggerWidth);
+  }, [triggerRef]);
+  useResizeObserver({ref: triggerRef, onResize: updateTriggerWidth});
+  // If ResizeObserver is not available, manually update the width
+  // when any of [trigger, triggerLabel, triggerProps] changes.
   useEffect(() => {
-    // Wait until the trigger label has been updated before calculating the
-    // new width
-    setTimeout(() => {
-      const newTriggerWidth = triggerRef.current?.offsetWidth;
-      newTriggerWidth ?? setTriggerWidth(newTriggerWidth);
-    }, 0);
-  }, [triggerRef.current, internalValue]);
+    if (typeof window.ResizeObserver !== 'undefined') {
+      return;
+    }
+    updateTriggerWidth();
+  }, [updateTriggerWidth]);
 
   function onValueChange(option) {
-    const newValue = Array.isArray(option) ? option.map(opt => opt.value) : option?.value;
+    const valueMap = onChangeValueMap ?? (opts => opts.map(opt => opt.value));
+    const newValue = Array.isArray(option) ? valueMap(option) : option?.value;
     setInternalValue(newValue);
     onChange?.(option);
 
@@ -259,6 +283,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
           {...mergeProps(overlayProps, positionProps)}
         >
           <SelectControl
+            components={{Control: CompactSelectControl, ClearIndicator: null}}
             {...props}
             options={options}
             value={valueProp ?? internalValue}
@@ -267,7 +292,6 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             menuTitle={menuTitle}
             placeholder={placeholder}
             isSearchable={isSearchable}
-            components={{Control: CompactSelectControl, ClearIndicator: null}}
             menuPlacement="bottom"
             menuIsOpen
             isCompact
@@ -319,10 +343,13 @@ const Overlay = styled('div')<{minWidth?: number}>`
 `;
 
 const MenuHeader = styled('div')`
+  position: relative;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(1.5)};
-  border-bottom: solid 1px ${p => p.theme.innerBorder};
+  padding: ${space(0.25)} ${space(1)} ${space(0.25)} ${space(1.5)};
+  box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+  z-index: 1;
 `;
 
 const MenuTitle = styled('span')`
@@ -330,7 +357,15 @@ const MenuTitle = styled('span')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.headingColor};
   white-space: nowrap;
-  margin-right: ${space(1)};
+  margin-right: ${space(2)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  && {
+    margin: ${space(0.5)} ${space(0.5)} ${space(0.5)} ${space(1)};
+    height: ${space(1.5)};
+    width: ${space(1.5)};
+  }
 `;
 
 const ClearButton = styled(Button)`

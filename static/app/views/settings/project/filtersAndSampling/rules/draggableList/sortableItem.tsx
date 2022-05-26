@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 
 import Item from './item';

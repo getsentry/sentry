@@ -60,10 +60,14 @@ default_manager.add("organizations:crash-rate-alerts", OrganizationFeature, True
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:dashboard-grid-layout", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, True)
-default_manager.add("organizations:dashboards-metrics", OrganizationFeature, True)
+default_manager.add("organizations:dashboards-releases", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
 default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
+default_manager.add(
+    "organizations:discover-frontend-use-events-endpoint", OrganizationFeature, True
+)
+default_manager.add("organizations:duplicate-alert-rule", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
 default_manager.add("organizations:filters-and-sampling-error-rules", OrganizationFeature, True)
@@ -74,6 +78,7 @@ default_manager.add("organizations:higher-ownership-limit", OrganizationFeature)
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)
 default_manager.add("organizations:invite-members", OrganizationFeature)
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)
+default_manager.add("organizations:issue-id-breadcrumbs", OrganizationFeature, True)
 default_manager.add("organizations:issue-list-removal-action", OrganizationFeature, True)
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)
 default_manager.add("organizations:issue-search-use-cdc-primary", OrganizationFeature, True)
@@ -81,6 +86,7 @@ default_manager.add("organizations:issue-search-use-cdc-secondary", Organization
 default_manager.add("organizations:large-debug-files", OrganizationFeature)
 default_manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, True)
 default_manager.add("organizations:metrics", OrganizationFeature, True)
+default_manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, True)
 default_manager.add("organizations:new-widget-builder-experience", OrganizationFeature, True)
 default_manager.add("organizations:new-widget-builder-experience-design", OrganizationFeature, True)
 default_manager.add(
@@ -105,9 +111,12 @@ default_manager.add("organizations:performance-autogroup-sibling-spans", Organiz
 default_manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, True)
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
+default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
+default_manager.add(
+    "organizations:performance-transaction-name-only-search", OrganizationFeature, True
+)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
-default_manager.add("organizations:projects-page-redesign", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
 default_manager.add("organizations:release-comparison-performance", OrganizationFeature, True)
 default_manager.add("organizations:release-health-check-metrics", OrganizationFeature, True)
@@ -116,7 +125,6 @@ default_manager.add("organizations:release-health-return-metrics", OrganizationF
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)
 default_manager.add("organizations:required-email-verification", OrganizationFeature, True)
 default_manager.add("organizations:rule-page", OrganizationFeature)
-default_manager.add("organizations:selection-filters-v2", OrganizationFeature, True)
 default_manager.add("organizations:session-replay", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, True)
@@ -127,6 +135,7 @@ default_manager.add("organizations:unified-span-view", OrganizationFeature, True
 default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
+default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.

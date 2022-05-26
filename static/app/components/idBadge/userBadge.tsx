@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
@@ -53,7 +52,7 @@ const StyledUserBadge = styled('div')`
 const StyledNameAndEmail = styled('div')`
   flex-shrink: 1;
   min-width: 0;
-  line-height: 1;
+  line-height: normal;
 `;
 
 const StyledEmail = styled('div')`
@@ -63,7 +62,7 @@ const StyledEmail = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const StyledName = styled('span')<{hideEmail: boolean}>`
+export const StyledName = styled('span')<{hideEmail: boolean}>`
   font-weight: ${p => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
   ${p => p.theme.overflowEllipsis};

@@ -10,7 +10,6 @@ drop-db \
 create-db \
 apply-migrations \
 reset-db \
-setup-apple-m1 \
 setup-git \
 node-version-check \
 install-js-dev \
@@ -126,12 +125,16 @@ test-python:
 test-python-ci:
 	make build-platform-assets
 	@echo "--> Running CI Python tests"
-	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	pytest tests/integration tests/sentry \
+		--ignore tests/sentry/eventstream/kafka \
+		--ignore tests/sentry/snuba \
+		--ignore tests/sentry/search/events \
+		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 test-tools:

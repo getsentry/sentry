@@ -14,12 +14,12 @@ from sentry.snuba.metrics import (
     crashed_users,
     errored_all_users,
     errored_preaggr_sessions,
-    percentage,
     session_duration_filters,
     subtraction,
     uniq_aggregation_on_metric,
 )
 from sentry.snuba.metrics.fields.snql import (
+    complement,
     division_float,
     failure_count_transaction,
     miserable_users,
@@ -88,7 +88,6 @@ class DerivedMetricSnQLTestCase(TestCase):
 
     def test_set_uniq_aggregation_on_session_status(self):
         for status, func in [
-            ("init", all_users),
             ("crashed", crashed_users),
             ("abnormal", abnormal_users),
             ("errored", errored_all_users),
@@ -116,6 +115,16 @@ class DerivedMetricSnQLTestCase(TestCase):
                 ],
                 status,
             )
+
+    def test_set_uniq_aggregation_all_users(self):
+        assert all_users(self.org_id, self.metric_ids, alias="foo") == Function(
+            "uniqIf",
+            [
+                Column("value"),
+                Function("in", [Column("metric_id"), list(self.metric_ids)]),
+            ],
+            alias="foo",
+        )
 
     def test_set_sum_aggregation_for_errored_sessions(self):
         alias = "whatever"
@@ -297,27 +306,19 @@ class DerivedMetricSnQLTestCase(TestCase):
             alias="transaction.tolerated",
         )
 
-    def test_percentage_in_snql(self):
-        alias = "foo.percentage"
-        init_session_snql = all_sessions(self.org_id, self.metric_ids, "init_sessions")
-        crashed_session_snql = crashed_sessions(self.org_id, self.metric_ids, "crashed_sessions")
-
-        assert percentage(crashed_session_snql, init_session_snql, alias=alias) == Function(
-            "minus", [1, Function("divide", [crashed_session_snql, init_session_snql])], alias
-        )
+    def test_complement_in_sql(self):
+        alias = "foo.complement"
+        assert complement(0.64, alias=alias) == Function("minus", [1, 0.64], alias)
 
     def test_addition_in_snql(self):
         alias = "session.crashed_and_abnormal_user"
         arg1_snql = crashed_users(self.org_id, self.metric_ids, alias="session.crashed_user")
         arg2_snql = abnormal_users(self.org_id, self.metric_ids, alias="session.abnormal_user")
-        assert (
-            addition(
-                arg1_snql,
-                arg2_snql,
-                alias=alias,
-            )
-            == Function("plus", [arg1_snql, arg2_snql], alias=alias)
-        )
+        assert addition(
+            arg1_snql,
+            arg2_snql,
+            alias=alias,
+        ) == Function("plus", [arg1_snql, arg2_snql], alias=alias)
 
     def test_subtraction_in_snql(self):
         arg1_snql = all_users(self.org_id, self.metric_ids, alias="session.all_user")
@@ -325,14 +326,11 @@ class DerivedMetricSnQLTestCase(TestCase):
             self.org_id, self.metric_ids, alias="session.errored_user_all"
         )
 
-        assert (
-            subtraction(
-                arg1_snql,
-                arg2_snql,
-                alias="session.healthy_user",
-            )
-            == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
-        )
+        assert subtraction(
+            arg1_snql,
+            arg2_snql,
+            alias="session.healthy_user",
+        ) == Function("minus", [arg1_snql, arg2_snql], alias="session.healthy_user")
 
     def test_division_in_snql(self):
         alias = "transactions.failure_rate"

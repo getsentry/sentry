@@ -4,11 +4,12 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
-from sentry.models import AuditLogEntryEvent, ScheduledDeletion, Team, TeamStatus
+from sentry.models import ScheduledDeletion, Team, TeamStatus
 
 
 class TeamSerializer(serializers.ModelSerializer):
@@ -81,7 +82,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 request=request,
                 organization=team.organization,
                 target_object=team.id,
-                event=AuditLogEntryEvent.TEAM_EDIT,
+                event=audit_log.get_event_id("TEAM_EDIT"),
                 data=team.get_audit_log_data(),
             )
 
@@ -111,7 +112,7 @@ class TeamDetailsEndpoint(TeamEndpoint):
                 request=request,
                 organization=team.organization,
                 target_object=team.id,
-                event=AuditLogEntryEvent.TEAM_REMOVE,
+                event=audit_log.get_event_id("TEAM_REMOVE"),
                 data=team.get_audit_log_data(),
                 transaction_id=scheduled.id,
             )

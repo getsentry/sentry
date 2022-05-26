@@ -8,10 +8,10 @@ from urllib.request import Request
 
 from django.views import View
 
+from sentry import audit_log
 from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
 from sentry.models import (
-    AuditLogEntryEvent,
     ExternalActor,
     Identity,
     Integration,
@@ -196,7 +196,7 @@ class IntegrationProvider(PipelineProvider, abc.ABC):
                 request=request,
                 organization=organization,
                 target_object=integration.id,
-                event=AuditLogEntryEvent.INTEGRATION_ADD,
+                event=audit_log.get_event_id("INTEGRATION_ADD"),
                 data={"provider": integration.provider, "name": integration.name},
             )
 

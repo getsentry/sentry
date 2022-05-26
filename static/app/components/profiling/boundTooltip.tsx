@@ -1,129 +1,82 @@
-import {useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useRef} from 'react';
 import styled from '@emotion/styled';
-import {mat3, vec2} from 'gl-matrix';
+import {vec2} from 'gl-matrix';
 
+import space from 'sentry/styles/space';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {getContext, measureText, Rect} from 'sentry/utils/profiling/gl/utils';
-import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
+import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
+import {Rect} from 'sentry/utils/profiling/gl/utils';
+import theme from 'sentry/utils/theme';
 
-const useCachedMeasure = (string: string, font: string): Rect => {
-  const cache = useRef<Record<string, Rect>>({});
-  const ctx = useMemo(() => {
-    const context = getContext(document.createElement('canvas'), '2d');
-    context.font = font;
-    return context;
-  }, []);
+function computeBestTooltipPlacement(cursor: vec2, container: Rect) {
+  // This is because the cursor's origin is in the top left corner of the arrow, so we want
+  // to offset it just enough so that the tooltip does not overlap with the arrow's tail.
+  // When the tooltip placed to the left of the cursor, we do not have that issue and hence
+  // no offset is applied.
+  const OFFSET_PX = 6;
 
-  return useMemo(() => {
-    if (cache.current[string]) {
-      return cache.current[string];
-    }
+  const style: Record<string, number | undefined> = {
+    left: cursor[0] + OFFSET_PX,
+    right: undefined,
+    top: cursor[1] + OFFSET_PX,
+    bottom: undefined,
+  };
 
-    if (!ctx) {
-      return Rect.Empty();
-    }
+  if (cursor[0] > container.width / 2) {
+    style.left = undefined;
+    style.right = container.width - cursor[0]; // No offset is applied here as tooltip is placed to the left
+  }
 
-    const measures = measureText(string, ctx);
-    cache.current[string] = measures;
-
-    return new Rect(0, 0, measures.width, measures.height);
-  }, [string, ctx]);
-};
+  return style;
+}
 
 interface BoundTooltipProps {
   bounds: Rect;
-  configViewToPhysicalSpace: mat3;
-  cursor: vec2 | null;
+  cursor: vec2;
+  flamegraphCanvas: FlamegraphCanvas;
+  flamegraphView: FlamegraphView;
   children?: React.ReactNode;
 }
 
 function BoundTooltip({
   bounds,
-  configViewToPhysicalSpace,
+  flamegraphCanvas,
   cursor,
+  flamegraphView,
   children,
 }: BoundTooltipProps): React.ReactElement | null {
   const tooltipRef = useRef<HTMLDivElement>(null);
   const flamegraphTheme = useFlamegraphTheme();
-  const tooltipRect = useCachedMeasure(
-    tooltipRef.current?.textContent ?? '',
-    `${flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE}px ${flamegraphTheme.FONTS.FONT}`
-  );
-  const devicePixelRatio = useDevicePixelRatio();
-
-  const physicalToLogicalSpace = useMemo(
-    () =>
-      mat3.fromScaling(
-        mat3.create(),
-        vec2.fromValues(1 / devicePixelRatio, 1 / devicePixelRatio)
-      ),
-    [devicePixelRatio]
-  );
-
-  const [tooltipBounds, setTooltipBounds] = useState<Rect>(Rect.Empty());
-
-  useLayoutEffect(() => {
-    if (!children || bounds.isEmpty() || !tooltipRef.current) {
-      setTooltipBounds(Rect.Empty());
-      return;
-    }
-
-    const newTooltipBounds = tooltipRef.current.getBoundingClientRect();
-
-    setTooltipBounds(
-      new Rect(
-        newTooltipBounds.x,
-        newTooltipBounds.y,
-        newTooltipBounds.width,
-        newTooltipBounds.height
-      )
-    );
-  }, [children, bounds, cursor]);
-
-  if (!children || !cursor || bounds.isEmpty()) {
-    return null;
-  }
 
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
-    vec2.fromValues(cursor[0], cursor[1]),
-
-    configViewToPhysicalSpace
+    cursor,
+    flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
   );
 
   const logicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     physicalSpaceCursor,
-    physicalToLogicalSpace
+    flamegraphCanvas.physicalToLogicalSpace
   );
 
-  let cursorHorizontalPosition = logicalSpaceCursor[0];
-  // Move the tooltip just beneath the cursor so that the text isn't covered.
-  const cursorVerticalPosition = logicalSpaceCursor[1] + 8;
+  const placement = computeBestTooltipPlacement(logicalSpaceCursor, bounds);
 
-  const mid = bounds.width / 2;
-
-  // If users screen is on right half of the screen, then we have more space to position on the left and vice versa
-  // since default is right, we only need to handle 1 case
-  if (cursorHorizontalPosition > mid) {
-    // console.log('Cursor over mid');
-    cursorHorizontalPosition -= tooltipBounds.width;
-  }
-
-  return children ? (
+  return (
     <Tooltip
       ref={tooltipRef}
       style={{
+        ...placement,
         fontSize: flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE,
         fontFamily: flamegraphTheme.FONTS.FONT,
-        left: cursorHorizontalPosition,
-        top: cursorVerticalPosition,
-        width: Math.min(tooltipRect.width, bounds.width - cursorHorizontalPosition - 2),
+        zIndex: theme.zIndex.tooltip,
+        maxWidth: bounds.width,
       }}
     >
       {children}
     </Tooltip>
-  ) : null;
+  );
 }
 
 const Tooltip = styled('div')`
@@ -134,6 +87,9 @@ const Tooltip = styled('div')`
   overflow: hidden;
   pointer-events: none;
   user-select: none;
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(0.25)} ${space(1)};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 export {BoundTooltip};

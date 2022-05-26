@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
@@ -148,7 +148,7 @@ type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   expand?: string | string[];
 };
 
-class IssueListOverview extends React.Component<Props, State> {
+class IssueListOverview extends Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState() {
@@ -1221,7 +1221,7 @@ class IssueListOverview extends React.Component<Props, State> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledPageContent>
           <IssueListHeader
             organization={organization}
@@ -1245,7 +1245,6 @@ class IssueListOverview extends React.Component<Props, State> {
                 query={query}
                 savedSearch={savedSearch}
                 sort={this.getSort()}
-                onSortChange={this.onSortChange}
                 onSearch={this.onSearch}
                 onSidebarToggle={this.onSidebarToggle}
                 isSearchDisabled={isSidebarVisible}
@@ -1308,7 +1307,7 @@ class IssueListOverview extends React.Component<Props, State> {
             )}
           </Layout.Body>
         </StyledPageContent>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

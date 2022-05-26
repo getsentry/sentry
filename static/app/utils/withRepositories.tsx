@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {getRepositories} from 'sentry/actionCreators/repositories';
 import RepositoryActions from 'sentry/actions/repositoryActions';
@@ -27,7 +27,7 @@ const INITIAL_STATE: InjectedProps = {
 function withRepositories<P extends DependentProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithRepositories extends React.Component<P & DependentProps, InjectedProps> {
+  class WithRepositories extends Component<P & DependentProps, InjectedProps> {
     static displayName = `withRepositories(${getDisplayName(WrappedComponent)})`;
 
     constructor(props: P & DependentProps, context: any) {

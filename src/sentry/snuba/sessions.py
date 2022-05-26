@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Sequence, Set, Tuple
 
 import pytz
+from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.entity import Entity
@@ -142,7 +143,6 @@ def _check_releases_have_health_data(
         return set()
 
     query = Query(
-        dataset="sessions",
         match=Entity("sessions"),
         select=[Column("release")],
         groupby=[Column("release")],
@@ -154,7 +154,8 @@ def _check_releases_have_health_data(
             Condition(Column("release"), Op.IN, release_versions),
         ],
     )
-    data = snuba.raw_snql_query(query, referrer="snuba.sessions.check_releases_have_health_data")[
+    request = Request(dataset="sessions", app_id="default", query=query)
+    data = snuba.raw_snql_query(request, referrer="snuba.sessions.check_releases_have_health_data")[
         "data"
     ]
     return {row["release"] for row in data}
@@ -258,13 +259,15 @@ def _get_project_releases_count(
         having.append(Condition(Column("users"), Op.GT, 0))
 
     query = Query(
-        dataset="sessions",
         match=Entity("sessions"),
         select=[Function("uniqExact", [Column("release"), Column("project_id")], alias="count")],
         where=where,
         having=having,
     )
-    data = snuba.raw_snql_query(query, referrer="snuba.sessions.get_project_releases_count")["data"]
+    request = Request(dataset="sessions", app_id="default", query=query)
+    data = snuba.raw_snql_query(request, referrer="snuba.sessions.get_project_releases_count")[
+        "data"
+    ]
     return data[0]["count"] if data else 0
 
 

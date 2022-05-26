@@ -6,10 +6,16 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
 import MemberListStore from 'sentry/stores/memberListStore';
+import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from 'sentry/views/dashboardsV2/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -102,33 +108,42 @@ describe('Modals -> WidgetViewerModal', function () {
       url: '/organizations/org-slug/events-meta/',
       body: {count: 33323612},
     });
+
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(
+      {
+        projects: [1, 2],
+        environments: ['prod', 'dev'],
+        datetime: {start: null, end: null, period: '24h', utc: null},
+      },
+      new Set()
+    );
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    PageFiltersStore.teardown();
   });
 
   describe('Discover Area Chart Widget', function () {
-    let eventsStatsMock, eventsv2Mock;
-    const mockQuery = {
+    let eventsv2Mock;
+    const mockQuery: WidgetQuery = {
       conditions: 'title:/organizations/:orgId/performance/summary/',
       fields: ['count()'],
       aggregates: ['count()'],
       columns: [],
-      id: '1',
       name: 'Query Name',
       orderby: '',
     };
-    const additionalMockQuery = {
+    const additionalMockQuery: WidgetQuery = {
       conditions: '',
       fields: ['count()'],
       aggregates: ['count()'],
       columns: [],
-      id: '2',
       name: 'Another Query Name',
       orderby: '',
     };
-    const mockWidget = {
+    const mockWidget: Widget = {
       id: '1',
       title: 'Test Widget',
       displayType: DisplayType.AREA,
@@ -139,9 +154,17 @@ describe('Modals -> WidgetViewerModal', function () {
 
     beforeEach(function () {
       (ReactEchartsCore as jest.Mock).mockClear();
-      eventsStatsMock = MockApiClient.addMockResponse({
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
-        body: {},
+        body: {
+          data: [
+            [[1646100000], [{count: 1}]],
+            [[1646120000], [{count: 1}]],
+          ],
+          start: 1646100000,
+          end: 1646120000,
+          isMetricsData: false,
+        },
       });
       eventsv2Mock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
@@ -176,7 +199,7 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(eventsv2Mock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
         expect.objectContaining({
-          query: expect.objectContaining({sort: ['-count']}),
+          query: expect.objectContaining({sort: ['-count()']}),
         })
       );
     });
@@ -193,9 +216,9 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('redirects user to Discover when clicking Open in Discover', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Widget&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=14d&yAxis=count%28%29'
+      userEvent.click(screen.getByText('Open in Discover'));
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=title%3A%2Forganizations%2F%3AorgId%2Fperformance%2Fsummary%2F&statsPeriod=24h&yAxis=count%28%29'
       );
     });
 
@@ -213,15 +236,6 @@ describe('Modals -> WidgetViewerModal', function () {
           },
         });
       });
-      expect(eventsStatsMock).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            start: '2022-03-01T02:00:00',
-            end: '2022-03-01T07:33:20',
-          }),
-        })
-      );
       expect(initialData.router.push).toHaveBeenCalledWith(
         expect.objectContaining({
           query: {viewerEnd: '2022-03-01T07:33:20', viewerStart: '2022-03-01T02:00:00'},
@@ -269,7 +283,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Widget&query=&statsPeriod=14d&yAxis=count%28%29'
+        '/organizations/org-slug/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&statsPeriod=24h&yAxis=count%28%29'
       );
     });
 
@@ -302,6 +316,103 @@ describe('Modals -> WidgetViewerModal', function () {
       userEvent.click(screen.getByText('/organizations/:orgId/performance/summary/'));
       expect(container).toSnapshot();
     });
+
+    it('renders widget chart minimap', async function () {
+      initialData.organization.features.push('widget-viewer-modal-minimap');
+      await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
+      });
+
+      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          option: expect.objectContaining({
+            dataZoom: expect.arrayContaining([
+              expect.objectContaining({
+                realtime: false,
+                showDetail: false,
+                end: 100,
+                start: 0,
+              }),
+            ]),
+          }),
+        }),
+        {}
+      );
+    });
+
+    it('zooming on minimap updates location query and updates echart start and end values', async function () {
+      initialData.organization.features.push('widget-viewer-modal-minimap');
+      await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, name: ''}, additionalMockQuery]},
+      });
+      const calls = (ReactEchartsCore as jest.Mock).mock.calls;
+      act(() => {
+        // Simulate dataZoom event on chart
+        calls[calls.length - 1][0].onEvents.datazoom(
+          {seriesStart: 1646100000000, seriesEnd: 1646120000000},
+          {
+            getModel: () => {
+              return {
+                _payload: {start: 30, end: 70},
+              };
+            },
+          }
+        );
+      });
+
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {viewerEnd: '2022-03-01T05:53:20', viewerStart: '2022-03-01T03:40:00'},
+        })
+      );
+    });
+
+    it('includes group by in widget viewer table', async function () {
+      mockWidget.queries = [
+        {
+          conditions: 'title:/organizations/:orgId/performance/summary/',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: ['transaction'],
+          name: 'Query Name',
+          orderby: '-count()',
+        },
+      ];
+      await renderModal({initialData, widget: mockWidget});
+      screen.getByText('transaction');
+    });
+
+    it('includes order by in widget viewer table if not explicitly selected', async function () {
+      mockWidget.queries = [
+        {
+          conditions: 'title:/organizations/:orgId/performance/summary/',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: ['transaction'],
+          name: 'Query Name',
+          orderby: 'count_unique(user)',
+        },
+      ];
+      await renderModal({initialData, widget: mockWidget});
+      screen.getByText('count_unique(user)');
+    });
+
+    it('includes a custom equation order by in widget viewer table if not explicitly selected', async function () {
+      mockWidget.queries = [
+        {
+          conditions: 'title:/organizations/:orgId/performance/summary/',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: ['transaction'],
+          name: 'Query Name',
+          orderby: '-equation|count_unique(user) + 1',
+        },
+      ];
+      await renderModal({initialData, widget: mockWidget});
+      screen.getByText('count_unique(user) + 1');
+    });
   });
 
   describe('Discover TopN Chart Widget', function () {
@@ -326,7 +437,15 @@ describe('Modals -> WidgetViewerModal', function () {
     beforeEach(function () {
       eventsStatsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-stats/',
-        body: {},
+        body: {
+          data: [
+            [[1646100000], [{count: 1}]],
+            [[1646120000], [{count: 1}]],
+          ],
+          start: 1646100000,
+          end: 1646120000,
+          isMetricsData: false,
+        },
       });
       eventsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/eventsv2/',
@@ -401,10 +520,10 @@ describe('Modals -> WidgetViewerModal', function () {
       const {rerender} = await renderModal({initialData, widget: mockWidget});
       userEvent.click(screen.getByText('count()'));
       expect(initialData.router.push).toHaveBeenCalledWith({
-        query: {sort: ['-count']},
+        query: {sort: ['-count()']},
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
-      initialData.router.location.query = {sort: ['-count']};
+      initialData.router.location.query = {sort: ['-count()']};
       rerender(
         <WidgetViewerModal
           Header={stubEl}
@@ -421,13 +540,13 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/eventsv2/',
         expect.objectContaining({
-          query: expect.objectContaining({sort: ['-count']}),
+          query: expect.objectContaining({sort: ['-count()']}),
         })
       );
       expect(eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
         expect.objectContaining({
-          query: expect.objectContaining({orderby: '-count'}),
+          query: expect.objectContaining({orderby: '-count()'}),
         })
       );
     });
@@ -506,6 +625,70 @@ describe('Modals -> WidgetViewerModal', function () {
       userEvent.click(screen.getByText('count()'));
       await waitForMetaToHaveBeenCalled();
       expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders widget chart minimap', async function () {
+      initialData.organization.features.push('widget-viewer-modal-minimap');
+      await renderModal({initialData, widget: mockWidget});
+
+      expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          option: expect.objectContaining({
+            dataZoom: expect.arrayContaining([
+              expect.objectContaining({
+                realtime: false,
+                showDetail: false,
+                end: 100,
+                start: 0,
+              }),
+            ]),
+          }),
+        }),
+        {}
+      );
+    });
+
+    it('zooming on minimap updates location query and updates echart start and end values', async function () {
+      initialData.organization.features.push('widget-viewer-modal-minimap');
+      await renderModal({initialData, widget: mockWidget});
+      const calls = (ReactEchartsCore as jest.Mock).mock.calls;
+      act(() => {
+        // Simulate dataZoom event on chart
+        calls[calls.length - 1][0].onEvents.datazoom(
+          {seriesStart: 1646100000000, seriesEnd: 1646120000000},
+          {
+            getModel: () => {
+              return {
+                _payload: {start: 30, end: 70},
+              };
+            },
+          }
+        );
+      });
+
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {viewerEnd: '2022-03-01T05:53:20', viewerStart: '2022-03-01T03:40:00'},
+        })
+      );
+
+      await waitFor(() => {
+        expect(ReactEchartsCore).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            option: expect.objectContaining({
+              dataZoom: expect.arrayContaining([
+                expect.objectContaining({
+                  realtime: false,
+                  showDetail: false,
+                  endValue: 1646114000000,
+                  startValue: 1646106000000,
+                }),
+              ]),
+            }),
+          }),
+          {}
+        );
+      });
     });
   });
 
@@ -688,9 +871,9 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('redirects user to Issues when clicking Open in Issues', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=&statsPeriod=14d'
+      userEvent.click(screen.getByText('Open in Issues'));
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/?environment=prod&environment=dev&project=1&project=2&query=is%3Aunresolved&sort=&statsPeriod=24h'
       );
     });
 
@@ -719,13 +902,13 @@ describe('Modals -> WidgetViewerModal', function () {
         expect.objectContaining({
           data: {
             cursor: undefined,
-            environment: [],
+            environment: ['prod', 'dev'],
             expand: ['owners'],
             limit: 20,
-            project: [],
+            project: [1, 2],
             query: 'is:unresolved',
             sort: 'date',
-            statsPeriod: '14d',
+            statsPeriod: '24h',
           },
         })
       );
@@ -849,7 +1032,7 @@ describe('Modals -> WidgetViewerModal', function () {
   });
 
   describe('Release Health Widgets', function () {
-    let sessionsMock;
+    let metricsMock;
     const mockQuery = {
       conditions: '',
       fields: [`sum(session)`],
@@ -861,31 +1044,40 @@ describe('Modals -> WidgetViewerModal', function () {
     };
     const mockWidget = {
       id: '1',
-      title: 'Metrics Widget',
+      title: 'Release Widget',
       displayType: DisplayType.LINE,
       interval: '5m',
       queries: [mockQuery],
-      widgetType: WidgetType.METRICS,
+      widgetType: WidgetType.RELEASE,
     };
     beforeEach(function () {
-      sessionsMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/sessions/',
-        body: TestStubs.SesssionTotalCountByReleaseIn24h(),
+      metricsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/metrics/data/',
+        body: TestStubs.MetricsTotalCountByReleaseIn24h(),
       });
     });
     it('does a sessions query', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(sessionsMock).toHaveBeenCalled();
+      expect(metricsMock).toHaveBeenCalled();
     });
 
     it('renders widget title', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Metrics Widget')).toBeInTheDocument();
+      expect(screen.getByText('Release Widget')).toBeInTheDocument();
     });
 
-    it('renders Edit', async function () {
+    it('renders Edit and Open in Releases buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Edit Widget')).toBeInTheDocument();
+      expect(screen.getByText('Open in Releases')).toBeInTheDocument();
+    });
+
+    it('Open in Releases button redirects browser', async function () {
+      await renderModal({initialData, widget: mockWidget});
+      userEvent.click(screen.getByText('Open in Releases'));
+      expect(initialData.router.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&statsPeriod=24h'
+      );
     });
 
     it('renders table header and body', async function () {
@@ -896,7 +1088,7 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('6.3k')).toBeInTheDocument();
     });
 
-    it('renders Metrics widget viewer', async function () {
+    it('renders Release widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
     });
@@ -908,7 +1100,7 @@ describe('Modals -> WidgetViewerModal', function () {
         tableData: [],
         seriesData: [],
       });
-      expect(sessionsMock).toHaveBeenCalledTimes(1);
+      expect(metricsMock).toHaveBeenCalledTimes(1);
       userEvent.click(screen.getByText(`sum(session)`));
       expect(initialData.router.push).toHaveBeenCalledWith({
         query: {sort: '-sum(session)'},
@@ -930,7 +1122,7 @@ describe('Modals -> WidgetViewerModal', function () {
         />
       );
       await waitFor(() => {
-        expect(sessionsMock).toHaveBeenCalledTimes(2);
+        expect(metricsMock).toHaveBeenCalledTimes(2);
       });
     });
   });

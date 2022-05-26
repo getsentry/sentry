@@ -11,9 +11,13 @@ import {LocationDescriptor} from 'history';
 import Link from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {Theme} from 'sentry/utils/theme';
 
-type Priority = 'primary' | 'danger';
+/**
+ * Menu item priority. Currently there's only one option other than default,
+ * but we may choose to add more in the future.
+ */
+type Priority = 'danger' | 'default';
+
 export type MenuItemProps = {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
@@ -61,8 +65,7 @@ export type MenuItemProps = {
    */
   onAction?: (key: MenuItemProps['key']) => void;
   /**
-   * Accented text and background (on hover) colors. Primary = purple, and
-   * danger = red.
+   * Accented text and background (on hover) colors.
    */
   priority?: Priority;
   /**
@@ -214,7 +217,7 @@ const MenuItem = ({
   // etc. See: https://react-spectrum.adobe.com/react-aria/mergeProps.html
   const props = mergeProps(submenuTriggerProps, menuItemProps, hoverProps, keyboardProps);
   const {
-    priority,
+    priority = 'default',
     details,
     leadingItems,
     leadingItemsSpanFullHeight,
@@ -292,22 +295,6 @@ const MenuItemWrap = styled('li')`
   }
 `;
 
-const getHoverBackground = (theme: Theme, priority?: Priority) => {
-  let hoverBackground: string;
-  switch (priority) {
-    case 'primary':
-      hoverBackground = theme.purple100;
-      break;
-    case 'danger':
-      hoverBackground = theme.red100;
-      break;
-    default:
-      hoverBackground = theme.hover;
-  }
-
-  return `background: ${hoverBackground}; z-index: 1;`;
-};
-
 const InnerWrap = styled('div', {
   shouldForwardProp: p =>
     typeof p === 'string' &&
@@ -316,7 +303,7 @@ const InnerWrap = styled('div', {
 })<{
   isDisabled: boolean;
   isFocused: boolean;
-  priority?: Priority;
+  priority: Priority;
   to?: LocationDescriptor;
 }>`
   display: flex;
@@ -329,7 +316,6 @@ const InnerWrap = styled('div', {
   &:hover {
     color: ${p => p.theme.textColor};
   }
-  ${p => p.priority === 'primary' && `&,&:hover {color: ${p.theme.activeText}}`}
   ${p => p.priority === 'danger' && `&,&:hover {color: ${p.theme.errorText}}`}
   ${p =>
     p.isDisabled &&
@@ -340,7 +326,12 @@ const InnerWrap = styled('div', {
     }
   `}
 
-  ${p => p.isFocused && getHoverBackground(p.theme, p.priority)}
+  ${p =>
+    p.isFocused &&
+    `
+      background: ${p.priority === 'danger' ? p.theme.red100 : p.theme.hover};
+      z-index: 1;
+    `}
 `;
 
 const LeadingItems = styled('div')<{isDisabled?: boolean; spanFullHeight?: boolean}>`
@@ -393,14 +384,13 @@ const Label = styled('p')`
   ${p => p.theme.overflowEllipsis}
 `;
 
-const Details = styled('p')<{isDisabled: boolean; priority?: Priority}>`
+const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
   ${p => p.theme.overflowEllipsis}
 
-  ${p => p.priority === 'primary' && `color: ${p.theme.activeText};`}
   ${p => p.priority === 'danger' && `color: ${p.theme.errorText};`}
   ${p => p.isDisabled && `color: ${p.theme.subText};`}
 `;

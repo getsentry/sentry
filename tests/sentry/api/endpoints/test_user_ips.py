@@ -29,7 +29,7 @@ class UserEmailsTest(APITestCase):
             last_seen=datetime(2013, 4, 10, 3, 29, 45, tzinfo=timezone.utc),
         )
 
-        response = self.get_valid_response("me")
+        response = self.get_success_response("me")
         assert len(response.data) == 2
 
         assert response.data[0]["ipAddress"] == "127.0.0.1"

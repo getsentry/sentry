@@ -103,7 +103,7 @@ class ReleaseCard extends Component<Props> {
     }
 
     return (
-      <StyledPanel reloading={reloading ? 1 : 0}>
+      <StyledPanel reloading={reloading ? 1 : 0} data-test-id="release-panel">
         <ReleaseInfo>
           <ReleaseInfoHeader>
             <GlobalSelectionLink
@@ -187,7 +187,7 @@ class ReleaseCard extends Component<Props> {
           </ProjectRows>
 
           {projectsToHide.length > 0 && (
-            <HiddenProjectsMessage>
+            <HiddenProjectsMessage data-test-id="hidden-projects">
               <Tooltip title={getHiddenProjectsTooltip()}>
                 <TextOverflow>
                   {projectsToHide.length === 1

@@ -11,7 +11,6 @@ from sentry.models import (
     Project,
     Release,
     ReleaseEnvironment,
-    ReleaseProject,
     ReleaseProjectEnvironment,
     ReleaseStatus,
 )
@@ -77,7 +76,7 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                 for release_version in environment_totals["releases"]:
                     threshold = 0.1 / total_releases
                     if (
-                        environment != ""
+                        environment
                         and environment_totals["total_sessions"] != 0
                         and environment_totals["releases"][release_version]
                         / environment_totals["total_sessions"]
@@ -122,9 +121,8 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                                     release = Release.objects.get(
                                         organization_id=org_id, version=release_version
                                     )
-                                ReleaseProject.objects.get_or_create(
-                                    project_id=project_id, release=release
-                                )
+
+                                release.add_project(Project.objects.get(id=project_id))
 
                                 ReleaseEnvironment.objects.get_or_create(
                                     environment=env, organization_id=org_id, release=release
@@ -141,7 +139,6 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                                 Environment.DoesNotExist,
                                 Release.DoesNotExist,
                                 ReleaseEnvironment.DoesNotExist,
-                                ReleaseProject.DoesNotExist,
                             ) as exc:
                                 metrics.incr(
                                     "sentry.tasks.process_projects_with_sessions.skipped_update"

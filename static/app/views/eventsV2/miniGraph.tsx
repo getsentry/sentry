@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -36,7 +36,7 @@ type Props = {
   yAxis?: string[];
 };
 
-class MiniGraph extends React.Component<Props> {
+class MiniGraph extends Component<Props> {
   shouldComponentUpdate(nextProps) {
     // We pay for the cost of the deep comparison here since it is cheaper
     // than the cost for rendering the graph, which can take ~200ms to ~300ms to
@@ -301,8 +301,8 @@ class MiniGraph extends React.Component<Props> {
               (Array.isArray(yAxis) && yAxis.length > 1),
           };
 
-          const Component = this.getChartComponent(chartType);
-          return <Component {...chartOptions} />;
+          const ChartComponent = this.getChartComponent(chartType);
+          return <ChartComponent {...chartOptions} />;
         }}
       </EventsRequest>
     );

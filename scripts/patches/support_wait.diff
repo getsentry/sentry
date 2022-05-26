@@ -1,0 +1,11 @@
+--- .venv/lib/python3.8/site-packages/selenium/webdriver/support/wait.py	2022-05-12 17:10:07.000000000 -0400
++++ .venv/lib/python3.8/site-packages/selenium/webdriver/support/wait.py.bak	2022-05-12 17:10:13.000000000 -0400
+@@ -38,7 +38,7 @@
+            Example:
+             from selenium.webdriver.support.ui import WebDriverWait \n
+             element = WebDriverWait(driver, 10).until(lambda x: x.find_element_by_id("someId")) \n
+-            is_disappeared = WebDriverWait(driver, 30, 1, (ElementNotVisibleException)).\ \n
++            is_disappeared = WebDriverWait(driver, 30, 1, (ElementNotVisibleException)).\\ \n
+                         until_not(lambda x: x.find_element_by_id("someId").is_displayed())
+         """
+         self._driver = driver

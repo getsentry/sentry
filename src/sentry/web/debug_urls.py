@@ -30,6 +30,9 @@ from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeErrorView,
     DebugOAuthAuthorizeView,
 )
+from sentry.web.frontend.debug.debug_onboarding_continuation_email import (
+    DebugOrganizationOnboardingContinuationEmail,
+)
 from sentry.web.frontend.debug.debug_organization_invite_request import (
     DebugOrganizationInviteRequestEmailView,
 )
@@ -81,6 +84,10 @@ urlpatterns = [
     url(r"^debug/mail/regression/release/$", DebugRegressionReleaseEmailView.as_view()),
     url(r"^debug/mail/resolved/$", DebugResolvedEmailView.as_view()),
     url(r"^debug/mail/resolved-in-release/$", DebugResolvedInReleaseEmailView.as_view()),
+    url(
+        r"^debug/mail/onboarding-continuation-email/$",
+        DebugOrganizationOnboardingContinuationEmail.as_view(),
+    ),
     url(
         r"^debug/mail/resolved-in-release/upcoming/$",
         DebugResolvedInReleaseUpcomingEmailView.as_view(),

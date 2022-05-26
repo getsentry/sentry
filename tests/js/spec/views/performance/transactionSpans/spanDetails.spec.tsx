@@ -467,8 +467,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
           'Self Time Breakdown'
         );
 
-        const node = await screen.findByTestId('option-histogram');
-        within(node).getByRole('button', {hidden: true}).click();
+        (await within(displayToggle).findByRole('button')).click();
+        (await within(displayToggle).findByTestId('histogram')).click();
 
         expect(browserHistory.push).toHaveBeenCalledWith(
           expect.objectContaining({

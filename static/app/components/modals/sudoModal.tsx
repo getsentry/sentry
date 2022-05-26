@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -45,7 +45,7 @@ type State = {
   superuserReason: string;
 };
 
-class SudoModal extends React.Component<Props, State> {
+class SudoModal extends Component<Props, State> {
   state: State = {
     error: false,
     errorType: '',
@@ -141,7 +141,7 @@ class SudoModal extends React.Component<Props, State> {
     } catch {
       // ignore errors
     }
-    window.location.assign('/auth/login/');
+    window.location.assign(`/auth/login/?next=${encodeURIComponent(location.pathname)}`);
   };
 
   async getAuthenticators() {
@@ -160,6 +160,7 @@ class SudoModal extends React.Component<Props, State> {
     const {authenticators, error, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
+    const validateSUForm = ConfigStore.get('validateSUForm');
 
     if (errorType === ErrorCodes.invalidSSOSession) {
       this.handleLogout();
@@ -168,10 +169,10 @@ class SudoModal extends React.Component<Props, State> {
 
     if (
       (!user.hasPasswordAuth && authenticators.length === 0) ||
-      (isSuperuser && !isSelfHosted)
+      (isSuperuser && !isSelfHosted && validateSUForm)
     ) {
       return (
-        <React.Fragment>
+        <Fragment>
           <StyledTextBlock>
             {isSuperuser
               ? t(
@@ -209,12 +210,12 @@ class SudoModal extends React.Component<Props, State> {
               {t('Continue')}
             </Button>
           )}
-        </React.Fragment>
+        </Fragment>
       );
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledTextBlock>
           {isSuperuser
             ? t(
@@ -256,7 +257,7 @@ class SudoModal extends React.Component<Props, State> {
             onTap={this.handleU2fTap}
           />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -264,10 +265,10 @@ class SudoModal extends React.Component<Props, State> {
     const {Header, Body} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Confirm Password to Continue')}</Header>
         <Body>{this.renderBodyContent()}</Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

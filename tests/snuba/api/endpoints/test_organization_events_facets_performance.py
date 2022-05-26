@@ -156,6 +156,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
             }
         )
 
+        assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count"] == 5
@@ -197,6 +198,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
 
         # With feature access
         response = self.do_request(request)
+        assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 5
         assert data[0]["count"] == 19
@@ -217,6 +219,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         }
 
         response = self.do_request(request)
+        assert response.status_code == 200, response.content
 
         data = response.data["data"]
         assert len(data) == 5
@@ -237,6 +240,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         }
         # With feature access
         response = self.do_request(request)
+        assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 3
         assert data[0]["count"] == 14
@@ -257,6 +261,7 @@ class OrganizationEventsFacetsPerformanceEndpointTest(
         }
 
         response = self.do_request(request)
+        assert response.status_code == 200, response.content
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count"] == 1

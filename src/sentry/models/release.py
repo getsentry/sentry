@@ -733,14 +733,14 @@ class Release(Model):
 
         try:
             with atomic_transaction(using=router.db_for_write(ReleaseProject)):
-                ReleaseProject.objects.create(project=project, release=self)
+                created = ReleaseProject.objects.get_or_create(project=project, release=self)[1]
                 if not project.flags.has_releases:
                     project.flags.has_releases = True
                     project.update(flags=F("flags").bitor(Project.flags.has_releases))
         except IntegrityError:
-            return False
-        else:
-            return True
+            created = False
+
+        return created
 
     def handle_commit_ranges(self, refs):
         """

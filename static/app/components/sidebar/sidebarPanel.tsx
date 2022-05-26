@@ -90,7 +90,7 @@ function SidebarPanel({
     window.setTimeout(() => document.addEventListener('click', panelCloseHandler));
 
     return function cleanup() {
-      document.removeEventListener('click', panelCloseHandler);
+      window.setTimeout(() => document.removeEventListener('click', panelCloseHandler));
     };
   }, [panelCloseHandler]);
 

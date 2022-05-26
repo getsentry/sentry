@@ -717,7 +717,9 @@ export enum MobileVital {
   StallPercentage = 'measurements.stall_percentage',
 }
 
-const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, ColumnType>> = {
+export type MeasurementType = 'duration' | 'number' | 'integer' | 'percentage';
+
+const MEASUREMENTS: Readonly<Record<WebVital | MobileVital, MeasurementType>> = {
   [WebVital.FP]: 'duration',
   [WebVital.FCP]: 'duration',
   [WebVital.LCP]: 'duration',
@@ -788,7 +790,7 @@ export function isMeasurement(field: string): boolean {
   return !!results;
 }
 
-export function measurementType(field: string) {
+export function measurementType(field: string): MeasurementType {
   if (MEASUREMENTS.hasOwnProperty(field)) {
     return MEASUREMENTS[field];
   }
@@ -893,7 +895,7 @@ export function parseArguments(functionText: string, columnText: string): string
 }
 
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
-const EQUATION_PREFIX = 'equation|';
+export const EQUATION_PREFIX = 'equation|';
 const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
 export const CALCULATED_FIELD_PREFIX = 'calculated|';
 

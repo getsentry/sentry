@@ -3,8 +3,10 @@ declare namespace Profiling {
     endValue: number;
     startValue: number;
     name: string;
+    threadID: number;
     unit: string;
     spans?: Span[];
+    threadID: number;
   }
 
   // Android traces follow this format
@@ -40,6 +42,7 @@ declare namespace Profiling {
     is_application?: boolean;
     image?: string;
     resource?: string;
+    threadId?: number;
   };
 
   type ProfileTypes = EventedProfile | SampledProfile | JSSelfProfiling.Trace;
@@ -54,12 +57,17 @@ declare namespace Profiling {
   // This extends speedscope's schema - we are keeping this as is, but we are likely to diverge as we add more
   // sentry related features to the flamegraphs. This should happen after the MVP integration
   type Schema = {
-    name: string;
-    activeProfileIndex?: number;
-    duration_ns: number;
+    durationNS: number;
+    platform: string;
+    profileID: string;
     profiles: ReadonlyArray<ProfileTypes>;
+    projectID: number;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
     };
+    transactionName: string;
+    version: string;
+    activeProfileIndex?: number;
+    androidClock?: 'Global' | 'Dual' | 'Wall' | 'Cpu';
   };
 }

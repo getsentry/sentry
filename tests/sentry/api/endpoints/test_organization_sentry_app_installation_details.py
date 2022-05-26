@@ -27,6 +27,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
             organization=self.super_org,
             user=self.superuser,
             status=SentryAppInstallationStatus.PENDING,
+            prevent_token_exchange=True,
         )
 
         self.unpublished_app = self.create_sentry_app(name="Testin", organization=self.org)
@@ -36,6 +37,7 @@ class SentryAppInstallationDetailsTest(APITestCase):
             organization=self.org,
             user=self.user,
             status=SentryAppInstallationStatus.PENDING,
+            prevent_token_exchange=True,
         )
 
         self.url = reverse(

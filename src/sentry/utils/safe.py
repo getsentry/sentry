@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from typing import Any, Mapping, Sequence, Union
 
 import sentry_sdk
 from django.conf import settings
@@ -10,6 +10,8 @@ from django.utils.http import urlencode
 from sentry.utils import json
 from sentry.utils.compat import filter
 from sentry.utils.strings import truncatechars
+
+PathSearchable = Union[Mapping[str, Any], Sequence[Any]]
 
 
 def safe_execute(func, *args, **kwargs):
@@ -122,7 +124,7 @@ def trim_dict(value, max_items=settings.SENTRY_MAX_DICTIONARY_ITEMS, **kwargs):
     return value
 
 
-def get_path(data, *path, **kwargs):
+def get_path(data: PathSearchable, *path, **kwargs):
     """
     Safely resolves data from a recursive data structure. A value is only
     returned if the full path exists, otherwise ``None`` is returned.

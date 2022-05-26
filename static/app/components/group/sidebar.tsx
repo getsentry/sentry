@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
@@ -6,7 +6,6 @@ import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
 import {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
@@ -49,7 +48,7 @@ type State = {
   tagsWithTopValues?: Record<string, TagWithTopValues>;
 };
 
-class BaseGroupSidebar extends React.Component<Props, State> {
+class BaseGroupSidebar extends Component<Props, State> {
   state: State = {
     participants: [],
     environments: this.props.environments,
@@ -144,10 +143,10 @@ class BaseGroupSidebar extends React.Component<Props, State> {
       // # TODO(dcramer): remove plugin.title check in Sentry 8.22+
       if (issue) {
         issues.push(
-          <React.Fragment key={plugin.slug}>
+          <Fragment key={plugin.slug}>
             <span>{`${plugin.shortName || plugin.name || plugin.title}: `}</span>
             <a href={issue.url}>{isObject(issue.label) ? issue.label.id : issue.label}</a>
-          </React.Fragment>
+          </Fragment>
         );
       }
     });
@@ -182,15 +181,11 @@ class BaseGroupSidebar extends React.Component<Props, State> {
     const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <Container>
-        {hasPageFilters && (
-          <PageFiltersContainer>
-            <EnvironmentPageFilter alignDropdown="right" />
-          </PageFiltersContainer>
-        )}
+        <PageFiltersContainer>
+          <EnvironmentPageFilter alignDropdown="right" />
+        </PageFiltersContainer>
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
         <GroupReleaseStats
@@ -210,13 +205,7 @@ class BaseGroupSidebar extends React.Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection
-          title={
-            <GuideAnchor target="tags" position="bottom">
-              {t('Tags')}
-            </GuideAnchor>
-          }
-        >
+        <SidebarSection title={t('Tags')}>
           {!tagsWithTopValues ? (
             <TagPlaceholders>
               <Placeholder height="40px" />

@@ -91,7 +91,10 @@ class VitalDetailContent extends Component<Props, State> {
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   };
 
@@ -214,25 +217,23 @@ class VitalDetailContent extends Component<Props, State> {
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <Fragment>
-        {hasPageFilters && (
-          <StyledPageFilterBar condensed>
+        <FilterActions>
+          <PageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter />
-          </StyledPageFilterBar>
-        )}
-        <StyledSearchBar
-          searchSource="performance_vitals"
-          organization={organization}
-          projectIds={project}
-          query={query}
-          fields={fields}
-          onSearch={this.handleSearch}
-        />
+            <DatePageFilter alignDropdown="left" />
+          </PageFilterBar>
+          <SearchBar
+            searchSource="performance_vitals"
+            organization={organization}
+            projectIds={project}
+            query={query}
+            fields={fields}
+            onSearch={this.handleSearch}
+          />
+        </FilterActions>
         <VitalChart
           organization={organization}
           query={query}
@@ -338,17 +339,9 @@ class VitalDetailContent extends Component<Props, State> {
 
 export default withProjects(VitalDetailContent);
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-`;
-
 const StyledDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${space(3)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  margin-bottom: ${space(2)};
 `;
 
 const StyledVitalInfo = styled('div')`
@@ -365,4 +358,14 @@ const BrowserItem = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
+`;
+
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto 1fr;
+  }
 `;

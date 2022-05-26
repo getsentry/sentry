@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {Location, Query} from 'history';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
@@ -89,6 +88,13 @@ export function vitalNameFromLocation(location: Location): WebVital {
     return vitalName;
   }
   return WebVital.LCP;
+}
+
+export function getVitalChartTitle(webVital: WebVital): string {
+  if (webVital === WebVital.CLS) {
+    return t('CLS p75');
+  }
+  return t('Duration p75');
 }
 
 export function getVitalDetailTablePoorStatusFunction(vitalName: WebVital): string {

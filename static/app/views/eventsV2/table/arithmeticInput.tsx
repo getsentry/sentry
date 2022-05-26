@@ -32,6 +32,7 @@ type Props = DefaultProps &
   HTMLProps<HTMLInputElement> & {
     onUpdate: (value: string) => void;
     value: string;
+    hideFieldOptions?: boolean;
   };
 
 type State = {
@@ -55,7 +56,11 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       return {
         ...state,
         rawOptions: props.options,
-        dropdownOptionGroups: makeOptions(props.options, state.partialTerm),
+        dropdownOptionGroups: makeOptions(
+          props.options,
+          state.partialTerm,
+          props.hideFieldOptions
+        ),
         activeSelection: NONE_SELECTED,
       };
     }
@@ -68,7 +73,11 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     partialTerm: null,
     rawOptions: this.props.options,
     dropdownVisible: false,
-    dropdownOptionGroups: makeOptions(this.props.options, null),
+    dropdownOptionGroups: makeOptions(
+      this.props.options,
+      null,
+      this.props.hideFieldOptions
+    ),
     activeSelection: NONE_SELECTED,
   };
 
@@ -148,7 +157,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     const {key} = event;
 
-    const {options} = this.props;
+    const {options, hideFieldOptions} = this.props;
     const {activeSelection, partialTerm} = this.state;
     const startedSelection = activeSelection >= 0;
 
@@ -156,7 +165,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     if (key === 'ArrowDown' || key === 'ArrowUp') {
       event.preventDefault();
 
-      const newOptionGroups = makeOptions(options, partialTerm);
+      const newOptionGroups = makeOptions(options, partialTerm, hideFieldOptions);
       const flattenedOptions = newOptionGroups.map(group => group.options).flat();
       if (flattenedOptions.length === 0) {
         return;
@@ -236,13 +245,13 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   };
 
   updateAutocompleteOptions() {
-    const {options} = this.props;
+    const {options, hideFieldOptions} = this.props;
 
     const {term} = this.splitQuery();
     const partialTerm = term || null;
 
     this.setState({
-      dropdownOptionGroups: makeOptions(options, partialTerm),
+      dropdownOptionGroups: makeOptions(options, partialTerm, hideFieldOptions),
       partialTerm,
     });
   }
@@ -392,8 +401,13 @@ function makeOperatorOptions(partialTerm: string | null): DropdownOptionGroup {
 
 function makeOptions(
   columns: Column[],
-  partialTerm: string | null
+  partialTerm: string | null,
+  hideFieldOptions?: boolean
 ): DropdownOptionGroup[] {
+  if (hideFieldOptions) {
+    return [makeOperatorOptions(partialTerm)];
+  }
+
   return [makeFieldOptions(columns, partialTerm), makeOperatorOptions(partialTerm)];
 }
 

@@ -33,6 +33,34 @@ describe('navigation ActionCreator', () => {
     expect(router.push).toHaveBeenCalledWith('/settings/project-slug/alert');
   });
 
+  it('should get project id from query parameters', () => {
+    router.location.query.project = '2';
+    expect(
+      navigateTo(
+        '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
+        router
+      )
+    ).toBe();
+    expect(openModal).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith(
+      '/organizations/albertos-apples/performance/?project=2#performance-sidequest'
+    );
+  });
+
+  it('should get project and project id from query parameters', () => {
+    router.location.query.project = '2';
+    expect(
+      navigateTo(
+        '/settings/:projectId/alert?project=:project#performance-sidequest',
+        router
+      )
+    ).toBe();
+    expect(openModal).not.toHaveBeenCalled();
+    expect(router.push).toHaveBeenCalledWith(
+      '/settings/project-slug/alert?project=2#performance-sidequest'
+    );
+  });
+
   it('should open modal if the store is somehow missing selected projectId', () => {
     router.location.query.project = '911';
     expect(navigateTo('/settings/:projectId/alert', router)).toBe();
@@ -41,6 +69,16 @@ describe('navigation ActionCreator', () => {
 
   it('should open modal when no project is selected', () => {
     expect(navigateTo('/settings/:projectId/alert', router)).toBe();
+    expect(openModal).toHaveBeenCalled();
+  });
+
+  it('should open modal when no project id is selected', () => {
+    expect(
+      navigateTo(
+        '/organizations/albertos-apples/performance/?project=:project#performance-sidequest',
+        router
+      )
+    ).toBe();
     expect(openModal).toHaveBeenCalled();
   });
 

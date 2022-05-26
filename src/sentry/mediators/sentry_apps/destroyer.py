@@ -1,6 +1,5 @@
-from sentry import analytics
+from sentry import analytics, audit_log
 from sentry.mediators import Mediator, Param, sentry_app_installations
-from sentry.models import AuditLogEntryEvent
 from sentry.utils.audit import create_audit_entry
 
 
@@ -38,7 +37,7 @@ class Destroyer(Mediator):
                 request=self.request,
                 organization=self.sentry_app.owner,
                 target_object=self.sentry_app.owner.id,
-                event=AuditLogEntryEvent.SENTRY_APP_REMOVE,
+                event=audit_log.get_event_id("SENTRY_APP_REMOVE"),
                 data={"sentry_app": self.sentry_app.name},
             )
 

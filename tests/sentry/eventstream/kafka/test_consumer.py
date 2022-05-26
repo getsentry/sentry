@@ -24,16 +24,16 @@ except ImportError:
 
 from django.conf import settings
 
-settings.KAFKA_CLUSTERS["default"] = {
-    "common": {"bootstrap.servers": os.environ.get("SENTRY_KAFKA_HOSTS", "localhost:9092")}
-}
+SENTRY_KAFKA_HOSTS = os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
+SENTRY_ZOOKEEPER_HOSTS = os.environ.get("SENTRY_ZOOKEEPER_HOSTS", "127.0.0.1:2181")
+settings.KAFKA_CLUSTERS["default"] = {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}
 
 
 @contextmanager
 def create_topic(partitions=1, replication_factor=1):
     command = ["docker", "exec", "sentry_kafka", "kafka-topics"] + [
         "--zookeeper",
-        os.environ["SENTRY_ZOOKEEPER_HOSTS"],
+        SENTRY_ZOOKEEPER_HOSTS,
     ]
     topic = f"test-{uuid.uuid1().hex}"
     subprocess.check_call(
@@ -65,7 +65,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -150,7 +150,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -163,9 +163,9 @@ def test_consumer_start_from_committed_offset(requires_kafka):
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
-        Consumer(
-            {"bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"], "group.id": consumer_group}
-        ).commit(message=messages_delivered[topic][0], asynchronous=False)
+        Consumer({"bootstrap.servers": SENTRY_KAFKA_HOSTS, "group.id": consumer_group}).commit(
+            message=messages_delivered[topic][0], asynchronous=False
+        )
 
         # Create the synchronized consumer.
         consumer = SynchronizedConsumer(
@@ -247,7 +247,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -336,12 +336,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
             assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
-            # We should have received a single message.
-            # TODO: Can we also assert that the position is unpaused?)
-            for i in range(5):
-                received_message = consumer.poll(1)
-                if received_message is not None:
-                    break
+            received_message = consumer.poll(5.0)
 
             assert received_message is not None, "no message received"
 
@@ -366,7 +361,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -379,9 +374,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
-        Consumer(
-            {"bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"], "group.id": consumer_group}
-        ).commit(
+        Consumer({"bootstrap.servers": SENTRY_KAFKA_HOSTS, "group.id": consumer_group}).commit(
             offsets=[
                 TopicPartition(message.topic(), message.partition(), message.offset() + 1)
                 for message in messages_delivered[topic][:2]
@@ -468,10 +461,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
             # We should have received a single message.
             # TODO: Can we also assert that the position is unpaused?)
-            for i in range(5):
-                received_message = consumer.poll(1)
-                if received_message is not None:
-                    break
+            received_message = consumer.poll(5.0)
 
             assert received_message is not None, "no message received"
 
@@ -532,7 +522,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -664,6 +654,8 @@ class BatchedConsumerTest(TestCase):
         self.override_settings_cm = override_settings(
             KAFKA_TOPICS={
                 "events": {"cluster": "default", "topic": self.events_topic},
+                # Temporarily mapped to the same topic as events
+                "transactions": {"cluster": "default", "topic": self.events_topic},
                 "snuba-commit-log": {"cluster": "default", "topic": self.commit_log_topic},
             },
         )

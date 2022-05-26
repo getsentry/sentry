@@ -3,11 +3,11 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ProjectKeySerializer
-from sentry.models import AuditLogEntryEvent, ProjectKey, ProjectKeyStatus
+from sentry.models import ProjectKey, ProjectKeyStatus
 
 
 class ProjectKeysEndpoint(ProjectEndpoint):
@@ -82,7 +82,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=key.id,
-                event=AuditLogEntryEvent.PROJECTKEY_ADD,
+                event=audit_log.get_event_id("PROJECTKEY_ADD"),
                 data=key.get_audit_log_data(),
             )
 

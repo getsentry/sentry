@@ -2,24 +2,12 @@ import {FlamegraphFrame} from '../../flamegraphFrame';
 
 type FlamegraphSearch = {
   index: number | null;
-  open: boolean;
   query: string;
   results: Record<string, FlamegraphFrame> | null;
 };
 
-type OpenFlamegraphSearchAction = {
-  type: 'open search';
-};
-
-type CloseFlamegraphSearchAction = {
-  type: 'close search';
-};
-
 type ClearFlamegraphSearchAction = {
   type: 'clear search';
-  payload?: {
-    open?: boolean;
-  };
 };
 
 type SetFlamegraphResultsAction = {
@@ -36,8 +24,6 @@ type FlamegraphSearchArrowNavigationAction = {
 };
 
 type FlamegraphSearchAction =
-  | OpenFlamegraphSearchAction
-  | CloseFlamegraphSearchAction
   | ClearFlamegraphSearchAction
   | FlamegraphSearchArrowNavigationAction
   | SetFlamegraphResultsAction;
@@ -47,18 +33,11 @@ export function flamegraphSearchReducer(
   action: FlamegraphSearchAction
 ): FlamegraphSearch {
   switch (action.type) {
-    case 'open search': {
-      return {...state, open: true};
-    }
-    case 'close search': {
-      return {...state, open: false};
-    }
     case 'clear search': {
       return {
         ...state,
         query: '',
         index: null,
-        open: action.payload?.open ?? false,
         results: null,
       };
     }

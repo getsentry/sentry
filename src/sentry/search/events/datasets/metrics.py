@@ -209,6 +209,36 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "max",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "maxIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
+                    "min",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "minIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
@@ -268,7 +298,9 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.cls",
                             ],
                         ),
-                        fields.SnQLStringArg("quality", allowed_strings=["good", "meh", "poor"]),
+                        fields.SnQLStringArg(
+                            "quality", allowed_strings=["good", "meh", "poor", "any"]
+                        ),
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_web_vital_function,
@@ -352,6 +384,14 @@ class MetricsDatasetConfig(DatasetConfig):
                         alias,
                     ),
                     default_result_type="integer",
+                ),
+                fields.MetricsFunction(
+                    "histogram",
+                    required_args=[fields.MetricArg("column")],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=self._resolve_histogram_function,
+                    default_result_type="number",
+                    private=True,
                 ),
             ]
         }
@@ -465,6 +505,28 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
                 Function("countIf", [metric_condition]),
+            ],
+            alias,
+        )
+
+    def _resolve_histogram_function(
+        self,
+        args: Mapping[str, Union[str, Column, SelectType, int, float]],
+        alias: Optional[str] = None,
+    ) -> SelectType:
+        """zoom_params is based on running metrics zoom_histogram function that adds conditions based on min, max,
+        buckets"""
+        zoom_params = getattr(self.builder, "zoom_params", None)
+        num_buckets = getattr(self.builder, "num_buckets", 250)
+        metric_condition = Function("equals", [Column("metric_id"), args["metric_id"]])
+        self.builder.histogram_aliases.append(alias)
+        return Function(
+            f"histogramIf({num_buckets})",
+            [
+                Column("value"),
+                Function("and", [zoom_params, metric_condition])
+                if zoom_params
+                else metric_condition,
             ],
             alias,
         )
@@ -618,6 +680,16 @@ class MetricsDatasetConfig(DatasetConfig):
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
         measurement_rating = self.builder.resolve_column("measurement_rating")
+
+        if quality == "any":
+            return Function(
+                "countIf",
+                [
+                    Column("value"),
+                    Function("equals", [Column("metric_id"), metric_id]),
+                ],
+                alias,
+            )
 
         quality_id = self.resolve_value(quality)
         if quality_id is None:

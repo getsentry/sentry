@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -37,7 +37,7 @@ const getListItemDescription = (rule: Rule) => {
   return `${descriptionDetails.join(' ')} ${t('from')} [${source}]`;
 };
 
-const Rules = React.forwardRef(function RulesList(
+const Rules = forwardRef(function RulesList(
   {rules, onEditRule, onDeleteRule, disabled}: Props,
   ref: React.Ref<HTMLUListElement>
 ) {

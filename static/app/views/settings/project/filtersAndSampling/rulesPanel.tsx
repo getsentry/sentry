@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -40,16 +39,7 @@ function RulesPanel({
           <Button href={DYNAMIC_SAMPLING_DOC_LINK} external>
             {t('Read the docs')}
           </Button>
-          <AddRuleButton
-            priority="primary"
-            onClick={onAddRule}
-            disabled={disabled}
-            title={
-              disabled
-                ? t('You do not have permission to add dynamic sampling rules.')
-                : undefined
-            }
-          >
+          <AddRuleButton priority="primary" onClick={onAddRule}>
             {t('Add %s rule', panelType)}
           </AddRuleButton>
         </StyledButtonBar>

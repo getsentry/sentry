@@ -290,7 +290,7 @@ def store_export_chunk_as_blob(data_export, bytes_written, fileobj, blob_size=DE
                 # there is a maximum file size allowed, so we need to make sure we don't exceed it
                 # NOTE: there seems to be issues with downloading files larger than 1 GB on slower
                 # networks, limit the export to 1 GB for now to improve reliability
-                if bytes_written + bytes_offset >= min(MAX_FILE_SIZE, 2 ** 30):
+                if bytes_written + bytes_offset >= min(MAX_FILE_SIZE, 2**30):
                     raise ExportDataFileTooBig()
     except ExportDataFileTooBig:
         return 0

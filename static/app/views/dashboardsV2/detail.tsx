@@ -156,7 +156,7 @@ class DashboardDetail extends Component<Props, State> {
           },
           onEdit: () => {
             if (
-              organization.features.includes('new-widget-builder-experience') &&
+              organization.features.includes('new-widget-builder-experience-design') &&
               !organization.features.includes(
                 'new-widget-builder-experience-modal-access'
               )
@@ -441,7 +441,7 @@ class DashboardDetail extends Component<Props, State> {
     });
 
     if (
-      organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-design') &&
       !organization.features.includes('new-widget-builder-experience-modal-access')
     ) {
       if (dashboardId) {
@@ -633,7 +633,7 @@ class DashboardDetail extends Component<Props, State> {
             </StyledPageHeader>
             <DashboardPageFilterBar condensed>
               <ProjectPageFilter />
-              <EnvironmentPageFilter alignDropdown="left" />
+              <EnvironmentPageFilter />
               <DatePageFilter alignDropdown="left" />
             </DashboardPageFilterBar>
             <HookHeader organization={organization} />
@@ -738,7 +738,7 @@ class DashboardDetail extends Component<Props, State> {
                 <Layout.Main fullWidth>
                   <DashboardPageFilterBar condensed>
                     <ProjectPageFilter />
-                    <EnvironmentPageFilter alignDropdown="left" />
+                    <EnvironmentPageFilter />
                     <DatePageFilter alignDropdown="left" />
                   </DashboardPageFilterBar>
                   <WidgetViewerContext.Provider value={{seriesData, setData}}>

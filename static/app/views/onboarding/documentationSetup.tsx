@@ -1,6 +1,6 @@
 import 'prism-sentry/index.css';
 
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
@@ -42,7 +42,7 @@ type State = {
   platformDocs: {html: string; link: string} | null;
 };
 
-class DocumentationSetup extends React.Component<Props, State> {
+class DocumentationSetup extends Component<Props, State> {
   state: State = {
     platformDocs: null,
     loadedPlatform: null,
@@ -148,13 +148,13 @@ class DocumentationSetup extends React.Component<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <FullIntroduction currentPlatform={currentPlatform} />
         {getDynamicText({
           value: !hasError ? docs : loadingError,
           fixed: testOnlyAlert,
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

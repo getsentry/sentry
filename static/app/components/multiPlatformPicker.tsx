@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
@@ -62,6 +62,7 @@ const PlatformList = styled('div')`
   display: grid;
   gap: ${space(1)};
   grid-template-columns: repeat(auto-fill, 112px);
+  justify-content: center;
   margin-bottom: ${space(2)};
 `;
 
@@ -80,10 +81,10 @@ interface PlatformPickerProps {
 
 function PlatformPicker(props: PlatformPickerProps) {
   const {organization, source} = props;
-  const [category, setCategory] = React.useState<Category>(
+  const [category, setCategory] = useState<Category>(
     props.defaultCategory ?? PLATFORM_CATEGORIES[0].id
   );
-  const [filter, setFilter] = React.useState<string>(
+  const [filter, setFilter] = useState<string>(
     props.noAutoFilter ? '' : (props.platforms[0] || '').split('-')[0]
   );
 
@@ -144,10 +145,10 @@ function PlatformPicker(props: PlatformPickerProps) {
     }
   }, DEFAULT_DEBOUNCE_DURATION);
 
-  React.useEffect(logSearch, [filter]);
+  useEffect(logSearch, [filter]);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <NavContainer>
         <CategoryNav>
           {PLATFORM_CATEGORIES.map(({id, name}) => (
@@ -227,15 +228,14 @@ function PlatformPicker(props: PlatformPickerProps) {
           )}
         </EmptyMessage>
       )}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 const NavContainer = styled('div')`
   margin-bottom: ${space(2)};
-  display: grid;
-  gap: ${space(2)};
-  grid-template-columns: 1fr minmax(0, 300px);
+  display: flex;
+  flex-direction: row;
   align-items: start;
   border-bottom: 1px solid ${p => p.theme.border};
 `;
@@ -261,17 +261,34 @@ const SearchBar = styled('div')`
       outline: none;
     }
   }
+
+  max-width: 300px;
+  min-width: 150px;
+  margin-left: auto;
+  flex-shrink: 0;
+  flex-basis: 0;
+  flex-grow: 1;
 `;
 
 const CategoryNav = styled(NavTabs)`
   margin: 0;
   margin-top: 4px;
   white-space: nowrap;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  margin-right: ${space(1)};
+  flex-shrink: 1;
+  flex-grow: 0;
 
   > li {
     float: none;
     display: inline-block;
   }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 `;
 
 const StyledPlatformIcon = styled(PlatformIcon)`

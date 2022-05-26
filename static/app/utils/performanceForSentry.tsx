@@ -253,12 +253,9 @@ export const VisuallyCompleteWithData = ({
 
       if (!isVisuallyCompleteSet.current) {
         const time = performance.now();
-        transaction.registerBeforeFinishCallback((t, _) => {
+        transaction.registerBeforeFinishCallback((t: Transaction, _) => {
           // Should be called after performance entries finish callback.
-          t.setMeasurements({
-            ...t._measurements,
-            visuallyComplete: {value: time},
-          });
+          t.setMeasurement('visuallyComplete', time, 'ms');
         });
         isVisuallyCompleteSet.current = true;
       }
@@ -284,36 +281,31 @@ export const VisuallyCompleteWithData = ({
             return;
           }
 
-          transaction.registerBeforeFinishCallback(t => {
+          transaction.registerBeforeFinishCallback((t: Transaction) => {
             if (!browserPerformanceTimeOrigin) {
               return;
             }
             // Should be called after performance entries finish callback.
-            const lcp = t._measurements.lcp?.value;
+            const lcp = (t as any)._measurements.lcp?.value;
 
             // Adjust to be relative to transaction.startTimestamp
             const entryStartSeconds =
               browserPerformanceTimeOrigin / 1000 + measureEntry.startTime / 1000;
             const time = (entryStartSeconds - transaction.startTimestamp) * 1000;
 
-            const newMeasurements = {
-              ...t._measurements,
-              visuallyCompleteData: {value: time},
-            };
-
             if (lcp) {
-              newMeasurements.lcpDiffVCD = {value: lcp - time};
+              t.setMeasurement('lcpDiffVCD', lcp - time, 'ms');
             }
 
             t.setTag('longTaskCount', longTaskCount.current);
-            t.setMeasurements(newMeasurements);
+            t.setMeasurement('visuallyCompleteData', time, 'ms');
           });
         }, 0);
       }
     } catch (_) {
       // Defensive catch since this code is auxiliary.
     }
-  }, [hasData]);
+  }, [hasData, id]);
 
   return (
     <Profiler id={id} onRender={onRenderCallback}>

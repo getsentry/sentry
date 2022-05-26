@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 
@@ -11,7 +11,7 @@ type Props = {
 };
 
 const RelativeSelector = ({onClick, selected, relativePeriods}: Props) => (
-  <React.Fragment>
+  <Fragment>
     {Object.entries(relativePeriods || DEFAULT_RELATIVE_PERIODS).map(([value, label]) => (
       <SelectorItem
         key={value}
@@ -21,7 +21,7 @@ const RelativeSelector = ({onClick, selected, relativePeriods}: Props) => (
         selected={selected === value}
       />
     ))}
-  </React.Fragment>
+  </Fragment>
 );
 
 export default RelativeSelector;

@@ -1054,6 +1054,8 @@ class SnubaTagStorage(TagStorage):
             orderby=order_by,
             # TODO: This means they can't actually paginate all TagValues.
             limit=1000,
+            # 1 mill chosen arbitrarily, based it on a query that was timing out, and took 8s once this was set
+            sample=1_000_000,
             arrayjoin=snuba.get_arrayjoin(snuba_key),
             referrer="tagstore.get_tag_value_paginator_for_projects",
         )

@@ -73,9 +73,9 @@ ALIAS_REGEX = r"(\w+)?(?!\d+)\w+"
 MISERY_ALPHA = 5.8875
 MISERY_BETA = 111.8625
 
-ALIAS_PATTERN = re.compile(fr"{ALIAS_REGEX}$")
+ALIAS_PATTERN = re.compile(rf"{ALIAS_REGEX}$")
 FUNCTION_PATTERN = re.compile(
-    fr"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
+    rf"^(?P<function>[^\(]+)\((?P<columns>.*)\)( (as|AS) (?P<alias>{ALIAS_REGEX}))?$"
 )
 
 DURATION_PATTERN = re.compile(r"(\d+\.?\d?)(\D{1,3})")
@@ -219,6 +219,7 @@ DRY_RUN_COLUMNS = {
     "transaction.status",
 }
 METRIC_PERCENTILES = {
+    0.25,
     0.5,
     0.75,
     0.9,

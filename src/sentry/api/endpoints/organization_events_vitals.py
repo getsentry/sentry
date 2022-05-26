@@ -3,6 +3,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
@@ -33,21 +34,32 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
             if len(vitals) == 0:
                 raise ParseError(detail="Need to pass at least one vital")
 
+            performance_use_metrics = features.has(
+                "organizations:performance-use-metrics",
+                organization=organization,
+                actor=request.user,
+            )
+            dataset = self.get_dataset(request) if performance_use_metrics else discover
+            metrics_enhanced = dataset != discover
+            sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
+            allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
+
             selected_columns = []
-            aliases = {}
             for vital in vitals:
                 if vital not in self.VITALS:
                     raise ParseError(detail=f"{vital} is not a valid vital")
-                aliases[vital] = []
-                for index, threshold in enumerate(self.VITALS[vital]["thresholds"]):
-                    column = f"count_at_least({vital}, {threshold})"
-                    # Order aliases for later calculation
-                    aliases[vital].append(get_function_alias(column))
-                    selected_columns.append(column)
-                selected_columns.append(f"p75({vital})")
+                selected_columns.extend(
+                    [
+                        f"p75({vital})",
+                        f"count_web_vitals({vital}, good)",
+                        f"count_web_vitals({vital}, meh)",
+                        f"count_web_vitals({vital}, poor)",
+                        f"count_web_vitals({vital}, any)",
+                    ]
+                )
 
         with self.handle_query_errors():
-            events_results = discover.query(
+            events_results = dataset.query(
                 selected_columns=selected_columns,
                 query=request.GET.get("query"),
                 params=params,
@@ -57,24 +69,24 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                 auto_fields=True,
                 auto_aggregations=False,
                 use_aggregate_conditions=False,
+                allow_metric_aggregates=allow_metric_aggregates,
             )
 
         results = {}
         if len(events_results["data"]) == 1:
             event_data = events_results["data"][0]
             for vital in vitals:
-                groups = len(aliases[vital])
-                results[vital] = {}
-                total = 0
-
-                # Go backwards so that we can subtract and get the running total
-                for i in range(groups - 1, -1, -1):
-                    count = event_data[aliases[vital][i]]
-                    group_count = 0 if count is None else count - total
-                    results[vital][self.LABELS[i]] = group_count
-                    total += group_count
-
-                results[vital]["total"] = total
-                results[vital]["p75"] = event_data.get(get_function_alias(f"p75({vital})"))
+                results[vital] = {
+                    "p75": event_data.get(get_function_alias(f"p75({vital})")),
+                    "total": event_data.get(get_function_alias(f"count_web_vitals({vital}, any)"))
+                    or 0,
+                    "good": event_data.get(get_function_alias(f"count_web_vitals({vital}, good)"))
+                    or 0,
+                    "meh": event_data.get(get_function_alias(f"count_web_vitals({vital}, meh)"))
+                    or 0,
+                    "poor": event_data.get(get_function_alias(f"count_web_vitals({vital}, poor)"))
+                    or 0,
+                }
+        results["meta"] = {"isMetricsData": events_results["meta"].get("isMetricsData", False)}
 
         return Response(results)

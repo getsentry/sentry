@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -24,7 +24,7 @@ import {
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
-  SessionField,
+  SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -133,21 +133,6 @@ function ReleaseComparisonChart({
   );
 
   useEffect(() => {
-    if (hasDiscover || hasPerformance) {
-      fetchEventsTotals();
-      fetchIssuesTotals();
-    }
-  }, [
-    period,
-    start,
-    end,
-    organization.slug,
-    location.query.project,
-    location.query.environment?.toString(),
-    release.version,
-  ]);
-
-  useEffect(() => {
     const chartInUrl = decodeScalar(location.query.chart) as ReleaseComparisonChartType;
     if (
       [
@@ -157,7 +142,7 @@ function ReleaseComparisonChart({
         ReleaseComparisonChartType.CRASHED_SESSIONS,
       ].includes(chartInUrl)
     ) {
-      setExpanded(new Set(expanded.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
+      setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
     }
 
     if (
@@ -168,7 +153,7 @@ function ReleaseComparisonChart({
         ReleaseComparisonChartType.CRASHED_USERS,
       ].includes(chartInUrl)
     ) {
-      setExpanded(new Set(expanded.add(ReleaseComparisonChartType.CRASH_FREE_USERS)));
+      setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_USERS)));
     }
 
     if (
@@ -183,7 +168,7 @@ function ReleaseComparisonChart({
     }
   }, [location.query.chart]);
 
-  async function fetchEventsTotals() {
+  const fetchEventsTotals = useCallback(async () => {
     const url = `/organizations/${organization.slug}/eventsv2/`;
     const commonQuery = {
       environment: decodeList(location.query.environment),
@@ -193,9 +178,7 @@ function ReleaseComparisonChart({
       ...(period ? {statsPeriod: period} : {}),
     };
 
-    if (eventsTotals === null) {
-      setEventsLoading(true);
-    }
+    setEventsLoading(true);
 
     try {
       const [
@@ -254,9 +237,18 @@ function ReleaseComparisonChart({
       setEventsLoading(false);
       Sentry.captureException(err);
     }
-  }
+  }, [
+    api,
+    end,
+    location.query.environment,
+    location.query.project,
+    organization.slug,
+    period,
+    release.version,
+    start,
+  ]);
 
-  async function fetchIssuesTotals() {
+  const fetchIssuesTotals = useCallback(async () => {
     const UNHANDLED_QUERY = `release:"${release.version}" error.handled:0`;
     const HANDLED_QUERY = `release:"${release.version}" error.handled:1`;
 
@@ -283,15 +275,31 @@ function ReleaseComparisonChart({
       setIssuesTotals(null);
       Sentry.captureException(err);
     }
-  }
+  }, [
+    api,
+    end,
+    location.query.environment,
+    organization.slug,
+    period,
+    project.id,
+    release.version,
+    start,
+  ]);
+
+  useEffect(() => {
+    if (hasDiscover || hasPerformance) {
+      fetchEventsTotals();
+      fetchIssuesTotals();
+    }
+  }, [fetchEventsTotals, fetchIssuesTotals, hasDiscover, hasPerformance]);
 
   const releaseCrashFreeSessions = getCrashFreeRate(
     releaseSessions?.groups,
-    SessionField.SESSIONS
+    SessionFieldWithOperation.SESSIONS
   );
   const allCrashFreeSessions = getCrashFreeRate(
     allSessions?.groups,
-    SessionField.SESSIONS
+    SessionFieldWithOperation.SESSIONS
   );
   const diffCrashFreeSessions =
     defined(releaseCrashFreeSessions) && defined(allCrashFreeSessions)
@@ -300,12 +308,12 @@ function ReleaseComparisonChart({
 
   const releaseHealthySessions = getSessionStatusRate(
     releaseSessions?.groups,
-    SessionField.SESSIONS,
+    SessionFieldWithOperation.SESSIONS,
     SessionStatus.HEALTHY
   );
   const allHealthySessions = getSessionStatusRate(
     allSessions?.groups,
-    SessionField.SESSIONS,
+    SessionFieldWithOperation.SESSIONS,
     SessionStatus.HEALTHY
   );
   const diffHealthySessions =
@@ -315,12 +323,12 @@ function ReleaseComparisonChart({
 
   const releaseAbnormalSessions = getSessionStatusRate(
     releaseSessions?.groups,
-    SessionField.SESSIONS,
+    SessionFieldWithOperation.SESSIONS,
     SessionStatus.ABNORMAL
   );
   const allAbnormalSessions = getSessionStatusRate(
     allSessions?.groups,
-    SessionField.SESSIONS,
+    SessionFieldWithOperation.SESSIONS,
     SessionStatus.ABNORMAL
   );
   const diffAbnormalSessions =
@@ -330,12 +338,12 @@ function ReleaseComparisonChart({
 
   const releaseErroredSessions = getSessionStatusRate(
     releaseSessions?.groups,
-    SessionField.SESSIONS,
+    SessionFieldWithOperation.SESSIONS,
     SessionStatus.ERRORED
   );
   const allErroredSessions = getSessionStatusRate(
     allSessions?.groups,
-    SessionField.SESSIONS,
+    SessionFieldWithOperation.SESSIONS,
     SessionStatus.ERRORED
   );
   const diffErroredSessions =
@@ -345,12 +353,12 @@ function ReleaseComparisonChart({
 
   const releaseCrashedSessions = getSessionStatusRate(
     releaseSessions?.groups,
-    SessionField.SESSIONS,
+    SessionFieldWithOperation.SESSIONS,
     SessionStatus.CRASHED
   );
   const allCrashedSessions = getSessionStatusRate(
     allSessions?.groups,
-    SessionField.SESSIONS,
+    SessionFieldWithOperation.SESSIONS,
     SessionStatus.CRASHED
   );
   const diffCrashedSessions =
@@ -360,9 +368,12 @@ function ReleaseComparisonChart({
 
   const releaseCrashFreeUsers = getCrashFreeRate(
     releaseSessions?.groups,
-    SessionField.USERS
+    SessionFieldWithOperation.USERS
   );
-  const allCrashFreeUsers = getCrashFreeRate(allSessions?.groups, SessionField.USERS);
+  const allCrashFreeUsers = getCrashFreeRate(
+    allSessions?.groups,
+    SessionFieldWithOperation.USERS
+  );
   const diffCrashFreeUsers =
     defined(releaseCrashFreeUsers) && defined(allCrashFreeUsers)
       ? releaseCrashFreeUsers - allCrashFreeUsers
@@ -370,12 +381,12 @@ function ReleaseComparisonChart({
 
   const releaseHealthyUsers = getSessionStatusRate(
     releaseSessions?.groups,
-    SessionField.USERS,
+    SessionFieldWithOperation.USERS,
     SessionStatus.HEALTHY
   );
   const allHealthyUsers = getSessionStatusRate(
     allSessions?.groups,
-    SessionField.USERS,
+    SessionFieldWithOperation.USERS,
     SessionStatus.HEALTHY
   );
   const diffHealthyUsers =
@@ -385,12 +396,12 @@ function ReleaseComparisonChart({
 
   const releaseAbnormalUsers = getSessionStatusRate(
     releaseSessions?.groups,
-    SessionField.USERS,
+    SessionFieldWithOperation.USERS,
     SessionStatus.ABNORMAL
   );
   const allAbnormalUsers = getSessionStatusRate(
     allSessions?.groups,
-    SessionField.USERS,
+    SessionFieldWithOperation.USERS,
     SessionStatus.ABNORMAL
   );
   const diffAbnormalUsers =
@@ -400,12 +411,12 @@ function ReleaseComparisonChart({
 
   const releaseErroredUsers = getSessionStatusRate(
     releaseSessions?.groups,
-    SessionField.USERS,
+    SessionFieldWithOperation.USERS,
     SessionStatus.ERRORED
   );
   const allErroredUsers = getSessionStatusRate(
     allSessions?.groups,
-    SessionField.USERS,
+    SessionFieldWithOperation.USERS,
     SessionStatus.ERRORED
   );
   const diffErroredUsers =
@@ -415,12 +426,12 @@ function ReleaseComparisonChart({
 
   const releaseCrashedUsers = getSessionStatusRate(
     releaseSessions?.groups,
-    SessionField.USERS,
+    SessionFieldWithOperation.USERS,
     SessionStatus.CRASHED
   );
   const allCrashedUsers = getSessionStatusRate(
     allSessions?.groups,
-    SessionField.USERS,
+    SessionFieldWithOperation.USERS,
     SessionStatus.CRASHED
   );
   const diffCrashedUsers =
@@ -428,17 +439,28 @@ function ReleaseComparisonChart({
       ? releaseCrashedUsers - allCrashedUsers
       : null;
 
-  const releaseSessionsCount = getCount(releaseSessions?.groups, SessionField.SESSIONS);
-  const allSessionsCount = getCount(allSessions?.groups, SessionField.SESSIONS);
+  const releaseSessionsCount = getCount(
+    releaseSessions?.groups,
+    SessionFieldWithOperation.SESSIONS
+  );
+  const allSessionsCount = getCount(
+    allSessions?.groups,
+    SessionFieldWithOperation.SESSIONS
+  );
 
-  const releaseUsersCount = getCount(releaseSessions?.groups, SessionField.USERS);
-  const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
+  const releaseUsersCount = getCount(
+    releaseSessions?.groups,
+    SessionFieldWithOperation.USERS
+  );
+  const allUsersCount = getCount(allSessions?.groups, SessionFieldWithOperation.USERS);
 
   const sessionDurationTotal = roundDuration(
-    (getSeriesAverage(releaseSessions?.groups, SessionField.DURATION) ?? 0) / 1000
+    (getSeriesAverage(releaseSessions?.groups, SessionFieldWithOperation.DURATION) ?? 0) /
+      1000
   );
   const allSessionDurationTotal = roundDuration(
-    (getSeriesAverage(allSessions?.groups, SessionField.DURATION) ?? 0) / 1000
+    (getSeriesAverage(allSessions?.groups, SessionFieldWithOperation.DURATION) ?? 0) /
+      1000
   );
 
   const diffFailure =
@@ -613,7 +635,7 @@ function ReleaseComparisonChart({
     }
   }
 
-  const hasUsers = !!getCount(releaseSessions?.groups, SessionField.USERS);
+  const hasUsers = !!getCount(releaseSessions?.groups, SessionFieldWithOperation.USERS);
   if (hasHealthData && (hasUsers || loading)) {
     charts.push({
       type: ReleaseComparisonChartType.CRASH_FREE_USERS,

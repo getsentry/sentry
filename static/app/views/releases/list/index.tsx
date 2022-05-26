@@ -82,17 +82,13 @@ class ReleasesList extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, location} = this.props;
-    const {statsPeriod, start, end, utc} = location.query;
+    const {statsPeriod} = location.query;
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
 
     const query = {
       ...pick(location.query, ['project', 'environment', 'cursor', 'query', 'sort']),
       summaryStatsPeriod: statsPeriod,
-      statsPeriod,
-      start,
-      end,
-      utc,
       per_page: 20,
       flatten: activeSort === ReleasesSortOption.DATE ? 0 : 1,
       adoptionStages: 1,
@@ -547,46 +543,38 @@ class ReleasesList extends AsyncView<Props, State> {
                 position="bottom"
                 disabled={!hasReleasesSetup}
               >
-                <GuideAnchor
-                  target="release_stages"
-                  position="bottom"
-                  disabled={!showReleaseAdoptionStages}
-                >
-                  <SmartSearchBar
-                    searchSource="releases"
-                    query={this.getQuery()}
-                    placeholder={t('Search by version, build, package, or stage')}
-                    maxSearchItems={5}
-                    hasRecentSearches={false}
-                    supportedTags={{
-                      ...SEMVER_TAGS,
-                      release: {
-                        key: 'release',
-                        name: 'release',
-                      },
-                    }}
-                    supportedTagType={ItemType.PROPERTY}
-                    onSearch={this.handleSearch}
-                    onGetTagValues={this.getTagValues}
-                  />
-                </GuideAnchor>
+                <StyledSmartSearchBar
+                  searchSource="releases"
+                  query={this.getQuery()}
+                  placeholder={t('Search by version, build, package, or stage')}
+                  maxSearchItems={5}
+                  hasRecentSearches={false}
+                  supportedTags={{
+                    ...SEMVER_TAGS,
+                    release: {
+                      key: 'release',
+                      name: 'release',
+                    },
+                  }}
+                  supportedTagType={ItemType.PROPERTY}
+                  onSearch={this.handleSearch}
+                  onGetTagValues={this.getTagValues}
+                />
               </GuideAnchor>
-              <DropdownsWrapper>
-                <ReleasesStatusOptions
-                  selected={activeStatus}
-                  onSelect={this.handleStatus}
-                />
-                <ReleasesSortOptions
-                  selected={activeSort}
-                  selectedDisplay={activeDisplay}
-                  onSelect={this.handleSortBy}
-                  environments={selection.environments}
-                />
-                <ReleasesDisplayOptions
-                  selected={activeDisplay}
-                  onSelect={this.handleDisplay}
-                />
-              </DropdownsWrapper>
+              <ReleasesStatusOptions
+                selected={activeStatus}
+                onSelect={this.handleStatus}
+              />
+              <ReleasesSortOptions
+                selected={activeSort}
+                selectedDisplay={activeDisplay}
+                onSelect={this.handleSortBy}
+                environments={selection.environments}
+              />
+              <ReleasesDisplayOptions
+                selected={activeDisplay}
+                onSelect={this.handleDisplay}
+              />
             </SortAndFilterWrapper>
 
             {!reloading &&
@@ -619,71 +607,27 @@ const AlertText = styled('div')`
 `;
 
 const ReleasesPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const SortAndFilterWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  justify-content: stretch;
+  display: grid;
+  grid-template-columns: 1fr repeat(3, max-content);
+  gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  > *:nth-child(1) {
-    flex: 1;
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: repeat(3, 1fr);
   }
-
-  /* Below this width search bar needs its own row no to wrap placeholder text
-   * Above this width search bar and controls can be on the same row */
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    flex-direction: row;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: minmax(0, 1fr);
   }
 `;
 
-const DropdownsWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-
-  & > * {
-    margin-top: ${space(2)};
-  }
-
-  /* At the narrower widths wrapper is on its own in a row
-   * Expand the dropdown controls to fill the empty space */
-  & button {
-    width: 100%;
-  }
-
-  /* At narrower widths space bar needs a separate row
-   * Divide space evenly when 3 dropdowns are in their own row */
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    margin-top: ${space(2)};
-
-    & > * {
-      margin-top: ${space(0)};
-      margin-left: ${space(1)};
-    }
-
-    & > *:nth-child(1) {
-      margin-left: ${space(0)};
-    }
-
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-
-  /* At wider widths everything is in 1 row
-   * Auto space dropdowns when they are in the same row with search bar */
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    margin-top: ${space(0)};
-
-    & > * {
-      margin-left: ${space(1)} !important;
-    }
-
-    display: grid;
-    grid-template-columns: auto auto auto;
+const StyledSmartSearchBar = styled(SmartSearchBar)`
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    grid-column: 1 / -1;
   }
 `;
 
 export default withProjects(withOrganization(withPageFilters(ReleasesList)));
-export {ReleasesList};

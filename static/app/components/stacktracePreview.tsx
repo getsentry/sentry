@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -67,7 +67,7 @@ function StackTracePreviewContent({
   groupingCurrentLevel?: number;
   orgFeatures?: string[];
 }) {
-  const includeSystemFrames = React.useMemo(() => {
+  const includeSystemFrames = useMemo(() => {
     return stacktrace?.frames?.every(frame => !frame.inApp) ?? false;
   }, [stacktrace]);
 
@@ -75,47 +75,29 @@ function StackTracePreviewContent({
   const platform = (framePlatform ?? event.platform ?? 'other') as PlatformType;
   const newestFirst = isStacktraceNewestFirst();
 
+  const commonProps = {
+    data: stacktrace,
+    expandFirstFrame: false,
+    includeSystemFrames,
+    platform,
+    newestFirst,
+    event,
+    isHoverPreviewed: true,
+  };
+
   if (orgFeatures.includes('native-stack-trace-v2') && isNativePlatform(platform)) {
     return (
-      <StackTraceContentV3
-        data={stacktrace}
-        expandFirstFrame={false}
-        includeSystemFrames={includeSystemFrames}
-        platform={platform}
-        newestFirst={newestFirst}
-        event={event}
-        groupingCurrentLevel={groupingCurrentLevel}
-        isHoverPreviewed
-      />
+      <StackTraceContentV3 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
     );
   }
 
   if (orgFeatures.includes('grouping-stacktrace-ui')) {
     return (
-      <StackTraceContentV2
-        data={stacktrace}
-        expandFirstFrame={false}
-        includeSystemFrames={includeSystemFrames}
-        platform={platform}
-        newestFirst={newestFirst}
-        event={event}
-        groupingCurrentLevel={groupingCurrentLevel}
-        isHoverPreviewed
-      />
+      <StackTraceContentV2 {...commonProps} groupingCurrentLevel={groupingCurrentLevel} />
     );
   }
 
-  return (
-    <StackTraceContent
-      data={stacktrace}
-      expandFirstFrame={false}
-      includeSystemFrames={includeSystemFrames}
-      platform={platform}
-      newestFirst={newestFirst}
-      event={event}
-      isHoverPreviewed
-    />
-  );
+  return <StackTraceContent {...commonProps} />;
 }
 
 type StackTracePreviewProps = {
@@ -132,21 +114,21 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
   const theme = useTheme();
   const api = useApi();
 
-  const [loadingVisible, setLoadingVisible] = React.useState<boolean>(false);
-  const [status, setStatus] = React.useState<'loading' | 'loaded' | 'error'>('loading');
-  const [event, setEvent] = React.useState<Event | null>(null);
+  const [loadingVisible, setLoadingVisible] = useState<boolean>(false);
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+  const [event, setEvent] = useState<Event | null>(null);
 
-  const delayTimeoutRef = React.useRef<number | undefined>(undefined);
-  const loaderTimeoutRef = React.useRef<number | undefined>(undefined);
+  const delayTimeoutRef = useRef<number | undefined>(undefined);
+  const loaderTimeoutRef = useRef<number | undefined>(undefined);
 
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       window.clearTimeout(loaderTimeoutRef.current);
       window.clearTimeout(delayTimeoutRef.current);
     };
   }, []);
 
-  const fetchData = React.useCallback(async () => {
+  const fetchData = useCallback(async () => {
     // Data is already loaded
     if (event) {
       return;
@@ -186,23 +168,23 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
     props.issueId,
   ]);
 
-  const handleMouseEnter = React.useCallback(() => {
+  const handleMouseEnter = useCallback(() => {
     window.clearTimeout(delayTimeoutRef.current);
     delayTimeoutRef.current = window.setTimeout(fetchData, REQUEST_DELAY);
   }, [fetchData]);
 
-  const handleMouseLeave = React.useCallback(() => {
+  const handleMouseLeave = useCallback(() => {
     window.clearTimeout(delayTimeoutRef.current);
     delayTimeoutRef.current = undefined;
   }, []);
 
   // Not sure why we need to stop propagation, maybe to to prevent the hovercard from closing?
   // If we are doing this often, maybe it should be part of the hovercard component.
-  const handleStackTracePreviewClick = React.useCallback((e: React.MouseEvent) => {
+  const handleStackTracePreviewClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
   }, []);
 
-  const stacktrace = React.useMemo(() => {
+  const stacktrace = useMemo(() => {
     if (event) {
       return getStacktrace(event);
     }
@@ -241,16 +223,6 @@ function StackTracePreview(props: StackTracePreviewProps): React.ReactElement {
           )
         }
         position="right"
-        modifiers={{
-          flip: {
-            enabled: false,
-          },
-          preventOverflow: {
-            padding: 20,
-            enabled: true,
-            boundariesElement: 'viewport',
-          },
-        }}
         state={
           status === 'loading' && loadingVisible
             ? 'loading'

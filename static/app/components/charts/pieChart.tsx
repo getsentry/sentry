@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import {withTheme} from '@emotion/react';
 import type {PieSeriesOption} from 'echarts';
 
@@ -19,7 +19,7 @@ type Props = Omit<ChartProps, 'series'> & {
   selectOnRender?: boolean;
 };
 
-class PieChart extends React.Component<Props> {
+class PieChart extends Component<Props> {
   componentDidMount() {
     const {selectOnRender} = this.props;
 
@@ -39,7 +39,7 @@ class PieChart extends React.Component<Props> {
   highlightTimeout: number | undefined = undefined;
   isInitialSelected = true;
   selected = 0;
-  chart = React.createRef<ReactEchartsRef>();
+  chart = createRef<ReactEchartsRef>();
 
   // Select a series to highlight (e.g. shows details of series)
   // This is the same event as when you hover over a series in the chart

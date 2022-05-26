@@ -44,7 +44,8 @@ export class JSSelfProfile extends Profile {
       startedAt,
       endedAt,
       'JSSelfProfiling',
-      'milliseconds'
+      'milliseconds',
+      0
     );
 
     // Because JS self profiling takes an initial sample when we call new Profiler(),

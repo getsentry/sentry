@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -16,10 +16,10 @@ export const KeyValueTable = styled('dl')`
 
 export const KeyValueTableRow = ({keyName, value}: Props) => {
   return (
-    <React.Fragment>
+    <Fragment>
       <Key>{keyName}</Key>
       <Value>{value}</Value>
-    </React.Fragment>
+    </Fragment>
   );
 };
 

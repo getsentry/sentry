@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
@@ -113,7 +113,7 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
           key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
 
         return (
-          <React.Fragment key={mapKey}>
+          <Fragment key={mapKey}>
             {to ? (
               <BreadcrumbLink
                 to={to}
@@ -129,7 +129,7 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
             {index < crumbs.length - 1 && (
               <BreadcrumbDividerIcon size="xs" direction="right" />
             )}
-          </React.Fragment>
+          </Fragment>
         );
       })}
     </BreadcrumbList>

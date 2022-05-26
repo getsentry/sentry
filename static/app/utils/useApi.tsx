@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import {Client} from 'sentry/api';
 
@@ -36,11 +36,14 @@ function useApi({persistInFlight, api: providedApi}: Options = {}) {
   // Use the provided client if available
   const api = providedApi ?? localApi.current!;
 
-  function handleCleanup() {
-    !persistInFlight && api.clear();
-  }
+  // Clear API calls on unmount (if persistInFlight is disabled
+  const clearOnUnmount = useCallback(() => {
+    if (!persistInFlight) {
+      api.clear();
+    }
+  }, [api, persistInFlight]);
 
-  useEffect(() => handleCleanup, []);
+  useEffect(() => clearOnUnmount, [clearOnUnmount]);
 
   return api;
 }

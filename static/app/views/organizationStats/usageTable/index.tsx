@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorPanel from 'sentry/components/charts/errorPanel';
@@ -40,7 +40,7 @@ export type TableStat = {
   total: number;
 };
 
-class UsageTable extends React.Component<Props> {
+class UsageTable extends Component<Props> {
   get formatUsageOptions() {
     const {dataCategory} = this.props;
 

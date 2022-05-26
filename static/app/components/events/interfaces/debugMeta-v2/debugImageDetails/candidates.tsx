@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import isEqual from 'lodash/isEqual';
@@ -49,7 +49,7 @@ type State = {
   searchTerm: string;
 };
 
-class Candidates extends React.Component<Props, State> {
+class Candidates extends Component<Props, State> {
   state: State = {
     searchTerm: '',
     filterOptions: {},

@@ -1,3 +1,4 @@
+from django.core.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from sentry import http, options
@@ -95,7 +96,10 @@ class VSTSIdentityProvider(OAuth2Provider):
 
     def build_identity(self, data):
         data = data["data"]
-        user = get_user_info(data["access_token"])
+        access_token = data.get("access_token")
+        if not access_token:
+            raise PermissionDenied()
+        user = get_user_info(access_token)
 
         return {
             "type": "vsts",

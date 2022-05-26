@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Client} from 'sentry/api';
@@ -41,7 +41,7 @@ type EventWaiterState = {
  * This is a render prop component that can be used to wait for the first event
  * of a project to be received via polling.
  */
-class EventWaiter extends React.Component<EventWaiterProps, EventWaiterState> {
+class EventWaiter extends Component<EventWaiterProps, EventWaiterState> {
   state: EventWaiterState = {
     firstIssue: null,
   };

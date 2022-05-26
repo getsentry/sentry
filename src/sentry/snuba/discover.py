@@ -7,39 +7,31 @@ from typing import Dict, Optional, Sequence
 
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime
+from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.function import Function
 
-from sentry import options
-from sentry.discover.arithmetic import categorize_columns, resolve_equation_list
+from sentry.discover.arithmetic import categorize_columns
 from sentry.models import Group
-from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
     QueryBuilder,
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
 )
-from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
     InvalidSearchQuery,
     get_function_alias,
     get_json_meta_type,
     is_function,
-    resolve_field_list,
 )
-from sentry.search.events.filter import get_filter
 from sentry.search.events.types import HistogramParams, ParamsType
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
-from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
-from sentry.utils.math import mean, nice_int
+from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
-    SNUBA_AND,
-    SNUBA_OR,
     Dataset,
-    SnubaQueryParams,
     SnubaTSResult,
-    bulk_raw_query,
     bulk_snql_query,
     get_array_column_alias,
     get_array_column_field,
@@ -48,7 +40,6 @@ from sentry.utils.snuba import (
     is_measurement,
     is_span_op_breakdown,
     naiveify_datetime,
-    raw_query,
     resolve_column,
     resolve_snuba_aliases,
     to_naive_timestamp,
@@ -59,7 +50,6 @@ __all__ = (
     "InvalidSearchQuery",
     "transform_results",
     "query",
-    "prepare_discover_query",
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
@@ -213,9 +203,8 @@ def query(
     allow_metric_aggregates=False,
     use_aggregate_conditions=False,
     conditions=None,
-    extra_snql_condition=None,
     functions_acl=None,
-    use_snql=True,
+    transform_alias_to_input_format=False,
 ):
     """
     High-level API for doing arbitrary user queries against events.
@@ -242,247 +231,56 @@ def query(
                     equations
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     use_aggregate_conditions (bool) Set to true if aggregates conditions should be used at all.
-    conditions (Sequence[any]) List of conditions that are passed directly to snuba without
+    conditions (Sequence[Condition]) List of conditions that are passed directly to snuba without
                     any additional processing.
-    extra_snql_condition (Sequence[Condition]) Replacement for conditions while migrating to snql
-    use_snql (bool) Whether to directly build the query in snql, instead of using the older
-                    json construction
+    transform_alias_to_input_format (bool) Whether aggregate columns should be returned in the originally
+                                requested function format.
     """
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
 
-    sentry_sdk.set_tag("discover.use_snql", use_snql)
-    if use_snql:
-        builder = QueryBuilder(
-            Dataset.Discover,
-            params,
-            query=query,
-            selected_columns=selected_columns,
-            equations=equations,
-            orderby=orderby,
-            auto_fields=auto_fields,
-            auto_aggregations=auto_aggregations,
-            use_aggregate_conditions=use_aggregate_conditions,
-            functions_acl=functions_acl,
-            limit=limit,
-            offset=offset,
-            equation_config={"auto_add": include_equation_fields},
-        )
-        if extra_snql_condition is not None:
-            builder.add_conditions(extra_snql_condition)
-        result = builder.run_query(referrer)
-        with sentry_sdk.start_span(
-            op="discover.discover", description="query.transform_results"
-        ) as span:
-            span.set_data("result_count", len(result.get("data", [])))
-            result = transform_results(result, builder.function_alias_map, {}, None)
-        return result
-
-    # temporarily add old-json to referrer
-    referrer = f"{referrer}.old-json"
-    # We clobber this value throughout this code, so copy the value
-    selected_columns = selected_columns[:]
-
-    snuba_query = prepare_discover_query(
-        selected_columns,
-        query,
+    builder = QueryBuilder(
+        Dataset.Discover,
         params,
-        equations,
-        orderby,
-        auto_fields,
-        auto_aggregations,
-        include_equation_fields,
-        use_aggregate_conditions,
-        conditions,
-        functions_acl,
+        query=query,
+        selected_columns=selected_columns,
+        equations=equations,
+        orderby=orderby,
+        auto_fields=auto_fields,
+        auto_aggregations=auto_aggregations,
+        use_aggregate_conditions=use_aggregate_conditions,
+        functions_acl=functions_acl,
+        limit=limit,
+        offset=offset,
+        equation_config={"auto_add": include_equation_fields},
     )
-    snuba_filter = snuba_query.filter
-
-    with sentry_sdk.start_span(op="discover.discover", description="query.snuba_query"):
-        result = raw_query(
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            groupby=snuba_filter.groupby,
-            conditions=snuba_filter.conditions,
-            aggregations=snuba_filter.aggregations,
-            selected_columns=snuba_filter.selected_columns,
-            filter_keys=snuba_filter.filter_keys,
-            having=snuba_filter.having,
-            orderby=snuba_filter.orderby,
-            dataset=Dataset.Discover,
-            limit=limit,
-            offset=offset,
-            referrer=referrer,
-        )
-
+    if conditions is not None:
+        builder.add_conditions(conditions)
+    result = builder.run_query(referrer)
     with sentry_sdk.start_span(
         op="discover.discover", description="query.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        return transform_results(
+        translated_columns = {}
+        function_alias_map = builder.function_alias_map
+        if transform_alias_to_input_format:
+            translated_columns = {
+                column: function_details.field
+                for column, function_details in builder.function_alias_map.items()
+            }
+            function_alias_map = {
+                translated_columns.get(column): function_details
+                for column, function_details in builder.function_alias_map.items()
+            }
+            for index, equation in enumerate(equations):
+                translated_columns[f"equation[{index}]"] = f"equation|{equation}"
+        result = transform_results(
             result,
-            snuba_query.fields["functions"],
-            snuba_query.columns,
-            snuba_filter,
+            function_alias_map,
+            translated_columns,
+            None,
         )
-
-
-def prepare_discover_query(
-    selected_columns,
-    query,
-    params,
-    equations=None,
-    orderby=None,
-    auto_fields=False,
-    auto_aggregations=False,
-    include_equation_fields=False,
-    use_aggregate_conditions=False,
-    conditions=None,
-    functions_acl=None,
-):
-    with sentry_sdk.start_span(
-        op="discover.discover", description="query.filter_transform"
-    ) as span:
-        span.set_data("query", query)
-
-        snuba_filter = get_filter(query, params)
-        if not use_aggregate_conditions:
-            assert (
-                not auto_aggregations
-            ), "Auto aggregations cannot be used without enabling aggregate conditions"
-            snuba_filter.having = []
-
-    with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
-        resolved_columns = selected_columns
-        if equations is not None:
-            resolved_equations, resolved_columns, _ = resolve_equation_list(
-                equations, selected_columns, auto_add=include_equation_fields
-            )
-        else:
-            resolved_equations = []
-
-        if orderby is not None:
-            orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
-            snuba_filter.orderby = [get_function_alias(o) for o in orderby]
-
-        resolved_fields = resolve_field_list(
-            resolved_columns,
-            snuba_filter,
-            auto_fields=auto_fields,
-            auto_aggregations=auto_aggregations,
-            functions_acl=functions_acl,
-            resolved_equations=resolved_equations,
-        )
-
-        snuba_filter.update_with(resolved_fields)
-
-        # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
-
-        # Make sure that any aggregate conditions are also in the selected columns
-        for having_clause in snuba_filter.having:
-            # The first element of the having can be an alias, or a nested array of functions. Loop through to make sure
-            # any referenced functions are in the aggregations.
-            error_extra = ", and could not be automatically added" if auto_aggregations else ""
-            if isinstance(having_clause[0], (list, tuple)):
-                # Functions are of the form [fn, [args]]
-                args_to_check = [[having_clause[0]]]
-                conditions_not_in_aggregations = []
-                while len(args_to_check) > 0:
-                    args = args_to_check.pop()
-                    for arg in args:
-                        if arg[0] in [SNUBA_AND, SNUBA_OR]:
-                            args_to_check.extend(arg[1])
-                        # Only need to iterate on arg[1] if its a list
-                        elif isinstance(arg[1], (list, tuple)):
-                            alias = arg[1][0]
-                            found = any(
-                                alias == agg_clause[-1] for agg_clause in snuba_filter.aggregations
-                            )
-                            if not found:
-                                conditions_not_in_aggregations.append(alias)
-
-                if len(conditions_not_in_aggregations) > 0:
-                    raise InvalidSearchQuery(
-                        "Aggregate(s) {} used in a condition but are not in the selected columns{}.".format(
-                            ", ".join(conditions_not_in_aggregations),
-                            error_extra,
-                        )
-                    )
-            else:
-                found = any(
-                    having_clause[0] == agg_clause[-1] for agg_clause in snuba_filter.aggregations
-                )
-                if not found:
-                    raise InvalidSearchQuery(
-                        "Aggregate {} used in a condition but is not a selected column{}.".format(
-                            having_clause[0],
-                            error_extra,
-                        )
-                    )
-
-        if conditions is not None:
-            snuba_filter.conditions.extend(conditions)
-
-    return PreparedQuery(snuba_filter, translated_columns, resolved_fields)
-
-
-def get_timeseries_snuba_filter(selected_columns, query, params):
-    snuba_filter = get_filter(query, params)
-    if not snuba_filter.start and not snuba_filter.end:
-        raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
-
-    equations, columns = categorize_columns(selected_columns)
-
-    if len(equations) > 0:
-        resolved_equations, updated_columns, _ = resolve_equation_list(
-            equations, columns, aggregates_only=True, auto_add=True
-        )
-    else:
-        resolved_equations = []
-        updated_columns = columns
-
-    # For the new apdex, we need to add project threshold config as a selected
-    # column which means the group by for the time series won't work.
-    # As a temporary solution, we will calculate the mean of all the project
-    # level thresholds in the request and use the legacy apdex, user_misery
-    # or count_miserable calculation.
-    # TODO(snql): Alias the project_threshold_config column so it doesn't
-    # have to be in the SELECT statement and group by to be able to use new apdex,
-    # user_misery and count_miserable.
-    threshold = None
-    for agg in CONFIGURABLE_AGGREGATES:
-        if agg not in updated_columns:
-            continue
-
-        if threshold is None:
-            project_ids = params.get("project_id")
-            threshold_configs = list(
-                ProjectTransactionThreshold.objects.filter(
-                    organization_id=params["organization_id"],
-                    project_id__in=project_ids,
-                ).values_list("threshold", flat=True)
-            )
-
-            projects_without_threshold = len(project_ids) - len(threshold_configs)
-            threshold_configs.extend([DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold)
-            threshold = int(mean(threshold_configs))
-
-        updated_columns.remove(agg)
-        updated_columns.append(CONFIGURABLE_AGGREGATES[agg].format(threshold=threshold))
-
-    snuba_filter.update_with(
-        resolve_field_list(
-            updated_columns, snuba_filter, auto_fields=False, resolved_equations=resolved_equations
-        )
-    )
-
-    # Resolve the public aliases into the discover dataset names.
-    snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
-    if not snuba_filter.aggregations:
-        raise InvalidSearchQuery("Cannot get timeseries result with no aggregation.")
-
-    return snuba_filter, translated_columns
+    return result
 
 
 def timeseries_query(
@@ -495,7 +293,6 @@ def timeseries_query(
     comparison_delta: Optional[timedelta] = None,
     functions_acl: Optional[Sequence[str]] = None,
     allow_metric_aggregates=False,
-    use_snql: Optional[bool] = True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -519,142 +316,62 @@ def timeseries_query(
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
-    use_snql (bool) Whether to directly build the query in snql, instead of using the older
-                    json construction
     """
-    sentry_sdk.set_tag("discover.use_snql", use_snql)
-    if use_snql:
-        with sentry_sdk.start_span(
-            op="discover.discover", description="timeseries.filter_transform"
-        ) as span:
-            equations, columns = categorize_columns(selected_columns)
-            base_builder = TimeseriesQueryBuilder(
+    with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
+        equations, columns = categorize_columns(selected_columns)
+        base_builder = TimeseriesQueryBuilder(
+            Dataset.Discover,
+            params,
+            rollup,
+            query=query,
+            selected_columns=columns,
+            equations=equations,
+            functions_acl=functions_acl,
+        )
+        query_list = [base_builder]
+        if comparison_delta:
+            if len(base_builder.aggregates) != 1:
+                raise InvalidSearchQuery("Only one column can be selected for comparison queries")
+            comp_query_params = deepcopy(params)
+            comp_query_params["start"] -= comparison_delta
+            comp_query_params["end"] -= comparison_delta
+            comparison_builder = TimeseriesQueryBuilder(
                 Dataset.Discover,
-                params,
+                comp_query_params,
                 rollup,
                 query=query,
                 selected_columns=columns,
                 equations=equations,
-                functions_acl=functions_acl,
             )
-            query_list = [base_builder]
-            if comparison_delta:
-                if len(base_builder.aggregates) != 1:
-                    raise InvalidSearchQuery(
-                        "Only one column can be selected for comparison queries"
-                    )
-                comp_query_params = deepcopy(params)
-                comp_query_params["start"] -= comparison_delta
-                comp_query_params["end"] -= comparison_delta
-                comparison_builder = TimeseriesQueryBuilder(
-                    Dataset.Discover,
-                    comp_query_params,
-                    rollup,
-                    query=query,
-                    selected_columns=columns,
-                    equations=equations,
-                )
-                query_list.append(comparison_builder)
+            query_list.append(comparison_builder)
 
-            query_results = bulk_snql_query(
-                [query.get_snql_query() for query in query_list], referrer
-            )
+        query_results = bulk_snql_query([query.get_snql_query() for query in query_list], referrer)
 
-        with sentry_sdk.start_span(
-            op="discover.discover", description="timeseries.transform_results"
-        ) as span:
-            results = []
-            for snql_query, result in zip(query_list, query_results):
-                results.append(
-                    zerofill(
-                        result["data"],
-                        snql_query.params["start"],
-                        snql_query.params["end"],
-                        rollup,
-                        "time",
-                    )
-                    if zerofill_results
-                    else result["data"]
-                )
-
-        if len(results) == 2 and comparison_delta:
-            col_name = base_builder.aggregates[0].alias
-            # If we have two sets of results then we're doing a comparison queries. Divide the primary
-            # results by the comparison results.
-            for result, cmp_result in zip(results[0], results[1]):
-                cmp_result_val = cmp_result.get(col_name, 0)
-                result["comparisonCount"] = cmp_result_val
-
-        result = results[0]
-        return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
-
-    # temporarily add old-json to referrer
-    referrer = f"{referrer}.old-json"
-
-    with sentry_sdk.start_span(
-        op="discover.discover", description="timeseries.filter_transform"
-    ) as span:
-        span.set_data("query", query)
-        snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params)
-
-    with sentry_sdk.start_span(op="discover.discover", description="timeseries.snuba_query"):
-        base_query_params = SnubaQueryParams(
-            # Hack cause equations on aggregates have to go in selected columns instead of aggregations
-            selected_columns=[
-                column
-                for column in snuba_filter.selected_columns
-                # Check that the column is a list with 3 items, and the alias in the third item is an equation
-                if isinstance(column, list)
-                and len(column) == 3
-                and column[-1].startswith("equation[")
-            ],
-            aggregations=snuba_filter.aggregations,
-            conditions=snuba_filter.conditions,
-            filter_keys=snuba_filter.filter_keys,
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            rollup=rollup,
-            orderby="time",
-            groupby=["time"],
-            dataset=Dataset.Discover,
-            limit=10000,
-            referrer=referrer,
-        )
-        query_params_list = [base_query_params]
-        if comparison_delta:
-            if len(base_query_params.aggregations) != 1:
-                raise InvalidSearchQuery("Only one column can be selected for comparison queries")
-            comp_query_params = deepcopy(base_query_params)
-            comp_query_params.start -= comparison_delta
-            comp_query_params.end -= comparison_delta
-            query_params_list.append(comp_query_params)
-        query_results = bulk_raw_query(query_params_list, referrer=referrer)
-
-    with sentry_sdk.start_span(
-        op="discover.discover", description="timeseries.transform_results"
-    ) as span:
+    with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
         results = []
-        for query_params, query_results in zip(query_params_list, query_results):
-            span.set_data("result_count", len(query_results.get("data", [])))
+        for snql_query, result in zip(query_list, query_results):
             results.append(
                 zerofill(
-                    query_results["data"], query_params.start, query_params.end, rollup, "time"
+                    result["data"],
+                    snql_query.params["start"],
+                    snql_query.params["end"],
+                    rollup,
+                    "time",
                 )
                 if zerofill_results
-                else query_results["data"]
+                else result["data"]
             )
 
-    if len(results) == 2:
-        col_name = base_query_params.aggregations[0][2]
+    if len(results) == 2 and comparison_delta:
+        col_name = base_builder.aggregates[0].alias
         # If we have two sets of results then we're doing a comparison queries. Divide the primary
         # results by the comparison results.
         for result, cmp_result in zip(results[0], results[1]):
             cmp_result_val = cmp_result.get(col_name, 0)
             result["comparisonCount"] = cmp_result_val
 
-    results = results[0]
-
-    return SnubaTSResult({"data": results}, snuba_filter.start, snuba_filter.end, rollup)
+    result = results[0]
+    return SnubaTSResult({"data": result}, params["start"], params["end"], rollup)
 
 
 def create_result_key(result_row, fields, issues) -> str:
@@ -697,7 +414,6 @@ def top_events_timeseries(
     zerofill_results=True,
     include_other=False,
     functions_acl=None,
-    use_snql=True,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -720,8 +436,6 @@ def top_events_timeseries(
     top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
-    use_snql (bool) Whether to directly build the query in snql, instead of using the older
-                    json construction
     """
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
@@ -735,243 +449,40 @@ def top_events_timeseries(
                 referrer=referrer,
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
-                use_snql=use_snql,
                 include_equation_fields=True,
             )
 
-    if use_snql:
-        top_events_builder = TopEventsQueryBuilder(
+    top_events_builder = TopEventsQueryBuilder(
+        Dataset.Discover,
+        params,
+        rollup,
+        top_events["data"],
+        other=False,
+        query=user_query,
+        selected_columns=selected_columns,
+        timeseries_columns=timeseries_columns,
+        equations=equations,
+        functions_acl=functions_acl,
+    )
+    if len(top_events["data"]) == limit and include_other:
+        other_events_builder = TopEventsQueryBuilder(
             Dataset.Discover,
             params,
             rollup,
             top_events["data"],
-            other=False,
+            other=True,
             query=user_query,
             selected_columns=selected_columns,
             timeseries_columns=timeseries_columns,
             equations=equations,
-            functions_acl=functions_acl,
         )
-        if len(top_events["data"]) == limit and include_other:
-            other_events_builder = TopEventsQueryBuilder(
-                Dataset.Discover,
-                params,
-                rollup,
-                top_events["data"],
-                other=True,
-                query=user_query,
-                selected_columns=selected_columns,
-                timeseries_columns=timeseries_columns,
-                equations=equations,
-            )
-            result, other_result = bulk_snql_query(
-                [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
-                referrer=referrer,
-            )
-        else:
-            result = top_events_builder.run_query(referrer)
-            other_result = {"data": []}
-        if (
-            not allow_empty
-            and not len(result.get("data", []))
-            and not len(other_result.get("data", []))
-        ):
-            return SnubaTSResult(
-                {
-                    "data": zerofill([], params["start"], params["end"], rollup, "time")
-                    if zerofill_results
-                    else [],
-                },
-                params["start"],
-                params["end"],
-                rollup,
-            )
-        with sentry_sdk.start_span(
-            op="discover.discover", description="top_events.transform_results"
-        ) as span:
-            span.set_data("result_count", len(result.get("data", [])))
-            result = transform_results(result, top_events_builder.function_alias_map, {}, None)
-
-            issues = {}
-            if "issue" in selected_columns:
-                issues = Group.objects.get_issues_mapping(
-                    {event["issue.id"] for event in top_events["data"]},
-                    params["project_id"],
-                    organization,
-                )
-            translated_groupby = top_events_builder.translated_groupby
-
-            results = (
-                {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
-                if len(other_result.get("data", []))
-                else {}
-            )
-            # Using the top events add the order to the results
-            for index, item in enumerate(top_events["data"]):
-                result_key = create_result_key(item, translated_groupby, issues)
-                results[result_key] = {"order": index, "data": []}
-            for row in result["data"]:
-                result_key = create_result_key(row, translated_groupby, issues)
-                if result_key in results:
-                    results[result_key]["data"].append(row)
-                else:
-                    logger.warning(
-                        "discover.top-events.timeseries.key-mismatch",
-                        extra={"result_key": result_key, "top_event_keys": list(results.keys())},
-                    )
-            for key, item in results.items():
-                results[key] = SnubaTSResult(
-                    {
-                        "data": zerofill(
-                            item["data"], params["start"], params["end"], rollup, "time"
-                        )
-                        if zerofill_results
-                        else item["data"],
-                        "order": item["order"],
-                    },
-                    params["start"],
-                    params["end"],
-                    rollup,
-                )
-
-        return results
-
-    # temporarily add old-json to referrer
-    referrer = f"{referrer}.old-json"
-
-    with sentry_sdk.start_span(
-        op="discover.discover", description="top_events.filter_transform"
-    ) as span:
-        span.set_data("query", user_query)
-        snuba_filter, translated_columns = get_timeseries_snuba_filter(
-            list(sorted(set(timeseries_columns + selected_columns))),
-            user_query,
-            params,
+        result, other_result = bulk_snql_query(
+            [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
+            referrer=referrer,
         )
-        original_conditions = snuba_filter.conditions[:]
-        other_conditions = []
-
-        for field in selected_columns:
-            # If we have a project field, we need to limit results by project so we don't hit the result limit
-            if field in ["project", "project.id"] and top_events["data"]:
-                snuba_filter.project_ids = [event["project.id"] for event in top_events["data"]]
-                continue
-
-            if field in FIELD_ALIASES:
-                alias = FIELD_ALIASES[field].alias
-            else:
-                alias = field
-            # Note that because orderby shouldn't be an array field its not included in the values
-            values = list(
-                {
-                    event.get(alias)
-                    for event in top_events["data"]
-                    if (field in event or alias in event) and not isinstance(event.get(field), list)
-                }
-            )
-            if values:
-                if field in FIELD_ALIASES:
-                    # Fallback to the alias if for whatever reason we can't find it
-                    resolved_field = alias
-                    # Issue needs special handling since its aliased uniquely
-                    if field == "issue":
-                        resolved_field = "group_id"
-                    else:
-                        # Search selected columns for the resolved version of the alias
-                        for column in snuba_filter.selected_columns:
-                            if isinstance(column, list) and (
-                                column[-1] == field or column[-1] == alias
-                            ):
-                                resolved_field = column
-                                break
-                else:
-                    resolved_field = resolve_discover_column(field)
-
-                if field == "timestamp" or field.startswith("timestamp.to_"):
-                    # timestamp fields needs special handling, creating a big OR instead
-                    snuba_filter.conditions.append(
-                        [[resolved_field, "=", value] for value in sorted(values)]
-                    )
-
-                    # Needs to be a big AND when negated
-                    other_condition = [resolved_field, "!=", values[0]]
-                    for value in sorted(values[1:]):
-                        other_condition = [
-                            [SNUBA_AND, [other_condition, [resolved_field, "!=", value]]],
-                            "=",
-                            1,
-                        ]
-                    other_conditions.append(other_condition)
-                elif None in values:
-                    # one of the values was null, but we can't do an in with null values, so split into two conditions
-                    non_none_values = [value for value in values if value is not None]
-                    condition = [[["isNull", [resolved_field]], "=", 1]]
-                    other_condition = [["isNull", [resolved_field]], "!=", 1]
-                    if non_none_values:
-                        condition.append([resolved_field, "IN", non_none_values])
-                        other_condition = [
-                            [
-                                SNUBA_AND,
-                                [
-                                    [resolved_field, "NOT IN", non_none_values],
-                                    other_condition,
-                                ],
-                            ],
-                            "=",
-                            1,
-                        ]
-                    snuba_filter.conditions.append(condition)
-                    other_conditions.append(other_condition)
-                else:
-                    snuba_filter.conditions.append([resolved_field, "IN", values])
-                    other_conditions.append([resolved_field, "NOT IN", values])
-
-    with sentry_sdk.start_span(op="discover.discover", description="top_events.snuba_query"):
-        top_5_query = {
-            "aggregations": snuba_filter.aggregations,
-            "conditions": snuba_filter.conditions,
-            "filter_keys": snuba_filter.filter_keys,
-            "selected_columns": snuba_filter.selected_columns,
-            "start": snuba_filter.start,
-            "end": snuba_filter.end,
-            "rollup": rollup,
-            "orderby": ["time"] + snuba_filter.groupby,
-            "groupby": ["time"] + snuba_filter.groupby,
-            "dataset": Dataset.Discover,
-            "limit": 10000,
-            "referrer": referrer,
-        }
-        if len(top_events["data"]) == limit and include_other:
-            other_query = {
-                "aggregations": snuba_filter.aggregations,
-                "conditions": original_conditions + [other_conditions],
-                "filter_keys": snuba_filter.filter_keys,
-                # Hack cause equations on aggregates have to go in selected columns instead of aggregations
-                "selected_columns": [
-                    column
-                    for column in snuba_filter.selected_columns
-                    # Check that the column is a list with 3 items, and the alias in the third item is an equation
-                    if isinstance(column, list)
-                    and len(column) == 3
-                    and column[-1].startswith("equation[")
-                ],
-                "start": snuba_filter.start,
-                "end": snuba_filter.end,
-                "rollup": rollup,
-                "orderby": ["time"],
-                "groupby": ["time"],
-                "dataset": Dataset.Discover,
-                "limit": 10000,
-                "referrer": referrer + ".other",
-            }
-            result, other_result = bulk_raw_query(
-                [SnubaQueryParams(**top_5_query), SnubaQueryParams(**other_query)],
-                referrer=referrer,
-            )
-        else:
-            result = raw_query(**top_5_query)
-            other_result = {"data": []}
-
+    else:
+        result = top_events_builder.run_query(referrer)
+        other_result = {"data": []}
     if (
         not allow_empty
         and not len(result.get("data", []))
@@ -979,26 +490,19 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": zerofill([], snuba_filter.start, snuba_filter.end, rollup, "time")
+                "data": zerofill([], params["start"], params["end"], rollup, "time")
                 if zerofill_results
                 else [],
             },
-            snuba_filter.start,
-            snuba_filter.end,
+            params["start"],
+            params["end"],
             rollup,
         )
-
     with sentry_sdk.start_span(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_data(result, translated_columns, snuba_filter)
-
-        if "project" in selected_columns:
-            translated_columns["project_id"] = "project"
-        translated_groupby = [
-            translated_columns.get(groupby, groupby) for groupby in snuba_filter.groupby
-        ]
+        result = transform_results(result, top_events_builder.function_alias_map, {}, None)
 
         issues = {}
         if "issue" in selected_columns:
@@ -1007,8 +511,7 @@ def top_events_timeseries(
                 params["project_id"],
                 organization,
             )
-        # so the result key is consistent
-        translated_groupby.sort()
+        translated_groupby = top_events_builder.translated_groupby
 
         results = (
             {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
@@ -1031,15 +534,13 @@ def top_events_timeseries(
         for key, item in results.items():
             results[key] = SnubaTSResult(
                 {
-                    "data": zerofill(
-                        item["data"], snuba_filter.start, snuba_filter.end, rollup, "time"
-                    )
+                    "data": zerofill(item["data"], params["start"], params["end"], rollup, "time")
                     if zerofill_results
                     else item["data"],
                     "order": item["order"],
                 },
-                snuba_filter.start,
-                snuba_filter.end,
+                params["start"],
+                params["end"],
                 rollup,
             )
 
@@ -1056,7 +557,6 @@ def get_facets(
     params: ParamsType,
     referrer: str,
     limit: Optional[int] = TOP_KEYS_DEFAULT_LIMIT,
-    use_snql: Optional[bool] = True,
 ):
     """
     High-level API for getting 'facet map' results.
@@ -1072,172 +572,30 @@ def get_facets(
 
     Returns Sequence[FacetResult]
     """
-    sentry_sdk.set_tag("discover.use_snql", use_snql)
-    if use_snql:
-        sample = len(params["project_id"]) > 2
-
-        with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
-            key_name_builder = QueryBuilder(
-                Dataset.Discover,
-                params,
-                query=query,
-                selected_columns=["tags_key", "count()"],
-                orderby=["-count()", "tags_key"],
-                limit=limit,
-                turbo=sample,
-            )
-            key_names = key_name_builder.run_query(referrer)
-            # Sampling keys for multi-project results as we don't need accuracy
-            # with that much data.
-            top_tags = [r["tags_key"] for r in key_names["data"]]
-            if not top_tags:
-                return []
-
-        # TODO: Make the sampling rate scale based on the result size and scaling factor in
-        # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
-        # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
-        # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
-        sample_rate = 0.1 if (key_names["data"][0]["count"] > 10000) else None
-        # Rescale the results if we're sampling
-        multiplier = 1 / sample_rate if sample_rate is not None else 1
-
-        fetch_projects = False
-        if len(params.get("project_id", [])) > 1:
-            if len(top_tags) == limit:
-                top_tags.pop()
-            fetch_projects = True
-
-        results = []
-        if fetch_projects:
-            with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
-                project_value_builder = QueryBuilder(
-                    Dataset.Discover,
-                    params,
-                    query=query,
-                    selected_columns=["count()", "project_id"],
-                    orderby=["-count()"],
-                    # Ensures Snuba will not apply FINAL
-                    turbo=sample_rate is not None,
-                    sample_rate=sample_rate,
-                )
-                project_values = project_value_builder.run_query(referrer=referrer)
-                results.extend(
-                    [
-                        FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
-                        for r in project_values["data"]
-                    ]
-                )
-
-        # Get tag counts for our top tags. Fetching them individually
-        # allows snuba to leverage promoted tags better and enables us to get
-        # the value count we want.
-        individual_tags = []
-        aggregate_tags = []
-        for i, tag in enumerate(top_tags):
-            if tag == "environment":
-                # Add here tags that you want to be individual
-                individual_tags.append(tag)
-            elif i >= len(top_tags) - TOP_KEYS_DEFAULT_LIMIT:
-                aggregate_tags.append(tag)
-            else:
-                individual_tags.append(tag)
-
-        with sentry_sdk.start_span(
-            op="discover.discover", description="facets.individual_tags"
-        ) as span:
-            span.set_data("tag_count", len(individual_tags))
-            for tag_name in individual_tags:
-                tag = f"tags[{tag_name}]"
-                tag_value_builder = QueryBuilder(
-                    Dataset.Discover,
-                    params,
-                    query=query,
-                    selected_columns=["count()", tag],
-                    orderby=["-count()"],
-                    limit=TOP_VALUES_DEFAULT_LIMIT,
-                    # Ensures Snuba will not apply FINAL
-                    turbo=sample_rate is not None,
-                    sample_rate=sample_rate,
-                )
-                tag_values = tag_value_builder.run_query(referrer)
-                results.extend(
-                    [
-                        FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
-                        for r in tag_values["data"]
-                    ]
-                )
-
-        if aggregate_tags:
-            with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
-                aggregate_value_builder = QueryBuilder(
-                    Dataset.Discover,
-                    params,
-                    query=(query if query is not None else "")
-                    + f" tags_key:[{','.join(aggregate_tags)}]",
-                    selected_columns=["count()", "tags_key", "tags_value"],
-                    orderby=["tags_key", "-count()"],
-                    limitby=("tags_key", TOP_VALUES_DEFAULT_LIMIT),
-                    # Ensures Snuba will not apply FINAL
-                    turbo=sample_rate is not None,
-                    sample_rate=sample_rate,
-                )
-                aggregate_values = aggregate_value_builder.run_query(referrer)
-                results.extend(
-                    [
-                        FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
-                        for r in aggregate_values["data"]
-                    ]
-                )
-
-        # Need to cast tuple values to str since the value might be None
-        return sorted(results, key=lambda result: (str(result.key), str(result.value)))
-
-    # temporarily add old-json to referrer
-    referrer = f"{referrer}.old-json"
-
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.filter_transform"
-    ) as span:
-        span.set_data("query", query)
-        snuba_filter = get_filter(query, params)
-
-        # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
-
-    # Exclude tracing tags as they are noisy and generally not helpful.
-    # TODO(markus): Tracing tags are no longer written but may still reside in DB.
-    excluded_tags = ["tags_key", "NOT IN", ["trace", "trace.ctx", "trace.span", "project"]]
-
-    # Sampling keys for multi-project results as we don't need accuracy
-    # with that much data.
-    sample = len(snuba_filter.filter_keys["project_id"]) > 2
+    sample = len(params["project_id"]) > 2
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
-        # Get the most frequent tag keys
-        key_names = raw_query(
-            aggregations=[["count", None, "count"]],
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            conditions=snuba_filter.conditions,
-            filter_keys=snuba_filter.filter_keys,
-            orderby=["-count", "tags_key"],
-            groupby="tags_key",
-            having=[excluded_tags],
-            dataset=Dataset.Discover,
+        key_name_builder = QueryBuilder(
+            Dataset.Discover,
+            params,
+            query=query,
+            selected_columns=["tags_key", "count()"],
+            orderby=["-count()", "tags_key"],
             limit=limit,
-            referrer=referrer,
             turbo=sample,
         )
+        key_names = key_name_builder.run_query(referrer)
+        # Sampling keys for multi-project results as we don't need accuracy
+        # with that much data.
         top_tags = [r["tags_key"] for r in key_names["data"]]
         if not top_tags:
             return []
 
-    # TODO(mark) Make the sampling rate scale based on the result size and scaling factor in
+    # TODO: Make the sampling rate scale based on the result size and scaling factor in
     # sentry.options. To test the lowest acceptable sampling rate, we use 0.1 which
     # is equivalent to turbo. We don't use turbo though as we need to re-scale data, and
     # using turbo could cause results to be wrong if the value of turbo is changed in snuba.
-    sampling_enabled = options.get("discover2.tags_facet_enable_sampling")
-    sample_rate = 0.1 if (sampling_enabled and key_names["data"][0]["count"] > 10000) else None
+    sample_rate = 0.1 if (key_names["data"][0]["count"] > 10000) else None
     # Rescale the results if we're sampling
     multiplier = 1 / sample_rate if sample_rate is not None else 1
 
@@ -1250,20 +608,17 @@ def get_facets(
     results = []
     if fetch_projects:
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
-            project_values = raw_query(
-                aggregations=[["count", None, "count"]],
-                start=snuba_filter.start,
-                end=snuba_filter.end,
-                conditions=snuba_filter.conditions,
-                filter_keys=snuba_filter.filter_keys,
-                groupby="project_id",
-                orderby="-count",
-                dataset=Dataset.Discover,
-                referrer=referrer,
-                sample=sample_rate,
+            project_value_builder = QueryBuilder(
+                Dataset.Discover,
+                params,
+                query=query,
+                selected_columns=["count()", "project_id"],
+                orderby=["-count()"],
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
+                sample_rate=sample_rate,
             )
+            project_values = project_value_builder.run_query(referrer=referrer)
             results.extend(
                 [
                     FacetResult("project", r["project_id"], int(r["count"]) * multiplier)
@@ -1274,14 +629,13 @@ def get_facets(
     # Get tag counts for our top tags. Fetching them individually
     # allows snuba to leverage promoted tags better and enables us to get
     # the value count we want.
-    max_aggregate_tags = options.get("discover2.max_tags_to_combine")
     individual_tags = []
     aggregate_tags = []
     for i, tag in enumerate(top_tags):
         if tag == "environment":
             # Add here tags that you want to be individual
             individual_tags.append(tag)
-        elif i >= len(top_tags) - max_aggregate_tags:
+        elif i >= len(top_tags) - TOP_KEYS_DEFAULT_LIMIT:
             aggregate_tags.append(tag)
         else:
             individual_tags.append(tag)
@@ -1292,21 +646,18 @@ def get_facets(
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
             tag = f"tags[{tag_name}]"
-            tag_values = raw_query(
-                aggregations=[["count", None, "count"]],
-                conditions=snuba_filter.conditions,
-                start=snuba_filter.start,
-                end=snuba_filter.end,
-                filter_keys=snuba_filter.filter_keys,
-                orderby=["-count"],
-                groupby=[tag],
+            tag_value_builder = QueryBuilder(
+                Dataset.Discover,
+                params,
+                query=query,
+                selected_columns=["count()", tag],
+                orderby=["-count()"],
                 limit=TOP_VALUES_DEFAULT_LIMIT,
-                dataset=Dataset.Discover,
-                referrer=referrer,
-                sample=sample_rate,
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
+                sample_rate=sample_rate,
             )
+            tag_values = tag_value_builder.run_query(referrer)
             results.extend(
                 [
                     FacetResult(tag_name, r[tag], int(r["count"]) * multiplier)
@@ -1316,31 +667,28 @@ def get_facets(
 
     if aggregate_tags:
         with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
-            conditions = snuba_filter.conditions
-            conditions.append(["tags_key", "IN", aggregate_tags])
-            tag_values = raw_query(
-                aggregations=[["count", None, "count"]],
-                conditions=conditions,
-                start=snuba_filter.start,
-                end=snuba_filter.end,
-                filter_keys=snuba_filter.filter_keys,
-                orderby=["tags_key", "-count"],
-                groupby=["tags_key", "tags_value"],
-                dataset=Dataset.Discover,
-                referrer=referrer,
-                sample=sample_rate,
+            aggregate_value_builder = QueryBuilder(
+                Dataset.Discover,
+                params,
+                query=(query if query is not None else "")
+                + f" tags_key:[{','.join(aggregate_tags)}]",
+                selected_columns=["count()", "tags_key", "tags_value"],
+                orderby=["tags_key", "-count()"],
+                limitby=("tags_key", TOP_VALUES_DEFAULT_LIMIT),
                 # Ensures Snuba will not apply FINAL
                 turbo=sample_rate is not None,
-                limitby=[TOP_VALUES_DEFAULT_LIMIT, "tags_key"],
+                sample_rate=sample_rate,
             )
+            aggregate_values = aggregate_value_builder.run_query(referrer)
             results.extend(
                 [
                     FacetResult(r["tags_key"], r["tags_value"], int(r["count"]) * multiplier)
-                    for r in tag_values["data"]
+                    for r in aggregate_values["data"]
                 ]
             )
 
-    return results
+    # Need to cast tuple values to str since the value might be None
+    return sorted(results, key=lambda result: (str(result.key), str(result.value)))
 
 
 def spans_histogram_query(
@@ -1378,7 +726,7 @@ def spans_histogram_query(
     :param [Condition] extra_condition: Adds any additional conditions to the histogram query
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
-    multiplier = int(10 ** precision)
+    multiplier = int(10**precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
@@ -1413,6 +761,13 @@ def spans_histogram_query(
     )
     if extra_condition is not None:
         builder.add_conditions(extra_condition)
+
+    builder.add_conditions(
+        [
+            Condition(Function("has", [builder.column("spans_op"), span.op]), Op.EQ, 1),
+            Condition(Function("has", [builder.column("spans_group"), span.group]), Op.EQ, 1),
+        ]
+    )
     results = builder.run_query(referrer)
 
     if not normalize_results:
@@ -1436,9 +791,7 @@ def histogram_query(
     limit_by=None,
     histogram_rows=None,
     extra_conditions=None,
-    extra_snql_condition=None,
     normalize_results=True,
-    use_snql=True,
 ):
     """
     API for generating histograms for numeric columns.
@@ -1462,18 +815,22 @@ def histogram_query(
     :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
     :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
     :param int histogram_rows: Used to modify the limit when fetching multiple rows of buckets (performance facets).
-    :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
-    :param [Condition] extra_snql_condition: Replacement for extra_condition while migrating to snql
+    :param [Condition] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
 
-    multiplier = int(10 ** precision)
+    multiplier = int(10**precision)
     if max_value is not None:
         # We want the specified max_value to be exclusive, and the queried max_value
         # to be inclusive. So we adjust the specified max_value using the multiplier.
         max_value -= 0.1 / multiplier
     min_value, max_value = find_histogram_min_max(
-        fields, min_value, max_value, user_query, params, data_filter, use_snql
+        fields,
+        min_value,
+        max_value,
+        user_query,
+        params,
+        data_filter,
     )
 
     key_column = None
@@ -1500,87 +857,25 @@ def histogram_query(
             fields, key_column, histogram_params, {"data": []}, array_column
         )
 
-    if use_snql:
-        builder = HistogramQueryBuilder(
-            num_buckets,
-            histogram_column,
-            histogram_rows,
-            histogram_params,
-            key_column,
-            field_names,
-            group_by,
-            # Arguments for QueryBuilder
-            Dataset.Discover,
-            params,
-            query=user_query,
-            selected_columns=fields,
-            orderby=order_by,
-            limitby=limit_by,
-        )
-        if extra_snql_condition is not None:
-            builder.add_conditions(extra_snql_condition)
-        results = builder.run_query(referrer)
-    else:
-        # temporarily add old-json to referrer
-        referrer = f"{referrer}.old-json"
-        conditions = []
-        if key_column is not None:
-            key_alias = get_function_alias(key_column)
-            conditions.append([key_alias, "IN", field_names])
-
-        if extra_conditions:
-            conditions.extend(extra_conditions)
-
-        histogram_alias = get_function_alias(histogram_column)
-
-        # make sure to bound the bins to get the desired range of results
-        if min_value is not None:
-            min_bin = histogram_params.start_offset
-            conditions.append([histogram_alias, ">=", min_bin])
-        if max_value is not None:
-            max_bin = histogram_params.start_offset + histogram_params.bucket_size * num_buckets
-            conditions.append([histogram_alias, "<=", max_bin])
-
-        columns = [] if key_column is None else [key_column]
-        groups = len(fields) if histogram_rows is None else histogram_rows
-        limit = groups * num_buckets
-
-        histogram_query = prepare_discover_query(
-            selected_columns=columns + [histogram_column, "count()"],
-            conditions=conditions,
-            query=user_query,
-            params=params,
-            orderby=(order_by if order_by else []) + [histogram_alias],
-            functions_acl=["array_join", "histogram"],
-        )
-
-        snuba_filter = histogram_query.filter
-
-        if group_by:
-            snuba_filter.groupby += group_by
-
-        result = raw_query(
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            groupby=snuba_filter.groupby,
-            conditions=snuba_filter.conditions,
-            aggregations=snuba_filter.aggregations,
-            selected_columns=snuba_filter.selected_columns,
-            filter_keys=snuba_filter.filter_keys,
-            having=snuba_filter.having,
-            orderby=snuba_filter.orderby,
-            dataset=Dataset.Discover,
-            limitby=limit_by,
-            limit=limit,
-            referrer=referrer,
-        )
-
-        results = transform_results(
-            result,
-            histogram_query.fields["functions"],
-            histogram_query.columns,
-            snuba_filter,
-        )
+    builder = HistogramQueryBuilder(
+        num_buckets,
+        histogram_column,
+        histogram_rows,
+        histogram_params,
+        key_column,
+        field_names,
+        group_by,
+        # Arguments for QueryBuilder
+        Dataset.Discover,
+        params,
+        query=user_query,
+        selected_columns=fields,
+        orderby=order_by,
+        limitby=limit_by,
+    )
+    if extra_conditions is not None:
+        builder.add_conditions(extra_conditions)
+    results = builder.run_query(referrer)
 
     if not normalize_results:
         return results
@@ -1756,7 +1051,7 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
 
 
 def find_histogram_min_max(
-    fields, min_value, max_value, user_query, params, data_filter=None, use_snql=True
+    fields, min_value, max_value, user_query, params, data_filter=None, query_fn=None
 ):
     """
     Find the min/max value of the specified fields. If either min/max is already
@@ -1787,13 +1082,14 @@ def find_histogram_min_max(
             quartiles.append(f"percentile({field}, 0.25)")
             quartiles.append(f"percentile({field}, 0.75)")
 
-    results = query(
+    if query_fn is None:
+        query_fn = query
+    results = query_fn(
         selected_columns=min_columns + max_columns + quartiles,
         query=user_query,
         params=params,
         limit=1,
         referrer="api.organization-events-histogram-min-max",
-        use_snql=use_snql,
     )
 
     data = results.get("data")

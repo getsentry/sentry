@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -121,7 +121,7 @@ type Props = {
   trendView?: TrendView;
 };
 
-class _TransactionsList extends React.Component<Props> {
+class _TransactionsList extends Component<Props> {
   static defaultProps = {
     cursorName: 'transactionCursor',
     limit: DEFAULT_TRANSACTION_LIMIT,
@@ -174,7 +174,7 @@ class _TransactionsList extends React.Component<Props> {
     } = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <div>
           <DropdownControl
             button={({isOpen, getActorProps}) => (
@@ -233,7 +233,7 @@ class _TransactionsList extends React.Component<Props> {
               </DiscoverButton>
             </GuideAnchor>
           ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -254,7 +254,7 @@ class _TransactionsList extends React.Component<Props> {
     const cursor = decodeScalar(location.query?.[cursorName]);
 
     const tableRenderer = ({isLoading, pageLinks, tableData}) => (
-      <React.Fragment>
+      <Fragment>
         <Header>
           {this.renderHeader()}
           <StyledPagination
@@ -274,7 +274,7 @@ class _TransactionsList extends React.Component<Props> {
           generateLink={generateLink}
           handleCellAction={handleCellAction}
         />
-      </React.Fragment>
+      </Fragment>
     );
 
     if (forceLoading) {
@@ -322,7 +322,7 @@ class _TransactionsList extends React.Component<Props> {
         limit={5}
       >
         {({isLoading, trendsData, pageLinks}) => (
-          <React.Fragment>
+          <Fragment>
             <Header>
               {this.renderHeader()}
               <StyledPagination
@@ -345,7 +345,7 @@ class _TransactionsList extends React.Component<Props> {
               ])}
               generateLink={generateLink}
             />
-          </React.Fragment>
+          </Fragment>
         )}
       </TrendsEventsDiscoverQuery>
     );
@@ -358,9 +358,9 @@ class _TransactionsList extends React.Component<Props> {
 
   render() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.isTrend() ? this.renderTrendsTable() : this.renderTransactionTable()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

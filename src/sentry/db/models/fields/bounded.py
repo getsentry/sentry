@@ -80,7 +80,6 @@ if settings.SENTRY_USE_BIG_INTS:
                 assert value <= self.MAX_VALUE
             return cast(int, super().get_prep_value(value))
 
-
 else:
     # we want full on classes for these
     class BoundedBigIntegerField(BoundedIntegerField):  # type: ignore

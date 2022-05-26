@@ -1,4 +1,5 @@
 import datetime
+import math
 import re
 from typing import List
 from unittest import mock
@@ -14,10 +15,12 @@ from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants
 from sentry.search.events.builder import (
+    HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     QueryBuilder,
     TimeseriesMetricQueryBuilder,
 )
+from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
@@ -482,7 +485,7 @@ class QueryBuilderTest(TestCase):
             sample_rate=0.1,
         )
         assert query.sample_rate == 0.1
-        snql_query = query.get_snql_query()
+        snql_query = query.get_snql_query().query
         snql_query.validate()
         assert snql_query.match.sample == 0.1
 
@@ -496,10 +499,10 @@ class QueryBuilderTest(TestCase):
             ],
             turbo=True,
         )
-        assert query.turbo.value
+        assert query.turbo
         snql_query = query.get_snql_query()
         snql_query.validate()
-        assert snql_query.turbo.value
+        assert snql_query.flags.turbo
 
     def test_auto_aggregation(self):
         query = QueryBuilder(
@@ -512,7 +515,7 @@ class QueryBuilderTest(TestCase):
             auto_aggregations=True,
             use_aggregate_conditions=True,
         )
-        snql_query = query.get_snql_query()
+        snql_query = query.get_snql_query().query
         snql_query.validate()
         self.assertCountEqual(
             snql_query.having,
@@ -540,7 +543,7 @@ class QueryBuilderTest(TestCase):
             auto_aggregations=True,
             use_aggregate_conditions=True,
         )
-        snql_query = query.get_snql_query()
+        snql_query = query.get_snql_query().query
         snql_query.validate()
         self.assertCountEqual(
             snql_query.having,
@@ -1415,6 +1418,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "transaction": indexer.resolve(self.organization.id, "baz_transaction"),
             "project": self.project.slug,
             "p95_transaction_duration": 200,
+            "count_unique_user": 0,
         }
         self.assertCountEqual(
             result["meta"],
@@ -1706,6 +1710,23 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             use_aggregate_conditions=False,
         )
 
+    def test_multiple_dataset_but_no_data(self):
+        """When there's no data from the primary dataset we shouldn't error out"""
+        result = MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "p50()",
+                "count_unique(user)",
+            ],
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+        ).run_query("test")
+        assert len(result["data"]) == 1
+        data = result["data"][0]
+        assert data["count_unique_user"] == 0
+        # Handled by the discover transform later so its fine that this is nan
+        assert math.isnan(data["p50"])
+
     @mock.patch("sentry.search.events.builder.raw_snql_query")
     @mock.patch("sentry.search.events.builder.indexer.resolve", return_value=-1)
     def test_dry_run_does_not_hit_indexer_or_clickhouse(self, mock_indexer, mock_query):
@@ -1759,13 +1780,14 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
         snql_query = query.get_snql_query()
         assert len(snql_query) == 1
-        assert snql_query[0].where == [
+        query = snql_query[0].query
+        assert query.where == [
             *self.default_conditions,
             *_metric_conditions(self.organization.id, ["transaction.duration"]),
         ]
-        assert snql_query[0].select == [_metric_percentile_definition(self.organization.id, "50")]
-        assert snql_query[0].match.name == "metrics_distributions"
-        assert snql_query[0].granularity.granularity == 60
+        assert query.select == [_metric_percentile_definition(self.organization.id, "50")]
+        assert query.match.name == "metrics_distributions"
+        assert query.granularity.granularity == 60
 
     def test_default_conditions(self):
         query = TimeseriesMetricQueryBuilder(
@@ -1963,7 +1985,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_run_query_with_hour_interval(self):
-        # See comment on resolve_time_column for explaination of this test
+        # See comment on resolve_time_column for explanation of this test
         self.start = datetime.datetime.now(timezone.utc).replace(
             hour=15, minute=30, second=0, microsecond=0
         )
@@ -2124,3 +2146,100 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 "user.email:foo@example.com release.build:[1.2.1]",
                 ["user.email", "release"],
             )
+
+
+class HistogramMetricQueryBuilderTest(MetricBuilderBaseTest):
+    def test_histogram_columns_set_on_builder(self):
+        builder = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=[
+                "histogram(transaction.duration)",
+                "histogram(measurements.lcp)",
+                "histogram(measurements.fcp) as test",
+            ],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        self.assertCountEqual(
+            builder.histogram_aliases,
+            [
+                "histogram_transaction_duration",
+                "histogram_measurements_lcp",
+                "test",
+            ],
+        )
+
+    def test_get_query(self):
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        self.store_metric(
+            450,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+
+        query = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=["histogram(transaction.duration)"],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        snql_query = query.run_query("test_query")
+        assert len(snql_query["data"]) == 1
+        # This data is intepolated via rebucket_histogram
+        assert snql_query["data"][0]["histogram_transaction_duration"] == [
+            (0.0, 100.0, 0),
+            (100.0, 200.0, 2),
+            (200.0, 300.0, 1),
+            (300.0, 400.0, 1),
+            (400.0, 500.0, 1),
+        ]
+
+    def test_query_normal_distribution(self):
+        for i in range(5):
+            for _ in range((5 - abs(i - 2)) ** 2):
+                self.store_metric(
+                    100 * i + 50,
+                    tags={"transaction": "foo_transaction"},
+                    timestamp=self.start + datetime.timedelta(minutes=5),
+                )
+
+        query = HistogramMetricQueryBuilder(
+            params=self.params,
+            query="",
+            selected_columns=["histogram(transaction.duration)"],
+            histogram_params=HistogramParams(
+                5,
+                100,
+                0,
+                1,  # not used by Metrics
+            ),
+        )
+        snql_query = query.run_query("test_query")
+        assert len(snql_query["data"]) == 1
+        # This data is intepolated via rebucket_histogram
+        assert snql_query["data"][0]["histogram_transaction_duration"] == [
+            (0.0, 100.0, 10),
+            (100.0, 200.0, 17),
+            (200.0, 300.0, 23),
+            (300.0, 400.0, 17),
+            (400.0, 500.0, 10),
+        ]

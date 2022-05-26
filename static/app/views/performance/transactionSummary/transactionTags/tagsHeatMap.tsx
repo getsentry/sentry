@@ -176,7 +176,6 @@ const TagsHeatMap = (
       },
     },
     xAxis: {
-      boundaryGap: true,
       type: 'category' as const,
       splitArea: {
         show: true,
@@ -356,8 +355,8 @@ const TagsHeatMap = (
 
                         return (
                           <div>
-                            {!transactionTableData.data.length ? <Placeholder /> : null}
-                            {[...transactionTableData.data].slice(0, 3).map(row => {
+                            {!transactionTableData?.data.length ? <Placeholder /> : null}
+                            {[...transactionTableData?.data].slice(0, 3).map(row => {
                               const target = generateTransactionLink(transactionName)(
                                 organization,
                                 row,
@@ -378,7 +377,9 @@ const TagsHeatMap = (
                                 </DropdownItem>
                               );
                             })}
-                            {moreEventsTarget && transactionTableData.data.length > 3 ? (
+                            {moreEventsTarget &&
+                            transactionTableData &&
+                            transactionTableData.data.length > 3 ? (
                               <DropdownItem width="small" to={moreEventsTarget}>
                                 <DropdownItemContainer>
                                   {t('View all events')}

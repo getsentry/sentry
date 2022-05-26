@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
@@ -26,11 +26,7 @@ import withApi from 'sentry/utils/withApi';
 import {handleCreateQuery, handleDeleteQuery} from './savedQuery/utils';
 import MiniGraph from './miniGraph';
 import QueryCard from './querycard';
-import {
-  constructAddQueryToDashboardLink,
-  getPrebuiltQueries,
-  handleAddQueryToDashboard,
-} from './utils';
+import {getPrebuiltQueries, handleAddQueryToDashboard} from './utils';
 
 type Props = {
   api: Client;
@@ -44,7 +40,7 @@ type Props = {
   savedQuerySearchQuery: string;
 };
 
-class QueryList extends React.Component<Props> {
+class QueryList extends Component<Props> {
   componentDidMount() {
     /**
      * We need to reset global selection here because the saved queries can define their own projects
@@ -166,27 +162,14 @@ class QueryList extends React.Component<Props> {
         {
           key: 'add-to-dashboard',
           label: t('Add to Dashboard'),
-          ...(organization.features.includes('new-widget-builder-experience') &&
-          !organization.features.includes('new-widget-builder-experience-design')
-            ? {
-                to: constructAddQueryToDashboardLink({
-                  eventView,
-                  query: view,
-                  organization,
-                  yAxis: view?.yAxis,
-                  location,
-                }),
-              }
-            : {
-                onAction: () =>
-                  handleAddQueryToDashboard({
-                    eventView,
-                    query: view,
-                    organization,
-                    yAxis: view?.yAxis,
-                    router,
-                  }),
-              }),
+          onAction: () =>
+            handleAddQueryToDashboard({
+              eventView,
+              query: view,
+              organization,
+              yAxis: view?.yAxis,
+              router,
+            }),
         },
       ];
 
@@ -253,27 +236,14 @@ class QueryList extends React.Component<Props> {
               {
                 key: 'add-to-dashboard',
                 label: t('Add to Dashboard'),
-                ...(organization.features.includes('new-widget-builder-experience') &&
-                !organization.features.includes('new-widget-builder-experience-design')
-                  ? {
-                      to: constructAddQueryToDashboardLink({
-                        eventView,
-                        query: savedQuery,
-                        organization,
-                        yAxis: savedQuery?.yAxis ?? eventView.yAxis,
-                        location,
-                      }),
-                    }
-                  : {
-                      onAction: () =>
-                        handleAddQueryToDashboard({
-                          eventView,
-                          query: savedQuery,
-                          organization,
-                          yAxis: savedQuery?.yAxis ?? eventView.yAxis,
-                          router,
-                        }),
-                    }),
+                onAction: () =>
+                  handleAddQueryToDashboard({
+                    eventView,
+                    query: savedQuery,
+                    organization,
+                    yAxis: savedQuery?.yAxis ?? eventView.yAxis,
+                    router,
+                  }),
               },
             ]
           : []),
@@ -333,7 +303,7 @@ class QueryList extends React.Component<Props> {
   render() {
     const {pageLinks} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <QueryGrid>{this.renderQueries()}</QueryGrid>
         <PaginationRow
           pageLinks={pageLinks}
@@ -353,7 +323,7 @@ class QueryList extends React.Component<Props> {
             });
           }}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

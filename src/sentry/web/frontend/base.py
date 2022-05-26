@@ -14,7 +14,6 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
@@ -419,27 +418,6 @@ class OrganizationView(BaseView):
 
         return (args, kwargs)
 
-    def get_allowed_roles(self, request: Request, organization, member=None):
-        can_admin = request.access.has_scope("member:admin")
-
-        allowed_roles = []
-        if can_admin and not is_active_superuser(request):
-            acting_member = OrganizationMember.objects.get(
-                user=request.user, organization=organization
-            )
-            if member and roles.get(acting_member.role).priority < roles.get(member.role).priority:
-                can_admin = False
-            else:
-                allowed_roles = [
-                    r
-                    for r in roles.get_all()
-                    if r.priority <= roles.get(acting_member.role).priority
-                ]
-                can_admin = bool(allowed_roles)
-        elif is_active_superuser(request):
-            allowed_roles = roles.get_all()
-        return (can_admin, allowed_roles)
-
 
 class ProjectView(OrganizationView):
     """
@@ -476,7 +454,7 @@ class ProjectView(OrganizationView):
                     project,
                 )
                 return False
-        elif not any(request.access.has_team(team) for team in teams):
+        elif not any(request.access.has_team_access(team) for team in teams):
             logger.info("User %s does not have access to project %s", request.user, project)
             return False
         return True

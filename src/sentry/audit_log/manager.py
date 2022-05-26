@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Optional
 
-from sentry_sdk import capture_exception
-
 from sentry.models.auditlogentry import AuditLogEntry
 
 
@@ -82,21 +80,21 @@ class AuditLogEventManager:
     def __init__(self) -> None:
         self._event_registry = {}
         self._event_id_lookup = {}
+        self._api_name_lookup = {}
 
     def add(self, audit_log_event: AuditLogEvent):
         if (
             audit_log_event.name in self._event_registry
             or audit_log_event.event_id in self._event_id_lookup
+            or audit_log_event.api_name in self._api_name_lookup
         ):
-            capture_exception(
-                DuplicateAuditLogEvent(
-                    f"Duplicate audit log: {audit_log_event.name} with ID {audit_log_event.event_id}"
-                )
+            raise DuplicateAuditLogEvent(
+                f"Duplicate audit log: {audit_log_event.name} with ID {audit_log_event.event_id} and api name {audit_log_event.api_name}"
             )
-            return
 
         self._event_registry[audit_log_event.name] = audit_log_event
         self._event_id_lookup[audit_log_event.event_id] = audit_log_event
+        self._api_name_lookup[audit_log_event.api_name] = audit_log_event
 
     def get(self, event_id: int) -> AuditLogEvent:
         if event_id not in self._event_id_lookup:
@@ -108,9 +106,10 @@ class AuditLogEventManager:
             raise AuditLogEventNotRegistered(f"Event {name} does not exist")
         return self._event_registry[name].event_id
 
+    def get_event_id_from_api_name(self, api_name: str) -> int:
+        if api_name not in self._api_name_lookup:
+            return None
+        return self._api_name_lookup[api_name].event_id
+
     def get_api_names(self) -> List[str]:
-        # returns a list of all the api names
-        api_names: list = []
-        for audit_log_event in self._event_registry.values():
-            api_names.append(audit_log_event.api_name)
-        return api_names
+        return self._api_name_lookup.keys()

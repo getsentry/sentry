@@ -12,6 +12,7 @@ import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import {
+  Fidelity,
   getDiffInMinutes,
   getInterval,
   SIX_HOURS,
@@ -148,7 +149,8 @@ export function miniWidget(displayType: DisplayType): string {
 
 export function getWidgetInterval(
   widget: Widget,
-  datetimeObj: Partial<PageFilters['datetime']>
+  datetimeObj: Partial<PageFilters['datetime']>,
+  fidelity?: Fidelity
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
   const MAX_BIN_COUNT = 66;
@@ -163,10 +165,10 @@ export function getWidgetInterval(
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
 
-  if (widget.widgetType === WidgetType.METRICS) {
-    // Lower fidelity for Release Health widgets because of what
-    // the sessions endpoint can currently support.
-    interval = getInterval(datetimeObj, 'medium');
+  if (fidelity) {
+    // Primarily to support lower fidelity for Release Health widgets
+    // the sort on releases and hit the metrics API endpoint.
+    interval = getInterval(datetimeObj, fidelity);
     if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
       interval = '1h';
     }
@@ -274,8 +276,28 @@ export function getWidgetIssueUrl(
     query: widget.queries?.[0]?.conditions,
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
   })}`;
   return issuesLocation;
+}
+
+export function getWidgetReleasesUrl(
+  _widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+  const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
+    ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
+  })}`;
+  return releasesLocation;
 }
 
 export function flattenErrors(
@@ -309,7 +331,11 @@ export function flattenErrors(
 export function getDashboardsMEPQueryParams(isMEPEnabled: boolean) {
   return isMEPEnabled
     ? {
-        metricsEnhanced: '1',
+        dataset: 'metricsEnhanced',
       }
     : {};
+}
+
+export function getNumEquations(possibleEquations: string[]) {
+  return possibleEquations.filter(isEquation).length;
 }

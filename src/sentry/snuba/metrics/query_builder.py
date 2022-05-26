@@ -3,7 +3,6 @@ __all__ = (
     "SnubaQueryBuilder",
     "SnubaResultConverter",
     "get_date_range",
-    "get_intervals",
     "parse_field",
     "parse_query",
     "resolve_tags",
@@ -13,7 +12,7 @@ import math
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
-from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Query
+from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
 from snuba_sdk.orderby import Direction, OrderBy
 
@@ -21,7 +20,9 @@ from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.filter import get_filter
 from sentry.sentry_metrics.utils import (
+    STRING_NOT_FOUND,
     resolve_tag_key,
     resolve_weak,
     reverse_resolve,
@@ -49,6 +50,7 @@ from sentry.snuba.metrics.utils import (
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistException,
+    get_intervals,
 )
 from sentry.snuba.sessions_v2 import ONE_DAY  # TODO: unite metrics and sessions_v2
 from sentry.snuba.sessions_v2 import AllowedResolution, InvalidField, finite_or_none
@@ -93,33 +95,72 @@ def parse_field(field: str, query_params) -> MetricField:
     return MetricField(operation, metric_name)
 
 
+# Allow these snuba functions.
+# These are only allowed because the parser in metrics_sessions_v2
+# generates them. Long term we should not allow any functions, but rather
+# a limited expression language with only AND, OR, IN and NOT IN
+FUNCTION_ALLOWLIST = ("and", "or", "equals", "in")
+
+
 def resolve_tags(org_id: int, input_: Any) -> Any:
     """Translate tags in snuba condition
 
-    This assumes that all strings are either tag names or tag values, so do not
-    pass Column("metric_id") or Column("project_id") into this function.
-
+    Column("metric_id") is not supported.
     """
+    if input_ is None:
+        return None
     if isinstance(input_, (list, tuple)):
-        return [resolve_tags(org_id, item) for item in input_]
+        elements = [resolve_tags(org_id, item) for item in input_]
+        # Lists are either arguments to IN or NOT IN. In both cases, we can
+        # drop unknown strings:
+        return [x for x in elements if x != STRING_NOT_FOUND]
     if isinstance(input_, Function):
         if input_.function == "ifNull":
             # This was wrapped automatically by QueryBuilder, remove wrapper
             return resolve_tags(org_id, input_.parameters[0])
-        return Function(
-            function=input_.function,
-            parameters=input_.parameters
-            and [resolve_tags(org_id, item) for item in input_.parameters],
-        )
+        elif input_.function == "isNull":
+            return Function(
+                "equals",
+                [
+                    resolve_tags(org_id, input_.parameters[0]),
+                    resolve_tags(org_id, ""),
+                ],
+            )
+        elif input_.function in FUNCTION_ALLOWLIST:
+            return Function(
+                function=input_.function,
+                parameters=input_.parameters
+                and [resolve_tags(org_id, item) for item in input_.parameters],
+            )
+    if (
+        isinstance(input_, Or)
+        and len(input_.conditions) == 2
+        and isinstance(c := input_.conditions[0], Condition)
+        and isinstance(c.lhs, Function)
+        and c.lhs.function == "isNull"
+        and c.op == Op.EQ
+        and c.rhs == 1
+    ):
+        # Remove another "null" wrapper. We should really write our own parser instead.
+        return resolve_tags(org_id, input_.conditions[1])
+
     if isinstance(input_, Condition):
+        if input_.op == Op.IS_NULL and input_.rhs is None:
+            return Condition(
+                lhs=resolve_tags(org_id, input_.lhs), op=Op.EQ, rhs=resolve_tags(org_id, "")
+            )
+
         return Condition(
             lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
         )
+
     if isinstance(input_, BooleanCondition):
         return input_.__class__(
             conditions=[resolve_tags(org_id, item) for item in input_.conditions]
         )
     if isinstance(input_, Column):
+        if input_.name == "project_id":
+            return input_
         # HACK: Some tags already take the form "tags[...]" in discover, take that into account:
         if input_.subscriptable == "tags":
             name = input_.key
@@ -128,11 +169,13 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
         return Column(name=resolve_tag_key(org_id, name))
     if isinstance(input_, str):
         return resolve_weak(org_id, input_)
+    if isinstance(input_, int):
+        return input_
 
-    return input_
+    raise InvalidParams("Unable to resolve conditions")
 
 
-def parse_query(query_string: str) -> Sequence[Condition]:
+def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
@@ -147,9 +190,33 @@ def parse_query(query_string: str) -> Sequence[Condition]:
             },
         )
         where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
+
+        # XXX(ahmed): Hack to accept project:slug filter as we are no longer maintaining the
+        # metrics API.
+        # Essentially prior to this change `project` slug query filters were treated as `tags[
+        # project]` filters, so I loop over the where list and when its found it popped out of
+        # the list and replaced with the appropriate `project_id` filter.
+        for idx, condition in enumerate(list(where)):
+            if isinstance(condition, Condition) and condition.lhs == Function(
+                "ifNull", parameters=[Column("tags[project]"), ""]
+            ):
+                del where[idx]
+
+                snuba_filter_conditions = get_filter(
+                    query_string, {"project_id": [p.id for p in projects]}
+                ).conditions
+                for snuba_condition in snuba_filter_conditions:
+                    if snuba_condition[0] == "project_id":
+                        where.append(
+                            Condition(
+                                Column(snuba_condition[0]),
+                                Op(snuba_condition[1]),
+                                snuba_condition[2],
+                            )
+                        )
+
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
-
     return where
 
 
@@ -168,7 +235,8 @@ class APIQueryDefinition:
         paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
-        self.parsed_query = parse_query(self.query) if self.query else None
+        self.parsed_query = parse_query(self.query, projects) if self.query else None
+
         raw_fields = query_params.getlist("field", [])
         self.groupby = query_params.getlist("groupBy", [])
 
@@ -180,8 +248,8 @@ class APIQueryDefinition:
             self.fields.append(parse_field(key, query_params))
 
         self.orderby = self._parse_orderby(query_params)
-        self.limit: Optional[Limit] = self._parse_limit(query_params, paginator_kwargs)
-        self.offset = self._parse_offset(query_params, paginator_kwargs)
+        self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
+        self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -201,9 +269,6 @@ class APIQueryDefinition:
 
         if not (self.include_series or self.include_totals):
             raise InvalidParams("Cannot omit both series and totals")
-
-        # Validates that time series limit will not exceed the snuba limit of 10,000
-        self._validate_series_limit(query_params)
 
     def to_query_definition(self) -> QueryDefinition:
         return QueryDefinition(
@@ -246,49 +311,15 @@ class APIQueryDefinition:
 
         return MetricsOrderBy(field, direction)
 
-    def _parse_limit(self, query_params, paginator_kwargs):
-        if self.orderby:
-            return Limit(paginator_kwargs.get("limit"))
-        else:
-            per_page = query_params.get("per_page")
-            if per_page is not None:
-                # If order by is not None, it means we will have a `series` query which cannot be
-                # paginated, and passing a `per_page` url param to paginate the results is not
-                # possible
-                raise InvalidParams("'per_page' is only supported in combination with 'orderBy'")
-            return None
+    def _parse_limit(self, paginator_kwargs) -> Optional[Limit]:
+        if "limit" not in paginator_kwargs:
+            return
+        return Limit(paginator_kwargs["limit"])
 
-    def _parse_offset(self, query_params, paginator_kwargs):
-        if self.orderby:
-            return paginator_kwargs.get("offset")
-        else:
-            cursor = query_params.get("cursor")
-            if cursor is not None:
-                # If order by is not None, it means we will have a `series` query which cannot be
-                # paginated, and passing a `per_page` url param to paginate the results is not
-                # possible
-                raise InvalidParams("'cursor' is only supported in combination with 'orderBy'")
-            return None
-
-    def _validate_series_limit(self, query_params):
-        if self.limit:
-            if (
-                self.end - self.start
-            ).total_seconds() / self.rollup * self.limit.limit > MAX_POINTS:
-                raise InvalidParams(
-                    f"Requested interval of {query_params.get('interval', '1h')} with statsPeriod of "
-                    f"{query_params.get('statsPeriod')} is too granular for a per_page of "
-                    f"{self.limit.limit} elements. Increase your interval, decrease your statsPeriod, "
-                    f"or decrease your per_page parameter."
-                )
-
-
-def get_intervals(start: datetime, end: datetime, granularity: int):
-    assert granularity > 0
-    delta = timedelta(seconds=granularity)
-    while start < end:
-        yield start
-        start += delta
+    def _parse_offset(self, paginator_kwargs) -> Optional[Offset]:
+        if "offset" not in paginator_kwargs:
+            return
+        return Offset(paginator_kwargs["offset"])
 
 
 def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
@@ -316,7 +347,7 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     if ONE_DAY % interval != 0:
         raise InvalidParams("The interval should divide one day without a remainder.")
 
-    start, end = get_date_range_from_params(params)
+    start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
 
     date_range = end - start
 
@@ -386,6 +417,7 @@ class SnubaQueryBuilder:
         op = orderby.field.op
         metric_mri = get_mri(orderby.field.metric_name)
         metric_field_obj = metric_object_factory(op, metric_mri)
+
         return metric_field_obj.generate_orderby_clause(
             projects=self._projects,
             direction=orderby.direction,
@@ -397,13 +429,12 @@ class SnubaQueryBuilder:
     ):
         rv = {}
         totals_query = Query(
-            dataset=Dataset.Metrics.value,
             match=Entity(entity),
             groupby=groupby,
             select=select,
             where=where,
-            limit=limit or Limit(MAX_POINTS),
-            offset=Offset(offset or 0),
+            limit=limit,
+            offset=offset or Offset(0),
             granularity=rollup,
             orderby=orderby,
         )
@@ -412,15 +443,10 @@ class SnubaQueryBuilder:
             rv["totals"] = totals_query
 
         if self._query_definition.include_series:
-            series_query = totals_query.set_groupby(
-                (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+            series_limit = limit.limit * intervals_len
+            rv["series"] = totals_query.set_limit(series_limit).set_groupby(
+                list(totals_query.groupby or []) + [Column(TS_COL_GROUP)]
             )
-
-            # In a series query, we also need to factor in the len of the intervals array
-            series_limit = MAX_POINTS
-            if limit:
-                series_limit = limit.limit * intervals_len
-            rv["series"] = series_query.set_limit(series_limit)
 
         return rv
 

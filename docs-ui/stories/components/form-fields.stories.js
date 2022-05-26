@@ -3,6 +3,7 @@ import {action} from '@storybook/addon-actions';
 import NewBooleanField from 'sentry/components/forms/booleanField';
 import CheckboxField from 'sentry/components/forms/checkboxField';
 import CompactSelect from 'sentry/components/forms/compactSelect';
+import CompositeSelect from 'sentry/components/forms/compositeSelect';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import DatePickerField from 'sentry/components/forms/datePickerField';
@@ -337,6 +338,8 @@ CompactSelectField.args = {
   menuTitle: '',
   isSearchable: false,
   isDisabled: false,
+  isClearable: false,
+  isLoading: false,
   multiple: false,
   placeholder: 'Search…',
   closeOnSelect: true,
@@ -369,6 +372,37 @@ CompactSelectField.argTypes = {
     control: {type: 'radio'},
   },
 };
+
+export const CompositeSelectField = props => (
+  <CompositeSelect
+    sections={[
+      {
+        label: 'Group 1',
+        value: 'group_1',
+        defaultValue: 'choice_one',
+        options: [
+          {value: 'choice_one', label: 'Choice One'},
+          {value: 'choice_two', label: 'Choice Two'},
+        ],
+      },
+      {
+        label: 'Group 2',
+        value: 'group_2',
+        defaultValue: ['choice_three'],
+        multiple: true,
+        options: [
+          {value: 'choice_three', label: 'Choice Three'},
+          {value: 'choice_four', label: 'Choice Four'},
+        ],
+      },
+    ]}
+    {...props}
+  />
+);
+CompositeSelectField.storyName = 'Select - Composite';
+CompositeSelectField.args = {...CompactSelectField.args};
+delete CompositeSelectField.args.multiple;
+CompositeSelectField.argTypes = CompactSelectField.argTypes;
 
 export const NonInlineField = () => (
   <Form>

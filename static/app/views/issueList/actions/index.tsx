@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
@@ -47,7 +47,7 @@ type State = {
   selectedProjectSlug?: string;
 };
 
-class IssueListActions extends React.Component<Props, State> {
+class IssueListActions extends Component<Props, State> {
   state: State = {
     anySelected: false,
     multiSelected: false, // more than one selected
@@ -272,7 +272,6 @@ class IssueListActions extends React.Component<Props, State> {
             <ActionSet
               sort={this.props.sort}
               onSortChange={this.props.onSortChange}
-              hasPageFilters={organization.features.includes('selection-filters-v2')}
               orgSlug={organization.slug}
               queryCount={queryCount}
               query={query}
@@ -311,7 +310,7 @@ class IssueListActions extends React.Component<Props, State> {
                 })
               )
             ) : (
-              <React.Fragment>
+              <Fragment>
                 {tn(
                   '%s issue on this page selected.',
                   '%s issues on this page selected.',
@@ -329,7 +328,7 @@ class IssueListActions extends React.Component<Props, State> {
                         count: queryCount,
                       })}
                 </SelectAllLink>
-              </React.Fragment>
+              </Fragment>
             )}
           </SelectAllNotice>
         )}

@@ -2,6 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GroupSidebar from 'sentry/components/group/sidebar';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('GroupSidebar', function () {
   let group = TestStubs.Group({tags: TestStubs.Tags()});
@@ -9,6 +10,16 @@ describe('GroupSidebar', function () {
   const environment = {name: 'production', displayName: 'Production', id: '1'};
   let wrapper;
   let tagsMock;
+
+  const mountWithThemeAndOrg = (component, opts) =>
+    mountWithTheme(component, {
+      ...opts,
+      wrappingComponent: ({children}) => (
+        <OrganizationContext.Provider value={organization}>
+          {children}
+        </OrganizationContext.Provider>
+      ),
+    });
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -68,7 +79,7 @@ describe('GroupSidebar', function () {
       body: TestStubs.Tags(),
     });
 
-    wrapper = mountWithTheme(
+    wrapper = mountWithThemeAndOrg(
       <GroupSidebar
         group={group}
         project={project}
@@ -114,7 +125,7 @@ describe('GroupSidebar', function () {
         body: [],
       });
 
-      wrapper = mountWithTheme(
+      wrapper = mountWithThemeAndOrg(
         <GroupSidebar
           api={new MockApiClient()}
           group={group}

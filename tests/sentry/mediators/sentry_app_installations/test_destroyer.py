@@ -4,13 +4,13 @@ import responses
 from django.db import connection
 from requests.exceptions import RequestException
 
+from sentry import audit_log
 from sentry.constants import SentryAppStatus
 from sentry.mediators.sentry_app_installations import Creator, Destroyer
 from sentry.models import (
     ApiGrant,
     ApiToken,
     AuditLogEntry,
-    AuditLogEntryEvent,
     SentryAppInstallation,
     SentryAppInstallationForProvider,
     ServiceHook,
@@ -115,7 +115,9 @@ class TestDestroyer(TestCase):
         responses.add(responses.POST, "https://example.com/webhook")
         request = self.make_request(user=self.user, method="GET")
         Destroyer.run(install=self.install, user=self.user, request=request)
-        assert AuditLogEntry.objects.filter(event=AuditLogEntryEvent.SENTRY_APP_UNINSTALL).exists()
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SENTRY_APP_UNINSTALL")
+        ).exists()
 
     @responses.activate
     def test_soft_deletes_installation(self):

@@ -77,30 +77,18 @@ function EventsContent(props: Props) {
 
   return (
     <Layout.Main fullWidth>
-      {organization.features.includes('selection-filters-v2') && (
-        <StyledPageFilterBar condensed>
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </StyledPageFilterBar>
-      )}
       <Search {...props} />
-      <StyledTable>
-        <EventsTable
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          setError={setError}
-          columnTitles={transactionsListTitles}
-          transactionName={transactionName}
-        />
-      </StyledTable>
+      <EventsTable
+        eventView={eventView}
+        organization={organization}
+        location={location}
+        setError={setError}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+      />
     </Layout.Main>
   );
 }
-
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
-`;
 
 function Search(props: Props) {
   const {
@@ -125,7 +113,10 @@ function Search(props: Props) {
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   };
 
@@ -137,12 +128,16 @@ function Search(props: Props) {
   );
 
   return (
-    <SearchWrapper>
+    <FilterActions>
       <Filter
         organization={organization}
         currentFilter={spanOperationBreakdownFilter}
         onChangeFilter={onChangeSpanOperationBreakdownFilter}
       />
+      <PageFilterBar condensed>
+        <EnvironmentPageFilter />
+        <DatePageFilter alignDropdown="left" />
+      </PageFilterBar>
       <StyledSearchBar
         organization={organization}
         projectIds={eventView.project}
@@ -150,52 +145,55 @@ function Search(props: Props) {
         fields={eventView.fields}
         onSearch={handleSearch}
       />
-      <SearchRowMenuItem>
-        <DropdownControl
-          buttonProps={{prefix: t('Percentile')}}
-          label={eventsFilterOptions[eventsDisplayFilterName].label}
-        >
-          {Object.entries(eventsFilterOptions).map(([name, filter]) => {
-            return (
-              <DropdownItem
-                key={name}
-                onSelect={onChangeEventsDisplayFilter}
-                eventKey={name}
-                data-test-id={name}
-                isActive={eventsDisplayFilterName === name}
-              >
-                {filter.label}
-              </DropdownItem>
-            );
-          })}
-        </DropdownControl>
-      </SearchRowMenuItem>
-      <SearchRowMenuItem>
-        <Button to={eventView.getResultsViewUrlTarget(organization.slug)}>
-          {t('Open in Discover')}
-        </Button>
-      </SearchRowMenuItem>
-    </SearchWrapper>
+      <DropdownControl
+        buttonProps={{prefix: t('Percentile')}}
+        label={eventsFilterOptions[eventsDisplayFilterName].label}
+      >
+        {Object.entries(eventsFilterOptions).map(([name, filter]) => {
+          return (
+            <DropdownItem
+              key={name}
+              onSelect={onChangeEventsDisplayFilter}
+              eventKey={name}
+              data-test-id={name}
+              isActive={eventsDisplayFilterName === name}
+            >
+              {filter.label}
+            </DropdownItem>
+          );
+        })}
+      </DropdownControl>
+      <Button to={eventView.getResultsViewUrlTarget(organization.slug)}>
+        {t('Open in Discover')}
+      </Button>
+    </FilterActions>
   );
 }
 
-const SearchWrapper = styled('div')`
-  display: flex;
-  width: 100%;
-  margin-bottom: ${space(3)};
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(4, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: auto auto 1fr auto auto;
+  }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-`;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    order: 1;
+    grid-column: 1/6;
+  }
 
-const StyledTable = styled('div')`
-  flex-grow: 1;
-`;
-
-const SearchRowMenuItem = styled('div')`
-  margin-left: ${space(1)};
-  flex-grow: 0;
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
+  }
 `;
 
 export default EventsContent;

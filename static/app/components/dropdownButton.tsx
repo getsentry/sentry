@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import Button, {ButtonProps} from 'sentry/components/button';
@@ -116,7 +116,11 @@ const StyledButton = styled(Button)<
   &:active,
   &:focus,
   &:hover {
-    ${p => p.isOpen && p.hideBottomBorder && `border-bottom-color: transparent;`}
+    ${p =>
+      p.isOpen &&
+      p.hideBottomBorder &&
+      !p.detached &&
+      `border-bottom-color: transparent;`}
   }
 `;
 
@@ -128,6 +132,6 @@ const LabelText = styled('span')`
   }
 `;
 
-export default React.forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
+export default forwardRef<typeof Button, DropdownButtonProps>((props, ref) => (
   <DropdownButton forwardedRef={ref} {...props} />
 ));

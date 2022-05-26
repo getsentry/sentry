@@ -40,7 +40,7 @@ const AuditLogList = ({
   const hasEntries = entries && entries.length > 0;
   const ipv4Length = 15;
   const options = [
-    {value: '', label: t('Any action'), clearableVaue: false},
+    {value: '', label: t('Any action'), clearableValue: false},
     ...eventTypes.map(type => ({label: type, value: type, clearableValue: false})),
   ];
 

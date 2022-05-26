@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {getCommitters} from 'sentry/actionCreators/committers';
 import {Client} from 'sentry/api';
@@ -30,7 +30,7 @@ const initialState: InjectedProps = {
 function withCommitters<P extends DependentProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  class WithCommitters extends React.Component<
+  class WithCommitters extends Component<
     Omit<P, keyof InjectedProps> & Partial<InjectedProps> & DependentProps,
     InjectedProps
   > {

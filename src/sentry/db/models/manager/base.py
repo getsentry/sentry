@@ -14,7 +14,6 @@ from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
 from sentry.utils.cache import cache
-from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger("sentry")
@@ -226,7 +225,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         model: M = super().get(*args, **kwargs)
         return model
 
-    def get_from_cache(self, **kwargs: Any) -> M:
+    def get_from_cache(self, use_replica: bool = False, **kwargs: Any) -> M:
         """
         Wrapper around QuerySet.get which supports caching of the
         intermediate value.  Callee is responsible for making sure
@@ -258,7 +257,9 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
             retval = cache.get(cache_key, version=self.cache_version)
             if retval is None:
-                result = self.get(**kwargs)
+                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
+                # need to satisfy mypy
+                assert result
                 # Ensure we're pushing it into the cache
                 self.__post_save(instance=result)
                 if local_cache is not None:
@@ -277,14 +278,15 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
                 if settings.DEBUG:
                     raise ValueError("Unexpected value type returned from cache")
                 logger.error("Cache response returned invalid value %r", retval)
-                return self.get(**kwargs)
+                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
 
             if key == pk_name and int(value) != retval.pk:
                 if settings.DEBUG:
                     raise ValueError("Unexpected value returned from cache")
                 logger.error("Cache response returned invalid value %r", retval)
-                return self.get(**kwargs)
+                result = self.using_replica().get(**kwargs) if use_replica else self.get(**kwargs)
 
+            kwargs = {**kwargs, "replica": True} if use_replica else {**kwargs}
             retval._state.db = router.db_for_read(self.model, **kwargs)
 
             # Explicitly typing to satisfy mypy.

@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-
 import {t} from 'sentry/locale';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
 
@@ -42,7 +40,7 @@ export const LEGACY_BROWSER_LIST = {
   },
 };
 
-export function getInnerNameLabel(name: DynamicSamplingInnerName) {
+export function getInnerNameLabel(name: DynamicSamplingInnerName | string) {
   switch (name) {
     case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
     case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
@@ -73,9 +71,43 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName) {
       return t('Content Security Policy');
     case DynamicSamplingInnerName.EVENT_IP_ADDRESSES:
       return t('IP Address');
-    default: {
-      Sentry.captureException(new Error('Unknown dynamic sampling condition inner name'));
-      return null; // this shall never happen
-    }
+    case DynamicSamplingInnerName.EVENT_OS_NAME:
+      return t('OS Name');
+    case DynamicSamplingInnerName.EVENT_OS_VERSION:
+      return t('OS Version');
+    case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
+      return t('Device Family');
+    case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
+      return t('Device Name');
+    case DynamicSamplingInnerName.EVENT_CUSTOM_TAG:
+      return t('Custom Tag');
+
+    default:
+      return `${stripCustomTagPrefix(name)} - ${t('Custom')}`;
   }
+}
+
+const CUSTOM_TAG_PREFIX = 'event.tags.';
+
+export function isCustomTagName(name: DynamicSamplingInnerName | string): boolean {
+  return (
+    name === DynamicSamplingInnerName.EVENT_CUSTOM_TAG ||
+    name.startsWith(CUSTOM_TAG_PREFIX)
+  );
+}
+
+export function stripCustomTagPrefix(name: string): string {
+  if (name.startsWith(CUSTOM_TAG_PREFIX)) {
+    return name.replace(CUSTOM_TAG_PREFIX, '');
+  }
+
+  return name;
+}
+
+export function addCustomTagPrefix(name: string): string {
+  if (name.startsWith(CUSTOM_TAG_PREFIX)) {
+    return name;
+  }
+
+  return `${CUSTOM_TAG_PREFIX}${name}`;
 }

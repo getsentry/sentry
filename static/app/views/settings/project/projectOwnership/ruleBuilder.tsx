@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -54,7 +54,7 @@ type State = {
   type: string;
 };
 
-class RuleBuilder extends React.Component<Props, State> {
+class RuleBuilder extends Component<Props, State> {
   state: State = initialState;
 
   checkIsValid = () => {
@@ -117,7 +117,7 @@ class RuleBuilder extends React.Component<Props, State> {
     const {type, text, tagName, owners, isValid} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {(paths || urls) && (
           <Candidates>
             {paths &&
@@ -192,7 +192,7 @@ class RuleBuilder extends React.Component<Props, State> {
             aria-label={t('Add rule')}
           />
         </BuilderBar>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

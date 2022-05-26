@@ -199,7 +199,7 @@ function Anomalies(props: AnomaliesSectionProps) {
       component: provided => <Fragment>{provided.children(props.queryData)}</Fragment>,
       transform: transformAnomalyData,
     };
-  }, [props.eventView, props.queryData]);
+  }, [props.queryData]);
 
   return (
     <GenericPerformanceWidget<DataType>
@@ -275,19 +275,19 @@ function AnomaliesContent(props: Props) {
   }
   return (
     <Layout.Main fullWidth>
-      {organization.features.includes('selection-filters-v2') && (
-        <StyledPageFilterBar condensed>
+      <FilterActions>
+        <PageFilterBar condensed>
           <EnvironmentPageFilter />
           <DatePageFilter alignDropdown="left" />
-        </StyledPageFilterBar>
-      )}
-      <SearchBar
-        organization={organization}
-        projectIds={eventView.project}
-        query={query}
-        fields={eventView.fields}
-        onSearch={handleChange('query')}
-      />
+        </PageFilterBar>
+        <SearchBar
+          organization={organization}
+          projectIds={eventView.project}
+          query={query}
+          fields={eventView.fields}
+          onSearch={handleChange('query')}
+        />
+      </FilterActions>
       <AnomaliesQuery
         organization={organization}
         location={location}
@@ -295,16 +295,12 @@ function AnomaliesContent(props: Props) {
       >
         {queryData => (
           <Fragment>
-            <Container>
-              <Anomalies {...props} queryData={queryData} />
-            </Container>
-            <Container>
-              <AnomaliesTable
-                anomalies={queryData.data?.anomalies}
-                {...props}
-                isLoading={queryData.isLoading}
-              />
-            </Container>
+            <Anomalies {...props} queryData={queryData} />
+            <AnomaliesTable
+              anomalies={queryData.data?.anomalies}
+              {...props}
+              isLoading={queryData.isLoading}
+            />
           </Fragment>
         )}
       </AnomaliesQuery>
@@ -312,12 +308,14 @@ function AnomaliesContent(props: Props) {
   );
 }
 
-const Container = styled('div')`
-  margin-top: ${space(2)};
-`;
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto 1fr;
+  }
 `;
 
 export default AnomaliesContent;

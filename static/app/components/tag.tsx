@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -104,8 +104,8 @@ function Tag({
   };
 
   function tagIcon() {
-    if (React.isValidElement(icon)) {
-      return <IconWrapper>{React.cloneElement(icon, {...iconsProps})}</IconWrapper>;
+    if (isValidElement(icon)) {
+      return <IconWrapper>{cloneElement(icon, {...iconsProps})}</IconWrapper>;
     }
 
     if ((defined(href) || defined(to)) && icon === undefined) {

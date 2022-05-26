@@ -284,7 +284,9 @@ class SnubaEventStorage(EventStorage):
         filter = deepcopy(filter)
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_before_event_condition(event))
-        filter.end = event.datetime
+        # the previous event can have the same timestamp, add 1 second
+        # to the end condition since it uses a less than condition
+        filter.end = event.datetime + timedelta(seconds=1)
 
         return self.__get_event_id_from_filter(filter=filter, orderby=DESC_ORDERING)
 

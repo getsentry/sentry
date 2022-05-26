@@ -5,7 +5,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, options, roles
+from sentry import analytics, audit_log, features, options, roles
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.paginator import DateTimePaginator, OffsetPaginator
@@ -14,7 +14,6 @@ from sentry.app import ratelimiter
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
 from sentry.models import (
-    AuditLogEntryEvent,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -215,7 +214,7 @@ class OrganizationIndexEndpoint(Endpoint):
                         request=request,
                         organization=org,
                         target_object=org.id,
-                        event=AuditLogEntryEvent.ORG_ADD,
+                        event=audit_log.get_event_id("ORG_ADD"),
                         data=org.get_audit_log_data(),
                     )
 

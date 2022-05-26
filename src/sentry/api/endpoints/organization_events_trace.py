@@ -14,7 +14,6 @@ from typing import (
     Tuple,
     TypedDict,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -208,8 +207,6 @@ def child_sort_key(item: TraceEvent) -> List[int]:
 def query_trace_data(
     trace_id: str, params: Mapping[str, str]
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
-    transaction_query: Union[QueryBuilder, discover.PreparedQuery]
-    error_query: Union[QueryBuilder, discover.PreparedQuery]
     transaction_query = QueryBuilder(
         Dataset.Transactions,
         params,

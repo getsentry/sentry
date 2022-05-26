@@ -130,7 +130,7 @@ const FilterToken = ({
     <Tooltip
       disabled={!showTooltip}
       title={filter.invalid?.reason}
-      popperStyle={{maxWidth: '350px'}}
+      overlayStyle={{maxWidth: '350px'}}
       forceVisible
       skipWrapper
     >

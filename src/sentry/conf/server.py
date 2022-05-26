@@ -4,15 +4,13 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 
 import os
 import os.path
+import platform
 import re
 import socket
 import sys
 import tempfile
 from datetime import timedelta
-from platform import platform
 from urllib.parse import urlparse
-
-from django.conf.global_settings import *  # NOQA
 
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
@@ -452,8 +450,6 @@ SESSION_COOKIE_NAME = "sentrysid"
 # request, and `Lax` doesnt permit this.
 # See here: https://docs.djangoproject.com/en/2.1/ref/settings/#session-cookie-samesite
 SESSION_COOKIE_SAMESITE = None
-
-SESSION_SERIALIZER = "sentry.utils.transitional_serializer.TransitionalSerializer"
 
 BITBUCKET_CONSUMER_KEY = ""
 BITBUCKET_CONSUMER_SECRET = ""
@@ -947,6 +943,10 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
+    # Enables events endpoint usage on frontend
+    "organizations:discover-frontend-use-events-endpoint": False,
+    # Enable duplicating alert rules.
+    "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Enable Filters & Sampling in the org settings
@@ -967,8 +967,6 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable projects page redesign
-    "organizations:projects-page-redesign": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -987,12 +985,16 @@ SENTRY_FEATURES = {
     "organizations:rule-page": False,
     # Enable incidents feature
     "organizations:incidents": False,
+    # Enable having the issue ID in the breadcrumbs on Issue Details
+    "organizations:issue-id-breadcrumbs": False,
     # Flags for enabling CdcEventsDatasetSnubaSearchBackend in sentry.io. No effect in open-source
     # sentry at the moment.
     "organizations:issue-search-use-cdc-primary": False,
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Enable metric alert charts in email/slack
+    "organizations:metric-alert-chartcuterie": False,
     # Enable the new widget builder experience on Dashboards
     "organizations:new-widget-builder-experience": False,
     # Enable the new widget builder experience "design" on Dashboards
@@ -1050,10 +1052,12 @@ SENTRY_FEATURES = {
     "organizations:widget-library": False,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
-    # Enable metrics in dashboards
-    "organizations:dashboards-metrics": False,
+    # Enable release health widgets in dashboards
+    "organizations:dashboards-releases": False,
     # Enable widget viewer modal in dashboards
     "organizations:widget-viewer-modal": False,
+    # Enable minimap in the widget viewer modal in dashboards
+    "organizations:widget-viewer-modal-minimap": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
@@ -1081,13 +1085,15 @@ SENTRY_FEATURES = {
     "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
+    # Enable automatic horizontal scrolling on the span tree
+    "organizations:performance-span-tree-autoscroll": False,
+    # Enable transaction name only search
+    "organizations:performance-transaction-name-only-search": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
-    # Enables experimental new-style selection filters to replace the GSH
-    "organizations:selection-filters-v2": False,
     # Enable experimental session replay features
     "organizations:session-replay": False,
     # Enable logging for weekly reports
@@ -1272,6 +1278,7 @@ SENTRY_EMAIL_BACKEND_ALIASES = {
     "smtp": "django.core.mail.backends.smtp.EmailBackend",
     "dummy": "django.core.mail.backends.dummy.EmailBackend",
     "console": "django.core.mail.backends.console.EmailBackend",
+    "preview": "sentry.utils.email.PreviewBackend",
 }
 
 SENTRY_FILESTORE_ALIASES = {
@@ -1361,6 +1368,10 @@ SENTRY_RATELIMITER_OPTIONS = {}
 SENTRY_RATELIMITER_DEFAULT = 999
 SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT = 999
 ENFORCE_CONCURRENT_RATE_LIMITS = False
+
+# Rate Limit Group Category Defaults
+SENTRY_CONCURRENT_RATE_LIMIT_GROUP_CLI = 999
+SENTRY_RATELIMITER_GROUP_CLI = 999
 
 # The default value for project-level quotas
 SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
@@ -1818,7 +1829,10 @@ def build_cdc_postgres_init_db_volume(settings):
     )
 
 
-APPLE_ARM64 = platform().startswith("mac") and platform().endswith("arm64-arm-64bit")
+# platform.processor() changed at some point between these:
+# 11.2.3: arm
+# 12.3.1: arm64
+APPLE_ARM64 = sys.platform == "darwin" and platform.processor() in {"arm", "arm64"}
 
 SENTRY_DEVSERVICES = {
     "redis": lambda settings, options: (
@@ -1953,7 +1967,10 @@ SENTRY_DEVSERVICES = {
         {
             "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
-            "only_if": "bigtable" in settings.SENTRY_NODESTORE,
+            # NEED_BIGTABLE is set by CI so we don't have to pass
+            # --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_BIGTABLE", False)
+            or "bigtable" in settings.SENTRY_NODESTORE,
         }
     ),
     "memcached": lambda settings, options: (
@@ -1994,7 +2011,9 @@ SENTRY_DEVSERVICES = {
                 "CHARTCUTERIE_CONFIG_POLLING": "true",
             },
             "ports": {"9090/tcp": 7901},
-            "only_if": options.get("chart-rendering.enabled"),
+            # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
+            or options.get("chart-rendering.enabled"),
         }
     ),
     "cdc": lambda settings, options: (
@@ -2301,6 +2320,11 @@ KAFKA_CLUSTERS = {
 }
 
 KAFKA_EVENTS = "events"
+# TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
+# transactions curently share a Kafka topic. Once we are ready with the code
+# changes to support different topic, switch this to "transactions" to start
+# producing to the new topic.
+KAFKA_TRANSACTIONS = "events"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2322,6 +2346,7 @@ KAFKA_PROFILES = "profiles"
 
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
+    KAFKA_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_TRANSACTIONS},
     KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
@@ -2477,7 +2502,7 @@ SENTRY_USE_UWSGI = True
 
 # When copying attachments for to-be-reprocessed events into processing store,
 # how large is an individual file chunk? Each chunk is stored as Redis key.
-SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2 ** 20
+SENTRY_REPROCESSING_ATTACHMENT_CHUNK_SIZE = 2**20
 
 # Which cluster is used to store auxiliary data for reprocessing. Note that
 # this cluster is not used to store attachments etc, that still happens on
@@ -2564,6 +2589,9 @@ SAMPLED_DEFAULT_RATE = 1.0
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS = {}
 
+# A set of extra tasks to sample
+ADDITIONAL_SAMPLED_TASKS = {}
+
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.
 DEMO_MODE = False
@@ -2615,3 +2643,9 @@ DEVSERVER_LOGS_ALLOWLIST = None
 LOG_API_ACCESS = not IS_DEV or os.environ.get("SENTRY_LOG_API_ACCESS")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
+
+# determines if we enable analytics or not
+ENABLE_ANALYTICS = False
+
+MAX_ISSUE_ALERTS_PER_PROJECT = 100
+MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000

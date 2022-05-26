@@ -13,7 +13,7 @@ from sentry.snuba.metrics.fields import (
     SingularEntityDerivedMetric,
     TransactionSatisfactionTagValue,
 )
-from sentry.snuba.metrics.fields.snql import percentage
+from sentry.snuba.metrics.fields.snql import complement, division_float
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.testutils import APITestCase
@@ -29,8 +29,8 @@ MOCKED_DERIVED_METRICS.update(
                 SessionMRI.ERRORED_SET.value,
             ],
             unit="percentage",
-            snql=lambda *args, entity, metric_ids, alias=None: percentage(
-                *args, entity, metric_ids, alias="crash_free_fake"
+            snql=lambda *args, entity, metric_ids, alias=None: complement(
+                division_float(*args, entity, metric_ids), alias="crash_free_fake"
             ),
         )
     }
@@ -110,6 +110,18 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             },
             {
                 "name": "session.crash_free_user_rate",
+                "type": "numeric",
+                "operations": [],
+                "unit": "percentage",
+            },
+            {
+                "name": "session.crash_rate",
+                "type": "numeric",
+                "operations": [],
+                "unit": "percentage",
+            },
+            {
+                "name": "session.crash_user_rate",
                 "type": "numeric",
                 "operations": [],
                 "unit": "percentage",

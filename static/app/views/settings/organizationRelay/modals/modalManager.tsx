@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -31,10 +31,10 @@ type State = {
   values: Values;
 };
 
-class DialogManager<
-  P extends Props = Props,
-  S extends State = State
-> extends React.Component<P, S> {
+class DialogManager<P extends Props = Props, S extends State = State> extends Component<
+  P,
+  S
+> {
   state = this.getDefaultState();
 
   componentDidMount() {

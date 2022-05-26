@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 type Props = {
@@ -8,7 +8,7 @@ type Props = {
    * Toggle color is always active.
    */
   forceActiveColor?: boolean;
-  forwardRef?: React.Ref<HTMLButtonElement>;
+  forwardedRef?: React.Ref<HTMLButtonElement>;
   id?: string;
   isActive?: boolean;
   isDisabled?: boolean;
@@ -18,7 +18,7 @@ type Props = {
 };
 
 const Switch = ({
-  forwardRef,
+  forwardedRef,
   size = 'sm',
   isActive,
   forceActiveColor,
@@ -30,7 +30,7 @@ const Switch = ({
   className,
 }: Props) => (
   <SwitchButton
-    ref={forwardRef}
+    ref={forwardedRef}
     id={id}
     name={name}
     type="button"
@@ -99,6 +99,6 @@ const Toggle = styled('span')<StyleProps>`
   opacity: ${p => (p.isDisabled ? 0.4 : null)};
 `;
 
-export default React.forwardRef<HTMLButtonElement, Props>((props, ref) => (
-  <Switch {...props} forwardRef={ref} />
+export default forwardRef<HTMLButtonElement, Props>((props, ref) => (
+  <Switch {...props} forwardedRef={ref} />
 ));

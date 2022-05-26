@@ -39,7 +39,7 @@ export const InlineContainer = styled('div')`
 `;
 
 export const ChartControls = styled('div')`
-  padding: ${space(1)} ${space(3)};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(3)};
   border-top: 1px solid ${p => p.theme.border};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

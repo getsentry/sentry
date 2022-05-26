@@ -68,21 +68,18 @@ class GetGroupsForQueryTestCase(TestCase):
         assert {group.id for group in query_groups} == {10, 11, 13}
 
     def test_get_groups_for_query_simple(self):
-        assert (
-            get_groups_for_query(
-                {self.project: {self.group}},
-                {
-                    NotificationScopeType.PROJECT: {
-                        self.project.id: {
-                            ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
-                            ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
-                        },
+        assert get_groups_for_query(
+            {self.project: {self.group}},
+            {
+                NotificationScopeType.PROJECT: {
+                    self.project.id: {
+                        ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
+                        ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
                     },
                 },
-                user=self.user,
-            )
-            == {self.group}
-        )
+            },
+            user=self.user,
+        ) == {self.group}
 
     def test_get_groups_for_query_never(self):
         assert (

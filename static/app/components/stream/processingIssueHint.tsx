@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -25,9 +25,9 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
   let project: React.ReactNode = null;
   if (showProject) {
     project = (
-      <React.Fragment>
+      <Fragment>
         <strong>{projectId}</strong> &mdash;{' '}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -38,13 +38,13 @@ function ProcessingIssueHint({orgId, projectId, issue, showProject}: Props) {
       issue.numIssues
     );
     lastEvent = (
-      <React.Fragment>
+      <Fragment>
         (
         {tct('last event from [ago]', {
           ago: <TimeSince date={issue.lastSeen} />,
         })}
         )
-      </React.Fragment>
+      </Fragment>
     );
     alertType = 'error';
     showButton = true;

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -60,7 +60,7 @@ export const defaultTrendsSelectionDate = {
   period: DEFAULT_TRENDS_STATS_PERIOD,
 };
 
-class TrendsContent extends React.Component<Props, State> {
+class TrendsContent extends Component<Props, State> {
   state: State = {};
 
   handleSearch = (searchQuery: string) => {
@@ -210,14 +210,12 @@ class TrendsContent extends React.Component<Props, State> {
     );
     const query = getTransactionSearchQuery(location);
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <PageFiltersContainer
         defaultSelection={{
           datetime: defaultTrendsSelectionDate,
         }}
-        hideGlobalHeader={hasPageFilters}
+        hideGlobalHeader
       >
         <Layout.Header>
           <Layout.HeaderContent>
@@ -238,14 +236,12 @@ class TrendsContent extends React.Component<Props, State> {
         <Layout.Body>
           <Layout.Main fullWidth>
             <DefaultTrends location={location} eventView={eventView} projects={projects}>
-              {hasPageFilters && (
-                <StyledPageFilterBar condensed>
+              <FilterActions>
+                <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </StyledPageFilterBar>
-              )}
-              <StyledSearchContainer>
+                  <DatePageFilter alignDropdown="left" />
+                </PageFilterBar>
                 <StyledSearchBar
                   searchSource="trends"
                   organization={organization}
@@ -255,7 +251,7 @@ class TrendsContent extends React.Component<Props, State> {
                   onSearch={this.handleSearch}
                   maxQueryLength={MAX_QUERY_LENGTH}
                 />
-                <TrendsDropdown data-test-id="trends-dropdown">
+                <div data-test-id="trends-dropdown">
                   <DropdownControl
                     buttonProps={{prefix: t('Percentile')}}
                     label={currentTrendFunction.label}
@@ -272,27 +268,25 @@ class TrendsContent extends React.Component<Props, State> {
                       </DropdownItem>
                     ))}
                   </DropdownControl>
-                </TrendsDropdown>
-                <TrendsDropdown>
-                  <DropdownControl
-                    buttonProps={{prefix: t('Parameter')}}
-                    label={currentTrendParameter.label}
-                  >
-                    {TRENDS_PARAMETERS.map(({label}) => (
-                      <DropdownItem
-                        key={label}
-                        onSelect={this.handleParameterChange}
-                        eventKey={label}
-                        data-test-id={label}
-                        isActive={label === currentTrendParameter.label}
-                      >
-                        {label}
-                      </DropdownItem>
-                    ))}
-                  </DropdownControl>
-                </TrendsDropdown>
-              </StyledSearchContainer>
-              <TrendsLayoutContainer>
+                </div>
+                <DropdownControl
+                  buttonProps={{prefix: t('Parameter')}}
+                  label={currentTrendParameter.label}
+                >
+                  {TRENDS_PARAMETERS.map(({label}) => (
+                    <DropdownItem
+                      key={label}
+                      onSelect={this.handleParameterChange}
+                      eventKey={label}
+                      data-test-id={label}
+                      isActive={label === currentTrendParameter.label}
+                    >
+                      {label}
+                    </DropdownItem>
+                  ))}
+                </DropdownControl>
+              </FilterActions>
+              <ListContainer>
                 <ChangedTransactions
                   trendChangeType={TrendChangeType.IMPROVED}
                   previousTrendFunction={previousTrendFunction}
@@ -307,7 +301,7 @@ class TrendsContent extends React.Component<Props, State> {
                   location={location}
                   setError={this.setError}
                 />
-              </TrendsLayoutContainer>
+              </ListContainer>
             </DefaultTrends>
           </Layout.Main>
         </Layout.Body>
@@ -323,7 +317,7 @@ type DefaultTrendsProps = {
   projects: Project[];
 };
 
-class DefaultTrends extends React.Component<DefaultTrendsProps> {
+class DefaultTrends extends Component<DefaultTrendsProps> {
   hasPushedDefaults = false;
 
   render() {
@@ -339,7 +333,7 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
 
     if (queryString || this.hasPushedDefaults) {
       this.hasPushedDefaults = true;
-      return <React.Fragment>{children}</React.Fragment>;
+      return <Fragment>{children}</Fragment>;
     }
     this.hasPushedDefaults = true;
     conditions.setFilterValues('tpm()', ['>0.01']);
@@ -360,31 +354,38 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
   }
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+const FilterActions = styled('div')`
+  display: grid;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: repeat(3, min-content);
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: auto 1fr auto auto;
+  }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-  margin-bottom: ${space(2)};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    order: 1;
+    grid-column: 1/5;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    order: initial;
+    grid-column: auto;
+  }
 `;
 
-const TrendsDropdown = styled('div')`
-  margin-left: ${space(1)};
-  flex-grow: 0;
-`;
-
-const StyledSearchContainer = styled('div')`
-  display: flex;
-`;
-
-const TrendsLayoutContainer = styled('div')`
+const ListContainer = styled('div')`
   display: grid;
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: stretch;
   }
 `;
 

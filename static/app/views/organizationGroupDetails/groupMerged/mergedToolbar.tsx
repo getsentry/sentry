@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -26,7 +26,7 @@ type State = {
   unmergeList: Map<any, any>;
 };
 
-class MergedToolbar extends React.Component<Props, State> {
+class MergedToolbar extends Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState() {

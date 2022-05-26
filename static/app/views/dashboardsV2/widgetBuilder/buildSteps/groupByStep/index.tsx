@@ -45,7 +45,7 @@ export function GroupByStep({
       title={t('Group your results')}
       description={t('This is how you can group your data result by field or tag.')}
     >
-      {dataSet === DataSet.RELEASE ? (
+      {dataSet === DataSet.RELEASES ? (
         <GroupBySelector
           columns={columns}
           fieldOptions={releaseFieldOptions}

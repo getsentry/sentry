@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, PureComponent} from 'react';
 import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -24,10 +24,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';
-import {
-  constructAddQueryToDashboardLink,
-  handleAddQueryToDashboard,
-} from 'sentry/views/eventsV2/utils';
+import {handleAddQueryToDashboard} from 'sentry/views/eventsV2/utils';
 
 import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
 
@@ -66,7 +63,7 @@ type State = {
   queryName: string;
 };
 
-class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
+class SavedQueryButtonGroup extends PureComponent<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     const {eventView: nextEventView, savedQuery, savedQueryLoading, yAxis} = nextProps;
 
@@ -286,7 +283,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
     // Existing query with edits, show save and save as.
     if (!isNewQuery && isEditingQuery) {
       return (
-        <React.Fragment>
+        <Fragment>
           <Button
             onClick={this.handleUpdateQuery}
             data-test-id="discover2-savedquery-button-update"
@@ -296,7 +293,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
             {t('Save Changes')}
           </Button>
           {this.renderButtonSaveAs(disabled)}
-        </React.Fragment>
+        </Fragment>
       );
     }
 
@@ -342,32 +339,20 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
   }
 
   renderButtonAddToDashboard() {
-    const {organization, location, eventView, savedQuery, yAxis, router} = this.props;
+    const {organization, eventView, savedQuery, yAxis, router} = this.props;
     return (
       <Button
         key="add-dashboard-widget-from-discover"
         data-test-id="add-dashboard-widget-from-discover"
-        {...(organization.features.includes('new-widget-builder-experience') &&
-        !organization.features.includes('new-widget-builder-experience-design')
-          ? {
-              to: constructAddQueryToDashboardLink({
-                organization,
-                location,
-                eventView,
-                query: savedQuery,
-                yAxis,
-              }),
-            }
-          : {
-              onClick: () =>
-                handleAddQueryToDashboard({
-                  organization,
-                  eventView,
-                  query: savedQuery,
-                  yAxis,
-                  router,
-                }),
-            })}
+        onClick={() =>
+          handleAddQueryToDashboard({
+            organization,
+            eventView,
+            query: savedQuery,
+            yAxis,
+            router,
+          })
+        }
       >
         {t('Add to Dashboard')}
       </Button>

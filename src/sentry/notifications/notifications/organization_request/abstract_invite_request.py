@@ -26,32 +26,28 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
         super().__init__(pending_member.organization, requester)
         self.pending_member = pending_member
 
-    def get_type(self) -> str:
-        return "organization.invite-request"
-
-    def get_category(self) -> str:
-        return "organization_invite_request"
-
     @property
     def members_url(self) -> str:
-        url: str = absolute_uri(reverse("sentry-organization-members", args=[self.org_slug]))
+        url: str = absolute_uri(
+            reverse("sentry-organization-members", args=[self.organization.slug])
+        )
         return url
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return f"Access request to {self.org_name}"
+        return f"Access request to {self.organization.name}"
 
     def get_recipient_context(
         self, recipient: Team | User, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         context["email"] = self.pending_member.email
-        context["organization_name"] = self.org_name
+        context["organization_name"] = self.organization.name
         context["pending_requests_link"] = self.members_url + self.get_sentry_query_params(
             ExternalProviders.EMAIL, recipient
         )
         if self.pending_member.requested_to_join:
             context["settings_link"] = absolute_uri(
-                reverse("sentry-organization-settings", args=[self.org_slug])
+                reverse("sentry-organization-settings", args=[self.organization.slug])
             )
         else:
             context["inviter_name"] = self.pending_member.inviter.get_salutation_name

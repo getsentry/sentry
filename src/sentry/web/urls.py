@@ -40,6 +40,7 @@ from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.restore_organization import RestoreOrganizationView
 from sentry.web.frontend.sentryapp_avatar import SentryAppAvatarPhotoView
 from sentry.web.frontend.setup_wizard import SetupWizardView
+from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
@@ -70,7 +71,7 @@ if getattr(settings, "SERVE_UPLOADED_FILES", settings.DEBUG):
     # would typically be handled by some static server.
     urlpatterns += [
         url(
-            fr"^{re.escape(settings.MEDIA_URL)}(?P<path>.*)$",
+            rf"^{re.escape(settings.MEDIA_URL)}(?P<path>.*)$",
             serve,
             {"document_root": settings.MEDIA_ROOT},
             name="sentry-serve-media",
@@ -645,7 +646,7 @@ urlpatterns += [
     # Generic API
     url(
         r"^share/(?:group|issue)/(?P<share_id>[\w_-]+)/$",
-        GenericReactPageView.as_view(auth_required=False),
+        SharedGroupDetailsView.as_view(auth_required=False),
         name="sentry-group-shared",
     ),
     url(
@@ -680,6 +681,11 @@ urlpatterns += [
         name="sentry-metric-alert",
     ),
     url(
+        r"^organizations/(?P<organization_slug>[\w_-]+)/alerts/rules/details/(?P<alert_rule_id>\d+)/$",
+        react_page_view,
+        name="sentry-metric-alert-details",
+    ),
+    url(
         r"^settings/(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/alerts/metric-rules/(?P<alert_rule_id>\d+)/$",
         react_page_view,
         name="sentry-alert-rule",
@@ -701,5 +707,5 @@ urlpatterns += [
     ),
     # Legacy
     # This triggers a false positive for the urls.W002 Django warning
-    url(r"/$", react_page_view),
+    url(r"^.*/$", react_page_view),
 ]

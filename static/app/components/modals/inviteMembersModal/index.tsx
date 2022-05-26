@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -322,7 +322,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 
     // eslint-disable-next-line react/prop-types
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
-      <React.Fragment>
+      <Fragment>
         <Heading>
           {t('Invite New Members')}
           {!this.willInvite && (
@@ -386,7 +386,7 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
             <div>{this.statusMessage}</div>
 
             {complete ? (
-              <React.Fragment>
+              <Fragment>
                 <Button data-test-id="send-more" size="small" onClick={this.reset}>
                   {t('Send more invites')}
                 </Button>
@@ -404,9 +404,9 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                 >
                   {t('Close')}
                 </Button>
-              </React.Fragment>
+              </Fragment>
             ) : (
-              <React.Fragment>
+              <Fragment>
                 <Button
                   data-test-id="cancel"
                   size="small"
@@ -424,11 +424,11 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
                 >
                   {this.inviteButtonLabel}
                 </Button>
-              </React.Fragment>
+              </Fragment>
             )}
           </FooterContent>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
 
     return (

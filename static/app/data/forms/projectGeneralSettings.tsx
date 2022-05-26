@@ -1,3 +1,4 @@
+import {createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
@@ -39,14 +40,20 @@ const ORG_DISABLED_REASON = t(
 );
 
 export const fields: Record<string, Field> = {
-  slug: {
-    name: 'slug',
+  name: {
+    name: 'name',
     type: 'string',
     required: true,
     label: t('Name'),
-    placeholder: t('my-service-name'),
-    help: t('A unique ID used to identify this project'),
+    placeholder: t('my-awesome-project'),
+    help: t('A name for this project'),
     transformInput: slugify,
+    getData: (data: {name?: string}) => {
+      return {
+        name: data.name,
+        slug: data.name,
+      };
+    },
 
     saveOnBlur: false,
     saveMessageAlertType: 'info',
@@ -66,6 +73,12 @@ export const fields: Record<string, Field> = {
         </PlatformWrapper>,
       ]),
     help: t('The primary platform for this project'),
+    filterOption: createFilter({
+      stringify: option => {
+        const matchedPlatform = platforms.find(({id}) => id === option.value);
+        return `${matchedPlatform?.name} ${option.value}`;
+      },
+    }),
   },
 
   subjectPrefix: {

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
@@ -26,7 +26,7 @@ type Props = DefaultProps & {
   tooltipOptions?: Omit<React.ComponentProps<typeof Tooltip>, 'children' | 'title'>;
 };
 
-class ActorAvatar extends React.Component<Props> {
+class ActorAvatar extends Component<Props> {
   static defaultProps: DefaultProps = {
     size: 24,
     hasTooltip: true,

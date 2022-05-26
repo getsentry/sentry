@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import BaseBadge from 'sentry/components/idBadge/baseBadge';
 

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 

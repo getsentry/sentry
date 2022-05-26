@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 import uniqBy from 'lodash/uniqBy';
@@ -108,13 +108,18 @@ type Props = {
   limit?: number;
 
   /**
+   * List of project ids to look for summaries for, this can be from `props.projects`,
+   * otherwise fetch from API
+   */
+  projectIds?: number[];
+  /**
    * List of slugs to look for summaries for, this can be from `props.projects`,
    * otherwise fetch from API
    */
   slugs?: string[];
 } & DefaultProps;
 
-class BaseProjects extends React.Component<Props, State> {
+class BaseProjects extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     passthroughPlaceholderProject: true,
   };
@@ -132,10 +137,12 @@ class BaseProjects extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {slugs} = this.props;
+    const {slugs, projectIds} = this.props;
 
     if (!!slugs?.length) {
       this.loadSpecificProjects();
+    } else if (!!projectIds?.length) {
+      this.loadSpecificProjectsFromIds();
     } else {
       this.loadAllProjects();
     }
@@ -181,6 +188,13 @@ class BaseProjects extends React.Component<Props, State> {
   );
 
   /**
+   * Memoized function that returns a `Map<project.id, project>`
+   */
+  getProjectsIdMap: (projects: Project[]) => Map<number, Project> = memoize(
+    projects => new Map(projects.map(project => [parseInt(project.id, 10), project]))
+  );
+
+  /**
    * When `props.slugs` is included, identifies what projects we already
    * have summaries for and what projects need to be fetched from API
    */
@@ -212,6 +226,34 @@ class BaseProjects extends React.Component<Props, State> {
     }
 
     this.fetchSpecificProjects();
+  };
+
+  /**
+   * When `props.projectIds` is included, identifies if we already
+   * have summaries them, otherwise fetches all projects from API
+   */
+  loadSpecificProjectsFromIds = () => {
+    const {projectIds, projects} = this.props;
+
+    const projectsMap = this.getProjectsIdMap(projects);
+
+    // Split projectIds into projects that are in store and not in store
+    // (so we can request projects not in store)
+    const [inStore, notInStore] = partition(projectIds, id => projectsMap.has(id));
+
+    if (notInStore.length) {
+      this.loadAllProjects();
+      return;
+    }
+
+    // Get the actual summaries of projects that are in store
+    const projectsFromStore = inStore.map(id => projectsMap.get(id)).filter(defined);
+
+    this.setState({
+      // set initiallyLoaded if any projects were fetched from store
+      initiallyLoaded: !!inStore.length,
+      projectsFromStore,
+    });
   };
 
   /**

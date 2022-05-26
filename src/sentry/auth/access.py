@@ -1,7 +1,6 @@
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import abc
-import warnings
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Collection, FrozenSet, Iterable, Mapping, Optional, Tuple
@@ -159,10 +158,6 @@ class Access(abc.ABC):
     def get_organization_role(self) -> Optional[OrganizationRole]:
         return self.role and organization_roles.get(self.role)
 
-    def has_team(self, team: Team) -> bool:
-        warnings.warn("has_team() is deprecated in favor of has_team_access", DeprecationWarning)
-        return self.has_team_access(team)
-
     @abc.abstractmethod
     def has_team_access(self, team: Team) -> bool:
         """
@@ -246,10 +241,17 @@ class Access(abc.ABC):
             return True
 
         if self.member and features.has("organizations:team-roles", self.member.organization):
-            for team in project.teams.all():
-                membership = self._team_memberships.get(team)
-                if membership is None:
-                    continue
+            with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
+                memberships = [
+                    self._team_memberships[team]
+                    for team in project.teams.all()
+                    if team in self._team_memberships
+                ]
+                span.set_tag("organization", self.member.organization.id)
+                span.set_tag("organization.slug", self.member.organization.slug)
+                span.set_data("membership_count", len(memberships))
+
+            for membership in memberships:
                 team_scopes = membership.get_scopes()
                 for scope in scopes:
                     if scope in team_scopes:

@@ -156,7 +156,6 @@ export function Chart(props: ChartProps) {
   const xAxis = {
     type: 'category' as const,
     truncate: true,
-    boundaryGap: false,
     axisTick: {
       alignWithLabel: true,
     },

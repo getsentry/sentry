@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -39,7 +39,7 @@ type FormFieldState = {
 export default class FormField<
   Props extends FormFieldProps = FormFieldProps,
   State extends FormFieldState = FormFieldState
-> extends React.PureComponent<Props, State> {
+> extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     hideErrorMessage: false,
     disabled: false,

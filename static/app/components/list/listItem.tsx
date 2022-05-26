@@ -1,40 +1,25 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
 
-type Props = {
-  'aria-label'?: string;
-  children?: React.ReactNode;
-  className?: string;
-  'data-test-id'?: string;
-  onClick?: (event: React.MouseEvent) => void;
+interface ListeItemProps extends React.HTMLAttributes<HTMLLIElement> {
+  padding?: string;
   symbol?: React.ReactElement;
-};
+}
 
 const ListItem = styled(
-  ({
-    children,
-    className,
-    symbol,
-    onClick,
-    'aria-label': ariaLabel,
-    'data-test-id': dataTestId,
-  }: Props) => (
-    <li
-      className={className}
-      onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      aria-label={onClick ? ariaLabel : undefined}
-      data-test-id={dataTestId}
-    >
-      {symbol && <Symbol>{symbol}</Symbol>}
-      {children}
-    </li>
+  forwardRef<HTMLLIElement, ListeItemProps>(
+    ({symbol, children, padding: _padding, ...props}, ref) => (
+      <li ref={ref} role={props.onClick ? 'button' : undefined} {...props}>
+        {symbol && <Symbol>{symbol}</Symbol>}
+        {children}
+      </li>
+    )
   )
 )`
   position: relative;
-  ${p => p.symbol && `padding-left: ${space(4)};`}
+  ${p => p.symbol && `padding-left: ${p.padding ?? space(4)};`}
 `;
 
 const Symbol = styled('div')`

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -79,7 +79,7 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       return null;
     }
 
-    return React.cloneElement(this.props.children, {
+    return cloneElement(this.props.children, {
       onDisable: this.handleDisable,
       onRegenerateBackupCodes: this.handleRegenerateBackupCodes,
       authenticators,
