@@ -1,4 +1,4 @@
-from collections import OrderedDict, defaultdict
+from collections import defaultdict
 from functools import reduce
 
 from exam import fixture
@@ -108,12 +108,17 @@ class SortRecordsTestCase(TestCase):
 
         grouped = {rules[0]: {groups[0]: []}, rules[1]: {groups[1]: [], groups[2]: []}}
 
-        assert sort_rule_groups(sort_group_contents(grouped)) == OrderedDict(
-            (
-                (rules[1], OrderedDict(((groups[1], []), (groups[2], [])))),
-                (rules[0], OrderedDict(((groups[0], []),))),
-            )
-        )
+        ret = sort_rule_groups(sort_group_contents(grouped))
+
+        # ensure top-level keys are sorted
+        assert tuple(ret) == (rules[1], rules[0])
+        # ensure second-level keys are sorted
+        assert tuple(ret[rules[1]]) == (groups[1], groups[2])
+
+        assert ret == {
+            rules[1]: {groups[1]: [], groups[2]: []},
+            rules[0]: {groups[0]: []},
+        }
 
 
 class SplitKeyTestCase(TestCase):
