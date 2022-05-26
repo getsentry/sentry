@@ -310,13 +310,13 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         );
 
         if (releases.length) {
-          releaseCondition += '(release:' + releases[0].version;
+          releaseCondition += 'release:[' + releases[0].version;
           releasesArray.push(releases[0].version);
           for (let i = 1; i < releases.length; i++) {
-            releaseCondition += ' OR release:' + releases[i].version;
+            releaseCondition += ',' + releases[i].version;
             releasesArray.push(releases[i].version);
           }
-          releaseCondition += ')';
+          releaseCondition += ']';
 
           if (!!!isDescending) {
             releasesArray.reverse();

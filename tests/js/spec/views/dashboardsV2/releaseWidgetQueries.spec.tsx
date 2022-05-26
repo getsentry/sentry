@@ -170,7 +170,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           interval: '12h',
           per_page: 100,
           project: [1],
-          query: ' (release:be1ddfb18126dd2cbde26bfe75488503280e716e)',
+          query: ' release:[be1ddfb18126dd2cbde26bfe75488503280e716e]',
           statsPeriod: '14d',
         },
       })
