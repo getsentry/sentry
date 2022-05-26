@@ -4,6 +4,7 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client, ResponseMeta} from 'sentry/api';
@@ -283,6 +284,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     //    2. If a recent release is not returned due to the 100 row limit
     //        imposed on the metrics query the user won't see it on the table/chart/
     const isCustomReleaseSorting = !!!useSessionAPI && rawOrderby === 'release';
+
     const interval = getWidgetInterval(
       widget,
       {start, end, period},
@@ -291,32 +293,38 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
-      const releases = await api.requestPromise(
-        `/organizations/${organization.slug}/releases/`,
-        {
-          method: 'GET',
-          data: {
-            sort: 'date',
-            project: projects,
-            per_page: 50,
-            environments,
-            summaryStatsPeriod: period,
-          },
-        }
-      );
+      try {
+        const releases = await api.requestPromise(
+          `/organizations/${organization.slug}/releases/`,
+          {
+            method: 'GET',
+            data: {
+              sort: 'date',
+              project: projects,
+              per_page: 50,
+              environments,
+              summaryStatsPeriod: period,
+            },
+          }
+        );
 
-      if (releases.length) {
-        releaseCondition += '(release:' + releases[0].version;
-        releasesArray.push(releases[0].version);
-        for (let i = 1; i < releases.length; i++) {
-          releaseCondition += ' OR release:' + releases[i].version;
-          releasesArray.push(releases[i].version);
-        }
-        releaseCondition += ')';
+        if (releases.length) {
+          releaseCondition += '(release:' + releases[0].version;
+          releasesArray.push(releases[0].version);
+          for (let i = 1; i < releases.length; i++) {
+            releaseCondition += ' OR release:' + releases[i].version;
+            releasesArray.push(releases[i].version);
+          }
+          releaseCondition += ')';
 
-        if (!!!isDescending) {
-          releasesArray.reverse();
+          if (!!!isDescending) {
+            releasesArray.reverse();
+          }
         }
+      } catch (error) {
+        addErrorMessage(
+          error.responseJSON ? error.responseJSON.error : t('Error sorting by releases')
+        );
       }
     }
 
@@ -490,6 +498,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         });
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
+        if (!this._isMounted) {
+          return;
+        }
         this.setState({errorMessage});
       } finally {
         completed++;
