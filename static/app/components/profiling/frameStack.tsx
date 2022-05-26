@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
 import Button from 'sentry/components/button';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -250,7 +250,7 @@ function FrameRow({
   );
 
   return (
-    <FrameCallersRow onClick={handleExpanding} style={style}>
+    <FrameCallersRow style={style}>
       <FrameCallersTableCell textAlign="right">
         {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
         <Weight
@@ -260,14 +260,25 @@ function FrameRow({
           )}
         />
       </FrameCallersTableCell>
-      <FrameCallersTableCell textAlign="right">
-        {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
-        <Weight
-          weight={computeRelativeWeight(
-            referenceNode.node.totalWeight,
-            node.node.node.totalWeight
-          )}
-        />
+      <FrameCallersTableCell noPadding textAlign="right">
+        <FrameWeightTypeContainer>
+          <FrameWeightContainer>
+            {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
+            <Weight
+              weight={computeRelativeWeight(
+                referenceNode.node.totalWeight,
+                node.node.node.totalWeight
+              )}
+            />
+          </FrameWeightContainer>
+          <FrameTypeIndicator>
+            {node.node.node.frame.is_application ? (
+              <IconUser size="xs" />
+            ) : (
+              <IconSettings size="xs" />
+            )}
+          </FrameTypeIndicator>
+        </FrameWeightTypeContainer>
       </FrameCallersTableCell>
       <FrameCallersTableCell
         // We stretch this table to 100% width.
@@ -275,7 +286,7 @@ function FrameRow({
       >
         <FrameNameContainer>
           <FrameColorIndicator backgroundColor={colorString} />
-          <FrameChildrenIndicator open={node.expanded}>
+          <FrameChildrenIndicator onClick={handleExpanding} open={node.expanded}>
             {node.node.children.length > 0 ? '\u203A' : null}
           </FrameChildrenIndicator>
           <FrameName>{node.node.frame.name}</FrameName>
@@ -388,10 +399,16 @@ const FrameDrawer = styled('div')`
   flex-direction: column;
 `;
 
+const FrameWeightTypeContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+`;
+
 const FrameTabs = styled('ul')`
   display: flex;
   list-style-type: none;
-  padding: 0 ${space(1)};
+  padding: 0 0 0 ${space(1)};
   margin: 0;
   border-top: 1px solid ${prop => prop.theme.border};
   background-color: ${props => props.theme.surface400};
@@ -426,14 +443,32 @@ const Weight = styled((props: {weight: number}) => {
   const {weight, ...rest} = props;
   return (
     <div {...rest}>
-      {weight.toFixed(2)}%
+      {weight.toFixed(1)}%
       <BackgroundWeightBar style={{transform: `scaleX(${weight / 100})`}} />
     </div>
   );
 })`
   display: inline-block;
-  min-width: 7ch;
+  min-width: 6ch;
   color: ${props => props.theme.subText};
+`;
+
+const FrameTypeIndicator = styled('div')`
+  flex-shrink: 0;
+  width: 26px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${p => p.theme.subText};
+`;
+
+const FrameWeightContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  position: relative;
+  justify-content: flex-end;
+  flex: 1 1 100%;
 `;
 
 const BackgroundWeightBar = styled('div')`
@@ -482,18 +517,23 @@ const FrameNameContainer = styled('div')`
   align-items: center;
 `;
 
-const FrameChildrenIndicator = styled('span')<{open: boolean}>`
+const FrameChildrenIndicator = styled('button')<{open: boolean}>`
   width: 1ch;
   height: 1ch;
   display: flex;
+  padding: 0;
+  border: none;
+  background-color: transparent;
   align-items: center;
   justify-content: center;
   user-select: none;
   transform: ${p => (p.open ? 'rotate(90deg)' : 'rotate(0deg)')};
 `;
 
+const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
+
 const FrameWeightCell = styled('div')`
-  width: 156px;
+  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
 `;
 
 const FrameNameCell = styled('div')`
@@ -524,13 +564,14 @@ const FrameCallersTableHeader = styled('div')`
 `;
 
 const FrameCallersTableCell = styled('div')<{
+  noPadding?: boolean;
   textAlign?: React.CSSProperties['textAlign'];
 }>`
-  width: 156px;
+  width: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
   position: relative;
   white-space: nowrap;
-  padding: 0 ${space(1)};
   flex-shrink: 0;
+  padding: 0 ${p => (p.noPadding ? 0 : space(1))} 0 0;
   text-align: ${p => p.textAlign ?? 'initial'};
 
   &:not(:last-child) {
