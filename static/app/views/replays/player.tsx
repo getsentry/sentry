@@ -2,28 +2,17 @@ import styled from '@emotion/styled';
 
 import RRWebIntegration from 'sentry/components/events/rrwebIntegration';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
-import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
-import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
-import ReplayController from 'sentry/components/replays/replayController';
-import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import space from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import useEvent from 'sentry/utils/replays/hooks/useEvent';
-import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
-import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-function Player() {
-  return (
-    <Layout.Body>
-      <OrigRRWeb />
-      <NewReplay />
-    </Layout.Body>
-  );
-}
+type ComponentProps = {
+  event: Event;
+  orgId: string;
+  projectId: string;
+};
 
-function OrigRRWeb() {
+function Player() {
   const {
     params: {eventSlug, orgId},
   } = useRouteContext();
@@ -32,9 +21,18 @@ function OrigRRWeb() {
   const {data: event} = useEvent<Event>({orgId, eventSlug});
 
   if (!event) {
-    return <div>Loading...</div>;
+    return <div>Loading Integrations...</div>;
   }
 
+  return (
+    <Layout.Body>
+      <OrigRRWeb event={event} orgId={orgId} projectId={projectId} />
+      <NewRRweb event={event} orgId={orgId} projectId={projectId} />
+    </Layout.Body>
+  );
+}
+
+function OrigRRWeb({event, orgId, projectId}: ComponentProps) {
   return (
     <Layout.Main>
       <EventDataSection>
@@ -60,61 +58,20 @@ const EventDataSection = styled('div')`
   position: relative;
 `;
 
-function NewReplay() {
-  const {
-    params: {eventSlug, orgId},
-  } = useRouteContext();
-
-  const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
-
-  const {replay} = useReplayData({
-    eventSlug,
-    orgId,
-  });
-
-  if (!replay) {
-    return <div>Loading...</div>;
-  }
-
+function NewRRweb({event, orgId, projectId}: ComponentProps) {
   return (
     <Layout.Main>
-      <ReplayContextProvider replay={replay}>
-        <PanelNoMargin isFullscreen={isFullscreen} ref={fullscreenRef}>
-          <PanelHeader>
-            <ReplayPlayer />
-          </PanelHeader>
-          <PanelBody withPadding>
-            <ScrubberSpacer>
-              <PlayerScrubber />
-            </ScrubberSpacer>
-            <ReplayController toggleFullscreen={toggleFullscreen} />
-          </PanelBody>
-        </PanelNoMargin>
-      </ReplayContextProvider>
+      <EventDataSection>
+        <RRWebIntegration
+          replayVersion
+          event={event}
+          orgId={orgId}
+          projectId={projectId}
+          renderer={children => children}
+        />
+      </EventDataSection>
     </Layout.Main>
   );
 }
-
-const PanelNoMargin = styled(Panel)<{isFullscreen: boolean}>`
-  margin-bottom: 0;
-
-  ${p =>
-    p.isFullscreen
-      ? `height: 100%;
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      `
-      : ''}
-`;
-
-const PanelHeader = styled(_PanelHeader)<{noBorder?: boolean}>`
-  display: block;
-  padding: 0;
-  ${p => (p.noBorder ? 'border-bottom: none;' : '')}
-`;
-
-const ScrubberSpacer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
 
 export default Player;

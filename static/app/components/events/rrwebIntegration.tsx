@@ -8,6 +8,7 @@ type Props = {
   orgId: Organization['id'];
   projectId: Project['id'];
   renderer?: Function;
+  replayVersion?: boolean;
 } & AsyncComponent['props'];
 
 type State = {
@@ -50,7 +51,7 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
       return null;
     }
 
-    const {orgId, projectId, event} = this.props;
+    const {orgId, projectId, event, replayVersion} = this.props;
 
     function createAttachmentUrl(attachment: IssueAttachment) {
       return `/api/0/projects/${orgId}/${projectId}/events/${event.id}/attachments/${attachment.id}/?download`;
@@ -59,7 +60,9 @@ class RRWebIntegration extends AsyncComponent<Props, State> {
     return renderer(
       <LazyLoad
         component={() => import('./rrwebReplayer')}
+        event={event}
         urls={attachmentList.map(createAttachmentUrl)}
+        replayVersion={replayVersion}
       />
     );
   }

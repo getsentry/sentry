@@ -28,7 +28,7 @@ export default class ReplayReader {
     return new ReplayReader(event, rrwebEvents, replayEvents);
   }
 
-  private constructor(
+  protected constructor(
     /**
      * The root Replay event, created at the start of the browser session.
      */
@@ -76,10 +76,10 @@ export default class ReplayReader {
     } as EventTransaction;
   }
 
-  private event: EventTransaction;
-  private rrwebEvents: eventWithTime[];
-  private breadcrumbEntry: Entry;
-  private spanEntry: Entry;
+  event: EventTransaction;
+  rrwebEvents: eventWithTime[];
+  breadcrumbEntry: Entry;
+  spanEntry: Entry;
 
   getEvent = () => {
     return this.event;

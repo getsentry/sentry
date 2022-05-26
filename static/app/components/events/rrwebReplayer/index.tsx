@@ -2,19 +2,24 @@ import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import type RRWebPlayer from 'rrweb-player';
 
+import {Event} from 'sentry/types/event';
+
 import BaseRRWebReplayer from './baseRRWebReplayer';
+import ReplayRRWebReplayer from './replayRRWebReplayer';
 
 type RRWebEvents = ConstructorParameters<typeof RRWebPlayer>[0]['props']['events'];
 interface Props {
+  event: Event;
   urls: string[];
   className?: string;
+  replayVersion?: boolean;
 }
 
 /**
  * Downloads a list of replay JSONs, merges the resulting events within the
  * JSON and passes it to the replayer.
  */
-function RRWebReplayer({urls}: Props) {
+function RRWebReplayer({event, urls, replayVersion}: Props) {
   const [events, setEvents] = useState<RRWebEvents>();
 
   const loadEvents = async () => {
@@ -46,8 +51,11 @@ function RRWebReplayer({urls}: Props) {
     }
   };
 
-  useEffect(() => void loadEvents(), [urls]);
+  useEffect(() => void loadEvents(), [urls]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (replayVersion) {
+    return <ReplayRRWebReplayer event={event} events={events} />;
+  }
   return <BaseRRWebReplayer events={events} />;
 }
 
