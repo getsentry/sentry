@@ -59,8 +59,9 @@ repos:
       name: pyright
       entry: pyright
       language: node
+      files: ^src/
       types: [ python ]
-      pass_filenames: true
+      require_serial: true
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
 

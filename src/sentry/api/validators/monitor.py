@@ -121,12 +121,10 @@ class MonitorValidator(serializers.Serializer):
         return value
 
     def update(self, instance, validated_data):
-        has_config = "config" in instance or "config" in validated_data
-        if has_config:
-            config = instance.get("config", {})
-            config.update(validated_data.get("config", {}))
+        config = instance.get("config", {})
+        config.update(validated_data.get("config", {}))
         instance.update(validated_data)
-        if has_config:
+        if "config" in instance or "config" in validated_data:
             instance["config"] = config
         return instance
 

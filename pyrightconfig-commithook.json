@@ -2,7 +2,7 @@
   "include": [
     "src"
   ],
-
+  "extraPaths": ["src"],
   "exclude": [
     ".volta/**"
   ],
