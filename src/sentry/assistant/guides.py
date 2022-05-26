@@ -21,6 +21,7 @@ GUIDES = {
     "semver": 22,
     "release_stages": 23,
     "new_page_filters": 24,
+    "new_page_filters_pin": 25,
 }
 
 # demo mode has different guides
