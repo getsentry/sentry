@@ -1,21 +1,25 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from django.conf.urls import url
-from django.test import override_settings
-from rest_framework.permissions import AllowAny
+from croniter import croniter
+from django.conf import settings
+from freezegun import freeze_time
+from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
 from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
-from sentry.testutils import APITestCase
+from sentry.testutils import TestCase
 
 replacement_api = "replacement-api"
+test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
+timeiter = croniter("* 12 * * *", test_date)
 
 
 class TestEndpoint(Endpoint):
-    permision_classes = (AllowAny,)
+    permision_classes = ()
 
-    @deprecated(datetime.fromisoformat("2020-01-01T00:00:00Z"), suggested_api=replacement_api)
+    @deprecated(test_date, suggested_api=replacement_api)
     def get(self):
         return Response({"ok": True})
 
@@ -23,31 +27,66 @@ class TestEndpoint(Endpoint):
         return Response({"ok": True})
 
 
-urlpatterns = [url(r"^/testapi$", TestEndpoint.as_view(), name="deprecation-test-api")]
+test_endpoint = TestEndpoint.as_view()
 
 
-@override_settings(ROOT_URLCONF="tests.sentry.helpers.test_deprecation", SENTRY_SELF_HOSTED=False)
-class TestDeprecationDecorator(APITestCase):
+class TestDeprecationDecorator(TestCase):
+    def setUp(self):
+        self.user = self.create_user()
+        self.login_as(self.user)
+        super().setUp()
 
-    endpoint = "deprecation-test-api"
+    def assert_deprecation_metadata(self, request: Request, response: Response):
+        assert hasattr(request, "is_deprecated")
+        assert hasattr(request, "deprecation_date")
+        assert "X-Sentry-Deprecation-Date" in response
+        assert "X-Sentry-Replacement-Endpoint" in response
+        assert request.is_deprecated
+        assert request.deprecation_date == test_date
+        assert response["X-Sentry-Deprecation-Date"] == test_date.isoformat()
+        assert response["X-Sentry-Replacement-Endpoint"] == replacement_api
 
-    def has_ratelimit_meta(self):
-        pass
+    def assert_not_deprecated(self, method):
+        request = self.make_request(user=self.user, method=method)
+        resp = test_endpoint(request)
+        assert resp.status_code == HTTP_200_OK
+        assert not hasattr(request, "is_deprecated")
+        assert not hasattr(request, "deprecation_date")
+        assert "X-Sentry-Deprecation-Date" not in resp
+        assert "X-Sentry-Replacement-Endpoint" not in resp
 
-    def assert_allowed_request(self):
-        pass
+    def assert_allowed_request(self, method):
+        request = self.make_request(user=self.user, method=method)
+        resp = test_endpoint(request)
+        assert resp.status_code == HTTP_200_OK
+        self.assert_deprecation_metadata(request, resp)
 
-    def assert_denied_request(self):
-        pass
+    def assert_denied_request(self, method):
+        request = self.make_request(user=self.user, method=method)
+        resp = test_endpoint(request)
+        assert resp.status_code == HTTP_410_GONE
+        assert resp.data == {"message": "This API no longer exists."}
+        self.assert_deprecation_metadata(request, resp)
 
+    @freeze_time(test_date - timedelta(seconds=1))
     def test_before_deprecation_date(self):
-        pass
+        self.assert_allowed_request("GET")
 
     def test_after_deprecation_date(self):
-        pass
+        with freeze_time(test_date):
+            self.assert_allowed_request("GET")
+
+        brownout_start = timeiter.get_next(datetime)
+        with freeze_time(brownout_start):
+            self.assert_denied_request("GET")
+
+        brownout_end = brownout_start + timedelta(minutes=1)
+        with freeze_time(brownout_end):
+            self.assert_allowed_request("GET")
 
     def test_self_hosted(self):
-        pass
+        settings.SENTRY_SELF_HOSTED = True
+        self.assert_not_deprecated("GET")
 
-    def test_no_header(self):
-        pass
+    def test_no_decorator(self):
+        self.assert_not_deprecated("HEAD")

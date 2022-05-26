@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 from datetime import datetime, timedelta
 
+from croniter import croniter
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_410_GONE as GONE
@@ -14,17 +15,24 @@ GONE_MESSAGE = {"message": "This API no longer exists."}
 DEPRECATION_HEADER = "X-Sentry-Deprecation-Date"
 SUGGESTED_API_HEADER = "X-Sentry-Replacement-Endpoint"
 
+# TODO: Make these configurable from redis
+BROWNOUT_CRON = "* 12 * * *"
+BROWNOUT_DURATION = timedelta(minutes=1)
+
 
 def _track_deprecated_metrics(request: Request, deprecation_date: datetime, now: datetime):
     # indicate the request is on a deprecated endpoint
-    request.is_deprecated = deprecation_date >= now
+    request.is_deprecated = True
     request.deprecation_date = deprecation_date
 
 
 def _should_be_blocked(deprecation_date: datetime, now: datetime):
-    # Placeholder logic
     # Will need to check redis if the hour fits into the brownout period
-    return now >= deprecation_date
+    if now >= deprecation_date:
+        iter = croniter(BROWNOUT_CRON, now)
+        brownout_start = iter.get_prev(datetime)
+        return brownout_start <= now < brownout_start + BROWNOUT_DURATION
+    return False
 
 
 def _add_deprecation_headers(
