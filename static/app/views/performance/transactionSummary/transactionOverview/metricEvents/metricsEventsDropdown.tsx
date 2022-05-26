@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {
   AutoSampleState,
   MEPState,
