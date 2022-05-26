@@ -397,7 +397,6 @@ def setup_services(validate=True):
         tagstore,
         tsdb,
     )
-    from sentry.utils.settings import reraise_as
 
     from .importer import ConfigurationError
 
@@ -419,16 +418,16 @@ def setup_services(validate=True):
             try:
                 service.validate()
             except AttributeError as e:
-                reraise_as(
-                    ConfigurationError(f"{service.__name__} service failed to call validate()\n{e}")
-                )
+                raise ConfigurationError(
+                    f"{service.__name__} service failed to call validate()\n{e}"
+                ).with_traceback(e.__traceback__)
         try:
             service.setup()
         except AttributeError as e:
             if not hasattr(service, "setup") or not callable(service.setup):
-                reraise_as(
-                    ConfigurationError(f"{service.__name__} service failed to call setup()\n{e}")
-                )
+                raise ConfigurationError(
+                    f"{service.__name__} service failed to call setup()\n{e}"
+                ).with_traceback(e.__traceback__)
             raise
 
 
