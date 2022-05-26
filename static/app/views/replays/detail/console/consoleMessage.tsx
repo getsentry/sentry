@@ -66,10 +66,16 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 }
 
 interface ConsoleMessageProps extends MessageFormatterProps {
+  isActive: boolean;
   isLast: boolean;
   startTimestamp: number;
 }
-function ConsoleMessage({breadcrumb, isLast, startTimestamp = 0}: ConsoleMessageProps) {
+function ConsoleMessage({
+  breadcrumb,
+  isActive = false,
+  isLast,
+  startTimestamp = 0,
+}: ConsoleMessageProps) {
   const ICONS = {
     error: <IconClose isCircled size="xs" />,
     warning: <IconWarning size="xs" />,
@@ -84,7 +90,7 @@ function ConsoleMessage({breadcrumb, isLast, startTimestamp = 0}: ConsoleMessage
 
   return (
     <Fragment>
-      <Icon isLast={isLast} level={breadcrumb.level}>
+      <Icon isLast={isLast} level={breadcrumb.level} isActive={isActive}>
         {ICONS[breadcrumb.level]}
       </Icon>
       <Message isLast={isLast} level={breadcrumb.level}>
@@ -123,8 +129,9 @@ const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
   cursor: pointer;
 `;
 
-const Icon = styled(Common)`
+const Icon = styled(Common)<{isActive: boolean}>`
   padding: ${space(0.5)} ${space(1)};
+  border-left: 4px solid ${p => (p.isActive ? p.theme.focus : 'transparent')};
 `;
 const Message = styled(Common)`
   padding: ${space(0.25)} 0;
