@@ -1054,6 +1054,11 @@ describe('Modals -> WidgetViewerModal', function () {
       metricsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/metrics/data/',
         body: TestStubs.MetricsTotalCountByReleaseIn24h(),
+        headers: {
+          link:
+            '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/metrics/data/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+        },
       });
     });
     it('does a sessions query', async function () {
@@ -1091,6 +1096,24 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders Release widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
       expect(container).toSnapshot();
+    });
+
+    it('renders pagination buttons', async function () {
+      await renderModal({
+        initialData,
+        widget: mockWidget,
+      });
+      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
+    });
+
+    it('does not render pagination buttons when sorting by release', async function () {
+      await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, orderby: 'release'}]},
+      });
+      expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
     });
 
     it('makes a new sessions request after sorting by a table column', async function () {
