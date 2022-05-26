@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-import os
 from concurrent.futures import ThreadPoolExecutor
+from os.path import abspath
 from subprocess import CalledProcessError, run
 
 from tools.lib import gitroot
 
 
 def main() -> int:
-    os.chdir(gitroot())
-
+    base_path = abspath(gitroot())
     base_cmd = (
         "pip-compile",
         "--no-header",
@@ -24,9 +23,9 @@ def main() -> int:
             #    run,
             #    (
             #        *base_cmd,
-            #        "requirements-base.txt",
+            #        f"{base_path}/requirements-base.txt",
             #        "-o",
-            #        "requirements-frozen.txt",
+            #        f"{base_path}/requirements-frozen.txt",
             #    ),
             #    check=True,
             #    capture_output=True,
@@ -35,9 +34,9 @@ def main() -> int:
                 run,
                 (
                     *base_cmd,
-                    "requirements-dev.txt",
+                    f"{base_path}/requirements-dev.txt",
                     "-o",
-                    "requirements-dev-only-frozen.txt",
+                    f"{base_path}/requirements-dev-only-frozen.txt",
                 ),
                 check=True,
                 capture_output=True,
@@ -46,10 +45,10 @@ def main() -> int:
             #    run,
             #    (
             #        *base_cmd,
-            #        "requirements-base.txt",
-            #        "requirements-dev.txt",
+            #        f"{base_path}/requirements-base.txt",
+            #        f"{base_path}/requirements-dev.txt",
             #        "-o",
-            #        "requirements-dev-frozen.txt",
+            #        f"{base_path}/requirements-dev-frozen.txt",
             #    ),
             #    check=True,
             #    capture_output=True,
