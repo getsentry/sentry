@@ -166,8 +166,8 @@ export function getWidgetInterval(
   const selectedRange = getDiffInMinutes(datetimeObj);
 
   if (fidelity) {
-    // Lower fidelity for Release Health widgets because of what
-    // the sessions endpoint can currently support.
+    // Primarily to support lower fidelity for Release Health widgets
+    // the sort on releases and hit the metrics API endpoint.
     interval = getInterval(datetimeObj, fidelity);
     if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
       interval = '1h';
