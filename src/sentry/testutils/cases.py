@@ -59,6 +59,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
+from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
@@ -515,11 +516,23 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         if status_code and status_code >= 400:
             raise Exception("status_code must be < 400")
 
-        response = self.get_response(*args, **params)
+        method = params.pop("method", self.method).lower()
+
+        response = self.get_response(*args, method=method, **params)
 
         if status_code:
             assert_status_code(response, status_code)
+        elif method == "get":
+            assert_status_code(response, status.HTTP_200_OK)
+        # TODO(mgaeta): Add the other methods.
+        # elif method == "post":
+        #     assert_status_code(response, status.HTTP_201_CREATED)
+        elif method == "put":
+            assert_status_code(response, status.HTTP_200_OK)
+        elif method == "delete":
+            assert_status_code(response, status.HTTP_204_NO_CONTENT)
         else:
+            # TODO(mgaeta): Add other methods.
             assert_status_code(response, 200, 300)
 
         return response

@@ -1,3 +1,5 @@
+from rest_framework import status
+
 from sentry.models import NotificationSetting
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import APITestCase
@@ -8,23 +10,23 @@ class TeamNotificationSettingsTestBase(APITestCase):
     endpoint = "sentry-api-0-team-notification-settings"
 
     def setUp(self):
+        super().setUp()
         self.login_as(self.user)
-        self.org = self.organization  # Force creation.
-        _ = self.project  # Force creation.
 
 
 class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
     def test_simple(self):
-        response = self.get_success_response(self.org.slug, self.team.slug)
+        _ = self.project  # HACK to force creation.
+        response = self.get_success_response(self.organization.slug, self.team.slug)
 
         # Spot check.
         assert response.data["alerts"]["project"][self.project.id]["email"] == "default"
-        assert response.data["deploy"]["organization"][self.org.id]["email"] == "default"
+        assert response.data["deploy"]["organization"][self.organization.id]["email"] == "default"
         assert response.data["workflow"]["project"][self.project.id]["slack"] == "default"
 
     def test_type_querystring(self):
         response = self.get_success_response(
-            self.org.slug, self.team.slug, qs_params={"type": "workflow"}
+            self.organization.slug, self.team.slug, qs_params={"type": "workflow"}
         )
 
         assert "alerts" not in response.data
@@ -32,17 +34,24 @@ class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
 
     def test_invalid_querystring(self):
         self.get_error_response(
-            self.org.slug, self.team.slug, qs_params={"type": "invalid"}, status_code=400
+            self.organization.slug,
+            self.team.slug,
+            qs_params={"type": "invalid"},
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
 
     def test_invalid_team_slug(self):
-        self.get_error_response(self.org.slug, "invalid", status_code=404)
+        self.get_error_response(
+            self.organization.slug, "invalid", status_code=status.HTTP_404_NOT_FOUND
+        )
 
     def test_wrong_team_slug(self):
         other_org = self.create_organization()
         other_team = self.create_team(organization=other_org, name="Tesla Motors")
 
-        self.get_error_response(other_org.slug, other_team.slug, status_code=403)
+        self.get_error_response(
+            other_org.slug, other_team.slug, status_code=status.HTTP_403_FORBIDDEN
+        )
 
 
 class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
@@ -60,9 +69,10 @@ class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
         )
 
         self.get_success_response(
-            self.org.slug,
+            self.organization.slug,
             self.team.slug,
-            **{"alerts": {"project": {self.project.id: {"email": "always", "slack": "always"}}}},
+            alerts={"project": {self.project.id: {"email": "always", "slack": "always"}}},
+            status_code=status.HTTP_204_NO_CONTENT,
         )
 
         assert (
@@ -76,7 +86,16 @@ class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
         )
 
     def test_empty_payload(self):
-        self.get_error_response(self.org.slug, self.team.slug, **{}, status_code=400)
+        self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
     def test_invalid_payload(self):
-        self.get_error_response(self.org.slug, self.team.slug, **{"invalid": 1}, status_code=400)
+        self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            invalid=1,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
