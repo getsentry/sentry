@@ -1030,6 +1030,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         end = datetime.datetime(2015, 5, 28, 23, 59, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 86400, "Several days"
 
+        # We're doing a long period, use the biggest granularity
+        start = datetime.datetime(2015, 5, 18, 12, 33, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 7, 28, 17, 22, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "Big range"
+
         # If we're on the start of the hour we should use the hour granularity
         start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
@@ -1039,6 +1044,11 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         start = datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 21, 1, 57, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "On the hour, close"
+
+        # A decently long period but not close to hour ends, still use hour bucket
+        start = datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 28, 1, 57, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "On the hour, long period"
 
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
         # granularity

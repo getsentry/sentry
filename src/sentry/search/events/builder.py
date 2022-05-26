@@ -1596,6 +1596,13 @@ class MetricsQueryBuilder(QueryBuilder):
         snuba. eg. we can only use the daily granularity if the query starts and ends at midnight
         Seconds are ignored under the assumption that there currently isn't a valid use case to have
         to-the-second accurate information
+
+        We also allow some flexibility on the granularity used the larger the duration of the query since the hypothesis
+        is that users won't be able to notice the loss of accuracy regardless. With that in mind:
+        - If duration is between 12 hours to 3d we allow 15 minutes on the hour boundaries for hourly granularity
+        - if duration is between 3d to 30d we allow 30 minutes on the day boundaries for daily granularities
+            and will fallback to hourly granularity
+        - If the duration is over 30d we always use the daily granularities
         """
         duration = (self.end - self.start).total_seconds()
 
@@ -1613,19 +1620,33 @@ class MetricsQueryBuilder(QueryBuilder):
             else:
                 granularity = 3600
         elif (
-            # Only use approximate if over 3 days
-            (duration > 86400 * 3)
-            and (self.start.minute <= 15 or self.start.hour >= 45)
-            and (self.end.minute <= 15 or self.end.minute >= 45)
-            and (self.start.hour <= 1 or self.start.hour >= 23)
-            and (self.end.hour <= 1 or self.end.hour >= 23)
+            # Its over 30d, just use the daily granularity
+            duration
+            >= 86400 * 30
         ):
             granularity = 86400
         elif (
-            # Only use approximate if over 12 hours
-            (duration > 3600 * 12)
-            and (self.start.minute <= 5 or self.start.minute >= 55)
-            and (self.end.minute <= 5 or self.end.minute >= 55)
+            # more than 3 days
+            duration
+            >= 86400 * 3
+        ):
+            # Allow 30 minutes for the daily buckets
+            if (
+                (self.start.minute <= 30 and self.start.hour == 0)
+                or (self.start.minute >= 30 and self.start.hour == 23)
+            ) and (
+                (self.end.minute <= 30 and self.end.hour == 0)
+                or (self.end.minute >= 30 and self.end.hour >= 23)
+            ):
+                granularity = 86400
+            else:
+                granularity = 3600
+        elif (
+            # more than 12 hours
+            (duration >= 3600 * 12)
+            # Allow 15 minutes for the hourly buckets
+            and (self.start.minute <= 15 or self.start.minute >= 45)
+            and (self.end.minute <= 15 or self.end.minute >= 45)
         ):
             granularity = 3600
         # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
