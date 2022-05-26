@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
-import {SectionHeading} from 'sentry/components/charts/styles';
 import DateTime from 'sentry/components/dateTime';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
@@ -9,11 +8,9 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
-import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Trace} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
@@ -33,8 +30,6 @@ interface ProfilesTableProps {
   isLoading: boolean;
   traces: Trace[];
   columnOrder?: TableColumnKey[];
-  hideHeader?: boolean;
-  pageLinks?: string | null;
 }
 
 function ProfilesTable(props: ProfilesTableProps) {
@@ -42,12 +37,6 @@ function ProfilesTable(props: ProfilesTableProps) {
 
   return (
     <Fragment>
-      {!props.hideHeader && (
-        <TableHeader>
-          <SectionHeading>{t('Recent Profiles')}</SectionHeading>
-          <StyledPagination pageLinks={props.pageLinks} size="xsmall" />
-        </TableHeader>
-      )}
       <GridEditable
         isLoading={props.isLoading}
         error={props.error}
@@ -94,6 +83,16 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
   const project = REQUIRE_PROJECT_COLUMNS.has(column.key)
     ? projects.find(proj => proj.id === dataRow.project_id)
     : undefined;
+
+  if (REQUIRE_PROJECT_COLUMNS.has(column.key) && !defined(project)) {
+    Sentry.withScope(scope => {
+      scope.setFingerprint(['profiles table', 'cell', 'missing project']);
+      scope.setTag('cell_key', column.key);
+      scope.setTag('missing_project', dataRow.project_id);
+      scope.setTag('available_project', projects.length);
+      Sentry.captureMessage(`Project ${dataRow.project_id} missing for ${column.key}`);
+    });
+  }
 
   const value = dataRow[column.key];
 
@@ -265,15 +264,5 @@ const COLUMNS: TableColumnOrders = {
     width: COL_WIDTH_UNDEFINED,
   },
 };
-
-const TableHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${space(1)};
-`;
 
 export {ProfilesTable};
