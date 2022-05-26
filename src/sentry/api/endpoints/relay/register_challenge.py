@@ -21,6 +21,7 @@ class RelayRegisterChallengeSerializer(RelayIdSerializer):
 class RelayRegisterChallengeEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
+    enforce_rate_limit = False
 
     def post(self, request: Request) -> Response:
         """
