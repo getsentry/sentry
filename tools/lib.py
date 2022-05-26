@@ -15,14 +15,28 @@ else:
         return _lru_cache(maxsize=None)(func)
 
 
+# Modified from pre-commit @ fb0ccf3546a9cb34ec3692e403270feb6d6033a2
 @cache
 def gitroot() -> str:
-    from os import getcwd
-    from os.path import isdir, normpath
+    from os.path import abspath
+    from subprocess import CalledProcessError, run
 
-    gitroot, root = getcwd(), "/"
-    while not isdir(f"{gitroot}/.git"):
-        gitroot = normpath(f"{gitroot}/..")
-        if gitroot == root:
-            raise RuntimeError("failed to locate a git root directory")
-    return gitroot
+    # Git 2.25 introduced a change to "rev-parse --show-toplevel" that exposed
+    # underlying volumes for Windows drives mapped with SUBST.  We use
+    # "rev-parse --show-cdup" to get the appropriate path, but must perform
+    # an extra check to see if we are in the .git directory.
+    try:
+        proc = run(("git", "rev-parse", "--show-cdup"), check=True, capture_output=True)
+        root = abspath(proc.stdout.decode().strip())
+        proc = run(("git", "rev-parse", "--is-inside-git-dir"), check=True, capture_output=True)
+        inside_git_dir = proc.stdout.decode().strip()
+    except CalledProcessError:
+        raise SystemExit(
+            "git failed. Is it installed, and are you in a Git repository " "directory?",
+        )
+    if inside_git_dir != "false":
+        raise SystemExit(
+            "git toplevel unexpectedly empty! make sure you are not "
+            "inside the `.git` directory of your repository.",
+        )
+    return root
