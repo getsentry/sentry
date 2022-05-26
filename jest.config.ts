@@ -152,6 +152,9 @@ const config: Config.InitialOptions = {
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
     'integration-docs-platforms':
       '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
+
+    // Disable echarts in test, since they're very slow and take time to
+    // transform
     '^echarts/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
     '^zrender/(.*)': '<rootDir>/tests/js/sentry-test/echartsMock.js',
   },
