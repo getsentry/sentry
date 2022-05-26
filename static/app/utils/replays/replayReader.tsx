@@ -72,10 +72,10 @@ export default class ReplayReader {
     } as EventTransaction;
   }
 
-  event: EventTransaction;
-  rrwebEvents: RecordingEvent[];
-  breadcrumbs: Crumb[];
-  spans: ReplaySpan[];
+  private event: EventTransaction;
+  private rrwebEvents: RecordingEvent[];
+  private breadcrumbs: Crumb[];
+  private spans: ReplaySpan[];
 
   getEvent = () => {
     return this.event;
