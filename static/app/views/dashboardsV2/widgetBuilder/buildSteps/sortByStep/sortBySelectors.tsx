@@ -159,7 +159,10 @@ export function SortBySelectors({
         </Measurements>
       );
     }
-    if (widgetType === WidgetType.RELEASE) {
+    if (
+      widgetType === WidgetType.RELEASE &&
+      ![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)
+    ) {
       return (
         <Tooltip
           title={disabledReason}
