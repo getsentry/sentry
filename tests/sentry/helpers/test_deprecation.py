@@ -13,11 +13,11 @@ from sentry.testutils import APITestCase
 
 replacement_api = "replacement-api"
 test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
-timeiter = croniter("* 12 * * *", test_date)
+timeiter = croniter("0 12 * * *", test_date)
 
 
 class DummyEndpoint(Endpoint):
-    permision_classes = ()
+    permission_classes = ()
 
     @deprecated(test_date, suggested_api=replacement_api)
     def get(self, request):
@@ -31,13 +31,13 @@ dummy_endpoint = DummyEndpoint.as_view()
 
 
 class TestDeprecationDecorator(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        settings.SENTRY_SELF_HOSTED = False
+
     def assert_deprecation_metadata(self, request: Request, response: Response):
-        assert hasattr(request, "is_deprecated")
-        assert hasattr(request, "deprecation_date")
         assert "X-Sentry-Deprecation-Date" in response
         assert "X-Sentry-Replacement-Endpoint" in response
-        assert request.is_deprecated
-        assert request.deprecation_date == test_date
         assert response["X-Sentry-Deprecation-Date"] == test_date.isoformat()
         assert response["X-Sentry-Replacement-Endpoint"] == replacement_api
 
@@ -45,8 +45,6 @@ class TestDeprecationDecorator(APITestCase):
         request = self.make_request(method=method)
         resp = dummy_endpoint(request)
         assert resp.status_code == HTTP_200_OK
-        assert not hasattr(request, "is_deprecated")
-        assert not hasattr(request, "deprecation_date")
         assert "X-Sentry-Deprecation-Date" not in resp
         assert "X-Sentry-Replacement-Endpoint" not in resp
 
@@ -65,9 +63,9 @@ class TestDeprecationDecorator(APITestCase):
         assert resp.data == {"message": "This API no longer exists."}
         self.assert_deprecation_metadata(request, resp)
 
-    @freeze_time(test_date - timedelta(seconds=1))
     def test_before_deprecation_date(self):
-        self.assert_allowed_request("GET")
+        with freeze_time(test_date - timedelta(seconds=1)):
+            self.assert_allowed_request("GET")
 
     def test_after_deprecation_date(self):
         with freeze_time(test_date):
@@ -75,6 +73,10 @@ class TestDeprecationDecorator(APITestCase):
 
         brownout_start = timeiter.get_next(datetime)
         with freeze_time(brownout_start):
+            self.assert_denied_request("GET")
+
+        mid_brownout = brownout_start + timedelta(seconds=1)
+        with freeze_time(mid_brownout):
             self.assert_denied_request("GET")
 
         brownout_end = brownout_start + timedelta(minutes=1)
