@@ -375,7 +375,7 @@ function Sidebar({location, organization}: Props) {
               orientation={orientation}
               collapsed={collapsed}
               currentPanel={activePanel}
-              onShowPanel={() => togglePanel(SidebarPanelKey.StatusUpdate)}
+              onShowPanel={() => togglePanel(SidebarPanelKey.ServiceIncidents)}
               hidePanel={hidePanel}
             />
           </SidebarSection>
