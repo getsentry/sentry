@@ -12,6 +12,8 @@ from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 from sentry.utils.compat import filter, map
 
 SUPPORTED_RUNTIMES = [
+    "nodejs18.x",
+    "nodejs16.x",
     "nodejs14.x",
     "nodejs12.x",
     "nodejs10.x",
@@ -19,6 +21,7 @@ SUPPORTED_RUNTIMES = [
     "python3.6",
     "python3.7",
     "python3.8",
+    "python3.9",
 ]
 
 INVALID_LAYER_TEXT = "Invalid existing layer %s"
