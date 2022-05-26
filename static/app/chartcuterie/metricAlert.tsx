@@ -11,14 +11,14 @@ import {
   transformSessionResponseToSeries,
 } from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
-import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
+import {slackChartDefaults, slackChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
 const metricAlertXaxis = XAxis({
   theme,
   splitNumber: 3,
   isGroupedByDate: true,
-  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
+  axisLabel: {fontSize: 11},
 });
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
@@ -38,11 +38,6 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
       animationDuration: 0,
       ...otherSeriesProps,
     });
-
-    // Fix incident label font family, cannot use Rubik
-    if (areaSeries.markLine?.label?.fontFamily) {
-      areaSeries.markLine.label.fontFamily = DEFAULT_FONT_FAMILY;
-    }
 
     return areaSeries;
   });

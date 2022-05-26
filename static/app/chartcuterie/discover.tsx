@@ -13,12 +13,7 @@ import {t} from 'sentry/locale';
 import {EventsGeoData, EventsStats} from 'sentry/types';
 import {lightTheme as theme} from 'sentry/utils/theme';
 
-import {
-  DEFAULT_FONT_FAMILY,
-  slackChartDefaults,
-  slackChartSize,
-  slackGeoChartSize,
-} from './slack';
+import {slackChartDefaults, slackChartSize, slackGeoChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
 const discoverxAxis = XAxis({
@@ -27,7 +22,7 @@ const discoverxAxis = XAxis({
   boundaryGap: true,
   splitNumber: 3,
   isGroupedByDate: true,
-  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
+  axisLabel: {fontSize: 11},
 });
 
 export const discoverCharts: RenderDescriptor<ChartType>[] = [];
