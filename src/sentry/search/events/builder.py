@@ -1606,6 +1606,11 @@ class MetricsQueryBuilder(QueryBuilder):
         """
         duration = (self.end - self.start).total_seconds()
 
+        near_midnight = lambda time: (time.minute <= 30 and time.hour == 0) or (
+            time.minute >= 30 and time.hour == 23
+        )
+        near_hour = lambda time: time.minute <= 15 or time.minute >= 15
+
         if (
             # precisely going hour to hour
             self.start.minute
@@ -1631,13 +1636,7 @@ class MetricsQueryBuilder(QueryBuilder):
             >= 86400 * 3
         ):
             # Allow 30 minutes for the daily buckets
-            if (
-                (self.start.minute <= 30 and self.start.hour == 0)
-                or (self.start.minute >= 30 and self.start.hour == 23)
-            ) and (
-                (self.end.minute <= 30 and self.end.hour == 0)
-                or (self.end.minute >= 30 and self.end.hour >= 23)
-            ):
+            if near_midnight(self.start) and near_midnight(self.end):
                 granularity = 86400
             else:
                 granularity = 3600
@@ -1645,8 +1644,8 @@ class MetricsQueryBuilder(QueryBuilder):
             # more than 12 hours
             (duration >= 3600 * 12)
             # Allow 15 minutes for the hourly buckets
-            and (self.start.minute <= 15 or self.start.minute >= 45)
-            and (self.end.minute <= 15 or self.end.minute >= 45)
+            and near_hour(self.start)
+            and near_hour(self.end)
         ):
             granularity = 3600
         # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
