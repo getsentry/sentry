@@ -325,7 +325,7 @@ jobs:
 
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@feat/minor-fixes
+        uses: getsentry/action-visual-snapshot@main
         # Forks are handled in visual-diff.yml
         if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
