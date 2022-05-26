@@ -187,7 +187,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
       }
       case GroupActivityType.CREATE_ISSUE: {
         const {data} = activity;
-        return tct('[author] created an issue on [provider] titled [title]', {
+        return tct('[author] linked to an issue on [provider] titled [title]', {
           author,
           provider: data.provider,
           title: <ExternalLink href={data.location}>{data.title}</ExternalLink>,
