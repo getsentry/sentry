@@ -1061,6 +1061,69 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         end = datetime.datetime(2015, 5, 18, 10, 15, 34, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 60, "less than a minute"
 
+    def test_granularity_boundaries(self):
+        # Need to pick granularity based on the period
+        def get_granularity(start, end):
+            params = {
+                "organization_id": self.organization.id,
+                "project_id": self.projects,
+                "start": start,
+                "end": end,
+            }
+            query = MetricsQueryBuilder(params)
+            return query.granularity.granularity
+
+        # See resolve_granularity on the MQB to see what these boundaries are
+
+        # Exactly 30d, at the 30 minute boundary
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 31, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "30d at boundary"
+
+        # Near 30d, but 1 hour before the boundary for end
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 30, 23, 29, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 30d, but 1 hour before boundary for end"
+
+        # Near 30d, but 1 hour after the boundary for start
+        start = datetime.datetime(2015, 5, 1, 1, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 31, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 30d, but 1 hour after boundary for start"
+
+        # Exactly 3d
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 4, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "3d at boundary"
+
+        # Near 3d, but 1 hour before the boundary for end
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 3, 23, 29, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 3d, but 1 hour before boundary for end"
+
+        # Near 3d, but 1 hour after the boundary for start
+        start = datetime.datetime(2015, 5, 1, 1, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 4, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 3d, but 1 hour after boundary for start"
+
+        # exactly 12 hours
+        start = datetime.datetime(2015, 5, 1, 0, 15, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 1, 12, 15, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "12h at boundary"
+
+        # Near 12h, but 15 minutes before the boundary for end
+        start = datetime.datetime(2015, 5, 1, 0, 15, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
+        assert (
+            get_granularity(start, end) == 60
+        ), "12h at boundary, but 15 min before the boundary for end"
+
+        # Near 12h, but 15 minutes after the boundary for start
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 1, 12, 15, 0, tzinfo=timezone.utc)
+        assert (
+            get_granularity(start, end) == 60
+        ), "12h at boundary, but 15 min after the boundary for start"
+
     def test_run_query(self):
         self.store_metric(
             100,
