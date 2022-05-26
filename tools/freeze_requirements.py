@@ -58,7 +58,7 @@ def main() -> int:
     rc = 0
     for future in futures:
         try:
-            proc = future.result()
+            future.result()
         except CalledProcessError as e:
             rc = 1
             print(
@@ -71,9 +71,6 @@ stderr:
 {e.stderr.decode()}
 """
             )
-        except Exception as e:
-            rc = 1
-            print(f"exception occured while running `{proc.args}`:\n{e}")
 
     return rc
 
