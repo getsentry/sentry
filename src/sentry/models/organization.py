@@ -165,6 +165,7 @@ class Organization(Model):
     objects = OrganizationManager(cache_fields=("pk", "slug"))
 
     snowflake_redis_key = "organization_snowflake_key"
+    snowflake_retry_counter = 0
 
     class Meta:
         app_label = "sentry"
@@ -199,6 +200,8 @@ class Organization(Model):
             with transaction.atomic():
                 super().save(*args, **kwargs)
         except IntegrityError:
+            if self.snowflake_retry_counter == 5:
+                raise Exception("Max allowed ID retry reached. Please try again in a second")
             self.id = None
             self.save(*args, **kwargs)
 

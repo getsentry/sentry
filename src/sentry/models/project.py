@@ -144,6 +144,7 @@ class Project(Model, PendingDeletionMixin):
     platform = models.CharField(max_length=64, null=True)
 
     snowflake_redis_key = "project_snowflake_key"
+    snowflake_retry_counter = 0
 
     class Meta:
         app_label = "sentry"
@@ -184,6 +185,8 @@ class Project(Model, PendingDeletionMixin):
             with transaction.atomic():
                 super().save(*args, **kwargs)
         except IntegrityError:
+            if self.snowflake_retry_counter == 5:
+                raise Exception("Max allowed ID retry reached. Please try again in a second")
             self.id = None
             self.save(*args, **kwargs)
         self.update_rev_for_option()
