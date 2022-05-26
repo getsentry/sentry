@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {clamp} from 'sentry/utils/profiling/colors/utils';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
@@ -25,18 +25,31 @@ export function computeBestContextMenuPosition(
   };
 }
 
-export function useContextMenu() {
+interface UseContextMenuOptions {
+  container: HTMLElement | null;
+}
+
+export function useContextMenu({container}: UseContextMenuOptions) {
   const [open, setOpen] = useState<boolean>(false);
+  const [menuCoordinates, setMenuCoordinates] = useState<Rect | null>(null);
+  const [contextMenuCoordinates, setContextMenuCoordinates] = useState<Rect | null>(null);
+  const [containerCoordinates, setContainerCoordinates] = useState<Rect | null>(null);
+
   const itemProps = useKeyboardNavigation();
 
-  function wrapSetOpen(newOpen: boolean) {
-    if (!newOpen) {
-      itemProps.setTabIndex(null);
-    }
-    setOpen(newOpen);
-  }
+  // We wrap the setOpen function in a useEffect so that we also clear the keyboard
+  // tabIndex when a menu is closed. This prevents tabIndex from being persisted between render
+  const wrapSetOpen = useCallback(
+    (newOpen: boolean) => {
+      if (!newOpen) {
+        itemProps.setTabIndex(null);
+      }
+      setOpen(newOpen);
+    },
+    [itemProps]
+  );
 
-  function getMenuProps() {
+  const getMenuProps = useCallback(() => {
     const menuProps = itemProps.getMenuKeyboardEventHandlers();
 
     return {
@@ -48,9 +61,9 @@ export function useContextMenu() {
         menuProps.onKeyDown(evt);
       },
     };
-  }
+  }, [itemProps]);
 
-  function getMenuItemProps() {
+  const getMenuItemProps = useCallback(() => {
     const menuItemProps = itemProps.getMenuItemKeyboardEventHandlers();
 
     return {
@@ -62,12 +75,102 @@ export function useContextMenu() {
         menuItemProps.onKeyDown(evt);
       },
     };
-  }
+  }, [itemProps]);
+
+  const handleContextMenu = useCallback(
+    (evt: React.MouseEvent) => {
+      if (!container) {
+        return;
+      }
+      evt.preventDefault();
+      evt.stopPropagation();
+
+      const parentPosition = container.getBoundingClientRect();
+
+      setContextMenuCoordinates(
+        new Rect(
+          evt.clientX - parentPosition.left,
+          evt.clientY - parentPosition.top,
+          0,
+          0
+        )
+      );
+      wrapSetOpen(true);
+    },
+    [container, wrapSetOpen]
+  );
+
+  useEffect(() => {
+    const listener = (event: MouseEvent | TouchEvent) => {
+      // Do nothing if clicking ref's element or descendent elements
+      if (!itemProps.menuRef || itemProps.menuRef.contains(event.target as Node)) {
+        return;
+      }
+
+      setOpen(false);
+    };
+
+    document.addEventListener('mousedown', listener);
+    document.addEventListener('touchstart', listener);
+    return () => {
+      document.removeEventListener('mousedown', listener);
+      document.removeEventListener('touchstart', listener);
+    };
+  }, [itemProps.menuRef]);
+
+  // Observe the menu
+  useEffect(() => {
+    if (!itemProps.menuRef) {
+      return undefined;
+    }
+
+    const resizeObserver = new window.ResizeObserver(entries => {
+      const contentRect = entries[0].contentRect;
+      setMenuCoordinates(new Rect(0, 0, contentRect.width, contentRect.height));
+    });
+
+    resizeObserver.observe(itemProps.menuRef);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [itemProps.menuRef]);
+
+  // Observe the container
+  useEffect(() => {
+    if (!container) {
+      return undefined;
+    }
+
+    const resizeObserver = new window.ResizeObserver(entries => {
+      const contentRect = entries[0].contentRect;
+      setContainerCoordinates(new Rect(0, 0, contentRect.width, contentRect.height));
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [container]);
+
+  const position =
+    contextMenuCoordinates && containerCoordinates && menuCoordinates
+      ? computeBestContextMenuPosition(
+          contextMenuCoordinates,
+          containerCoordinates,
+          menuCoordinates
+        )
+      : null;
 
   return {
     open,
-    setOpen: wrapSetOpen,
+    position,
+    containerCoordinates,
+    contextMenuCoordinates: position,
     menuRef: itemProps.menuRef,
+    setOpen: wrapSetOpen,
+    handleContextMenu,
     getMenuProps,
     getMenuItemProps,
   };
