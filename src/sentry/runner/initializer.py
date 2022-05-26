@@ -1,3 +1,4 @@
+import importlib.metadata
 import logging
 import os
 import sys
@@ -13,8 +14,6 @@ logger = logging.getLogger("sentry.runner.initializer")
 
 
 def register_plugins(settings, raise_on_plugin_load_failure=False):
-    from pkg_resources import iter_entry_points
-
     from sentry.plugins.base import plugins
 
     # entry_points={
@@ -22,7 +21,14 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-    for ep in iter_entry_points("sentry.plugins"):
+    entry_points = {
+        ep
+        for dist in importlib.metadata.distributions()
+        for ep in dist.entry_points
+        if ep.group == "sentry.plugins"
+    }
+
+    for ep in entry_points:
         try:
             plugin = ep.load()
         except Exception:
