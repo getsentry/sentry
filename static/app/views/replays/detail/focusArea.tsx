@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import {uuid4} from '@sentry/utils';
 
 import Spans from 'sentry/components/events/interfaces/spans';
 import Placeholder from 'sentry/components/placeholder';
@@ -67,6 +68,7 @@ function FocusArea({replay}: Props) {
             ...span,
             timestamp: endTimestamp,
             start_timestamp: startTimestamp,
+            span_id: uuid4(), // TODO(replays): used as a React key
             parent_span_id: 'replay_network_trace',
           })),
       };
