@@ -62,7 +62,7 @@ function LazyLoad<C extends ComponentType>(props: Props<C>) {
           </LoadingContainer>
         }
       >
-        <LazyComponent {...(props as React.ComponentProps<C>)} />;
+        <LazyComponent {...(props as React.ComponentProps<C>)} />
       </Suspense>
     </ErrorBoundary>
   );
