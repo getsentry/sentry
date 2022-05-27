@@ -393,4 +393,4 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 register("kafka.send-project-events-to-random-partitions", default=[])
 
 # Rate to project_configs_v3
-register("relay.project-config-v3-enable", default=0)
+register("relay.project-config-v3-enable", default=0.0)

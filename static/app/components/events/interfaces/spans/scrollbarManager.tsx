@@ -188,6 +188,9 @@ export class Provider extends Component<Props, State> {
     if (spanBarDOM) {
       this.syncVirtualScrollbar(spanBarDOM);
     }
+
+    const left = this.spansInView.getScrollVal();
+    this.performScroll(left);
   };
 
   syncVirtualScrollbar = (spanBar: HTMLDivElement) => {
