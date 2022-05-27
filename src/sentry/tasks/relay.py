@@ -46,13 +46,16 @@ def update_config_cache(
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
 
-    # Delete key before generating configs such that we never have an outdated
-    # but valid cache.
-    #
-    # If this was running at the end of the task, it would be more effective
-    # against bursts of updates, but introduces a different race where an
-    # outdated cache may be used.
-    projectconfig_debounce_cache.mark_task_done(public_key, project_id, organization_id)
+    # Not running this at the beginning of the task to add tags in case there's
+    # something wrong going on.
+    if not should_update_cache(
+        organization_id=organization_id, project_id=project_id, public_key=public_key
+    ):
+        # XXX(iker): this approach doesn't work with celery's ack_late enabled.
+        # If ack_late is enabled and the task fails after being marked as done,
+        # the second attempt will exit early and not compute the project config.
+        metrics.incr("relay.tasks.update_config_cache.early_return", amount=1, sample_rate=1)
+        return
 
     if organization_id:
         projects = list(Project.objects.filter(organization_id=organization_id))
@@ -65,13 +68,13 @@ def update_config_cache(
             keys = [ProjectKey.objects.get(public_key=public_key)]
         except ProjectKey.DoesNotExist:
             # In this particular case, where a project key got deleted and
-            # triggered an update, we at least know the public key that needs
-            # to be deleted from cache.
+            # triggered an update, we know that key doesn't exist and we want to
+            # avoid creating more tasks for it.
             #
             # In other similar cases, like an org being deleted, we potentially
             # cannot find any keys anymore, so we don't know which cache keys
             # to delete.
-            projectconfig_cache.delete_many([public_key])
+            projectconfig_cache.set_many({public_key: {"disabled": True}})
             return
 
     else:
@@ -95,6 +98,21 @@ def update_config_cache(
             cache_keys_to_delete.append(key.public_key)
 
         projectconfig_cache.delete_many(cache_keys_to_delete)
+
+
+def should_update_cache(organization_id=None, project_id=None, public_key=None) -> bool:
+    # Delete key before generating configs such that we never have an outdated
+    # but valid cache. Also, only run task if it's still scheduled and another
+    # worker hasn't picked it up.
+    #
+    # If this was running at the end of the task, it would be more effective
+    # against bursts of updates, but introduces a different race where an
+    # outdated cache may be used.
+    return 0 < projectconfig_debounce_cache.mark_task_done(
+        organization_id=organization_id,
+        project_id=project_id,
+        public_key=public_key,
+    )
 
 
 def schedule_update_config_cache(
@@ -124,7 +142,7 @@ def schedule_update_config_cache(
             "One of organization_id, project_id, public_key has to be provided, not many."
         )
 
-    if projectconfig_debounce_cache.check_is_debounced(public_key, project_id, organization_id):
+    if projectconfig_debounce_cache.is_debounced(public_key, project_id, organization_id):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": update_reason},
@@ -146,3 +164,10 @@ def schedule_update_config_cache(
         public_key=public_key,
         update_reason=update_reason,
     )
+
+    # Checking if the project is debounced and debouncing it are two separate
+    # actions that aren't atomic. If the process marks a project as debounced
+    # and dies before scheduling it, the cache will be stale for the whole TTL.
+    # To avoid that, make sure we first schedule the task, and only then mark
+    # the project as debounced.
+    projectconfig_debounce_cache.debounce(public_key, project_id, organization_id)
