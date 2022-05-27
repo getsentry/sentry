@@ -95,9 +95,8 @@ cffi>=1.14.5
 cssutils>=2.4.0
 cssselect>=1.0.3
 
-# 60.3.0 introduces some DeprecationWarnings.
-# https://github.com/pypa/setuptools/commit/1701579e0827317d8888c2254a17b5786b6b5246
-setuptools==60.2.0
+# pinned to avoid some DeprecationWarnings
+setuptools==56.0.0
 
 # sentry-plugins specific dependencies
 phabricator>=0.7.0
