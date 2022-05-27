@@ -130,16 +130,16 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     releases: undefined,
   };
 
-  componentDidMount() {
+  async componentDidMount() {
     this._isMounted = true;
 
     if (this.requiresCustomReleaseSorting()) {
-      this.fetchReleases();
+      await this.fetchReleases();
     }
     this.fetchData();
   }
 
-  componentDidUpdate(prevProps: Props) {
+  async componentDidUpdate(prevProps: Props) {
     const {loading, rawResults} = this.state;
     const {selection, widget, organization, limit, cursor} = this.props;
     const ignroredWidgetProps = [
@@ -153,6 +153,18 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
     const widgetQueryNames = widget.queries.map(q => q.name);
     const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
+
+    if (
+      this.requiresCustomReleaseSorting() &&
+      (!isEqual(
+        widget.queries.map(q => q.orderby),
+        prevProps.widget.queries.map(q => q.orderby)
+      ) ||
+        !isSelectionEqual(selection, prevProps.selection) ||
+        !isEqual(organization, prevProps.organization))
+    ) {
+      await this.fetchReleases();
+    }
 
     if (
       limit !== prevProps.limit ||
@@ -247,8 +259,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
 
   async fetchReleases() {
     const {selection, api, organization} = this.props;
-    const {environments, projects, datetime} = selection;
-    const {period} = datetime;
+    const {environments, projects} = selection;
 
     try {
       const releases = await api.requestPromise(
@@ -260,13 +271,13 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             project: projects,
             per_page: 50,
             environments,
-            summaryStatsPeriod: period,
           },
         }
       );
-      if (!!!this._isMounted) {
-        this.setState(releases);
+      if (!this._isMounted) {
+        return;
       }
+      this.setState({releases});
     } catch (error) {
       addErrorMessage(
         error.responseJSON ? error.responseJSON.error : t('Error sorting by releases')
