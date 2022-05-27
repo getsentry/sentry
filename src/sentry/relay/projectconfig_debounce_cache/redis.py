@@ -52,4 +52,4 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
     def mark_task_done(self, public_key, project_id, organization_id):
         key = _get_redis_key(public_key, project_id, organization_id)
         client = self.__get_redis_client(key)
-        client.delete(key)
+        return client.delete(key)
