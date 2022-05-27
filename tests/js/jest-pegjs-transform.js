@@ -13,7 +13,9 @@ function getCacheKey(fileData, _filePath, config, _options) {
 }
 
 function process(sourceText) {
-  return `module.exports = ${peg.generate(sourceText, {output: 'source'})}`;
+  return {
+    code: `module.exports = ${peg.generate(sourceText, {output: 'source'})}`,
+  };
 }
 
 module.exports = {getCacheKey, process};

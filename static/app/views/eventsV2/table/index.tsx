@@ -2,16 +2,21 @@ import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import EventView, {
+  isAPIPayloadSimilar,
+  LocationQuery,
+} from 'sentry/utils/discover/eventView';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
+import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 
 import TableView from './tableView';
@@ -87,10 +92,23 @@ class Table extends PureComponent<TableProps, TableState> {
     // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
     // the API payload response
 
-    const url = `/organizations/${organization.slug}/eventsv2/`;
+    const shouldUseEvents = organization.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
+    const url = shouldUseEvents
+      ? `/organizations/${organization.slug}/events/`
+      : `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
-    const apiPayload = eventView.getEventsAPIPayload(location);
+
+    // adding user_modified property. this property will be removed once search bar experiment is complete
+    const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
+      EventQuery & {user_modified?: string};
     apiPayload.referrer = 'api.discover.query-table';
+
+    const queryUserModified = decodeScalar(location.query.userModified);
+    if (queryUserModified !== undefined) {
+      apiPayload.user_modified = queryUserModified;
+    }
 
     setError('', 200);
 
@@ -118,12 +136,20 @@ class Table extends PureComponent<TableProps, TableState> {
           return;
         }
 
+        // events api uses a different response format so we need to construct tableData differently
+        const tableData = shouldUseEvents
+          ? {
+              ...data,
+              meta: {...data.meta?.fields, isMetricsData: data.meta?.isMetricsData},
+            }
+          : data;
+
         this.setState(prevState => ({
           isLoading: false,
           tableFetchID: undefined,
           error: null,
           pageLinks: resp ? resp.getResponseHeader('Link') : prevState.pageLinks,
-          tableData: data,
+          tableData,
         }));
       })
       .catch(err => {

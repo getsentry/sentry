@@ -22,7 +22,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        response = self.get_valid_response(self.project.organization.slug, self.project.slug)
+        response = self.get_success_response(self.project.organization.slug, self.project.slug)
 
         data = {v["key"]: v for v in response.data}
         assert len(data) == 3

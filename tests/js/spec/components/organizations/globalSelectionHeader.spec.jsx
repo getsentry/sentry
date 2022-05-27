@@ -421,9 +421,13 @@ describe('GlobalSelectionHeader', function () {
     });
   });
 
-  it('loads from local storage when no URL parameters', async function () {
+  it('loads from local storage when no URL parameters and filters are pinned', async function () {
     getItem.mockImplementation(() =>
-      JSON.stringify({projects: [3], environments: ['staging']})
+      JSON.stringify({
+        projects: [3],
+        environments: ['staging'],
+        pinnedFilters: ['projects', 'environments'],
+      })
     );
     const initializationObj = initializeOrg({
       organization: {
@@ -544,7 +548,7 @@ describe('GlobalSelectionHeader', function () {
 
     const initializationObj = initializeOrg({
       organization: {
-        features: ['global-views', 'selection-filters-v2'],
+        features: ['global-views'],
       },
       router: {
         // we need this to be set to make sure org in context is same as
@@ -552,9 +556,6 @@ describe('GlobalSelectionHeader', function () {
         params: {orgId: 'org-slug'},
         location: {
           query: {project: ['2']},
-          // TODO: This is only temporary while selection-filters-v2 is limited
-          // to certan pages
-          pathname: '/organizations/org-slug/issues/',
         },
       },
     });
@@ -1184,7 +1185,7 @@ describe('GlobalSelectionHeader', function () {
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // My projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select My Projects'
       );
     });
@@ -1209,7 +1210,7 @@ describe('GlobalSelectionHeader', function () {
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select All Projects'
       );
     });
@@ -1234,7 +1235,7 @@ describe('GlobalSelectionHeader', function () {
       // Two projects
       expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
       // All projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select All Projects'
       );
     });
@@ -1259,7 +1260,7 @@ describe('GlobalSelectionHeader', function () {
       const projectSelector = wrapper.find('ProjectSelector');
 
       // My projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').first().text()).toEqual(
+      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
         'Select My Projects'
       );
     });

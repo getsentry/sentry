@@ -149,6 +149,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
+  get hasAlertWizardV3(): boolean {
+    return this.props.organization.features.includes('alert-wizard-v3');
+  }
+
   componentWillUnmount() {
     window.clearTimeout(this.pollingTimeout);
   }
@@ -358,6 +362,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         data: rule,
         query: {
           duplicateRule: this.isDuplicateRule ? 'true' : 'false',
+          wizardV3: this.hasAlertWizardV3 ? 'true' : 'false',
         },
       });
 
@@ -618,27 +623,27 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
-  renderRuleName(disabled: boolean, hasAlertWizardV3: boolean) {
+  renderRuleName(disabled: boolean) {
     const {rule, detailedError} = this.state;
     const {name} = rule || {};
 
     return (
       <StyledField
-        hasAlertWizardV3={hasAlertWizardV3}
-        label={hasAlertWizardV3 ? null : t('Alert name')}
-        help={hasAlertWizardV3 ? null : t('Add a name for this alert')}
+        hasAlertWizardV3={this.hasAlertWizardV3}
+        label={this.hasAlertWizardV3 ? null : t('Alert name')}
+        help={this.hasAlertWizardV3 ? null : t('Add a name for this alert')}
         error={detailedError?.name?.[0]}
         disabled={disabled}
         required
         stacked
-        flexibleControlStateSize={hasAlertWizardV3 ? true : undefined}
+        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
       >
         <Input
           type="text"
           name="name"
           value={name}
           data-test-id="alert-name"
-          placeholder={hasAlertWizardV3 ? t('Enter Alert Name') : t('My Rule Name')}
+          placeholder={this.hasAlertWizardV3 ? t('Enter Alert Name') : t('My Rule Name')}
           onChange={(event: ChangeEvent<HTMLInputElement>) =>
             this.handleChange('name', event.target.value)
           }
@@ -649,18 +654,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
-  renderTeamSelect(disabled: boolean, hasAlertWizardV3: boolean) {
+  renderTeamSelect(disabled: boolean) {
     const {rule, project} = this.state;
     const ownerId = rule?.owner?.split(':')[1];
 
     return (
       <StyledField
-        hasAlertWizardV3={hasAlertWizardV3}
+        hasAlertWizardV3={this.hasAlertWizardV3}
         extraMargin
-        label={hasAlertWizardV3 ? null : t('Team')}
-        help={hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
+        label={this.hasAlertWizardV3 ? null : t('Team')}
+        help={this.hasAlertWizardV3 ? null : t('The team that can edit this alert.')}
         disabled={disabled}
-        flexibleControlStateSize={hasAlertWizardV3 ? true : undefined}
+        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
       >
         <TeamSelector
           value={this.getTeamId()}
@@ -784,16 +789,16 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     );
   }
 
-  renderActionInterval(disabled: boolean, hasAlertWizardV3: boolean) {
+  renderActionInterval(disabled: boolean) {
     const {rule} = this.state;
     const {frequency} = rule || {};
 
     return (
       <StyledSelectField
-        hasAlertWizardV3={hasAlertWizardV3}
-        label={hasAlertWizardV3 ? null : t('Action Interval')}
+        hasAlertWizardV3={this.hasAlertWizardV3}
+        label={this.hasAlertWizardV3 ? null : t('Action Interval')}
         help={
-          hasAlertWizardV3
+          this.hasAlertWizardV3
             ? null
             : t('Perform these actions once this often for an issue')
         }
@@ -805,7 +810,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
         options={FREQUENCY_OPTIONS}
         onChange={val => this.handleChange('frequency', val)}
         disabled={disabled}
-        flexibleControlStateSize={hasAlertWizardV3 ? true : undefined}
+        flexibleControlStateSize={this.hasAlertWizardV3 ? true : undefined}
       />
     );
   }
@@ -814,7 +819,6 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const {organization} = this.props;
     const {environments, project, rule, detailedError, loading} = this.state;
     const {actions, filters, conditions, frequency} = rule || {};
-    const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
 
     const environmentOptions = [
       {
@@ -870,10 +874,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               <List symbol="colored-numeric">
                 {loading && <SemiTransparentLoadingMask data-test-id="loading-mask" />}
                 <StyledListItem>{t('Add alert settings')}</StyledListItem>
-                {hasAlertWizardV3 ? (
+                {this.hasAlertWizardV3 ? (
                   <SettingsContainer>
                     <StyledSelectField
-                      hasAlertWizardV3={hasAlertWizardV3}
+                      hasAlertWizardV3={this.hasAlertWizardV3}
                       className={classNames({
                         error: this.hasError('environment'),
                       })}
@@ -904,8 +908,8 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         disabled={disabled}
                       />
 
-                      {this.renderTeamSelect(disabled, hasAlertWizardV3)}
-                      {this.renderRuleName(disabled, hasAlertWizardV3)}
+                      {this.renderTeamSelect(disabled)}
+                      {this.renderRuleName(disabled)}
                     </PanelBody>
                   </Panel>
                 )}
@@ -1127,20 +1131,18 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     {t('Perform the actions above once this often for an issue')}
                   </StyledFieldHelp>
                 </StyledListItem>
-                {hasAlertWizardV3 ? (
-                  this.renderActionInterval(disabled, hasAlertWizardV3)
+                {this.hasAlertWizardV3 ? (
+                  this.renderActionInterval(disabled)
                 ) : (
                   <Panel>
-                    <PanelBody>
-                      {this.renderActionInterval(disabled, hasAlertWizardV3)}
-                    </PanelBody>
+                    <PanelBody>{this.renderActionInterval(disabled)}</PanelBody>
                   </Panel>
                 )}
-                {hasAlertWizardV3 && (
+                {this.hasAlertWizardV3 && (
                   <Fragment>
                     <StyledListItem>{t('Establish ownership')}</StyledListItem>
-                    {this.renderRuleName(disabled, hasAlertWizardV3)}
-                    {this.renderTeamSelect(disabled, hasAlertWizardV3)}
+                    {this.renderRuleName(disabled)}
+                    {this.renderTeamSelect(disabled)}
                   </Fragment>
                 )}
               </List>

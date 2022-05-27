@@ -71,7 +71,6 @@ import {DEFAULT_STATS_PERIOD} from '../data';
 import {getNumEquations} from '../utils';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
-import {DashboardStep} from './buildSteps/dashboardStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
 import {GroupByStep} from './buildSteps/groupByStep';
@@ -235,10 +234,13 @@ function WidgetBuilder({
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
-      displayType: displayType ?? DisplayType.TABLE,
+      displayType:
+        (widgetBuilderNewDesign && displayType === DisplayType.TOP_N
+          ? DisplayType.AREA
+          : displayType) ?? DisplayType.TABLE,
       interval: '5m',
       queries: [],
-      limit,
+      limit: limit ? Number(limit) : undefined,
       errors: undefined,
       loading: !!notDashboardsOrigin,
       dashboards: [],
@@ -265,7 +267,13 @@ function WidgetBuilder({
         defaultState.queries = [{...defaultWidgetQuery}];
       }
 
-      if (![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType)) {
+      if (
+        ![DisplayType.TABLE, DisplayType.TOP_N].includes(defaultState.displayType) &&
+        !(
+          getIsTimeseriesChart(defaultState.displayType) &&
+          defaultState.queries[0].columns.length
+        )
+      ) {
         defaultState.queries[0].orderby = '';
       }
     } else {
@@ -279,6 +287,11 @@ function WidgetBuilder({
 
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
 
+  // For analytics around widget library selection
+  const [latestLibrarySelectionTitle, setLatestLibrarySelectionTitle] = useState<
+    string | null
+  >(null);
+
   useEffect(() => {
     trackAdvancedAnalyticsEvent('dashboards_views.widget_builder.opened', {
       organization,
@@ -291,16 +304,40 @@ function WidgetBuilder({
 
     if (isEditing && isValidWidgetIndex) {
       const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
-      setState({
-        title: widgetFromDashboard.title,
-        displayType: widgetFromDashboard.displayType,
-        interval: widgetFromDashboard.interval,
-        queries: normalizeQueries({
-          displayType: widgetFromDashboard.displayType,
+
+      let queries;
+      let newDisplayType = widgetFromDashboard.displayType;
+      let newLimit = widgetFromDashboard.limit;
+      if (widgetFromDashboard.displayType === DisplayType.TOP_N) {
+        newLimit = DEFAULT_RESULTS_LIMIT;
+        newDisplayType = DisplayType.AREA;
+
+        queries = normalizeQueries({
+          displayType: newDisplayType,
           queries: widgetFromDashboard.queries,
           widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
-        }),
+        }).map(query => ({
+          ...query,
+          // Use the last aggregate because that's where the y-axis is stored
+          aggregates: query.aggregates.length
+            ? [query.aggregates[query.aggregates.length - 1]]
+            : [],
+        }));
+      } else {
+        queries = normalizeQueries({
+          displayType: newDisplayType,
+          queries: widgetFromDashboard.queries,
+          widgetType: widgetFromDashboard.widgetType ?? WidgetType.DISCOVER,
+          widgetBuilderNewDesign,
+        });
+      }
+
+      setState({
+        title: widgetFromDashboard.title,
+        displayType: newDisplayType,
+        interval: widgetFromDashboard.interval,
+        queries,
         errors: undefined,
         loading: false,
         dashboards: [],
@@ -308,13 +345,35 @@ function WidgetBuilder({
         dataSet: widgetFromDashboard.widgetType
           ? WIDGET_TYPE_TO_DATA_SET[widgetFromDashboard.widgetType]
           : DataSet.EVENTS,
-        limit: widgetFromDashboard.limit,
+        limit: newLimit,
       });
       setWidgetToBeUpdated(widgetFromDashboard);
     }
+    // This should only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    async function fetchDashboards() {
+      const promise: Promise<DashboardListItem[]> = api.requestPromise(
+        `/organizations/${organization.slug}/dashboards/`,
+        {
+          method: 'GET',
+          query: {sort: 'myDashboardsAndRecentlyViewed'},
+        }
+      );
+
+      try {
+        const dashboards = await promise;
+        setState(prevState => ({...prevState, dashboards, loading: false}));
+      } catch (error) {
+        const errorMessage = t('Unable to fetch dashboards');
+        addErrorMessage(errorMessage);
+        handleXhrErrorResponse(errorMessage)(error);
+        setState(prevState => ({...prevState, loading: false}));
+      }
+    }
+
     if (notDashboardsOrigin) {
       fetchDashboards();
     }
@@ -328,11 +387,19 @@ function WidgetBuilder({
         },
       }));
     }
-  }, [source]);
+  }, [
+    api,
+    dashboard.id,
+    dashboard.title,
+    notDashboardsOrigin,
+    organization.slug,
+    source,
+    widgetBuilderNewDesign,
+  ]);
 
   useEffect(() => {
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
-  }, [selection.projects]);
+  }, [selection.projects, api, organization.slug]);
 
   const widgetType =
     state.dataSet === DataSet.EVENTS
@@ -607,6 +674,12 @@ function WidgetBuilder({
       if (isColumn) {
         newQuery.fields = fieldStrings;
         newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
+        if (state.dataSet === DataSet.RELEASES && newQuery.aggregates.length === 0) {
+          // Release Health widgets require an aggregate in tables
+          const defaultReleaseHealthAggregate = `crash_free_rate(${SessionField.SESSION})`;
+          newQuery.aggregates = [defaultReleaseHealthAggregate];
+          newQuery.fields = [...newQuery.fields, defaultReleaseHealthAggregate];
+        }
       } else if (state.displayType === DisplayType.TOP_N) {
         // Top N queries use n-1 fields for columns and the nth field for y-axis
         newQuery.fields = [
@@ -643,14 +716,14 @@ function WidgetBuilder({
 
           newQuery.orderby = `${orderbyPrefix}${newOrderByValue}`;
         } else {
-          const isFromAggregates = fieldStrings.includes(rawOrderby);
+          const isFromAggregates = newQuery.aggregates.includes(rawOrderby);
           const isCustomEquation = isEquation(rawOrderby);
           const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
 
           const keepCurrentOrderby =
             isFromAggregates || isCustomEquation || isUsedInGrouping;
-          const firstAggregateAlias = isEquation(fieldStrings[0])
-            ? `equation[${getNumEquations(fieldStrings) - 1}]`
+          const firstAggregateAlias = isEquation(newQuery.aggregates[0] ?? '')
+            ? `equation[${getNumEquations(newQuery.aggregates) - 1}]`
             : fieldStrings[0];
 
           newQuery.orderby = widgetBuilderNewDesign
@@ -819,6 +892,14 @@ function WidgetBuilder({
       return;
     }
 
+    if (latestLibrarySelectionTitle) {
+      // User has selected a widget library in this session
+      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.add_widget', {
+        organization,
+        title: latestLibrarySelectionTitle,
+      });
+    }
+
     if (notDashboardsOrigin) {
       submitFromSelectedDashboard(widgetData);
       return;
@@ -894,26 +975,6 @@ function WidgetBuilder({
         errors: {...state.errors, ...mapErrors(error?.responseJSON ?? {}, {})},
       });
       return false;
-    }
-  }
-
-  async function fetchDashboards() {
-    const promise: Promise<DashboardListItem[]> = api.requestPromise(
-      `/organizations/${organization.slug}/dashboards/`,
-      {
-        method: 'GET',
-        query: {sort: 'myDashboardsAndRecentlyViewed'},
-      }
-    );
-
-    try {
-      const dashboards = await promise;
-      setState(prevState => ({...prevState, dashboards, loading: false}));
-    } catch (error) {
-      const errorMessage = t('Unable to fetch dashboards');
-      addErrorMessage(errorMessage);
-      handleXhrErrorResponse(errorMessage)(error);
-      setState(prevState => ({...prevState, loading: false}));
     }
   }
 
@@ -1149,20 +1210,6 @@ function WidgetBuilder({
                       tags={tags}
                     />
                   )}
-                  {notDashboardsOrigin && !widgetBuilderNewDesign && (
-                    <DashboardStep
-                      error={state.errors?.dashboard}
-                      dashboards={state.dashboards}
-                      onChange={selectedDashboard =>
-                        setState({
-                          ...state,
-                          selectedDashboard,
-                          errors: {...state.errors, dashboard: undefined},
-                        })
-                      }
-                      disabled={state.loading}
-                    />
-                  )}
                 </BuildSteps>
               </Main>
               <Footer
@@ -1175,8 +1222,10 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
+                organization={organization}
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
-                onWidgetSelect={prebuiltWidget =>
+                onWidgetSelect={prebuiltWidget => {
+                  setLatestLibrarySelectionTitle(prebuiltWidget.title);
                   setState({
                     ...state,
                     ...prebuiltWidget,
@@ -1184,8 +1233,8 @@ function WidgetBuilder({
                       ? WIDGET_TYPE_TO_DATA_SET[prebuiltWidget.widgetType]
                       : DataSet.EVENTS,
                     userHasModified: false,
-                  })
-                }
+                  });
+                }}
                 bypassOverwriteModal={!state.userHasModified}
               />
             </Side>

@@ -109,6 +109,74 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
+  it('fetches release data when sorting on release for metrics api', async function () {
+    const mockRelease = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [
+        {
+          version: 'be1ddfb18126dd2cbde26bfe75488503280e716e',
+        },
+      ],
+    });
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+    });
+    const children = jest.fn(() => <div />);
+    const queries = [
+      {
+        conditions: '',
+        fields: [`count_unique(user)`],
+        aggregates: [`count_unique(user)`],
+        columns: ['release'],
+        name: 'sessions',
+        orderby: '-release',
+      },
+    ];
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={{...singleQueryWidget, queries}}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    await waitFor(() => expect(mockRelease).toHaveBeenCalledTimes(1));
+    expect(mockRelease).toHaveBeenCalledWith(
+      '/organizations/org-slug/releases/',
+      expect.objectContaining({
+        data: {
+          environments: ['prod'],
+          per_page: 50,
+          project: [1],
+          sort: 'date',
+          summaryStatsPeriod: '14d',
+        },
+      })
+    );
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: {
+          environment: ['prod'],
+          field: ['count_unique(sentry.sessions.user)'],
+          groupBy: ['release'],
+          includeSeries: 1,
+          includeTotals: 1,
+          interval: '12h',
+          per_page: 100,
+          project: [1],
+          query: ' (release:be1ddfb18126dd2cbde26bfe75488503280e716e)',
+          statsPeriod: '14d',
+        },
+      })
+    );
+  });
+
   it('calls session api when session.status is a group by', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
@@ -536,6 +604,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           interval: '30m',
           project: [1],
           statsPeriod: '14d',
+          per_page: 1,
+          includeSeries: 1,
+          includeTotals: 0,
         },
       })
     );
@@ -551,6 +622,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           project: [1],
           query: 'environment:prod',
           statsPeriod: '14d',
+          per_page: 1,
+          includeSeries: 1,
+          includeTotals: 0,
         },
       })
     );

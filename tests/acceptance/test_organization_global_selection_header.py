@@ -354,7 +354,6 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
         # Make sure issue's project is in URL and in header
         assert f"project={self.project_2.id}" in self.browser.current_url
-        assert self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
 
         # environment should be in URL and header
         assert "environment=prod" in self.browser.current_url
@@ -388,9 +387,6 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
             # Make sure issue's project is in URL and in header
             assert f"project={self.project_2.id}" in self.browser.current_url
-            assert (
-                self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
-            )
 
             # environment should be in URL and header
             assert "environment=prod" in self.browser.current_url

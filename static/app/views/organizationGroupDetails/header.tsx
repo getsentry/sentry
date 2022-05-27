@@ -149,18 +149,23 @@ class GroupHeader extends Component<Props, State> {
 
     const shortIdBreadCrumb = group.shortId && (
       <GuideAnchor target="issue_number" position="bottom">
-        <StyledTooltip
-          className="help-link"
-          title={t(
-            'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
-          )}
-          position="bottom"
-        >
-          <StyledShortId
-            shortId={group.shortId}
-            avatar={<StyledProjectBadge project={project} avatarSize={16} hideName />}
+        <IssueBreadcrumbWrapper>
+          <BreadcrumbProjectBadge
+            project={project}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: true, tooltip: project.slug}}
           />
-        </StyledTooltip>
+          <StyledTooltip
+            className="help-link"
+            title={t(
+              'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
+            )}
+            position="bottom"
+          >
+            <StyledShortId shortId={group.shortId} />
+          </StyledTooltip>
+        </IssueBreadcrumbWrapper>
       </GuideAnchor>
     );
 
@@ -178,12 +183,14 @@ class GroupHeader extends Component<Props, State> {
           <div className="row">
             <div className="col-sm-7">
               <TitleWrapper>
-                <StyledIdBadge
-                  project={project}
-                  avatarSize={24}
-                  hideName
-                  avatarProps={{hasTooltip: true, tooltip: project.slug}}
-                />
+                {!hasIssueIdBreadcrumbs && (
+                  <StyledIdBadge
+                    project={project}
+                    avatarSize={24}
+                    hideName
+                    avatarProps={{hasTooltip: true, tooltip: project.slug}}
+                  />
+                )}
                 <h3>
                   <EventOrGroupTitle hasGuideAnchor data={group} />
                 </h3>
@@ -431,6 +438,11 @@ const StyledBreadcrumbs = styled(Breadcrumbs)`
   margin-bottom: ${space(2)};
 `;
 
+const IssueBreadcrumbWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
 const StyledIdBadge = styled(IdBadge)`
   margin-right: ${space(1)};
 `;
@@ -441,6 +453,7 @@ const StyledTooltip = styled(Tooltip)`
 
 const StyledShortId = styled(ShortId)`
   font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const StatsWrapper = styled('div')`
@@ -477,6 +490,10 @@ const StyledListLink = styled(ListLink)`
 
 const StyledProjectBadge = styled(ProjectBadge)`
   flex-shrink: 0;
+`;
+
+const BreadcrumbProjectBadge = styled(StyledProjectBadge)`
+  margin-right: ${space(0.75)};
 `;
 
 const EventAnnotationWithSpace = styled(EventAnnotation)`

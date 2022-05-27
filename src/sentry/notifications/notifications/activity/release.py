@@ -32,7 +32,7 @@ from .base import ActivityNotification
 
 
 class ReleaseActivityNotification(ActivityNotification):
-    referrer_base = "release-activity"
+    metrics_key = "release_activity"
     notification_setting_type = NotificationSettingTypes.DEPLOY
     template_path = "sentry/emails/activity/release"
 
@@ -134,16 +134,13 @@ class ReleaseActivityNotification(ActivityNotification):
     def title(self) -> str:
         return self.get_subject()
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         projects_text = ""
         if len(self.projects) == 1:
             projects_text = " for this project"
         elif len(self.projects) > 1:
             projects_text = " for these projects"
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
-
-    def get_category(self) -> str:
-        return "release_activity_email"
 
     def get_message_actions(self, recipient: Team | User) -> Sequence[MessageAction]:
         if self.release:

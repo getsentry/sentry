@@ -59,6 +59,7 @@ export default function OnboardingIntegrationSelect(props: StepProps) {
         genSkipOnboardingLink={props.genSkipOnboardingLink}
         integrations={selectedIntegrations}
         onComplete={props.onComplete}
+        organization={props.organization}
       />
     </Wrapper>
   );

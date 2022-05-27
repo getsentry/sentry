@@ -33,6 +33,10 @@ PATCH_FILE_PATTERN = (
 
 def main() -> int:
     for patch, filename, pattern in PATCH_FILE_PATTERN:
+        if not os.path.exists(filename):
+            print(f"patch_selenium: ignoring {filename} (does not exist)")
+            continue
+
         with open(filename) as f:
             for line in f:
                 if pattern.search(line):

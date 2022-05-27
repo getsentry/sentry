@@ -6,9 +6,10 @@ import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
 import {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
+import {Organization} from 'sentry/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
-  DEFAULT_WIDGETS,
+  getTopNConvertedDefaultWidgets,
   WidgetTemplate,
 } from 'sentry/views/dashboardsV2/widgetLibrary/data';
 
@@ -19,6 +20,7 @@ import {Card} from './card';
 interface Props {
   bypassOverwriteModal: boolean;
   onWidgetSelect: (widget: WidgetTemplate) => void;
+  organization: Organization;
   widgetBuilderNewDesign: boolean;
 }
 
@@ -26,8 +28,15 @@ export function WidgetLibrary({
   bypassOverwriteModal,
   onWidgetSelect,
   widgetBuilderNewDesign,
+  organization,
 }: Props) {
   const theme = useTheme();
+  let defaultWidgets = getTopNConvertedDefaultWidgets();
+  if (!!!organization.features.includes('dashboards-releases')) {
+    defaultWidgets = defaultWidgets.filter(
+      widget => !!!(widget.widgetType === WidgetType.RELEASE)
+    );
+  }
 
   function getLibrarySelectionHandler(
     widget: OverwriteWidgetModalProps['widget'],
@@ -51,8 +60,8 @@ export function WidgetLibrary({
     <Fragment>
       <Header>{t('Widget Library')}</Header>
       <WidgetLibraryWrapper>
-        {DEFAULT_WIDGETS.map((widget, index) => {
-          const iconColor = theme.charts.getColorPalette(DEFAULT_WIDGETS.length - 2)[
+        {defaultWidgets.map((widget, index) => {
+          const iconColor = theme.charts.getColorPalette(defaultWidgets.length - 2)[
             index
           ];
 
