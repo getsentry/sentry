@@ -8,10 +8,9 @@ import TimeRangeSelector, {
   ChangeData,
 } from 'sentry/components/organizations/timeRangeSelector';
 import {IconCalendar} from 'sentry/icons';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = Omit<
   React.ComponentProps<typeof TimeRangeSelector>,
@@ -25,7 +24,7 @@ type Props = Omit<
   };
 
 function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
-  const {selection, desyncedFilters} = useLegacyStore(PageFiltersStore);
+  const {selection, desyncedFilters} = usePageFilters();
   const organization = useOrganization();
   const {start, end, period, utc} = selection.datetime;
 

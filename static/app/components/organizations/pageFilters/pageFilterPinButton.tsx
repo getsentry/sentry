@@ -4,11 +4,10 @@ import {pinFilter} from 'sentry/actionCreators/pageFilters';
 import Button, {ButtonProps} from 'sentry/components/button';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {PinnedPageFilter} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   filter: PinnedPageFilter;
@@ -18,7 +17,7 @@ type Props = {
 
 function PageFilterPinButton({filter, size, className}: Props) {
   const organization = useOrganization();
-  const {pinnedFilters} = useLegacyStore(PageFiltersStore);
+  const {pinnedFilters} = usePageFilters();
   const pinned = pinnedFilters.has(filter);
 
   const onPin = () => {
