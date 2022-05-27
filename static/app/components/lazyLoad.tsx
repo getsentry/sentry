@@ -1,4 +1,4 @@
-import {Component, ErrorInfo, lazy, Suspense} from 'react';
+import {Component, ErrorInfo, lazy, Suspense, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -41,13 +41,17 @@ type Props<C extends ComponentType> = Omit<React.ComponentProps<C>, 'route'> & {
 function LazyLoad<C extends ComponentType>(props: Props<C>) {
   const importComponent = props.component ?? props.route?.componentPromise;
 
-  const LazyComponent = lazy(() => {
-    if (!importComponent) {
-      throw new Error('No component to load');
-    }
+  const LazyComponent = useMemo(
+    () =>
+      lazy(() => {
+        if (!importComponent) {
+          throw new Error('No component to load');
+        }
 
-    return retryableImport(importComponent);
-  });
+        return retryableImport(importComponent);
+      }),
+    [importComponent]
+  );
 
   return (
     <ErrorBoundary>
@@ -58,9 +62,7 @@ function LazyLoad<C extends ComponentType>(props: Props<C>) {
           </LoadingContainer>
         }
       >
-        <div>
-          <LazyComponent {...(props as React.ComponentProps<C>)} />;
-        </div>
+        <LazyComponent {...(props as React.ComponentProps<C>)} />;
       </Suspense>
     </ErrorBoundary>
   );
