@@ -153,7 +153,6 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           per_page: 50,
           project: [1],
           sort: 'date',
-          summaryStatsPeriod: '14d',
         },
       })
     );
