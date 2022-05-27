@@ -1222,6 +1222,7 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
+                organization={organization}
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
                 onWidgetSelect={prebuiltWidget => {
                   setLatestLibrarySelectionTitle(prebuiltWidget.title);

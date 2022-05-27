@@ -69,6 +69,7 @@ function DashboardWidgetLibraryModal({
           errored={errored}
           setSelectedWidgets={setSelectedWidgets}
           setErrored={setErrored}
+          organization={organization}
         />
       </Body>
       <Footer>
