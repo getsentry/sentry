@@ -614,7 +614,7 @@ function WidgetViewerModal(props: Props) {
           }}
           location={location}
         />
-        {tableWidget.queries[0].orderby !== 'release' &&
+        {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
           (links?.previous?.results || links?.next?.results) && (
             <Pagination
               pageLinks={pageLinks}
