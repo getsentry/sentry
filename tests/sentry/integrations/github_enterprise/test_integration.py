@@ -41,7 +41,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         redirect = urlparse(resp["Location"])
         assert redirect.scheme == "https"
         assert redirect.netloc == "github.example.org"
-        assert redirect.path == "/github-apps/test-app"
+        assert redirect.path == "/apps/test-app"
 
         # App installation ID is provided, mveo thr
         resp = self.client.get(
