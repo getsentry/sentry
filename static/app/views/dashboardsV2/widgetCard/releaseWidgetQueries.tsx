@@ -130,16 +130,17 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     releases: undefined,
   };
 
-  async componentDidMount() {
+  componentDidMount() {
     this._isMounted = true;
 
     if (this.requiresCustomReleaseSorting()) {
-      await this.fetchReleases();
+      this.fetchReleasesAndData();
+      return;
     }
     this.fetchData();
   }
 
-  async componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props) {
     const {loading, rawResults} = this.state;
     const {selection, widget, organization, limit, cursor} = this.props;
     const ignroredWidgetProps = [
@@ -163,7 +164,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         !isSelectionEqual(selection, prevProps.selection) ||
         !isEqual(organization, prevProps.organization))
     ) {
-      await this.fetchReleases();
+      this.fetchReleasesAndData();
+      return;
     }
 
     if (
@@ -257,7 +259,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     return useMetricsAPI && rawOrderby === 'release';
   }
 
-  async fetchReleases() {
+  async fetchReleasesAndData() {
     const {selection, api, organization} = this.props;
     const {environments, projects} = selection;
 
@@ -283,14 +285,10 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         error.responseJSON ? error.responseJSON.error : t('Error sorting by releases')
       );
     }
+    this.fetchData();
   }
 
   async fetchData() {
-    const isCustomReleaseSorting = this.requiresCustomReleaseSorting();
-    const {releases} = this.state;
-    if (isCustomReleaseSorting && releases === undefined) {
-      return;
-    }
     const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
       this.props;
 
@@ -342,6 +340,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     //        period.
     //    2. If a recent release is not returned due to the 100 row limit
     //        imposed on the metrics query the user won't see it on the table/chart/
+    const isCustomReleaseSorting = this.requiresCustomReleaseSorting();
+    const {releases} = this.state;
     const interval = getWidgetInterval(
       widget,
       {start, end, period},
