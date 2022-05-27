@@ -68,8 +68,13 @@ function LazyLoad<C extends ComponentType>(props: Props<C>) {
   );
 }
 
+interface ErrorBoundaryState {
+  error: Error | null;
+  hasError: boolean;
+}
+
 // Error boundaries currently have to be classes.
-class ErrorBoundary extends Component {
+class ErrorBoundary extends Component<{}, ErrorBoundaryState> {
   static getDerivedStateFromError(error: Error) {
     return {
       hasError: true,
@@ -92,14 +97,15 @@ class ErrorBoundary extends Component {
     console.error(error);
   }
 
-  fetchRetry = () => this.setState({hasError: false});
+  // Reset `hasError` so that we attempt to render `this.props.children` again
+  handleRetry = () => this.setState({hasError: false});
 
   render() {
     if (this.state.hasError) {
       return (
         <LoadingErrorContainer>
           <LoadingError
-            onRetry={this.fetchRetry}
+            onRetry={this.handleRetry}
             message={t('There was an error loading a component.')}
           />
         </LoadingErrorContainer>
