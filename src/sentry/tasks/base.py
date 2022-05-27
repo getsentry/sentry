@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from functools import wraps
 from typing import Any, Callable, Sequence, Type
 
-from celery.task import current
+from celery import current_task
 
 from sentry.celery import app
 from sentry.utils import metrics
@@ -85,7 +85,7 @@ def retry(
                 raise
             except on as exc:
                 capture_exception()
-                current.retry(exc=exc)
+                current_task.retry(exc=exc)
 
         return wrapped
 

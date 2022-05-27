@@ -1,5 +1,4 @@
-from celery import Celery
-from celery.app.task import Task
+from celery import Celery, Task
 from celery.worker.request import Request
 from django.conf import settings
 

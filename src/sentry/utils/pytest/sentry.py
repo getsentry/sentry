@@ -264,9 +264,9 @@ def pytest_runtest_teardown(item):
     with clusters.get("default").all() as client:
         client.flushdb()
 
-    from celery.task.control import discard_all
+    from celery.app.control import Control
 
-    discard_all()
+    Control.discard_all()
 
     from sentry.models import OrganizationOption, ProjectOption, UserOption
 
