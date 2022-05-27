@@ -4,12 +4,11 @@ const MAX_RETRIES = 2;
 
 export default async function retryableImport<T>(
   fn: () => Promise<{default: T}>
-): Promise<T> {
+): Promise<{default: T}> {
   let retries = 0;
   const tryLoad = async () => {
     try {
-      const module = await fn();
-      return module.default ?? module;
+      return fn();
     } catch (err) {
       if (isWebpackChunkLoadingError(err) && retries < MAX_RETRIES) {
         retries++;
