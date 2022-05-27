@@ -5,8 +5,8 @@ import tempfile
 from hashlib import sha1
 
 import sentry_sdk
+from celery import current_task
 from celery.exceptions import MaxRetriesExceededError
-from celery.task import current
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router
 from django.utils import timezone
@@ -173,7 +173,7 @@ def assemble_download(
             capture_exception(error)
 
             try:
-                current.retry()
+                current_task.retry()
             except MaxRetriesExceededError:
                 metrics.incr(
                     "dataexport.end",
