@@ -583,6 +583,19 @@ class QueryBuilderTest(TestCase):
         with self.assertRaises(InvalidSearchQuery):
             query.get_snql_query()
 
+    def test_query_chained_or_tip(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "field:a OR field:b OR field:c",
+            selected_columns=[
+                "field",
+            ],
+        )
+        assert query.tips["query"] == {
+            "Did you know you can replace chained or conditions like `field:a OR field:b OR field:c` with `field:[a,b,c]`"
+        }
+
 
 def _metric_percentile_definition(
     org_id, quantile, field="transaction.duration", alias=None
