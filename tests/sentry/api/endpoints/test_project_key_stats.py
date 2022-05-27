@@ -55,6 +55,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         assert response.status_code == 200
 
         assert response.status_code == 200, response.content
+        assert type(response.data[-1]["ts"]) == int
         assert response.data[-1]["total"] == 8, response.data
         assert response.data[-1]["filtered"] == 1, response.data
         assert response.data[-1]["dropped"] == 5, response.data

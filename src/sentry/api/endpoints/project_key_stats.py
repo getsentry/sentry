@@ -17,6 +17,7 @@ from sentry.snuba.outcomes import (
     run_outcomes_query_timeseries,
 )
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.dates import parse_timestamp
 from sentry.utils.outcomes import Outcome
 
 
@@ -70,10 +71,10 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
 
         # Initialize the response results.
         response = []
-        for timestamp in results["intervals"]:
+        for time_string in results["intervals"]:
             response.append(
                 {
-                    "ts": timestamp,
+                    "ts": parse_timestamp(time_string).timestamp(),
                     "total": 0,
                     "dropped": 0,
                     "accepted": 0,
