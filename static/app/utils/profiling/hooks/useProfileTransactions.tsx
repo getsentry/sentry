@@ -5,33 +5,35 @@ import {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, RequestState} from 'sentry/types';
-import {Trace} from 'sentry/types/profiling/core';
+import {ProfileTransaction} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-type ProfilesResult = {
+type ProfileTransactionsResult = {
   pageLinks: string | null;
-  traces: Trace[];
+  transactions: ProfileTransaction[];
 };
 
-interface UseProfilesOptions {
+interface UseProfileTransactionsOptions {
   query: string;
   cursor?: string;
   limit?: number;
   selection?: PageFilters;
 }
 
-function useProfiles({
+function useProfileTransactions({
   cursor,
   limit,
   query,
   selection,
-}: UseProfilesOptions): RequestState<ProfilesResult> {
+}: UseProfileTransactionsOptions): RequestState<ProfileTransactionsResult> {
   const api = useApi();
   const organization = useOrganization();
 
-  const [requestState, setRequestState] = useState<RequestState<ProfilesResult>>({
+  const [requestState, setRequestState] = useState<
+    RequestState<ProfileTransactionsResult>
+  >({
     type: 'initial',
   });
 
@@ -42,18 +44,21 @@ function useProfiles({
 
     setRequestState({type: 'loading'});
 
-    fetchTraces(api, organization, {cursor, limit, query, selection})
-      .then(([traces, , response]) => {
+    fetchTransactions(api, organization, {cursor, limit, query, selection})
+      .then(([transactions, , response]) => {
         setRequestState({
           type: 'resolved',
           data: {
-            traces,
+            transactions,
             pageLinks: response?.getResponseHeader('Link') ?? null,
           },
         });
       })
       .catch(err => {
-        setRequestState({type: 'errored', error: t('Error: Unable to load profiles')});
+        setRequestState({
+          type: 'errored',
+          error: t('Error: Unable to load transactions'),
+        });
         Sentry.captureException(err);
       });
 
@@ -63,7 +68,7 @@ function useProfiles({
   return requestState;
 }
 
-function fetchTraces(
+function fetchTransactions(
   api: Client,
   organization: Organization,
   {
@@ -78,18 +83,21 @@ function fetchTraces(
     selection: PageFilters;
   }
 ) {
-  return api.requestPromise(`/organizations/${organization.slug}/profiling/profiles/`, {
-    method: 'GET',
-    includeAllArgs: true,
-    query: {
-      cursor,
-      query,
-      per_page: limit,
-      project: selection.projects,
-      environment: selection.environments,
-      ...normalizeDateTimeParams(selection.datetime),
-    },
-  });
+  return api.requestPromise(
+    `/organizations/${organization.slug}/profiling/transactions/`,
+    {
+      method: 'GET',
+      includeAllArgs: true,
+      query: {
+        cursor,
+        query,
+        per_page: limit,
+        project: selection.projects,
+        environment: selection.environments,
+        ...normalizeDateTimeParams(selection.datetime),
+      },
+    }
+  );
 }
 
-export {useProfiles};
+export {useProfileTransactions};

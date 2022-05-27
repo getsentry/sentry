@@ -23,7 +23,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-const REQUIRE_PROJECT_COLUMNS = new Set(['id', 'project_id', 'transaction_name']);
+const REQUIRE_PROJECT_COLUMNS: Set<TableColumnKey> = new Set([
+  'id',
+  'project_id',
+  'transaction_name',
+]);
 
 interface ProfilesTableProps {
   error: string | null;
