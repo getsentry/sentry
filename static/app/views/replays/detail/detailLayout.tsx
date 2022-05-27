@@ -13,14 +13,14 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {RawCrumb} from 'sentry/types/breadcrumbs';
+import {Crumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
 
 type Props = {
   children: React.ReactNode;
   orgId: string;
-  crumbs?: RawCrumb[];
+  crumbs?: Crumb[];
   event?: Event;
 };
 

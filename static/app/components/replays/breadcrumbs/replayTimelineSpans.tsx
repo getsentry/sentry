@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {divide, flattenSpans} from 'sentry/components/replays/utils';
 import Tooltip from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import type {ReplaySpan} from 'sentry/views/replays/types';
 
 type Props = {
   /**
@@ -16,7 +16,7 @@ type Props = {
   /**
    * The spans to render into the timeline
    */
-  spans: RawSpanType[];
+  spans: ReplaySpan[];
 
   /**
    * Timestamp when the timeline begins, in milliseconds
@@ -35,7 +35,7 @@ function ReplayTimelineEvents({className, duration, spans, startTimestamp}: Prop
   const startMs = startTimestamp * 1000;
   return (
     <Spans className={className}>
-      {flattenedSpans.map(span => {
+      {flattenedSpans.map((span, i) => {
         const sinceStart = span.startTimestamp - startMs;
         const startPct = divide(sinceStart, duration);
         const widthPct = divide(span.duration, duration);
@@ -47,7 +47,7 @@ function ReplayTimelineEvents({className, duration, spans, startTimestamp}: Prop
         );
         return (
           <Tooltip
-            key={span.spanId}
+            key={i}
             title={
               <React.Fragment>
                 {requestsCount}

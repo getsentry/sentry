@@ -77,7 +77,7 @@ export default function Trace({event, organization}: Props) {
         name: `Traces in replay ${eventId}`,
         fields: ['trace', 'count(trace)', 'min(timestamp)'],
         orderby: 'min_timestamp',
-        query: `replayId:${eventId} !transaction:"sentry-replay-event"`,
+        query: `replayId:${eventId} !title:"sentry-replay-event*"`,
         projects: [ALL_ACCESS_PROJECTS],
         version: 2,
 

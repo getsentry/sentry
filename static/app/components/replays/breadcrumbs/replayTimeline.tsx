@@ -2,7 +2,6 @@ import React from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {
@@ -38,8 +37,7 @@ function ReplayTimeline({}: Props) {
 
   const crumbs = replay.getRawCrumbs() || [];
   const spans = replay.getRawSpans() || [];
-  const transformedCrumbs = transformCrumbs(crumbs);
-  const userCrumbs = transformedCrumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
+  const userCrumbs = crumbs.filter(crumb => USER_ACTIONS.includes(crumb.type));
 
   const networkSpans = spans.filter(replay.isNotMemorySpan);
 
