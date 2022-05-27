@@ -74,7 +74,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         for time_string in results["intervals"]:
             response.append(
                 {
-                    "ts": parse_timestamp(time_string).timestamp(),
+                    "ts": int(parse_timestamp(time_string).timestamp()),
                     "total": 0,
                     "dropped": 0,
                     "accepted": 0,
