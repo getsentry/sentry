@@ -76,7 +76,7 @@ function CommitLink({inline, commitId, repository}: Props) {
       {shortId}
     </Button>
   ) : (
-    <ExternalLink className="inline-commit" href={commitUrl}>
+    <ExternalLink href={commitUrl}>
       {providerData.icon}
       {' ' + shortId}
     </ExternalLink>
