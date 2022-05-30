@@ -299,8 +299,4 @@ describe('generateReleaseWidgetFieldOptions', function () {
       },
     });
   });
-
-  it('ignores tags+aggregates if there are no fields', function () {
-    expect(generateReleaseWidgetFieldOptions([], tagKeys)).toEqual({});
-  });
 });
