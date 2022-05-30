@@ -64,6 +64,9 @@ function TransactionEvents(props: Props) {
 
 function EventsContentWrapper(props: ChildProps) {
   const {location, organization, eventView, transactionName, setError} = props;
+  const useEvents = organization.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
   const eventsDisplayFilterName = decodeEventsDisplayFilterFromLocation(location);
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
@@ -152,6 +155,7 @@ function EventsContentWrapper(props: ChildProps) {
       orgSlug={organization.slug}
       location={location}
       referrer="api.performance.transaction-events"
+      useEvents={useEvents}
     >
       {({isLoading, tableData}) => {
         if (isLoading) {

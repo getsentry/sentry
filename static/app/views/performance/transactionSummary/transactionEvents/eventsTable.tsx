@@ -284,6 +284,9 @@ class EventsTable extends Component<Props, State> {
 
   render() {
     const {eventView, organization, location, setError} = this.props;
+    const useEvents = organization.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
 
     const {widths} = this.state;
     const containsSpanOpsBreakdown = eventView
@@ -313,6 +316,7 @@ class EventsTable extends Component<Props, State> {
           location={location}
           setError={error => setError(error?.message)}
           referrer="api.performance.transaction-events"
+          useEvents={useEvents}
         >
           {({pageLinks, isLoading, tableData}) => {
             return (
