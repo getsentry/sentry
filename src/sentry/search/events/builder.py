@@ -354,7 +354,9 @@ class QueryBuilder:
         lhs_where, lhs_having = self.resolve_boolean_conditions(lhs, use_aggregate_conditions)
         rhs_where, rhs_having = self.resolve_boolean_conditions(rhs, use_aggregate_conditions)
 
-        is_where_condition = lambda x: x and len(x) == 1 and isinstance(x[0], Condition)
+        is_where_condition: Callable[[List[WhereType]], bool] = lambda x: bool(
+            x and len(x) == 1 and isinstance(x[0], Condition)
+        )
 
         if (
             # A direct field:a OR field:b
