@@ -5,6 +5,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 
+from sentry import options
 from sentry.models import User, UserAvatar
 from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar
 
@@ -33,7 +34,7 @@ def profile_photo_url(context, user_id, size=None):
     url = reverse("sentry-user-avatar-url", args=[avatar.ident])
     if size:
         url += "?" + urlencode({"s": size})
-    return settings.SENTRY_URL_PREFIX + url
+    return options.get("system.url-prefix") + url
 
 
 # Don't use this in any situations where you're rendering more
