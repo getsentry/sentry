@@ -122,8 +122,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_healthy: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'integer',
     parameters: [
       {
@@ -135,8 +133,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_abnormal: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'integer',
     parameters: [
       {
@@ -148,8 +144,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_crashed: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'integer',
     parameters: [
       {
@@ -161,8 +155,6 @@ export const SESSIONS_OPERATIONS: Readonly<
     ],
   },
   count_errored: {
-    columnTypes: ['integer', 'string'],
-    defaultValue: SessionField.SESSION,
     outputType: 'integer',
     parameters: [
       {
