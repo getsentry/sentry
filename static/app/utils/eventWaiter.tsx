@@ -19,7 +19,7 @@ const recordAnalyticsFirstEvent = ({
 }) =>
   analytics(`onboarding_v2.${key}`, {
     org_id: parseInt(organization.id, 10),
-    project: project.id,
+    project: String(project.id),
   });
 
 /**
