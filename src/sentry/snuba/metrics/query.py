@@ -31,7 +31,7 @@ class OrderBy:
 
 
 @dataclass(frozen=True)
-class QueryDefinition:
+class MetricsQuery:
     """Definition of a metrics query, inspired by snuba_sdk.Query"""
 
     org_id: int

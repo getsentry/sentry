@@ -56,8 +56,7 @@ from sentry.release_health.base import (
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
-from sentry.snuba.metrics.query import MetricField, OrderBy
-from sentry.snuba.metrics.query import QueryDefinition as MetricsQuery
+from sentry.snuba.metrics.query import MetricField, MetricsQuery, OrderBy
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
     InvalidParams,
