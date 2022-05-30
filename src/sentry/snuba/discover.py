@@ -68,15 +68,13 @@ PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest",
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 
 
-class EventsResponse(TypedDict):
-    data: List[Dict[str, Any]]
-    meta: Dict[str, str]
-
-
 class EventsMeta(TypedDict):
     fields: Dict[str, str]
-    # One of; "Discover", "metricsEnhanced", or "metrics"
-    dataset: str
+
+
+class EventsResponse(TypedDict):
+    data: List[Dict[str, Any]]
+    meta: EventsMeta
 
 
 resolve_discover_column = resolve_column(Dataset.Discover)
