@@ -55,10 +55,14 @@ function TransactionOverview(props: Props) {
 
   const {location, selection, organization, projects} = props;
 
-  useEffect(() => {
-    loadOrganizationTags(api, organization.slug, selection);
-    addRoutePerformanceContext(selection);
-  }, [selection]);
+  useEffect(
+    () => {
+      loadOrganizationTags(api, organization.slug, selection);
+      addRoutePerformanceContext(selection);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selection]
+  );
 
   return (
     <MEPSettingProvider>
@@ -85,6 +89,9 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThreshold,
     transactionThresholdMetric,
   } = props;
+  const useEvents = organization.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
@@ -121,6 +128,7 @@ function OverviewContentWrapper(props: ChildProps) {
       transactionThreshold={transactionThreshold}
       transactionThresholdMetric={transactionThresholdMetric}
       referrer="api.performance.transaction-summary"
+      useEvents={useEvents}
     >
       {({isLoading, error, tableData}) => {
         const totals: TotalValues | null =
