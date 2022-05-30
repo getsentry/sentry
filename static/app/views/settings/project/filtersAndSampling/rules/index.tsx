@@ -1,7 +1,6 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
-import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {PanelTable} from 'sentry/components/panels';
@@ -65,16 +64,13 @@ class Rules extends PureComponent<Props, State> {
     reorderedItems: ruleIds,
   }: UpdateItemsProps) => {
     const {rules} = this.state;
-    const reorderedRules = ruleIds
-      .map(ruleId => rules.find(rule => String(rule.id) === ruleId))
-      .filter(rule => !!rule) as Array<DynamicSamplingRule>;
 
     const activeRule = rules[activeIndex];
     const overRule = rules[overIndex];
 
     if (
-      activeRule.condition.op === DynamicSamplingConditionOperator.AND &&
-      !activeRule.condition.inner.length
+      overRule.condition.op === DynamicSamplingConditionOperator.AND &&
+      !overRule.condition.inner.length
     ) {
       addErrorMessage(
         t('Rules with conditions cannot be below rules without conditions')
@@ -102,6 +98,10 @@ class Rules extends PureComponent<Props, State> {
       return;
     }
 
+    const reorderedRules = ruleIds
+      .map(ruleId => rules.find(rule => String(rule.id) === ruleId))
+      .filter(rule => !!rule) as Array<DynamicSamplingRule>;
+
     this.setState({rules: reorderedRules});
   };
 
@@ -109,16 +109,11 @@ class Rules extends PureComponent<Props, State> {
     const {onEditRule, onDeleteRule, disabled, emptyMessage} = this.props;
     const {rules} = this.state;
 
-    const [rulesWithConditions, rulesWithoutConditions] = partition(
-      rules,
-      rule => !!rule.condition.inner.length
-    );
-
     // Rules without conditions always have to be 'pinned' to the bottom of the list
-    const items = [
-      ...rulesWithConditions.map(({id}) => ({id: String(id), disabled: false})),
-      ...rulesWithoutConditions.map(({id}) => ({id: String(id), disabled: true})),
-    ];
+    const items = rules.map(rule => ({
+      id: String(rule.id),
+      disabled: !rule.condition.inner.length,
+    }));
 
     return (
       <StyledPanelTable

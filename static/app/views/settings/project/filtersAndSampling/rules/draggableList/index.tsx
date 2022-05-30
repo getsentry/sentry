@@ -43,7 +43,6 @@ class DraggableList extends Component<Props, State> {
     const {items, onUpdateItems, renderItem, disabled, wrapperStyle} = this.props;
 
     const itemIds = items.map(item => item.id);
-
     const getIndex = itemIds.indexOf.bind(itemIds);
     const activeIndex = activeId ? getIndex(activeId) : -1;
 
@@ -61,6 +60,7 @@ class DraggableList extends Component<Props, State> {
 
           if (over) {
             const overIndex = getIndex(over.id);
+
             if (activeIndex !== overIndex) {
               onUpdateItems({
                 activeIndex,
@@ -88,7 +88,7 @@ class DraggableList extends Component<Props, State> {
           <DragOverlay>
             {activeId ? (
               <Item
-                value={items[activeIndex].id}
+                value={itemIds[activeIndex]}
                 renderItem={renderItem}
                 wrapperStyle={wrapperStyle({
                   index: activeIndex,
