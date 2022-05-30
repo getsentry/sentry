@@ -2,7 +2,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
-import {FrameStack} from 'sentry/components/profiling/frameStack';
+import {FrameStack} from 'sentry/components/profiling/FrameStack/frameStack';
 import space from 'sentry/styles/space';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
@@ -23,11 +23,10 @@ import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFr
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 
+import {useContextMenu} from '../../utils/profiling/hooks/useContextMenu';
+
 import {BoundTooltip} from './boundTooltip';
-import {
-  FlamegraphOptionsContextMenu,
-  useContextMenu,
-} from './flamegraphOptionsContextMenu';
+import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
 
 function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
   return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;

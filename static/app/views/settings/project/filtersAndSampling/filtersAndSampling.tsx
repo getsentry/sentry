@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -32,9 +31,8 @@ type Props = AsyncView['props'] & {
 };
 
 type State = AsyncView['state'] & {
-  errorRules: DynamicSamplingRules;
   projectDetails: Project | null;
-  transactionRules: DynamicSamplingRules;
+  rules: DynamicSamplingRules;
 };
 
 class FiltersAndSampling extends AsyncView<Props, State> {
@@ -45,8 +43,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      errorRules: [],
-      transactionRules: [],
+      rules: [],
       projectDetails: null,
     };
   }
@@ -63,6 +60,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
       organization,
       project_id: project.id,
     });
+
     this.getRules();
   }
 
@@ -83,12 +81,13 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     const {dynamicSampling} = projectDetails;
     const rules = dynamicSampling?.rules ?? [];
 
-    const [errorRules, transactionRules] = partition(
-      rules,
-      rule => rule.type === DynamicSamplingRuleType.ERROR
+    const transactionRules = rules.filter(
+      rule =>
+        rule.type === DynamicSamplingRuleType.TRANSACTION ||
+        rule.type === DynamicSamplingRuleType.TRACE
     );
 
-    this.setState({errorRules, transactionRules});
+    this.setState({rules: transactionRules});
   }
 
   successfullySubmitted = (projectDetails: Project, successMessage?: React.ReactNode) => {
@@ -99,20 +98,19 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     }
   };
 
-  handleOpenRule = (type: 'error' | 'transaction', rule?: DynamicSamplingRule) => () => {
+  handleOpenRule = (rule?: DynamicSamplingRule) => () => {
     const {organization, project, hasAccess} = this.props;
-    const {errorRules, transactionRules} = this.state;
+    const {rules} = this.state;
+
     return openModal(
       modalProps => (
         <Modal
           {...modalProps}
-          type={type}
           api={this.api}
           organization={organization}
           project={project}
           rule={rule}
-          errorRules={errorRules}
-          transactionRules={transactionRules}
+          rules={rules}
           onSubmitSuccess={this.successfullySubmitted}
           disabled={!hasAccess}
         />
@@ -123,29 +121,9 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     );
   };
 
-  handleAddRule =
-    <T extends keyof Pick<State, 'errorRules' | 'transactionRules'>>(type: T) =>
-    () => {
-      if (type === 'errorRules') {
-        this.handleOpenRule('error')();
-        return;
-      }
-
-      this.handleOpenRule('transaction')();
-    };
-
-  handleEditRule = (rule: DynamicSamplingRule) => () => {
-    if (rule.type === DynamicSamplingRuleType.ERROR) {
-      this.handleOpenRule('error', rule)();
-      return;
-    }
-
-    this.handleOpenRule('transaction', rule)();
-  };
-
   handleDeleteRule = (rule: DynamicSamplingRule) => () => {
     const {organization, project} = this.props;
-    const {errorRules, transactionRules} = this.state;
+    const {rules} = this.state;
 
     const conditions = rule.condition.inner.map(({name}) => name);
 
@@ -157,17 +135,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
       conditions_stringified: conditions.sort().join(', '),
     });
 
-    const newErrorRules =
-      rule.type === DynamicSamplingRuleType.ERROR
-        ? errorRules.filter(errorRule => errorRule.id !== rule.id)
-        : errorRules;
-
-    const newTransactionRules =
-      rule.type !== DynamicSamplingRuleType.ERROR
-        ? transactionRules.filter(transactionRule => transactionRule.id !== rule.id)
-        : transactionRules;
-
-    const newRules = [...newErrorRules, ...newTransactionRules];
+    const newRules = rules.filter(({id}) => id !== rule.id);
 
     this.submitRules(
       newRules,
@@ -181,13 +149,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
       return;
     }
 
-    const {errorRules, transactionRules} = this.state;
-
-    if (rules[0]?.type === DynamicSamplingRuleType.ERROR) {
-      this.submitRules([...rules, ...transactionRules]);
-      return;
-    }
-    this.submitRules([...errorRules, ...rules]);
+    this.submitRules(rules);
   };
 
   async submitRules(
@@ -212,11 +174,11 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {errorRules, transactionRules} = this.state;
-    const {hasAccess, organization} = this.props;
+    const {rules} = this.state;
+    const {hasAccess} = this.props;
     const disabled = !hasAccess;
 
-    const hasNotSupportedConditionOperator = [...errorRules, ...transactionRules].some(
+    const hasNotSupportedConditionOperator = rules.some(
       rule => rule.condition.op !== DynamicSamplingConditionOperator.AND
     );
 
@@ -240,25 +202,14 @@ class FiltersAndSampling extends AsyncView<Props, State> {
             }
           )}
         </TextBlock>
-        {organization.features.includes('filters-and-sampling-error-rules') && (
-          <RulesPanel
-            rules={errorRules}
-            disabled={disabled}
-            onAddRule={this.handleAddRule('errorRules')}
-            onEditRule={this.handleEditRule}
-            onDeleteRule={this.handleDeleteRule}
-            onUpdateRules={this.handleUpdateRules}
-            isErrorPanel
-          />
-        )}
         <TextBlock>
           {t('Rules for traces should precede rules for individual transactions.')}
         </TextBlock>
         <RulesPanel
-          rules={transactionRules}
+          rules={rules}
           disabled={disabled}
-          onAddRule={this.handleAddRule('transactionRules')}
-          onEditRule={this.handleEditRule}
+          onAddRule={this.handleOpenRule()}
+          onEditRule={this.handleOpenRule}
           onDeleteRule={this.handleDeleteRule}
           onUpdateRules={this.handleUpdateRules}
         />
