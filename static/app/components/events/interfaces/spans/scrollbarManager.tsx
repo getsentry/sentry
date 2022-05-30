@@ -10,6 +10,7 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
+import SpanBar from './spanBar';
 import {SpansInViewMap} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
@@ -20,6 +21,7 @@ export type ScrollbarManagerChildrenProps = {
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
   scrollBarAreaRef: React.RefObject<HTMLDivElement>;
+  storeSpanBar: (spanBar: SpanBar) => void;
   updateScrollState: () => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
 };
@@ -34,6 +36,7 @@ const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   updateScrollState: () => {},
   markSpanOutOfView: () => {},
   markSpanInView: () => {},
+  storeSpanBar: () => {},
 });
 
 const selectRefs = (
@@ -84,6 +87,32 @@ export class Provider extends Component<Props, State> {
     // but only for DOM elements that actually got rendered
 
     this.initializeScrollState();
+
+    const anchoredSpanHash = window.location.hash.split('#')[1];
+
+    // If the user is opening the span tree with an anchor link provided, we need to reconnect the observers after a short delay.
+    // This is because we need to wait for the window to scroll to the anchored span first, or there will be inconsistencies in
+    // the spans that are actually considered in the view. This is because the IntersectionObserver API cannot keep up with the speed
+    // at which the window scrolls to the anchored span, and will be unable to recognize the spans that went out of the view
+
+    if (anchoredSpanHash) {
+      // We cannot assume the root is in view to start off, if there is an anchored span
+      this.spansInView.isRootSpanInView = false;
+      setTimeout(() => {
+        this.spanBars.forEach(spanBar => {
+          if (spanBar.spanRowDOMRef.current) {
+            spanBar.connectObservers();
+          }
+        });
+      }, 1000);
+      return;
+    }
+
+    this.spanBars.forEach(spanBar => {
+      if (spanBar.spanRowDOMRef.current) {
+        spanBar.connectObservers();
+      }
+    });
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -118,6 +147,7 @@ export class Provider extends Component<Props, State> {
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
   spansInView: SpansInViewMap = new SpansInViewMap();
+  spanBars: SpanBar[] = [];
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -514,6 +544,10 @@ export class Provider extends Component<Props, State> {
     });
   }
 
+  storeSpanBar = (spanBar: SpanBar) => {
+    this.spanBars.push(spanBar);
+  };
+
   render() {
     const childrenProps: ScrollbarManagerChildrenProps = {
       generateContentSpanBarRef: this.generateContentSpanBarRef,
@@ -525,6 +559,7 @@ export class Provider extends Component<Props, State> {
       updateScrollState: this.initializeScrollState,
       markSpanOutOfView: this.markSpanOutOfView,
       markSpanInView: this.markSpanInView,
+      storeSpanBar: this.storeSpanBar,
     };
 
     return (

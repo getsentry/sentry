@@ -119,6 +119,7 @@ type SpanBarProps = {
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
   spanNumber: number;
+  storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
@@ -146,9 +147,8 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
   componentDidMount() {
     this._mounted = true;
-    if (this.spanRowDOMRef.current) {
-      this.connectObservers();
-    }
+    this.props.storeSpanBar(this);
+    this.connectObservers();
 
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.addEventListener('wheel', this.handleWheel, {
@@ -210,9 +210,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     }
     const boundingRect = element.getBoundingClientRect();
     const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
-    this.setState({showDetail: true}, () =>
-      window.scrollTo({top: offset, behavior: 'smooth'})
-    );
+    this.setState({showDetail: true}, () => window.scrollTo({top: offset}));
   };
 
   renderDetail({
@@ -580,7 +578,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
      */
 
     this.intersectionObserver = new IntersectionObserver(
-      entries => {
+      entries =>
         entries.forEach(entry => {
           if (!this._mounted) {
             return;
@@ -720,8 +718,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           }
 
           minimapSlider.style.top = `-${panYPixels}px`;
-        });
-      },
+        }),
       {
         threshold: INTERSECTION_THRESHOLDS,
         rootMargin: `-${MINIMAP_CONTAINER_HEIGHT * this.zoomLevel}px 0px 0px 0px`,
