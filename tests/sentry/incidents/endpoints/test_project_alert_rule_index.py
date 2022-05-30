@@ -158,8 +158,8 @@ class AlertRuleCreateEndpointTest(APITestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.apply_async")
-    @patch("sentry.integrations.slack.tasks.uuid4")
+    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
@@ -221,7 +221,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
     )
-    @patch("sentry.integrations.slack.tasks.uuid4")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
         mock_uuid4.return_value = self.get_mock_uuid()
 
@@ -773,8 +773,8 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=("#", None, True),
     )
-    @patch("sentry.integrations.slack.tasks.find_channel_id_for_alert_rule.apply_async")
-    @patch("sentry.integrations.slack.tasks.uuid4")
+    @patch("sentry.tasks.integrations.slack.find_channel_id_for_alert_rule.apply_async")
+    @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_crash_rate_alerts_kicks_off_slack_async_job(
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):

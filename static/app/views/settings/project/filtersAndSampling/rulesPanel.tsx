@@ -11,7 +11,6 @@ import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
 type Props = Omit<React.ComponentProps<typeof Rules>, 'emptyMessage'> & {
   onAddRule: () => void;
-  isErrorPanel?: boolean;
 };
 
 function RulesPanel({
@@ -20,10 +19,8 @@ function RulesPanel({
   onEditRule,
   onDeleteRule,
   onUpdateRules,
-  isErrorPanel,
   disabled,
 }: Props) {
-  const panelType = isErrorPanel ? t('error') : t('transaction');
   return (
     <Panel>
       <Rules
@@ -32,24 +29,15 @@ function RulesPanel({
         onDeleteRule={onDeleteRule}
         disabled={disabled}
         onUpdateRules={onUpdateRules}
-        emptyMessage={t('There are no %s rules to display', panelType)}
+        emptyMessage={t('There are no transaction rules to display')}
       />
       <StyledPanelFooter>
         <StyledButtonBar gap={1}>
           <Button href={DYNAMIC_SAMPLING_DOC_LINK} external>
             {t('Read the docs')}
           </Button>
-          <AddRuleButton
-            priority="primary"
-            onClick={onAddRule}
-            disabled={disabled}
-            title={
-              disabled
-                ? t('You do not have permission to add dynamic sampling rules.')
-                : undefined
-            }
-          >
-            {t('Add %s rule', panelType)}
+          <AddRuleButton priority="primary" onClick={onAddRule}>
+            {t('Add transaction rule')}
           </AddRuleButton>
         </StyledButtonBar>
       </StyledPanelFooter>

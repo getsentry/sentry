@@ -148,9 +148,7 @@ def all_sessions(org_id: int, metric_ids, alias=None):
 
 
 def all_users(org_id: int, metric_ids, alias=None):
-    return _set_uniq_aggregation_on_session_status_factory(
-        org_id, session_status="init", metric_ids=metric_ids, alias=alias
-    )
+    return uniq_aggregation_on_metric(metric_ids, alias)
 
 
 def crashed_sessions(org_id: int, metric_ids, alias=None):

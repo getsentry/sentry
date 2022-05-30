@@ -338,7 +338,7 @@ describe('WidgetBuilder', function () {
 
       // Content - Step 1
       expect(
-        screen.getByRole('heading', {name: 'Choose your data set'})
+        screen.getByRole('heading', {name: 'Choose your dataset'})
       ).toBeInTheDocument();
       expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
 
@@ -408,7 +408,7 @@ describe('WidgetBuilder', function () {
 
       // Content - Step 1
       expect(
-        screen.getByRole('heading', {name: 'Choose your data set'})
+        screen.getByRole('heading', {name: 'Choose your dataset'})
       ).toBeInTheDocument();
       expect(screen.getByLabelText('Select Errors and Transactions')).toBeChecked();
 
@@ -2261,7 +2261,7 @@ describe('WidgetBuilder', function () {
         expect(handleSave).toHaveBeenCalledTimes(1);
       });
 
-      it('render issues data set disabled when the display type is not set to table', async function () {
+      it('render issues dataset disabled when the display type is not set to table', async function () {
         renderTestComponent({
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
@@ -2370,7 +2370,7 @@ describe('WidgetBuilder', function () {
         'dashboards-releases',
       ];
 
-      it('does not show the Release Health data set if there is no dashboards-releases flag', async function () {
+      it('does not show the Release Health dataset if there is no dashboards-releases flag', async function () {
         renderTestComponent({
           orgFeatures: [...defaultOrgFeatures, 'new-widget-builder-experience-design'],
         });
@@ -2381,7 +2381,7 @@ describe('WidgetBuilder', function () {
         ).not.toBeInTheDocument();
       });
 
-      it('shows the Release Health data set if there is the dashboards-releases flag', async function () {
+      it('shows the Release Health dataset if there is the dashboards-releases flag', async function () {
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
         });
@@ -2592,7 +2592,7 @@ describe('WidgetBuilder', function () {
           await screen.findByText('Releases (sessions, crash rates)')
         ).toBeInTheDocument();
 
-        // change data set to releases
+        // change dataset to releases
         userEvent.click(screen.getByLabelText(/releases/i));
 
         userEvent.click(screen.getByText('Table'));
@@ -2663,7 +2663,7 @@ describe('WidgetBuilder', function () {
         );
       });
 
-      it('render release data set disabled when the display type is world map', async function () {
+      it('render release dataset disabled when the display type is world map', async function () {
         renderTestComponent({
           query: {
             source: DashboardWidgetSource.DISCOVERV2,
