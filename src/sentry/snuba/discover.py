@@ -1,5 +1,6 @@
 import logging
 import math
+import random
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
@@ -188,6 +189,13 @@ def transform_data(result, translated_columns, snuba_filter):
     return result
 
 
+def transform_tips(tips):
+    return {
+        "query": random.choice(list(tips["query"])) if tips["query"] else None,
+        "columns": random.choice(list(tips["columns"])) if tips["columns"] else None,
+    }
+
+
 def query(
     selected_columns,
     query,
@@ -280,6 +288,7 @@ def query(
             translated_columns,
             None,
         )
+        result["tips"] = transform_tips(builder.tips)
     return result
 
 

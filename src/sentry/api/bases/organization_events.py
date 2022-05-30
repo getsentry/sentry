@@ -231,6 +231,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 meta = {
                     "fields": meta,
                     "isMetricsData": isMetricsData,
+                    "tips": results.get("tips", {}),
                 }
             # TODO(wmak): Check if the performance facets histogram endpoint actually needs meta as a list
             elif isinstance(meta, dict) and "isMetricsData" not in meta:

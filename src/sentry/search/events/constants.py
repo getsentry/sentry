@@ -39,6 +39,11 @@ class ThresholdDict(TypedDict):
     meh: float
 
 
+QUERY_TIPS: Dict[str, str] = {
+    "CHAINED_OR": "Did you know you can replace chained or conditions like `field:a OR field:b OR field:c` with `field:[a,b,c]`"
+}
+
+
 VITAL_THRESHOLDS: Dict[str, ThresholdDict] = {
     "lcp": {
         "poor": 4000,
