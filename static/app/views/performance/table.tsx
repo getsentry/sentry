@@ -155,7 +155,7 @@ class _Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, organization, projects, location} = this.props;
     const isAlias = !organization.features.includes(
-      'discover-frontend-use-events-endpoint'
+      'performance-frontend-use-events-endpoint'
     );
 
     if (!tableData || !tableData.meta) {
@@ -373,7 +373,7 @@ class _Table extends Component<Props, State> {
   render() {
     const {eventView, organization, location, setError} = this.props;
     const useEvents = organization.features.includes(
-      'discover-frontend-use-events-endpoint'
+      'performance-frontend-use-events-endpoint'
     );
     const {widths, transaction, transactionThreshold} = this.state;
     const columnOrder = eventView

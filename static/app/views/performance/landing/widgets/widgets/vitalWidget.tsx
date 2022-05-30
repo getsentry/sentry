@@ -89,7 +89,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const {ContainerActions, eventView, organization, location} = props;
   const useEvents = organization.features.includes(
-    'discover-frontend-use-events-endpoint'
+    'performance-frontend-use-events-endpoint'
   );
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
   const field = props.fields[0];
