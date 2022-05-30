@@ -212,7 +212,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
     }
     const boundingRect = element.getBoundingClientRect();
     const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
-    this.setState({showDetail: true}, () => window.scrollTo({top: offset}));
+    this.setState({showDetail: true}, () => window.scrollTo(0, offset));
   };
 
   renderDetail({
