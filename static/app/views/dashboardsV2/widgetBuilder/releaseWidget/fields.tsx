@@ -269,12 +269,6 @@ export function generateReleaseWidgetFieldOptions(
   const operations = new Set<SessionsOperation>();
   const knownOperations = Object.keys(SESSIONS_OPERATIONS);
 
-  // If there are no fields, we do not want to render aggregations, nor tags
-  // Metrics API needs at least one field to be able to return data
-  if (fields.length === 0) {
-    return {};
-  }
-
   fields
     .sort((a, b) => a.name.localeCompare(b.name))
     .forEach(field => {
