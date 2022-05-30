@@ -114,14 +114,14 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter
         assert snuba_filter.aggregations == [
             [
-                f"uniqIf(value, equals('{session_status}', {session_status_crashed}))",
-                None,
-                "crashed",
-            ],
-            [
                 "uniq(value)",
                 None,
-                "total",
+                "count",
+            ],
+            [
+                f"uniqIf(value, equals({session_status}, {session_status_crashed}))",
+                None,
+                "crashed",
             ],
         ]
         assert snuba_filter.conditions == [
@@ -155,14 +155,14 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter
         assert snuba_filter.aggregations == [
             [
-                f"sumIf(value, equals('{session_status}', {session_status_crashed}))",
+                f"sumIf(value, equals({session_status}, {session_status_init}))",
                 None,
-                "crashed",
+                "count",
             ],
             [
-                f"sumIf(value, equals('{session_status}', {session_status_init}))",
+                f"sumIf(value, equals({session_status}, {session_status_crashed}))",
                 None,
-                "total",
+                "crashed",
             ],
         ]
         assert snuba_filter.conditions == [
