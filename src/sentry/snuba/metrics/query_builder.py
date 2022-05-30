@@ -1,5 +1,5 @@
 __all__ = (
-    "APIQueryDefinition",
+    "QueryDefinition",
     "SnubaQueryBuilder",
     "SnubaResultConverter",
     "get_date_range",
@@ -220,15 +220,17 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
     return where
 
 
-class APIQueryDefinition:
+class QueryDefinition:
     """
-    This is the definition of the query the user wants to execute.
-    This is constructed out of the request params, and also contains a list of
-    `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
+    Class meant to serve as a thin layer that converts API request params to the fields necessary to
+    instantiate an instance of `MetricsQuery`
 
-    Adapted from [`sentry.snuba.sessions_v2`].
+    Adapted from [`sentry.snuba.sessions_v2`] and meant to keep consistency in naming between
+    sessions v2 and metrics APIs.
 
     """
+
+    # ToDo(ahmed): Move validation down to `MetricsQuery`
 
     def __init__(self, projects, query_params, paginator_kwargs: Optional[Dict] = None):
         self._projects = projects
