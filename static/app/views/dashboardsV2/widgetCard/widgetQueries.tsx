@@ -16,7 +16,11 @@ import {
   PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {
+  EventsTableData,
+  TableData,
+  TableDataWithTitle,
+} from 'sentry/utils/discover/discoverQuery';
 import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
@@ -292,6 +296,10 @@ class WidgetQueries extends Component<Props, State> {
     const {selection, api, organization, widget, limit, cursor, onDataFetched} =
       this.props;
 
+    const shouldUseEvents = organization.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
+
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
     // to do a discover 'table' query instead of a 'timeseries' query.
@@ -310,11 +318,14 @@ class WidgetQueries extends Component<Props, State> {
         params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
       }
 
+      const eventsUrl = shouldUseEvents
+        ? `/organizations/${organization.slug}/events/`
+        : `/organizations/${organization.slug}/eventsv2/`;
       if (widget.displayType === 'table') {
-        url = `/organizations/${organization.slug}/eventsv2/`;
+        url = eventsUrl;
         params.referrer = 'api.dashboards.tablewidget';
       } else if (widget.displayType === 'big_number') {
-        url = `/organizations/${organization.slug}/eventsv2/`;
+        url = eventsUrl;
         params.per_page = 1;
         params.referrer = 'api.dashboards.bignumberwidget';
       } else if (widget.displayType === 'world_map') {
@@ -327,7 +338,8 @@ class WidgetQueries extends Component<Props, State> {
         );
       }
 
-      return doDiscoverQuery<TableData>(api, url, {
+      // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
+      return doDiscoverQuery<TableData | EventsTableData>(api, url, {
         ...eventView.generateQueryStringObject(),
         ...params,
       });
@@ -342,7 +354,15 @@ class WidgetQueries extends Component<Props, State> {
         isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
 
         // Cast so we can add the title.
-        const tableData = data as TableDataWithTitle;
+        let tableData = data as TableDataWithTitle;
+        // events api uses a different response format so we need to construct tableData differently
+        if (shouldUseEvents) {
+          const fieldsMeta = (data as EventsTableData).meta?.fields;
+          tableData = {
+            ...data,
+            meta: {...fieldsMeta, isMetricsData: data.meta?.isMetricsData},
+          } as TableDataWithTitle;
+        }
         tableData.title = widget.queries[i]?.name ?? '';
 
         // Overwrite the local var to work around state being stale in tests.

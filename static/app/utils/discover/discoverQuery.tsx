@@ -1,4 +1,4 @@
-import {MetaType} from 'sentry/utils/discover/eventView';
+import {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
@@ -21,6 +21,14 @@ export type TableDataRow = {
 export type TableData = {
   data: Array<TableDataRow>;
   meta?: MetaType;
+};
+
+/**
+ * A DiscoverQuery result including rows and metadata from the events endpoint.
+ */
+export type EventsTableData = {
+  data: Array<TableDataRow>;
+  meta?: EventsMetaType;
 };
 
 export type TableDataWithTitle = TableData & {title: string};

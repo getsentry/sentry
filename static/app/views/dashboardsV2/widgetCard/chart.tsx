@@ -129,6 +129,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     tableResults,
   }: TableResultProps): React.ReactNode {
     const {location, widget, organization, selection} = this.props;
+    const isAlias =
+      !organization.features.includes('discover-frontend-use-events-endpoint') &&
+      widget.widgetType !== WidgetType.RELEASE;
     if (errorMessage) {
       return (
         <StyledErrorPanel>
@@ -166,9 +169,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           data={result.data}
           organization={organization}
           stickyHeaders
-          getCustomFieldRenderer={(field, meta) =>
-            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.RELEASE)
-          }
+          getCustomFieldRenderer={(field, meta) => getFieldRenderer(field, meta, isAlias)}
         />
       );
     });
@@ -193,6 +194,9 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
     const {containerHeight} = this.state;
     const {organization, widget, isMobile, expandNumbers} = this.props;
+    const isAlias =
+      !organization.features.includes('discover-frontend-use-events-endpoint') &&
+      widget.widgetType !== WidgetType.RELEASE;
 
     return tableResults.map(result => {
       const tableMeta = {...result.meta};
@@ -211,11 +215,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       }
 
       const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(
-        field,
-        tableMeta,
-        widget.widgetType !== WidgetType.RELEASE
-      );
+      const fieldRenderer = getFieldFormatter(field, tableMeta, isAlias);
 
       const rendered = fieldRenderer(
         shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow
