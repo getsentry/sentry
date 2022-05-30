@@ -55,7 +55,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
 
         now = timezone.now()
         query_data["end"] = request.GET.get("until", now.isoformat())
-        query_data["start"] = request.GET.get("start", (now - timedelta(days=30)).isoformat())
+        query_data["start"] = request.GET.get("since", (now - timedelta(days=30)).isoformat())
         query_data["interval"] = request.GET.get("resolution", "1d")
 
         try:

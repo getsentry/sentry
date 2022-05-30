@@ -100,3 +100,47 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         url = self.path + "?resolution=2d"
         response = self.client.get(url)
         assert response.status_code == 400
+
+    def test_date_conditions(self):
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": before_now(hours=1),
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 1,
+            },
+            2,
+        )
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": before_now(days=10),
+                "project_id": self.project.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 10,
+            },
+            1,
+        )
+        response = self.client.get(
+            self.path,
+            data={
+                "since": before_now(days=1).timestamp(),
+                "until": before_now().timestamp(),
+            },
+        )
+        assert response.status_code == 200
+
+        assert response.status_code == 200, response.content
+        assert type(response.data[-1]["ts"]) == int
+        assert response.data[-1]["total"] == 2, response.data
+        assert response.data[-1]["filtered"] == 0, response.data
+        assert response.data[-1]["dropped"] == 0, response.data
+        assert response.data[-1]["accepted"] == 2, response.data
+        for point in response.data[:-1]:
+            assert point["total"] == 0
+        assert len(response.data) == 2
