@@ -351,7 +351,11 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
-      if (releases && releases.length) {
+      if (releases && releases.length === 1) {
+        releaseCondition += `release:${releases[0].version}`;
+        releasesArray.push(releases[0].version);
+      }
+      if (releases && releases.length > 1) {
         releaseCondition += 'release:[' + releases[0].version;
         releasesArray.push(releases[0].version);
         for (let i = 1; i < releases.length; i++) {
