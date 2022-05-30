@@ -7,6 +7,7 @@ from django.db.models import F
 from django.utils import timezone
 from fido2.ctap2 import AuthenticatorData
 from fido2.utils import sha256
+from rest_framework import status
 
 from sentry.auth.authenticators import RecoveryCodeInterface, SmsInterface, TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
@@ -14,7 +15,7 @@ from sentry.models import Authenticator, Organization, User
 from sentry.testutils import APITestCase
 
 
-def get_auth(user: "User") -> Authenticator:
+def get_auth(user: User) -> Authenticator:
     return Authenticator.objects.create(
         type=3,  # u2f
         user=user,
@@ -43,7 +44,7 @@ def get_auth(user: "User") -> Authenticator:
     )
 
 
-def get_auth_webauthn(user: "User") -> Authenticator:
+def get_auth_webauthn(user: User) -> Authenticator:
     return Authenticator.objects.create(
         type=3,  # u2f
         user=user,
@@ -115,7 +116,12 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         auth = get_auth(self.user)
 
         with self.tasks():
-            self.get_success_response(self.user.id, auth.id, "devicekeyhandle")
+            self.get_success_response(
+                self.user.id,
+                auth.id,
+                "devicekeyhandle",
+                status_code=status.HTTP_204_NO_CONTENT,
+            )
 
         authenticator = Authenticator.objects.get(id=auth.id)
         assert len(authenticator.interface.get_registered_devices()) == 1
@@ -125,7 +131,12 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         # Can't remove last device.
         # TODO(mgaeta): We should not allow the API to return a 500.
         with self.tasks():
-            self.get_error_response(self.user.id, auth.id, "aowerkoweraowerkkro", status_code=500)
+            self.get_error_response(
+                self.user.id,
+                auth.id,
+                "aowerkoweraowerkkro",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
         # Only one send.
         assert_security_email_sent("mfa-removed")
@@ -135,74 +146,91 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
         self.test_u2f_remove_device()
 
     def test_rename_device(self):
-        data = {"name": "for testing"}
         auth = get_auth(self.user)
-        self.get_success_response(self.user.id, auth.id, "devicekeyhandle", **data, method="put")
+        self.get_success_response(
+            self.user.id,
+            auth.id,
+            "devicekeyhandle",
+            name="for testing",
+            method="put",
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
 
         authenticator = Authenticator.objects.get(id=auth.id)
         assert authenticator.interface.get_device_name("devicekeyhandle") == "for testing"
 
     def test_rename_webauthn_device(self):
-        data = {"name": "for testing"}
         auth = get_auth_webauthn(self.user)
-        self.get_success_response(self.user.id, auth.id, "webauthn", **data, method="put")
+        self.get_success_response(
+            self.user.id,
+            auth.id,
+            "webauthn",
+            name="for testing",
+            method="put",
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
 
         authenticator = Authenticator.objects.get(id=auth.id)
         assert authenticator.interface.get_device_name("webauthn") == "for testing"
 
     def test_rename_device_not_found(self):
-        data = {"name": "for testing"}
         auth = get_auth(self.user)
-        self.get_error_response(self.user.id, auth.id, "not_a_real_device", **data, method="put")
+        self.get_error_response(
+            self.user.id,
+            auth.id,
+            "not_a_real_device",
+            name="for testing",
+            method="put",
+        )
 
 
 class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
     endpoint = "sentry-api-0-user-authenticator-details"
 
     def test_wrong_auth_id(self):
-        self.get_error_response(self.user.id, "totp", status_code=404)
+        self.get_error_response(self.user.id, "totp", status_code=status.HTTP_404_NOT_FOUND)
 
     def test_get_authenticator_details(self):
         interface = TotpInterface()
         interface.enroll(self.user)
         auth = interface.authenticator
 
-        resp = self.get_success_response(self.user.id, auth.id)
+        response = self.get_success_response(self.user.id, auth.id)
 
-        assert resp.data["isEnrolled"]
-        assert resp.data["id"] == "totp"
-        assert resp.data["authId"] == str(auth.id)
+        assert response.data["isEnrolled"]
+        assert response.data["id"] == "totp"
+        assert response.data["authId"] == str(auth.id)
 
         # should not have these because enrollment
-        assert "totp_secret" not in resp.data
-        assert "form" not in resp.data
-        assert "qrcode" not in resp.data
+        assert "totp_secret" not in response.data
+        assert "form" not in response.data
+        assert "qrcode" not in response.data
 
     def test_get_recovery_codes(self):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
         with self.tasks():
-            resp = self.get_success_response(self.user.id, interface.authenticator.id)
+            response = self.get_success_response(self.user.id, interface.authenticator.id)
 
-        assert resp.data["id"] == "recovery"
-        assert resp.data["authId"] == str(interface.authenticator.id)
-        assert len(resp.data["codes"])
+        assert response.data["id"] == "recovery"
+        assert response.data["authId"] == str(interface.authenticator.id)
+        assert len(response.data["codes"])
 
         assert len(mail.outbox) == 0
 
     def test_u2f_get_devices(self):
         auth = get_auth(self.user)
 
-        resp = self.get_success_response(self.user.id, auth.id)
-        assert resp.data["id"] == "u2f"
-        assert resp.data["authId"] == str(auth.id)
-        assert len(resp.data["devices"])
-        assert resp.data["devices"][0]["name"] == "Amused Beetle"
+        response = self.get_success_response(self.user.id, auth.id)
+        assert response.data["id"] == "u2f"
+        assert response.data["authId"] == str(auth.id)
+        assert len(response.data["devices"])
+        assert response.data["devices"][0]["name"] == "Amused Beetle"
 
         # should not have these because enrollment
-        assert "challenge" not in resp.data
-        assert "response" not in resp.data
+        assert "challenge" not in response.data
+        assert "response" not in response.data
 
     def test_get_device_name(self):
         auth = get_auth(self.user)
@@ -215,35 +243,35 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         interface.phone_number = "5551231234"
         interface.enroll(self.user)
 
-        resp = self.get_success_response(self.user.id, interface.authenticator.id)
-        assert resp.data["id"] == "sms"
-        assert resp.data["authId"] == str(interface.authenticator.id)
-        assert resp.data["phone"] == "5551231234"
+        response = self.get_success_response(self.user.id, interface.authenticator.id)
+        assert response.data["id"] == "sms"
+        assert response.data["authId"] == str(interface.authenticator.id)
+        assert response.data["phone"] == "5551231234"
 
         # should not have these because enrollment
-        assert "totp_secret" not in resp.data
-        assert "form" not in resp.data
+        assert "totp_secret" not in response.data
+        assert "form" not in response.data
 
     def test_recovery_codes_regenerate(self):
         interface = RecoveryCodeInterface()
         interface.enroll(self.user)
 
-        resp = self.get_success_response(self.user.id, interface.authenticator.id)
-        old_codes = resp.data["codes"]
-        old_created_at = resp.data["createdAt"]
+        response = self.get_success_response(self.user.id, interface.authenticator.id)
+        old_codes = response.data["codes"]
+        old_created_at = response.data["createdAt"]
 
-        resp = self.get_success_response(self.user.id, interface.authenticator.id)
-        assert old_codes == resp.data["codes"]
-        assert old_created_at == resp.data["createdAt"]
+        response = self.get_success_response(self.user.id, interface.authenticator.id)
+        assert old_codes == response.data["codes"]
+        assert old_created_at == response.data["createdAt"]
 
         # regenerate codes
         tomorrow = timezone.now() + datetime.timedelta(days=1)
         with mock.patch.object(timezone, "now", return_value=tomorrow):
             with self.tasks():
                 self.get_success_response(self.user.id, interface.authenticator.id, method="put")
-                resp = self.get_success_response(self.user.id, interface.authenticator.id)
-            assert old_codes != resp.data["codes"]
-            assert old_created_at != resp.data["createdAt"]
+                response = self.get_success_response(self.user.id, interface.authenticator.id)
+            assert old_codes != response.data["codes"]
+            assert old_created_at != response.data["createdAt"]
 
         assert_security_email_sent("recovery-codes-regenerated")
 
@@ -276,7 +304,12 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         self.login_as(user=actor)
 
         with self.tasks():
-            self.get_error_response(self.user.id, auth.id, method="delete", status_code=403)
+            self.get_error_response(
+                self.user.id,
+                auth.id,
+                method="delete",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
 
         assert Authenticator.objects.filter(id=auth.id).exists()
 
@@ -291,8 +324,13 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         auth = interface.authenticator
 
         with self.tasks():
-            resp = self.get_error_response(self.user.id, auth.id, method="delete", status_code=403)
-            assert b"requires 2FA" in resp.content
+            response = self.get_error_response(
+                self.user.id,
+                auth.id,
+                method="delete",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+            assert b"requires 2FA" in response.content
 
         assert Authenticator.objects.filter(id=auth.id).exists()
 
@@ -310,7 +348,12 @@ class UserAuthenticatorDetailsTest(UserAuthenticatorDetailsTestBase):
         auth = interface.authenticator
 
         with self.tasks():
-            self.get_success_response(self.user.id, auth.id, method="delete", status_code=204)
+            self.get_success_response(
+                self.user.id,
+                auth.id,
+                method="delete",
+                status_code=status.HTTP_204_NO_CONTENT,
+            )
             assert_security_email_sent("mfa-removed")
 
         assert not Authenticator.objects.filter(id=auth.id).exists()

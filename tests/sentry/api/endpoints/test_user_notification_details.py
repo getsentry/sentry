@@ -13,18 +13,18 @@ class UserNotificationDetailsTestBase(APITestCase):
 
 class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
     def test_lookup_self(self):
-        self.get_valid_response("me")
+        self.get_success_response("me")
 
     def test_lookup_other_user(self):
         user_b = self.create_user(email="b@example.com")
-        self.get_valid_response(user_b.id, status_code=403)
+        self.get_error_response(user_b.id, status_code=403)
 
     def test_superuser(self):
         superuser = self.create_user(email="b@example.com", is_superuser=True)
 
         self.login_as(user=superuser, superuser=True)
 
-        self.get_valid_response(self.user.id)
+        self.get_success_response(self.user.id)
 
     def test_returns_correct_defaults(self):
         """
@@ -49,7 +49,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
             organization=self.organization,
         )
 
-        response = self.get_valid_response("me")
+        response = self.get_success_response("me")
 
         assert response.data.get("deployNotifications") == 3
         assert response.data.get("personalActivityNotifications") is False
@@ -69,7 +69,7 @@ class UserNotificationDetailsGetTest(UserNotificationDetailsTestBase):
             user=self.user,
         )
 
-        response = self.get_valid_response("me")
+        response = self.get_success_response("me")
         assert response.data.get("subscribeByDefault") is False
 
 
@@ -82,7 +82,7 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
             "personalActivityNotifications": True,
             "selfAssignOnResolve": True,
         }
-        response = self.get_valid_response("me", **data)
+        response = self.get_success_response("me", **data)
 
         assert response.data.get("deployNotifications") == 2
         assert response.data.get("personalActivityNotifications") is True
@@ -106,7 +106,7 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
             organization=self.organization,
         )
 
-        response = self.get_valid_response("me", **{"deployNotifications": 2})
+        response = self.get_success_response("me", **{"deployNotifications": 2})
         assert response.data.get("deployNotifications") == 2
 
         value1 = NotificationSetting.objects.get_settings(
@@ -125,4 +125,4 @@ class UserNotificationDetailsPutTest(UserNotificationDetailsTestBase):
         assert value2 == NotificationSettingOptionValues.ALWAYS
 
     def test_reject_invalid_values(self):
-        self.get_valid_response("me", status_code=400, **{"deployNotifications": 6})
+        self.get_error_response("me", status_code=400, **{"deployNotifications": 6})

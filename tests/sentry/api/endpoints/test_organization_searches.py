@@ -66,7 +66,7 @@ class OrgLevelOrganizationSearchesListTest(APITestCase):
     def check_results(self, expected):
         self.login_as(user=self.user)
         expected.sort(key=lambda search: (not search.is_pinned, search.name.lower()))
-        response = self.get_valid_response(self.organization.slug)
+        response = self.get_success_response(self.organization.slug)
         assert response.data == serialize(expected)
 
     def test_simple(self):
@@ -116,7 +116,7 @@ class CreateOrganizationSearchesTest(APITestCase):
         name = "test"
         query = "hello"
         self.login_as(user=self.manager)
-        resp = self.get_valid_response(
+        resp = self.get_success_response(
             self.organization.slug, type=search_type, name=name, query=query
         )
         assert resp.data["name"] == name

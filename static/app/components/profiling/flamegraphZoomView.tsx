@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
+import {FrameStack} from 'sentry/components/profiling/FrameStack/frameStack';
+import space from 'sentry/styles/space';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
@@ -14,18 +16,17 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
 
+import {useContextMenu} from '../../utils/profiling/hooks/useContextMenu';
+
 import {BoundTooltip} from './boundTooltip';
-import {
-  FlamegraphOptionsContextMenu,
-  useContextMenu,
-} from './flamegraphOptionsContextMenu';
+import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
 
 function formatWeightToProfileDuration(frame: CallTreeNode, flamegraph: Flamegraph) {
   return `(${Math.round((frame.totalWeight / flamegraph.profile.duration) * 100)}%)`;
@@ -617,46 +618,97 @@ function FlamegraphZoomView({
 
   return (
     <Fragment>
-      <Canvas
-        ref={c => setFlamegraphCanvasRef(c)}
-        onMouseDown={onCanvasMouseDown}
-        onMouseUp={onCanvasMouseUp}
-        onMouseMove={onCanvasMouseMove}
-        onMouseLeave={onCanvasMouseLeave}
-        onContextMenu={onContextMenu}
-        style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
-      />
-      <Canvas
-        ref={c => setFlamegraphOverlayCanvasRef(c)}
-        style={{
-          pointerEvents: 'none',
-        }}
-      />
-      {contextMenuProps.open ? (
-        <FlamegraphOptionsContextMenu
-          container={flamegraphCanvasRef}
-          contextMenuCoordinates={contextMenuCoordinates}
-          contextMenuProps={contextMenuProps}
+      <CanvasContainer>
+        <Canvas
+          ref={canvas => setFlamegraphCanvasRef(canvas)}
+          onMouseDown={onCanvasMouseDown}
+          onMouseUp={onCanvasMouseUp}
+          onMouseMove={onCanvasMouseMove}
+          onMouseLeave={onCanvasMouseLeave}
+          onContextMenu={onContextMenu}
+          style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
         />
-      ) : null}
-      {flamegraphCanvas &&
-      flamegraphRenderer &&
-      flamegraphView &&
-      hoveredNode?.frame?.name ? (
-        <BoundTooltip
-          bounds={canvasBounds}
-          cursor={configSpaceCursor}
-          flamegraphCanvas={flamegraphCanvas}
-          flamegraphView={flamegraphView}
-        >
-          {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
-          {formatWeightToProfileDuration(hoveredNode.node, flamegraphRenderer.flamegraph)}{' '}
-          {hoveredNode.frame.name}
-        </BoundTooltip>
+        <Canvas
+          ref={canvas => setFlamegraphOverlayCanvasRef(canvas)}
+          style={{
+            pointerEvents: 'none',
+          }}
+        />
+        {contextMenuProps.open ? (
+          <FlamegraphOptionsContextMenu
+            container={flamegraphCanvasRef}
+            contextMenuCoordinates={contextMenuCoordinates}
+            contextMenuProps={contextMenuProps}
+          />
+        ) : null}
+        {flamegraphCanvas &&
+        flamegraphRenderer &&
+        flamegraphView &&
+        configSpaceCursor &&
+        hoveredNode?.frame?.name ? (
+          <BoundTooltip
+            bounds={canvasBounds}
+            cursor={configSpaceCursor}
+            flamegraphCanvas={flamegraphCanvas}
+            flamegraphView={flamegraphView}
+          >
+            <HoveredFrameMainInfo>
+              <FrameColorIndicator
+                backgroundColor={formatColorForFrame(hoveredNode, flamegraphRenderer)}
+              />
+              {flamegraphRenderer.flamegraph.formatter(hoveredNode.node.totalWeight)}{' '}
+              {formatWeightToProfileDuration(
+                hoveredNode.node,
+                flamegraphRenderer.flamegraph
+              )}{' '}
+              {hoveredNode.frame.name}
+            </HoveredFrameMainInfo>
+            <HoveredFrameTimelineInfo>
+              {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.start)}{' '}
+              {' \u2014 '}
+              {flamegraphRenderer.flamegraph.timelineFormatter(hoveredNode.end)}
+            </HoveredFrameTimelineInfo>
+          </BoundTooltip>
+        ) : null}
+      </CanvasContainer>
+      {flamegraphRenderer ? (
+        <FrameStack
+          canvasPoolManager={canvasPoolManager}
+          flamegraphRenderer={flamegraphRenderer}
+        />
       ) : null}
     </Fragment>
   );
 }
+
+const HoveredFrameTimelineInfo = styled('div')`
+  color: ${p => p.theme.subText};
+`;
+
+const HoveredFrameMainInfo = styled('div')`
+  display: flex;
+  align-items: center;
+`;
+
+const FrameColorIndicator = styled('div')<{
+  backgroundColor: React.CSSProperties['backgroundColor'];
+}>`
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  min-height: 12px;
+  border-radius: 2px;
+  display: inline-block;
+  background-color: ${p => p.backgroundColor};
+  margin-right: ${space(1)};
+`;
+
+const CanvasContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  position: relative;
+`;
 
 const Canvas = styled('canvas')`
   left: 0;

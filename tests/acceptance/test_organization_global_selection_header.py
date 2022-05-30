@@ -165,9 +165,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             self.issues_list.visit_issue_list(self.org.slug)
             self.issues_list.wait_until_loaded()
             assert "environment=" not in self.browser.current_url
-            assert (
-                self.issue_details.global_selection.get_selected_environment() == "All Environments"
-            )
+            assert self.issue_details.global_selection.get_selected_environment() == "All Env"
 
             self.browser.click('[data-test-id="global-header-environment-selector"]')
             self.browser.click('[data-test-id="environment-prod"]')
@@ -175,17 +173,18 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert "environment=prod" in self.browser.current_url
             assert self.issue_details.global_selection.get_selected_environment() == "prod"
 
-            self.browser.click('[data-test-id="global-header-environment-selector"] > svg')
+            # clear environment prod
+            self.browser.click('[data-test-id="global-header-environment-selector"]')
+            self.browser.click('[data-test-id="environment-prod"] [role="checkbox"]')
+            self.browser.click('[data-test-id="global-header-environment-selector"]')
             self.issues_list.wait_until_loaded()
             assert "environment=" not in self.browser.current_url
-            assert (
-                self.issue_details.global_selection.get_selected_environment() == "All Environments"
-            )
+            assert self.issue_details.global_selection.get_selected_environment() == "All Env"
 
             """
             navigate back through history to the beginning
-            1) environment=All Environments -> environment=prod
-            2) environment=prod -> environment=All Environments
+            1) environment=All Env -> environment=prod
+            2) environment=prod -> environment=All Env
             """
             self.browser.back()
             self.issues_list.wait_until_loaded()
@@ -195,14 +194,12 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.back()
             self.issues_list.wait_until_loaded()
             assert "environment=" not in self.browser.current_url
-            assert (
-                self.issue_details.global_selection.get_selected_environment() == "All Environments"
-            )
+            assert self.issue_details.global_selection.get_selected_environment() == "All Env"
 
             """
             navigate forward through history to the end
-            1) environment=All Environments -> environment=prod
-            2) environment=prod -> environment=All Environments
+            1) environment=All Env -> environment=prod
+            2) environment=prod -> environment=All Env
             """
             self.browser.forward()
             self.issues_list.wait_until_loaded()
@@ -212,9 +209,7 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.forward()
             self.issues_list.wait_until_loaded()
             assert "environment=" not in self.browser.current_url
-            assert (
-                self.issue_details.global_selection.get_selected_environment() == "All Environments"
-            )
+            assert self.issue_details.global_selection.get_selected_environment() == "All Env"
 
     def test_global_selection_header_loads_with_correct_project_with_multi_project(self):
         """
@@ -260,6 +255,9 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert "statsPeriod=24h" in self.browser.current_url
             # This doesn't work because we treat as dynamic data in CI
             # assert self.issues_list.global_selection.get_selected_date() == "Last 24 hours"
+
+            # lock the filter and then test reloading the page to test persistence
+            self.issues_list.global_selection.lock_project_filter()
 
             # reloading page with no project id in URL after previously
             # selecting an explicit project should load previously selected project
@@ -356,7 +354,6 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
         # Make sure issue's project is in URL and in header
         assert f"project={self.project_2.id}" in self.browser.current_url
-        assert self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
 
         # environment should be in URL and header
         assert "environment=prod" in self.browser.current_url
@@ -390,9 +387,6 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
 
             # Make sure issue's project is in URL and in header
             assert f"project={self.project_2.id}" in self.browser.current_url
-            assert (
-                self.issues_list.global_selection.get_selected_project_slug() == self.project_2.slug
-            )
 
             # environment should be in URL and header
             assert "environment=prod" in self.browser.current_url

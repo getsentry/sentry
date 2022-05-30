@@ -9,7 +9,7 @@ class FireTest(abc.ABC):
     def run_test(self, incident: Incident, method: str):
         pass
 
-    def run_fire_test(self, method="fire"):
+    def run_fire_test(self, method="fire", chart_url=None):
         self.alert_rule = self.create_alert_rule()
         incident = self.create_incident(
             alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value

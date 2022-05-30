@@ -15,8 +15,8 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
-import OnboardingViewTask from './onboardingCard';
 import ProgressHeader from './progressHeader';
 import Task from './task';
 import {getMergedTasks} from './taskConfig';
@@ -53,6 +53,7 @@ Heading.defaultProps = {
   transition: testableTransition(),
 };
 
+const customizedTasksHeading = <Heading key="customized">{t('The Basics')}</Heading>;
 const completeNowHeading = <Heading key="now">{t('Next Steps')}</Heading>;
 const upcomingTasksHeading = (
   <Heading key="upcoming">
@@ -74,6 +75,7 @@ function OnboardingWizardSidebar({
   projects,
 }: Props) {
   const api = useApi();
+  const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
 
   const markCompletionTimeout = useRef<number | undefined>();
   const markCompletionSeenTimeout = useRef<number | undefined>();
@@ -92,16 +94,21 @@ function OnboardingWizardSidebar({
     });
   }
 
-  const {allTasks, active, upcoming, complete} = useMemo(() => {
-    const all = getMergedTasks({organization, projects}).filter(task => task.display);
-
+  const {allTasks, customTasks, active, upcoming, complete} = useMemo(() => {
+    const all = getMergedTasks({
+      organization,
+      projects,
+      onboardingState: onboardingState || undefined,
+    }).filter(task => task.display);
+    const tasks = all.filter(task => !task.renderCard);
     return {
       allTasks: all,
-      active: all.filter(findActiveTasks),
-      upcoming: all.filter(findUpcomingTasks),
-      complete: all.filter(findCompleteTasks),
+      customTasks: all.filter(task => task.renderCard),
+      active: tasks.filter(findActiveTasks),
+      upcoming: tasks.filter(findUpcomingTasks),
+      complete: tasks.filter(findCompleteTasks),
     };
-  }, [organization, projects]);
+  }, [organization, projects, onboardingState]);
 
   const markTasksAsSeen = useCallback(
     async function () {
@@ -160,7 +167,21 @@ function OnboardingWizardSidebar({
     </CompleteList>
   );
 
+  const customizedCards = customTasks
+    .map(task =>
+      task.renderCard?.({
+        organization,
+        task,
+        onboardingState,
+        setOnboardingState,
+        projects,
+      })
+    )
+    .filter(card => !!card);
+
   const items = [
+    customizedCards.length > 0 && customizedTasksHeading,
+    ...customizedCards,
     active.length > 0 && completeNowHeading,
     ...active.map(renderItem),
     upcoming.length > 0 && upcomingTasksHeading,
@@ -174,7 +195,6 @@ function OnboardingWizardSidebar({
       <TopRight src={HighlightTopRight} />
       <ProgressHeader allTasks={allTasks} completedTasks={complete} />
       <TaskList>
-        <OnboardingViewTask org={organization} />
         <AnimatePresence initial={false}>{items}</AnimatePresence>
       </TaskList>
     </TaskSidebarPanel>

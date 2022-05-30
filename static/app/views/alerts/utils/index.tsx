@@ -10,10 +10,10 @@ import {
   Dataset,
   Datasource,
   EventTypes,
-  IncidentRule,
-  SavedIncidentRule,
+  MetricRule,
+  SavedMetricRule,
   SessionsAggregate,
-} from 'sentry/views/alerts/incidentRules/types';
+} from 'sentry/views/alerts/rules/metric/types';
 
 import {AlertRuleStatus, Incident, IncidentStats} from '../types';
 
@@ -30,7 +30,7 @@ export function getStartEndFromStats(stats: IncidentStats) {
 }
 
 export function isIssueAlert(
-  data: IssueAlertRule | SavedIncidentRule | IncidentRule
+  data: IssueAlertRule | SavedMetricRule | MetricRule
 ): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');
 }

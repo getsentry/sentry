@@ -64,7 +64,6 @@ export type TableViewProps = {
   projects: Project[];
   showTags: boolean;
   tableData: TableData | null | undefined;
-  tagKeys: null | string[];
 
   title: string;
   spanOperationBreakdownKeys?: string[];
@@ -242,7 +241,11 @@ class TableView extends Component<TableViewProps> {
     }
 
     const columnKey = String(column.key);
-    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta);
+    const fieldRenderer = getFieldRenderer(
+      columnKey,
+      tableData.meta,
+      !organization.features.includes('discover-frontend-use-events-endpoint')
+    );
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
@@ -327,13 +330,8 @@ class TableView extends Component<TableViewProps> {
   };
 
   handleEditColumns = () => {
-    const {
-      organization,
-      eventView,
-      tagKeys,
-      measurementKeys,
-      spanOperationBreakdownKeys,
-    } = this.props;
+    const {organization, eventView, measurementKeys, spanOperationBreakdownKeys} =
+      this.props;
 
     const hasBreakdownFeature = organization.features.includes(
       'performance-ops-breakdown'
@@ -344,7 +342,6 @@ class TableView extends Component<TableViewProps> {
         <ColumnEditModal
           {...modalProps}
           organization={organization}
-          tagKeys={tagKeys}
           measurementKeys={measurementKeys}
           spanOperationBreakdownKeys={
             hasBreakdownFeature ? spanOperationBreakdownKeys : undefined
@@ -491,9 +488,11 @@ class TableView extends Component<TableViewProps> {
   };
 
   render() {
-    const {isLoading, error, location, tableData, eventView} = this.props;
+    const {isLoading, error, location, tableData, eventView, organization} = this.props;
 
-    const columnOrder = eventView.getColumns();
+    const columnOrder = eventView.getColumns(
+      organization.features.includes('discover-frontend-use-events-endpoint')
+    );
     const columnSortBy = eventView.getSorts();
 
     const prependColumnWidths = eventView.hasAggregateField()

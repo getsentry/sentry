@@ -356,6 +356,15 @@ class InvalidParams(Exception):
     pass
 
 
+class NonPreflightOrderByException(InvalidParams):
+    """
+    An exception that is raised when parsing orderBy, to indicate that this is only an exception
+    in the case where we don't run a preflight query on an accepted pre-flight query field
+    """
+
+    ...
+
+
 def get_now():
     """Wrapper function to make it mockable in unit tests"""
     return datetime.now(tz=pytz.utc)

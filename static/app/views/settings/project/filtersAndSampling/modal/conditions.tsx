@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -7,10 +7,16 @@ import TextareaField from 'sentry/components/forms/textareaField';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Project, Tag} from 'sentry/types';
 import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
+import useApi from 'sentry/utils/useApi';
 
-import {getInnerNameLabel} from '../utils';
+import {
+  addCustomTagPrefix,
+  getInnerNameLabel,
+  isCustomTagName,
+  stripCustomTagPrefix,
+} from '../utils';
 
 import LegacyBrowsers from './legacyBrowsers';
 import {TagKeyAutocomplete} from './tagKeyAutocomplete';
@@ -18,10 +24,9 @@ import {TagValueAutocomplete} from './tagValueAutocomplete';
 import {getMatchFieldPlaceholder, getTagKey} from './utils';
 
 type Condition = {
-  category: DynamicSamplingInnerName;
+  category: DynamicSamplingInnerName | string; // string is used for custom tags
   legacyBrowsers?: Array<LegacyBrowser>;
   match?: string;
-  tagKey?: string;
 };
 
 type Props = Pick<
@@ -46,19 +51,37 @@ function Conditions({
   onDelete,
   onChange,
 }: Props) {
+  const api = useApi();
+  const [tags, setTags] = useState<Tag[]>([]);
+
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        const response = await api.requestPromise(
+          `/projects/${orgSlug}/${projectSlug}/tags/`
+        );
+        setTags(response);
+      } catch {
+        // Do nothing, just autocomplete won't suggest any results
+      }
+    }
+
+    fetchTags();
+  }, [api, orgSlug, projectSlug]);
+
   return (
     <Fragment>
       {conditions.map((condition, index) => {
-        const {category, match, legacyBrowsers, tagKey} = condition;
+        const {category, match, legacyBrowsers} = condition;
         const displayLegacyBrowsers =
           category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
+        const isCustomTag = isCustomTagName(category);
 
         const isBooleanField =
-          [
-            DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS,
-            DynamicSamplingInnerName.EVENT_LOCALHOST,
-            DynamicSamplingInnerName.EVENT_WEB_CRAWLERS,
-          ].includes(category) || displayLegacyBrowsers;
+          category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+          category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
+          category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS;
+        displayLegacyBrowsers;
 
         const isAutoCompleteField =
           category === DynamicSamplingInnerName.EVENT_ENVIRONMENT ||
@@ -67,22 +90,26 @@ function Conditions({
           category === DynamicSamplingInnerName.EVENT_OS_NAME ||
           category === DynamicSamplingInnerName.EVENT_DEVICE_FAMILY ||
           category === DynamicSamplingInnerName.EVENT_DEVICE_NAME ||
-          category === DynamicSamplingInnerName.EVENT_CUSTOM_TAG ||
           category === DynamicSamplingInnerName.TRACE_ENVIRONMENT ||
           category === DynamicSamplingInnerName.TRACE_RELEASE ||
-          category === DynamicSamplingInnerName.TRACE_TRANSACTION;
-
-        const isCustomTag = category === DynamicSamplingInnerName.EVENT_CUSTOM_TAG;
+          category === DynamicSamplingInnerName.TRACE_TRANSACTION ||
+          isCustomTag;
 
         return (
           <ConditionWrapper key={index}>
             <LeftCell>
               {isCustomTag ? (
                 <TagKeyAutocomplete
-                  orgSlug={orgSlug}
-                  projectSlug={projectSlug}
-                  onChange={value => onChange(index, 'tagKey', value)}
-                  value={tagKey}
+                  tags={tags}
+                  onChange={value =>
+                    onChange(index, 'category', addCustomTagPrefix(value))
+                  }
+                  value={stripCustomTagPrefix(category)}
+                  disabledOptions={conditions
+                    .filter(
+                      cond => isCustomTagName(cond.category) && cond.category !== category
+                    )
+                    .map(cond => stripCustomTagPrefix(cond.category))}
                 />
               ) : (
                 <span>
@@ -144,7 +171,7 @@ export default Conditions;
 
 const ConditionWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: flex-start;
   padding: ${space(1)} ${space(2)};
   :not(:last-child) {
@@ -152,7 +179,7 @@ const ConditionWrapper = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 0.6fr minmax(0, 1fr) max-content;
+    grid-template-columns: minmax(0, 0.6fr) minmax(0, 1fr) max-content;
   }
 `;
 
@@ -163,7 +190,7 @@ const Cell = styled('div')`
 `;
 
 const LeftCell = styled(Cell)`
-  padding-right: ${space(2)};
+  padding-right: ${space(1)};
   line-height: 16px;
 `;
 

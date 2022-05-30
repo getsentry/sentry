@@ -13,11 +13,10 @@ exclude: >
     )
 
 repos:
-# For some tools, we install them locally (in the virtualenv).
-# This makes it easier to use them directly (as opposed to pre-commit run),
-# and it's also faster as pre-commit doesn't have to manage them.
-# The thing we lose here is autoupdate, but we have git hooks that
-# let you know when requirements-pre-commit.txt changes.
+# Many of these hooks are local because people use a variety of IDEs
+# with autoformatters that need to call out to things like `black` directly.
+# pre-commit run is not the same, and something like pre-commit exec does
+# not exist yet.
 -   repo: local
     hooks:
     - id: pyupgrade
@@ -60,8 +59,9 @@ repos:
       name: pyright
       entry: pyright
       language: node
+      files: ^src/
       types: [ python ]
-      pass_filenames: true
+      require_serial: true
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
 

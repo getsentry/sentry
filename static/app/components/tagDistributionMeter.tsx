@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
@@ -12,20 +12,17 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
-type DefaultProps = {
-  hasError: boolean;
-  isLoading: boolean;
-  renderEmpty: () => React.ReactNode;
-  renderError: () => React.ReactNode;
-  renderLoading: () => React.ReactNode;
-  showReleasePackage: boolean;
-};
-
-type Props = DefaultProps & {
+type Props = {
   segments: TagSegment[];
   title: string;
   totalValues: number;
+  hasError?: boolean;
+  isLoading?: boolean;
   onTagClick?: (title: string, value: TagSegment) => void;
+  renderEmpty?: () => React.ReactNode;
+  renderError?: () => React.ReactNode;
+  renderLoading?: () => React.ReactNode;
+  showReleasePackage?: boolean;
 };
 
 type SegmentValue = {
@@ -34,20 +31,19 @@ type SegmentValue = {
   to: LocationDescriptor;
 };
 
-export default class TagDistributionMeter extends Component<Props> {
-  static defaultProps: DefaultProps = {
-    isLoading: false,
-    hasError: false,
-    renderLoading: () => null,
-    renderEmpty: () => <p>{t('No recent data.')}</p>,
-    renderError: () => null,
-    showReleasePackage: false,
-  };
-
-  renderTitle() {
-    const {segments, totalValues, title, isLoading, hasError, showReleasePackage} =
-      this.props;
-
+function TagDistributionMeter({
+  isLoading = false,
+  hasError = false,
+  renderLoading = () => null,
+  renderEmpty = () => <p>{t('No recent data.')}</p>,
+  renderError = () => null,
+  showReleasePackage = false,
+  segments,
+  title,
+  totalValues,
+  onTagClick,
+}: Props) {
+  function renderTitle() {
     if (!Array.isArray(segments) || segments.length <= 0) {
       return (
         <Title>
@@ -89,20 +85,7 @@ export default class TagDistributionMeter extends Component<Props> {
     );
   }
 
-  renderSegments() {
-    const {
-      segments,
-      onTagClick,
-      title,
-      isLoading,
-      hasError,
-      totalValues,
-      renderLoading,
-      renderError,
-      renderEmpty,
-      showReleasePackage,
-    } = this.props;
-
+  function renderSegments() {
     if (isLoading) {
       return renderLoading();
     }
@@ -145,9 +128,7 @@ export default class TagDistributionMeter extends Component<Props> {
           const segmentProps: SegmentValue = {
             index,
             to: value.url,
-            onClick: () => {
-              onTagClick?.(title, value);
-            },
+            onClick: () => onTagClick?.(title, value),
           };
 
           return (
@@ -176,30 +157,28 @@ export default class TagDistributionMeter extends Component<Props> {
     );
   }
 
-  render() {
-    const {segments, totalValues} = this.props;
+  const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < totalValues;
 
-    const totalVisible = segments.reduce((sum, value) => sum + value.count, 0);
-    const hasOther = totalVisible < totalValues;
-
-    if (hasOther) {
-      segments.push({
-        isOther: true,
-        name: t('Other'),
-        value: 'other',
-        count: totalValues - totalVisible,
-        url: '',
-      });
-    }
-
-    return (
-      <TagSummary>
-        {this.renderTitle()}
-        {this.renderSegments()}
-      </TagSummary>
-    );
+  if (hasOther) {
+    segments.push({
+      isOther: true,
+      name: t('Other'),
+      value: 'other',
+      count: totalValues - totalVisible,
+      url: '',
+    });
   }
+
+  return (
+    <TagSummary>
+      {renderTitle()}
+      {renderSegments()}
+    </TagSummary>
+  );
 }
+
+export default TagDistributionMeter;
 
 const COLORS = [
   '#3A3387',

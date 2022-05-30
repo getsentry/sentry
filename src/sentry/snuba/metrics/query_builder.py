@@ -1,9 +1,8 @@
 __all__ = (
-    "APIQueryDefinition",
+    "QueryDefinition",
     "SnubaQueryBuilder",
     "SnubaResultConverter",
     "get_date_range",
-    "get_intervals",
     "parse_field",
     "parse_query",
     "resolve_tags",
@@ -21,6 +20,7 @@ from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.filter import get_filter
 from sentry.sentry_metrics.utils import (
     STRING_NOT_FOUND,
     resolve_tag_key,
@@ -36,9 +36,9 @@ from sentry.snuba.metrics.fields.base import (
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
-from sentry.snuba.metrics.query import MetricField
+from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
-from sentry.snuba.metrics.query import QueryDefinition, Tag
+from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
     ALLOWED_GROUPBY_COLUMNS,
     FIELD_REGEX,
@@ -50,6 +50,7 @@ from sentry.snuba.metrics.utils import (
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistException,
+    get_intervals,
 )
 from sentry.snuba.sessions_v2 import ONE_DAY  # TODO: unite metrics and sessions_v2
 from sentry.snuba.sessions_v2 import AllowedResolution, InvalidField, finite_or_none
@@ -174,7 +175,7 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
     raise InvalidParams("Unable to resolve conditions")
 
 
-def parse_query(query_string: str) -> Sequence[Condition]:
+def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Condition]:
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
@@ -189,28 +190,55 @@ def parse_query(query_string: str) -> Sequence[Condition]:
             },
         )
         where, _ = query_builder.resolve_conditions(query_string, use_aggregate_conditions=True)
+
+        # XXX(ahmed): Hack to accept project:slug filter as we are no longer maintaining the
+        # metrics API.
+        # Essentially prior to this change `project` slug query filters were treated as `tags[
+        # project]` filters, so I loop over the where list and when its found it popped out of
+        # the list and replaced with the appropriate `project_id` filter.
+        for idx, condition in enumerate(list(where)):
+            if isinstance(condition, Condition) and condition.lhs == Function(
+                "ifNull", parameters=[Column("tags[project]"), ""]
+            ):
+                del where[idx]
+
+                snuba_filter_conditions = get_filter(
+                    query_string, {"project_id": [p.id for p in projects]}
+                ).conditions
+                for snuba_condition in snuba_filter_conditions:
+                    if snuba_condition[0] == "project_id":
+                        where.append(
+                            Condition(
+                                Column(snuba_condition[0]),
+                                Op(snuba_condition[1]),
+                                snuba_condition[2],
+                            )
+                        )
+
     except InvalidSearchQuery as e:
         raise InvalidParams(f"Failed to parse query: {e}")
-
     return where
 
 
-class APIQueryDefinition:
+class QueryDefinition:
     """
-    This is the definition of the query the user wants to execute.
-    This is constructed out of the request params, and also contains a list of
-    `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
+    Class meant to serve as a thin layer that converts API request params to the fields necessary to
+    instantiate an instance of `MetricsQuery`
 
-    Adapted from [`sentry.snuba.sessions_v2`].
+    Adapted from [`sentry.snuba.sessions_v2`] and meant to keep consistency in naming between
+    sessions v2 and metrics APIs.
 
     """
+
+    # ToDo(ahmed): Move validation down to `MetricsQuery`
 
     def __init__(self, projects, query_params, paginator_kwargs: Optional[Dict] = None):
         self._projects = projects
         paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
-        self.parsed_query = parse_query(self.query) if self.query else None
+        self.parsed_query = parse_query(self.query, projects) if self.query else None
+
         raw_fields = query_params.getlist("field", [])
         self.groupby = query_params.getlist("groupBy", [])
 
@@ -222,8 +250,8 @@ class APIQueryDefinition:
             self.fields.append(parse_field(key, query_params))
 
         self.orderby = self._parse_orderby(query_params)
-        self.limit: Optional[Limit] = self._parse_limit(query_params, paginator_kwargs)
-        self.offset: Optional[Offset] = self._parse_offset(query_params, paginator_kwargs)
+        self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
+        self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
 
         start, end, rollup = get_date_range(query_params)
         self.rollup = rollup
@@ -244,11 +272,8 @@ class APIQueryDefinition:
         if not (self.include_series or self.include_totals):
             raise InvalidParams("Cannot omit both series and totals")
 
-        # Validates that time series limit will not exceed the snuba limit of 10,000
-        self._validate_series_limit(query_params)
-
-    def to_query_definition(self) -> QueryDefinition:
-        return QueryDefinition(
+    def to_metrics_query(self) -> MetricsQuery:
+        return MetricsQuery(
             org_id=org_id_from_projects(self._projects),
             project_ids=[project.id for project in self._projects],
             include_totals=self.include_totals,
@@ -288,52 +313,15 @@ class APIQueryDefinition:
 
         return MetricsOrderBy(field, direction)
 
-    def _parse_limit(self, query_params, paginator_kwargs):
-        if self.orderby:
-            return Limit(paginator_kwargs.get("limit"))
-        else:
-            per_page = query_params.get("per_page")
-            if per_page is not None:
-                # If order by is not None, it means we will have a `series` query which cannot be
-                # paginated, and passing a `per_page` url param to paginate the results is not
-                # possible
-                raise InvalidParams("'per_page' is only supported in combination with 'orderBy'")
-            return None
+    def _parse_limit(self, paginator_kwargs) -> Optional[Limit]:
+        if "limit" not in paginator_kwargs:
+            return
+        return Limit(paginator_kwargs["limit"])
 
-    def _parse_offset(self, query_params, paginator_kwargs):
-        if self.orderby:
-            offset = paginator_kwargs.get("offset")
-            if offset:
-                return Offset(offset)
-            return None
-        else:
-            cursor = query_params.get("cursor")
-            if cursor is not None:
-                # If order by is not None, it means we will have a `series` query which cannot be
-                # paginated, and passing a `per_page` url param to paginate the results is not
-                # possible
-                raise InvalidParams("'cursor' is only supported in combination with 'orderBy'")
-            return None
-
-    def _validate_series_limit(self, query_params):
-        if self.limit:
-            if (
-                self.end - self.start
-            ).total_seconds() / self.rollup * self.limit.limit > MAX_POINTS:
-                raise InvalidParams(
-                    f"Requested interval of {query_params.get('interval', '1h')} with statsPeriod of "
-                    f"{query_params.get('statsPeriod')} is too granular for a per_page of "
-                    f"{self.limit.limit} elements. Increase your interval, decrease your statsPeriod, "
-                    f"or decrease your per_page parameter."
-                )
-
-
-def get_intervals(start: datetime, end: datetime, granularity: int):
-    assert granularity > 0
-    delta = timedelta(seconds=granularity)
-    while start < end:
-        yield start
-        start += delta
+    def _parse_offset(self, paginator_kwargs) -> Optional[Offset]:
+        if "offset" not in paginator_kwargs:
+            return
+        return Offset(paginator_kwargs["offset"])
 
 
 def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
@@ -361,7 +349,7 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     if ONE_DAY % interval != 0:
         raise InvalidParams("The interval should divide one day without a remainder.")
 
-    start, end = get_date_range_from_params(params)
+    start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
 
     date_range = end - start
 
@@ -394,19 +382,19 @@ class SnubaQueryBuilder:
         "metrics_sets",
     }
 
-    def __init__(self, projects: Sequence[Project], query_definition: QueryDefinition):
+    def __init__(self, projects: Sequence[Project], metrics_query: MetricsQuery):
         self._projects = projects
-        self._query_definition = query_definition
-        self._org_id = query_definition.org_id
+        self._metrics_query = metrics_query
+        self._org_id = metrics_query.org_id
 
     def _build_where(self) -> List[Union[BooleanCondition, Condition]]:
         where: List[Union[BooleanCondition, Condition]] = [
             Condition(Column("org_id"), Op.EQ, self._org_id),
-            Condition(Column("project_id"), Op.IN, self._query_definition.project_ids),
-            Condition(Column(TS_COL_QUERY), Op.GTE, self._query_definition.start),
-            Condition(Column(TS_COL_QUERY), Op.LT, self._query_definition.end),
+            Condition(Column("project_id"), Op.IN, self._metrics_query.project_ids),
+            Condition(Column(TS_COL_QUERY), Op.GTE, self._metrics_query.start),
+            Condition(Column(TS_COL_QUERY), Op.LT, self._metrics_query.end),
         ]
-        filter_ = resolve_tags(self._org_id, self._query_definition.where)
+        filter_ = resolve_tags(self._org_id, self._metrics_query.where)
         if filter_:
             where.extend(filter_)
 
@@ -414,7 +402,7 @@ class SnubaQueryBuilder:
 
     def _build_groupby(self) -> List[Column]:
         groupby_cols = []
-        for field in self._query_definition.groupby or []:
+        for field in self._metrics_query.groupby or []:
             if field in UNALLOWED_TAGS:
                 raise InvalidParams(f"Tag name {field} cannot be used to groupBy query")
             if field in ALLOWED_GROUPBY_COLUMNS:
@@ -425,9 +413,9 @@ class SnubaQueryBuilder:
         return groupby_cols
 
     def _build_orderby(self) -> Optional[List[OrderBy]]:
-        if self._query_definition.orderby is None:
+        if self._metrics_query.orderby is None:
             return None
-        orderby = self._query_definition.orderby
+        orderby = self._metrics_query.orderby
         op = orderby.field.op
         metric_mri = get_mri(orderby.field.metric_name)
         metric_field_obj = metric_object_factory(op, metric_mri)
@@ -435,7 +423,7 @@ class SnubaQueryBuilder:
         return metric_field_obj.generate_orderby_clause(
             projects=self._projects,
             direction=orderby.direction,
-            query_definition=self._query_definition,
+            metrics_query=self._metrics_query,
         )
 
     def __build_totals_and_series_queries(
@@ -447,25 +435,20 @@ class SnubaQueryBuilder:
             groupby=groupby,
             select=select,
             where=where,
-            limit=limit or Limit(MAX_POINTS),
+            limit=limit,
             offset=offset or Offset(0),
             granularity=rollup,
             orderby=orderby,
         )
 
-        if self._query_definition.include_totals:
+        if self._metrics_query.include_totals:
             rv["totals"] = totals_query
 
-        if self._query_definition.include_series:
-            series_query = totals_query.set_groupby(
-                (totals_query.groupby or []) + [Column(TS_COL_GROUP)]
+        if self._metrics_query.include_series:
+            series_limit = limit.limit * intervals_len
+            rv["series"] = totals_query.set_limit(series_limit).set_groupby(
+                list(totals_query.groupby or []) + [Column(TS_COL_GROUP)]
             )
-
-            # In a series query, we also need to factor in the len of the intervals array
-            series_limit = MAX_POINTS
-            if limit:
-                series_limit = limit.limit * intervals_len
-            rv["series"] = series_query.set_limit(series_limit)
 
         return rv
 
@@ -489,7 +472,7 @@ class SnubaQueryBuilder:
         metric_mri_to_obj_dict = {}
         fields_in_entities = {}
 
-        for field in self._query_definition.select:
+        for field in self._metrics_query.select:
             metric_mri = get_mri(field.metric_name)
             metric_field_obj = metric_object_factory(field.op, metric_mri)
             # `get_entity` is called the first, to fetch the entities of constituent metrics,
@@ -542,7 +525,7 @@ class SnubaQueryBuilder:
             for field in fields:
                 metric_field_obj = metric_mri_to_obj_dict[field]
                 select += metric_field_obj.generate_select_statements(
-                    projects=self._projects, query_definition=self._query_definition
+                    projects=self._projects, metrics_query=self._metrics_query
                 )
                 metric_ids_set |= metric_field_obj.generate_metric_ids(self._projects)
 
@@ -561,15 +544,15 @@ class SnubaQueryBuilder:
                 where=where + where_for_entity,
                 groupby=groupby,
                 orderby=orderby,
-                limit=self._query_definition.limit,
-                offset=self._query_definition.offset,
-                rollup=self._query_definition.granularity,
+                limit=self._metrics_query.limit,
+                offset=self._metrics_query.offset,
+                rollup=self._metrics_query.granularity,
                 intervals_len=len(
                     list(
                         get_intervals(
-                            self._query_definition.start,
-                            self._query_definition.end,
-                            self._query_definition.granularity.granularity,
+                            self._metrics_query.start,
+                            self._metrics_query.end,
+                            self._metrics_query.granularity.granularity,
                         )
                     )
                 ),
@@ -584,7 +567,7 @@ class SnubaResultConverter:
     def __init__(
         self,
         organization_id: int,
-        query_definition: QueryDefinition,
+        metrics_query: MetricsQuery,
         fields_in_entities: dict,
         intervals: List[datetime],
         results,
@@ -592,11 +575,11 @@ class SnubaResultConverter:
         self._organization_id = organization_id
         self._intervals = intervals
         self._results = results
-        self._query_definition = query_definition
+        self._metrics_query = metrics_query
 
-        # This is a set of all the `(op, metric_mri)` combinations passed in the query_definition
-        self._query_definition_fields_set = {
-            (field.op, get_mri(field.metric_name)) for field in query_definition.select
+        # This is a set of all the `(op, metric_mri)` combinations passed in the metrics_query
+        self._metrics_query_fields_set = {
+            (field.op, get_mri(field.metric_name)) for field in metrics_query.select
         }
         # This is a set of all queryable `(op, metric_mri)` combinations. Queryable can mean it
         # includes one of the following: AggregatedRawMetric (op, metric_mri), instance of
@@ -607,14 +590,14 @@ class SnubaResultConverter:
             elem for fields_in_entity in fields_in_entities.values() for elem in fields_in_entity
         }
         self._set_of_constituent_queries = self._fields_in_entities_set.union(
-            self._query_definition_fields_set
+            self._metrics_query_fields_set
         )
 
         # This basically generate a dependency tree for all instances of `MetricFieldBase` so
         # that in the case of a CompositeEntityDerivedMetric, we are able to calculate it but
         # only after calculating its dependencies
         self._bottom_up_dependency_tree = generate_bottom_up_dependency_tree_for_metrics(
-            self._query_definition_fields_set
+            self._metrics_query_fields_set
         )
 
         self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
@@ -631,16 +614,16 @@ class SnubaResultConverter:
         )
 
         tag_data = groups.setdefault(tags, {})
-        if self._query_definition.include_series:
+        if self._metrics_query.include_series:
             tag_data.setdefault("series", {})
-        if self._query_definition.include_totals:
+        if self._metrics_query.include_totals:
             tag_data.setdefault("totals", {})
 
         bucketed_time = data.pop(TS_COL_GROUP, None)
         if bucketed_time is not None:
             bucketed_time = parse_snuba_datetime(bucketed_time)
 
-        # We query the union of the query_definition fields, and the fields_in_entities from the
+        # We query the union of the metrics_query fields, and the fields_in_entities from the
         # QueryBuilder necessary as it contains the constituent instances of
         # SingularEntityDerivedMetric for instances of CompositeEntityDerivedMetric
         for op, metric_mri in self._set_of_constituent_queries:
@@ -666,7 +649,7 @@ class SnubaResultConverter:
                 if key not in tag_data["totals"] or tag_data["totals"][key] == default_null_value:
                     tag_data["totals"][key] = cleaned_value
 
-            if self._query_definition.include_series:
+            if self._metrics_query.include_series:
                 if bucketed_time is not None or tag_data["totals"][key] == default_null_value:
                     empty_values = len(self._intervals) * [default_null_value]
                     series = tag_data["series"].setdefault(key, empty_values)
@@ -708,7 +691,7 @@ class SnubaResultConverter:
 
                 if totals is not None:
                     totals[grp_key] = metric_obj.run_post_query_function(
-                        totals, query_definition=self._query_definition
+                        totals, metrics_query=self._metrics_query
                     )
 
                 if series is not None:
@@ -719,7 +702,7 @@ class SnubaResultConverter:
                             [metric_obj.generate_default_null_values()] * len(self._intervals),
                         )
                         series[grp_key][idx] = metric_obj.run_post_query_function(
-                            series, query_definition=self._query_definition, idx=idx
+                            series, metrics_query=self._metrics_query, idx=idx
                         )
 
         # Remove the extra fields added due to the constituent metrics that were added
@@ -739,7 +722,7 @@ class SnubaResultConverter:
                     operation = None
                     metric_mri = key
 
-                if (operation, metric_mri) not in self._query_definition_fields_set:
+                if (operation, metric_mri) not in self._metrics_query_fields_set:
                     if totals is not None:
                         del totals[key]
                     if series is not None:

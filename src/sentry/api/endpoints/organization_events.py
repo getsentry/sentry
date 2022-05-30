@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import InvalidParams
 from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance
 
@@ -42,6 +43,8 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
     "api.dashboards.worldmapwidget",
 }
 
+API_TOKEN_REFERRER = "api.auth-token.events"
+
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     def get(self, request: Request, organization) -> Response:
@@ -52,6 +55,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
+        except InvalidParams as err:
+            raise ParseError(err)
 
         referrer = request.GET.get("referrer")
         use_metrics = features.has(
@@ -75,7 +80,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
         query_modified_by_user = request.GET.get("user_modified")
-        if query_modified_by_user in ["True", "False"]:
+        if query_modified_by_user in ["true", "false"]:
             sentry_sdk.set_tag("query.user_modified", query_modified_by_user)
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_REFERRERS else "api.organization-events-v2"
@@ -133,6 +138,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
+        except InvalidParams as err:
+            raise ParseError(err)
 
         referrer = request.GET.get("referrer")
         use_metrics = features.has(
@@ -154,7 +161,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
-        referrer = referrer if referrer in ALLOWED_EVENTS_REFERRERS else "api.organization-events"
+        # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
+        if request.auth:
+            referrer = API_TOKEN_REFERRER
+        elif referrer not in ALLOWED_EVENTS_REFERRERS:
+            referrer = "api.organization-events"
 
         def data_fn(offset, limit):
             query_details = {
@@ -170,6 +181,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 "auto_aggregations": True,
                 "use_aggregate_conditions": True,
                 "allow_metric_aggregates": allow_metric_aggregates,
+                "transform_alias_to_input_format": True,
             }
             if not metrics_enhanced and performance_dry_run_mep:
                 sentry_sdk.set_tag("query.mep_compatible", False)
@@ -185,6 +197,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         organization,
                         params["project_id"],
                         data_fn(0, self.get_per_page(request)),
+                        standard_meta=True,
                     )
                 )
             else:
@@ -192,7 +205,11 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     request=request,
                     paginator=GenericOffsetPaginator(data_fn=data_fn),
                     on_results=lambda results: self.handle_results_with_meta(
-                        request, organization, params["project_id"], results
+                        request,
+                        organization,
+                        params["project_id"],
+                        results,
+                        standard_meta=True,
                     ),
                 )
 

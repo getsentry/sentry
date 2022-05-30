@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import responses
 
-from sentry.utils.compat import zip
-
 __all__ = (
     "TestCase",
     "TransactionTestCase",
@@ -61,6 +59,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
+from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
@@ -103,7 +102,6 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
-from sentry.rules import EventState
 from sentry.search.events.constants import (
     METRIC_FALSE_TAG_VALUE,
     METRIC_MISERABLE_TAG_KEY,
@@ -504,13 +502,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 
         return getattr(self.client, method)(url, format="json", data=data, **headers)
 
-    def get_valid_response(self, *args, **params):
-        """Deprecated. Calls `get_response` (see above) and asserts a specific status code."""
-        status_code = params.pop("status_code", 200)
-        resp = self.get_response(*args, **params)
-        assert resp.status_code == status_code, (resp.status_code, resp.content)
-        return resp
-
     def get_success_response(self, *args, **params):
         """
         Call `get_response` (see above) and assert the response's status code.
@@ -525,11 +516,23 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         if status_code and status_code >= 400:
             raise Exception("status_code must be < 400")
 
-        response = self.get_response(*args, **params)
+        method = params.pop("method", self.method).lower()
+
+        response = self.get_response(*args, method=method, **params)
 
         if status_code:
             assert_status_code(response, status_code)
+        elif method == "get":
+            assert_status_code(response, status.HTTP_200_OK)
+        # TODO(mgaeta): Add the other methods.
+        # elif method == "post":
+        #     assert_status_code(response, status.HTTP_201_CREATED)
+        elif method == "put":
+            assert_status_code(response, status.HTTP_200_OK)
+        elif method == "delete":
+            assert_status_code(response, status.HTTP_204_NO_CONTENT)
         else:
+            # TODO(mgaeta): Add other methods.
             assert_status_code(response, 200, 300)
 
         return response
@@ -644,6 +647,8 @@ class RuleTestCase(TestCase):
         return self.rule_cls(**kwargs)
 
     def get_state(self, **kwargs):
+        from sentry.rules import EventState
+
         kwargs.setdefault("is_new", True)
         kwargs.setdefault("is_regression", True)
         kwargs.setdefault("is_new_group_environment", True)
@@ -1110,6 +1115,11 @@ class SessionMetricsTestCase(SnubaTestCase):
                     session["duration"],
                 )
 
+        # Also extract user for non-init healthy sessions
+        # (see # https://github.com/getsentry/relay/pull/1275)
+        if session["seq"] > 0 and status in ("ok", "exited") and not user_is_nil:
+            self._push_metric(session, "set", SessionMRI.USER, {"session.status": "ok"}, user)
+
     def bulk_store_sessions(self, sessions):
         for session in sessions:
             self.store_session(session)
@@ -1548,9 +1558,13 @@ class TestMigrations(TransactionTestCase):
         self.migrate_to = [(self.app, self.migrate_to)]
 
         executor = MigrationExecutor(connection)
-        self.current_migration = [
-            max(filter(lambda m: m[0] == self.app, executor.loader.applied_migrations))
-        ]
+        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
+        if not matching_migrations:
+            raise AssertionError(
+                "no migrations detected!\n\n"
+                "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
+            )
+        self.current_migration = [max(matching_migrations)]
         old_apps = executor.loader.project_state(self.migrate_from).apps
 
         # Reverse to the original migration

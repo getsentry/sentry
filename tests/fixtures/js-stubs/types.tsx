@@ -55,7 +55,6 @@ type TestStubFixtures = {
   Groups: SimpleStub;
   Incident: OverridableStub;
   IncidentActivity: OverridableStub;
-  IncidentRule: OverridableStub;
   IncidentStats: OverridableStub;
   IncidentTrigger: OverridableStub;
   InstallWizard: OverridableStub;
@@ -63,6 +62,7 @@ type TestStubFixtures = {
   JiraIntegrationProvider: OverridableStub;
   Member: OverridableStub;
   Members: OverridableStubList;
+  MetricRule: OverridableStub;
   MetricsField: OverridableStub;
   MetricsFieldByMeasurementRating: OverridableStub;
   MetricsFieldByTransactionStatus: OverridableStub;
@@ -103,6 +103,7 @@ type TestStubFixtures = {
   SentryAppToken: OverridableStub;
   SentryAppWebhookRequest: OverridableStub;
   ServiceIncident: OverridableStub;
+  SessionEmptyGroupedResponse: SimpleStub;
   SessionStatusCountByProjectInPeriod: SimpleStub;
   SessionStatusCountByReleaseInPeriod: SimpleStub;
   SessionTotalCountByProjectIn24h: SimpleStub;

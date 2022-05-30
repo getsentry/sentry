@@ -12,7 +12,7 @@ class GlobalSelectionPage(BasePage):
         return self.browser.element('[data-test-id="global-header-timerange-selector"]').text
 
     def go_back_to_issues(self):
-        self.browser.click('[data-test-id="back-to-issues"]')
+        self.browser.click('[data-test-id="breadcrumb-link"]')
 
     def open_project_selector(self):
         self.browser.click('[data-test-id="global-header-project-selector"]')
@@ -23,6 +23,11 @@ class GlobalSelectionPage(BasePage):
         self.open_project_selector()
         self.browser.wait_until(xpath=project_item_selector)
         self.browser.click(xpath=project_item_selector)
+
+    def lock_project_filter(self):
+        self.open_project_selector()
+        self.browser.wait_until('[aria-label="Lock filter"]')
+        self.browser.click('[aria-label="Lock filter"]')
 
     def open_environment_selector(self):
         self.browser.click('[data-test-id="global-header-environment-selector"]')

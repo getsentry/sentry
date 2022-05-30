@@ -134,7 +134,11 @@ function transformResult(
       });
     }
 
-    output = [...seriesWithOrdering.sort().map(item => item[1])];
+    output = [
+      ...seriesWithOrdering
+        .sort((itemA, itemB) => itemA[0] - itemB[0])
+        .map(item => item[1]),
+    ];
   } else {
     const field = query.aggregates[0];
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;

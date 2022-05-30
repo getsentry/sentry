@@ -4,6 +4,7 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client, ResponseMeta} from 'sentry/api';
@@ -230,7 +231,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     }
   }
 
-  fetchData() {
+  async fetchData() {
     const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
       this.props;
 
@@ -251,7 +252,6 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     });
     const {environments, projects, datetime} = selection;
     const {start, end, period} = datetime;
-    const interval = getWidgetInterval(widget, {start, end, period});
 
     const promises: Promise<
       MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
@@ -262,25 +262,101 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
     const isDescending = widget.queries[0].orderby.startsWith('-');
     const rawOrderby = trimStart(widget.queries[0].orderby, '-');
-    const unsupportedOrderby = DISABLED_SORT.includes(rawOrderby) || useSessionAPI;
+    const unsupportedOrderby =
+      DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
+
+    // Temporary solution to support sorting on releases
+    // when querying the Metrics API: We first request
+    // the top 50 recent releases from postgres. Note that the release request is based
+    // on the project and environment selected in the page filters.
+    // We then construct a massive OR condition and append it to any
+    // specified filter condition. We also maintain an ordered array of release
+    // versions to order the results returned from the metrics endpoint.
+    // Also note that we request a limit of 100 on the metrics endpoint,
+    // this is because in a query, the limit should be applied after the
+    // results are sorted based on the release version. The larger number
+    // of rows we request, the more accurate our results are going to be.
+    // After the results are sorted, we truncate the data to the requested
+    // limit. This will result in a few edge cases:
+    //    1. low to high sort may not show releases at the beginning of the
+    //        selected period if there are more than 50 releases in the selected
+    //        period.
+    //    2. If a recent release is not returned due to the 100 row limit
+    //        imposed on the metrics query the user won't see it on the table/chart/
+    const isCustomReleaseSorting = !!!useSessionAPI && rawOrderby === 'release';
+
+    const interval = getWidgetInterval(
+      widget,
+      {start, end, period},
+      // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+      isCustomReleaseSorting ? 'low' : undefined
+    );
+    let releaseCondition = '';
+    const releasesArray: string[] = [];
+    if (isCustomReleaseSorting) {
+      try {
+        const releases = await api.requestPromise(
+          `/organizations/${organization.slug}/releases/`,
+          {
+            method: 'GET',
+            data: {
+              sort: 'date',
+              project: projects,
+              per_page: 50,
+              environments,
+              summaryStatsPeriod: period,
+            },
+          }
+        );
+
+        if (releases.length) {
+          releaseCondition += '(release:' + releases[0].version;
+          releasesArray.push(releases[0].version);
+          for (let i = 1; i < releases.length; i++) {
+            releaseCondition += ' OR release:' + releases[i].version;
+            releasesArray.push(releases[i].version);
+          }
+          releaseCondition += ')';
+
+          if (!!!isDescending) {
+            releasesArray.reverse();
+          }
+        }
+      } catch (error) {
+        addErrorMessage(
+          error.responseJSON ? error.responseJSON.error : t('Error sorting by releases')
+        );
+      }
+    }
 
     const {aggregates, derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
       widget.queries[0].aggregates,
       useSessionAPI
     );
+    const columns = widget.queries[0].columns;
+
+    const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
+    const includeTotals =
+      widget.displayType === DisplayType.TABLE ||
+      widget.displayType === DisplayType.BIG_NUMBER ||
+      columns.length > 0
+        ? 1
+        : 0;
 
     widget.queries.forEach(query => {
+      let requestData;
+      let requester;
       if (useSessionAPI) {
         const sessionAggregates = aggregates.filter(
           agg =>
             !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
         );
-        const requestData = {
+        requestData = {
           field: sessionAggregates,
           orgSlug: organization.slug,
           end,
           environment: environments,
-          groupBy: query.columns,
+          groupBy: columns,
           limit: undefined,
           orderBy: '', // Orderby not supported with session.status
           interval,
@@ -291,15 +367,15 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           includeAllArgs,
           cursor,
         };
-        promises.push(doSessionsRequest(api, requestData));
+        requester = doSessionsRequest;
       } else {
-        const metricsRequestData = {
+        requestData = {
           field: aggregates.map(fieldsToDerivedMetrics),
           orgSlug: organization.slug,
           end,
           environment: environments,
-          groupBy: query.columns.map(fieldsToDerivedMetrics),
-          limit: unsupportedOrderby || rawOrderby === '' ? undefined : this.limit,
+          groupBy: columns.map(fieldsToDerivedMetrics),
+          limit: columns.length === 0 ? 1 : isCustomReleaseSorting ? 100 : this.limit,
           orderBy: unsupportedOrderby
             ? ''
             : isDescending
@@ -307,14 +383,31 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             : fieldsToDerivedMetrics(rawOrderby),
           interval,
           project: projects,
-          query: query.conditions,
+          query:
+            query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`),
           start,
           statsPeriod: period,
           includeAllArgs,
           cursor,
+          includeSeries,
+          includeTotals,
         };
-        promises.push(doMetricsRequest(api, metricsRequestData));
+        requester = doMetricsRequest;
+
+        if (
+          rawOrderby &&
+          !!!unsupportedOrderby &&
+          !!!aggregates.includes(rawOrderby) &&
+          !!!columns.includes(rawOrderby)
+        ) {
+          requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
+          if (!!!injectedFields.includes(rawOrderby)) {
+            injectedFields.push(rawOrderby);
+          }
+        }
       }
+
+      promises.push(requester(api, requestData));
     });
 
     let completed = 0;
@@ -338,33 +431,49 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             return prevState;
           }
 
+          if (releasesArray.length) {
+            data.groups.sort(function (group1, group2) {
+              const release1 = group1.by.release;
+              const release2 = group2.by.release;
+              return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
+            });
+            data.groups = data.groups.slice(0, this.limit);
+          }
+
           // Transform to fit the table format
-          const tableData = transformSessionsResponseToTable(
-            data,
-            derivedStatusFields,
-            injectedFields
-          ) as TableDataWithTitle; // Cast so we can add the title.
-          tableData.title = widget.queries[requestIndex]?.name ?? '';
-          const tableResults = [...(prevState.tableResults ?? []), tableData];
+          let tableResults: TableDataWithTitle[] | undefined;
+          if (includeTotals) {
+            const tableData = transformSessionsResponseToTable(
+              data,
+              derivedStatusFields,
+              injectedFields
+            ) as TableDataWithTitle; // Cast so we can add the title.
+            tableData.title = widget.queries[requestIndex]?.name ?? '';
+            tableResults = [...(prevState.tableResults ?? []), tableData];
+          } else {
+            tableResults = undefined;
+          }
 
           // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          const transformedResult = transformSessionsResponseToSeries(
-            data,
-            derivedStatusFields,
-            injectedFields,
-            widget.queries[requestIndex].name
-          );
+          if (includeSeries) {
+            const transformedResult = transformSessionsResponseToSeries(
+              data,
+              derivedStatusFields,
+              injectedFields,
+              widget.queries[requestIndex].name
+            );
 
-          // When charting timeseriesData on echarts, color association to a timeseries result
-          // is order sensitive, ie series at index i on the timeseries array will use color at
-          // index i on the color array. This means that on multi series results, we need to make
-          // sure that the order of series in our results do not change between fetches to avoid
-          // coloring inconsistencies between renders.
-          transformedResult.forEach((result, resultIndex) => {
-            timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
-              result;
-          });
+            // When charting timeseriesData on echarts, color association to a timeseries result
+            // is order sensitive, ie series at index i on the timeseries array will use color at
+            // index i on the color array. This means that on multi series results, we need to make
+            // sure that the order of series in our results do not change between fetches to avoid
+            // coloring inconsistencies between renders.
+            transformedResult.forEach((result, resultIndex) => {
+              timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
+                result;
+            });
+          }
 
           onDataFetched?.({timeseriesResults, tableResults});
 
@@ -390,6 +499,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         });
       } catch (err) {
         const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
+        if (!this._isMounted) {
+          return;
+        }
         this.setState({errorMessage});
       } finally {
         completed++;

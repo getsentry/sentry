@@ -9,22 +9,6 @@ import space from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
-export const HOVERCARD_PORTAL_ID = 'hovercard-portal';
-
-function findOrCreatePortal(): HTMLElement {
-  let portal = document.getElementById(HOVERCARD_PORTAL_ID);
-
-  if (portal) {
-    return portal;
-  }
-
-  portal = document.createElement('div');
-  portal.setAttribute('id', HOVERCARD_PORTAL_ID);
-  document.body.appendChild(portal);
-
-  return portal;
-}
-
 interface HovercardProps {
   /**
    * Classname to apply to the hovercard
@@ -52,17 +36,13 @@ interface HovercardProps {
    */
   header?: React.ReactNode;
   /**
-   * Popper Modifiers
-   */
-  modifiers?: PopperProps['modifiers'];
-  /**
    * Offset for the arrow
    */
   offset?: string;
   /**
    * Position tooltip should take relative to the child element
    */
-  position?: PopperProps['placement'];
+  position?: PopperProps<[]>['placement'];
   /**
    * If set, is used INSTEAD OF the hover action to determine whether the hovercard is shown
    */
@@ -86,12 +66,24 @@ interface HovercardProps {
   underlineColor?: ColorOrAlias;
 }
 
-function Hovercard(props: HovercardProps): React.ReactElement {
+function Hovercard({
+  body,
+  bodyClassName,
+  children,
+  className,
+  containerClassName,
+  header,
+  offset,
+  show,
+  showUnderline,
+  tipBorderColor,
+  tipColor,
+  underlineColor,
+  displayTimeout = 100,
+  position = 'top',
+}: HovercardProps): React.ReactElement {
   const [visible, setVisible] = useState(false);
 
-  const scheduleUpdateRef = useRef<(() => void) | null>(null);
-
-  const portalEl = useMemo(() => findOrCreatePortal(), []);
   const tooltipId = useMemo(() => domId('hovercard-'), []);
 
   const showHoverCardTimeoutRef = useRef<number | undefined>(undefined);
@@ -102,14 +94,6 @@ function Hovercard(props: HovercardProps): React.ReactElement {
     };
   }, []);
 
-  useEffect(() => {
-    // We had a problem with popper not recalculating position when body/header changed while hovercard still opened.
-    // This can happen for example when showing a loading spinner in a hovercard and then changing it to the actual content once fetch finishes.
-    if (scheduleUpdateRef.current) {
-      scheduleUpdateRef.current();
-    }
-  }, [props.body, props.header]);
-
   const toggleHovercard = useCallback(
     (value: boolean) => {
       window.clearTimeout(showHoverCardTimeoutRef.current);
@@ -117,43 +101,65 @@ function Hovercard(props: HovercardProps): React.ReactElement {
       // Else enqueue a new timeout
       showHoverCardTimeoutRef.current = window.setTimeout(
         () => setVisible(value),
-        props.displayTimeout ?? 100
+        displayTimeout
       );
     },
-    [props.displayTimeout]
+    [displayTimeout]
   );
 
-  const popperModifiers = useMemo(() => {
-    const modifiers: PopperProps['modifiers'] = {
-      hide: {
+  const modifiers = useMemo(
+    () => [
+      {
+        name: 'hide',
         enabled: false,
       },
-      preventOverflow: {
-        padding: 10,
-        enabled: true,
-        boundariesElement: 'viewport',
+      {
+        name: 'computeStyles',
+        options: {
+          // Using the `transform` attribute causes our borders to get blurry
+          // in chrome. See [0]. This just causes it to use `top` / `left`
+          // positions, which should be fine.
+          //
+          // [0]: https://stackoverflow.com/questions/29543142/css3-transformation-blurry-borders
+          gpuAcceleration: false,
+        },
       },
-      ...(props.modifiers || {}),
-    };
-    return modifiers;
-  }, [props.modifiers]);
+      {
+        name: 'arrow',
+        options: {
+          // Set padding to avoid the arrow reaching the side of the tooltip
+          // and overflowing out of the rounded border
+          padding: 4,
+        },
+      },
+      {
+        name: 'preventOverflow',
+        enabled: true,
+        options: {
+          padding: 12,
+          altAxis: true,
+        },
+      },
+    ],
+    []
+  );
 
   // If show is not set, then visibility state is uncontrolled
-  const isVisible = props.show === undefined ? visible : props.show;
+  const isVisible = show === undefined ? visible : show;
 
   const hoverProps = useMemo((): {
     onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
     onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
   } => {
     // If show is not set, then visibility state is controlled by mouse events
-    if (props.show === undefined) {
+    if (show === undefined) {
       return {
         onMouseEnter: () => toggleHovercard(true),
         onMouseLeave: () => toggleHovercard(false),
       };
     }
     return {};
-  }, [props.show, toggleHovercard]);
+  }, [show, toggleHovercard]);
 
   return (
     <Manager>
@@ -162,52 +168,48 @@ function Hovercard(props: HovercardProps): React.ReactElement {
           <Trigger
             ref={ref}
             aria-describedby={tooltipId}
-            className={props.containerClassName}
-            showUnderline={props.showUnderline}
-            underlineColor={props.underlineColor}
+            className={containerClassName}
+            showUnderline={showUnderline}
+            underlineColor={underlineColor}
             {...hoverProps}
           >
-            {props.children}
+            {children}
           </Trigger>
         )}
       </Reference>
       {createPortal(
-        <Popper placement={props.position ?? 'top'} modifiers={popperModifiers}>
-          {({ref, style, placement, arrowProps, scheduleUpdate}) => {
-            scheduleUpdateRef.current = scheduleUpdate;
-
-            // Element is not visible in neither controlled and uncontrolled state (show prop is not passed and card is not hovered)
+        <Popper placement={position} modifiers={modifiers}>
+          {({ref, style, placement, arrowProps}) => {
+            // Element is not visible in neither controlled and uncontrolled
+            // state (show prop is not passed and card is not hovered)
             if (!isVisible) {
               return null;
             }
 
             // Nothing to render
-            if (!props.body && !props.header) {
+            if (!body && !header) {
               return null;
             }
 
             return (
-              <HovercardContainer style={style}>
+              <HovercardContainer style={style} ref={ref}>
                 <SlideInAnimation visible={isVisible} placement={placement}>
                   <StyledHovercard
-                    ref={ref}
                     id={tooltipId}
                     placement={placement}
-                    offset={props.offset}
+                    offset={offset}
                     // Maintain the hovercard class name for BC with less styles
-                    className={classNames('hovercard', props.className)}
+                    className={classNames('hovercard', className)}
                     {...hoverProps}
                   >
-                    {props.header ? <Header>{props.header}</Header> : null}
-                    {props.body ? (
-                      <Body className={props.bodyClassName}>{props.body}</Body>
-                    ) : null}
+                    {header ? <Header>{header}</Header> : null}
+                    {body ? <Body className={bodyClassName}>{body}</Body> : null}
                     <HovercardArrow
                       ref={arrowProps.ref}
                       style={arrowProps.style}
                       placement={placement}
-                      tipColor={props.tipColor}
-                      tipBorderColor={props.tipBorderColor}
+                      tipColor={tipColor}
+                      tipBorderColor={tipBorderColor}
                     />
                   </StyledHovercard>
                 </SlideInAnimation>
@@ -215,7 +217,7 @@ function Hovercard(props: HovercardProps): React.ReactElement {
             );
           }}
         </Popper>,
-        portalEl
+        document.body
       )}
     </Manager>
   );
@@ -231,7 +233,7 @@ function SlideInAnimation({
   children,
 }: {
   children: React.ReactNode;
-  placement: PopperProps['placement'];
+  placement: PopperProps<[]>['placement'];
   visible: boolean;
 }): React.ReactElement {
   const narrowedPlacement = getTipDirection(placement);
@@ -295,7 +297,7 @@ const HovercardContainer = styled('div')`
 `;
 
 type StyledHovercardProps = {
-  placement: PopperProps['placement'];
+  placement: PopperProps<[]>['placement'];
   offset?: string;
 };
 
@@ -343,7 +345,7 @@ const Body = styled('div')`
 export {Body};
 
 type HovercardArrowProps = {
-  placement: PopperProps['placement'];
+  placement: PopperProps<[]>['placement'];
   tipBorderColor?: string;
   tipColor?: string;
 };

@@ -8,7 +8,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics import (
-    APIQueryDefinition,
+    QueryDefinition,
     get_metrics,
     get_series,
     get_single_metric_info,
@@ -107,9 +107,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
     Based on `OrganizationSessionsEndpoint`.
     """
 
-    # XXX: this should be aligned with sessions_v2 (which is SNUBA_LIMIT =
-    # 5000), but that triggers another error when querying series, as combined
-    # with groupby/rollup, MAX_POINTS can be exceeded easily.
     default_per_page = 50
 
     def get(self, request: Request, organization) -> Response:
@@ -120,10 +117,10 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int):
             try:
-                query = APIQueryDefinition(
+                query = QueryDefinition(
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_series(projects, query.to_query_definition())
+                data = get_series(projects, query.to_metrics_query())
                 data["query"] = query.query
             except (
                 InvalidField,

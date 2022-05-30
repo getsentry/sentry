@@ -1,4 +1,4 @@
-import {Dataset, SessionsAggregate} from 'sentry/views/alerts/incidentRules/types';
+import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 
 import {AlertType, WizardRuleTemplate} from './options';
 

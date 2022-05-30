@@ -1,11 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import AlertRulesList from 'sentry/views/alerts/rules';
+import AlertRulesList from 'sentry/views/alerts/list/rules';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -18,7 +18,7 @@ describe('AlertRulesList', () => {
       features: ['duplicate-alert-rule'],
     },
   });
-  TeamStore.loadInitialData([], false, null);
+  TeamStore.loadInitialData([TestStubs.Team()], false, null);
   let rulesMock;
   let projectMock;
   const pageLinks =
@@ -50,14 +50,14 @@ describe('AlertRulesList', () => {
           projects: ['earth'],
           createdBy: {name: 'Samwise', id: 1, email: ''},
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '345',
           projects: ['earth'],
           latestIncident: TestStubs.Incident({
             status: IncidentStatus.CRITICAL,
           }),
         }),
-        TestStubs.IncidentRule({
+        TestStubs.MetricRule({
           id: '678',
           projects: ['earth'],
           latestIncident: null,
@@ -66,7 +66,13 @@ describe('AlertRulesList', () => {
     });
     projectMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'earth', platform: 'javascript'})],
+      body: [
+        TestStubs.Project({
+          slug: 'earth',
+          platform: 'javascript',
+          teams: [TestStubs.Team()],
+        }),
+      ],
     });
 
     act(() => OrganizationStore.onUpdate(organization, {replace: true}));
@@ -114,6 +120,44 @@ describe('AlertRulesList', () => {
     ).toBeInTheDocument();
 
     expect(rulesMock).toHaveBeenCalledTimes(0);
+  });
+
+  it('displays team dropdown context if unassigned', async () => {
+    createWrapper();
+    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
+    const btn = within(assignee).getAllByRole('button')[0];
+
+    expect(assignee).toBeInTheDocument();
+    expect(btn).toBeInTheDocument();
+
+    userEvent.click(btn, {skipHover: true});
+
+    expect(screen.getByText('#team-slug')).toBeInTheDocument();
+    expect(within(assignee).getByText('Unassigned')).toBeInTheDocument();
+  });
+
+  it('assigns rule to team from unassigned', async () => {
+    const assignMock = MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: '/projects/org-slug/earth/rules/123/',
+      body: [],
+    });
+    createWrapper();
+    const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
+    const btn = within(assignee).getAllByRole('button')[0];
+
+    expect(assignee).toBeInTheDocument();
+    expect(btn).toBeInTheDocument();
+
+    userEvent.click(btn, {skipHover: true});
+    userEvent.click(screen.getByText('#team-slug'));
+
+    expect(assignMock).toHaveBeenCalledWith(
+      '/projects/org-slug/earth/rules/123/',
+      expect.objectContaining({
+        data: expect.objectContaining({owner: 'team:1'}),
+      })
+    );
   });
 
   it('displays dropdown context menu with actions', async () => {
@@ -255,7 +299,7 @@ describe('AlertRulesList', () => {
       getComponent({location: {query: {team: 'myteams'}, search: '?team=myteams`'}})
     );
 
-    userEvent.click(await screen.findByTestId('filter-button'));
+    userEvent.click(await screen.findByRole('button', {name: 'My Teams'}));
 
     // Uncheck myteams
     const myTeams = await screen.findAllByText('My Teams');

@@ -94,11 +94,14 @@ export function YAxisSelector({
         return true;
       }
 
-      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
-        return true;
+      if (isReleaseWidget) {
+        if (option.value.kind === FieldValueKind.METRICS) {
+          return true;
+        }
+        return false;
       }
 
-      if (isReleaseWidget || option.value.kind === FieldValueKind.METRICS) {
+      if (fieldValue.kind !== FieldValueKind.FUNCTION) {
         return true;
       }
 

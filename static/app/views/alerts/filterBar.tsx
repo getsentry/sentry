@@ -8,12 +8,12 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import TeamFilter from './rules/teamFilter';
+import TeamFilter from './list/rules/teamFilter';
 import {getQueryStatus, getTeamParams} from './utils';
 
 interface Props {
   location: Location<any>;
-  onChangeFilter: (activeFilters: Set<string>) => void;
+  onChangeFilter: (activeFilters: string[]) => void;
   onChangeSearch: (query: string) => void;
   hasStatusFilters?: boolean;
   onChangeStatus?: (status: string) => void;
@@ -26,7 +26,7 @@ function FilterBar({
   onChangeStatus,
   hasStatusFilters,
 }: Props) {
-  const selectedTeams = new Set(getTeamParams(location.query.team));
+  const selectedTeams = getTeamParams(location.query.team);
   const selectedStatus = getQueryStatus(location.query.status);
 
   return (

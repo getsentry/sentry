@@ -1,7 +1,7 @@
 from django.conf import settings
 from requests_oauthlib import OAuth1
-from unidiff import PatchSet
 
+from sentry.utils.patch_set import patch_to_file_changes
 from sentry_plugins.client import AuthApiClient
 
 
@@ -55,27 +55,10 @@ class BitbucketClient(AuthApiClient):
     def delete_hook(self, repo, id):
         return self.delete(f"/2.0/repositories/{repo}/hooks/{id}")
 
-    def transform_patchset(self, patch_set):
-        file_changes = []
-        for patched_file in patch_set.added_files:
-            file_changes.append({"path": patched_file.path, "type": "A"})
-
-        for patched_file in patch_set.removed_files:
-            file_changes.append({"path": patched_file.path, "type": "D"})
-
-        for patched_file in patch_set.modified_files:
-            file_changes.append({"path": patched_file.path, "type": "M"})
-
-        return file_changes
-
     def get_commit_filechanges(self, repo, sha):
         # returns unidiff file
-
         resp = self.get(f"/2.0/repositories/{repo}/diff/{sha}", allow_text=True)
-
-        diff_file = resp.text
-        ps = PatchSet.from_string(diff_file)
-        return self.transform_patchset(ps)
+        return patch_to_file_changes(resp.text)
 
     def zip_commit_data(self, repo, commit_list):
         for commit in commit_list:

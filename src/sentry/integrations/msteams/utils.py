@@ -4,7 +4,6 @@ import logging
 from sentry.incidents.models import IncidentStatus
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.compat import filter
 
 from .client import MsTeamsClient, MsTeamsPreInstallClient, get_token_data
 

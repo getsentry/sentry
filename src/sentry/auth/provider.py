@@ -3,14 +3,13 @@ import logging
 from collections import namedtuple
 from typing import Any
 
-from django.utils.encoding import force_text, python_2_unicode_compatible
+from django.utils.encoding import force_text
 
 from sentry.pipeline import PipelineProvider
 
 from .view import ConfigureView
 
 
-@python_2_unicode_compatible
 class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])):
     """
     MigratingIdentityId may be used in the ``id`` field of an identity

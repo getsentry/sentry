@@ -49,6 +49,7 @@ export type TeamInsightsEventParameters = {
   'new_alert_rule.viewed': RuleViewed & {
     duplicate_rule: string;
     session_id: string;
+    wizard_v3: string;
   };
   'team_insights.viewed': {};
 };

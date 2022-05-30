@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, KeyboardEvent, useEffect, useState} from 'react';
 import {components, createFilter} from 'react-select';
 import styled from '@emotion/styled';
 
@@ -11,6 +11,7 @@ import CompactSelect from 'sentry/components/forms/compactSelect';
 import NumberField from 'sentry/components/forms/numberField';
 import Option from 'sentry/components/forms/selectOption';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
@@ -22,10 +23,15 @@ import {
   DynamicSamplingRules,
 } from 'sentry/types/dynamicSampling';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
+import {getInnerNameLabel, isCustomTagName} from '../utils';
+
 import Conditions from './conditions';
-import {getErrorMessage, isInnerCustomTag, isLegacyBrowser} from './utils';
+import {getErrorMessage, isLegacyBrowser} from './utils';
+
+const conditionAlreadyAddedTooltip = t('This condition has already been added');
 
 type ConditionsProps = React.ComponentProps<typeof Conditions>['conditions'];
 
@@ -40,6 +46,7 @@ type State = {
 type Props = ModalRenderProps & {
   api: Client;
   conditionCategories: Array<[DynamicSamplingInnerName, string]>;
+  disabled: boolean;
   emptyMessage: string;
   onSubmit: (
     props: Omit<State, 'errors'> & {
@@ -74,8 +81,10 @@ function RuleModal({
   onChange,
   extraFields,
   rule,
+  disabled,
 }: Props) {
   const [data, setData] = useState<State>(getInitialState());
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setData(d => {
@@ -111,7 +120,6 @@ function RuleModal({
             return {
               category: name,
               match: value.join('\n'),
-              ...(isInnerCustomTag(innerItem) && {tagKey: innerItem.tagKey ?? ''}),
             };
           }
           return {category: name};
@@ -131,6 +139,7 @@ function RuleModal({
   const {errors, conditions, sampleRate} = data;
 
   async function submitRules(newRules: DynamicSamplingRules, currentRuleIndex: number) {
+    setIsSaving(true);
     try {
       const newProjectDetails = await api.requestPromise(
         `/projects/${organization.slug}/${project.slug}/`,
@@ -146,6 +155,43 @@ function RuleModal({
     } catch (error) {
       convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
+    setIsSaving(false);
+
+    const analyticsConditions = conditions.map(condition => condition.category);
+    const analyticsConditionsStringified = analyticsConditions.sort().join(', ');
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.save', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: analyticsConditions,
+      conditions_stringified: analyticsConditionsStringified,
+    });
+
+    if (defined(rule)) {
+      trackAdvancedAnalyticsEvent('sampling.settings.rule.update', {
+        organization,
+        project_id: project.id,
+        sampling_rate: sampleRate,
+        conditions: analyticsConditions,
+        conditions_stringified: analyticsConditionsStringified,
+        old_conditions: rule.condition.inner.map(({name}) => name),
+        old_conditions_stringified: rule.condition.inner
+          .map(({name}) => name)
+          .sort()
+          .join(', '),
+        old_sampling_rate: rule.sampleRate * 100,
+      });
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.create', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: analyticsConditions,
+      conditions_stringified: analyticsConditionsStringified,
+    });
   }
 
   function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
@@ -172,6 +218,13 @@ function RuleModal({
           !previousCategories.includes(value)
       )
       .map(({value}) => value);
+
+    trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+      organization,
+      project_id: project.id,
+      conditions: addedCategories,
+    });
+
     setData({
       ...data,
       conditions: [
@@ -196,8 +249,14 @@ function RuleModal({
     newConditions[index][field] = value;
 
     // If custom tag key changes, reset the value
-    if (field === 'tagKey') {
+    if (field === 'category') {
       newConditions[index].match = '';
+
+      trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+        organization,
+        project_id: project.id,
+        conditions: [value as DynamicSamplingInnerName],
+      });
     }
 
     setData({...data, conditions: newConditions});
@@ -218,8 +277,45 @@ function RuleModal({
         return false;
       }
 
+      // They probably did not specify custom tag key
+      if (
+        condition.category === '' ||
+        condition.category === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+      ) {
+        return true;
+      }
+
       return !condition.match;
     });
+
+  const customTagConditionsOptions = conditions
+    .filter(
+      condition =>
+        isCustomTagName(condition.category) &&
+        condition.category !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+    )
+    .map(({category}) => ({
+      value: category,
+      label: (
+        <Truncate value={getInnerNameLabel(category)} expandable={false} maxLength={40} />
+      ),
+      disabled: true,
+      tooltip: conditionAlreadyAddedTooltip,
+    }));
+
+  const predefinedConditionsOptions = conditionCategories.map(([value, label]) => {
+    // Never disable the "Add Custom Tag" option, you can add more of those
+    const optionDisabled =
+      value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+        ? false
+        : conditions.some(condition => condition.category === value);
+    return {
+      value,
+      label,
+      disabled: optionDisabled,
+      tooltip: disabled ? conditionAlreadyAddedTooltip : undefined,
+    };
+  });
 
   return (
     <Fragment>
@@ -237,21 +333,7 @@ function RuleModal({
                 triggerLabel={t('Add Condition')}
                 placeholder={t('Filter conditions')}
                 isOptionDisabled={opt => opt.disabled}
-                options={conditionCategories.map(([value, label]) => {
-                  // Never disable the "Add Custom Tag" option, you can add more of those
-                  const disabled =
-                    value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
-                      ? false
-                      : conditions.some(condition => condition.category === value);
-                  return {
-                    value,
-                    label,
-                    disabled,
-                    tooltip: disabled
-                      ? t('This condition has already been added')
-                      : undefined,
-                  };
-                })}
+                options={[...customTagConditionsOptions, ...predefinedConditionsOptions]}
                 value={conditions
                   // We need to filter our custom tag option so that it can be selected multiple times without being unselected every other time
                   .filter(
@@ -309,6 +391,11 @@ function RuleModal({
             onChange={value => {
               setData({...data, sampleRate: !!value ? Number(value) : null});
             }}
+            onKeyDown={(_value: string, e: KeyboardEvent) => {
+              if (e.key === 'Enter') {
+                onSubmit({conditions, sampleRate, submitRules});
+              }
+            }}
             placeholder={'\u0025'}
             value={sampleRate}
             inline={false}
@@ -326,8 +413,14 @@ function RuleModal({
           <Button
             priority="primary"
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
-            title={submitDisabled ? t('Required fields must be filled out') : undefined}
-            disabled={submitDisabled}
+            title={
+              disabled
+                ? t('You do not have permission to add dynamic sampling rules.')
+                : submitDisabled
+                ? t('Required fields must be filled out')
+                : undefined
+            }
+            disabled={disabled || isSaving || submitDisabled}
           >
             {t('Save Rule')}
           </Button>

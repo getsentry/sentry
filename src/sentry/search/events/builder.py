@@ -29,8 +29,10 @@ from sentry.discover.arithmetic import (
     OperandType,
     Operation,
     categorize_columns,
+    is_equation,
     is_equation_alias,
     resolve_equation_list,
+    strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization
@@ -71,6 +73,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
+from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
@@ -125,6 +128,7 @@ class QueryBuilder:
         self.groupby: List[SelectType] = []
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
+        self.equation_alias_map: Dict[str, SelectType] = {}
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
@@ -437,6 +441,7 @@ class QueryBuilder:
                 resolved_equation = self.resolve_equation(
                     parsed_equation.equation, f"equation[{index}]"
                 )
+                self.equation_alias_map[equations[index]] = resolved_equation
                 resolved_columns.append(resolved_equation)
                 if parsed_equation.contains_functions:
                     self.aggregates.append(resolved_equation)
@@ -654,8 +659,13 @@ class QueryBuilder:
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             try:
+                # Allow ordering equations with the calculated alias (ie. equation[0])
                 if is_equation_alias(bare_orderby):
                     resolved_orderby = bare_orderby
+                # Allow ordering equations directly with the raw alias (ie. equation|a + b)
+                elif is_equation(bare_orderby):
+                    resolved_orderby = self.equation_alias_map[strip_equation(bare_orderby)]
+                    bare_orderby = resolved_orderby.alias
                 else:
                     resolved_orderby = self.resolve_column(bare_orderby)
             except (NotImplementedError, IncompatibleMetricsQuery):
@@ -1948,6 +1958,49 @@ class MetricsQueryBuilder(QueryBuilder):
             return 0
         else:
             return None
+
+
+class HistogramMetricQueryBuilder(MetricsQueryBuilder):
+    base_function_acl = ["histogram"]
+
+    def __init__(
+        self,
+        histogram_params: HistogramParams,
+        *args: Any,
+        **kwargs: Any,
+    ):
+        self.params = kwargs["params"]
+        self.histogram_aliases: List[str] = []
+        self.num_buckets = histogram_params.num_buckets
+        self.min_bin = histogram_params.start_offset
+        self.max_bin = (
+            histogram_params.start_offset + histogram_params.bucket_size * self.num_buckets
+        )
+        if "organization_id" in self.params:
+            self.organization_id: int = cast(int, self.params["organization_id"])
+        else:
+            raise InvalidSearchQuery("Organization id required to create a metrics query")
+
+        self.zoom_params: Optional[Function] = metrics_histogram.zoom_histogram(
+            self.organization_id,
+            self.num_buckets,
+            self.min_bin,
+            self.max_bin,
+        )
+
+        kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
+        super().__init__(*args, **kwargs)
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        result = super().run_query(referrer, use_cache)
+        for row in result["data"]:
+            for key, value in row.items():
+                if key in self.histogram_aliases:
+                    row[key] = metrics_histogram.rebucket_histogram(
+                        value, self.num_buckets, self.min_bin, self.max_bin
+                    )
+
+        return result
 
 
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
