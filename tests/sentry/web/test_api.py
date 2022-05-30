@@ -105,3 +105,15 @@ class ClientConfigViewTest(TestCase):
         assert data["user"]
         assert data["user"]["email"] == user.email
         assert data["user"]["isSuperuser"]
+
+    def test_url_prefix(self):
+        user = self.create_user("foo@example.com")
+        self.login_as(user)
+
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+        assert data["apiUrl"] is None
+        assert data["organizationUrl"] is None
