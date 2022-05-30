@@ -1606,10 +1606,10 @@ class MetricsQueryBuilder(QueryBuilder):
         """
         duration = (self.end - self.start).total_seconds()
 
-        near_midnight = lambda time: (time.minute <= 30 and time.hour == 0) or (
-            time.minute >= 30 and time.hour == 23
-        )
-        near_hour = lambda time: time.minute <= 15 or time.minute >= 15
+        near_midnight: Callable[[datetime], bool] = lambda time: (
+            time.minute <= 30 and time.hour == 0
+        ) or (time.minute >= 30 and time.hour == 23)
+        near_hour: Callable[[datetime], bool] = lambda time: time.minute <= 15 or time.minute >= 15
 
         if (
             # precisely going hour to hour
