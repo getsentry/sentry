@@ -147,8 +147,10 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
   componentDidMount() {
     this._mounted = true;
-    this.props.storeSpanBar(this);
-    this.connectObservers();
+    if (this.spanRowDOMRef.current) {
+      this.props.storeSpanBar(this);
+      this.connectObservers();
+    }
 
     if (this.spanTitleRef.current) {
       this.spanTitleRef.current.addEventListener('wheel', this.handleWheel, {

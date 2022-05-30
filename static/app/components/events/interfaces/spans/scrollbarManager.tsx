@@ -98,28 +98,15 @@ export class Provider extends Component<Props, State> {
     if (anchoredSpanHash) {
       // We cannot assume the root is in view to start off, if there is an anchored span
       this.spansInView.isRootSpanInView = false;
-
-      this.spanBars.forEach(spanBar => {
-        if (spanBar.spanRowDOMRef.current) {
-          spanBar.disconnectObservers();
-        }
-      });
+      this.spanBars.forEach(spanBar => spanBar.disconnectObservers());
 
       setTimeout(() => {
-        this.spanBars.forEach(spanBar => {
-          if (spanBar.spanRowDOMRef.current) {
-            spanBar.connectObservers();
-          }
-        });
-      }, 1000);
+        this.spanBars.forEach(spanBar => spanBar.connectObservers());
+      }, 500);
       return;
     }
 
-    this.spanBars.forEach(spanBar => {
-      if (spanBar.spanRowDOMRef.current) {
-        spanBar.connectObservers();
-      }
-    });
+    this.spanBars.forEach(spanBar => spanBar.connectObservers());
   }
 
   componentDidUpdate(prevProps: Props) {
