@@ -24,7 +24,7 @@ export const commonConditionCategories = [
 export function renderComponent(withModal = true) {
   const {organization, project} = initializeOrg({
     organization: {
-      features: ['filters-and-sampling', 'filters-and-sampling-error-rules'],
+      features: ['filters-and-sampling'],
     },
   } as Parameters<typeof initializeOrg>[0]);
 

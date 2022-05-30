@@ -7,10 +7,6 @@ export enum DynamicSamplingRuleType {
    *  The rule applies to transaction events considered independently
    */
   TRANSACTION = 'transaction',
-  /**
-   * The rule applies to error events (not transaction events)
-   */
-  ERROR = 'error',
 }
 
 export enum DynamicSamplingConditionOperator {
