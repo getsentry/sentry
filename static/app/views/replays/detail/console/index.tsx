@@ -4,10 +4,12 @@ import debounce from 'lodash/debounce';
 
 import CompactSelect from 'sentry/components/forms/compactSelect';
 import {Panel} from 'sentry/components/panels';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import type {BreadcrumbLevelType, BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import ConsoleMessage from './consoleMessage';
@@ -18,10 +20,11 @@ interface Props {
   startTimestamp: number;
 }
 
-const getDistinctLogLevels = breadcrumbs =>
+const getDistinctLogLevels = (breadcrumbs: BreadcrumbTypeDefault[]) =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
 function Console({breadcrumbs, startTimestamp = 0}: Props) {
+  const {currentHoverTime} = useReplayContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
   const handleSearch = debounce(query => setSearchTerm(query), 150);
@@ -30,6 +33,32 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
     () => filterBreadcrumbs(breadcrumbs, searchTerm, logLevel),
     [logLevel, searchTerm, breadcrumbs]
   );
+
+  const activeConsoleBounds = useMemo(() => {
+    if (filteredBreadcrumbs.length <= 0) {
+      return [-1, -1];
+    }
+
+    const indexUpperBound =
+      filteredBreadcrumbs.findIndex(
+        breadcrumb =>
+          relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp) >=
+          (currentHoverTime || -1)
+      ) - 1;
+
+    const activeMessageBoundary = showPlayerTime(
+      filteredBreadcrumbs[indexUpperBound]?.timestamp || '',
+      startTimestamp
+    );
+
+    const indexLowerBound = filteredBreadcrumbs.findIndex(
+      breadcrumb =>
+        showPlayerTime(breadcrumb.timestamp || '', startTimestamp) ===
+        activeMessageBoundary
+    );
+
+    return [indexLowerBound, indexUpperBound];
+  }, [currentHoverTime, filteredBreadcrumbs, startTimestamp]);
 
   return (
     <Fragment>
@@ -55,6 +84,7 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
           {filteredBreadcrumbs.map((breadcrumb, i) => {
             return (
               <ConsoleMessage
+                isActive={i >= activeConsoleBounds[0] && i <= activeConsoleBounds[1]}
                 startTimestamp={startTimestamp}
                 key={i}
                 isLast={i === breadcrumbs.length - 1}

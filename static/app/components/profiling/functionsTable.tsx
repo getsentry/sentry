@@ -1,130 +1,113 @@
-import {useCallback, useMemo} from 'react';
-import {browserHistory} from 'react-router';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
-import DatePageFilter from 'sentry/components/datePageFilter';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import * as Layout from 'sentry/components/layouts/thirds';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {FunctionCall, VersionedFunctionCalls} from 'sentry/types/profiling/core';
+import {FunctionCall} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {formatPercentage} from 'sentry/utils/formatters';
+import {generateFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {generateFlamegraphRouteWithQuery} from '../routes';
-
-import {ArrayLinks} from './arrayLinks';
-
-interface FunctionsContentProps {
+interface FunctionsTableProps {
   error: string | null;
+  functionCalls: FunctionCall[];
   isLoading: boolean;
   project: Project;
-  version: string;
-  versionedFunctions: VersionedFunctionCalls | null;
+  limit?: number;
 }
 
-function FunctionsContent(props: FunctionsContentProps) {
+function FunctionsTable(props: FunctionsTableProps) {
+  const limit = props.limit ?? 5;
+  const [offset, setOffset] = useState(0);
+
   const location = useLocation();
   const organization = useOrganization();
-  const query = useMemo(
-    () => decodeScalar(location.query.query, ''),
-    [location.query.query]
-  );
+
+  const allFunctions: TableDataRow[] = useMemo(() => {
+    return props.functionCalls.map(functionCall => ({
+      symbol: functionCall.symbol,
+      image: functionCall.image,
+      p50Duration: functionCall.duration_ns.p50,
+      p75Duration: functionCall.duration_ns.p75,
+      p90Duration: functionCall.duration_ns.p90,
+      p95Duration: functionCall.duration_ns.p95,
+      p99Duration: functionCall.duration_ns.p99,
+      mainThreadPercent: functionCall.main_thread_percent,
+      p50Frequency: functionCall.frequency.p50,
+      p75Frequency: functionCall.frequency.p75,
+      p90Frequency: functionCall.frequency.p90,
+      p95Frequency: functionCall.frequency.p95,
+      p99Frequency: functionCall.frequency.p99,
+      profileIdToThreadId: Object.entries(functionCall.profile_id_to_thread_id).map(
+        ([profileId, threadId]) => {
+          return {
+            value: getShortEventId(profileId),
+            target: generateFlamegraphRouteWithQuery({
+              orgSlug: organization.slug,
+              projectSlug: props.project.slug,
+              profileId,
+              query: {tid: threadId.toString()},
+            }),
+          };
+        }
+      ),
+    }));
+  }, [organization.slug, props.project.slug, props.functionCalls]);
 
   const functions: TableDataRow[] = useMemo(() => {
-    const functionCalls: FunctionCall[] =
-      props.versionedFunctions?.Versions[props.version]?.FunctionCalls ?? [];
-
-    return functionCalls.map(functionCall => {
-      return {
-        symbol: functionCall.symbol,
-        image: functionCall.image,
-        p50Duration: functionCall.duration_ns.p50,
-        p75Duration: functionCall.duration_ns.p75,
-        p90Duration: functionCall.duration_ns.p90,
-        p95Duration: functionCall.duration_ns.p95,
-        p99Duration: functionCall.duration_ns.p99,
-        mainThreadPercent: functionCall.main_thread_percent,
-        p50Frequency: functionCall.frequency.p50,
-        p75Frequency: functionCall.frequency.p75,
-        p90Frequency: functionCall.frequency.p90,
-        p95Frequency: functionCall.frequency.p95,
-        p99Frequency: functionCall.frequency.p99,
-        profileIdToThreadId: Object.entries(functionCall.profile_id_to_thread_id).map(
-          ([profileId, threadId]) => {
-            return {
-              value: getShortEventId(profileId),
-              target: generateFlamegraphRouteWithQuery({
-                orgSlug: organization.slug,
-                projectSlug: props.project.slug,
-                profileId,
-                query: {tid: threadId.toString()},
-              }),
-            };
-          }
-        ),
-      };
-    });
-  }, [organization.slug, props.project.slug, props.version, props.versionedFunctions]);
-
-  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
-    (searchQuery: string) => {
-      browserHistory.push({
-        ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
-          query: searchQuery || undefined,
-        },
-      });
-    },
-    [location]
-  );
+    return allFunctions.slice(offset, offset + limit);
+  }, [allFunctions, limit, offset]);
 
   return (
-    <Layout.Main fullWidth>
-      <ActionBar>
-        <PageFilterBar condensed>
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
-        </PageFilterBar>
-        <SmartSearchBar
-          organization={organization}
-          hasRecentSearches
-          searchSource="profile_landing"
-          supportedTags={{}}
-          query={query}
-          onSearch={handleSearch}
-          maxQueryLength={MAX_QUERY_LENGTH}
-        />
-      </ActionBar>
+    <Fragment>
+      <TableHeader>
+        <SectionHeading>{t('Suspect Functions')}</SectionHeading>
+        <ButtonBar merged>
+          <Button
+            icon={<IconChevron direction="left" size="sm" />}
+            aria-label={t('Previous')}
+            size="xsmall"
+            disabled={offset === 0}
+            onClick={() => setOffset(offset - limit)}
+          />
+          <Button
+            icon={<IconChevron direction="right" size="sm" />}
+            aria-label={t('Next')}
+            size="xsmall"
+            disabled={offset + limit >= allFunctions.length}
+            onClick={() => setOffset(offset + limit)}
+          />
+        </ButtonBar>
+      </TableHeader>
       <GridEditable
         isLoading={props.isLoading}
         error={props.error}
         data={functions}
         columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
         columnSortBy={[]}
-        grid={{renderBodyCell: renderProfilingTableCell}}
+        grid={{renderBodyCell: renderFunctionsTableCell}}
         location={location}
       />
-    </Layout.Main>
+    </Fragment>
   );
 }
 
-function renderProfilingTableCell(
+function renderFunctionsTableCell(
   column: TableColumn,
   dataRow: TableDataRow,
   rowIndex: number,
@@ -164,6 +147,8 @@ function ProfilingFunctionsTableCell({
           <Count value={value} />
         </NumberContainer>
       );
+    case 'mainThreadPercent':
+      return <NumberContainer>{formatPercentage(value)}</NumberContainer>;
     case 'p50Duration':
     case 'p75Duration':
     case 'p90Duration':
@@ -286,11 +271,10 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
 };
 
-const ActionBar = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-  grid-template-columns: min-content auto;
-  margin-bottom: ${space(2)};
+const TableHeader = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: ${space(1)};
 `;
 
-export {FunctionsContent};
+export {FunctionsTable};

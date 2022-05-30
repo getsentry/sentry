@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertType,
   AlertWizardAlertNames,
@@ -125,7 +125,11 @@ export default function WizardField({
             AlertWizardRuleTemplates,
             template =>
               template.aggregate === aggregate &&
-              template.dataset === dataset &&
+              (template.dataset === dataset ||
+                (organization.features.includes('alert-crash-free-metrics') &&
+                  (template.aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
+                    template.aggregate === SessionsAggregate.CRASH_FREE_USERS) &&
+                  dataset === Dataset.METRICS)) &&
               eventTypes.includes(template.eventTypes)
           ) || 'num_errors';
 

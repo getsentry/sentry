@@ -73,6 +73,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
+from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
@@ -1957,6 +1958,49 @@ class MetricsQueryBuilder(QueryBuilder):
             return 0
         else:
             return None
+
+
+class HistogramMetricQueryBuilder(MetricsQueryBuilder):
+    base_function_acl = ["histogram"]
+
+    def __init__(
+        self,
+        histogram_params: HistogramParams,
+        *args: Any,
+        **kwargs: Any,
+    ):
+        self.params = kwargs["params"]
+        self.histogram_aliases: List[str] = []
+        self.num_buckets = histogram_params.num_buckets
+        self.min_bin = histogram_params.start_offset
+        self.max_bin = (
+            histogram_params.start_offset + histogram_params.bucket_size * self.num_buckets
+        )
+        if "organization_id" in self.params:
+            self.organization_id: int = cast(int, self.params["organization_id"])
+        else:
+            raise InvalidSearchQuery("Organization id required to create a metrics query")
+
+        self.zoom_params: Optional[Function] = metrics_histogram.zoom_histogram(
+            self.organization_id,
+            self.num_buckets,
+            self.min_bin,
+            self.max_bin,
+        )
+
+        kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
+        super().__init__(*args, **kwargs)
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        result = super().run_query(referrer, use_cache)
+        for row in result["data"]:
+            for key, value in row.items():
+                if key in self.histogram_aliases:
+                    row[key] = metrics_histogram.rebucket_histogram(
+                        value, self.num_buckets, self.min_bin, self.max_bin
+                    )
+
+        return result
 
 
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):

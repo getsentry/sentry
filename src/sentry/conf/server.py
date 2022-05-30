@@ -1094,8 +1094,6 @@ SENTRY_FEATURES = {
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
-    # Enables experimental new-style selection filters to replace the GSH
-    "organizations:selection-filters-v2": False,
     # Enable experimental session replay features
     "organizations:session-replay": False,
     # Enable logging for weekly reports
@@ -1354,7 +1352,7 @@ SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS = {}
 
 # Cache for Relay project configs
-SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
+SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
 
 # Which cache to use for debouncing cache updates to the projectconfig cache
