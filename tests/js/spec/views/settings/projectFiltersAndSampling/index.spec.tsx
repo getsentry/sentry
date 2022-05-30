@@ -19,7 +19,6 @@ describe('Filters and Sampling', function () {
       // Title
       expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
 
-      // Error rules container
       expect(
         screen.getByText(
           textWithMarkupMatcher(
@@ -34,9 +33,6 @@ describe('Filters and Sampling', function () {
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(screen.getByText('There are no error rules to display')).toBeInTheDocument();
-      expect(screen.getByText('Add error rule')).toBeInTheDocument();
-
       // Transaction traces and individual transactions rules container
       expect(
         screen.getByText(
@@ -49,18 +45,17 @@ describe('Filters and Sampling', function () {
       ).toBeInTheDocument();
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLinks = screen.getAllByRole('button', {
+      const readDocsButtonLink = screen.getByRole('button', {
         name: 'Read the docs',
       });
-      expect(readDocsButtonLinks).toHaveLength(2);
 
-      for (const readDocsButtonLink of readDocsButtonLinks) {
-        expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-      }
+      expect(readDocsButtonLink).toBeInTheDocument();
 
-      expect(screen.getAllByText('Type')).toHaveLength(2);
-      expect(screen.getAllByText('Conditions')).toHaveLength(2);
-      expect(screen.getAllByText('Rate')).toHaveLength(2);
+      expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
+
+      expect(screen.getByText('Type')).toBeInTheDocument();
+      expect(screen.getByText('Conditions')).toBeInTheDocument();
+      expect(screen.getByText('Rate')).toBeInTheDocument();
 
       expect(container).toSnapshot();
     });
@@ -72,21 +67,6 @@ describe('Filters and Sampling', function () {
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
-              {
-                sampleRate: 0.2,
-                type: 'error',
-                condition: {
-                  op: 'and',
-                  inner: [
-                    {
-                      op: 'glob',
-                      name: 'event.release',
-                      value: ['1.2.3'],
-                    },
-                  ],
-                },
-                id: 39,
-              },
               {
                 sampleRate: 0.2,
                 type: 'trace',
@@ -137,7 +117,6 @@ describe('Filters and Sampling', function () {
       // Title
       expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
 
-      // Error rules container
       expect(
         screen.getByText(
           textWithMarkupMatcher(
@@ -151,12 +130,6 @@ describe('Filters and Sampling', function () {
           name: 'update your SDK configuration',
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-
-      expect(
-        screen.queryByText('There are no error rules to display')
-      ).not.toBeInTheDocument();
-      expect(screen.getByText('Errors only')).toBeInTheDocument();
-      expect(screen.getByText('Add error rule')).toBeInTheDocument();
 
       // Transaction traces and individual transactions rules container
       expect(
@@ -176,18 +149,15 @@ describe('Filters and Sampling', function () {
 
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLinks = screen.getAllByRole('button', {
+      const readDocsButtonLink = screen.getByRole('button', {
         name: 'Read the docs',
       });
-      expect(readDocsButtonLinks).toHaveLength(2);
+      expect(readDocsButtonLink).toBeInTheDocument();
+      expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      for (const readDocsButtonLink of readDocsButtonLinks) {
-        expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-      }
-
-      expect(screen.getAllByText('Type')).toHaveLength(2);
-      expect(screen.getAllByText('Conditions')).toHaveLength(2);
-      expect(screen.getAllByText('Rate')).toHaveLength(2);
+      expect(screen.getByText('Type')).toBeInTheDocument();
+      expect(screen.getByText('Conditions')).toBeInTheDocument();
+      expect(screen.getByText('Rate')).toBeInTheDocument();
 
       expect(container).toSnapshot();
     });
