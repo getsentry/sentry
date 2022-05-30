@@ -160,6 +160,9 @@ export const renderGridBodyCell =
     const columnKey = String(column.key);
     const isTopEvents = widget.displayType === DisplayType.TOP_N;
     let cell: React.ReactNode;
+    const isAlias =
+      !organization.features.includes('discover-frontend-use-events-endpoint') &&
+      widget.widgetType !== WidgetType.RELEASE;
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
         cell = (
@@ -174,7 +177,7 @@ export const renderGridBodyCell =
         cell = getFieldRenderer(
           columnKey,
           tableData.meta,
-          widget.widgetType !== WidgetType.RELEASE
+          isAlias
         )(dataRow, {
           organization,
           location,
