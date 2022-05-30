@@ -45,6 +45,7 @@ from sentry.search.events.constants import (
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
+    QUERY_TIPS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
     TREND_FUNCTION_TYPE_MAP,
@@ -356,14 +357,21 @@ class QueryBuilder:
         is_where_condition = lambda x: x and len(x) == 1 and isinstance(x[0], Condition)
 
         if (
+            # A direct field:a OR field:b
             operator == Or
             and is_where_condition(lhs_where)
             and is_where_condition(rhs_where)
             and lhs_where[0].lhs == rhs_where[0].lhs
+        ) or (
+            # Chained or statements become field:a OR (field:b OR (...))
+            operator == Or
+            and is_where_condition(lhs_where)
+            and isinstance(rhs_where[0], Or)
+            # Even in a long chain the first condition would be the next field
+            and isinstance(rhs_where[0].conditions[0], Condition)
+            and lhs_where[0].lhs == rhs_where[0].conditions[0].lhs
         ):
-            self.tips["query"].add(
-                "Did you know you can replace chained or conditions like `field:a OR field:b OR field:c` with `field:[a,b,c]`"
-            )
+            self.tips["query"].add(QUERY_TIPS["CHAINED_OR"])
         if operator == Or and (lhs_where or rhs_where) and (lhs_having or rhs_having):
             raise InvalidSearchQuery(
                 "Having an OR between aggregate filters and normal filters is invalid."
