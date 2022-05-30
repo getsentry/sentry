@@ -92,7 +92,7 @@ export class Provider extends Component<Props, State> {
 
     // If the user is opening the span tree with an anchor link provided, we need to reconnect the observers after a short delay.
     // This is because we need to wait for the window to scroll to the anchored span first, or there will be inconsistencies in
-    // the spans that are actually considered in the view. This is because the IntersectionObserver API cannot keep up with the speed
+    // the spans that are actually considered in the view. The IntersectionObserver API cannot keep up with the speed
     // at which the window scrolls to the anchored span, and will be unable to register the spans that went out of the view
 
     if (anchoredSpanHash) {
