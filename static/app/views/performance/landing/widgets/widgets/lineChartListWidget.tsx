@@ -266,7 +266,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   additionalQuery,
                 });
 
-                const fieldString = getAggregateAlias(field);
+                const fieldString = useEvents ? field : getAggregateAlias(field);
 
                 const valueMap = {
                   [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
