@@ -46,17 +46,6 @@ def update_config_cache(
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
 
-    # Not running this at the beginning of the task to add tags in case there's
-    # something wrong going on.
-    if not should_update_cache(
-        organization_id=organization_id, project_id=project_id, public_key=public_key
-    ):
-        # XXX(iker): this approach doesn't work with celery's ack_late enabled.
-        # If ack_late is enabled and the task fails after being marked as done,
-        # the second attempt will exit early and not compute the project config.
-        metrics.incr("relay.tasks.update_config_cache.early_return", amount=1, sample_rate=1)
-        return
-
     if organization_id:
         projects = list(Project.objects.filter(organization_id=organization_id))
         keys = list(ProjectKey.objects.filter(project__in=projects))
@@ -98,6 +87,13 @@ def update_config_cache(
             cache_keys_to_delete.append(key.public_key)
 
         projectconfig_cache.delete_many(cache_keys_to_delete)
+
+    # After this new tasks for this debounce key can be scheduled again.
+    projectconfig_debounce_cache.mark_task_done(
+        organization_id=organization_id,
+        project_id=project_id,
+        public_key=public_key,
+    )
 
 
 def should_update_cache(organization_id=None, project_id=None, public_key=None) -> bool:
