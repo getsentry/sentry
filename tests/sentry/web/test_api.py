@@ -106,7 +106,18 @@ class ClientConfigViewTest(TestCase):
         assert data["user"]["email"] == user.email
         assert data["user"]["isSuperuser"]
 
-    def test_url_prefix(self):
+    def test_url_prefix_unauthenticated(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "application/json"
+
+        data = json.loads(resp.content)
+        assert not data["isAuthenticated"]
+        assert data["user"] is None
+        assert data["apiUrl"] is None
+        assert data["organizationUrl"] is None
+
+    def test_url_prefix_authenticated(self):
         user = self.create_user("foo@example.com")
         self.login_as(user)
 
@@ -115,5 +126,6 @@ class ClientConfigViewTest(TestCase):
         assert resp["Content-Type"] == "application/json"
 
         data = json.loads(resp.content)
+        assert data["isAuthenticated"] is True
         assert data["apiUrl"] is None
         assert data["organizationUrl"] is None
