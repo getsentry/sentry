@@ -3,6 +3,7 @@ import logging
 import sentry_sdk
 from django.conf import settings
 
+import sentry.options
 from sentry.relay import projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -45,6 +46,18 @@ def update_config_cache(
 
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
+
+    # Weird way to experiment with this easily.
+    late_debounce_free = 0 < sentry.options.get("relay.project-config-v3-enable")
+
+    if not late_debounce_free and not should_update_cache(
+        organization_id=organization_id, project_id=project_id, public_key=public_key
+    ):
+        # XXX(iker): this approach doesn't work with celery's ack_late enabled.
+        # If ack_late is enabled and the task fails after being marked as done,
+        # the second attempt will exit early and not compute the project config.
+        metrics.incr("relay.tasks.update_config_cache.early_return", amount=1, sample_rate=1)
+        return
 
     try:
         if organization_id:
@@ -89,12 +102,12 @@ def update_config_cache(
 
             projectconfig_cache.delete_many(cache_keys_to_delete)
     finally:
-        # After this new tasks for this debounce key can be scheduled again.
-        projectconfig_debounce_cache.mark_task_done(
-            organization_id=organization_id,
-            project_id=project_id,
-            public_key=public_key,
-        )
+        if late_debounce_free:
+            projectconfig_debounce_cache.mark_task_done(
+                organization_id=organization_id,
+                project_id=project_id,
+                public_key=public_key,
+            )
 
 
 def should_update_cache(organization_id=None, project_id=None, public_key=None) -> bool:
