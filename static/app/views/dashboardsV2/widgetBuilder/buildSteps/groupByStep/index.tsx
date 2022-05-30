@@ -1,29 +1,16 @@
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
+import {Organization, SessionsMeta, TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import {SESSIONS_TAGS} from '../../releaseWidget/fields';
+import {
+  generateReleaseWidgetFieldOptions,
+  SESSIONS_TAGS,
+} from '../../releaseWidget/fields';
 import {DataSet, getAmendedFieldOptions} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {GroupBySelector} from './groupBySelector';
-
-// Tags are sorted alphabetically to make it easier to find the correct option
-// and are converted to fieldOptions format
-const releaseFieldOptions = Object.values(SESSIONS_TAGS)
-  .sort((a, b) => a.localeCompare(b))
-  .reduce((acc, tagKey) => {
-    acc[`tag:${tagKey}`] = {
-      label: tagKey,
-      value: {
-        kind: FieldValueKind.TAG,
-        meta: {name: tagKey, dataType: 'string'},
-      },
-    };
-    return acc;
-  }, {});
 
 interface Props {
   columns: QueryFieldValue[];
@@ -48,7 +35,10 @@ export function GroupByStep({
       {dataSet === DataSet.RELEASES ? (
         <GroupBySelector
           columns={columns}
-          fieldOptions={releaseFieldOptions}
+          fieldOptions={generateReleaseWidgetFieldOptions(
+            [] as SessionsMeta[],
+            SESSIONS_TAGS
+          )}
           onChange={onGroupByChange}
         />
       ) : (

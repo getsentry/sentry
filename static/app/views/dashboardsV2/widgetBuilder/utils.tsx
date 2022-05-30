@@ -333,7 +333,7 @@ export function filterPrimaryOptions({
     if (displayType === DisplayType.TABLE) {
       return [
         FieldValueKind.FUNCTION,
-        FieldValueKind.TAG,
+        FieldValueKind.FIELD,
         FieldValueKind.NUMERIC_METRICS,
       ].includes(option.value.kind);
     }
