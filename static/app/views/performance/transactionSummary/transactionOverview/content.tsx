@@ -159,7 +159,7 @@ function SummaryContent({
     transactionsListTitles: string[]
   ) {
     const {selected} = getTransactionsListSort(location, {
-      p95: (useAggregateAlias ? totalValues?.['p95()'] : totalValues?.p95) ?? 0,
+      p95: (useAggregateAlias ? totalValues?.p95 : totalValues?.['p95()']) ?? 0,
       spanOperationBreakdownFilter,
     });
     const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
@@ -197,8 +197,11 @@ function SummaryContent({
     (totalValues !== null &&
       VITAL_GROUPS.some(group =>
         group.vitals.some(vital => {
-          const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-          return Number.isFinite(totalValues[alias]);
+          const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
+          const field = useAggregateAlias
+            ? getAggregateAlias(functionName)
+            : functionName;
+          return Number.isFinite(totalValues[field]);
         })
       ));
 
@@ -326,7 +329,7 @@ function SummaryContent({
           }}
           handleCellAction={handleCellAction}
           {...getTransactionsListSort(location, {
-            p95: (useAggregateAlias ? totalValues?.['p95()'] : totalValues?.p95) ?? 0,
+            p95: (useAggregateAlias ? totalValues?.p95 : totalValues?.['p95()']) ?? 0,
             spanOperationBreakdownFilter,
           })}
           forceLoading={isLoading}

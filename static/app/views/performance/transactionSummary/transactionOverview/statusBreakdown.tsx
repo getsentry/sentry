@@ -69,7 +69,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
           }
           const points = tableData.data.map(row => ({
             label: String(row['transaction.status']),
-            value: parseInt(String(row.count), 10),
+            value: parseInt(String(row[useEvents ? 'count()' : 'count']), 10),
             onClick: () => {
               const query = new MutableSearch(eventView.query);
               query

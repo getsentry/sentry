@@ -248,6 +248,9 @@ class _TransactionsList extends Component<Props> {
       generateLink,
       forceLoading,
     } = this.props;
+    const useEvents = organization.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
 
     const eventView = this.getEventView();
     const columnOrder = eventView.getColumns();
@@ -293,6 +296,7 @@ class _TransactionsList extends Component<Props> {
         limit={limit}
         cursor={cursor}
         referrer="api.discover.transactions-list"
+        useEvents={useEvents}
       >
         {tableRenderer}
       </DiscoverQuery>
