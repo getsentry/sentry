@@ -1622,20 +1622,58 @@ class MetricsQueryBuilder(QueryBuilder):
         snuba. eg. we can only use the daily granularity if the query starts and ends at midnight
         Seconds are ignored under the assumption that there currently isn't a valid use case to have
         to-the-second accurate information
+
+        We also allow some flexibility on the granularity used the larger the duration of the query since the hypothesis
+        is that users won't be able to notice the loss of accuracy regardless. With that in mind:
+        - If duration is between 12 hours to 3d we allow 15 minutes on the hour boundaries for hourly granularity
+        - if duration is between 3d to 30d we allow 30 minutes on the day boundaries for daily granularities
+            and will fallback to hourly granularity
+        - If the duration is over 30d we always use the daily granularities
         """
-        duration = (self.end - self.start).seconds
+        duration = (self.end - self.start).total_seconds()
 
-        # TODO: could probably allow some leeway on the start & end (a few minutes) and use a bigger granularity
-        # eg. yesterday at 11:59pm to tomorrow at 12:01am could still use the day bucket
+        near_midnight: Callable[[datetime], bool] = lambda time: (
+            time.minute <= 30 and time.hour == 0
+        ) or (time.minute >= 30 and time.hour == 23)
+        near_hour: Callable[[datetime], bool] = lambda time: time.minute <= 15 or time.minute >= 15
 
-        # Query is at least an hour
-        if self.start.minute == self.end.minute == 0 and duration % 3600 == 0:
+        if (
+            # precisely going hour to hour
+            self.start.minute
+            == self.end.minute
+            == duration % 3600
+            == 0
+        ):
             # we're going from midnight -> midnight which aligns with our daily buckets
-            if self.start.hour == self.end.hour == 0 and duration % 86400 == 0:
+            if self.start.hour == self.end.hour == duration % 86400 == 0:
                 granularity = 86400
             # we're roughly going from start of hour -> next which aligns with our hourly buckets
             else:
                 granularity = 3600
+        elif (
+            # Its over 30d, just use the daily granularity
+            duration
+            >= 86400 * 30
+        ):
+            granularity = 86400
+        elif (
+            # more than 3 days
+            duration
+            >= 86400 * 3
+        ):
+            # Allow 30 minutes for the daily buckets
+            if near_midnight(self.start) and near_midnight(self.end):
+                granularity = 86400
+            else:
+                granularity = 3600
+        elif (
+            # more than 12 hours
+            (duration >= 3600 * 12)
+            # Allow 15 minutes for the hourly buckets
+            and near_hour(self.start)
+            and near_hour(self.end)
+        ):
+            granularity = 3600
         # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
         # here
         else:
@@ -2050,9 +2088,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             functions_acl=functions_acl,
             dry_run=dry_run,
         )
-        if self.granularity.granularity > interval:
+        if self.granularity.granularity >= interval:
             for granularity in METRICS_GRANULARITIES:
-                if granularity <= interval:
+                if granularity < interval:
                     self.granularity = Granularity(granularity)
                     break
 
