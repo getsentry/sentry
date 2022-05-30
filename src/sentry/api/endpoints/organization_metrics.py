@@ -120,7 +120,7 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 query = APIQueryDefinition(
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_series(projects, query.to_query_definition())
+                data = get_series(projects, query.to_metrics_query())
                 data["query"] = query.query
             except (
                 InvalidField,
