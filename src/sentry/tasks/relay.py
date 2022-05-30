@@ -46,54 +46,55 @@ def update_config_cache(
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
 
-    if organization_id:
-        projects = list(Project.objects.filter(organization_id=organization_id))
-        keys = list(ProjectKey.objects.filter(project__in=projects))
-    elif project_id:
-        projects = [Project.objects.get(id=project_id)]
-        keys = list(ProjectKey.objects.filter(project__in=projects))
-    elif public_key:
-        try:
-            keys = [ProjectKey.objects.get(public_key=public_key)]
-        except ProjectKey.DoesNotExist:
-            # In this particular case, where a project key got deleted and
-            # triggered an update, we know that key doesn't exist and we want to
-            # avoid creating more tasks for it.
-            #
-            # In other similar cases, like an org being deleted, we potentially
-            # cannot find any keys anymore, so we don't know which cache keys
-            # to delete.
-            projectconfig_cache.set_many({public_key: {"disabled": True}})
-            return
+    try:
+        if organization_id:
+            projects = list(Project.objects.filter(organization_id=organization_id))
+            keys = list(ProjectKey.objects.filter(project__in=projects))
+        elif project_id:
+            projects = [Project.objects.get(id=project_id)]
+            keys = list(ProjectKey.objects.filter(project__in=projects))
+        elif public_key:
+            try:
+                keys = [ProjectKey.objects.get(public_key=public_key)]
+            except ProjectKey.DoesNotExist:
+                # In this particular case, where a project key got deleted and
+                # triggered an update, we know that key doesn't exist and we want to
+                # avoid creating more tasks for it.
+                #
+                # In other similar cases, like an org being deleted, we potentially
+                # cannot find any keys anymore, so we don't know which cache keys
+                # to delete.
+                projectconfig_cache.set_many({public_key: {"disabled": True}})
+                return
 
-    else:
-        assert False
+        else:
+            assert False
 
-    if generate:
-        config_cache = {}
-        for key in keys:
-            if key.status != ProjectKeyStatus.ACTIVE:
-                project_config = {"disabled": True}
-            else:
-                project_config = get_project_config(
-                    key.project, project_keys=[key], full_config=True
-                ).to_dict()
-            config_cache[key.public_key] = project_config
+        if generate:
+            config_cache = {}
+            for key in keys:
+                if key.status != ProjectKeyStatus.ACTIVE:
+                    project_config = {"disabled": True}
+                else:
+                    project_config = get_project_config(
+                        key.project, project_keys=[key], full_config=True
+                    ).to_dict()
+                config_cache[key.public_key] = project_config
 
-        projectconfig_cache.set_many(config_cache)
-    else:
-        cache_keys_to_delete = []
-        for key in keys:
-            cache_keys_to_delete.append(key.public_key)
+            projectconfig_cache.set_many(config_cache)
+        else:
+            cache_keys_to_delete = []
+            for key in keys:
+                cache_keys_to_delete.append(key.public_key)
 
-        projectconfig_cache.delete_many(cache_keys_to_delete)
-
-    # After this new tasks for this debounce key can be scheduled again.
-    projectconfig_debounce_cache.mark_task_done(
-        organization_id=organization_id,
-        project_id=project_id,
-        public_key=public_key,
-    )
+            projectconfig_cache.delete_many(cache_keys_to_delete)
+    finally:
+        # After this new tasks for this debounce key can be scheduled again.
+        projectconfig_debounce_cache.mark_task_done(
+            organization_id=organization_id,
+            project_id=project_id,
+            public_key=public_key,
+        )
 
 
 def should_update_cache(organization_id=None, project_id=None, public_key=None) -> bool:
