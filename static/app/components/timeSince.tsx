@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import moment from 'moment-timezone';
@@ -55,7 +55,7 @@ type State = {
   relative: string;
 };
 
-class TimeSince extends React.PureComponent<Props, State> {
+class TimeSince extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     suffix: 'ago',
   };

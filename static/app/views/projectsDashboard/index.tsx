@@ -26,7 +26,7 @@ import {sortProjects} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withTeamsForUser from 'sentry/utils/withTeamsForUser';
-import TeamFilter from 'sentry/views/alerts/rules/teamFilter';
+import TeamFilter from 'sentry/views/alerts/list/rules/teamFilter';
 
 import ProjectCard from './projectCard';
 import Resources from './resources';
@@ -64,15 +64,15 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
   const canJoinTeam = organization.access.includes('team:read');
   const hasProjectAccess = organization.access.includes('project:read');
 
-  const selectedTeams = new Set(getTeamParams(location ? location.query.team : ''));
-  const filteredTeams = teams.filter(team => selectedTeams.has(team.id));
+  const selectedTeams = getTeamParams(location ? location.query.team : '');
+  const filteredTeams = teams.filter(team => selectedTeams.includes(team.id));
 
   const filteredTeamProjects = uniqBy(
     flatten((filteredTeams ?? teams).map(team => team.projects)),
     'id'
   );
   const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
-  const currentProjects = !selectedTeams.size ? projects : filteredTeamProjects;
+  const currentProjects = selectedTeams.length === 0 ? projects : filteredTeamProjects;
   const filteredProjects = (currentProjects ?? projects).filter(project =>
     project.slug.includes(projectQuery)
   );
@@ -85,15 +85,14 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     setProjectQuery(searchQuery);
   }
 
-  function handleChangeFilter(activeFilters: Set<string>) {
+  function handleChangeFilter(activeFilters: string[]) {
     const {...currentQuery} = location.query;
-    const team = activeFilters.size ? [...activeFilters] : '';
 
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: team.length === 0 ? '' : team,
+        team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
   }
@@ -151,9 +150,8 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
                 <TeamFilter
                   selectedTeams={selectedTeams}
                   handleChangeFilter={handleChangeFilter}
-                  fullWidth
                   showIsMemberTeams
-                  showMyTeamsAndUnassigned={false}
+                  showSuggestedOptions={false}
                   showMyTeamsDescription
                 />
                 <StyledSearchBar

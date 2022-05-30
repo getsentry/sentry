@@ -1,6 +1,5 @@
 import round from 'lodash/round';
 
-import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {Organization, SessionFieldWithOperation} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
@@ -11,52 +10,12 @@ import {
   Dataset,
   Datasource,
   EventTypes,
-  IncidentRule,
-  SavedIncidentRule,
+  MetricRule,
+  SavedMetricRule,
   SessionsAggregate,
-} from 'sentry/views/alerts/incidentRules/types';
+} from 'sentry/views/alerts/rules/metric/types';
 
 import {AlertRuleStatus, Incident, IncidentStats} from '../types';
-
-// Use this api for requests that are getting cancelled
-const uncancellableApi = new Client();
-
-export function fetchAlertRule(
-  orgId: string,
-  ruleId: string,
-  query?: Record<string, string>
-): Promise<IncidentRule> {
-  return uncancellableApi.requestPromise(
-    `/organizations/${orgId}/alert-rules/${ruleId}/`,
-    {query}
-  );
-}
-
-export function fetchIncidentsForRule(
-  orgId: string,
-  alertRule: string,
-  start: string,
-  end: string
-): Promise<Incident[]> {
-  return uncancellableApi.requestPromise(`/organizations/${orgId}/incidents/`, {
-    query: {
-      project: '-1',
-      alertRule,
-      includeSnapshots: true,
-      start,
-      end,
-      expand: ['activities', 'seen_by', 'original_alert_rule'],
-    },
-  });
-}
-
-export function fetchIncident(
-  api: Client,
-  orgId: string,
-  alertId: string
-): Promise<Incident> {
-  return api.requestPromise(`/organizations/${orgId}/incidents/${alertId}/`);
-}
 
 /**
  * Gets start and end date query parameters from stats
@@ -71,7 +30,7 @@ export function getStartEndFromStats(stats: IncidentStats) {
 }
 
 export function isIssueAlert(
-  data: IssueAlertRule | SavedIncidentRule | IncidentRule
+  data: IssueAlertRule | SavedMetricRule | MetricRule
 ): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');
 }

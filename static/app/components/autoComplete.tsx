@@ -55,7 +55,6 @@ type GetItemArgs<T> = {
   index: number;
   item: T;
   onClick?: (item: T) => (e: React.MouseEvent) => void;
-  style?: React.CSSProperties;
 };
 
 type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
@@ -70,7 +69,6 @@ type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
    */
   getItemProps: (args: GetItemArgs<T>) => {
     onClick: (e: React.MouseEvent) => void;
-    style?: React.CSSProperties;
   };
   /**
    * The actively highlighted item index
@@ -80,6 +78,25 @@ type ChildrenProps<T> = Parameters<DropdownMenu['props']['children']>[0] & {
    * The current value of the input box
    */
   inputValue: string;
+  /**
+   * Registers the total number of items in the dropdown menu.
+   *
+   * This must be called for keyboard navigation to work.
+   */
+  registerItemCount: (count?: number) => void;
+  /**
+   * Registers an item as being visible in the autocomplete menu. Returns an
+   * cleanup function that unregisters the item as visible.
+   *
+   * This is needed for managing keyboard navigation when using react virtualized.
+   *
+   * NOTE: Even when NOT using a virtualized list, this must still be called for
+   * keyboard navigation to work!
+   */
+  registerVisibleItem: (index: number, item: T) => () => void;
+  /**
+   * The current selected item
+   */
   selectedItem?: T;
 };
 
@@ -132,18 +149,12 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
     };
   }
 
-  UNSAFE_componentWillReceiveProps(nextProps, nextState) {
+  componentDidUpdate(_prevProps: Props<T>, prevState: State<T>) {
     // If we do NOT want to close on select, then we should not reset highlight state
     // when we select an item (when we select an item, `this.state.selectedItem` changes)
-    if (!nextProps.closeOnSelect && this.state.selectedItem !== nextState.selectedItem) {
-      return;
+    if (this.props.closeOnSelect && this.state.selectedItem !== prevState.selectedItem) {
+      this.resetHighlightState();
     }
-
-    this.resetHighlightState();
-  }
-
-  UNSAFE_componentWillUpdate() {
-    this.items.clear();
   }
 
   componentWillUnmount() {
@@ -185,8 +196,19 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   makeHandleInputChange<E extends HTMLInputElement>(
     onChange: GetInputArgs<E>['onChange']
   ) {
-    return (e: React.ChangeEvent<E>) => {
-      const value = e.target.value;
+    // Some inputs (e.g. input) pass in only the event to the onChange listener and
+    // others (e.g. TextField) pass in both the value and the event to the onChange listener.
+    // This returned function is to accomodate both kinds of input components.
+    return (
+      valueOrEvent: string | React.ChangeEvent<E>,
+      event?: React.ChangeEvent<E>
+    ) => {
+      const value: string =
+        event === undefined
+          ? (valueOrEvent as React.ChangeEvent<E>).target.value
+          : (valueOrEvent as string);
+      const changeEvent: React.ChangeEvent<E> =
+        event === undefined ? (valueOrEvent as React.ChangeEvent<E>) : event;
 
       // We force `isOpen: true` here because:
       // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
@@ -196,7 +218,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
         inputValue: value,
       });
 
-      onChange?.(e);
+      onChange?.(changeEvent);
     };
   }
 
@@ -246,15 +268,13 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
     onKeyDown: GetInputArgs<E>['onKeyDown']
   ) {
     return (e: React.KeyboardEvent<E>) => {
-      const hasHighlightedItem = this.items.has(this.state.highlightedIndex);
+      const item = this.items.get(this.state.highlightedIndex);
 
       const isEnter = this.props.shouldSelectWithEnter && e.key === 'Enter';
       const isTab = this.props.shouldSelectWithTab && e.key === 'Tab';
 
-      if (hasHighlightedItem && (isEnter || isTab)) {
-        const item = this.items.get(this.state.highlightedIndex);
-
-        if (item && !item.disabled) {
+      if (item !== undefined && (isEnter || isTab)) {
+        if (!item.disabled) {
           this.handleSelect(item, e);
         }
 
@@ -399,32 +419,24 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   }
 
   getItemProps = (itemProps: GetItemArgs<T>) => {
-    const {item, index, ...props} = itemProps ?? {};
-
-    if (!item) {
-      // eslint-disable-next-line no-console
-      console.warn('getItemProps requires an object with an `item` key');
-    }
-
-    const newIndex = index ?? this.items.size;
-    this.items.set(newIndex, item);
+    const {item, index: _index, ...props} = itemProps ?? {};
 
     return {
       ...props,
       'data-test-id': item['data-test-id'],
-      onClick: this.makeHandleItemClick({item, index: newIndex, ...props}),
-      onMouseEnter: this.makeHandleMouseEnter({item, index: newIndex, ...props}),
+      onClick: this.makeHandleItemClick(itemProps),
+      onMouseEnter: this.makeHandleMouseEnter(itemProps),
     };
   };
 
-  getMenuProps<E extends Element>(props?: GetMenuArgs<E>): GetMenuArgs<E> {
-    this.itemCount = props?.itemCount;
+  registerVisibleItem = (index: number, item: T) => {
+    this.items.set(index, item);
+    return () => this.items.delete(index);
+  };
 
-    return {
-      ...(props ?? {}),
-      onMouseDown: this.handleMenuMouseDown,
-    };
-  }
+  registerItemCount = (count?: number) => {
+    this.itemCount = count;
+  };
 
   render() {
     const {children, onMenuOpen, inputIsActor} = this.props;
@@ -441,7 +453,10 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
           children({
             ...dropdownMenuProps,
             getMenuProps: <E extends Element = Element>(props?: GetMenuArgs<E>) =>
-              dropdownMenuProps.getMenuProps(this.getMenuProps(props)),
+              dropdownMenuProps.getMenuProps({
+                ...props,
+                onMouseDown: this.handleMenuMouseDown,
+              }),
             getInputProps: <E extends HTMLInputElement = HTMLInputElement>(
               props?: GetInputArgs<E>
             ): GetInputOutput<E> => {
@@ -453,6 +468,8 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
             },
 
             getItemProps: this.getItemProps,
+            registerVisibleItem: this.registerVisibleItem,
+            registerItemCount: this.registerItemCount,
             inputValue,
             selectedItem,
             highlightedIndex,

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, LegacyRef, useEffect, useRef} from 'react';
 
 import Count from 'sentry/components/count';
 import {
@@ -27,7 +27,6 @@ import {defined} from 'sentry/utils';
 
 import * as AnchorLinkManager from './anchorLinkManager';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import {MeasurementMarker} from './styles';
 import {EnhancedSpan, ProcessedSpanType} from './types';
@@ -44,6 +43,8 @@ const MARGIN_LEFT = 0;
 type Props = {
   event: Readonly<EventTransaction>;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  onWheel: (deltaX: number) => void;
   renderGroupSpansTitle: () => React.ReactNode;
   renderSpanRectangles: () => React.ReactNode;
   renderSpanTreeConnector: () => React.ReactNode;
@@ -112,10 +113,10 @@ function renderMeasurements(
   event: Readonly<EventTransaction>,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ) {
-  const measurements = getMeasurements(event);
+  const measurements = getMeasurements(event, generateBounds);
 
   return (
-    <React.Fragment>
+    <Fragment>
       {Array.from(measurements).map(([timestamp, verticalMark]) => {
         const bounds = getMeasurementBounds(timestamp, generateBounds);
 
@@ -135,120 +136,150 @@ function renderMeasurements(
           />
         );
       })}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
 export function SpanGroupBar(props: Props) {
+  const spanTitleRef: LegacyRef<HTMLDivElement> | null = useRef(null);
+  const {onWheel} = props;
+
+  useEffect(() => {
+    const currentRef = spanTitleRef.current;
+    const handleWheel = (event: WheelEvent) => {
+      if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+        return;
+      }
+
+      onWheel(event.deltaX);
+    };
+
+    if (currentRef) {
+      currentRef.addEventListener('wheel', handleWheel, {
+        passive: false,
+      });
+    }
+
+    return () => {
+      if (currentRef) {
+        currentRef.removeEventListener('wheel', handleWheel);
+      }
+    };
+  }, [onWheel]);
+
   return (
-    <ScrollbarManager.Consumer>
-      {scrollbarManagerChildrenProps => (
-        <DividerHandlerManager.Consumer>
-          {(
-            dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-          ) => {
-            const {
-              generateBounds,
-              toggleSpanGroup,
-              span,
-              treeDepth,
-              spanNumber,
-              event,
-              spanGrouping,
-            } = props;
+    <DividerHandlerManager.Consumer>
+      {(
+        dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+      ) => {
+        const {
+          generateBounds,
+          toggleSpanGroup,
+          span,
+          treeDepth,
+          spanNumber,
+          event,
+          spanGrouping,
+        } = props;
 
-            const {isSpanVisibleInView: isSpanVisible} = generateBounds({
-              startTimestamp: span.start_timestamp,
-              endTimestamp: span.timestamp,
-            });
+        const {isSpanVisibleInView: isSpanVisible} = generateBounds({
+          startTimestamp: span.start_timestamp,
+          endTimestamp: span.timestamp,
+        });
 
-            const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
-            const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-            const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+        const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
+        const {generateContentSpanBarRef} = props;
+        const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
 
-            return (
-              <AnchorLinkManager.Consumer>
-                {({registerScrollFn}) => {
-                  spanGrouping.forEach(spanObj => {
-                    registerScrollFn(
-                      spanTargetHash(spanObj.span.span_id),
-                      toggleSpanGroup,
-                      true
-                    );
-                  });
-                  return (
-                    <Row
-                      visible={isSpanVisible}
-                      showBorder={false}
-                      data-test-id={`span-row-${spanNumber}`}
+        return (
+          <AnchorLinkManager.Consumer>
+            {({registerScrollFn}) => {
+              spanGrouping.forEach(spanObj => {
+                registerScrollFn(
+                  spanTargetHash(spanObj.span.span_id),
+                  toggleSpanGroup,
+                  true
+                );
+              });
+              return (
+                <Row
+                  visible={isSpanVisible}
+                  showBorder={false}
+                  data-test-id={`span-row-${spanNumber}`}
+                >
+                  <RowCellContainer>
+                    <RowCell
+                      data-type="span-row-cell"
+                      style={{
+                        width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                        paddingTop: 0,
+                      }}
+                      onClick={() => props.toggleSpanGroup()}
+                      ref={spanTitleRef}
                     >
-                      <RowCellContainer>
-                        <RowCell
-                          data-type="span-row-cell"
+                      <RowTitleContainer ref={generateContentSpanBarRef()}>
+                        {renderGroupedSpansToggler(props)}
+                        <RowTitle
                           style={{
-                            width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                            paddingTop: 0,
-                          }}
-                          onClick={() => props.toggleSpanGroup()}
-                        >
-                          <RowTitleContainer ref={generateContentSpanBarRef()}>
-                            {renderGroupedSpansToggler(props)}
-                            <RowTitle
-                              style={{
-                                left: `${left}px`,
-                                width: '100%',
-                              }}
-                            >
-                              <SpanGroupRowTitleContent>
-                                {props.renderGroupSpansTitle()}
-                              </SpanGroupRowTitleContent>
-                            </RowTitle>
-                          </RowTitleContainer>
-                        </RowCell>
-                        <DividerContainer>
-                          {renderDivider(dividerHandlerChildrenProps)}
-                        </DividerContainer>
-                        <RowCell
-                          data-type="span-row-cell"
-                          showStriping={spanNumber % 2 !== 0}
-                          style={{
-                            width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
-                          }}
-                          onClick={() => props.toggleSpanGroup()}
-                        >
-                          {props.renderSpanRectangles()}
-                          {renderMeasurements(event, generateBounds)}
-                          <SpanBarCursorGuide />
-                        </RowCell>
-                        <DividerLineGhostContainer
-                          style={{
-                            width: `calc(${toPercent(dividerPosition)} + 0.5px)`,
-                            display: 'none',
+                            left: `${left}px`,
+                            width: '100%',
                           }}
                         >
-                          <DividerLine
-                            ref={addGhostDividerLineRef()}
-                            style={{
-                              right: 0,
-                            }}
-                            className="hovering"
-                            onClick={e => {
-                              // the ghost divider line should not be interactive.
-                              // we prevent the propagation of the clicks from this component to prevent
-                              // the span detail from being opened.
-                              e.stopPropagation();
-                            }}
-                          />
-                        </DividerLineGhostContainer>
-                      </RowCellContainer>
-                    </Row>
-                  );
-                }}
-              </AnchorLinkManager.Consumer>
-            );
-          }}
-        </DividerHandlerManager.Consumer>
-      )}
-    </ScrollbarManager.Consumer>
+                          <SpanGroupRowTitleContent>
+                            {props.renderGroupSpansTitle()}
+                          </SpanGroupRowTitleContent>
+                        </RowTitle>
+                      </RowTitleContainer>
+                    </RowCell>
+                    <DividerContainer>
+                      {renderDivider(dividerHandlerChildrenProps)}
+                    </DividerContainer>
+                    <RowCell
+                      data-type="span-row-cell"
+                      showStriping={spanNumber % 2 !== 0}
+                      style={{
+                        width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
+                      }}
+                      onClick={() => props.toggleSpanGroup()}
+                    >
+                      {props.renderSpanRectangles()}
+                      {renderMeasurements(event, generateBounds)}
+                      <SpanBarCursorGuide />
+                    </RowCell>
+                    <DividerLineGhostContainer
+                      style={{
+                        width: `calc(${toPercent(dividerPosition)} + 0.5px)`,
+                        display: 'none',
+                      }}
+                    >
+                      <DividerLine
+                        ref={addGhostDividerLineRef()}
+                        style={{
+                          right: 0,
+                        }}
+                        className="hovering"
+                        onClick={e => {
+                          // the ghost divider line should not be interactive.
+                          // we prevent the propagation of the clicks from this component to prevent
+                          // the span detail from being opened.
+                          e.stopPropagation();
+                        }}
+                      />
+                    </DividerLineGhostContainer>
+                  </RowCellContainer>
+                </Row>
+              );
+            }}
+          </AnchorLinkManager.Consumer>
+        );
+      }}
+    </DividerHandlerManager.Consumer>
   );
 }

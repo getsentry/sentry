@@ -7,16 +7,23 @@ import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, SelectValue} from 'sentry/types';
-import {isAggregateFieldOrEquation, isEquationAlias} from 'sentry/utils/discover/fields';
+import {Organization, SelectValue, TagCollection} from 'sentry/types';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
+import {
+  DataSet,
+  filterPrimaryOptions as filterReleaseSortOptions,
+  getResultsLimit,
+  SortDirection,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DataSet, getResultsLimit, SortDirection} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {SortBySelectors} from './sortBySelectors';
+
+export const CUSTOM_EQUATION_VALUE = 'custom-equation';
 
 interface Props {
   dataSet: DataSet;
@@ -25,6 +32,7 @@ interface Props {
   onSortByChange: (newSortBy: string) => void;
   organization: Organization;
   queries: WidgetQuery[];
+  tags: TagCollection;
   widgetBuilderNewDesign: boolean;
   widgetType: WidgetType;
   error?: string;
@@ -42,6 +50,7 @@ export function SortByStep({
   error,
   limit,
   onLimitChange,
+  tags,
 }: Props) {
   const fields = queries[0].columns;
 
@@ -64,12 +73,6 @@ export function SortByStep({
   const strippedOrderBy = trimStart(orderBy, '-');
   const maxLimit = getResultsLimit(queries.length, queries[0].aggregates.length);
 
-  // We want to convert widgets to using functions in their field format (i.e. not alias form)
-  // for ordering. This check will skip the alias conversion unless the orderby was
-  // previously saved in the alias format
-  const isUsingFieldFormat =
-    isAggregateFieldOrEquation(strippedOrderBy) || isEquationAlias(strippedOrderBy);
-
   const isTimeseriesChart = [
     DisplayType.LINE,
     DisplayType.BAR,
@@ -84,6 +87,38 @@ export function SortByStep({
       onLimitChange(maxLimit);
     }
   }, [limit, maxLimit]);
+
+  const columnSet = new Set(queries[0].columns);
+  const filterDiscoverOptions = option => {
+    if (
+      option.value.kind === FieldValueKind.FUNCTION ||
+      option.value.kind === FieldValueKind.EQUATION
+    ) {
+      return true;
+    }
+
+    return (
+      columnSet.has(option.value.meta.name) ||
+      option.value.meta.name === CUSTOM_EQUATION_VALUE
+    );
+  };
+
+  const filterReleaseOptions = option => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return false;
+    }
+    if (option.value.kind === FieldValueKind.TAG) {
+      // Only allow sorting by release tag
+      return (
+        columnSet.has(option.value.meta.name) && option.value.meta.name === 'release'
+      );
+    }
+    return filterReleaseSortOptions({
+      option,
+      widgetType,
+      displayType: DisplayType.TABLE,
+    });
+  };
 
   if (widgetBuilderNewDesign) {
     return (
@@ -119,6 +154,7 @@ export function SortByStep({
               />
             )}
           <SortBySelectors
+            displayType={displayType}
             widgetType={widgetType}
             hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
             disabledReason={disabledReason}
@@ -134,7 +170,6 @@ export function SortByStep({
                     widgetBuilderNewDesign: true,
                     columns: queries[0].columns,
                     aggregates: queries[0].aggregates,
-                    isUsingFieldFormat,
                   })
             }
             values={{
@@ -149,6 +184,10 @@ export function SortByStep({
                 sortDirection === SortDirection.HIGH_TO_LOW ? `-${sortBy}` : sortBy;
               onSortByChange(newOrderBy);
             }}
+            tags={tags}
+            filterPrimaryOptions={
+              dataSet === DataSet.RELEASES ? filterReleaseOptions : filterDiscoverOptions
+            }
           />
         </Field>
       </BuildStep>
@@ -175,7 +214,6 @@ export function SortByStep({
                   widgetType,
                   columns: queries[0].columns,
                   aggregates: queries[0].aggregates,
-                  isUsingFieldFormat,
                 })
               : generateIssueWidgetOrderOptions(
                   organization.features.includes('issue-list-trend-sort')

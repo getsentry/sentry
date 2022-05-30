@@ -17,17 +17,17 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import {Dataset} from 'sentry/views/alerts/incidentRules/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
 import {
   AlertType,
   AlertWizardAlertNames,
-  AlertWizardPanelContent,
   AlertWizardRuleTemplates,
   getAlertWizardCategories,
   WizardRuleTemplate,
 } from './options';
+import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
 type RouteParams = {
@@ -49,7 +49,10 @@ const DEFAULT_ALERT_OPTION = 'issues';
 
 class AlertWizard extends Component<Props, State> {
   state: State = {
-    alertOption: DEFAULT_ALERT_OPTION,
+    alertOption:
+      this.props.location.query.alert_option in AlertWizardAlertNames
+        ? this.props.location.query.alert_option
+        : DEFAULT_ALERT_OPTION,
   };
 
   componentDidMount() {
@@ -108,15 +111,13 @@ class AlertWizard extends Component<Props, State> {
           },
         };
 
-    const noFeatureMessage = t('Requires incidents feature.');
     const renderNoAccess = p => (
       <Hovercard
         body={
           <FeatureDisabled
             features={p.features}
             hideHelpToggle
-            message={noFeatureMessage}
-            featureName={noFeatureMessage}
+            featureName={t('Metric Alerts')}
           />
         }
       >
@@ -128,9 +129,9 @@ class AlertWizard extends Component<Props, State> {
       <Feature
         features={
           isTransactionDataset
-            ? ['incidents', 'performance-view']
+            ? ['organizations:incidents', 'organizations:performance-view']
             : isMetricAlert
-            ? ['incidents']
+            ? ['organizations:incidents']
             : []
         }
         requireAll

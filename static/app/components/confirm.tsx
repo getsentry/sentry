@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement, Component, Fragment, isValidElement} from 'react';
 
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import Button, {ButtonProps} from 'sentry/components/button';
@@ -183,12 +183,12 @@ function Confirm({
     return children({open: triggerModal});
   }
 
-  if (!React.isValidElement(children)) {
+  if (!isValidElement(children)) {
     return null;
   }
 
   // TODO(ts): Understand why the return type of `cloneElement` is strange
-  return React.cloneElement(children, {disabled, onClick: triggerModal}) as any;
+  return cloneElement(children, {disabled, onClick: triggerModal}) as any;
 }
 
 type ModalProps = ModalRenderProps &
@@ -218,7 +218,7 @@ type ModalState = {
   disableConfirmButton: boolean;
 };
 
-class ConfirmModal extends React.Component<ModalProps, ModalState> {
+class ConfirmModal extends Component<ModalProps, ModalState> {
   state: ModalState = {
     disableConfirmButton: !!this.props.disableConfirmButton,
     confirmCallback: null,
@@ -266,7 +266,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
       });
     }
 
-    if (React.isValidElement(message)) {
+    if (isValidElement(message)) {
       return message;
     }
 
@@ -290,7 +290,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
       renderCancelButton,
     } = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         {header && <Header>{header}</Header>}
         <Body>{this.confirmMessage}</Body>
         <Footer>
@@ -327,7 +327,7 @@ class ConfirmModal extends React.Component<ModalProps, ModalState> {
             )}
           </ButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

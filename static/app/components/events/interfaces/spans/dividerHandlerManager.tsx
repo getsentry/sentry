@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createContext, createRef} from 'react';
 
 import {
   clamp,
@@ -33,12 +33,12 @@ type StateType = {
   dividerPosition: number; // between 0 and 1
 };
 
-const DividerManagerContext = React.createContext<DividerHandlerManagerChildrenProps>({
+const DividerManagerContext = createContext<DividerHandlerManagerChildrenProps>({
   dividerPosition: DEFAULT_DIVIDER_POSITION,
   onDragStart: () => {},
   setHover: () => {},
-  addDividerLineRef: () => React.createRef<HTMLDivElement>(),
-  addGhostDividerLineRef: () => React.createRef<HTMLDivElement>(),
+  addDividerLineRef: () => createRef<HTMLDivElement>(),
+  addGhostDividerLineRef: () => createRef<HTMLDivElement>(),
 });
 
 type PropType = {
@@ -49,7 +49,7 @@ type PropType = {
   interactiveLayerRef: React.RefObject<HTMLDivElement>;
 };
 
-export class Provider extends React.Component<PropType, StateType> {
+export class Provider extends Component<PropType, StateType> {
   state: StateType = {
     dividerPosition: DEFAULT_DIVIDER_POSITION,
   };
@@ -67,13 +67,13 @@ export class Provider extends React.Component<PropType, StateType> {
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
 
   addDividerLineRef = () => {
-    const ref = React.createRef<HTMLDivElement>();
+    const ref = createRef<HTMLDivElement>();
     this.dividerLineRefs.push(ref);
     return ref;
   };
 
   addGhostDividerLineRef = () => {
-    const ref = React.createRef<HTMLDivElement>();
+    const ref = createRef<HTMLDivElement>();
     this.ghostDividerLineRefs.push(ref);
     return ref;
   };

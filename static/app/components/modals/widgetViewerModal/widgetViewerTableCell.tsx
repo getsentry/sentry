@@ -1,6 +1,7 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
+import trimStart from 'lodash/trimStart';
 
 import {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -88,9 +89,14 @@ export const renderIssueGridHeaderCell =
 export const renderDiscoverGridHeaderCell =
   ({location, selection, widget, tableData, organization, onHeaderClick}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+    const {orderby} = widget.queries[0];
+    // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
+    const aggregateAliasOrderBy = `${
+      orderby.startsWith('-') ? '-' : ''
+    }${getAggregateAlias(trimStart(orderby, '-'))}`;
     const eventView = eventViewFromWidget(
       widget.title,
-      widget.queries[0],
+      {...widget.queries[0], orderby: aggregateAliasOrderBy},
       selection,
       widget.displayType
     );
@@ -102,7 +108,7 @@ export const renderDiscoverGridHeaderCell =
         return undefined;
       }
 
-      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const nextEventView = eventView.sortOnField(field, tableMeta, undefined, true);
       const queryStringObject = nextEventView.generateQueryStringObject();
 
       return {
@@ -189,17 +195,19 @@ export const renderGridBodyCell =
         }
         break;
     }
-
+    const topResultsCount = tableData
+      ? Math.min(tableData?.data.length, DEFAULT_NUM_TOP_EVENTS)
+      : DEFAULT_NUM_TOP_EVENTS;
     return (
-      <React.Fragment>
+      <Fragment>
         {isTopEvents &&
         isFirstPage &&
         rowIndex < DEFAULT_NUM_TOP_EVENTS &&
         columnIndex === 0 ? (
-          <TopResultsIndicator count={DEFAULT_NUM_TOP_EVENTS} index={rowIndex} />
+          <TopResultsIndicator count={topResultsCount} index={rowIndex} />
         ) : null}
         {cell}
-      </React.Fragment>
+      </Fragment>
     );
   };
 

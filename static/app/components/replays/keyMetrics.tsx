@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'sentry/styles/space';
@@ -27,16 +27,17 @@ export const KeyMetrics = styled('dl')`
 
 export const KeyMetricData = ({keyName, value}: Props) => {
   return (
-    <React.Fragment>
+    <Fragment>
       <Key>{keyName}</Key>
       <Value>{value}</Value>
-    </React.Fragment>
+    </Fragment>
   );
 };
 
 const Key = styled('dt')`
   color: ${p => p.theme.subText};
-  font-weight: normal;
+  font-size: 14px;
+  font-weight: bold;
 `;
 
 const Value = styled('dt')`

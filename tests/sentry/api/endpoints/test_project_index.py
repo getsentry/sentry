@@ -20,7 +20,7 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user, superuser=True)
 
-        response = self.get_valid_response()
+        response = self.get_success_response()
         assert len(response.data) == 1
 
         assert response.data[0]["id"] == str(project.id)
@@ -38,7 +38,7 @@ class ProjectsListTest(APITestCase):
         self.create_project(organization=org2)
 
         self.login_as(user=user, superuser=True)
-        response = self.get_valid_response(qs_params={"show": "all"})
+        response = self.get_success_response(qs_params={"show": "all"})
         assert len(response.data) == 2
 
     def test_show_all_without_superuser(self):
@@ -53,7 +53,7 @@ class ProjectsListTest(APITestCase):
         self.create_project(organization=org2)
 
         self.login_as(user=user)
-        response = self.get_valid_response()
+        response = self.get_success_response()
         assert len(response.data) == 0
 
     def test_status_filter(self):
@@ -67,11 +67,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(qs_params={"status": "active"})
+        response = self.get_success_response(qs_params={"status": "active"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.get_valid_response(qs_params={"status": "deleted"})
+        response = self.get_success_response(qs_params={"status": "deleted"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project2.id)
 
@@ -86,11 +86,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(qs_params={"query": "foo"})
+        response = self.get_success_response(qs_params={"query": "foo"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.get_valid_response(qs_params={"query": "baz"})
+        response = self.get_success_response(qs_params={"query": "baz"})
         assert len(response.data) == 0
 
     def test_slug_query(self):
@@ -104,11 +104,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(qs_params={"query": "slug:foo"})
+        response = self.get_success_response(qs_params={"query": "slug:foo"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.get_valid_response(qs_params={"query": "slug:baz"})
+        response = self.get_success_response(qs_params={"query": "slug:baz"})
         assert len(response.data) == 0
 
     def test_id_query(self):
@@ -122,11 +122,11 @@ class ProjectsListTest(APITestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(qs_params={"query": f"id:{project1.id}"})
+        response = self.get_success_response(qs_params={"query": f"id:{project1.id}"})
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(project1.id)
 
-        response = self.get_valid_response(qs_params={"query": "id:-1"})
+        response = self.get_success_response(qs_params={"query": "id:-1"})
         assert len(response.data) == 0
 
     def test_valid_with_internal_integration(self):

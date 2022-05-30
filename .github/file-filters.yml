@@ -41,10 +41,11 @@ backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
 
 backend_build_changes: &backend_build_changes
-  - 'Makefile'
-  - '.pre-commit-config.yaml'
-  - '.github/workflows/!(frontend)'
   - '.github/actions/setup-sentry/action.yml'
+  - '.github/workflows/!(frontend)'
+  - '.pre-commit-config.yaml'
+  - 'Makefile'
+  - 'pyproject.toml'
 
 backend: &backend
   - *backend_build_changes
@@ -56,6 +57,7 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - 'config/**/*'
 
+# This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
   - *backend
   - *frontend

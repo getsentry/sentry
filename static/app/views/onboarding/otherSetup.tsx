@@ -1,6 +1,6 @@
 import 'prism-sentry/index.css';
 
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -54,7 +54,7 @@ class OtherSetup extends AsyncComponent<Props, State> {
     const currentPlatform = 'other';
 
     const blurb = (
-      <React.Fragment>
+      <Fragment>
         <p>
           {tct(`Prepare the SDK for your language following this [docsLink:guide].`, {
             docsLink: <ExternalLink href="https://develop.sentry.dev/sdk/overview/" />,
@@ -66,7 +66,7 @@ class OtherSetup extends AsyncComponent<Props, State> {
         </p>
 
         <p>{tct('Here is the DSN: [DSN]', {DSN: <b> {keyList?.[0].dsn.public}</b>})}</p>
-      </React.Fragment>
+      </Fragment>
     );
 
     const docs = (
@@ -90,13 +90,13 @@ class OtherSetup extends AsyncComponent<Props, State> {
     );
 
     return (
-      <React.Fragment>
+      <Fragment>
         <FullIntroduction currentPlatform={currentPlatform} />
         {getDynamicText({
           value: docs,
           fixed: testOnlyAlert,
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

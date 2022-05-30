@@ -31,7 +31,7 @@ class SentryAppComponentsTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_retrieves_all_components(self):
-        response = self.get_valid_response(self.sentry_app.slug)
+        response = self.get_success_response(self.sentry_app.slug)
 
         assert response.data[0] == {
             "uuid": str(self.component.uuid),
@@ -88,7 +88,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
     @patch("sentry.mediators.sentry_app_components.Preparer.run")
     def test_retrieves_all_components_for_installed_apps(self, run):
-        response = self.get_valid_response(self.org.slug, qs_params={"projectId": self.project.id})
+        response = self.get_success_response(
+            self.org.slug, qs_params={"projectId": self.project.id}
+        )
 
         assert self.component3.uuid not in [d["uuid"] for d in response.data]
         components = {d["uuid"]: d for d in response.data}
@@ -142,7 +144,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         component = sentry_app.components.first()
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id, "filter": "alert-rule"}
         )
 
@@ -162,7 +164,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
     @patch("sentry.mediators.sentry_app_components.Preparer.run")
     def test_prepares_each_component(self, run):
-        self.get_valid_response(self.org.slug, qs_params={"projectId": self.project.id})
+        self.get_success_response(self.org.slug, qs_params={"projectId": self.project.id})
 
         calls = [
             call(component=self.component1, install=self.install1, project=self.project),
@@ -175,7 +177,9 @@ class OrganizationSentryAppComponentsTest(APITestCase):
     def test_component_prep_errors_are_isolated(self, run):
         run.side_effect = [APIError(), self.component2]
 
-        response = self.get_valid_response(self.org.slug, qs_params={"projectId": self.project.id})
+        response = self.get_success_response(
+            self.org.slug, qs_params={"projectId": self.project.id}
+        )
 
         # Does not include self.component1 data, because it raised an exception
         # during preparation.

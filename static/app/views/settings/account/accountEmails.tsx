@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -47,7 +47,7 @@ class AccountEmails extends AsyncView<Props, State> {
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Email Addresses')} />
         <EmailAddresses />
         <Form
@@ -63,7 +63,7 @@ class AccountEmails extends AsyncView<Props, State> {
         <AlertLink to="/settings/account/notifications" icon={<IconStack />}>
           {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

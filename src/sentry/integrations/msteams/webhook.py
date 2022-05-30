@@ -6,19 +6,10 @@ from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, eventstore, options
+from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
 from sentry.api.base import Endpoint
-from sentry.models import (
-    ApiKey,
-    AuditLogEntryEvent,
-    Group,
-    Identity,
-    IdentityProvider,
-    Integration,
-    Project,
-    Rule,
-)
+from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Project, Rule
 from sentry.utils import json, jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.compat import filter
@@ -244,7 +235,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
                 request=request,
                 organization=org,
                 target_object=integration.id,
-                event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+                event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                 actor_label="Teams User",
                 data={
                     "provider": integration.provider,

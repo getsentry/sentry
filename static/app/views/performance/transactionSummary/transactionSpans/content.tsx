@@ -5,9 +5,9 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import DatePageFilter from 'sentry/components/datePageFilter';
-import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -78,7 +78,10 @@ function SpansContent(props: Props) {
 
       browserHistory.push({
         ...location,
-        query: searchQueryParams,
+        query: {
+          ...searchQueryParams,
+          userModified: key === 'query',
+        },
       });
     };
   }
@@ -112,18 +115,13 @@ function SpansContent(props: Props) {
           fields={eventView.fields}
           onSearch={handleChange('query')}
         />
-        <DropdownControl buttonProps={{prefix: sort.prefix}} label={sort.label}>
-          {SPAN_SORT_OPTIONS.map(option => (
-            <DropdownItem
-              key={option.field}
-              eventKey={option.field}
-              isActive={option.field === sort.field}
-              onSelect={handleChange('sort')}
-            >
-              {option.label}
-            </DropdownItem>
-          ))}
-        </DropdownControl>
+        <CompactSelect
+          value={sort.field}
+          options={SPAN_SORT_OPTIONS.map(opt => ({value: opt.field, label: opt.label}))}
+          onChange={opt => handleChange('sort')(opt.value)}
+          triggerProps={{prefix: sort.prefix}}
+          triggerLabel={sort.label}
+        />
       </FilterActions>
       <DiscoverQuery
         eventView={totalsView}

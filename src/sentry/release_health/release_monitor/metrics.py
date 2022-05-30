@@ -14,6 +14,7 @@ from snuba_sdk import (
     Op,
     OrderBy,
     Query,
+    Request,
 )
 
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend, Totals
@@ -39,7 +40,6 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
             while (time.time() - start_time) < self.MAX_SECONDS:
                 query = (
                     Query(
-                        dataset=Dataset.Metrics.value,
                         match=Entity(EntityKey.OrgMetricsCounters.value),
                         select=[
                             Column("org_id"),
@@ -66,8 +66,11 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                     .set_limit(self.CHUNK_SIZE + 1)
                     .set_offset(offset)
                 )
+                request = Request(
+                    dataset=Dataset.Metrics.value, app_id="release_health", query=query
+                )
                 data = raw_snql_query(
-                    query, referrer="release_monitor.fetch_projects_with_recent_sessions"
+                    request, referrer="release_monitor.fetch_projects_with_recent_sessions"
                 )["data"]
                 count = len(data)
                 more_results = count > self.CHUNK_SIZE
@@ -104,7 +107,6 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                 env_col = Column(env_key)
                 query = (
                     Query(
-                        dataset=Dataset.Metrics.value,
                         match=Entity(EntityKey.MetricsCounters.value),
                         select=[
                             Function("sum", [Column("value")], "sessions"),
@@ -142,10 +144,12 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                     .set_limit(self.CHUNK_SIZE + 1)
                     .set_offset(offset)
                 )
-
+                request = Request(
+                    dataset=Dataset.Metrics.value, app_id="release_health", query=query
+                )
                 with metrics.timer("release_monitor.fetch_project_release_health_totals.query"):
                     data = raw_snql_query(
-                        query, referrer="release_monitor.fetch_project_release_health_totals"
+                        request, referrer="release_monitor.fetch_project_release_health_totals"
                     )["data"]
                     count = len(data)
                     more_results = count > self.CHUNK_SIZE

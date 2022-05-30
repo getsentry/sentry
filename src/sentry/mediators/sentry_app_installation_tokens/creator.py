@@ -1,9 +1,10 @@
 from datetime import datetime
 
+from sentry import audit_log
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX
 from sentry.exceptions import ApiTokenLimitError
 from sentry.mediators import Mediator, Param
-from sentry.models import ApiToken, AuditLogEntryEvent, SentryAppInstallationToken
+from sentry.models import ApiToken, SentryAppInstallationToken
 from sentry.utils.cache import memoize
 
 
@@ -52,7 +53,7 @@ class Creator(Mediator):
                 request=self.request,
                 organization=self.organization,
                 target_object=self.api_token.id,
-                event=AuditLogEntryEvent.INTERNAL_INTEGRATION_ADD_TOKEN,
+                event=audit_log.get_event_id("INTERNAL_INTEGRATION_ADD_TOKEN"),
                 data={"sentry_app": self.sentry_app.name},
             )
 

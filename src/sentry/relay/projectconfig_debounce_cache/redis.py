@@ -32,15 +32,24 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
             return self.cluster.get_local_client_for_key(routing_key)
 
     def check_is_debounced(self, public_key, project_id, organization_id):
+        if self.is_debounced(public_key, project_id, organization_id):
+            return True
+        self.debounce(public_key, project_id, organization_id)
+        return False
+
+    def is_debounced(self, public_key, project_id, organization_id):
         key = _get_redis_key(public_key, project_id, organization_id)
         client = self.__get_redis_client(key)
         if client.get(key):
             return True
-
-        client.setex(key, REDIS_CACHE_TIMEOUT, 1)
         return False
+
+    def debounce(self, public_key, project_id, organization_id):
+        key = _get_redis_key(public_key, project_id, organization_id)
+        client = self.__get_redis_client(key)
+        client.setex(key, REDIS_CACHE_TIMEOUT, 1)
 
     def mark_task_done(self, public_key, project_id, organization_id):
         key = _get_redis_key(public_key, project_id, organization_id)
         client = self.__get_redis_client(key)
-        client.delete(key)
+        return client.delete(key)

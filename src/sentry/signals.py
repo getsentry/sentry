@@ -85,7 +85,15 @@ inbound_filter_toggled = BetterSignal(providing_args=["project"])
 sso_enabled = BetterSignal(providing_args=["organization", "user", "provider"])
 data_scrubber_enabled = BetterSignal(providing_args=["organization"])
 alert_rule_created = BetterSignal(
-    providing_args=["project", "rule", "user", "rule_type", "is_api_token"]
+    providing_args=[
+        "project",
+        "rule",
+        "user",
+        "rule_type",
+        "is_api_token",
+        "duplicate_rule",
+        "wizard_v3",
+    ]
 )
 alert_rule_edited = BetterSignal(
     providing_args=["project", "rule", "user", "rule_type", "is_api_token"]

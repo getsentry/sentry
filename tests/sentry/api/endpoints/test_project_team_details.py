@@ -1,3 +1,5 @@
+from rest_framework import status
+
 from sentry.models import ProjectTeam, Rule
 from sentry.testutils import APITestCase
 
@@ -17,15 +19,23 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
         project = self.create_project()
         team = self.create_team()
 
-        self.get_valid_response(project.organization.slug, project.slug, team.slug, status_code=201)
+        self.get_success_response(
+            project.organization.slug,
+            project.slug,
+            team.slug,
+            status_code=status.HTTP_201_CREATED,
+        )
 
         assert ProjectTeam.objects.filter(project=project, team=team).exists()
 
     def test_add_team_not_found(self):
         project = self.create_project()
 
-        self.get_valid_response(
-            project.organization.slug, project.slug, "not-a-team", status_code=404
+        self.get_error_response(
+            project.organization.slug,
+            project.slug,
+            "not-a-team",
+            status_code=status.HTTP_404_NOT_FOUND,
         )
 
 
@@ -54,7 +64,12 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
 
         assert r1.owner == r2.owner == ar1.owner == ar2.owner == team.actor
 
-        self.get_valid_response(project.organization.slug, project.slug, team.slug)
+        self.get_success_response(
+            project.organization.slug,
+            project.slug,
+            team.slug,
+            status_code=status.HTTP_200_OK,
+        )
         assert not ProjectTeam.objects.filter(project=project, team=team).exists()
 
         r1.refresh_from_db()
@@ -65,7 +80,12 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         assert r1.owner == ar1.owner is None
         assert r2.owner == ar2.owner == team.actor
 
-        self.get_valid_response(project.organization.slug, another_project.slug, team.slug)
+        self.get_success_response(
+            project.organization.slug,
+            another_project.slug,
+            team.slug,
+            status_code=status.HTTP_200_OK,
+        )
 
         r1.refresh_from_db()
         r2.refresh_from_db()
@@ -77,6 +97,9 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
     def test_remove_team_not_found(self):
         project = self.create_project()
 
-        self.get_valid_response(
-            project.organization.slug, project.slug, "not-a-team", status_code=404
+        self.get_error_response(
+            project.organization.slug,
+            project.slug,
+            "not-a-team",
+            status_code=status.HTTP_404_NOT_FOUND,
         )

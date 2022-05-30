@@ -454,7 +454,7 @@ class ProjectView(OrganizationView):
                     project,
                 )
                 return False
-        elif not any(request.access.has_team(team) for team in teams):
+        elif not any(request.access.has_team_access(team) for team in teams):
             logger.info("User %s does not have access to project %s", request.user, project)
             return False
         return True

@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, ratelimits, roles
+from sentry import audit_log, features, ratelimits, roles
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -13,14 +13,7 @@ from sentry.api.serializers.models import organization_member as organization_me
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.validators import AllowedEmailField
 from sentry.app import locks
-from sentry.models import (
-    AuditLogEntryEvent,
-    ExternalActor,
-    InviteStatus,
-    OrganizationMember,
-    Team,
-    TeamStatus,
-)
+from sentry.models import ExternalActor, InviteStatus, OrganizationMember, Team, TeamStatus
 from sentry.models.authenticator import available_authenticators
 from sentry.search.utils import tokenize_query
 from sentry.signals import member_invited
@@ -266,9 +259,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             target_object=om.id,
             data=om.get_audit_log_data(),
-            event=AuditLogEntryEvent.MEMBER_INVITE
+            event=audit_log.get_event_id("MEMBER_INVITE")
             if settings.SENTRY_ENABLE_INVITES
-            else AuditLogEntryEvent.MEMBER_ADD,
+            else audit_log.get_event_id("MEMBER_ADD"),
         )
 
         return Response(serialize(om), status=201)

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, memo, useEffect, useMemo, useRef, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
@@ -9,6 +9,7 @@ import type {DataZoomComponentOption} from 'echarts';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
+import trimStart from 'lodash/trimStart';
 import moment from 'moment';
 
 import {fetchTotalCount} from 'sentry/actionCreators/events';
@@ -36,7 +37,11 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {getAggregateAlias, isAggregateField} from 'sentry/utils/discover/fields';
+import {
+  isAggregateField,
+  isEquation,
+  isEquationAlias,
+} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -45,8 +50,10 @@ import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   eventViewFromWidget,
   getFieldsFromEquations,
+  getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  getWidgetReleasesUrl,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
@@ -66,7 +73,7 @@ import {
   renderReleaseGridHeaderCell,
 } from './widgetViewerModal/widgetViewerTableCell';
 
-export type WidgetViewerModalOptions = {
+export interface WidgetViewerModalOptions {
   organization: Organization;
   widget: Widget;
   issuesData?: TableDataRow[];
@@ -75,14 +82,12 @@ export type WidgetViewerModalOptions = {
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
-};
+}
 
-type Props = ModalRenderProps &
-  WithRouterProps &
-  WidgetViewerModalOptions & {
-    organization: Organization;
-    selection: PageFilters;
-  };
+interface Props extends ModalRenderProps, WithRouterProps, WidgetViewerModalOptions {
+  organization: Organization;
+  selection: PageFilters;
+}
 
 const FULL_TABLE_ITEM_LIMIT = 20;
 const HALF_TABLE_ITEM_LIMIT = 10;
@@ -100,18 +105,18 @@ const shouldWidgetCardChartMemo = (prevProps, props) => {
     prevProps.chartZoomOptions
   );
   const isNotTopNWidget =
-    props.widget.displayType !== DisplayType.TOP_N && props.widget.limit !== undefined;
+    props.widget.displayType !== DisplayType.TOP_N && !defined(props.widget.limit);
   return selectionMatches && chartZoomOptionsMatches && (sortMatches || isNotTopNWidget);
 };
 
 // WidgetCardChartContainer and WidgetCardChart rerenders if selection was changed.
 // This is required because we want to prevent ECharts interactions from causing
 // unnecessary rerenders which can break legends and zoom functionality.
-const MemoizedWidgetCardChartContainer = React.memo(
+const MemoizedWidgetCardChartContainer = memo(
   WidgetCardChartContainer,
   shouldWidgetCardChartMemo
 );
-const MemoizedWidgetCardChart = React.memo(WidgetCardChart, shouldWidgetCardChartMemo);
+const MemoizedWidgetCardChart = memo(WidgetCardChart, shouldWidgetCardChartMemo);
 
 async function fetchDiscoverTotal(
   api: Client,
@@ -162,30 +167,34 @@ function WidgetViewerModal(props: Props) {
   const start = decodeScalar(location.query[WidgetViewerQueryField.START]);
   const end = decodeScalar(location.query[WidgetViewerQueryField.END]);
   const isTableWidget = widget.displayType === DisplayType.TABLE;
-  const locationPageFilter =
-    start && end
-      ? {
-          ...selection,
-          datetime: {start, end, period: null, utc: null},
-        }
-      : selection;
-
-  const [chartUnmodified, setChartUnmodified] = React.useState<boolean>(true);
-
-  const [chartZoomOptions, setChartZoomOptions] = React.useState<DataZoomComponentOption>(
-    {start: 0, end: 100}
+  const locationPageFilter = useMemo(
+    () =>
+      start && end
+        ? {
+            ...selection,
+            datetime: {start, end, period: null, utc: null},
+          }
+        : selection,
+    [start, end, selection]
   );
+
+  const [chartUnmodified, setChartUnmodified] = useState<boolean>(true);
+
+  const [chartZoomOptions, setChartZoomOptions] = useState<DataZoomComponentOption>({
+    start: 0,
+    end: 100,
+  });
 
   // We wrap the modalChartSelection in a useRef because we do not want to recalculate this value
   // (which would cause an unnecessary rerender on calculation) except for the initial load.
   // We use this for when a user visit a widget viewer url directly.
   const [modalTableSelection, setModalTableSelection] =
-    React.useState<PageFilters>(locationPageFilter);
-  const modalChartSelection = React.useRef(modalTableSelection);
+    useState<PageFilters>(locationPageFilter);
+  const modalChartSelection = useRef(modalTableSelection);
 
   // Detect when a user clicks back and set the PageFilter state to match the location
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalTableSelection call
-  React.useEffect(() => {
+  useEffect(() => {
     if (location.action === 'POP') {
       setModalTableSelection(locationPageFilter);
       if (start && end) {
@@ -197,17 +206,17 @@ function WidgetViewerModal(props: Props) {
         setChartZoomOptions({start: 0, end: 100});
       }
     }
-  }, [location]);
+  }, [end, location, locationPageFilter, start]);
 
   // Get legends toggle settings from location
   // We use the legend query params for just the initial state
-  const [disabledLegends, setDisabledLegends] = React.useState<{[key: string]: boolean}>(
+  const [disabledLegends, setDisabledLegends] = useState<{[key: string]: boolean}>(
     decodeList(location.query[WidgetViewerQueryField.LEGEND]).reduce((acc, legend) => {
       acc[legend] = false;
       return acc;
     }, {})
   );
-  const [totalResults, setTotalResults] = React.useState<string | undefined>();
+  const [totalResults, setTotalResults] = useState<string | undefined>();
 
   // Get query selection settings from location
   const selectedQueryIndex =
@@ -222,13 +231,14 @@ function WidgetViewerModal(props: Props) {
 
   // Get table sort settings from location
   const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
-  const sortedQueries = sort
-    ? widget.queries.map(query => ({...query, orderby: sort}))
-    : widget.queries;
+  const sortedQueries = cloneDeep(
+    sort ? widget.queries.map(query => ({...query, orderby: sort})) : widget.queries
+  );
 
-  // Top N widget charts results rely on the sorting of the query
+  // Top N widget charts (including widgets with limits) results rely on the sorting of the query
+  // Set the orderby of the widget chart to match the location query params
   const primaryWidget =
-    widget.displayType === DisplayType.TOP_N
+    widget.displayType === DisplayType.TOP_N || widget.limit !== undefined
       ? {...widget, queries: sortedQueries}
       : widget;
   const api = useApi();
@@ -239,10 +249,49 @@ function WidgetViewerModal(props: Props) {
     displayType: DisplayType.TABLE,
   };
   const {aggregates, columns} = tableWidget.queries[0];
+  const {orderby} = widget.queries[0];
+  const order = orderby.startsWith('-');
+  const rawOrderby = trimStart(orderby, '-');
 
   const fields = defined(tableWidget.queries[0].fields)
     ? tableWidget.queries[0].fields
     : [...columns, ...aggregates];
+
+  // Some Discover Widgets (Line, Area, Bar) allow the user to specify an orderby
+  // that is not explicitly selected as an aggregate or column. We need to explictly
+  // include the orderby in the table widget aggregates and columns otherwise
+  // eventsv2 will complain about sorting on an unselected field.
+  if (
+    widget.widgetType === WidgetType.DISCOVER &&
+    orderby &&
+    !isEquationAlias(rawOrderby) &&
+    !fields.includes(rawOrderby)
+  ) {
+    fields.push(rawOrderby);
+    [tableWidget, primaryWidget].forEach(aggregatesAndColumns => {
+      if (isAggregateField(rawOrderby) || isEquation(rawOrderby)) {
+        aggregatesAndColumns.queries.forEach(query => {
+          if (!query.aggregates.includes(rawOrderby)) {
+            query.aggregates.push(rawOrderby);
+          }
+        });
+      } else {
+        aggregatesAndColumns.queries.forEach(query => {
+          if (!query.columns.includes(rawOrderby)) {
+            query.columns.push(rawOrderby);
+          }
+        });
+      }
+    });
+  }
+
+  // Need to set the orderby of the eventsv2 query to equation[index] format
+  // since eventsv2 does not accept the raw equation as a valid sort payload
+  if (isEquation(rawOrderby) && tableWidget.queries[0].orderby === orderby) {
+    tableWidget.queries[0].orderby = `${order ? '-' : ''}equation[${
+      getNumEquations(fields) - 1
+    }]`;
+  }
 
   // World Map view should always have geo.country in the table chart
   if (
@@ -261,17 +310,13 @@ function WidgetViewerModal(props: Props) {
       DisplayType.BAR,
     ].includes(widget.displayType) &&
     widget.widgetType &&
-    [WidgetType.DISCOVER, WidgetType.RELEASE].includes(widget.widgetType);
+    [WidgetType.DISCOVER, WidgetType.RELEASE].includes(widget.widgetType) &&
+    !defined(widget.limit);
 
-  let equationFieldsCount = 0;
   // Updates fields by adding any individual terms from equation fields as a column
   if (!isTableWidget) {
     const equationFields = getFieldsFromEquations(fields);
     equationFields.forEach(term => {
-      if (Array.isArray(fields) && !fields.includes(term)) {
-        equationFieldsCount++;
-        fields.unshift(term);
-      }
       if (isAggregateField(term) && !aggregates.includes(term)) {
         aggregates.unshift(term);
       }
@@ -281,12 +326,19 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
+  // Add any group by columns into table fields if missing
+  columns.forEach(column => {
+    if (!fields.includes(column)) {
+      fields.unshift(column);
+    }
+  });
+
   if (shouldReplaceTableColumns) {
     switch (widget.widgetType) {
       case WidgetType.DISCOVER:
         if (fields.length === 1) {
           tableWidget.queries[0].orderby =
-            tableWidget.queries[0].orderby || `-${getAggregateAlias(fields[0])}`;
+            tableWidget.queries[0].orderby || `-${fields[0]}`;
         }
         fields.unshift('title');
         columns.unshift('title');
@@ -308,17 +360,11 @@ function WidgetViewerModal(props: Props) {
   );
 
   let columnOrder = decodeColumnOrder(
-    tableWidget.queries[0].fields?.map(field => ({
+    fields.map(field => ({
       field,
-    })) ?? []
+    }))
   );
   const columnSortBy = eventView.getSorts();
-  // Filter out equation terms from columnOrder so we don't clutter the table
-  if (shouldReplaceTableColumns && equationFieldsCount) {
-    columnOrder = columnOrder.filter(
-      (_, index) => index === 0 || index > equationFieldsCount
-    );
-  }
   columnOrder = columnOrder.map((column, index) => ({
     ...column,
     width: parseInt(widths[index], 10) || -1,
@@ -361,13 +407,16 @@ function WidgetViewerModal(props: Props) {
   };
 
   // Get discover result totals
-  React.useEffect(() => {
+  useEffect(() => {
     const getDiscoverTotals = async () => {
       if (widget.widgetType === WidgetType.DISCOVER) {
         setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
       }
     };
     getDiscoverTotals();
+    // Disabling this for now since this effect should only run on initial load and query index changes
+    // Including all exhaustive deps would cause fetchDiscoverTotal on nearly every update
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQueryIndex]);
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
@@ -396,7 +445,7 @@ function WidgetViewerModal(props: Props) {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
-      <React.Fragment>
+      <Fragment>
         <GridEditable
           isLoading={loading}
           data={tableResults?.[0]?.data ?? []}
@@ -408,7 +457,10 @@ function WidgetViewerModal(props: Props) {
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
-                if ([DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType)) {
+                if (
+                  [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
+                  defined(widget.limit)
+                ) {
                   setChartUnmodified(false);
                 }
               },
@@ -446,7 +498,7 @@ function WidgetViewerModal(props: Props) {
             }}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -461,7 +513,7 @@ function WidgetViewerModal(props: Props) {
     }
     const links = parseLinkHeader(pageLinks ?? null);
     return (
-      <React.Fragment>
+      <Fragment>
         <GridEditable
           isLoading={loading}
           data={transformedResults}
@@ -521,7 +573,7 @@ function WidgetViewerModal(props: Props) {
             }}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -533,7 +585,7 @@ function WidgetViewerModal(props: Props) {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
-      <React.Fragment>
+      <Fragment>
         <GridEditable
           isLoading={loading}
           data={tableResults?.[0]?.data ?? []}
@@ -545,7 +597,10 @@ function WidgetViewerModal(props: Props) {
               widget: tableWidget,
               tableData: tableResults?.[0],
               onHeaderClick: () => {
-                if ([DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType)) {
+                if (
+                  [DisplayType.TOP_N, DisplayType.TABLE].includes(widget.displayType) ||
+                  defined(widget.limit)
+                ) {
                   setChartUnmodified(false);
                 }
               },
@@ -578,7 +633,7 @@ function WidgetViewerModal(props: Props) {
             }}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -712,7 +767,7 @@ function WidgetViewerModal(props: Props) {
 
   function renderWidgetViewer() {
     return (
-      <React.Fragment>
+      <Fragment>
         {widget.displayType !== DisplayType.TABLE && (
           <Container
             height={
@@ -866,7 +921,7 @@ function WidgetViewerModal(props: Props) {
           </QueryContainer>
         )}
         {renderWidgetViewerTable()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -876,6 +931,10 @@ function WidgetViewerModal(props: Props) {
     case WidgetType.ISSUE:
       openLabel = t('Open in Issues');
       path = getWidgetIssueUrl(primaryWidget, modalTableSelection, organization);
+      break;
+    case WidgetType.RELEASE:
+      openLabel = t('Open in Releases');
+      path = getWidgetReleasesUrl(primaryWidget, modalTableSelection, organization);
       break;
     case WidgetType.DISCOVER:
     default:
@@ -889,7 +948,7 @@ function WidgetViewerModal(props: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header closeButton>
         <h3>{widget.title}</h3>
       </Header>
@@ -914,30 +973,29 @@ function WidgetViewerModal(props: Props) {
                 {t('Edit Widget')}
               </Button>
             )}
-            {widget.widgetType &&
-              [WidgetType.DISCOVER, WidgetType.ISSUE].includes(widget.widgetType) && (
-                <Button
-                  to={path}
-                  priority="primary"
-                  type="button"
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'dashboards_views.widget_viewer.open_source',
-                      {
-                        organization,
-                        widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                        display_type: widget.displayType,
-                      }
-                    );
-                  }}
-                >
-                  {openLabel}
-                </Button>
-              )}
+            {widget.widgetType && (
+              <Button
+                to={path}
+                priority="primary"
+                type="button"
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'dashboards_views.widget_viewer.open_source',
+                    {
+                      organization,
+                      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                      display_type: widget.displayType,
+                    }
+                  );
+                }}
+              >
+                {openLabel}
+              </Button>
+            )}
           </ButtonBar>
         </ResultsContainer>
       </Footer>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

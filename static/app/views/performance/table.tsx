@@ -325,14 +325,12 @@ class _Table extends Component<Props, State> {
       if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <GuideAnchor target="team_key_transaction_header" position="top">
-              <IconStar
-                key="keyTransaction"
-                color="yellow300"
-                isSolid
-                data-test-id="team-key-transaction-header"
-              />
-            </GuideAnchor>
+            <IconStar
+              key="keyTransaction"
+              color="yellow300"
+              isSolid
+              data-test-id="team-key-transaction-header"
+            />
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
         }

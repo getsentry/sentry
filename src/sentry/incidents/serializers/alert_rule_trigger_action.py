@@ -101,7 +101,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
                     team = Team.objects.get(id=identifier)
                 except Team.DoesNotExist:
                     raise serializers.ValidationError("Team does not exist")
-                if not access.has_team(team):
+                if not access.has_team_access(team):
                     raise serializers.ValidationError("Team does not exist")
             elif target_type == AlertRuleTriggerAction.TargetType.USER:
                 try:

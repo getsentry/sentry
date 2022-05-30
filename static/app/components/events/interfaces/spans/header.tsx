@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
 import OpsBreakdown from 'sentry/components/events/opsBreakdown';
@@ -62,7 +62,7 @@ type State = {
   minimapWidth: number | undefined;
 };
 
-class TraceViewHeader extends React.Component<PropType, State> {
+class TraceViewHeader extends Component<PropType, State> {
   state: State = {
     minimapWidth: undefined,
   };
@@ -157,18 +157,18 @@ class TraceViewHeader extends React.Component<PropType, State> {
     ) : null;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {leftHandleGhost}
         {rightHandleGhost}
         {leftHandle}
         {rightHandle}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
   renderFog(dragProps: DragManagerChildrenProps) {
     return (
-      <React.Fragment>
+      <Fragment>
         <Fog style={{height: '100%', width: toPercent(dragProps.viewWindowStart)}} />
         <Fog
           style={{
@@ -177,7 +177,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
             left: toPercent(dragProps.viewWindowEnd),
           }}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -417,7 +417,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
           {dividerHandlerChildrenProps => {
             const {dividerPosition} = dividerHandlerChildrenProps;
             return (
-              <React.Fragment>
+              <Fragment>
                 <OperationsBreakdown
                   style={{
                     width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
@@ -501,7 +501,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
                   )}
                 </CursorGuideHandler.Consumer>
                 {this.renderSecondaryHeader()}
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </DividerHandlerManager.Consumer>
@@ -510,7 +510,7 @@ class TraceViewHeader extends React.Component<PropType, State> {
   }
 }
 
-class ActualMinimap extends React.PureComponent<{
+class ActualMinimap extends PureComponent<{
   dividerPosition: number;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   rootSpan: RawSpanType;

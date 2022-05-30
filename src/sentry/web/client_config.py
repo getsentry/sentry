@@ -3,7 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from django.core.cache import cache
 from django.db.models import F
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 import sentry
 from sentry import features, options
@@ -185,6 +185,7 @@ def get_client_config(request=None):
         },
         "demoMode": settings.DEMO_MODE,
         "enableAnalytics": settings.ENABLE_ANALYTICS,
+        "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
     }
     if user and user.is_authenticated:
         context.update(

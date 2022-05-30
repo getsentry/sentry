@@ -5,7 +5,9 @@ from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.utils import timezone
 from pytz import UTC
+from rest_framework import status
 
+from sentry import audit_log
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
@@ -207,6 +209,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         illegal_slug = list(RESERVED_ORGANIZATION_SLUGS)[0]
         self.get_error_response(self.organization.slug, slug=illegal_slug, status_code=400)
 
+    def test_invalid_slug(self):
+        self.get_error_response(self.organization.slug, slug=" i have whitespace ", status_code=400)
+        self.get_error_response(self.organization.slug, slug="foo-bar ", status_code=400)
+        self.get_error_response(self.organization.slug, slug="bird-company!", status_code=400)
+
     def test_upload_avatar(self):
         data = {"avatarType": "upload", "avatar": b64encode(self.load_fixture("avatar.jpg"))}
         self.get_success_response(self.organization.slug, **data)
@@ -269,7 +276,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         # log created
         log = AuditLogEntry.objects.get(organization=org)
-        assert log.get_event_display() == "org.edit"
+        assert audit_log.get(log.event).api_name == "org.edit"
         # org fields & flags
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
         assert "to {}".format(data["openMembership"]) in log.data["allow_joinleave"]
@@ -632,7 +639,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert len(owners) > 0
 
         with self.tasks():
-            self.get_success_response(self.organization.slug, status_code=202)
+            self.get_success_response(self.organization.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=self.organization.id)
 
@@ -676,7 +683,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         org = self.create_organization(owner=self.user)
         ScheduledDeletion.schedule(org, days=1)
 
-        self.get_success_response(org.slug)
+        self.get_success_response(org.slug, status_code=status.HTTP_202_ACCEPTED)
 
         org = Organization.objects.get(id=org.id)
         assert org.status == OrganizationStatus.PENDING_DELETION

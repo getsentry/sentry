@@ -10,6 +10,7 @@ const sampledProfile: Profiling.SampledProfile = {
   samples: [],
   name: 'profile',
   unit: 'milliseconds',
+  threadID: 0,
   endValue: 0,
   startValue: 100,
 };
@@ -19,6 +20,7 @@ const eventedProfile: Profiling.EventedProfile = {
   events: [],
   name: 'profile',
   unit: 'milliseconds',
+  threadID: 0,
   endValue: 0,
   startValue: 100,
 };

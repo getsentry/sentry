@@ -30,11 +30,13 @@ __all__ = (
     "MetricEntity",
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
+    "get_intervals",
 )
 
 
 import re
 from abc import ABC
+from datetime import datetime, timedelta
 from typing import (
     Collection,
     Dict,
@@ -57,8 +59,8 @@ TS_COL_GROUP = "bucketed_time"
 
 #: Max number of data points per time series:
 # ToDo modify this regex to only support the operations provided
-FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_|\:|\/|\@)+)\)$")
-TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
+FIELD_REGEX = re.compile(r"^(\w+)\(([\w.:/@]+)\)$")
+TAG_REGEX = re.compile(r"^([\w.]+)$")
 
 #: A function that can be applied to a metric
 MetricOperationType = Literal[
@@ -211,3 +213,11 @@ class NotSupportedOverCompositeEntityException(DerivedMetricException):
 
 class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeEntityException):
     ...
+
+
+def get_intervals(start: datetime, end: datetime, granularity: int):
+    assert granularity > 0
+    delta = timedelta(seconds=granularity)
+    while start < end:
+        yield start
+        start += delta

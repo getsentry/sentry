@@ -4,10 +4,10 @@ from urllib.parse import parse_qsl
 from django.db.models import F
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     Authenticator,
     AuthProvider,
     InviteStatus,
@@ -161,7 +161,7 @@ class AcceptInviteTest(TestCase):
         assert om.user == self.user
 
         ale = AuditLogEntry.objects.get(
-            organization=self.organization, event=AuditLogEntryEvent.MEMBER_ACCEPT
+            organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
         )
 
         assert ale.actor == self.user
@@ -256,7 +256,7 @@ class AcceptInviteTest(TestCase):
         assert om.user == self.user
 
         ale = AuditLogEntry.objects.get(
-            organization=self.organization, event=AuditLogEntryEvent.MEMBER_ACCEPT
+            organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
         )
 
         assert ale.actor == self.user

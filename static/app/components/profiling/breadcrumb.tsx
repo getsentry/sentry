@@ -4,26 +4,12 @@ import {Location} from 'history';
 
 import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {
-  flamegraphRouteWithQuery,
-  profilingRouteWithQuery,
-} from 'sentry/views/profiling/routes';
-
-type ProfilingTrail = {
-  type: 'profiling';
-};
-
-type FlamegraphTrail = {
-  payload: {
-    interactionName: string;
-    profileId: string;
-    projectSlug: string;
-  };
-  type: 'flamegraph';
-};
-
-type Trail = ProfilingTrail | FlamegraphTrail;
+  generateFlamegraphRouteWithQuery,
+  generateProfileSummaryRouteWithQuery,
+  generateProfilingRouteWithQuery,
+} from 'sentry/utils/profiling/routes';
 
 interface BreadcrumbProps {
   location: Location;
@@ -50,9 +36,9 @@ function trailToCrumb(
   }
 ): Crumb {
   switch (trail.type) {
-    case 'profiling': {
+    case 'landing': {
       return {
-        to: profilingRouteWithQuery({
+        to: generateProfilingRouteWithQuery({
           location,
           orgSlug: organization.slug,
         }),
@@ -60,15 +46,28 @@ function trailToCrumb(
         preservePageFilters: true,
       };
     }
+    case 'profile summary': {
+      return {
+        to: generateProfileSummaryRouteWithQuery({
+          location,
+          orgSlug: organization.slug,
+          projectSlug: trail.payload.projectSlug,
+          transaction: trail.payload.transaction,
+          version: trail.payload.version,
+        }),
+        label: t('Profile Summary'),
+        preservePageFilters: true,
+      };
+    }
     case 'flamegraph': {
       return {
-        to: flamegraphRouteWithQuery({
+        to: generateFlamegraphRouteWithQuery({
           location,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
           profileId: trail.payload.profileId,
         }),
-        label: trail.payload.interactionName,
+        label: trail.payload.transaction,
         preservePageFilters: true,
       };
     }
@@ -76,6 +75,30 @@ function trailToCrumb(
       throw new Error(`Unknown breadcrumb type: ${JSON.stringify(trail)}`);
   }
 }
+
+type ProfilingTrail = {
+  type: 'landing';
+};
+
+type ProfileSummaryTrail = {
+  payload: {
+    projectSlug: Project['slug'];
+    transaction: string;
+    version: string;
+  };
+  type: 'profile summary';
+};
+
+type FlamegraphTrail = {
+  payload: {
+    profileId: string;
+    projectSlug: string;
+    transaction: string;
+  };
+  type: 'flamegraph';
+};
+
+type Trail = ProfilingTrail | ProfileSummaryTrail | FlamegraphTrail;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;

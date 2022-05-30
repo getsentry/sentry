@@ -135,6 +135,9 @@ jest.mock('@sentry/react', () => {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
+    BrowserClient: jest.fn().mockReturnValue({
+      captureEvent: jest.fn(),
+    }),
     startTransaction: () => ({
       finish: jest.fn(),
       setTag: jest.fn(),
@@ -144,21 +147,6 @@ jest.mock('@sentry/react', () => {
         finish: jest.fn(),
       }),
     }),
-  };
-});
-
-jest.mock('popper.js', () => {
-  const PopperJS = jest.requireActual('popper.js');
-
-  return class {
-    static placements = PopperJS.placements;
-
-    constructor() {
-      return {
-        destroy: () => {},
-        scheduleUpdate: () => {},
-      };
-    }
   };
 });
 
@@ -267,6 +255,35 @@ window.scrollTo = jest.fn();
 // methods as `window.location` is read-only
 Object.defineProperty(window, 'location', {
   value: {...window.location, assign: jest.fn(), reload: jest.fn()},
+  configurable: true,
+  writable: true,
+});
+
+// The JSDOM implementation is too slow
+// Especially for dropdowns that try to position themselves
+// perf issue - https://github.com/jsdom/jsdom/issues/3234
+Object.defineProperty(window, 'getComputedStyle', {
+  value: (el: HTMLElement) => {
+    /**
+     * This is based on the jsdom implementation of getComputedStyle
+     * https://github.com/jsdom/jsdom/blob/9dae17bf0ad09042cfccd82e6a9d06d3a615d9f4/lib/jsdom/browser/Window.js#L779-L820
+     *
+     * It is missing global style parsing and will only return styles applied directly to an element.
+     * Will not return styles that are global or from emotion
+     */
+    const declaration = new CSSStyleDeclaration();
+    const {style} = el;
+
+    Array.prototype.forEach.call(style, (property: string) => {
+      declaration.setProperty(
+        property,
+        style.getPropertyValue(property),
+        style.getPropertyPriority(property)
+      );
+    });
+
+    return declaration;
+  },
   configurable: true,
   writable: true,
 });

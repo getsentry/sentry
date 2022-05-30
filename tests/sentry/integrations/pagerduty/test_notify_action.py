@@ -1,6 +1,6 @@
 import responses
 
-from sentry.integrations.pagerduty.notify_action import PagerDutyNotifyServiceAction
+from sentry.integrations.pagerduty import PagerDutyNotifyServiceAction
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.testutils.cases import RuleTestCase
 from sentry.utils import json

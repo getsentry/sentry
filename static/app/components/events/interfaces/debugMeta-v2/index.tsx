@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {createRef, Fragment, PureComponent} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {
   AutoSizer,
@@ -74,7 +74,7 @@ const cache = new CellMeasurerCache({
   defaultHeight: 81,
 });
 
-class DebugMeta extends React.PureComponent<Props, State> {
+class DebugMeta extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: {images: []},
   };
@@ -119,7 +119,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   unsubscribeFromDebugMetaStore: any;
 
-  panelTableRef = React.createRef<HTMLDivElement>();
+  panelTableRef = createRef<HTMLDivElement>();
   listRef: List | null = null;
 
   onDebugMetaStoreChange = (store: {filter: string}) => {
@@ -558,7 +558,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         isCentered
       >
         {isOpen && (
-          <React.Fragment>
+          <Fragment>
             <StyledSearchBarAction
               placeholder={t('Search images loaded')}
               onChange={value => this.handleChangeSearchTerm(value)}
@@ -580,7 +580,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
             >
               <div ref={this.panelTableRef}>{this.renderList()}</div>
             </StyledPanelTable>
-          </React.Fragment>
+          </Fragment>
         )}
       </EventDataSection>
     );

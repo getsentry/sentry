@@ -172,7 +172,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
         </div>
 
         {showRemoveButton || showLeaveButton ? (
-          <div>
+          <RightColumn>
             {showRemoveButton && canRemoveMember && (
               <Confirm
                 message={tct('Are you sure you want to remove [name] from [orgName]?', {
@@ -228,7 +228,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                 {t('Leave')}
               </Button>
             )}
-          </div>
+          </RightColumn>
         ) : null}
       </StyledPanelItem>
     );
@@ -237,9 +237,17 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
 const StyledPanelItem = styled(PanelItem)`
   display: grid;
-  grid-template-columns: minmax(150px, 2fr) minmax(90px, 1fr) minmax(120px, 1fr) 90px;
+  grid-template-columns: minmax(150px, 4fr) minmax(90px, 2fr) minmax(120px, 2fr) minmax(
+      100px,
+      1fr
+    );
   gap: ${space(2)};
   align-items: center;
+`;
+// Force action button at the end to align to right
+const RightColumn = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 const Section = styled('div')`
@@ -256,14 +264,14 @@ const MemberDescription = styled(Link)`
 
 const UserName = styled('div')`
   display: block;
-  font-size: ${p => p.theme.fontSizeLarge};
   overflow: hidden;
+  font-size: ${p => p.theme.fontSizeMedium};
   text-overflow: ellipsis;
 `;
 
 const Email = styled('div')`
-  color: ${p => p.theme.textColor};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
   overflow: hidden;
   text-overflow: ellipsis;
 `;

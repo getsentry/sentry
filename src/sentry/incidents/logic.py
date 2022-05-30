@@ -8,7 +8,7 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
-from sentry import analytics, quotas
+from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
 from sentry.constants import SentryAppInstallationStatus
 from sentry.incidents import tasks
@@ -32,7 +32,7 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import AuditLogEntryEvent, Integration, PagerDutyService, Project, SentryApp
+from sentry.models import Integration, PagerDutyService, Project, SentryApp
 from sentry.search.events.fields import resolve_field
 from sentry.search.events.filter import get_filter
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
@@ -495,6 +495,10 @@ def create_alert_rule(
         resolution = DEFAULT_CMP_ALERT_RULE_RESOLUTION
         comparison_delta = int(timedelta(minutes=comparison_delta).total_seconds())
     validate_alert_rule_query(query)
+    if dataset == QueryDatasets.SESSIONS and features.has(
+        "organizations:alert-crash-free-metrics", organization, actor=user
+    ):
+        dataset = QueryDatasets.METRICS
     with transaction.atomic():
         snuba_query = create_snuba_query(
             dataset,
@@ -527,7 +531,7 @@ def create_alert_rule(
                 organization_id=organization.id,
                 target_object=alert_rule.id,
                 data=alert_rule.get_audit_log_data(),
-                event=AuditLogEntryEvent.ALERT_RULE_ADD,
+                event=audit_log.get_event_id("ALERT_RULE_ADD"),
             )
 
         if include_all_projects:
@@ -655,8 +659,14 @@ def update_alert_rule(
         updated_fields["threshold_period"] = threshold_period
     if include_all_projects is not None:
         updated_fields["include_all_projects"] = include_all_projects
-    if dataset is not None and dataset.value != alert_rule.snuba_query.dataset:
-        updated_query_fields["dataset"] = dataset
+    if dataset is not None:
+        if dataset == QueryDatasets.SESSIONS and features.has(
+            "organizations:alert-crash-free-metrics", alert_rule.organization, actor=user
+        ):
+            dataset = QueryDatasets.METRICS
+
+        if dataset.value != alert_rule.snuba_query.dataset:
+            updated_query_fields["dataset"] = dataset
     if event_types is not None:
         updated_query_fields["event_types"] = event_types
     if owner is not NOT_SET:
@@ -767,7 +777,7 @@ def update_alert_rule(
             organization_id=alert_rule.organization_id,
             target_object=alert_rule.id,
             data=alert_rule.get_audit_log_data(),
-            event=AuditLogEntryEvent.ALERT_RULE_EDIT,
+            event=audit_log.get_event_id("ALERT_RULE_EDIT"),
         )
 
     return alert_rule
@@ -814,7 +824,7 @@ def delete_alert_rule(alert_rule, user=None):
                 organization_id=alert_rule.organization_id,
                 target_object=alert_rule.id,
                 data=alert_rule.get_audit_log_data(),
-                event=AuditLogEntryEvent.ALERT_RULE_REMOVE,
+                event=audit_log.get_event_id("ALERT_RULE_REMOVE"),
             )
 
         incidents = Incident.objects.filter(alert_rule=alert_rule)

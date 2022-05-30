@@ -265,7 +265,7 @@ class GroupUpdateTest(APITestCase):
         assert GroupResolution.objects.filter(group=group).exists()
 
     def test_snooze_duration(self):
-        group = self.create_group(checksum="a" * 32, status=GroupStatus.RESOLVED)
+        group = self.create_group(status=GroupStatus.RESOLVED)
 
         self.login_as(user=self.user)
 

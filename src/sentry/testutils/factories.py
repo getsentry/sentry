@@ -1,7 +1,6 @@
 import io
 import os
 import random
-import warnings
 from binascii import hexlify
 from datetime import datetime
 from hashlib import sha1
@@ -614,9 +613,7 @@ class Factories:
         return event
 
     @staticmethod
-    def create_group(project, checksum=None, **kwargs):
-        if checksum:
-            warnings.warn("Checksum passed to create_group", DeprecationWarning)
+    def create_group(project, **kwargs):
         kwargs.setdefault("message", "Hello world")
         kwargs.setdefault("data", {})
         if "type" not in kwargs["data"]:

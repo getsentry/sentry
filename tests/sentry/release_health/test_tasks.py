@@ -1,17 +1,25 @@
 import time
+from unittest import mock
 
 from django.db.models import F
 from django.utils import timezone
 
 from sentry.models import GroupRelease, Project, ReleaseProjectEnvironment, Repository
+from sentry.release_health.release_monitor.metrics import MetricReleaseMonitorBackend
+from sentry.release_health.release_monitor.sessions import SessionReleaseMonitorBackend
 from sentry.release_health.tasks import monitor_release_adoption, process_projects_with_sessions
-from sentry.testutils import SnubaTestCase, TestCase
+from sentry.testutils import SessionMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
-class TestReleaseMonitor(TestCase, SnubaTestCase):
+class BaseTestReleaseMonitor:
+    backend_class = None
+
     def setUp(self):
         super().setUp()
+        backend = self.backend_class()
+        self.backend = mock.patch("sentry.release_health.tasks.release_monitor", backend)
+        self.backend.__enter__()
         self.project = self.create_project()
         self.project1 = self.create_project()
         self.project2 = self.create_project()
@@ -88,6 +96,9 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
+    def tearDown(self):
+        self.backend.__exit__(None, None, None)
+
     def test_simple(self):
         self.bulk_store_sessions([self.build_session(project_id=self.project1) for _ in range(11)])
         self.bulk_store_sessions(
@@ -96,7 +107,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
                 for _ in range(1)
             ]
         )
-        assert self.project1.flags.has_sessions.is_set is False
+        assert not self.project1.flags.has_sessions
         now = timezone.now()
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -131,7 +142,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
         ]
         process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
         self.project1.refresh_from_db()
-        assert self.project1.flags.has_sessions.is_set is True
+        assert self.project1.flags.has_sessions
 
         assert not ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
@@ -491,3 +502,38 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             release_id=self.release2.id,
             environment__name="",
         ).exists()
+
+    def test_has_releases_is_set(self):
+        no_release_project = self.create_project()
+        assert not no_release_project.flags.has_releases
+
+        self.bulk_store_sessions(
+            [
+                self.build_session(
+                    project_id=no_release_project, release=self.release2, environment="somenvname"
+                )
+            ]
+        )
+        process_projects_with_sessions(no_release_project.organization_id, [no_release_project.id])
+        no_release_project.refresh_from_db()
+        assert no_release_project.flags.has_releases
+
+    def test_no_env(self):
+        no_env_project = self.create_project()
+        assert not no_env_project.flags.has_releases
+
+        # If environment is None, we shouldn't make any changes
+        self.bulk_store_sessions(
+            [self.build_session(project_id=no_env_project, release=self.release2, environment=None)]
+        )
+        process_projects_with_sessions(no_env_project.organization_id, [no_env_project.id])
+        no_env_project.refresh_from_db()
+        assert not no_env_project.flags.has_releases
+
+
+class TestSessionReleaseMonitor(BaseTestReleaseMonitor, TestCase, SnubaTestCase):
+    backend_class = SessionReleaseMonitorBackend
+
+
+class TestMetricReleaseMonitor(BaseTestReleaseMonitor, TestCase, SessionMetricsTestCase):
+    backend_class = MetricReleaseMonitorBackend

@@ -18,7 +18,7 @@ describe('WidgetQueriesForm', function () {
       columns: ['release'],
       aggregates: ['count()'],
       name: '',
-      orderby: '-count',
+      orderby: '-count()',
     },
   ];
 
@@ -116,7 +116,7 @@ describe('WidgetQueriesForm', function () {
     expect(screen.getByText('count_unique() desc')).toBeInTheDocument();
   });
 
-  it('does not show releases tags in orderby', function () {
+  it('does not show project and environment tags in orderby', function () {
     const field = `sum(${SessionField.SESSION})`;
     render(
       <TestComponent
@@ -136,6 +136,7 @@ describe('WidgetQueriesForm', function () {
     );
     userEvent.click(screen.getByText('sum(session) asc'));
     expect(screen.getByText('sum(session) desc')).toBeInTheDocument();
-    expect(screen.queryByText('release asc')).not.toBeInTheDocument();
+    expect(screen.queryByText('project asc')).not.toBeInTheDocument();
+    expect(screen.queryByText('environment asc')).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -46,10 +46,13 @@ def proxy_profiling_service(
     response = StreamingHttpResponse(
         streaming_content=stream(),
         status=profiling_response.status_code,
+        content_type=profiling_response.headers.get("Content_type", "application/json"),
     )
-    for h in ["Content-Type", "Content-Encoding", "Vary"]:
+
+    for h in ["Content-Encoding", "Vary"]:
         if h in profiling_response.headers:
             response[h] = profiling_response.headers[h]
+
     return response
 
 
@@ -73,7 +76,7 @@ PROFILE_FILTERS = {
 }
 
 
-def parse_profile_filters(query: str) -> Dict[str, List[str]]:
+def parse_profile_filters(query: str) -> Dict[str, str]:
     try:
         parsed_terms = parse_search_query(query)
     except ParseError as e:

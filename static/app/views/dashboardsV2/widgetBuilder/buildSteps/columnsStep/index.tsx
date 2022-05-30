@@ -56,6 +56,18 @@ export function ColumnsStep({
                 ),
               }
             )
+          : dataSet === DataSet.RELEASES
+          ? tct(
+              'To stack sessions, add [functionLink: functions] f(x) that may take in additional parameters. [fieldTagLink: Field and tag] columns will help you view more details about the sessions (e.g., releases).',
+              {
+                functionLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
+                ),
+                fieldTagLink: (
+                  <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#release-properties" />
+                ),
+              }
+            )
           : tct(
               'To stack events, add [functionLink: functions] f(x) that may take in additional parameters. [fieldTagLink: Field and tag] columns will help you view more details about the events (e.g., title).',
               {

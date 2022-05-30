@@ -10,6 +10,7 @@ from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import SessionMetricsTestCase
 from sentry.testutils.helpers.link_header import parse_link_header
+from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_timestamp
 
 
@@ -764,7 +765,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def test_snuba_limit_exceeded(self):
         # 2 * 3 => only show two groups
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
-            "sentry.release_health.metrics_sessions_v2.SNUBA_LIMIT", 6
+            "sentry.snuba.metrics.query.MAX_POINTS", 6
         ):
 
             response = self.do_request(
@@ -804,7 +805,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         """Get consistent result when grouping by status"""
         # 2 * 3 => only show two groups
         with patch("sentry.snuba.sessions_v2.SNUBA_LIMIT", 6), patch(
-            "sentry.release_health.metrics_sessions_v2.SNUBA_LIMIT", 6
+            "sentry.snuba.metrics.query.MAX_POINTS", 6
         ):
 
             response = self.do_request(
@@ -1428,3 +1429,495 @@ class OrganizationSessionsEndpointMetricsTest(
                     "totals": {"sum(session)": 1},
                 }
             ]
+
+
+@patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
+class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCase):
+    def do_request(self, query, user=None, org=None):
+        self.login_as(user=user or self.user)
+        url = reverse(
+            "sentry-api-0-organization-sessions",
+            kwargs={"organization_slug": (org or self.organization).slug},
+        )
+        return self.client.get(url, query, format="json")
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_with_no_releases(self):
+        """
+        Test that ensures if we have no releases in the preflight query when trying to order by
+        `release.timestamp`, we get no groups.
+        Essentially testing the empty preflight query filters branch.
+        """
+        project_random = self.create_project()
+        for _ in range(0, 2):
+            self.store_session(make_session(project_random))
+        self.store_session(make_session(project_random, status="crashed"))
+
+        response = self.do_request(
+            {
+                "project": project_random.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["crash_free_rate(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 3,
+            }
+        )
+        assert response.data["groups"] == []
+
+    def test_order_by_max_limit(self):
+        response = self.do_request(
+            {
+                "project": self.project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["crash_free_rate(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 103,
+            }
+        )
+        assert response.data["detail"] == (
+            "This limit is too high for queries that requests a preflight query. "
+            "Please choose a limit below 100"
+        )
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by(self):
+        """
+        Test that ensures that we are able to get the crash_free_rate for the most 2 recent
+        releases when grouping by release
+        """
+        # Step 1: Create 3 releases
+        release1b = self.create_release(version="1B")
+        release1c = self.create_release(version="1C")
+        release1d = self.create_release(version="1D")
+
+        # Step 2: Create crash free rate for each of those releases
+        # Release 1c -> 66.7% Crash free rate
+        for _ in range(0, 2):
+            self.store_session(make_session(self.project, release=release1c.version))
+        self.store_session(make_session(self.project, release=release1c.version, status="crashed"))
+
+        # Release 1b -> 33.3% Crash free rate
+        for _ in range(0, 2):
+            self.store_session(
+                make_session(self.project, release=release1b.version, status="crashed")
+            )
+        self.store_session(make_session(self.project, release=release1b.version))
+
+        # Create Sessions in each of these releases
+        # Release 1d -> 80% Crash free rate
+        for _ in range(0, 4):
+            self.store_session(make_session(self.project, release=release1d.version))
+        self.store_session(make_session(self.project, release=release1d.version, status="crashed"))
+
+        # Step 3: Make request
+        response = self.do_request(
+            {
+                "project": self.project.id,  # project without users
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["crash_free_rate(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 3,
+            }
+        )
+        # Step 4: Validate Results
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D"},
+                "totals": {"crash_free_rate(session)": 0.8},
+                "series": {"crash_free_rate(session)": [0.8]},
+            },
+            {
+                "by": {"release": "1C"},
+                "totals": {"crash_free_rate(session)": 0.6666666666666667},
+                "series": {"crash_free_rate(session)": [0.6666666666666667]},
+            },
+            {
+                "by": {"release": "1B"},
+                "totals": {"crash_free_rate(session)": 0.33333333333333337},
+                "series": {"crash_free_rate(session)": [0.33333333333333337]},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_with_session_status_groupby(self):
+        """
+        Test that ensures we are able to group by session.status and order by `release.timestamp`
+        since `release.timestamp` is generated from a preflight query
+        """
+        rando_project = self.create_project()
+
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+
+        # Release 1B sessions
+        for _ in range(4):
+            self.store_session(
+                make_session(rando_project, release=release_1b.version, status="crashed")
+            )
+        for _ in range(10):
+            self.store_session(make_session(rando_project, release=release_1b.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1b.version))
+
+        # Release 1A sessions
+        for _ in range(0, 2):
+            self.store_session(
+                make_session(rando_project, release=release_1a.version, status="crashed")
+            )
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1a.version))
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release", "session.status"],
+                "orderBy": "-release.timestamp",
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1B", "session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "crashed"},
+                "totals": {"sum(session)": 4},
+                "series": {"sum(session)": [4]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "errored"},
+                "totals": {"sum(session)": 3},
+                "series": {"sum(session)": [3]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "healthy"},
+                "totals": {"sum(session)": 10},
+                "series": {"sum(session)": [10]},
+            },
+            {
+                "by": {"release": "1A", "session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1A", "session.status": "crashed"},
+                "totals": {"sum(session)": 2},
+                "series": {"sum(session)": [2]},
+            },
+            {
+                "by": {"release": "1A", "session.status": "errored"},
+                "totals": {"sum(session)": 3},
+                "series": {"sum(session)": [3]},
+            },
+            {
+                "by": {"release": "1A", "session.status": "healthy"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_with_limit(self):
+        rando_project = self.create_project()
+
+        # Create two releases with no metrics data and then two releases with metric data
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+        self.create_release(project=rando_project, version="1C")
+        self.create_release(project=rando_project, version="1D")
+
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        self.store_session(make_session(rando_project, release=release_1b.version))
+        self.store_session(
+            make_session(rando_project, release=release_1b.version, status="crashed")
+        )
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 3,
+            }
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1C"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B"},
+                "totals": {"sum(session)": 2},
+                "series": {"sum(session)": [2]},
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release", "session.status"],
+                "orderBy": "-release.timestamp",
+                "per_page": 4,
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D", "session.status": None},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1C", "session.status": None},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "abnormal"},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1B", "session.status": "crashed"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release", "session.status", "project"],
+                "orderBy": "-release.timestamp",
+                "per_page": 2,
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D", "session.status": None, "project": None},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+            {
+                "by": {"release": "1C", "session.status": None, "project": None},
+                "totals": {"sum(session)": 0},
+                "series": {"sum(session)": [0]},
+            },
+        ]
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_with_limit_and_offset(self):
+        rando_project = self.create_project()
+
+        # Create two releases with no metrics data and then two releases with metric data
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+        self.create_release(project=rando_project, version="1C")
+        self.create_release(project=rando_project, version="1D")
+
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        self.store_session(make_session(rando_project, release=release_1b.version))
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+                "per_page": 3,
+                "cursor": Cursor(0, 1),
+            }
+        )
+
+        assert response.data["detail"] == (
+            "Passing an offset value greater than 0 when ordering by release.timestamp "
+            "is not permitted"
+        )
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_with_environment_filter_on_preflight(self):
+        rando_project = self.create_project()
+        rando_env = self.create_environment(name="rando_env", project=self.project)
+
+        # Create two releases with no metrics data and then two releases with metric data
+        release_1a = self.create_release(
+            project=rando_project, version="1A", environments=[rando_env]
+        )
+        release_1b = self.create_release(
+            project=rando_project, version="1B", environments=[rando_env]
+        )
+        release_1c = self.create_release(project=rando_project, version="1C")
+        release_1d = self.create_release(project=rando_project, version="1D")
+
+        self.store_session(
+            make_session(rando_project, release=release_1a.version, environment="rando_env")
+        )
+        self.store_session(
+            make_session(rando_project, release=release_1b.version, environment="rando_env")
+        )
+        self.store_session(make_session(rando_project, release=release_1c.version))
+        self.store_session(make_session(rando_project, release=release_1d.version))
+
+        # Test env condition with IN
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": "environment:[rando_env,rando_enc2]",
+                "groupBy": ["release", "environment"],
+                "orderBy": "-release.timestamp",
+                "per_page": 4,
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1B", "environment": "rando_env"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+            {
+                "by": {"release": "1A", "environment": "rando_env"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+        # Test env condition with NOT IN
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": "!environment:[rando_env,rando_enc2]",
+                "groupBy": ["release", "environment"],
+                "orderBy": "-release.timestamp",
+                "per_page": 4,
+            }
+        )
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1D", "environment": "production"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+            {
+                "by": {"release": "1C", "environment": "production"},
+                "totals": {"sum(session)": 1},
+                "series": {"sum(session)": [1]},
+            },
+        ]
+
+        # Test env condition with invalid OR operation
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(session)"],
+                "query": "environment:rando_env OR environment:rando_enc2",
+                "groupBy": ["release", "environment"],
+                "orderBy": "-release.timestamp",
+                "per_page": 4,
+            }
+        )
+        assert response.json()["detail"] == "Unable to parse condition with environment"
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_without_release_groupby(self):
+        rando_project = self.create_project()
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "query": "session.status:[crashed,errored]",
+                "field": ["sum(session)"],
+                "orderBy": "-release.timestamp",
+                "per_page": 2,
+            }
+        )
+        assert response.data["detail"] == (
+            "To sort by release.timestamp, tag release must be in the groupBy"
+        )
+
+    @freeze_time(MOCK_DATETIME)
+    def test_order_by_release_with_session_status_current_filter(self):
+        rando_project = self.create_project()
+
+        release_1a = self.create_release(project=rando_project, version="1A")
+        release_1b = self.create_release(project=rando_project, version="1B")
+
+        # Release 1B sessions
+        for _ in range(4):
+            self.store_session(
+                make_session(rando_project, release=release_1b.version, status="crashed")
+            )
+        for _ in range(10):
+            self.store_session(make_session(rando_project, release=release_1b.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1b.version))
+
+        # Release 1A sessions
+        for _ in range(0, 2):
+            self.store_session(
+                make_session(rando_project, release=release_1a.version, status="crashed")
+            )
+        self.store_session(make_session(rando_project, release=release_1a.version))
+        for _ in range(3):
+            self.store_session(make_session(rando_project, errors=1, release=release_1a.version))
+
+        response = self.do_request(
+            {
+                "project": rando_project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "query": "session.status:[crashed,errored]",
+                "field": ["sum(session)"],
+                "groupBy": ["release"],
+                "orderBy": "-release.timestamp",
+            }
+        )
+
+        assert response.data["groups"] == [
+            {
+                "by": {"release": "1B"},
+                "totals": {"sum(session)": 7},
+                "series": {"sum(session)": [7]},
+            },
+            {
+                "by": {"release": "1A"},
+                "totals": {"sum(session)": 5},
+                "series": {"sum(session)": [5]},
+            },
+        ]

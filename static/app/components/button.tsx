@@ -29,6 +29,7 @@ interface BaseButtonProps
   barId?: string;
   borderless?: boolean;
   busy?: boolean;
+  'data-test-id'?: string;
   disabled?: boolean;
   download?: HTMLAnchorElement['download'];
   external?: boolean;
@@ -368,7 +369,7 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  return size === 'xsmall' ? '6px' : '8px';
+  return size && ['xsmall', 'zero'].includes(size) ? '6px' : '8px';
 };
 
 const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`

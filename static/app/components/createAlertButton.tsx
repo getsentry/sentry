@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -27,7 +27,7 @@ import useApi from 'sentry/utils/useApi';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'sentry/views/alerts/incidentRules/constants';
+} from 'sentry/views/alerts/rules/metric/constants';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
 import {
   AlertType,
@@ -139,7 +139,7 @@ function IncompatibleQueryAlert({
       }
     >
       {totalErrors === 1 && (
-        <React.Fragment>
+        <Fragment>
           {hasProjectError &&
             t('An alert can use data from only one Project. Select one and try again.')}
           {hasEnvironmentError &&
@@ -158,10 +158,10 @@ function IncompatibleQueryAlert({
                 yAxis: <StyledCode>{eventView.getYAxis()}</StyledCode>,
               }
             )}
-        </React.Fragment>
+        </Fragment>
       )}
       {totalErrors > 1 && (
-        <React.Fragment>
+        <Fragment>
           {t('Yikes! That button didn’t work. Please fix the following problems:')}
           <StyledUnorderedList>
             {hasProjectError && <li>{t('Select one Project.')}</li>}
@@ -187,7 +187,7 @@ function IncompatibleQueryAlert({
               </li>
             )}
           </StyledUnorderedList>
-        </React.Fragment>
+        </Fragment>
       )}
     </StyledAlert>
   );
@@ -426,7 +426,7 @@ const CreateAlertButton = withRouter(
         tooltipProps={{
           isHoverable: true,
           position: 'top',
-          popperStyle: {
+          overlayStyle: {
             maxWidth: '270px',
           },
         }}

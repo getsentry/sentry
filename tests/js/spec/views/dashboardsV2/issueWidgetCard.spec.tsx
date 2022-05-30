@@ -136,7 +136,7 @@ describe('Dashboards > IssueWidgetCard', function () {
     expect(screen.getByText('Open in Issues')).toBeInTheDocument();
     userEvent.click(screen.getByText('Open in Issues'));
     expect(router.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/issues/?query=event.type%3Adefault&sort=freq&statsPeriod=14d'
+      '/organizations/org-slug/issues/?environment=prod&project=1&query=event.type%3Adefault&sort=freq&statsPeriod=14d'
     );
   });
 

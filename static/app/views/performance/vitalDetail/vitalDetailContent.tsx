@@ -91,7 +91,10 @@ class VitalDetailContent extends Component<Props, State> {
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   };
 
@@ -220,7 +223,7 @@ class VitalDetailContent extends Component<Props, State> {
           <PageFilterBar condensed>
             <ProjectPageFilter />
             <EnvironmentPageFilter />
-            <DatePageFilter />
+            <DatePageFilter alignDropdown="left" />
           </PageFilterBar>
           <SearchBar
             searchSource="performance_vitals"

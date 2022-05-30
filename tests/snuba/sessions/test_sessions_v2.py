@@ -19,13 +19,13 @@ from sentry.snuba.sessions_v2 import (
 )
 
 
-def _make_query(qs, allow_minute_resolution=True):
+def _make_query(qs, allow_minute_resolution=True, params=None):
     query_config = SessionsQueryConfig(
         (AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour),
         allow_session_status_query=False,
         restrict_date_range=True,
     )
-    return QueryDefinition(QueryDict(qs), {}, query_config)
+    return QueryDefinition(QueryDict(qs), params or {}, query_config)
 
 
 def result_sorted(result):
@@ -220,6 +220,125 @@ def test_virtual_groupby_query():
         "users_errored",
     ]
     assert query.query_groupby == []
+
+
+@freeze_time("2022-05-04T09:00:00.000Z")
+def _get_query_maker_params(project):
+    # These parameters are computed in the API endpoint, before the
+    # QueryDefinition is built. Since we're only testing the query
+    # definition here, we can safely mock these.
+    return {
+        "start": datetime.now(),
+        "end": datetime.now(),
+        "organization_id": project.organization_id,
+    }
+
+
+@pytest.mark.django_db
+def test_filter_proj_slug_in_query(default_project):
+    params = _get_query_maker_params(default_project)
+    params["project_id"] = [default_project.id]
+    query_def = _make_query(
+        f"field=sum(session)&interval=2h&statsPeriod=2h&query=project%3A{default_project.slug}",
+        params=params,
+    )
+    assert query_def.query == f"project:{default_project.slug}"
+    assert query_def.params["project_id"] == [default_project.id]
+    assert query_def.conditions == [["project_id", "=", default_project.id]]
+    assert query_def.filter_keys == {"project_id": [default_project.id]}
+
+
+@pytest.mark.django_db
+def test_filter_proj_slug_in_top_filter(default_project):
+    params = _get_query_maker_params(default_project)
+    params["project_id"] = [default_project.id]
+    query_def = _make_query(
+        f"field=sum(session)&interval=2h&statsPeriod=2h&project={default_project.id}",
+        params=params,
+    )
+    assert query_def.query == ""
+    assert query_def.params["project_id"] == [default_project.id]
+    assert query_def.conditions == []
+    assert query_def.filter_keys == {"project_id": [default_project.id]}
+
+
+@pytest.mark.django_db
+def test_filter_proj_slug_in_top_filter_and_query(default_project):
+    params = _get_query_maker_params(default_project)
+    params["project_id"] = [default_project.id]
+    query_def = _make_query(
+        f"field=sum(session)&interval=2h&statsPeriod=2h&project={default_project.id}&query=project%3A{default_project.slug}",
+        params=params,
+    )
+    assert query_def.query == f"project:{default_project.slug}"
+    assert query_def.params["project_id"] == [default_project.id]
+    assert query_def.conditions == [["project_id", "=", default_project.id]]
+    assert query_def.filter_keys == {"project_id": [default_project.id]}
+
+
+@pytest.mark.django_db
+def test_proj_neither_in_top_filter_nor_query(default_project):
+    params = _get_query_maker_params(default_project)
+    query_def = _make_query(
+        "field=sum(session)&interval=2h&statsPeriod=2h",
+        params=params,
+    )
+    assert query_def.query == ""
+    assert "project_id" not in query_def.params
+    assert query_def.conditions == []
+    assert query_def.filter_keys == {}
+
+
+@pytest.mark.django_db
+def test_filter_env_in_query(default_project):
+    env = "prod"
+    params = _get_query_maker_params(default_project)
+    query_def = _make_query(
+        f"field=sum(session)&interval=2h&statsPeriod=2h&query=environment%3A{env}",
+        params=params,
+    )
+    assert query_def.query == f"environment:{env}"
+    assert query_def.conditions == [[["environment", "=", env]]]
+
+
+@pytest.mark.django_db
+def test_filter_env_in_top_filter(default_project):
+    env = "prod"
+    params = _get_query_maker_params(default_project)
+    params["environment"] = "prod"
+    query_def = _make_query(
+        f"field=sum(session)&interval=2h&statsPeriod=2h&environment={env}",
+        params=params,
+    )
+    assert query_def.query == ""
+    assert query_def.conditions == [[["environment", "=", "prod"]]]
+
+
+@pytest.mark.django_db
+def test_filter_env_in_top_filter_and_query(default_project):
+    env = "prod"
+    params = _get_query_maker_params(default_project)
+    params["environment"] = "prod"
+    query_def = _make_query(
+        f"field=sum(session)&interval=2h&statsPeriod=2h&environment={env}&query=environment%3A{env}",
+        params=params,
+    )
+    assert query_def.query == f"environment:{env}"
+    assert query_def.conditions == [
+        [["environment", "=", "prod"]],
+        [["environment", "=", "prod"]],
+    ]
+
+
+@pytest.mark.django_db
+def test_env_neither_in_top_filter_nor_query(default_project):
+    params = _get_query_maker_params(default_project)
+    query_def = _make_query(
+        "field=sum(session)&interval=2h&statsPeriod=2h",
+        params=params,
+    )
+    assert query_def.query == ""
+    assert query_def.conditions == []
 
 
 @freeze_time("2020-12-18T11:14:17.105Z")

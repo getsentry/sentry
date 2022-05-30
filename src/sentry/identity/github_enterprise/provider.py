@@ -1,3 +1,5 @@
+from django.core.exceptions import PermissionDenied
+
 from sentry import http
 from sentry.identity.oauth2 import OAuth2Provider
 
@@ -24,8 +26,12 @@ class GitHubEnterpriseIdentityProvider(OAuth2Provider):
 
     def build_identity(self, data):
         data = data["data"]
+        access_token = data.get("access_token")
+        if not access_token:
+            raise PermissionDenied()
+
         # todo(meredith): this doesn't work yet, need to pass in the base url
-        user = get_user_info(data["access_token"])
+        user = get_user_info(access_token)
 
         return {
             "type": "github_enterprise",

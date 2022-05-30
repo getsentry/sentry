@@ -3,22 +3,16 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.rule import RuleSerializer
-from sentry.integrations.slack import tasks
+from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators import project_rules
-from sentry.models import (
-    AuditLogEntryEvent,
-    Rule,
-    RuleActivity,
-    RuleActivityType,
-    RuleStatus,
-    Team,
-    User,
-)
-from sentry.rules.actions.base import trigger_sentry_app_action_creators_for_issues
+from sentry.models import Rule, RuleActivity, RuleActivityType, RuleStatus, Team, User
+from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
 from sentry.signals import alert_rule_created
+from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.web.decorators import transaction_start
 
 
@@ -107,10 +101,10 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     )
 
             if data.get("pending_save"):
-                client = tasks.RedisRuleStatus()
+                client = RedisRuleStatus()
                 uuid_context = {"uuid": client.uuid}
                 kwargs.update(uuid_context)
-                tasks.find_channel_id_for_rule.apply_async(kwargs=kwargs)
+                find_channel_id_for_rule.apply_async(kwargs=kwargs)
                 return Response(uuid_context, status=202)
 
             created_alert_rule_ui_component = trigger_sentry_app_action_creators_for_issues(
@@ -120,12 +114,14 @@ class ProjectRulesEndpoint(ProjectEndpoint):
             RuleActivity.objects.create(
                 rule=rule, user=request.user, type=RuleActivityType.CREATED.value
             )
+            duplicate_rule = request.query_params.get("duplicateRule")
+            wizard_v3 = request.query_params.get("wizardV3")
 
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
                 target_object=rule.id,
-                event=AuditLogEntryEvent.RULE_ADD,
+                event=audit_log.get_event_id("RULE_ADD"),
                 data=rule.get_audit_log_data(),
             )
             alert_rule_created.send_robust(
@@ -136,6 +132,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 sender=self,
                 is_api_token=request.auth is not None,
                 alert_rule_ui_component=created_alert_rule_ui_component,
+                duplicate_rule=duplicate_rule,
+                wizard_v3=wizard_v3,
             )
 
             return Response(serialize(rule, request.user))

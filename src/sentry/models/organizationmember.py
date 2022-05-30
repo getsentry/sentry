@@ -401,7 +401,7 @@ class OrganizationMember(Model):
         """
         Approve a member invite/join request and send an audit log entry
         """
-        from sentry.models.auditlogentry import AuditLogEntryEvent
+        from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
         self.approve_invite()
@@ -423,9 +423,9 @@ class OrganizationMember(Model):
             organization_id=self.organization_id,
             target_object=self.id,
             data=self.get_audit_log_data(),
-            event=AuditLogEntryEvent.MEMBER_INVITE
+            event=audit_log.get_event_id("MEMBER_INVITE")
             if settings.SENTRY_ENABLE_INVITES
-            else AuditLogEntryEvent.MEMBER_ADD,
+            else audit_log.get_event_id("MEMBER_ADD"),
         )
 
     def reject_member_invitation(
@@ -437,7 +437,7 @@ class OrganizationMember(Model):
         """
         Reject a member invite/jin request and send an audit log entry
         """
-        from sentry.models.auditlogentry import AuditLogEntryEvent
+        from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
         self.delete()
@@ -449,7 +449,7 @@ class OrganizationMember(Model):
             organization_id=self.organization_id,
             target_object=self.id,
             data=self.get_audit_log_data(),
-            event=AuditLogEntryEvent.INVITE_REQUEST_REMOVE,
+            event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
 
     def get_allowed_roles_to_invite(self):

@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
@@ -47,7 +48,56 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
         fields: ['transaction', 'count()'],
         aggregates: ['count()'],
         columns: ['transaction'],
-        orderby: '-count',
+        orderby: '-count()',
+      },
+    ],
+  },
+  {
+    id: undefined,
+    title: t('Crash Rates for Recent Releases'),
+    description: t('Percentage of crashed sessions for latest releases.'),
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.RELEASE,
+    interval: '5m',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['crash_rate(session)', 'release'],
+        aggregates: ['crash_rate(session)'],
+        columns: ['release'],
+        orderby: '-release',
+      },
+    ],
+  },
+  {
+    id: undefined,
+    title: t('User Session Health by Project'),
+    description: t('Breakdown of user sessions by project.'),
+    displayType: DisplayType.TABLE,
+    widgetType: WidgetType.RELEASE,
+    interval: '5m',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: [
+          'project',
+          'count_abnormal(user)',
+          'count_crashed(user)',
+          'count_errored(user)',
+          'count_healthy(user)',
+          'count_unique(user)',
+        ],
+        aggregates: [
+          'count_abnormal(user)',
+          'count_crashed(user)',
+          'count_errored(user)',
+          'count_healthy(user)',
+          'count_unique(user)',
+        ],
+        columns: ['project'],
+        orderby: '-count_unique(user)',
       },
     ],
   },
@@ -143,7 +193,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
         fields: ['error.type', 'count()'],
         aggregates: ['count()'],
         columns: ['error.type'],
-        orderby: '-count',
+        orderby: '-count()',
       },
     ],
   },
@@ -166,3 +216,16 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
 ];
+
+export function getTopNConvertedDefaultWidgets(): Readonly<Array<WidgetTemplate>> {
+  return DEFAULT_WIDGETS.map(widget => {
+    if (widget.displayType === DisplayType.TOP_N) {
+      return {
+        ...widget,
+        displayType: DisplayType.AREA,
+        limit: TOP_N,
+      };
+    }
+    return widget;
+  });
+}

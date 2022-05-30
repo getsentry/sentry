@@ -1,3 +1,5 @@
+import invert from 'lodash/invert';
+
 import {
   SelectValue,
   SessionAggregationColumn,
@@ -7,17 +9,84 @@ import {
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
+import {SessionMetric} from 'sentry/utils/metrics/fields';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
+
+export const DERIVED_STATUS_METRICS_PATTERN =
+  /count_(abnormal|errored|crashed|healthy)\((user|session)\)/;
+
+export enum DerivedStatusFields {
+  HEALTHY_SESSIONS = 'count_healthy(session)',
+  HEALTHY_USERS = 'count_healthy(user)',
+  ABNORMAL_SESSIONS = 'count_abnormal(session)',
+  ABNORMAL_USERS = 'count_abnormal(user)',
+  CRASHED_SESSIONS = 'count_crashed(session)',
+  CRASHED_USERS = 'count_crashed(user)',
+  ERRORED_SESSIONS = 'count_errored(session)',
+  ERRORED_USERS = 'count_errored(user)',
+}
+
+export const FIELD_TO_METRICS_EXPRESSION = {
+  'count_healthy(session)': SessionMetric.SESSION_HEALTHY,
+  'count_healthy(user)': SessionMetric.USER_HEALTHY,
+  'count_abnormal(session)': SessionMetric.SESSION_ABNORMAL,
+  'count_abnormal(user)': SessionMetric.USER_ABNORMAL,
+  'count_crashed(session)': SessionMetric.SESSION_CRASHED,
+  'count_crashed(user)': SessionMetric.USER_CRASHED,
+  'count_errored(session)': SessionMetric.SESSION_ERRORED,
+  'count_errored(user)': SessionMetric.USER_ERRORED,
+  'count_unique(user)': `count_unique(${SessionMetric.USER})`,
+  'sum(session)': `sum(${SessionMetric.SESSION})`,
+  'crash_free_rate(session)': SessionMetric.SESSION_CRASH_FREE_RATE,
+  'crash_free_rate(user)': SessionMetric.USER_CRASH_FREE_RATE,
+  'crash_rate(session)': SessionMetric.SESSION_CRASH_RATE,
+  'crash_rate(user)': SessionMetric.USER_CRASH_RATE,
+  'avg(session.duration)': `avg(${SessionMetric.SESSION_DURATION})`,
+  'max(session.duration)': `max(${SessionMetric.SESSION_DURATION})`,
+  'p50(session.duration)': `p50(${SessionMetric.SESSION_DURATION})`,
+  'p75(session.duration)': `p75(${SessionMetric.SESSION_DURATION})`,
+  'p95(session.duration)': `p95(${SessionMetric.SESSION_DURATION})`,
+  'p99(session.duration)': `p99(${SessionMetric.SESSION_DURATION})`,
+  project: 'project_id',
+};
+
+export const METRICS_EXPRESSION_TO_FIELD = invert(FIELD_TO_METRICS_EXPRESSION);
+
+export const DISABLED_SORT = [
+  'count_errored(session)',
+  'count_errored(user)',
+  'count_healthy(session)',
+  'count_healthy(user)',
+  'session.status',
+];
+
+export const TAG_SORT_DENY_LIST = ['project', 'environment'];
 
 export const SESSIONS_FIELDS: Readonly<Partial<Record<SessionField, SessionsMeta>>> = {
   [SessionField.SESSION]: {
     name: 'session',
-    operations: ['sum', 'crash_rate', 'crash_free_rate'],
+    operations: [
+      'sum',
+      'crash_rate',
+      'crash_free_rate',
+      'count_healthy',
+      'count_abnormal',
+      'count_crashed',
+      'count_errored',
+    ],
     type: 'integer',
   },
   [SessionField.USER]: {
     name: 'user',
-    operations: ['count_unique', 'crash_rate', 'crash_free_rate'],
+    operations: [
+      'count_unique',
+      'crash_rate',
+      'crash_free_rate',
+      'count_healthy',
+      'count_abnormal',
+      'count_crashed',
+      'count_errored',
+    ],
     type: 'string',
   },
   [SessionField.SESSION_DURATION]: {
@@ -52,6 +121,58 @@ export const SESSIONS_OPERATIONS: Readonly<
         kind: 'column',
         columnTypes: ['string'],
         defaultValue: SessionField.USER,
+        required: true,
+      },
+    ],
+  },
+  count_healthy: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionField.SESSION,
+    outputType: 'integer',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  count_abnormal: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionField.SESSION,
+    outputType: 'integer',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  count_crashed: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionField.SESSION,
+    outputType: 'integer',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
+        required: true,
+      },
+    ],
+  },
+  count_errored: {
+    columnTypes: ['integer', 'string'],
+    defaultValue: SessionField.SESSION,
+    outputType: 'integer',
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['integer', 'string'],
+        defaultValue: SessionField.SESSION,
         required: true,
       },
     ],
@@ -163,6 +284,7 @@ export const SESSIONS_OPERATIONS: Readonly<
 };
 
 export const SESSIONS_TAGS = ['environment', 'project', 'release', 'session.status'];
+export const SESSIONS_FILTER_TAGS = ['environment', 'project', 'release'];
 export const SESSION_STATUSES = Object.values(SessionStatus);
 
 export function generateReleaseWidgetFieldOptions(

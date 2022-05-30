@@ -149,9 +149,10 @@ function Search({
     [entryPoint]
   );
 
-  const debouncedSaveQueryMetrics = useMemo(() => {
-    return debounce(saveQueryMetrics, 200);
-  }, [entryPoint, saveQueryMetrics]);
+  const debouncedSaveQueryMetrics = useMemo(
+    () => debounce(saveQueryMetrics, 200),
+    [saveQueryMetrics]
+  );
 
   return (
     <AutoComplete

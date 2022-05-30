@@ -89,6 +89,10 @@ class SnubaProtocolEventStream(EventStream):
     ) -> Mapping[str, str]:
         return {"Received-Timestamp": str(received_timestamp)}
 
+    @staticmethod
+    def _is_transaction_event(event) -> bool:
+        return event.group_id is None
+
     def insert(
         self,
         group,
@@ -132,6 +136,8 @@ class SnubaProtocolEventStream(EventStream):
             else False
         )
 
+        is_transaction_event = self._is_transaction_event(event)
+
         self._send(
             project.id,
             "insert",
@@ -159,6 +165,7 @@ class SnubaProtocolEventStream(EventStream):
             ),
             headers=headers,
             skip_semantic_partitioning=skip_semantic_partitioning,
+            is_transaction_event=is_transaction_event,
         )
 
     def start_delete_groups(self, project_id, group_ids):
@@ -317,6 +324,7 @@ class SnubaProtocolEventStream(EventStream):
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
+        is_transaction_event: bool = False,
     ):
         raise NotImplementedError
 
@@ -330,6 +338,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         asynchronous: bool = True,
         headers: Optional[Mapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
+        is_transaction_event: bool = False,
     ):
         if headers is None:
             headers = {}
@@ -337,7 +346,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         data = (self.EVENT_PROTOCOL_VERSION, _type) + extra_data
 
         dataset = "events"
-        if get_path(extra_data, 0, "data", "type") == "transaction":
+        if is_transaction_event:
             dataset = "transactions"
         try:
             resp = snuba._snuba_pool.urlopen(

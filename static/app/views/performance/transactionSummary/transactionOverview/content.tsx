@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -101,7 +101,10 @@ function SummaryContent({
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   }
 
@@ -264,7 +267,7 @@ function SummaryContent({
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Layout.Main>
         <FilterActions>
           <Filter
@@ -386,7 +389,7 @@ function SummaryContent({
           location={location}
         />
       </Layout.Side>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

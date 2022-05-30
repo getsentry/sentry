@@ -16,7 +16,6 @@ import {defined} from 'sentry/utils';
 import {
   explodeField,
   generateFieldAsString,
-  getAggregateAlias,
   getColumnsAndAggregatesAsStrings,
   isEquation,
   stripDerivedMetricsPrefix,
@@ -24,6 +23,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import {Widget, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {ReleaseSearchBar} from 'sentry/views/dashboardsV2/widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
+import {
+  DISABLED_SORT,
+  TAG_SORT_DENY_LIST,
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import WidgetQueryFields from './widgetQueryFields';
@@ -33,23 +36,25 @@ export const generateOrderOptions = ({
   columns,
   widgetType,
   widgetBuilderNewDesign = false,
-  isUsingFieldFormat = false,
 }: {
   aggregates: string[];
   columns: string[];
   widgetType: WidgetType;
-  isUsingFieldFormat?: boolean;
   widgetBuilderNewDesign?: boolean;
 }): SelectValue<string>[] => {
   const isRelease = widgetType === WidgetType.RELEASE;
   const options: SelectValue<string>[] = [];
   let equations = 0;
-  (isRelease ? aggregates.map(stripDerivedMetricsPrefix) : [...aggregates, ...columns])
+  (isRelease
+    ? [...aggregates.map(stripDerivedMetricsPrefix), ...columns]
+    : [...aggregates, ...columns]
+  )
     .filter(field => !!field)
+    .filter(field => !DISABLED_SORT.includes(field))
+    .filter(field => (isRelease ? !TAG_SORT_DENY_LIST.includes(field) : true))
     .forEach(field => {
-      let alias = getAggregateAlias(field);
+      let alias;
       const label = stripEquationPrefix(field);
-      const shouldUseField = (isRelease || isUsingFieldFormat) && !isEquation(field);
       // Equations are referenced via a standard alias following this pattern
       if (isEquation(field)) {
         alias = `equation[${equations}]`;
@@ -57,18 +62,18 @@ export const generateOrderOptions = ({
       }
 
       if (widgetBuilderNewDesign) {
-        options.push({label, value: shouldUseField ? field : alias});
+        options.push({label, value: alias ?? field});
         return;
       }
 
       options.push({
         label: t('%s asc', label),
-        value: shouldUseField ? field : alias,
+        value: alias ?? field,
       });
 
       options.push({
         label: t('%s desc', label),
-        value: shouldUseField ? `-${field}` : `-${alias}`,
+        value: `-${alias ?? field}`,
       });
     });
 
@@ -190,8 +195,6 @@ class WidgetQueriesForm extends Component<Props> {
       widgetType = WidgetType.DISCOVER,
     } = this.props;
 
-    const isRelease = widgetType === WidgetType.RELEASE;
-
     const hideLegendAlias = ['table', 'world_map', 'big_number'].includes(displayType);
     const query = queries[0];
     const explodedFields = defined(query.fields)
@@ -265,10 +268,6 @@ class WidgetQueriesForm extends Component<Props> {
             const {aggregates, columns} = getColumnsAndAggregatesAsStrings(fields);
             const fieldStrings = fields.map(field => generateFieldAsString(field));
 
-            const aggregateAliasFieldStrings = isRelease
-              ? fieldStrings
-              : fieldStrings.map(field => getAggregateAlias(field));
-
             queries.forEach((widgetQuery, queryIndex) => {
               const newQuery = cloneDeep(widgetQuery);
               newQuery.fields = fieldStrings;
@@ -276,23 +275,15 @@ class WidgetQueriesForm extends Component<Props> {
               newQuery.columns = columns;
               if (defined(widgetQuery.orderby)) {
                 const descending = widgetQuery.orderby.startsWith('-');
-                const orderbyAggregateAliasField = widgetQuery.orderby.replace('-', '');
-                const prevAggregateAliasFields = defined(widgetQuery.fields)
+                const orderby = widgetQuery.orderby.replace('-', '');
+                const prevFieldStrings = defined(widgetQuery.fields)
                   ? widgetQuery.fields
                   : [...widgetQuery.columns, ...widgetQuery.aggregates];
-                const prevAggregateAliasFieldStrings = prevAggregateAliasFields.map(
-                  field => (isRelease ? field : getAggregateAlias(field))
-                );
-                if (
-                  !aggregateAliasFieldStrings.includes(orderbyAggregateAliasField) &&
-                  widgetQuery.orderby !== ''
-                ) {
-                  if (prevAggregateAliasFieldStrings.length === fields.length) {
+                if (!aggregates.includes(orderby) && widgetQuery.orderby !== '') {
+                  if (prevFieldStrings.length === fields.length) {
                     // The Field that was used in orderby has changed. Get the new field.
-                    newQuery.orderby = `${descending && '-'}${
-                      aggregateAliasFieldStrings[
-                        prevAggregateAliasFieldStrings.indexOf(orderbyAggregateAliasField)
-                      ]
+                    newQuery.orderby = `${descending ? '-' : ''}${
+                      aggregates[prevFieldStrings.indexOf(orderby)]
                     }`;
                   } else {
                     newQuery.orderby = '';

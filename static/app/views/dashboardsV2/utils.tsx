@@ -11,7 +11,13 @@ import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
-import {getDiffInMinutes, getInterval} from 'sentry/components/charts/utils';
+import {
+  Fidelity,
+  getDiffInMinutes,
+  getInterval,
+  SIX_HOURS,
+  TWENTY_FOUR_HOURS,
+} from 'sentry/components/charts/utils';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
@@ -143,7 +149,8 @@ export function miniWidget(displayType: DisplayType): string {
 
 export function getWidgetInterval(
   widget: Widget,
-  datetimeObj: Partial<PageFilters['datetime']>
+  datetimeObj: Partial<PageFilters['datetime']>,
+  fidelity?: Fidelity
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
   const MAX_BIN_COUNT = 66;
@@ -157,6 +164,16 @@ export function getWidgetInterval(
   }
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
+
+  if (fidelity) {
+    // Primarily to support lower fidelity for Release Health widgets
+    // the sort on releases and hit the metrics API endpoint.
+    interval = getInterval(datetimeObj, fidelity);
+    if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
+      interval = '1h';
+    }
+    return widget.displayType === 'bar' ? '1d' : interval;
+  }
 
   // selectedRange is in minutes, desiredPeriod is in hours
   // convert desiredPeriod to minutes
@@ -259,8 +276,28 @@ export function getWidgetIssueUrl(
     query: widget.queries?.[0]?.conditions,
     sort: widget.queries?.[0]?.orderby,
     ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
   })}`;
   return issuesLocation;
+}
+
+export function getWidgetReleasesUrl(
+  _widget: Widget,
+  selection: PageFilters,
+  organization: Organization
+) {
+  const {start, end, utc, period} = selection.datetime;
+  const datetime =
+    start && end
+      ? {start: getUtcDateString(start), end: getUtcDateString(end), utc}
+      : {statsPeriod: period};
+  const releasesLocation = `/organizations/${organization.slug}/releases/?${qs.stringify({
+    ...datetime,
+    project: selection.projects,
+    environment: selection.environments,
+  })}`;
+  return releasesLocation;
 }
 
 export function flattenErrors(

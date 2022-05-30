@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {createRef, Fragment, PureComponent} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -67,7 +67,7 @@ const cache = new CellMeasurerCache({
   defaultHeight: 81,
 });
 
-class DebugMeta extends React.PureComponent<Props, State> {
+class DebugMeta extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     data: {images: []},
   };
@@ -116,7 +116,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
 
   unsubscribeFromStore: any;
 
-  panelBodyRef = React.createRef<HTMLDivElement>();
+  panelBodyRef = createRef<HTMLDivElement>();
   listRef: List | null = null;
 
   updateGrid() {
@@ -440,7 +440,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
       >
         <DebugImagesPanel>
           {filteredImages.length > 0 ? (
-            <React.Fragment>
+            <Fragment>
               {foundFrame && (
                 <ImageForBar
                   frame={foundFrame}
@@ -448,7 +448,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
                 />
               )}
               <PanelBody ref={this.panelBodyRef}>{this.renderImageList()}</PanelBody>
-            </React.Fragment>
+            </Fragment>
           ) : (
             <EmptyMessage icon={<IconWarning size="xl" />}>
               {this.getNoImagesMessage()}

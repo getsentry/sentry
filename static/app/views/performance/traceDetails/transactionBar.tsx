@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import {Location} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -70,12 +70,12 @@ type State = {
   showDetail: boolean;
 };
 
-class TransactionBar extends React.Component<Props, State> {
+class TransactionBar extends Component<Props, State> {
   state: State = {
     showDetail: false,
   };
 
-  transactionRowDOMRef = React.createRef<HTMLDivElement>();
+  transactionRowDOMRef = createRef<HTMLDivElement>();
 
   toggleDisplayDetail = () => {
     const {transaction} = this.props;
@@ -210,7 +210,7 @@ class TransactionBar extends React.Component<Props, State> {
       : false;
 
     const content = isTraceFullDetailed(transaction) ? (
-      <React.Fragment>
+      <Fragment>
         <Projects orgId={organization.slug} slugs={[transaction.project_slug]}>
           {({projects}) => {
             const project = projects.find(p => p.slug === transaction.project_slug);
@@ -234,7 +234,7 @@ class TransactionBar extends React.Component<Props, State> {
           </strong>
           {transaction.transaction}
         </RowTitleContent>
-      </React.Fragment>
+      </Fragment>
     ) : (
       <RowTitleContent errored={false}>
         <strong>{'Trace \u2014 '}</strong>

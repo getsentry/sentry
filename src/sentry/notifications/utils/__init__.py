@@ -218,7 +218,7 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
         for committer in committers:
             for commit in committer["commits"]:
                 if commit["id"] not in commits:
-                    commit_data = commit.copy()
+                    commit_data = dict(commit)
                     commit_data["shortId"] = commit_data["id"][:7]
                     commit_data["author"] = committer["author"]
                     commit_data["subject"] = commit_data["message"].split("\n", 1)[0]

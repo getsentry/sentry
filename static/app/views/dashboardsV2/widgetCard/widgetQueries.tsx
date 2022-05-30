@@ -17,7 +17,7 @@ import {
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {isEquation} from 'sentry/utils/discover/fields';
+import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
@@ -134,7 +134,11 @@ function transformResult(
       });
     }
 
-    output = [...seriesWithOrdering.sort().map(item => item[1])];
+    output = [
+      ...seriesWithOrdering
+        .sort((itemA, itemB) => itemA[0] - itemB[0])
+        .map(item => item[1]),
+    ];
   } else {
     const field = query.aggregates[0];
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
@@ -448,8 +452,19 @@ class WidgetQueries extends Component<Props, State> {
           query.columns?.length !== 0
         ) {
           requestData.topEvents = widget.limit ?? TOP_N;
-          // Aggregates need to be in fields as well
           requestData.field = [...query.columns, ...query.aggregates];
+
+          // Compare field and orderby as aliases to ensure requestData has
+          // the orderby selected
+          // If the orderby is an equation alias, do not inject it
+          const orderby = trimStart(query.orderby, '-');
+          if (
+            query.orderby &&
+            !isEquationAlias(orderby) &&
+            !requestData.field.includes(orderby)
+          ) {
+            requestData.field.push(orderby);
+          }
 
           // The "Other" series is only included when there is one
           // y-axis and one query

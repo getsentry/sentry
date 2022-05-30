@@ -1,82 +1,112 @@
-import React, {useState} from 'react';
+import {useMemo} from 'react';
+import {uuid4} from '@sentry/utils';
 
-import EventEntry from 'sentry/components/events/eventEntry';
-import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
+import Spans from 'sentry/components/events/interfaces/spans';
+import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TagsTable from 'sentry/components/tagsTable';
-import {Event} from 'sentry/types/event';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import useActiveTabFromLocation from 'sentry/utils/replays/hooks/useActiveTabFromLocation';
+import ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-import {TabBarId} from '../types';
-
-import FocusTabs from './focusTabs';
+import Console from './console';
+import IssueList from './issueList';
 import MemoryChart from './memoryChart';
+import Trace from './trace';
 
 type Props = {
-  event: Event;
-  eventWithSpans: Event | undefined;
-  memorySpans: MemorySpanType[] | undefined;
+  replay: ReplayReader | null;
 };
 
-function FocusArea(props: Props) {
-  const [active, setActive] = useState<TabBarId>('performance');
-
-  return (
-    <React.Fragment>
-      <FocusTabs active={active} setActive={setActive} />
-      <ActiveTab active={active} {...props} />
-    </React.Fragment>
-  );
+function getBreadcrumbsByCategory(breadcrumbs: RawCrumb[], categories: string[]) {
+  return breadcrumbs
+    .filter(isBreadcrumbTypeDefault)
+    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
 }
 
-function ActiveTab({
-  active,
-  event,
-  eventWithSpans,
-  memorySpans,
-}: Props & {active: TabBarId}) {
-  const {routes, router} = useRouteContext();
+function FocusArea({replay}: Props) {
+  const active = useActiveTabFromLocation();
+  const {currentTime, currentHoverTime, setCurrentTime, setCurrentHoverTime} =
+    useReplayContext();
   const organization = useOrganization();
+
+  // Memoize this because re-renders will interfere with the mouse state of the
+  // chart (e.g. on mouse over and out)
+  const memorySpans = useMemo(() => {
+    return replay?.getRawSpans().filter(replay.isMemorySpan);
+  }, [replay]);
+
+  if (!replay || !memorySpans) {
+    return <Placeholder height="150px" />;
+  }
+
+  const event = replay.getEvent();
+
   switch (active) {
     case 'console':
-      return <div id="console">TODO: Add a console view</div>;
-    case 'performance':
-      return eventWithSpans ? (
-        <div id="performance">
-          <EventEntry
-            key={`${eventWithSpans.id}`}
-            projectSlug={getProjectSlug(eventWithSpans)}
-            // group={group}
-            organization={organization}
-            event={eventWithSpans}
-            entry={eventWithSpans.entries[0]}
-            route={routes[routes.length - 1]}
-            router={router}
-          />
-        </div>
-      ) : null;
-    case 'errors':
-      return <div id="errors">TODO: Add an errors view</div>;
-    case 'tags':
+      const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
+        'console',
+      ]);
       return (
-        <div id="tags">
-          <TagsTable generateUrl={() => ''} event={event} query="" />
-        </div>
+        <Console
+          breadcrumbs={consoleMessages ?? []}
+          startTimestamp={event?.startTimestamp}
+        />
       );
+    case 'network': {
+      // Fake the span and Trace context
+      const nonMemorySpansEntry = {
+        type: EntryType.SPANS,
+        data: replay
+          .getRawSpans()
+          .filter(replay.isNotMemorySpan)
+          .map(({startTimestamp, endTimestamp, ...span}) => ({
+            ...span,
+            timestamp: endTimestamp,
+            start_timestamp: startTimestamp,
+            span_id: uuid4(), // TODO(replays): used as a React key
+            parent_span_id: 'replay_network_trace',
+          })),
+      };
+      const performanceEvent = {
+        ...event,
+        contexts: {
+          trace: {
+            type: 'trace',
+            op: 'Network',
+            description: 'WIP',
+            span_id: 'replay_network_trace',
+            status: 'ok',
+          },
+        },
+        entries: [nonMemorySpansEntry],
+      } as EventTransaction;
+      return <Spans organization={organization} event={performanceEvent} />;
+    }
+    case 'trace':
+      return <Trace organization={organization} event={event} />;
+    case 'issues':
+      return <IssueList replayId={event.id} projectId={event.projectID} />;
+    case 'tags':
+      return <TagsTable generateUrl={() => ''} event={event} query="" />;
     case 'memory':
       return (
         <MemoryChart
+          currentTime={currentTime}
+          currentHoverTime={currentHoverTime}
           memorySpans={memorySpans}
-          startTimestamp={eventWithSpans?.entries[0]?.data[0]?.timestamp}
+          setCurrentTime={setCurrentTime}
+          setCurrentHoverTime={setCurrentHoverTime}
+          startTimestamp={event?.startTimestamp}
         />
       );
     default:
       return null;
   }
-}
-
-function getProjectSlug(event: Event) {
-  return event.projectSlug || event['project.name']; // seems janky
 }
 
 export default FocusArea;

@@ -15,7 +15,7 @@ import {
   MAX_SEARCH_ITEMS,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
-import {SESSION_STATUSES, SESSIONS_TAGS} from '../../releaseWidget/fields';
+import {SESSION_STATUSES, SESSIONS_FILTER_TAGS} from '../../releaseWidget/fields';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -52,7 +52,7 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
     );
   }
 
-  const supportedTags = Object.values(SESSIONS_TAGS).reduce((acc, key) => {
+  const supportedTags = Object.values(SESSIONS_FILTER_TAGS).reduce((acc, key) => {
     acc[key] = {key, name: key};
     return acc;
   }, {});
@@ -68,7 +68,6 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
           supportedTags={supportedTags}
           placeholder={t('Search for release version, session status, and more')}
           prepareQuery={prepareQuery}
-          excludeEnvironment
           dropdownClassName={css`
             max-height: ${MAX_MENU_HEIGHT ?? 300}px;
             overflow-y: auto;

@@ -20,6 +20,7 @@ import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import Stepper from './components/stepper';
+import IntegrationSelect from './integration';
 import MobileRedirect from './mobileRedirect';
 import PlatformSelection from './platform';
 import SetupDocs from './setupDocs';
@@ -37,28 +38,40 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   projects: Project[];
 };
 
-const ONBOARDING_STEPS: StepDescriptor[] = [
-  {
-    id: 'welcome',
-    title: t('Welcome'),
-    Component: TargetedOnboardingWelcome,
-    cornerVariant: 'top-right',
-  },
-  {
-    id: 'select-platform',
-    title: t('Select platforms'),
-    Component: PlatformSelection,
-    hasFooter: true,
-    cornerVariant: 'top-left',
-  },
-  {
-    id: 'setup-docs',
-    title: t('Install the Sentry SDK'),
-    Component: SetupDocs,
-    hasFooter: true,
-    cornerVariant: 'top-left',
-  },
-];
+function getOrganizationOnboardingSteps(org: Organization) {
+  const steps: StepDescriptor[] = [
+    {
+      id: 'welcome',
+      title: t('Welcome'),
+      Component: TargetedOnboardingWelcome,
+      cornerVariant: 'top-right',
+    },
+    {
+      id: 'select-platform',
+      title: t('Select platforms'),
+      Component: PlatformSelection,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    },
+    {
+      id: 'setup-docs',
+      title: t('Install the Sentry SDK'),
+      Component: SetupDocs,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    },
+  ];
+  if (org.experiments.TargetedOnboardingIntegrationSelectExperiment) {
+    steps.splice(2, 0, {
+      id: 'select-integration',
+      title: t('Select integrations'),
+      Component: IntegrationSelect,
+      hasFooter: true,
+      cornerVariant: 'top-left',
+    });
+  }
+  return steps;
+}
 
 const MobileRedirectStep: StepDescriptor = {
   id: 'setup-docs',
@@ -80,9 +93,9 @@ function Onboarding(props: Props) {
       window.clearTimeout(cornerVariantTimeoutRed.current);
     };
   }, []);
-
-  let stepObj = ONBOARDING_STEPS.find(({id}) => stepId === id);
-  const stepIndex = ONBOARDING_STEPS.findIndex(({id}) => stepId === id);
+  const onboardingSteps = getOrganizationOnboardingSteps(organization);
+  let stepObj = onboardingSteps.find(({id}) => stepId === id);
+  const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
   const cornerVariantControl = useAnimation();
   const updateCornerVariant = () => {
@@ -95,7 +108,7 @@ function Onboarding(props: Props) {
     );
   };
 
-  useEffect(updateCornerVariant, []);
+  useEffect(updateCornerVariant, [stepIndex, cornerVariantControl]);
 
   const [containerHasFooter, setContainerHasFooter] = useState<boolean>(false);
   const updateAnimationState = () => {
@@ -107,7 +120,7 @@ function Onboarding(props: Props) {
     cornerVariantControl.start(stepObj.cornerVariant);
   };
 
-  useEffect(updateAnimationState, []);
+  useEffect(updateAnimationState, [stepObj, cornerVariantControl]);
 
   const goToStep = (step: StepDescriptor) => {
     if (!stepObj) {
@@ -121,12 +134,11 @@ function Onboarding(props: Props) {
   };
 
   const goNextStep = (step: StepDescriptor) => {
-    const currentStepIndex = ONBOARDING_STEPS.findIndex(s => s.id === step.id);
-    const nextStep = ONBOARDING_STEPS[currentStepIndex + 1];
+    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+    const nextStep = onboardingSteps[currentStepIndex + 1];
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-
     browserHistory.push(`/onboarding/${props.params.orgId}/${nextStep.id}/`);
   };
 
@@ -135,7 +147,7 @@ function Onboarding(props: Props) {
       return;
     }
 
-    const previousStep = ONBOARDING_STEPS[stepIndex - 1];
+    const previousStep = onboardingSteps[stepIndex - 1];
 
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
@@ -171,7 +183,7 @@ function Onboarding(props: Props) {
       stepObj = MobileRedirectStep;
     } else {
       return (
-        <Redirect to={`/onboarding/${organization.slug}/${ONBOARDING_STEPS[0].id}/`} />
+        <Redirect to={`/onboarding/${organization.slug}/${onboardingSteps[0].id}/`} />
       );
     }
   }
@@ -182,9 +194,9 @@ function Onboarding(props: Props) {
         <LogoSvg />
         {stepIndex !== -1 && (
           <StyledStepper
-            numSteps={ONBOARDING_STEPS.length}
+            numSteps={onboardingSteps.length}
             currentStepIndex={stepIndex}
-            onClick={i => goToStep(ONBOARDING_STEPS[i])}
+            onClick={i => goToStep(onboardingSteps[i])}
           />
         )}
         <UpsellWrapper>
@@ -201,6 +213,7 @@ function Onboarding(props: Props) {
             {stepObj.Component && (
               <stepObj.Component
                 active
+                data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
                 onComplete={() => stepObj && goNextStep(stepObj)}
                 orgId={props.params.orgId}
@@ -234,8 +247,11 @@ const Container = styled('div')<{hasFooter: boolean}>`
 
 const Header = styled('header')`
   background: ${p => p.theme.background};
-  padding: ${space(4)};
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
   position: sticky;
+  height: 80px;
+  align-items: center;
   top: 0;
   z-index: 100;
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.05);
@@ -291,9 +307,7 @@ const AdaptivePageCorners = styled(PageCorners)`
 `;
 
 const StyledStepper = styled(Stepper)`
-  margin-left: auto;
-  margin-right: auto;
-  align-self: center;
+  justify-self: center;
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     display: none;
   }

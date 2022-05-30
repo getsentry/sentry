@@ -220,7 +220,7 @@ GROUPBY_MAP = {
     "session.status": SessionStatusGroupBy(),
 }
 
-CONDITION_COLUMNS = ["project", "environment", "release"]
+CONDITION_COLUMNS = ["project", "project_id", "environment", "release"]
 FILTER_KEY_COLUMNS = ["project_id"]
 
 
@@ -354,6 +354,15 @@ SNUBA_LIMIT = 5000
 
 class InvalidParams(Exception):
     pass
+
+
+class NonPreflightOrderByException(InvalidParams):
+    """
+    An exception that is raised when parsing orderBy, to indicate that this is only an exception
+    in the case where we don't run a preflight query on an accepted pre-flight query field
+    """
+
+    ...
 
 
 def get_now():

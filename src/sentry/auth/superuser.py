@@ -61,6 +61,8 @@ SUPERUSER_ACCESS_CATEGORIES = getattr(settings, "SUPERUSER_ACCESS_CATEGORIES", [
 
 UNSET = object()
 
+ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV = getattr(settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False)
+
 
 def is_active_superuser(request):
     if is_system_auth(getattr(request, "auth", None)):
@@ -116,7 +118,7 @@ class Superuser:
 
     @staticmethod
     def _needs_validation():
-        if is_self_hosted():
+        if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV:
             return False
         return settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
 

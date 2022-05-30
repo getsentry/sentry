@@ -127,12 +127,7 @@ install-py-dev() {
 patch-selenium() {
     # XXX: getsentry repo calls this!
     # This hack is until we can upgrade to a newer version of Selenium
-    fx_profile=.venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py
-    # Remove this block when upgrading the selenium package
-    if grep -q "or setting is" "${fx_profile}"; then
-        echo "We are patching ${fx_profile}. You will see this message only once."
-        patch -p0 <scripts/patches/firefox_profile.diff
-    fi
+    python -S -m tools.patch_selenium
 }
 
 setup-git-config() {
@@ -150,7 +145,9 @@ setup-git() {
         echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
         exit 1
     )
-    pip install -r requirements-pre-commit.txt
+    if ! require pre-commit; then
+        pip install -r requirements-dev.txt
+    fi
     pre-commit install --install-hooks
     echo ""
 }
@@ -179,9 +176,9 @@ install-js-dev() {
 }
 
 develop() {
-    setup-git
     install-js-dev
     install-py-dev
+    setup-git
 }
 
 init-config() {

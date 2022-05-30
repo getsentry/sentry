@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import uniqBy from 'lodash/uniqBy';
 
 import MemberListStore from 'sentry/stores/memberListStore';
@@ -35,7 +35,7 @@ type State = {
  *
  * Will provide a list of users and teams that can be used for @-mentions
  * */
-class Mentionables extends React.PureComponent<Props, State> {
+class Mentionables extends PureComponent<Props, State> {
   state: State = {
     members: MemberListStore.getAll(),
   };

@@ -29,6 +29,7 @@ jobs:
           filters: .github/file-filters.yml
 
   api-docs:
+    if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
     name: api docs test
     runs-on: ubuntu-20.04
@@ -39,19 +40,16 @@ jobs:
       - uses: actions/checkout@v2
 
       - uses: volta-cli/action@v1
-        if: needs.files-changed.outputs.api_docs == 'true'
 
       - name: Setup sentry python env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: needs.files-changed.outputs.api_docs == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run API docs tests
-        if: needs.files-changed.outputs.api_docs == 'true'
         # install ts-node for ts build scripts to execute properly without potentially installing
         # conflicting deps when running scripts locally
         # see: https://github.com/getsentry/sentry/pull/32328/files
@@ -59,6 +57,7 @@ jobs:
           yarn add ts-node && make test-api-docs
 
   backend-test:
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend test
     runs-on: ubuntu-20.04
@@ -71,7 +70,7 @@ jobs:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2]
-        pg-version: ['9.6', '14']
+        pg-version: ['9.6']
 
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
@@ -87,16 +86,18 @@ jobs:
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
-        if: needs.files-changed.outputs.backend == 'true'
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
+          # Right now, we run so few bigtable related tests that the
+          # overhead of running bigtable in all backend tests
+          # is way smaller than the time it would take to run in its own job.
+          bigtable: true
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: needs.files-changed.outputs.backend == 'true'
         run: |
           # Note: `USE_SNUBA` is not used for backend tests because there are a few failing tests with Snuba enabled.
           unset USE_SNUBA
@@ -106,6 +107,7 @@ jobs:
         uses: ./.github/actions/artifacts
 
   cli:
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: cli test
     runs-on: ubuntu-20.04
@@ -113,21 +115,19 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8.12]
-        pg-version: ['9.6', '14']
+        pg-version: ['9.6']
     steps:
       - uses: actions/checkout@v2
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: needs.files-changed.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run test
-        if: needs.files-changed.outputs.backend == 'true'
         run: |
           make test-cli
 
@@ -135,6 +135,7 @@ jobs:
         uses: ./.github/actions/artifacts
 
   lint:
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend lint
     runs-on: ubuntu-20.04
@@ -155,20 +156,17 @@ jobs:
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: ./.github/actions/setup-python
-        if: needs.files-changed.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
-          # Note this uses a different cache key than other backend-based workflows because this workflows dependencies are different
-          cache-files-hash: ${{ hashFiles('requirements-pre-commit.txt') }}
+          # We just need requirements-dev, this lets us pull in less files.
+          cache-files-hash: ${{ hashFiles('requirements-dev.txt') }}
 
       - uses: actions/cache@v3
-        if: needs.files-changed.outputs.backend == 'true'
         with:
           path: ~/.cache/pre-commit
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
       - name: Setup pre-commit
-        if: needs.files-changed.outputs.backend == 'true'
         env:
           SENTRY_NO_VIRTUALENV_CREATION: 1
         run: |
@@ -191,7 +189,6 @@ jobs:
               - added|modified: 'requirements-base.txt'
 
       - name: Run pre-commit on changed files
-        if: needs.files-changed.outputs.backend == 'true'
         run: |
           # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
           # XXX: there is a very small chance that it'll expand to exceed Linux's limits
@@ -200,28 +197,27 @@ jobs:
 
       # If working tree is dirty, commit and update if we have a token
       - name: Apply any pre-commit fixed files
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && needs.files-changed.outputs.backend == 'true' && always()
+        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
         uses: getsentry/action-github-commit@main
         with:
           github-token: ${{ steps.token.outputs.token }}
 
   migration:
+    if: needs.files-changed.outputs.migration_lockfile == 'true'
     needs: files-changed
     name: check migration
     runs-on: ubuntu-20.04
     strategy:
       matrix:
         python-version: [3.8.12]
-        pg-version: ['9.6', '14']
+        pg-version: ['9.6']
 
     steps:
       - name: Checkout sentry
         uses: actions/checkout@v2
-        if: needs.files-changed.outputs.migration_lockfile == 'true'
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
-        if: needs.files-changed.outputs.migration_lockfile == 'true'
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -229,7 +225,6 @@ jobs:
           pg-version: ${{ matrix.pg-version }}
 
       - name: Migration & lockfile checks
-        if: needs.files-changed.outputs.migration_lockfile == 'true'
         env:
           SENTRY_LOG_LEVEL: ERROR
           PGPASSWORD: postgres
@@ -237,6 +232,7 @@ jobs:
           ./.github/workflows/scripts/migration-check.sh
 
   plugins:
+    if: needs.files-changed.outputs.plugins == 'true'
     needs: files-changed
     name: plugins test
     runs-on: ubuntu-20.04
@@ -250,18 +246,17 @@ jobs:
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: needs.files-changed.outputs.plugins == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
 
       - name: Run test
-        if: needs.files-changed.outputs.plugins == 'true'
         run: |
           make test-plugins
 
   relay:
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: relay test
     runs-on: ubuntu-20.04
@@ -279,7 +274,6 @@ jobs:
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: needs.files-changed.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
@@ -287,14 +281,12 @@ jobs:
           kafka: true
 
       - name: Pull relay image
-        if: needs.files-changed.outputs.backend == 'true'
         run: |
           # pull relay we'll run and kill it for each test
           docker pull us.gcr.io/sentryio/relay:nightly
           docker ps -a
 
       - name: Run test
-        if: needs.files-changed.outputs.backend == 'true'
         run: |
           make test-relay-integration
 
@@ -302,6 +294,7 @@ jobs:
         uses: ./.github/actions/artifacts
 
   snuba:
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: snuba test
     runs-on: ubuntu-20.04
@@ -329,7 +322,6 @@ jobs:
 
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
-        if: needs.files-changed.outputs.backend == 'true'
         id: setup
         with:
           python-version: ${{ matrix.python-version }}
@@ -338,7 +330,6 @@ jobs:
           kafka: true
 
       - name: Run snuba test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        if: needs.files-changed.outputs.backend == 'true'
         run: |
           make test-snuba
 
@@ -346,6 +337,7 @@ jobs:
         uses: ./.github/actions/artifacts
 
   symbolicator:
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: symbolicator test
     runs-on: ubuntu-20.04
@@ -363,7 +355,6 @@ jobs:
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
-        if: needs.files-changed.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
@@ -371,7 +362,6 @@ jobs:
           kafka: true
 
       - name: Start symbolicator
-        if: needs.files-changed.outputs.backend == 'true'
         run: |
           echo $PWD
           docker run \
@@ -384,7 +374,6 @@ jobs:
           docker ps -a
 
       - name: Run test
-        if: needs.files-changed.outputs.backend == 'true'
         run: |
           make test-symbolicator
 
@@ -392,6 +381,7 @@ jobs:
         uses: ./.github/actions/artifacts
 
   typing:
+    if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend typing
     runs-on: ubuntu-20.04
@@ -404,13 +394,11 @@ jobs:
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: ./.github/actions/setup-python
-        if: needs.files-changed.outputs.backend == 'true'
         with:
           python-version: ${{ matrix.python-version }}
 
       # Since we don't call the setup-sentry action we need to install libxmlsec1-dev
       - name: Setup backend typing
-        if: needs.files-changed.outputs.backend == 'true'
         env:
           SENTRY_LIGHT_BUILD: 1
         run: |
@@ -421,7 +409,6 @@ jobs:
           pip install -U -e ".[dev]"
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})
-        if: needs.files-changed.outputs.backend == 'true'
         run: |
           make backend-typing
 

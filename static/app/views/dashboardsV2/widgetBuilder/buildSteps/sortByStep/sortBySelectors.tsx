@@ -7,14 +7,34 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
-import {EQUATION_PREFIX, getEquation, isEquation} from 'sentry/utils/discover/fields';
-import {WidgetType} from 'sentry/views/dashboardsV2/types';
+import {SelectValue, TagCollection} from 'sentry/types';
+import {
+  EQUATION_PREFIX,
+  explodeField,
+  generateFieldAsString,
+  getEquation,
+  isEquation,
+  isEquationAlias,
+} from 'sentry/utils/discover/fields';
+import Measurements from 'sentry/utils/measurements/measurements';
+import useOrganization from 'sentry/utils/useOrganization';
+import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {
+  getAmendedFieldOptions,
+  SortDirection,
+  sortDirections,
+} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
+import {QueryField} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import {SortDirection, sortDirections} from '../../utils';
+import {
+  generateReleaseWidgetFieldOptions,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
+} from '../../releaseWidget/fields';
 
-const CUSTOM_EQUATION_VALUE = 'custom-equation';
+import {CUSTOM_EQUATION_VALUE} from '.';
 
 interface Values {
   sortBy: string;
@@ -22,8 +42,11 @@ interface Values {
 }
 
 interface Props {
+  displayType: DisplayType;
+  filterPrimaryOptions: React.ComponentProps<typeof QueryField>['filterPrimaryOptions'];
   onChange: (values: Values) => void;
   sortByOptions: SelectValue<string>[];
+  tags: TagCollection;
   values: Values;
   widgetType: WidgetType;
   disabledReason?: string;
@@ -35,12 +58,17 @@ interface Props {
 export function SortBySelectors({
   values,
   sortByOptions,
+  widgetType,
   onChange,
   disabledReason,
   disabledSort,
   disabledSortDirection,
   hasGroupBy,
+  tags,
+  filterPrimaryOptions,
+  displayType,
 }: Props) {
+  const organization = useOrganization();
   const [showCustomEquation, setShowCustomEquation] = useState(false);
   const [customEquation, setCustomEquation] = useState<Values>({
     sortBy: `${EQUATION_PREFIX}`,
@@ -55,7 +83,133 @@ export function SortBySelectors({
       });
     }
     setShowCustomEquation(isSortingByEquation);
-  }, [values.sortBy]);
+  }, [values.sortBy, values.sortDirection]);
+
+  function generateEquationOptions(options: Props['sortByOptions']) {
+    return options.reduce((acc, option) => {
+      if (option.value.startsWith('equation')) {
+        acc[`equation:${option.value}`] = {
+          label: option.label,
+          value: {
+            kind: FieldValueKind.EQUATION,
+            meta: {
+              name: option.value,
+            },
+          },
+        };
+      }
+      return acc;
+    }, {});
+  }
+
+  function getSortByField() {
+    if (
+      widgetType === WidgetType.DISCOVER &&
+      ![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)
+    ) {
+      return (
+        <Measurements>
+          {({measurements}) => (
+            <QueryField
+              fieldValue={
+                showCustomEquation
+                  ? explodeField({field: CUSTOM_EQUATION_VALUE})
+                  : explodeField({field: values.sortBy})
+              }
+              fieldOptions={{
+                ...(hasGroupBy
+                  ? {
+                      [`field:${CUSTOM_EQUATION_VALUE}`]: {
+                        label: 'Custom Equation',
+                        value: {
+                          kind: FieldValueKind.EQUATION,
+                          meta: {name: CUSTOM_EQUATION_VALUE},
+                        },
+                      },
+                    }
+                  : {}),
+                ...generateEquationOptions(sortByOptions),
+                ...getAmendedFieldOptions({measurements, organization, tags}),
+              }}
+              onChange={value => {
+                if (value.alias && isEquationAlias(value.alias)) {
+                  onChange({
+                    sortBy: value.alias,
+                    sortDirection: values.sortDirection,
+                  });
+                  return;
+                }
+
+                const parsedValue = generateFieldAsString(value);
+                const isSortingByCustomEquation = isEquation(parsedValue);
+                setShowCustomEquation(isSortingByCustomEquation);
+                if (isSortingByCustomEquation) {
+                  onChange(customEquation);
+                  return;
+                }
+
+                onChange({
+                  sortBy: parsedValue,
+                  sortDirection: values.sortDirection,
+                });
+              }}
+              filterPrimaryOptions={filterPrimaryOptions}
+            />
+          )}
+        </Measurements>
+      );
+    }
+    if (
+      widgetType === WidgetType.RELEASE &&
+      ![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)
+    ) {
+      return (
+        <Tooltip
+          title={disabledReason}
+          disabled={!disabledSort || (disabledSortDirection && disabledSort)}
+        >
+          <QueryField
+            disabled={disabledSort}
+            fieldValue={explodeField({field: values.sortBy})}
+            fieldOptions={generateReleaseWidgetFieldOptions(
+              Object.values(SESSIONS_FIELDS),
+              SESSIONS_TAGS
+            )}
+            onChange={value => {
+              const parsedValue = generateFieldAsString(value);
+              onChange({
+                sortBy: parsedValue,
+                sortDirection: values.sortDirection,
+              });
+            }}
+            filterPrimaryOptions={filterPrimaryOptions}
+          />
+        </Tooltip>
+      );
+    }
+    return (
+      <Tooltip
+        title={disabledReason}
+        disabled={!disabledSort || (disabledSortDirection && disabledSort)}
+      >
+        <SelectControl
+          name="sortBy"
+          aria-label="Sort by"
+          menuPlacement="auto"
+          disabled={disabledSort}
+          placeholder={`${t('Select a column')}\u{2026}`}
+          value={values.sortBy}
+          options={uniqBy(sortByOptions, ({value}) => value)}
+          onChange={(option: SelectValue<string>) => {
+            onChange({
+              sortBy: option.value,
+              sortDirection: values.sortDirection,
+            });
+          }}
+        />
+      </Tooltip>
+    );
+  }
 
   return (
     <Tooltip title={disabledReason} disabled={!(disabledSortDirection && disabledSort)}>
@@ -82,38 +236,7 @@ export function SortBySelectors({
             }}
           />
         </Tooltip>
-        <Tooltip
-          title={disabledReason}
-          disabled={!disabledSort || (disabledSortDirection && disabledSort)}
-        >
-          <SelectControl
-            name="sortBy"
-            aria-label="Sort by"
-            menuPlacement="auto"
-            disabled={disabledSort}
-            placeholder={`${t('Select a column')}\u{2026}`}
-            value={showCustomEquation ? CUSTOM_EQUATION_VALUE : values.sortBy}
-            options={[
-              ...uniqBy(sortByOptions, ({value}) => value),
-              ...(hasGroupBy
-                ? [{value: CUSTOM_EQUATION_VALUE, label: t('Custom Equation')}]
-                : []),
-            ]}
-            onChange={(option: SelectValue<string>) => {
-              const isSortingByCustomEquation = option.value === CUSTOM_EQUATION_VALUE;
-              setShowCustomEquation(isSortingByCustomEquation);
-              if (isSortingByCustomEquation) {
-                onChange(customEquation);
-                return;
-              }
-
-              onChange({
-                sortBy: option.value,
-                sortDirection: values.sortDirection,
-              });
-            }}
-          />
-        </Tooltip>
+        {getSortByField()}
         {showCustomEquation && (
           <ArithmeticInputWrapper>
             <ArithmeticInput

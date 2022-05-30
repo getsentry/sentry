@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {Client} from 'sentry/api';
@@ -8,25 +8,29 @@ import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 
-import {alertDetailsLink, fetchIncident} from './utils';
+import {fetchIncident} from './utils/apiCalls';
+import {alertDetailsLink} from './utils';
 
 type Props = {
   api: Client;
   organization: Organization;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 
-function IncidentDetails({organization, params}: Props) {
+/**
+ * Reirects from an incident to the incident's metric alert details page
+ */
+function IncidentRedirect({organization, params}: Props) {
   const api = useApi();
   const [hasError, setHasError] = useState(false);
 
-  const track = () => {
+  const track = useCallback(() => {
     trackAdvancedAnalyticsEvent('alert_details.viewed', {
       organization,
       alert_id: parseInt(params.alertId, 10),
     });
-  };
+  }, [organization, params.alertId]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setHasError(false);
 
     try {
@@ -38,12 +42,12 @@ function IncidentDetails({organization, params}: Props) {
     } catch (err) {
       setHasError(true);
     }
-  };
+  }, [setHasError, api, params.orgId, params.alertId, organization]);
 
   useEffect(() => {
     fetchData();
     track();
-  }, []);
+  }, [fetchData, track]);
 
   if (hasError) {
     return <LoadingError onRetry={fetchData} />;
@@ -52,4 +56,4 @@ function IncidentDetails({organization, params}: Props) {
   return <LoadingIndicator />;
 }
 
-export default IncidentDetails;
+export default IncidentRedirect;

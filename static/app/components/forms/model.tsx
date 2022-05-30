@@ -1,3 +1,4 @@
+import find from 'lodash/find';
 import isEqual from 'lodash/isEqual';
 import {action, computed, makeObservable, observable, ObservableMap} from 'mobx';
 
@@ -5,12 +6,13 @@ import {addErrorMessage, saveOnBlurUndoMessage} from 'sentry/actionCreators/indi
 import {APIRequestMethod, Client} from 'sentry/api';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
+import type {Choice} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
 
-export type FieldValue = string | number | boolean | undefined; // is undefined valid here?
+export type FieldValue = string | number | boolean | Choice | undefined; // is undefined valid here?
 
 export type FormOptions = {
   allowUndo?: boolean;
@@ -566,6 +568,20 @@ class FormModel {
             addErrorMessage(nonFieldErrors[0], {duration: 10000});
             // Reset saving state
             this.setError(id, '');
+            // find the first entry with an error
+          } else if (
+            find(
+              Object.entries(resp.responseJSON),
+              ([_, v]) => Array.isArray(v) && v.length
+            )
+          ) {
+            this.setError(
+              id,
+              find(
+                Object.entries(resp.responseJSON),
+                ([_, v]) => Array.isArray(v) && v.length
+              )?.[1]
+            );
           } else {
             this.setError(id, 'Failed to save');
           }

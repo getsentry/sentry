@@ -910,4 +910,57 @@ describe('Dashboards > WidgetQueries', function () {
       expect(setIsMetricsMock).toHaveBeenCalledWith(true);
     });
   });
+
+  it('does not inject equation aliases for top N requests', async function () {
+    const testData = initializeOrg({
+      organization: {
+        ...TestStubs.Organization(),
+        features: ['new-widget-builder-experience-design'],
+      },
+    });
+    const eventsStatsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: [],
+    });
+    const areaWidget = {
+      displayType: 'area',
+      interval: '5m',
+      queries: [
+        {
+          conditions: 'event.type:error',
+          fields: [],
+          aggregates: ['count()', 'equation|count() * 2'],
+          columns: ['project'],
+          orderby: 'equation[0]',
+          name: '',
+        },
+      ],
+    };
+    const wrapper = mountWithTheme(
+      <WidgetQueries
+        api={api}
+        widget={areaWidget}
+        organization={testData.organization}
+        selection={selection}
+      >
+        {() => <div data-test-id="child" />}
+      </WidgetQueries>,
+      testData.routerContext
+    );
+    await tick();
+    await tick();
+
+    // Child should be rendered and 1 requests should be sent.
+    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          field: ['project', 'count()', 'equation|count() * 2'],
+          orderby: 'equation[0]',
+        }),
+      })
+    );
+  });
 });

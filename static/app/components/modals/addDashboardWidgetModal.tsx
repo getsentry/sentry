@@ -136,9 +136,9 @@ const newIssueQuery: WidgetQuery = {
 
 const newMetricsQuery: WidgetQuery = {
   name: '',
-  fields: [`sum(${SessionField.SESSION})`],
+  fields: [`crash_free_rate(${SessionField.SESSION})`],
   columns: [],
-  aggregates: [`sum(${SessionField.SESSION})`],
+  aggregates: [`crash_free_rate(${SessionField.SESSION})`],
   conditions: '',
   orderby: '',
 };
@@ -877,7 +877,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
           </DoubleFieldWrapper>
           {(showIssueDatasetSelector || showMetricsDatasetSelector) && (
             <Fragment>
-              <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
+              <StyledFieldLabel>{t('Dataset')}</StyledFieldLabel>
               <StyledRadioGroup
                 style={{flex: 1}}
                 choices={datasetChoices}

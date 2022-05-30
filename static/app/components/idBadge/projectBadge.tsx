@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {cloneElement} from 'react';
 import styled from '@emotion/styled';
 
 import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
@@ -62,7 +62,7 @@ const ProjectBadge = ({
     );
   }
 
-  return React.cloneElement(badge, {className});
+  return cloneElement(badge, {className});
 };
 
 const StyledLink = styled(Link)`

@@ -6,16 +6,13 @@ from .base import GroupActivityNotification
 
 
 class UnassignedActivityNotification(GroupActivityNotification):
+    metrics_key = "unassigned_activity"
     title = "Unassigned"
-    referrer_base = "unassigned-activity"
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         return "{author} unassigned {an issue}", {}, {}
 
-    def get_category(self) -> str:
-        return "unassigned_activity_email"
-
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         user = self.activity.user
         if user:
             author = user.name or user.email

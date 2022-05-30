@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class UserReportNotification(ProjectNotification):
-    referrer_base = "user-report"
+    metrics_key = "user_report"
     template_path = "sentry/emails/activity/new-user-feedback"
 
     def __init__(self, project: Project, report: Mapping[str, Any]) -> None:
@@ -38,21 +38,14 @@ class UserReportNotification(ProjectNotification):
             if provider in [ExternalProviders.EMAIL]
         }
 
-    def get_category(self) -> str:
-        return "user_report_email"
-
-    def get_type(self) -> str:
-        return "notify.user-report"
-
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         # Explicitly typing to satisfy mypy.
         message = f"{self.group.qualified_short_id} - New Feedback from {self.report['name']}"
         message = force_text(message)
         return message
 
-    def get_notification_title(self) -> str:
-        # This shouldn't be possible but adding a message just in case.
-        return self.get_subject()
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        return self.get_subject(context)
 
     @property
     def reference(self) -> Model | None:

@@ -506,14 +506,17 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return issue_type_meta
 
     def get_issue_create_meta(self, client, project_id, jira_projects):
+        meta = None
         if project_id:
-            return self.fetch_issue_create_meta(client, project_id)
+            meta = self.fetch_issue_create_meta(client, project_id)
+        if meta is not None:
+            return meta
 
-        # If we don't have a jira projectid, iterate all projects and find
-        # the first project that has metadata. We only want one project as getting
-        # all project metadata is expensive and wasteful. In the first run experience,
-        # the user won't have a 'last used' project id so we need to iterate available
-        # projects until we find one that we can get metadata for.
+        # If we don't have a jira projectid (or we couldn't fetch the metadata from the given project_id),
+        # iterate all projects and find the first project that has metadata.
+        # We only want one project as getting all project metadata is expensive and wasteful.
+        # In the first run experience, the user won't have a 'last used' project id
+        # so we need to iterate available projects until we find one that we can get metadata for.
         attempts = 0
         if len(jira_projects):
             for fallback in jira_projects:

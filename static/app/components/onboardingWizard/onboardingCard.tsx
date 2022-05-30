@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
 import Button from 'sentry/components/button';
@@ -9,23 +9,19 @@ import {IconChevron, IconClose, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {OnboardingCustomComponentProps, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useProjects from 'sentry/utils/useProjects';
-import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
 import SkipConfirm from './skipConfirm';
 
 const MAX_PROJECT_COUNT = 3;
 
-type Props = {
-  org: Organization;
-};
-
-function OnboardingViewTask({org}: Props) {
-  const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
-  const {projects: allProjects} = useProjects({orgId: org.id});
-
+export default function OnboardingProjectsCard({
+  organization: org,
+  onboardingState,
+  setOnboardingState,
+  projects: allProjects,
+}: OnboardingCustomComponentProps) {
   if (!onboardingState) {
     return null;
   }
@@ -41,63 +37,61 @@ function OnboardingViewTask({org}: Props) {
     .map(platform => onboardingState.platformToProjectIdMap[platform])
     .map(projectId => allProjects.find(p => p.slug === projectId))
     .filter(project => project && !project.firstEvent) as Project[];
+  if (projects.length === 0) {
+    return null;
+  }
   return (
-    <AnimatePresence>
-      {projects.length > 0 && <Heading>{t('The Basics')}</Heading>}
-      {projects.length > 0 && (
-        <TaskCard key="onboarding-continue-card">
-          <Title>{t('Project to Setup')}</Title>
-          <OnboardingTaskProjectList>
-            {projects.slice(0, MAX_PROJECT_COUNT).map(p => (
-              <OnboardingTaskProjectListItem
-                key={p.id}
-                to={`/onboarding/${org.slug}/setup-docs/?project_id=${p.id}`}
-                onClick={() => {
-                  trackAdvancedAnalyticsEvent('growth.onboarding_quick_start_cta', {
-                    platform: p.platform,
-                    organization: org,
-                  });
-                }}
-              >
-                <OnboardingTaskProjectListItemInner>
-                  <StyledPlatformIcon platform={p.platform || 'default'} />
-                  {p.slug}
-                  <PulsingIndicator />
-                  <PulsingIndicatorText>{t('Waiting for event')}</PulsingIndicatorText>
-                  <IconChevron direction="right" />
-                </OnboardingTaskProjectListItemInner>
-              </OnboardingTaskProjectListItem>
-            ))}
-            {projects.length > MAX_PROJECT_COUNT && (
-              <OnboardingTaskProjectListItem
-                to={`/onboarding/${org.slug}/setup-docs/`}
-                onClick={() => {
-                  trackAdvancedAnalyticsEvent('growth.onboarding_quick_start_cta', {
-                    organization: org,
-                  });
-                }}
-              >
-                <OnboardingTaskProjectListItemInner>
-                  <StyledAndMoreIcon />
-                  {tct('and [num] more', {num: projects.length - MAX_PROJECT_COUNT})}
-                </OnboardingTaskProjectListItemInner>
-              </OnboardingTaskProjectListItem>
-            )}
-          </OnboardingTaskProjectList>
-          <SkipConfirm onSkip={handleSkip}>
-            {({skip}) => (
-              <CloseButton
-                borderless
-                size="zero"
-                aria-label={t('Close')}
-                icon={<IconClose size="xs" />}
-                onClick={skip}
-              />
-            )}
-          </SkipConfirm>
-        </TaskCard>
-      )}
-    </AnimatePresence>
+    <TaskCard key="onboarding-continue-card">
+      <Title>{t('Project to Setup')}</Title>
+      <OnboardingTaskProjectList>
+        {projects.slice(0, MAX_PROJECT_COUNT).map(p => (
+          <OnboardingTaskProjectListItem
+            key={p.id}
+            to={`/onboarding/${org.slug}/setup-docs/?project_id=${p.id}`}
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('growth.onboarding_quick_start_cta', {
+                platform: p.platform,
+                organization: org,
+              });
+            }}
+          >
+            <OnboardingTaskProjectListItemInner>
+              <StyledPlatformIcon platform={p.platform || 'default'} />
+              {p.slug}
+              <PulsingIndicator />
+              <PulsingIndicatorText>{t('Waiting for event')}</PulsingIndicatorText>
+              <IconChevron direction="right" />
+            </OnboardingTaskProjectListItemInner>
+          </OnboardingTaskProjectListItem>
+        ))}
+        {projects.length > MAX_PROJECT_COUNT && (
+          <OnboardingTaskProjectListItem
+            to={`/onboarding/${org.slug}/setup-docs/`}
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('growth.onboarding_quick_start_cta', {
+                organization: org,
+              });
+            }}
+          >
+            <OnboardingTaskProjectListItemInner>
+              <StyledAndMoreIcon />
+              {tct('and [num] more', {num: projects.length - MAX_PROJECT_COUNT})}
+            </OnboardingTaskProjectListItemInner>
+          </OnboardingTaskProjectListItem>
+        )}
+      </OnboardingTaskProjectList>
+      <SkipConfirm onSkip={handleSkip}>
+        {({skip}) => (
+          <CloseButton
+            borderless
+            size="zero"
+            aria-label={t('Close')}
+            icon={<IconClose size="xs" />}
+            onClick={skip}
+          />
+        )}
+      </SkipConfirm>
+    </TaskCard>
   );
 }
 
@@ -132,6 +126,7 @@ const TaskCard = styled(motion(Card))`
   overflow: visible;
   display: flex;
   flex-direction: column;
+  padding-bottom: ${space(1)};
 `;
 TaskCard.defaultProps = {
   exit: 'exit',
@@ -159,6 +154,7 @@ const OnboardingTaskProjectListItem = styled(Link)`
   :hover {
     background-color: ${p => p.theme.hover};
   }
+  border-radius: 0;
   padding: 0 ${space(3)};
   color: ${p => p.theme.textColor};
 
@@ -192,5 +188,3 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 const StyledAndMoreIcon = styled(IconEllipsis)`
   margin-right: ${space(1)};
 `;
-
-export default OnboardingViewTask;

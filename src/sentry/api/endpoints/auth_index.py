@@ -1,5 +1,6 @@
 import logging
 
+from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.utils.http import is_safe_url
@@ -94,13 +95,21 @@ class AuthIndexEndpoint(Endpoint):
         SSO and if they do not, we redirect them back to the SSO login.
 
         """
+
+        DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV = getattr(
+            settings, "DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV", False
+        )
+        VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = getattr(
+            settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False
+        )
+
         # TODO Look at AuthVerifyValidator
         validator.is_valid()
         authenticated = None
 
         def _require_password_or_u2f_check():
-            if not is_self_hosted():
-                # Don't need to check as its only for self-hosted users
+            if not is_self_hosted() and VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON:
+                # Don't need to check password as its only for self-hosted users or if superuser form is turned off
                 return False
             if request.user.has_usable_password():
                 return True
@@ -108,12 +117,16 @@ class AuthIndexEndpoint(Endpoint):
                 user_id=request.user.id, type=U2fInterface.type
             ).exists():
                 return True
+            return False
 
         if _require_password_or_u2f_check():
             authenticated = self._verify_user_via_inputs(validator, request)
 
         if Superuser.org_id:
-            if not has_completed_sso(request, Superuser.org_id):
+            if (
+                not has_completed_sso(request, Superuser.org_id)
+                and not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV
+            ):
                 self._reauthenticate_with_sso(request, Superuser.org_id)
             # below is a special case if the user is a superuser but doesn't have a password or
             # u2f device set up, the only way to authenticate this case is to see if they have a

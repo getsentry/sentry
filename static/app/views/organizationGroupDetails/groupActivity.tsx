@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
 import {createNote, deleteNote, updateNote} from 'sentry/actionCreators/group';
@@ -22,7 +21,6 @@ import ReprocessedBox from 'sentry/components/reprocessedBox';
 import {DEFAULT_ERROR_JSON} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
 import {
   Group,
   GroupActivityAssigned,
@@ -151,7 +149,7 @@ class GroupActivity extends Component<Props, State> {
       <Fragment>
         {(reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
           reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
-          <StyledReprocessedBox
+          <ReprocessedBox
             reprocessActivity={mostRecentActivity as GroupActivityReprocess}
             groupCount={groupCount}
             orgSlug={organization.slug}
@@ -245,8 +243,3 @@ class GroupActivity extends Component<Props, State> {
 
 export {GroupActivity};
 export default withApi(withOrganization(GroupActivity));
-
-const StyledReprocessedBox = styled(ReprocessedBox)`
-  margin: -${space(3)} -${space(4)} ${space(4)} -${space(4)};
-  z-index: 1;
-`;

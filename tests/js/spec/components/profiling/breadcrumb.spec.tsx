@@ -18,11 +18,11 @@ describe('Breadcrumb', function () {
         location={location}
         organization={organization}
         trails={[
-          {type: 'profiling'},
+          {type: 'landing'},
           {
             type: 'flamegraph',
             payload: {
-              interactionName: 'foo',
+              transaction: 'foo',
               profileId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
               projectSlug: 'bar',
             },

@@ -14,6 +14,7 @@ import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {valueIsEqual} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
@@ -158,6 +159,19 @@ type ContainerProps = {
 };
 
 class ResultsChartContainer extends Component<ContainerProps> {
+  state = {
+    yAxisOptions: this.getYAxisOptions(this.props.eventView),
+  };
+
+  componentWillReceiveProps(nextProps) {
+    const yAxisOptions = this.getYAxisOptions(this.props.eventView);
+    const nextYAxisOptions = this.getYAxisOptions(nextProps.eventView);
+
+    if (!valueIsEqual(yAxisOptions, nextYAxisOptions, true)) {
+      this.setState({yAxisOptions: nextYAxisOptions});
+    }
+  }
+
   shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
@@ -170,6 +184,18 @@ class ResultsChartContainer extends Component<ContainerProps> {
     }
 
     return !isEqual(restProps, restNextProps);
+  }
+
+  getYAxisOptions(eventView) {
+    const yAxisOptions = eventView.getYAxisOptions();
+
+    // Equations on World Map isn't supported on the events-geo endpoint
+    // Disabling equations as an option to prevent erroring out
+    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
+      return yAxisOptions.filter(({value}) => !isEquation(value));
+    }
+
+    return yAxisOptions;
   }
 
   render() {
@@ -186,6 +212,8 @@ class ResultsChartContainer extends Component<ContainerProps> {
       confirmedQuery,
       yAxis,
     } = this.props;
+
+    const {yAxisOptions} = this.state;
 
     const hasQueryFeature = organization.features.includes('discover-query');
     const displayOptions = eventView
@@ -218,13 +246,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
         }
         return opt;
       });
-
-    let yAxisOptions = eventView.getYAxisOptions();
-    // Equations on World Map isn't supported on the events-geo endpoint
-    // Disabling equations as an option to prevent erroring out
-    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
-      yAxisOptions = yAxisOptions.filter(({value}) => !isEquation(value));
-    }
 
     return (
       <StyledPanel>

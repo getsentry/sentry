@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Children, cloneElement, isValidElement} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -26,8 +26,8 @@ function ButtonBar({
     <ButtonGrid merged={merged} gap={gap} className={className}>
       {!shouldCheckActive
         ? children
-        : React.Children.map(children, child => {
-            if (!React.isValidElement(child)) {
+        : Children.map(children, child => {
+            if (!isValidElement(child)) {
               return child;
             }
 
@@ -41,7 +41,7 @@ function ButtonBar({
             // but let's just enforce one "active" type for now
             const priority = isActive ? 'primary' : childProps.priority || 'default';
 
-            return React.cloneElement(childWithoutProps as React.ReactElement, {
+            return cloneElement(childWithoutProps as React.ReactElement, {
               ...props,
               className: classNames(className, {active: isActive}),
               priority,

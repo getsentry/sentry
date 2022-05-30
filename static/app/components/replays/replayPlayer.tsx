@@ -10,9 +10,10 @@ import FastForwardBadge from './player/fastForwardBadge';
 
 interface Props {
   className?: string;
+  height?: number;
 }
 
-function BasePlayerRoot({className}: Props) {
+function BasePlayerRoot({className, height = Infinity}: Props) {
   const {
     initRoot,
     dimensions: videoDimensions,
@@ -54,9 +55,11 @@ function BasePlayerRoot({className}: Props) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
+      const windowHeight = height === Infinity ? windowDimensions.height : height;
+
       const scale = Math.min(
         windowDimensions.width / videoDimensions.width,
-        windowDimensions.height / videoDimensions.height,
+        windowHeight / videoDimensions.height,
         1
       );
       if (scale) {
@@ -66,10 +69,10 @@ function BasePlayerRoot({className}: Props) {
         viewEl.current.style.height = `${videoDimensions.height * scale}px`;
       }
     }
-  }, [windowDimensions, videoDimensions]);
+  }, [windowDimensions, videoDimensions, height]);
 
   return (
-    <SizingWindow ref={windowEl} className="sr-block">
+    <SizingWindow ref={windowEl} className="sr-block" minHeight={height}>
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
@@ -80,14 +83,31 @@ function BasePlayerRoot({className}: Props) {
 // Center the viewEl inside the windowEl.
 // This is useful when the window is inside a container that has large fixed
 // dimensions, like when in fullscreen mode.
-const SizingWindow = styled('div')`
+const SizingWindow = styled('div')<{minHeight: number}>`
   width: 100%;
   height: 100%;
+  ${p => (p.minHeight !== Infinity ? `min-height: ${p.minHeight}px !important;` : '')}
 
   display: flex;
   justify-content: center;
   align-items: center;
   position: relative;
+
+  background-color: ${p => p.theme.backgroundSecondary};
+  background-image: repeating-linear-gradient(
+      -145deg,
+      transparent,
+      transparent 8px,
+      ${p => p.theme.backgroundSecondary} 8px,
+      ${p => p.theme.backgroundSecondary} 11px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 15px,
+      ${p => p.theme.gray100} 15px,
+      ${p => p.theme.gray100} 16px
+    );
 `;
 
 const PositionedFastForward = styled(FastForwardBadge)`

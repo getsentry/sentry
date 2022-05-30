@@ -6,7 +6,6 @@ import keyBy from 'lodash/keyBy';
 import pickBy from 'lodash/pickBy';
 
 import {Client} from 'sentry/api';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueList from 'sentry/components/group/externalIssuesList';
@@ -182,15 +181,11 @@ class BaseGroupSidebar extends Component<Props, State> {
     const {allEnvironmentsGroupData, currentRelease, tagsWithTopValues} = this.state;
     const projectId = project.slug;
 
-    const hasPageFilters = organization.features.includes('selection-filters-v2');
-
     return (
       <Container>
-        {hasPageFilters && (
-          <PageFiltersContainer>
-            <EnvironmentPageFilter alignDropdown="right" />
-          </PageFiltersContainer>
-        )}
+        <PageFiltersContainer>
+          <EnvironmentPageFilter alignDropdown="right" />
+        </PageFiltersContainer>
         {event && <SuggestedOwners project={project} group={group} event={event} />}
 
         <GroupReleaseStats
@@ -210,13 +205,7 @@ class BaseGroupSidebar extends Component<Props, State> {
 
         {this.renderPluginIssue()}
 
-        <SidebarSection
-          title={
-            <GuideAnchor target="tags" position="bottom">
-              {t('Tags')}
-            </GuideAnchor>
-          }
-        >
+        <SidebarSection title={t('Tags')}>
           {!tagsWithTopValues ? (
             <TagPlaceholders>
               <Placeholder height="40px" />

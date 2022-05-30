@@ -17,7 +17,6 @@ export type GetActorArgs<E extends Element> = {
 
 export type GetMenuArgs<E extends Element> = {
   className?: string;
-  itemCount?: number;
   onClick?: (e: React.MouseEvent<E>) => void;
   onKeyDown?: (event: React.KeyboardEvent<E>) => void;
   onMouseDown?: (e: React.MouseEvent<E>) => void;
@@ -161,7 +160,7 @@ class DropdownMenu extends Component<Props, State> {
     if (!this.dropdownActor) {
       // Log an error, should be lower priority
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         Sentry.captureException(new Error('DropdownMenu does not have "Actor" attached'));
       });
     }

@@ -65,5 +65,5 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
         assert (
             attachment["footer"]
             == f"{first_project.slug} | <http://testserver/settings/account/notifications/"
-            f"deploy/?referrer=release-activity-slack-user|Notification Settings>"
+            f"deploy/?referrer=release_activity-slack-user|Notification Settings>"
         )
