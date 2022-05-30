@@ -122,8 +122,6 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert auth.context["existing_user"] == self.user
 
     def test_auth_idp_initiated_invalid_flow_from_session(self):
-        self.client.post(self.login_path, {"init": True})
-
         original_is_valid = AuthHelperSessionStore.is_valid
 
         def side_effect(self):
