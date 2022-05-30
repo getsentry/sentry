@@ -58,6 +58,9 @@ type Props = {
 
 function SpansContent(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
+  const useEvents = organization.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
   const query = decodeScalar(location.query.query, '');
 
   function handleChange(key: string) {
@@ -130,6 +133,7 @@ function SpansContent(props: Props) {
         referrer="api.performance.transaction-spans"
         cursor="0:0:1"
         noPagination
+        useEvents={useEvents}
       >
         {({tableData}) => {
           const totals: SpansTotalValues | null =
