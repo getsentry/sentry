@@ -583,6 +583,67 @@ class QueryBuilderTest(TestCase):
         with self.assertRaises(InvalidSearchQuery):
             query.get_snql_query()
 
+    def test_query_chained_or_tip(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "field:a OR field:b OR field:c",
+            selected_columns=[
+                "field",
+            ],
+        )
+        assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
+
+    def test_chained_or_with_different_terms(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "field:a or field:b or event.type:transaction or transaction:foo",
+            selected_columns=[
+                "field",
+            ],
+        )
+        # This query becomes something roughly like:
+        # field:a or (field:b or (event.type:transaciton or transaction: foo))
+        assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
+
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "event.type:transaction or transaction:foo or field:a or field:b",
+            selected_columns=[
+                "field",
+            ],
+        )
+        assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
+
+    def test_chained_or_with_different_terms_with_and(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            # There's an implicit and between field:b, and event.type:transaction
+            "field:a or field:b event.type:transaction",
+            selected_columns=[
+                "field",
+            ],
+        )
+        # This query becomes something roughly like:
+        # field:a or (field:b and event.type:transaction)
+        assert constants.QUERY_TIPS["CHAINED_OR"] not in query.tips["query"]
+
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            # There's an implicit and between event.type:transaction, and field:a
+            "event.type:transaction field:a or field:b",
+            selected_columns=[
+                "field",
+            ],
+        )
+        # This query becomes something roughly like:
+        # field:a or (field:b and event.type:transaction)
+        assert constants.QUERY_TIPS["CHAINED_OR"] not in query.tips["query"]
+
 
 def _metric_percentile_definition(
     org_id, quantile, field="transaction.duration", alias=None
