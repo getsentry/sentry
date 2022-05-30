@@ -8,10 +8,18 @@ import withApi from 'sentry/utils/withApi';
 
 const DEFAULT_POLL_INTERVAL = 5000;
 
-const recordAnalyticsFirstEvent = ({key, organization, project}) =>
+const recordAnalyticsFirstEvent = ({
+  key,
+  organization,
+  project,
+}: {
+  key: 'first_event_recieved' | 'first_transaction_recieved';
+  organization: Organization;
+  project: Project;
+}) =>
   analytics(`onboarding_v2.${key}`, {
     org_id: parseInt(organization.id, 10),
-    project: parseInt(project.id, 10),
+    project: project.id,
   });
 
 /**
