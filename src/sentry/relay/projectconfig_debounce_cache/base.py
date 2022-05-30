@@ -44,4 +44,7 @@ class ProjectConfigDebounceCache(Service):
         """
         Mark a task done such that `check_is_debounced` starts emitting False
         for the given parameters.
+
+        Returns 1 if the task was removed, 0 if it wasn't.
         """
+        return 1
