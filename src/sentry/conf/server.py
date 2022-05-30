@@ -943,8 +943,10 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enables events endpoint usage on frontend
+    # Enables events endpoint usage on discover and dashboards frontend
     "organizations:discover-frontend-use-events-endpoint": False,
+    # Enables events endpoint usage on performance frontend
+    "organizations:performance-frontend-use-events-endpoint": False,
     # Enable duplicating alert rules.
     "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
