@@ -877,7 +877,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
           </DoubleFieldWrapper>
           {(showIssueDatasetSelector || showMetricsDatasetSelector) && (
             <Fragment>
-              <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
+              <StyledFieldLabel>{t('Dataset')}</StyledFieldLabel>
               <StyledRadioGroup
                 style={{flex: 1}}
                 choices={datasetChoices}
