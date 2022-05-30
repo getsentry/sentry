@@ -112,61 +112,70 @@ function mockEventView(data) {
 }
 
 describe('Performance > Table', function () {
-  let eventsV2Mock;
+  let eventsV2Mock, eventsMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+    const eventsMetaFieldsMock = {
+      user: 'string',
+      transaction: 'string',
+      project: 'string',
+      tpm: 'number',
+      p50: 'number',
+      p95: 'number',
+      failure_rate: 'number',
+      apdex: 'number',
+      count_unique_user: 'number',
+      count_miserable_user: 'number',
+      user_misery: 'number',
+    };
+    const eventsBodyMock = [
+      {
+        team_key_transaction: 1,
+        transaction: '/apple/cart',
+        project: '2',
+        user: 'uhoh@example.com',
+        tpm: 30,
+        p50: 100,
+        p95: 500,
+        failure_rate: 0.1,
+        apdex: 0.6,
+        count_unique_user: 1000,
+        count_miserable_user: 122,
+        user_misery: 0.114,
+        project_threshold_config: ['duration', 300],
+      },
+      {
+        team_key_transaction: 0,
+        transaction: '/apple/checkout',
+        project: '1',
+        user: 'uhoh@example.com',
+        tpm: 30,
+        p50: 100,
+        p95: 500,
+        failure_rate: 0.1,
+        apdex: 0.6,
+        count_unique_user: 1000,
+        count_miserable_user: 122,
+        user_misery: 0.114,
+        project_threshold_config: ['duration', 300],
+      },
+    ];
     eventsV2Mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventsv2/',
       body: {
-        meta: {
-          user: 'string',
-          transaction: 'string',
-          project: 'string',
-          tpm: 'number',
-          p50: 'number',
-          p95: 'number',
-          failure_rate: 'number',
-          apdex: 'number',
-          count_unique_user: 'number',
-          count_miserable_user: 'number',
-          user_misery: 'number',
-        },
-        data: [
-          {
-            team_key_transaction: 1,
-            transaction: '/apple/cart',
-            project: '2',
-            user: 'uhoh@example.com',
-            tpm: 30,
-            p50: 100,
-            p95: 500,
-            failure_rate: 0.1,
-            apdex: 0.6,
-            count_unique_user: 1000,
-            count_miserable_user: 122,
-            user_misery: 0.114,
-            project_threshold_config: ['duration', 300],
-          },
-          {
-            team_key_transaction: 0,
-            transaction: '/apple/checkout',
-            project: '1',
-            user: 'uhoh@example.com',
-            tpm: 30,
-            p50: 100,
-            p95: 500,
-            failure_rate: 0.1,
-            apdex: 0.6,
-            count_unique_user: 1000,
-            count_miserable_user: 122,
-            user_misery: 0.114,
-            project_threshold_config: ['duration', 300],
-          },
-        ],
+        meta: eventsMetaFieldsMock,
+        data: eventsBodyMock,
+      },
+    });
+    eventsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {fields: eventsMetaFieldsMock},
+        data: eventsBodyMock,
       },
     });
     MockApiClient.addMockResponse({
@@ -180,112 +189,228 @@ describe('Performance > Table', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders correct cell actions without feature', async function () {
-    const data = initializeData({
-      query: 'event.type:transaction transaction:/api*',
+  describe('with eventsv2', function () {
+    it('renders correct cell actions without feature', async function () {
+      const data = initializeData({
+        query: 'event.type:transaction transaction:/api*',
+      });
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+        />
+      );
+
+      await tick();
+      wrapper.update();
+      const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
+      const transactionCell = firstRow.find('GridBodyCell').at(1);
+      expect(transactionCell.find('Link').prop('to')).toEqual({
+        pathname: '/organizations/org-slug/performance/summary/',
+        query: {
+          transaction: '/apple/cart',
+          project: '2',
+          environment: [],
+          statsPeriod: '14d',
+          start: '2019-10-01T00:00:00',
+          end: '2019-10-02T00:00:00',
+          query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
+          unselectedSeries: 'p100()',
+          showTransactions: undefined,
+          display: undefined,
+          trendFunction: undefined,
+          trendColumn: undefined,
+        },
+      });
+      const userMiseryCell = firstRow.find('GridBodyCell').at(9);
+      const cellAction = userMiseryCell.find('CellAction');
+
+      expect(cellAction.prop('allowActions')).toEqual([
+        'add',
+        'exclude',
+        'show_greater_than',
+        'show_less_than',
+        'edit_threshold',
+      ]);
+
+      const menu = openContextMenu(wrapper, 8); // User Misery Cell Action
+      expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(3);
+      expect(menu.find('MenuButtons').find('ActionItem').at(2).text()).toEqual(
+        'Edit threshold (300ms)'
+      );
     });
 
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        data={data}
-        eventView={mockEventView(data)}
-        setError={jest.fn()}
-        summaryConditions=""
-        projects={data.projects}
-      />
-    );
+    it('sends MEP param when setting enabled', async function () {
+      const data = initializeData(
+        {
+          query: 'event.type:transaction transaction:/api*',
+        },
+        ['performance-use-metrics']
+      );
 
-    await tick();
-    wrapper.update();
-    const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
-    const transactionCell = firstRow.find('GridBodyCell').at(1);
-    expect(transactionCell.find('Link').prop('to')).toEqual({
-      pathname: '/organizations/org-slug/performance/summary/',
-      query: {
-        transaction: '/apple/cart',
-        project: '2',
-        environment: [],
-        statsPeriod: '14d',
-        start: '2019-10-01T00:00:00',
-        end: '2019-10-02T00:00:00',
-        query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
-        unselectedSeries: 'p100()',
-        showTransactions: undefined,
-        display: undefined,
-        trendFunction: undefined,
-        trendColumn: undefined,
-      },
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+          isMEPEnabled
+        />
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+      expect(eventsV2Mock).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+            field: [
+              'team_key_transaction',
+              'transaction',
+              'project',
+              'tpm()',
+              'p50()',
+              'p95()',
+              'failure_rate()',
+              'apdex()',
+              'count_unique(user)',
+              'count_miserable(user)',
+              'user_misery()',
+            ],
+            metricsEnhanced: '1',
+            preventMetricAggregates: '1',
+            per_page: 50,
+            project: ['1', '2'],
+            query: 'event.type:transaction transaction:/api*',
+            referrer: 'api.performance.landing-table',
+            sort: '-team_key_transaction',
+            statsPeriod: '14d',
+          }),
+        })
+      );
     });
-    const userMiseryCell = firstRow.find('GridBodyCell').at(9);
-    const cellAction = userMiseryCell.find('CellAction');
-
-    expect(cellAction.prop('allowActions')).toEqual([
-      'add',
-      'exclude',
-      'show_greater_than',
-      'show_less_than',
-      'edit_threshold',
-    ]);
-
-    const menu = openContextMenu(wrapper, 8); // User Misery Cell Action
-    expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(3);
-    expect(menu.find('MenuButtons').find('ActionItem').at(2).text()).toEqual(
-      'Edit threshold (300ms)'
-    );
   });
 
-  it('sends MEP param when setting enabled', async function () {
-    const data = initializeData(
-      {
-        query: 'event.type:transaction transaction:/api*',
-      },
-      ['performance-use-metrics']
-    );
-
-    const wrapper = mountWithTheme(
-      <WrappedComponent
-        data={data}
-        eventView={mockEventView(data)}
-        setError={jest.fn()}
-        summaryConditions=""
-        projects={data.projects}
-        isMEPEnabled
-      />
-    );
-
-    await tick();
-    wrapper.update();
-
-    expect(eventsV2Mock).toHaveBeenCalledTimes(1);
-    expect(eventsV2Mock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: [],
-          field: [
-            'team_key_transaction',
-            'transaction',
-            'project',
-            'tpm()',
-            'p50()',
-            'p95()',
-            'failure_rate()',
-            'apdex()',
-            'count_unique(user)',
-            'count_miserable(user)',
-            'user_misery()',
-          ],
-          metricsEnhanced: '1',
-          preventMetricAggregates: '1',
-          per_page: 50,
-          project: ['1', '2'],
+  describe('with events', function () {
+    it('renders correct cell actions without feature', async function () {
+      const data = initializeData(
+        {
           query: 'event.type:transaction transaction:/api*',
-          referrer: 'api.performance.landing-table',
-          sort: '-team_key_transaction',
+        },
+        ['discover-frontend-use-events-endpoint']
+      );
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+        />
+      );
+
+      await tick();
+      wrapper.update();
+      const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
+      const transactionCell = firstRow.find('GridBodyCell').at(1);
+      expect(transactionCell.find('Link').prop('to')).toEqual({
+        pathname: '/organizations/org-slug/performance/summary/',
+        query: {
+          transaction: '/apple/cart',
+          project: '2',
+          environment: [],
           statsPeriod: '14d',
-        }),
-      })
-    );
+          start: '2019-10-01T00:00:00',
+          end: '2019-10-02T00:00:00',
+          query: '', // drops 'transaction:/api*' and 'event.type:transaction' from the query
+          unselectedSeries: 'p100()',
+          showTransactions: undefined,
+          display: undefined,
+          trendFunction: undefined,
+          trendColumn: undefined,
+        },
+      });
+      const userMiseryCell = firstRow.find('GridBodyCell').at(9);
+      const cellAction = userMiseryCell.find('CellAction');
+
+      expect(cellAction.prop('allowActions')).toEqual([
+        'add',
+        'exclude',
+        'show_greater_than',
+        'show_less_than',
+        'edit_threshold',
+      ]);
+
+      const menu = openContextMenu(wrapper, 8); // User Misery Cell Action
+      expect(menu.find('MenuButtons').find('ActionItem')).toHaveLength(3);
+      expect(menu.find('MenuButtons').find('ActionItem').at(2).text()).toEqual(
+        'Edit threshold (300ms)'
+      );
+    });
+
+    it('sends MEP param when setting enabled', async function () {
+      const data = initializeData(
+        {
+          query: 'event.type:transaction transaction:/api*',
+        },
+        ['performance-use-metrics', 'discover-frontend-use-events-endpoint']
+      );
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+          isMEPEnabled
+        />
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(eventsMock).toHaveBeenCalledTimes(1);
+      expect(eventsMock).toHaveBeenNthCalledWith(
+        1,
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            environment: [],
+            field: [
+              'team_key_transaction',
+              'transaction',
+              'project',
+              'tpm()',
+              'p50()',
+              'p95()',
+              'failure_rate()',
+              'apdex()',
+              'count_unique(user)',
+              'count_miserable(user)',
+              'user_misery()',
+            ],
+            metricsEnhanced: '1',
+            preventMetricAggregates: '1',
+            per_page: 50,
+            project: ['1', '2'],
+            query: 'event.type:transaction transaction:/api*',
+            referrer: 'api.performance.landing-table',
+            sort: '-team_key_transaction',
+            statsPeriod: '14d',
+          }),
+        })
+      );
+    });
   });
 });
