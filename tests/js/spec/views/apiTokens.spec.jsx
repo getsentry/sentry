@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
@@ -16,10 +16,10 @@ describe('ApiTokens', function () {
       body: null,
     });
 
-    const wrapper = mountWithTheme(<ApiTokens organization={organization} />);
+    const {container} = render(<ApiTokens organization={organization} />);
 
     // Should be loading
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('renders with result', function () {
@@ -28,10 +28,10 @@ describe('ApiTokens', function () {
       body: [TestStubs.ApiToken()],
     });
 
-    const wrapper = mountWithTheme(<ApiTokens organization={organization} />);
+    const {container} = render(<ApiTokens organization={organization} />);
 
     // Should be loading
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('can delete token', function () {
@@ -44,12 +44,11 @@ describe('ApiTokens', function () {
       url: '/api-tokens/',
       method: 'DELETE',
     });
-
     expect(mock).not.toHaveBeenCalled();
 
-    const wrapper = mountWithTheme(<ApiTokens organization={organization} />);
+    render(<ApiTokens organization={organization} />);
 
-    wrapper.find('button[aria-label="Remove"]').simulate('click');
+    fireEvent.click(screen.getByLabelText('Remove'));
 
     // Should be loading
     expect(mock).toHaveBeenCalledTimes(1);
