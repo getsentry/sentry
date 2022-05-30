@@ -179,8 +179,8 @@ def get_client_config(request=None):
         "enableAnalytics": settings.ENABLE_ANALYTICS,
         "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
         # TODO: to be implemented in the future when customer domain work evolves
-        "apiUrl": None,
-        "organizationUrl": None,
+        "sentryUrl": options.get("system.url-prefix"),
+        "organizationUrl": options.get("system.url-prefix"),
     }
     if user and user.is_authenticated:
         context.update(

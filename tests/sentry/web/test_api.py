@@ -114,8 +114,8 @@ class ClientConfigViewTest(TestCase):
         data = json.loads(resp.content)
         assert not data["isAuthenticated"]
         assert data["user"] is None
-        assert data["apiUrl"] is None
-        assert data["organizationUrl"] is None
+        assert data["sentryUrl"] == "http://testserver"
+        assert data["organizationUrl"] == "http://testserver"
 
     def test_url_prefix_authenticated(self):
         user = self.create_user("foo@example.com")
@@ -127,5 +127,5 @@ class ClientConfigViewTest(TestCase):
 
         data = json.loads(resp.content)
         assert data["isAuthenticated"] is True
-        assert data["apiUrl"] is None
-        assert data["organizationUrl"] is None
+        assert data["sentryUrl"] == "http://testserver"
+        assert data["organizationUrl"] == "http://testserver"
