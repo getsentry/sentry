@@ -59,6 +59,7 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     displayType: DisplayType.LINE,
     widgetType: WidgetType.RELEASE,
     interval: '5m',
+    limit: 8,
     queries: [
       {
         name: '',
@@ -72,8 +73,8 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
   {
     id: undefined,
-    title: t('User Session Health by Project'),
-    description: t('Breakdown of user sessions by project.'),
+    title: t('Session Health'),
+    description: t('Number of abnormal,crashed, errored and healthy sessions.'),
     displayType: DisplayType.TABLE,
     widgetType: WidgetType.RELEASE,
     interval: '5m',
@@ -81,23 +82,10 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
       {
         name: '',
         conditions: '',
-        fields: [
-          'project',
-          'count_abnormal(user)',
-          'count_crashed(user)',
-          'count_errored(user)',
-          'count_healthy(user)',
-          'count_unique(user)',
-        ],
-        aggregates: [
-          'count_abnormal(user)',
-          'count_crashed(user)',
-          'count_errored(user)',
-          'count_healthy(user)',
-          'count_unique(user)',
-        ],
-        columns: ['project'],
-        orderby: '-count_unique(user)',
+        fields: ['session.status', 'sum(session)'],
+        aggregates: ['sum(session)'],
+        columns: ['session.status'],
+        orderby: '',
       },
     ],
   },
