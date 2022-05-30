@@ -1,12 +1,17 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import partition from 'lodash/partition';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
-import {DynamicSamplingRule, DynamicSamplingRuleType} from 'sentry/types/dynamicSampling';
+import {
+  DynamicSamplingConditionOperator,
+  DynamicSamplingRule,
+  DynamicSamplingRuleType,
+} from 'sentry/types/dynamicSampling';
 
 import DraggableList, {UpdateItemsProps} from './draggableList';
 import Rule from './rule';
@@ -64,12 +69,22 @@ class Rules extends PureComponent<Props, State> {
       .map(ruleId => rules.find(rule => String(rule.id) === ruleId))
       .filter(rule => !!rule) as Array<DynamicSamplingRule>;
 
-    const activeRuleType = rules[activeIndex].type;
-    const overRuleType = rules[overIndex].type;
+    const activeRule = rules[activeIndex];
+    const overRule = rules[overIndex];
 
     if (
-      activeRuleType === DynamicSamplingRuleType.TRACE &&
-      overRuleType === DynamicSamplingRuleType.TRANSACTION
+      activeRule.condition.op === DynamicSamplingConditionOperator.AND &&
+      !activeRule.condition.inner.length
+    ) {
+      addErrorMessage(
+        t('Rules with conditions cannot be below rules without conditions')
+      );
+      return;
+    }
+
+    if (
+      activeRule.type === DynamicSamplingRuleType.TRACE &&
+      overRule.type === DynamicSamplingRuleType.TRANSACTION
     ) {
       addErrorMessage(
         t('Transaction traces rules cannot be under individual transactions rules')
@@ -78,8 +93,8 @@ class Rules extends PureComponent<Props, State> {
     }
 
     if (
-      activeRuleType === DynamicSamplingRuleType.TRANSACTION &&
-      overRuleType === DynamicSamplingRuleType.TRACE
+      activeRule.type === DynamicSamplingRuleType.TRANSACTION &&
+      overRule.type === DynamicSamplingRuleType.TRACE
     ) {
       addErrorMessage(
         t('Individual transactions rules cannot be above transaction traces rules')
@@ -94,6 +109,17 @@ class Rules extends PureComponent<Props, State> {
     const {onEditRule, onDeleteRule, disabled, emptyMessage} = this.props;
     const {rules} = this.state;
 
+    const [rulesWithConditions, rulesWithoutConditions] = partition(
+      rules,
+      rule => !!rule.condition.inner.length
+    );
+
+    // Rules without conditions always have to be 'pinned' to the bottom of the list
+    const items = [
+      ...rulesWithConditions.map(({id}) => ({id: String(id), disabled: false})),
+      ...rulesWithoutConditions.map(({id}) => ({id: String(id), disabled: true})),
+    ];
+
     return (
       <StyledPanelTable
         headers={['', t('Operator'), t('Conditions'), t('Rate'), '']}
@@ -102,7 +128,7 @@ class Rules extends PureComponent<Props, State> {
       >
         <DraggableList
           disabled={disabled}
-          items={rules.map(rule => String(rule.id))}
+          items={items}
           onUpdateItems={this.handleUpdateRules}
           wrapperStyle={({isDragging, isSorting, index}) => {
             if (isDragging) {
@@ -133,7 +159,7 @@ class Rules extends PureComponent<Props, State> {
 
             return (
               <Rule
-                firstOnTheList={currentRule.id === rules[0].id}
+                firstOnTheList={String(currentRule.id) === items[0].id}
                 rule={currentRule}
                 onEditRule={onEditRule(currentRule)}
                 onDeleteRule={onDeleteRule(currentRule)}

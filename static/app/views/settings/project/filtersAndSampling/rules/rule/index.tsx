@@ -1,12 +1,16 @@
 import {Component} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DynamicSamplingRule} from 'sentry/types/dynamicSampling';
+import {
+  DynamicSamplingConditionOperator,
+  DynamicSamplingRule,
+} from 'sentry/types/dynamicSampling';
 
 import {layout} from '../utils';
 
@@ -60,9 +64,9 @@ class Rule extends Component<Props, State> {
   render() {
     const {
       rule,
+      disabled,
       onEditRule,
       onDeleteRule,
-      disabled,
       listeners,
       firstOnTheList,
       grabAttributes,
@@ -71,23 +75,30 @@ class Rule extends Component<Props, State> {
     const {condition, sampleRate} = rule;
     const {isMenuActionsOpen} = this.state;
 
+    const sampleAll =
+      condition.op === DynamicSamplingConditionOperator.AND && !condition.inner.length;
+
     return (
       <Columns>
-        <GrabColumn>
+        <GrabColumn disabled={sampleAll || disabled}>
           <Tooltip
             title={
               disabled
-                ? t('You do not have permission to reorder dynamic sampling rules.')
+                ? t('You do not have permission to reorder rules.')
+                : sampleAll
+                ? t('Rules without conditions cannot be reordered.')
                 : undefined
             }
           >
-            <IconGrabbableWrapper {...listeners} disabled={disabled} {...grabAttributes}>
+            <IconGrabbableWrapper {...listeners} {...grabAttributes}>
               <IconGrabbable />
             </IconGrabbableWrapper>
           </Tooltip>
         </GrabColumn>
         <Column>
-          <Operator>{firstOnTheList ? t('If') : t('Else if')}</Operator>
+          <Operator disabled={sampleAll}>
+            {sampleAll ? t('Else') : firstOnTheList ? t('If') : t('Else if')}
+          </Operator>
         </Column>
         <Column>
           <Conditions condition={condition} />
@@ -132,28 +143,32 @@ const Column = styled('div')`
   word-break: break-all;
 `;
 
-const GrabColumn = styled(Column)`
-  cursor: inherit;
-  [role='button'] {
-    cursor: grab;
-  }
+const IconGrabbableWrapper = styled('div')`
+  outline: none;
 `;
 
-const Operator = styled('div')`
-  color: ${p => p.theme.purple300};
+const GrabColumn = styled(Column)<{disabled: boolean}>`
+  cursor: inherit;
+  ${p =>
+    p.disabled
+      ? css`
+          ${IconGrabbableWrapper} {
+            color: ${p.theme.disabled};
+            cursor: not-allowed;
+          }
+        `
+      : css`
+          [role='button'] {
+            cursor: grab;
+          }
+        `}
+`;
+
+const Operator = styled('div')<{disabled: boolean}>`
+  color: ${p => (p.disabled ? p.theme.disabled : p.theme.active)};
 `;
 
 const CenteredColumn = styled(Column)`
   text-align: center;
   justify-content: center;
-`;
-
-const IconGrabbableWrapper = styled('div')<{disabled: boolean}>`
-  ${p =>
-    p.disabled &&
-    `
-    color: ${p.theme.disabled};
-    cursor: not-allowed;
-  `};
-  outline: none;
 `;
