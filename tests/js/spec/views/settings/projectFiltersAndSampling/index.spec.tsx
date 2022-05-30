@@ -43,17 +43,16 @@ describe('Filters and Sampling', function () {
       expect(
         screen.getByText('There are no transaction rules to display')
       ).toBeInTheDocument();
+
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLink = screen.getByRole('button', {
-        name: 'Read the docs',
-      });
+      expect(
+        screen.getByRole('button', {
+          name: 'Read the docs',
+        })
+      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(readDocsButtonLink).toBeInTheDocument();
-
-      expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-
-      expect(screen.getByText('Type')).toBeInTheDocument();
+      expect(screen.getByText('Operator')).toBeInTheDocument();
       expect(screen.getByText('Conditions')).toBeInTheDocument();
       expect(screen.getByText('Rate')).toBeInTheDocument();
 
@@ -141,21 +140,20 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      const transactionTraceRules = screen.getByText('Transaction traces');
-      expect(transactionTraceRules).toBeInTheDocument();
 
-      const individualTransactionRules = screen.getByText('Individual transactions');
-      expect(individualTransactionRules).toBeInTheDocument();
+      // Operator column
+      expect(screen.getByText('If')).toBeInTheDocument();
+      expect(screen.getByText('Else if')).toBeInTheDocument();
 
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLink = screen.getByRole('button', {
-        name: 'Read the docs',
-      });
-      expect(readDocsButtonLink).toBeInTheDocument();
-      expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
+      expect(
+        screen.getByRole('button', {
+          name: 'Read the docs',
+        })
+      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(screen.getByText('Type')).toBeInTheDocument();
+      expect(screen.getByText('Operator')).toBeInTheDocument();
       expect(screen.getByText('Conditions')).toBeInTheDocument();
       expect(screen.getByText('Rate')).toBeInTheDocument();
 

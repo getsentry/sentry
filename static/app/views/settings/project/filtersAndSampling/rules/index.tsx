@@ -96,7 +96,7 @@ class Rules extends PureComponent<Props, State> {
 
     return (
       <StyledPanelTable
-        headers={['', t('Type'), t('Conditions'), t('Rate'), '']}
+        headers={['', t('Operator'), t('Conditions'), t('Rate'), '']}
         isEmpty={!rules.length}
         emptyMessage={emptyMessage}
       >
@@ -133,6 +133,7 @@ class Rules extends PureComponent<Props, State> {
 
             return (
               <Rule
+                firstOnTheList={currentRule.id === rules[0].id}
                 rule={currentRule}
                 onEditRule={onEditRule(currentRule)}
                 onDeleteRule={onDeleteRule(currentRule)}

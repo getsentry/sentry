@@ -13,11 +13,11 @@ import {layout} from '../utils';
 import Actions from './actions';
 import Conditions from './conditions';
 import SampleRate from './sampleRate';
-import Type from './type';
 
 type Props = {
   disabled: boolean;
   dragging: boolean;
+  firstOnTheList: boolean;
   listeners: DraggableSyntheticListeners;
   onDeleteRule: () => void;
   onEditRule: () => void;
@@ -58,10 +58,17 @@ class Rule extends Component<Props, State> {
   };
 
   render() {
-    const {rule, onEditRule, onDeleteRule, disabled, listeners, grabAttributes} =
-      this.props;
+    const {
+      rule,
+      onEditRule,
+      onDeleteRule,
+      disabled,
+      listeners,
+      firstOnTheList,
+      grabAttributes,
+    } = this.props;
 
-    const {type, condition, sampleRate} = rule;
+    const {condition, sampleRate} = rule;
     const {isMenuActionsOpen} = this.state;
 
     return (
@@ -80,7 +87,7 @@ class Rule extends Component<Props, State> {
           </Tooltip>
         </GrabColumn>
         <Column>
-          <Type type={type} />
+          <Operator>{firstOnTheList ? t('If') : t('Else if')}</Operator>
         </Column>
         <Column>
           <Conditions condition={condition} />
@@ -130,6 +137,10 @@ const GrabColumn = styled(Column)`
   [role='button'] {
     cursor: grab;
   }
+`;
+
+const Operator = styled('div')`
+  color: ${p => p.theme.purple300};
 `;
 
 const CenteredColumn = styled(Column)`
