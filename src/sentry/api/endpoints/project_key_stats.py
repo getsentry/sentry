@@ -1,8 +1,6 @@
-from datetime import timedelta
-
 from django.db.models import F
 from django.http import QueryDict
-from django.utils import timezone
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk.api import capture_exception
@@ -53,9 +51,13 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         query_data["groupBy"] = "outcome"
         query_data["category"] = "error"
 
-        now = timezone.now()
-        query_data["end"] = request.GET.get("until", now.isoformat())
-        query_data["start"] = request.GET.get("since", (now - timedelta(days=30)).isoformat())
+        try:
+            stats_params = self._parse_args(request)
+        except Exception:
+            raise ParseError(detail="Invalid request data")
+
+        query_data["end"] = stats_params["end"].isoformat()
+        query_data["start"] = stats_params["start"].isoformat()
         query_data["interval"] = request.GET.get("resolution", "1d")
 
         try:
@@ -67,7 +69,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
                 query_definition, [], run_outcomes_query_timeseries(query_definition)
             )
         except Exception:
-            return Response({"detail": "Invalid request data"}, status=400)
+            raise ParseError(detail="Invalid request data")
 
         # Initialize the response results.
         response = []

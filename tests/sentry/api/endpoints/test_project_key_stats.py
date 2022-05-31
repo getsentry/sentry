@@ -62,7 +62,6 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         assert response.data[-1]["accepted"] == 2, response.data
         for point in response.data[:-1]:
             assert point["total"] == 0
-        assert len(response.data) == 31
 
     def test_ignore_discard(self):
         self.store_outcomes(
