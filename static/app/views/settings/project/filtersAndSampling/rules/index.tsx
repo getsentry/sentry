@@ -6,10 +6,14 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
-import {DynamicSamplingRule, DynamicSamplingRuleType} from 'sentry/types/dynamicSampling';
+import {
+  DynamicSamplingRule,
+  DynamicSamplingRuleOperator,
+  DynamicSamplingRuleType,
+} from 'sentry/types/dynamicSampling';
 
-import DraggableList, {UpdateItemsProps} from './draggableList';
-import Rule from './rule';
+import {DraggableList, UpdateItemsProps} from './draggableList';
+import {Rule} from './rule';
 import {layout} from './utils';
 
 type Props = {
@@ -25,7 +29,7 @@ type State = {
   rules: Array<DynamicSamplingRule>;
 };
 
-class Rules extends PureComponent<Props, State> {
+export class Rules extends PureComponent<Props, State> {
   state: State = {rules: []};
 
   componentDidMount() {
@@ -60,16 +64,20 @@ class Rules extends PureComponent<Props, State> {
     reorderedItems: ruleIds,
   }: UpdateItemsProps) => {
     const {rules} = this.state;
-    const reorderedRules = ruleIds
-      .map(ruleId => rules.find(rule => String(rule.id) === ruleId))
-      .filter(rule => !!rule) as Array<DynamicSamplingRule>;
 
-    const activeRuleType = rules[activeIndex].type;
-    const overRuleType = rules[overIndex].type;
+    const activeRule = rules[activeIndex];
+    const overRule = rules[overIndex];
+
+    if (!overRule.condition.inner.length) {
+      addErrorMessage(
+        t('Rules with conditions cannot be below rules without conditions')
+      );
+      return;
+    }
 
     if (
-      activeRuleType === DynamicSamplingRuleType.TRACE &&
-      overRuleType === DynamicSamplingRuleType.TRANSACTION
+      activeRule.type === DynamicSamplingRuleType.TRACE &&
+      overRule.type === DynamicSamplingRuleType.TRANSACTION
     ) {
       addErrorMessage(
         t('Transaction traces rules cannot be under individual transactions rules')
@@ -78,14 +86,18 @@ class Rules extends PureComponent<Props, State> {
     }
 
     if (
-      activeRuleType === DynamicSamplingRuleType.TRANSACTION &&
-      overRuleType === DynamicSamplingRuleType.TRACE
+      activeRule.type === DynamicSamplingRuleType.TRANSACTION &&
+      overRule.type === DynamicSamplingRuleType.TRACE
     ) {
       addErrorMessage(
         t('Individual transactions rules cannot be above transaction traces rules')
       );
       return;
     }
+
+    const reorderedRules = ruleIds
+      .map(ruleId => rules.find(rule => String(rule.id) === ruleId))
+      .filter(rule => !!rule) as Array<DynamicSamplingRule>;
 
     this.setState({rules: reorderedRules});
   };
@@ -94,15 +106,22 @@ class Rules extends PureComponent<Props, State> {
     const {onEditRule, onDeleteRule, disabled, emptyMessage} = this.props;
     const {rules} = this.state;
 
+    // Rules without conditions always have to be 'pinned' to the bottom of the list
+    const items = rules.map(rule => ({
+      ...rule,
+      id: String(rule.id),
+      disabled: !rule.condition.inner.length,
+    }));
+
     return (
       <StyledPanelTable
-        headers={['', t('Type'), t('Conditions'), t('Rate'), '']}
+        headers={['', t('Operator'), t('Conditions'), t('Rate'), '']}
         isEmpty={!rules.length}
         emptyMessage={emptyMessage}
       >
         <DraggableList
           disabled={disabled}
-          items={rules.map(rule => String(rule.id))}
+          items={items}
           onUpdateItems={this.handleUpdateRules}
           wrapperStyle={({isDragging, isSorting, index}) => {
             if (isDragging) {
@@ -125,18 +144,33 @@ class Rules extends PureComponent<Props, State> {
             };
           }}
           renderItem={({value, listeners, attributes, dragging, sorting}) => {
-            const currentRule = rules.find(rule => String(rule.id) === value);
+            const itemsRuleIndex = items.findIndex(item => item.id === value);
 
-            if (!currentRule) {
+            if (itemsRuleIndex === -1) {
               return null;
             }
 
+            const itemsRule = items[itemsRuleIndex];
+            const currentRule = {
+              condition: itemsRule.condition,
+              sampleRate: itemsRule.sampleRate,
+              type: itemsRule.type,
+              id: Number(itemsRule.id),
+            };
+
             return (
               <Rule
-                rule={currentRule}
+                operator={
+                  itemsRule.id === items[0].id
+                    ? DynamicSamplingRuleOperator.IF
+                    : itemsRule.disabled
+                    ? DynamicSamplingRuleOperator.ELSE
+                    : DynamicSamplingRuleOperator.ELSE_IF
+                }
+                rule={{...currentRule, disabled: itemsRule.disabled}}
                 onEditRule={onEditRule(currentRule)}
                 onDeleteRule={onDeleteRule(currentRule)}
-                disabled={disabled}
+                noPermission={disabled}
                 listeners={listeners}
                 grabAttributes={attributes}
                 dragging={dragging}
@@ -149,8 +183,6 @@ class Rules extends PureComponent<Props, State> {
     );
   }
 }
-
-export default Rules;
 
 const StyledPanelTable = styled(PanelTable)`
   overflow: visible;

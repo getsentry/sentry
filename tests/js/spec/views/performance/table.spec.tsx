@@ -306,7 +306,7 @@ describe('Performance > Table', function () {
         {
           query: 'event.type:transaction transaction:/api*',
         },
-        ['discover-frontend-use-events-endpoint']
+        ['performance-frontend-use-events-endpoint']
       );
 
       const wrapper = mountWithTheme(
@@ -363,7 +363,7 @@ describe('Performance > Table', function () {
         {
           query: 'event.type:transaction transaction:/api*',
         },
-        ['performance-use-metrics', 'discover-frontend-use-events-endpoint']
+        ['performance-use-metrics', 'performance-frontend-use-events-endpoint']
       );
 
       const wrapper = mountWithTheme(
