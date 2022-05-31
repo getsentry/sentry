@@ -7,7 +7,10 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {SamplingRule, SamplingRuleOperator} from 'sentry/types/dynamicSampling';
+import {
+  DynamicSamplingRule,
+  DynamicSamplingRuleOperator,
+} from 'sentry/types/dynamicSampling';
 
 import {layout} from '../utils';
 
@@ -20,8 +23,8 @@ type Props = {
   noPermission: boolean;
   onDeleteRule: () => void;
   onEditRule: () => void;
-  operator: SamplingRuleOperator;
-  rule: SamplingRule;
+  operator: DynamicSamplingRuleOperator;
+  rule: DynamicSamplingRule;
   sorting: boolean;
   grabAttributes?: UseDraggableArguments['attributes'];
 };
@@ -56,7 +59,7 @@ export function Rule({
           title={
             noPermission
               ? t('You do not have permission to reorder rules.')
-              : operator === SamplingRuleOperator.ELSE
+              : operator === DynamicSamplingRuleOperator.ELSE
               ? t('Rules without conditions cannot be reordered.')
               : undefined
           }
@@ -68,9 +71,9 @@ export function Rule({
       </GrabColumn>
       <Column>
         <Operator>
-          {operator === SamplingRuleOperator.IF
+          {operator === DynamicSamplingRuleOperator.IF
             ? t('If')
-            : operator === SamplingRuleOperator.ELSE_IF
+            : operator === DynamicSamplingRuleOperator.ELSE_IF
             ? t('Else if')
             : t('Else')}
         </Operator>
