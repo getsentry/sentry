@@ -11,6 +11,7 @@ import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {Color, Theme} from 'sentry/utils/theme';
+import {AlertType} from 'sentry/views/alerts/wizard/options';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
@@ -138,6 +139,13 @@ export const vitalAbbreviations: Partial<Record<WebVital, string>> = {
   [WebVital.CLS]: 'CLS',
   [WebVital.FID]: 'FID',
   [WebVital.LCP]: 'LCP',
+};
+
+export const vitalAlertTypes: Partial<Record<WebVital, AlertType>> = {
+  [WebVital.FCP]: 'custom',
+  [WebVital.CLS]: 'cls',
+  [WebVital.FID]: 'fid',
+  [WebVital.LCP]: 'lcp',
 };
 
 export function getMaxOfSeries(series: Series[]) {

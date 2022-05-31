@@ -297,6 +297,11 @@ function CreateAlertFromViewButton({
     );
   }
   const hasErrors = Object.values(errors).some(x => x);
+
+  const alertTemplate = alertType
+    ? AlertWizardRuleTemplates[alertType]
+    : DEFAULT_WIZARD_TEMPLATE;
+
   const to = hasErrors
     ? undefined
     : {
@@ -309,10 +314,9 @@ function CreateAlertFromViewButton({
           referrer,
           ...(useAlertWizardV3
             ? {
+                ...alertTemplate,
                 project: project?.slug,
-                ...(alertType
-                  ? AlertWizardRuleTemplates[alertType]
-                  : DEFAULT_WIZARD_TEMPLATE),
+                aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
               }
             : {}),
         },
