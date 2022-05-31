@@ -211,7 +211,8 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return;
     }
     const boundingRect = element.getBoundingClientRect();
-    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
+    // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
+    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
     this.setState({showDetail: true}, () => window.scrollTo(0, offset));
   };
 

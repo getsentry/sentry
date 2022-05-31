@@ -11,7 +11,7 @@ import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
 import SpanBar from './spanBar';
-import {SpansInViewMap} from './utils';
+import {SpansInViewMap, spanTargetHash} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
@@ -90,19 +90,35 @@ export class Provider extends Component<Props, State> {
 
     const anchoredSpanHash = window.location.hash.split('#')[1];
 
-    // If the user is opening the span tree with an anchor link provided, we need to reconnect the observers after a short delay.
+    // If the user is opening the span tree with an anchor link provided, we need to continously reconnect the observers.
     // This is because we need to wait for the window to scroll to the anchored span first, or there will be inconsistencies in
     // the spans that are actually considered in the view. The IntersectionObserver API cannot keep up with the speed
-    // at which the window scrolls to the anchored span, and will be unable to register the spans that went out of the view
+    // at which the window scrolls to the anchored span, and will be unable to register the spans that went out of the view.
+    // We stop reconnecting the observers once we've confirmed that the anchored span is in the view (or after a timeout).
 
     if (anchoredSpanHash) {
       // We cannot assume the root is in view to start off, if there is an anchored span
       this.spansInView.isRootSpanInView = false;
-      this.spanBars.forEach(spanBar => spanBar.disconnectObservers());
+      const anchoredSpanId = window.location.hash.replace(spanTargetHash(''), '');
 
-      setTimeout(() => {
+      // Continously check to see if the anchored span is in the view
+      this.anchorCheckInterval = setInterval(() => {
         this.spanBars.forEach(spanBar => spanBar.connectObservers());
-      }, 500);
+
+        if (this.spansInView.has(anchoredSpanId)) {
+          clearInterval(this.anchorCheckInterval!);
+          this.anchorCheckInterval = null;
+        }
+      }, 100);
+
+      // If the anchored span is never found in the view (malformed ID), cancel the interval
+      setTimeout(() => {
+        if (this.anchorCheckInterval) {
+          clearInterval(this.anchorCheckInterval);
+          this.anchorCheckInterval = null;
+        }
+      }, 5000);
+
       return;
     }
 
@@ -130,8 +146,12 @@ export class Provider extends Component<Props, State> {
 
   componentWillUnmount() {
     this.cleanUpListeners();
+    if (this.anchorCheckInterval) {
+      clearInterval(this.anchorCheckInterval);
+    }
   }
 
+  anchorCheckInterval: NodeJS.Timer | null = null;
   contentSpanBar: Set<HTMLDivElement> = new Set();
   virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();

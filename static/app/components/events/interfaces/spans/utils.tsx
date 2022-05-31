@@ -823,6 +823,10 @@ export class SpansInViewMap {
     return true;
   }
 
+  has(spanId: string) {
+    return this.spanDepthsInView.has(spanId);
+  }
+
   getScrollVal() {
     if (this.isRootSpanInView) {
       return 0;
