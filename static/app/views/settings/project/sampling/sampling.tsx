@@ -1,10 +1,14 @@
 import {Fragment} from 'react';
+import {Location} from 'history';
 import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {
@@ -14,6 +18,7 @@ import {
   SamplingRuleType,
 } from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import recreateRoute from 'sentry/utils/recreateRoute';
 import withProject from 'sentry/utils/withProject';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -27,6 +32,7 @@ import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
 type Props = AsyncView['props'] & {
   hasAccess: boolean;
+  location: Location;
   organization: Organization;
   project: Project;
 };
@@ -180,44 +186,60 @@ class Sampling extends AsyncView<Props, State> {
 
   renderBody() {
     const {rules} = this.state;
-    const {hasAccess} = this.props;
+    const {hasAccess, location} = this.props;
     const disabled = !hasAccess;
 
     const hasNotSupportedConditionOperator = rules.some(
       rule => rule.condition.op !== SamplingConditionOperator.AND
     );
 
-    if (hasNotSupportedConditionOperator) {
-      return (
-        <Alert type="error">
-          {t('A condition operator has been found that is not yet supported.')}
-        </Alert>
-      );
-    }
-
     return (
       <Fragment>
-        <SettingsPageHeader title={this.getTitle()} />
-        <PermissionAlert />
-        <TextBlock>
-          {tct(
-            'Manage the inbound data you want to store. To change the sampling rate or rate limits, [link:update your SDK configuration]. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.',
-            {
-              link: <ExternalLink href={DYNAMIC_SAMPLING_DOC_LINK} />,
-            }
-          )}
-        </TextBlock>
-        <TextBlock>
-          {t('Rules for traces should precede rules for individual transactions.')}
-        </TextBlock>
-        <RulesPanel
-          rules={rules}
-          disabled={disabled}
-          onAddRule={this.handleOpenRule()}
-          onEditRule={this.handleOpenRule}
-          onDeleteRule={this.handleDeleteRule}
-          onUpdateRules={this.handleUpdateRules}
+        <SettingsPageHeader
+          title={this.getTitle()}
+          tabs={
+            <NavTabs underlined>
+              <ListLink
+                to={`${location.pathname}/#distributed-traces/`}
+                index
+                isActive={() => true}
+                onClick={() => {}}
+              >
+                {t('Distributed Traces')}
+              </ListLink>
+              {/* <ListLink
+                to={`${baseUrl}/#distributed-traces/`}
+                index
+                isActive={() => true}
+                onClick={() => {}}
+              >
+                {t('Distributed Traces')}
+              </ListLink>
+              <ListLink
+                to={`${baseUrl}/#individual-transactions/`}
+                isActive={() => false}
+                onClick={() => {}}
+              >
+                {t('Individual Transactions')}
+              </ListLink> */}
+            </NavTabs>
+          }
         />
+        <PermissionAlert />
+        {hasNotSupportedConditionOperator ? (
+          <Alert type="error">
+            {t('A condition operator has been found that is not yet supported.')}
+          </Alert>
+        ) : (
+          <RulesPanel
+            rules={rules}
+            disabled={disabled}
+            onAddRule={this.handleOpenRule()}
+            onEditRule={this.handleOpenRule}
+            onDeleteRule={this.handleDeleteRule}
+            onUpdateRules={this.handleUpdateRules}
+          />
+        )}
       </Fragment>
     );
   }
