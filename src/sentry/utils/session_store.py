@@ -92,7 +92,7 @@ class RedisSessionStore:
         self.mark_session()
 
     def is_valid(self):
-        return self.redis_key and self._client.get(self.redis_key)
+        return bool(self.redis_key and self._client.get(self.redis_key))
 
     def get_state(self):
         if not self.redis_key:

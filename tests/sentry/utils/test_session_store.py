@@ -42,7 +42,7 @@ class RedisSessionStoreTestCase(TestCase):
         self.store.clear()
 
     def test_uninitialized_store(self):
-        assert not self.store.is_valid()
+        assert self.store.is_valid() is False
         assert self.store.get_state() is None
         assert self.store.some_value is None
 
