@@ -397,6 +397,84 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
         assert not getattr(member.flags, "member-limit:restricted")
 
+    @mock.patch("sentry.auth.idpmigration.MessageBuilder")
+    def test_flow_as_unauthenticated_existing_unconfirmed_unverified_matched_user(
+        self, email_builder
+    ):
+        user = self.create_user("bar@example.com")
+
+        user.update(is_superuser=False)
+        org1 = self.create_organization(name="bar", owner=user)
+        path = reverse("sentry-auth-organization", args=[org1.slug])
+        # create a second org that the user belongs to, ensure they are redirected to correct
+        self.create_organization(name="zap", owner=user)
+
+        auth_provider = AuthProvider.objects.create(organization=org1, provider="dummy")
+
+        email = user.emails.all()[:1].get()
+        email.is_verified = False
+        email.save()
+        assert user.has_unverified_emails() is True
+        assert len(user.get_verified_emails()) == 0
+
+        resp = self.client.post(path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+
+        resp = self.client.post(path, {"email": user.email})
+
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
+        assert resp.status_code == 200
+        assert resp.context["existing_user"] == user
+        assert resp.context["login_form"]
+
+        resp = self.client.post(
+            path, {"op": "login", "username": user.username, "password": "admin"}
+        )
+
+        # User needs to confirm and verify the user/email account before they can link
+        # to an authenticated identity.
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
+        assert resp.status_code == 200
+
+        # Assert IdP confirmation email sent
+        _, message = email_builder.call_args
+        context = message["context"]
+        assert context["user"] == user
+        assert context["email"] == user.email
+        assert context["organization"] == org1.name
+        email_builder.return_value.send_async.assert_called_with([user.email])
+        assert email_builder.call_count == 1
+
+        assert user.has_unverified_emails() is True
+        assert len(user.get_verified_emails()) == 0
+
+        # User is not linked to auth identity
+        assert not AuthIdentity.objects.filter(auth_provider=auth_provider).exists()
+
+        from sentry.auth.idpmigration import get_redis_cluster
+
+        # Expire the IdP confirmation email
+        cluster = get_redis_cluster()
+        verification_code = context["verification_key"]
+        verification_key = f"auth:one-time-key:{verification_code}"
+        assert cluster.get(verification_key)
+        cluster.delete(verification_key)
+        assert not cluster.get(verification_key)
+
+        # User is blocked from continuing to their org until they verify their email.
+        # Another IdP confirmation email is sent.
+        path = reverse("sentry-auth-organization", args=[org1.slug])
+        resp = self.client.post(path, follow=True)
+        assert resp.redirect_chain == []
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-account.html")
+
+        assert email_builder.call_count == 2
+
     def test_flow_as_unauthenticated_existing_matched_user_via_secondary_email(self):
         auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider="dummy"
