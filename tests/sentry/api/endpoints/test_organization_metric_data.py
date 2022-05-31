@@ -107,11 +107,13 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400, query
 
     def test_valid_filter(self):
+        self.create_release(version="foo", project=self.project)
         for tag in ("release", "environment"):
             indexer.record(self.project.organization_id, tag)
-        query = "release:myapp@2.0.0"
+        query = "release:latest"
         response = self.get_success_response(
             self.project.organization.slug,
+            project=self.project.id,
             field="sum(sentry.sessions.session)",
             groupBy="environment",
             query=query,
@@ -181,6 +183,65 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 "series": {"sum(sentry.sessions.session)": [8]},
             }
         ]
+
+    def test_group_by_project(self):
+        p = self.create_project(name="foo")
+        p2 = self.create_project(name="boo")
+
+        for minute in range(2):
+            self.store_session(
+                self.build_session(
+                    project_id=self.project.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+        for minute in range(3):
+            self.store_session(
+                self.build_session(
+                    project_id=p.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+        for minute in range(5):
+            self.store_session(
+                self.build_session(
+                    project_id=p2.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+
+        response = self.get_response(
+            self.project.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            project=[p.id, p2.id, self.project.id],
+            interval="24h",
+            statsPeriod="24h",
+            groupBy="project",
+        )
+        assert response.status_code == 200
+        expected_output = {
+            p.id: {
+                "by": {"project_id": p.id},
+                "series": {"sum(sentry.sessions.session)": [3.0]},
+                "totals": {"sum(sentry.sessions.session)": 3.0},
+            },
+            self.project.id: {
+                "by": {"project_id": self.project.id},
+                "series": {"sum(sentry.sessions.session)": [2.0]},
+                "totals": {"sum(sentry.sessions.session)": 2.0},
+            },
+            p2.id: {
+                "by": {"project_id": p2.id},
+                "series": {"sum(sentry.sessions.session)": [5.0]},
+                "totals": {"sum(sentry.sessions.session)": 5.0},
+            },
+        }
+        for grp in response.data["groups"]:
+            prj_id = grp["by"]["project_id"]
+            assert grp == expected_output[prj_id]
 
     def test_pagination_limit_without_orderby(self):
         """
@@ -749,6 +810,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             f"count_unique({TransactionMetricKey.USER.value})": [0, 0, 0, 3, 0, 1],
         }
 
+    @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_series_are_limited_to_total_order_in_case_with_one_field_orderby(self):
         # Create time series [1, 2, 3, 4] for every release:
         for minute in range(4):
