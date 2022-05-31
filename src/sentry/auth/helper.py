@@ -325,6 +325,10 @@ class AuthIdentityHandler:
 
             messages.add_message(self.request, messages.SUCCESS, OK_LINK_IDENTITY)
 
+        # Invalidate all other user sessions when attaching new or re-attaching an identity
+        self.user.refresh_session_nonce(self.request)
+        self.user.save()
+
         return auth_identity
 
     def _wipe_existing_identity(self, auth_identity: AuthIdentity) -> Any:
