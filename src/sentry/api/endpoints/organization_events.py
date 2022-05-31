@@ -167,6 +167,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = "api.organization-events"
 
+        query_modified_by_user = request.GET.get("user_modified")
+        if query_modified_by_user in ["true", "false"]:
+            sentry_sdk.set_tag("query.user_modified", query_modified_by_user)
+
         def data_fn(offset, limit):
             query_details = {
                 "selected_columns": self.get_field_list(organization, request),
