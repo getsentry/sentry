@@ -109,7 +109,7 @@ export class Provider extends Component<Props, State> {
           clearInterval(this.anchorCheckInterval!);
           this.anchorCheckInterval = null;
         }
-      }, 100);
+      }, 50);
 
       // If the anchored span is never found in the view (malformed ID), cancel the interval
       setTimeout(() => {
