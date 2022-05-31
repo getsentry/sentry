@@ -1,7 +1,7 @@
 import './legacyTwitterBootstrap';
 import './exportGlobals';
 
-import routes from 'sentry/routes';
+import {routes} from 'sentry/routes';
 import {Config} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 
