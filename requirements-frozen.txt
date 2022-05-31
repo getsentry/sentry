@@ -1,7 +1,9 @@
+# DO NOT MODIFY. This file was generated with `make freeze-requirements`.
+
 amqp==2.6.1
 attrs==21.4.0
 beautifulsoup4==4.7.1
-billiard==3.6.3.0
+billiard==3.6.4.0
 boto3==1.13.16
 botocore==1.16.16
 brotlipy==0.7.0
@@ -115,4 +117,4 @@ xmlsec==1.3.12
 zstandard==0.14.1
 
 # The following packages are considered to be unsafe in a requirements file:
-setuptools==60.2.0
+setuptools==56.0.0

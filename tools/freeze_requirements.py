@@ -41,15 +41,15 @@ def main() -> int:
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = (
-            # executor.submit(
-            #    worker,
-            #    (
-            #        *base_cmd,
-            #        f"{base_path}/requirements-base.txt",
-            #        "-o",
-            #        f"{base_path}/requirements-frozen.txt",
-            #    ),
-            # ),
+            executor.submit(
+                worker,
+                (
+                    *base_cmd,
+                    f"{base_path}/requirements-base.txt",
+                    "-o",
+                    f"{base_path}/requirements-frozen.txt",
+                ),
+            ),
             executor.submit(
                 worker,
                 (
@@ -59,16 +59,16 @@ def main() -> int:
                     f"{base_path}/requirements-dev-only-frozen.txt",
                 ),
             ),
-            # executor.submit(
-            #    worker,
-            #    (
-            #        *base_cmd,
-            #        f"{base_path}/requirements-base.txt",
-            #        f"{base_path}/requirements-dev.txt",
-            #        "-o",
-            #        f"{base_path}/requirements-dev-frozen.txt",
-            #    ),
-            # ),
+            executor.submit(
+                worker,
+                (
+                    *base_cmd,
+                    f"{base_path}/requirements-base.txt",
+                    f"{base_path}/requirements-dev.txt",
+                    "-o",
+                    f"{base_path}/requirements-dev-frozen.txt",
+                ),
+            ),
         )
 
     rc = 0
