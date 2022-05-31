@@ -86,7 +86,7 @@ function SidebarCharts({
   transactionName,
 }: Props) {
   const useAggregateAlias = !organization.features.includes(
-    'discover-frontend-use-events-endpoint'
+    'performance-frontend-use-events-endpoint'
   );
   const theme = useTheme();
   return (

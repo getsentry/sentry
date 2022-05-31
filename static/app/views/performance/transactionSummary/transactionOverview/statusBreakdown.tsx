@@ -25,7 +25,7 @@ type Props = {
 
 function StatusBreakdown({eventView, location, organization}: Props) {
   const useEvents = organization.features.includes(
-    'discover-frontend-use-events-endpoint'
+    'performance-frontend-use-events-endpoint'
   );
   const breakdownView = eventView
     .withColumns([

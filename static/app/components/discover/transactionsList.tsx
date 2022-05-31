@@ -249,7 +249,7 @@ class _TransactionsList extends Component<Props> {
       forceLoading,
     } = this.props;
     const useEvents = organization.features.includes(
-      'discover-frontend-use-events-endpoint'
+      'performance-frontend-use-events-endpoint'
     );
 
     const eventView = this.getEventView();
@@ -276,6 +276,7 @@ class _TransactionsList extends Component<Props> {
           titles={titles}
           generateLink={generateLink}
           handleCellAction={handleCellAction}
+          useAggregateAlias={!useEvents}
         />
       </Fragment>
     );
@@ -348,6 +349,7 @@ class _TransactionsList extends Component<Props> {
                 {field: 'trend_difference()'},
               ])}
               generateLink={generateLink}
+              useAggregateAlias
             />
           </Fragment>
         )}

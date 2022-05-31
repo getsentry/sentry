@@ -41,7 +41,7 @@ function UserStats({
   eventView,
 }: Props) {
   const useAggregateAlias = !organization.features.includes(
-    'discover-frontend-use-events-endpoint'
+    'performance-frontend-use-events-endpoint'
   );
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
 

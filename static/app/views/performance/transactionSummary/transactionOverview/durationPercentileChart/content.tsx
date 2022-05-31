@@ -70,7 +70,7 @@ class Content extends AsyncComponent<Props, State> {
     const apiPayload = eventView.getEventsAPIPayload(location);
     apiPayload.referrer = 'api.performance.durationpercentilechart';
     const endpoint = organization.features.includes(
-      'discover-frontend-use-events-endpoint'
+      'performance-frontend-use-events-endpoint'
     )
       ? `/organizations/${organization.slug}/events/`
       : `/organizations/${organization.slug}/eventsv2/`;
@@ -121,7 +121,7 @@ class Content extends AsyncComponent<Props, State> {
       <Chart
         series={transformData(
           chartData.data,
-          !organization.features.includes('discover-frontend-use-events-endpoint')
+          !organization.features.includes('performance-frontend-use-events-endpoint')
         )}
         colors={colors}
       />

@@ -90,7 +90,7 @@ function OverviewContentWrapper(props: ChildProps) {
     transactionThresholdMetric,
   } = props;
   const useEvents = organization.features.includes(
-    'discover-frontend-use-events-endpoint'
+    'performance-frontend-use-events-endpoint'
   );
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);

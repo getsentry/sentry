@@ -91,7 +91,7 @@ function SummaryContent({
   onChangeFilter,
 }: Props) {
   const useAggregateAlias = !organization.features.includes(
-    'discover-frontend-use-events-endpoint'
+    'performance-frontend-use-events-endpoint'
   );
   function handleSearch(query: string) {
     const queryParams = normalizeDateTimeParams({
