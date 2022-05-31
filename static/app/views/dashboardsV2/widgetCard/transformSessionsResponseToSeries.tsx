@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -31,6 +32,18 @@ export function transformSessionsResponseToSeries(
   }
 
   const results: Series[] = [];
+
+  if (!response.groups.length) {
+    return [
+      {
+        seriesName: `(${t('no results')})`,
+        data: response.intervals.map(interval => ({
+          name: interval,
+          value: 0,
+        })),
+      },
+    ];
+  }
 
   response.groups.forEach(group => {
     Object.keys(group.series).forEach(field => {

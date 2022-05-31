@@ -9,13 +9,13 @@ import Tooltip from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import {MemorySpanType} from 'sentry/components/events/interfaces/spans/types';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
+import type {MemorySpanType} from 'sentry/views/replays/types';
 
 interface Props {
   memorySpans: MemorySpanType[];
@@ -142,7 +142,7 @@ function MemoryChart({
       seriesName: t('Used Heap Memory'),
       data: memorySpans.map(span => ({
         value: span.data.memory.usedJSHeapSize,
-        name: span.timestamp,
+        name: span.endTimestamp,
       })),
       stack: 'heap-memory',
       lineStyle: {
@@ -154,7 +154,7 @@ function MemoryChart({
       seriesName: t('Free Heap Memory'),
       data: memorySpans.map(span => ({
         value: span.data.memory.totalJSHeapSize - span.data.memory.usedJSHeapSize,
-        name: span.timestamp,
+        name: span.endTimestamp,
       })),
       stack: 'heap-memory',
       lineStyle: {

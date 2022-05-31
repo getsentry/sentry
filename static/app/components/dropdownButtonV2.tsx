@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import Button, {ButtonLabel, ButtonProps} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
@@ -39,6 +39,7 @@ const DropdownButton = forwardRef<
     <StyledButton
       {...props}
       type="button"
+      hasPrefix={!!prefix}
       disabled={disabled}
       priority={priority}
       isOpen={isOpen}
@@ -59,13 +60,16 @@ const StyledChevron = styled(IconChevron)`
 `;
 
 const StyledButton = styled(Button)<
-  Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'priority'>>
+  Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'priority'>> & {
+    hasPrefix: boolean;
+  }
 >`
   position: relative;
   max-width: 100%;
   z-index: 2;
 
   ${p => (p.isOpen || p.disabled) && 'box-shadow: none;'}
+  ${p => p.hasPrefix && `${ButtonLabel} {font-weight: 400;}`}
 `;
 
 const LabelText = styled('span')`
@@ -73,7 +77,7 @@ const LabelText = styled('span')`
     content: ':';
   }
 
-  font-weight: 400;
+  font-weight: 600;
   padding-right: ${space(0.75)};
 `;
 

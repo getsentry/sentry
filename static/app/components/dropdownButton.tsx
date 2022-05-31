@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Button, {ButtonProps} from 'sentry/components/button';
+import Button, {ButtonLabel, ButtonProps} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
@@ -59,6 +59,7 @@ const DropdownButton = ({
       type="button"
       aria-haspopup="listbox"
       aria-expanded={detached ? isOpen : undefined}
+      hasPrefix={!!prefix}
       disabled={disabled}
       priority={priority}
       isOpen={isOpen}
@@ -102,7 +103,9 @@ const StyledButton = styled(Button)<
       DropdownButtonProps,
       'isOpen' | 'disabled' | 'hideBottomBorder' | 'detached' | 'priority'
     >
-  >
+  > & {
+    hasPrefix: boolean;
+  }
 >`
   border-bottom-right-radius: ${p =>
     p.isOpen && !p.detached ? 0 : p.theme.borderRadius};
@@ -111,6 +114,7 @@ const StyledButton = styled(Button)<
   z-index: 2;
 
   ${p => (p.isOpen || p.disabled) && 'box-shadow: none'};
+  ${p => p.hasPrefix && `${ButtonLabel} {font-weight: 400;}`}
 
   &,
   &:active,
@@ -125,7 +129,7 @@ const StyledButton = styled(Button)<
 `;
 
 const LabelText = styled('span')`
-  font-weight: 400;
+  font-weight: 600;
   padding-right: ${space(0.75)};
   &:after {
     content: ':';
