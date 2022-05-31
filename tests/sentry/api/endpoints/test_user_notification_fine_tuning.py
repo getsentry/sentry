@@ -17,7 +17,7 @@ class UserNotificationFineTuningTestBase(APITestCase):
 
     def test_invalid_notification_type(self):
         """This is run twice because of inheritance."""
-        self.get_valid_response("me", "invalid", status_code=404)
+        self.get_error_response("me", "invalid", status_code=404)
 
 
 class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
@@ -29,7 +29,7 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
             user=self.user,
             project=self.project,
         )
-        response = self.get_valid_response("me", "alerts")
+        response = self.get_success_response("me", "alerts")
         assert response.data.get(self.project.id) == "1"
 
         NotificationSetting.objects.update_settings(
@@ -39,7 +39,7 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
             user=self.user,
             organization=self.organization,
         )
-        response = self.get_valid_response("me", "deploy")
+        response = self.get_success_response("me", "deploy")
         assert response.data.get(self.organization.id) == "2"
 
         UserOption.objects.create(
@@ -48,7 +48,7 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
             key="reports:disabled-organizations",
             value=[self.organization.id],
         )
-        response = self.get_valid_response("me", "reports")
+        response = self.get_success_response("me", "reports")
         assert response.data.get(self.organization.id) == "0"
 
 
@@ -56,14 +56,14 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
     method = "put"
 
     def test_update_invalid_project(self):
-        self.get_valid_response("me", "alerts", status_code=403, **{"123": 1})
+        self.get_error_response("me", "alerts", status_code=403, **{"123": 1})
 
     def test_invalid_id_value(self):
-        self.get_valid_response("me", "alerts", status_code=400, **{"nope": 1})
+        self.get_error_response("me", "alerts", status_code=400, **{"nope": 1})
 
     def test_saves_and_returns_alerts(self):
         data = {str(self.project.id): 1, str(self.project2.id): 0}
-        self.get_valid_response("me", "alerts", status_code=204, **data)
+        self.get_success_response("me", "alerts", status_code=204, **data)
 
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
@@ -84,7 +84,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
 
         # Can return to default
         data = {str(self.project.id): -1}
-        self.get_valid_response("me", "alerts", status_code=204, **data)
+        self.get_success_response("me", "alerts", status_code=204, **data)
 
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
@@ -104,7 +104,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
 
     def test_saves_and_returns_workflow(self):
         data = {str(self.project.id): 1, str(self.project2.id): 2}
-        self.get_valid_response("me", "workflow", status_code=204, **data)
+        self.get_success_response("me", "workflow", status_code=204, **data)
 
         value = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
@@ -124,7 +124,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
 
         # Can return to default
         data = {str(self.project.id): -1}
-        self.get_valid_response("me", "workflow", status_code=204, **data)
+        self.get_success_response("me", "workflow", status_code=204, **data)
 
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
@@ -147,7 +147,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         email = self.user.email
 
         data = {str(self.project.id): email, str(self.project2.id): "alias@example.com"}
-        self.get_valid_response("me", "email", status_code=204, **data)
+        self.get_success_response("me", "email", status_code=204, **data)
 
         value1 = UserOption.objects.get(
             user=self.user, project=self.project, key="mail:email"
@@ -165,18 +165,18 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         ).save()
 
         data = {str(self.project.id): "alias@example.com"}
-        self.get_valid_response("me", "email", status_code=400, **data)
+        self.get_error_response("me", "email", status_code=400, **data)
 
     def test_email_routing_emails_must_be_valid(self):
         new_user = self.create_user(email="b@example.com")
         UserEmail.objects.create(user=new_user, email="alias2@example.com", is_verified=True).save()
 
         data = {str(self.project2.id): "alias2@example.com"}
-        self.get_valid_response("me", "email", status_code=400, **data)
+        self.get_error_response("me", "email", status_code=400, **data)
 
     def test_saves_and_returns_deploy(self):
         data = {str(self.organization.id): 4}
-        self.get_valid_response("me", "deploy", status_code=204, **data)
+        self.get_success_response("me", "deploy", status_code=204, **data)
 
         value = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
@@ -187,7 +187,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         assert value == NotificationSettingOptionValues.NEVER
 
         data = {str(self.organization.id): 2}
-        self.get_valid_response("me", "deploy", status_code=204, **data)
+        self.get_success_response("me", "deploy", status_code=204, **data)
 
         value = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
@@ -198,7 +198,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         assert value == NotificationSettingOptionValues.ALWAYS
 
         data = {str(self.organization.id): -1}
-        self.get_valid_response("me", "deploy", status_code=204, **data)
+        self.get_success_response("me", "deploy", status_code=204, **data)
 
         value = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
@@ -210,27 +210,27 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
 
     def test_saves_and_returns_weekly_reports(self):
         data = {str(self.organization.id): 0, str(self.organization2.id): "0"}
-        self.get_valid_response("me", "reports", status_code=204, **data)
+        self.get_success_response("me", "reports", status_code=204, **data)
 
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
         ) == {self.organization.id, self.organization2.id}
 
         data = {str(self.organization.id): 1}
-        self.get_valid_response("me", "reports", status_code=204, **data)
+        self.get_success_response("me", "reports", status_code=204, **data)
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
         ) == {self.organization2.id}
 
         data = {str(self.organization.id): 0}
-        self.get_valid_response("me", "reports", status_code=204, **data)
+        self.get_success_response("me", "reports", status_code=204, **data)
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
         ) == {self.organization.id, self.organization2.id}
 
     def test_enable_weekly_reports_from_default_setting(self):
         data = {str(self.organization.id): 1, str(self.organization2.id): "1"}
-        self.get_valid_response("me", "reports", status_code=204, **data)
+        self.get_success_response("me", "reports", status_code=204, **data)
 
         assert (
             set(UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value)
@@ -239,14 +239,14 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
 
         # can disable
         data = {str(self.organization.id): 0}
-        self.get_valid_response("me", "reports", status_code=204, **data)
+        self.get_success_response("me", "reports", status_code=204, **data)
         assert set(
             UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value
         ) == {self.organization.id}
 
         # re-enable
         data = {str(self.organization.id): 1}
-        self.get_valid_response("me", "reports", status_code=204, **data)
+        self.get_success_response("me", "reports", status_code=204, **data)
         assert (
             set(UserOption.objects.get(user=self.user, key="reports:disabled-organizations").value)
             == set()
@@ -261,14 +261,14 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         )
 
         data = {str(new_org.id): 0}
-        self.get_valid_response("me", "reports", status_code=403, **data)
+        self.get_error_response("me", "reports", status_code=403, **data)
 
         assert not UserOption.objects.filter(
             user=self.user, organization=new_org, key="reports"
         ).exists()
 
         data = {str(new_project.id): 1}
-        self.get_valid_response("me", "alerts", status_code=403, **data)
+        self.get_error_response("me", "alerts", status_code=403, **data)
 
         value = NotificationSetting.objects.get_settings(
             ExternalProviders.EMAIL,

@@ -58,6 +58,9 @@ def pytest_configure(config):
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
+    # silence (noisy) loggers by default when testing
+    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"
+
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
 

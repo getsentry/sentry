@@ -5,9 +5,10 @@ import {sprintf, vsprintf} from 'sprintf-js';
 import DateTime from 'sentry/components/dateTime';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
-import {Hovercard} from 'sentry/components/hovercard';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
+import {relativeTimeInMs, showPlayerTime} from 'sentry/components/replays/utils';
+import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
 
@@ -65,31 +66,46 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 }
 
 interface ConsoleMessageProps extends MessageFormatterProps {
+  isActive: boolean;
   isLast: boolean;
-  relativeTimestamp: string;
+  startTimestamp: number;
 }
 function ConsoleMessage({
   breadcrumb,
+  isActive = false,
   isLast,
-  relativeTimestamp = '',
+  startTimestamp = 0,
 }: ConsoleMessageProps) {
   const ICONS = {
     error: <IconClose isCircled size="xs" />,
     warning: <IconWarning size="xs" />,
   };
 
+  const {setCurrentTime, setCurrentHoverTime} = useReplayContext();
+
+  const diff = relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp);
+  const handleOnClick = () => setCurrentTime(diff);
+  const handleOnMouseOver = () => setCurrentHoverTime(diff);
+  const handleOnMouseOut = () => setCurrentHoverTime(undefined);
+
   return (
     <Fragment>
-      <Icon isLast={isLast} level={breadcrumb.level}>
+      <Icon isLast={isLast} level={breadcrumb.level} isActive={isActive}>
         {ICONS[breadcrumb.level]}
       </Icon>
       <Message isLast={isLast} level={breadcrumb.level}>
         <MessageFormatter breadcrumb={breadcrumb} />
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
-        <Hovercard body={`${t('Relative Time')}: ${relativeTimestamp}`}>
-          <DateTime date={breadcrumb.timestamp} />
-        </Hovercard>
+        <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
+          <div
+            onClick={handleOnClick}
+            onMouseOver={handleOnMouseOver}
+            onMouseOut={handleOnMouseOut}
+          >
+            {showPlayerTime(breadcrumb.timestamp || '', startTimestamp)}
+          </div>
+        </Tooltip>
       </ConsoleTimestamp>
     </Fragment>
   );
@@ -110,10 +126,12 @@ const Common = styled('div')<{isLast: boolean; level: string}>`
 const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
   padding: ${space(1)};
   border-left: 1px solid ${p => p.theme.innerBorder};
+  cursor: pointer;
 `;
 
-const Icon = styled(Common)`
+const Icon = styled(Common)<{isActive: boolean}>`
   padding: ${space(0.5)} ${space(1)};
+  border-left: 4px solid ${p => (p.isActive ? p.theme.focus : 'transparent')};
 `;
 const Message = styled(Common)`
   padding: ${space(0.25)} 0;

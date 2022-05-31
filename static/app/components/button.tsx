@@ -369,7 +369,7 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  return size === 'xsmall' ? '6px' : '8px';
+  return size && ['xsmall', 'zero'].includes(size) ? '6px' : '8px';
 };
 
 const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`

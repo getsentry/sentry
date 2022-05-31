@@ -2,7 +2,7 @@ import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -64,15 +64,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return [...new Set(ruleList?.map(({projects}) => projects).flat())];
   }
 
-  handleChangeFilter = (activeFilters: Set<string>) => {
+  handleChangeFilter = (activeFilters: string[]) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    const teams = [...activeFilters];
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: teams.length ? teams : '',
+        team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
   };
@@ -89,9 +88,30 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     });
   };
 
+  handleOwnerChange = (
+    projectId: string,
+    rule: CombinedMetricIssueAlerts,
+    ownerValue: string
+  ) => {
+    const {orgId} = this.props.params;
+    const alertPath = rule.type === 'alert_rule' ? 'alert-rules' : 'rules';
+    const endpoint = `/projects/${orgId}/${projectId}/${alertPath}/${rule.id}/`;
+    const updatedRule = {...rule, owner: ownerValue};
+
+    this.api.request(endpoint, {
+      method: 'PUT',
+      data: updatedRule,
+      success: () => {
+        addMessage(t('Updated alert rule'), 'success');
+      },
+      error: () => {
+        addMessage(t('Unable to save change'), 'error');
+      },
+    });
+  };
+
   handleDeleteRule = async (projectId: string, rule: CombinedMetricIssueAlerts) => {
-    const {params} = this.props;
-    const {orgId} = params;
+    const {orgId} = this.props.params;
     const alertPath = isIssueAlert(rule) ? 'rules' : 'alert-rules';
 
     try {
@@ -120,6 +140,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     } = this.props;
     const {loading, ruleList = [], ruleListPageLinks} = this.state;
     const {query} = location;
+    const hasEditAccess = organization.access.includes('alerts:write');
 
     const sort: {
       asc: boolean;
@@ -229,11 +250,13 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         projects={projects as Project[]}
                         rule={rule}
                         orgId={orgId}
+                        onOwnerChange={this.handleOwnerChange}
                         onDelete={this.handleDeleteRule}
                         userTeams={new Set(teams.map(team => team.id))}
                         hasDuplicateAlertRules={organization.features.includes(
                           'duplicate-alert-rule'
                         )}
+                        hasEditAccess={hasEditAccess}
                       />
                     ))
                   }

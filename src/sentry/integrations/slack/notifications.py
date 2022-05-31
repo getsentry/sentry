@@ -12,12 +12,12 @@ from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackAttachment
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
-from sentry.integrations.slack.tasks import post_message
 from sentry.models import ExternalActor, Identity, Integration, Organization, Team, User
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.tasks.integrations.slack import post_message
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json, metrics
 
@@ -144,6 +144,7 @@ def _notify_recipient(
     attachments: List[SlackAttachment],
     channel: str,
     integration: Integration,
+    shared_context: Mapping[str, Any],
 ) -> None:
     with sentry_sdk.start_span(op="notification.send_slack", description="notify_recipient"):
         # Make a local copy to which we can append.
@@ -164,7 +165,7 @@ def _notify_recipient(
             "link_names": 1,
             "unfurl_links": False,
             "unfurl_media": False,
-            "text": notification.get_notification_title(),
+            "text": notification.get_notification_title(shared_context),
             "attachments": json.dumps(local_attachments),
         }
 
@@ -213,6 +214,7 @@ def send_notification_as_slack(
                     attachments=attachments,
                     channel=channel,
                     integration=integration,
+                    shared_context=shared_context,
                 )
 
     metrics.incr(

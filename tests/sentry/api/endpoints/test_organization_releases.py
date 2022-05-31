@@ -94,7 +94,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         release4.add_project(project3)
 
-        response = self.get_valid_response(org.slug)
+        response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release4, release1, release3])
 
     def test_release_list_order_by_date_added(self):
@@ -140,7 +140,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         release8.add_project(project)
 
-        response = self.get_valid_response(org.slug)
+        response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release8, release7, release6])
 
     def test_release_list_order_by_sessions_empty(self):
@@ -153,7 +153,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release_5 = self.create_release(version="5")
 
         #  Make sure ordering works fine when we have no session data at all
-        response = self.get_valid_response(self.organization.slug, sort="sessions", flatten="1")
+        response = self.get_success_response(self.organization.slug, sort="sessions", flatten="1")
         self.assert_expected_versions(
             response, [release_5, release_4, release_3, release_2, release_1]
         )
@@ -169,16 +169,16 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release_5 = self.create_release(version="5")
         self.bulk_store_sessions([self.build_session(release=release_5) for _ in range(2)])
 
-        response = self.get_valid_response(self.organization.slug, sort="sessions", flatten="1")
+        response = self.get_success_response(self.organization.slug, sort="sessions", flatten="1")
         self.assert_expected_versions(
             response, [release_5, release_1, release_4, release_3, release_2]
         )
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, sort="sessions", flatten="1", per_page=1
         )
         self.assert_expected_versions(response, [release_5])
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="sessions",
             flatten="1",
@@ -186,7 +186,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             cursor=self.get_cursor_headers(response)[1],
         )
         self.assert_expected_versions(response, [release_1])
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="sessions",
             flatten="1",
@@ -194,7 +194,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             cursor=self.get_cursor_headers(response)[1],
         )
         self.assert_expected_versions(response, [release_4])
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="sessions",
             flatten="1",
@@ -202,7 +202,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             cursor=self.get_cursor_headers(response)[1],
         )
         self.assert_expected_versions(response, [release_3])
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="sessions",
             flatten="1",
@@ -211,11 +211,11 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         self.assert_expected_versions(response, [release_2])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, sort="sessions", flatten="1", per_page=3
         )
         self.assert_expected_versions(response, [release_5, release_1, release_4])
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="sessions",
             flatten="1",
@@ -232,7 +232,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         self.create_release(version="test@1.2")
         self.create_release(version="test@1.2+500alpha")
 
-        response = self.get_valid_response(self.organization.slug, sort="build")
+        response = self.get_success_response(self.organization.slug, sort="build")
         self.assert_expected_versions(response, [release_1, release_3, release_2])
 
     def test_release_list_order_by_semver(self):
@@ -247,7 +247,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release_8 = self.create_release(version="test@some_thing")
         release_9 = self.create_release(version="random_junk")
 
-        response = self.get_valid_response(self.organization.slug, sort="semver")
+        response = self.get_success_response(self.organization.slug, sort="semver")
         self.assert_expected_versions(
             response,
             [
@@ -291,10 +291,10 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         release2.add_project(project)
 
-        response = self.get_valid_response(org.slug, query="oob")
+        response = self.get_success_response(org.slug, query="oob")
         self.assert_expected_versions(response, [release])
 
-        response = self.get_valid_response(org.slug, query="baz")
+        response = self.get_success_response(org.slug, query="baz")
         self.assert_expected_versions(response, [])
 
     def test_release_filter(self):
@@ -325,17 +325,21 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         release2.add_project(project)
 
-        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_ALIAS}:foobar")
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_ALIAS}:foobar"
+        )
         self.assert_expected_versions(response, [release])
 
-        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_ALIAS}:foo*")
+        response = self.get_success_response(self.organization.slug, query=f"{RELEASE_ALIAS}:foo*")
         self.assert_expected_versions(response, [release])
 
-        response = self.get_valid_response(self.organization.slug, query=f"{RELEASE_ALIAS}:baz")
+        response = self.get_success_response(self.organization.slug, query=f"{RELEASE_ALIAS}:baz")
         self.assert_expected_versions(response, [])
 
         # NOT release
-        response = self.get_valid_response(self.organization.slug, query=f"!{RELEASE_ALIAS}:foobar")
+        response = self.get_success_response(
+            self.organization.slug, query=f"!{RELEASE_ALIAS}:foobar"
+        )
         self.assert_expected_versions(response, [release2])
 
     def test_query_filter_suffix(self):
@@ -381,55 +385,57 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         release_3 = self.create_release(version="test2@1.2.5+125")
         release_4 = self.create_release(version="some.release")
 
-        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
+        response = self.get_success_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
         self.assert_expected_versions(response, [release_3, release_1])
 
-        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3")
+        response = self.get_success_response(
+            self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3"
+        )
         self.assert_expected_versions(response, [release_3, release_2, release_1])
 
-        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
+        response = self.get_success_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
         self.assert_expected_versions(response, [release_3, release_2, release_1])
 
         # NOT semver version
-        response = self.get_valid_response(self.organization.slug, query=f"!{SEMVER_ALIAS}:1.2.3")
+        response = self.get_success_response(self.organization.slug, query=f"!{SEMVER_ALIAS}:1.2.3")
         self.assert_expected_versions(response, [release_4, release_3, release_1])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3", sort="semver"
         )
         self.assert_expected_versions(response, [release_3, release_1, release_2])
 
-        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
+        response = self.get_success_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
         self.assert_expected_versions(response, [])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
         )
         self.assert_expected_versions(response, [release_3])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test"
         )
         self.assert_expected_versions(response, [release_2, release_1])
 
         # NOT semver package
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, query=f"!{SEMVER_PACKAGE_ALIAS}:test2"
         )
         self.assert_expected_versions(response, [release_4, release_2, release_1])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:>124"
         )
         self.assert_expected_versions(response, [release_3])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, query=f"{SEMVER_BUILD_ALIAS}:<125"
         )
         self.assert_expected_versions(response, [release_2, release_1])
 
         # NOT semver build
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, query=f"!{SEMVER_BUILD_ALIAS}:125"
         )
         self.assert_expected_versions(response, [release_4, release_2, release_1])
@@ -437,7 +443,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
     def test_release_stage_filter(self):
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:adopted",
             environment=self.environment.name,
@@ -466,21 +472,21 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             environment_id=self.environment.id,
         )
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [adopted_release])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [not_adopted_release])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
             environment=self.environment.name,
@@ -488,21 +494,21 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         self.assert_expected_versions(response, [replaced_release])
 
         # NOT release stage
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [not_adopted_release, adopted_release])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.REPLACED}]",
             environment=self.environment.name,
         )
         self.assert_expected_versions(response, [adopted_release, replaced_release])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]",
             environment=self.environment.name,
@@ -510,7 +516,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
 
         self.assert_expected_versions(response, [not_adopted_release])
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="adoption",
         )
@@ -520,7 +526,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
 
         # Replaced should come first now.
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="adoption",
         )
@@ -528,10 +534,10 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
             response, [replaced_release, adopted_release, not_adopted_release]
         )
 
-        response = self.get_valid_response(self.organization.slug, sort="adoption", per_page=1)
+        response = self.get_success_response(self.organization.slug, sort="adoption", per_page=1)
         self.assert_expected_versions(response, [replaced_release])
         next_cursor = self.get_cursor_headers(response)[1]
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="adoption",
             per_page=1,
@@ -539,7 +545,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         self.assert_expected_versions(response, [adopted_release])
         next_cursor = self.get_cursor_headers(response)[1]
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="adoption",
             per_page=1,
@@ -547,7 +553,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         prev_cursor = self.get_cursor_headers(response)[0]
         self.assert_expected_versions(response, [not_adopted_release])
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="adoption",
             per_page=1,
@@ -555,7 +561,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         prev_cursor = self.get_cursor_headers(response)[0]
         self.assert_expected_versions(response, [adopted_release])
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             sort="adoption",
             per_page=1,
@@ -566,7 +572,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
 
         adopted_rpe.update(adopted=timezone.now() - timedelta(minutes=15))
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION},{ReleaseStages.REPLACED}]",
             sort="adoption",
@@ -621,7 +627,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         release3.add_project(project1)
 
-        response = self.get_valid_response(org.slug)
+        response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [release1, release3])
 
     def test_all_projects_parameter(self):
@@ -649,7 +655,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         )
         release2.add_project(project2)
 
-        response = self.get_valid_response(org.slug, project=[-1])
+        response = self.get_success_response(org.slug, project=[-1])
         self.assert_expected_versions(response, [release2, release1])
 
     def test_new_org(self):
@@ -658,7 +664,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         team = self.create_team(organization=org)
         self.create_member(teams=[team], user=user, organization=org)
         self.login_as(user=user)
-        response = self.get_valid_response(org.slug)
+        response = self.get_success_response(org.slug)
         self.assert_expected_versions(response, [])
 
     def test_archive_release(self):
@@ -839,32 +845,34 @@ class OrganizationReleasesStatsTest(APITestCase):
         release_3 = self.create_release(version="test2@1.2.5")
         self.create_release(version="some.release")
 
-        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
+        response = self.get_success_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
         assert [r["version"] for r in response.data] == [release_3.version, release_1.version]
 
-        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3")
+        response = self.get_success_response(
+            self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3"
+        )
         assert [r["version"] for r in response.data] == [
             release_3.version,
             release_2.version,
             release_1.version,
         ]
 
-        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
+        response = self.get_success_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
         assert [r["version"] for r in response.data] == [
             release_3.version,
             release_2.version,
             release_1.version,
         ]
 
-        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
+        response = self.get_success_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
         assert [r["version"] for r in response.data] == []
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test2"
         )
         assert [r["version"] for r in response.data] == [release_3.version]
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug, query=f"{SEMVER_PACKAGE_ALIAS}:test"
         )
         assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
@@ -872,7 +880,7 @@ class OrganizationReleasesStatsTest(APITestCase):
     def test_release_stage_filter(self):
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:adopted",
             environment=self.environment.name,
@@ -901,28 +909,28 @@ class OrganizationReleasesStatsTest(APITestCase):
             environment_id=self.environment.id,
         )
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
             environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [adopted_release.version]
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
             environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [not_adopted_release.version]
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.REPLACED}",
             environment=self.environment.name,
         )
         assert [r["version"] for r in response.data] == [replaced_release.version]
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED},{ReleaseStages.REPLACED}]",
             environment=self.environment.name,
@@ -932,7 +940,7 @@ class OrganizationReleasesStatsTest(APITestCase):
             replaced_release.version,
         ]
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.LOW_ADOPTION}]",
             environment=self.environment.name,
@@ -979,7 +987,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
 
         # Filtering to self.environment.name and self.project with release.stage:adopted should NOT return multi_project_release.
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             project=self.project.id,
             environment=self.environment.name,
@@ -987,7 +995,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         )
         assert [r["version"] for r in response.data] == [single_project_release.version]
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.organization.slug,
             environment=self.environment.name,
             query=f"{RELEASE_STAGE_ALIAS}:adopted",
@@ -1007,25 +1015,25 @@ class OrganizationReleasesStatsTest(APITestCase):
             self.project, version="sdfsdfsdf", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
         )
 
-        response = self.get_valid_response(self.organization.slug, query="oob")
+        response = self.get_success_response(self.organization.slug, query="oob")
         assert [r["version"] for r in response.data] == [release.version]
 
-        response = self.get_valid_response(self.organization.slug, query="baz")
+        response = self.get_success_response(self.organization.slug, query="baz")
         assert [r["version"] for r in response.data] == []
 
-        response = self.get_valid_response(self.organization.slug, query="release:*oob*")
+        response = self.get_success_response(self.organization.slug, query="release:*oob*")
         assert [r["version"] for r in response.data] == [release.version]
 
-        response = self.get_valid_response(self.organization.slug, query="release:foob*")
+        response = self.get_success_response(self.organization.slug, query="release:foob*")
         assert [r["version"] for r in response.data] == [release.version]
 
-        response = self.get_valid_response(self.organization.slug, query="release:*bar")
+        response = self.get_success_response(self.organization.slug, query="release:*bar")
         assert [r["version"] for r in response.data] == [release.version]
 
-        response = self.get_valid_response(self.organization.slug, query="release:foobar")
+        response = self.get_success_response(self.organization.slug, query="release:foobar")
         assert [r["version"] for r in response.data] == [release.version]
 
-        response = self.get_valid_response(self.organization.slug, query="release:*baz*")
+        response = self.get_success_response(self.organization.slug, query="release:*baz*")
         assert [r["version"] for r in response.data] == []
 
 

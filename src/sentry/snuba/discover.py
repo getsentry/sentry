@@ -1,5 +1,6 @@
 import logging
 import math
+import random
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
@@ -188,6 +189,13 @@ def transform_data(result, translated_columns, snuba_filter):
     return result
 
 
+def transform_tips(tips):
+    return {
+        "query": random.choice(list(tips["query"])) if tips["query"] else None,
+        "columns": random.choice(list(tips["columns"])) if tips["columns"] else None,
+    }
+
+
 def query(
     selected_columns,
     query,
@@ -272,12 +280,15 @@ def query(
                 translated_columns.get(column): function_details
                 for column, function_details in builder.function_alias_map.items()
             }
+            for index, equation in enumerate(equations):
+                translated_columns[f"equation[{index}]"] = f"equation|{equation}"
         result = transform_results(
             result,
             function_alias_map,
             translated_columns,
             None,
         )
+        result["tips"] = transform_tips(builder.tips)
     return result
 
 
@@ -1048,7 +1059,9 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
     return min_value, max_value
 
 
-def find_histogram_min_max(fields, min_value, max_value, user_query, params, data_filter=None):
+def find_histogram_min_max(
+    fields, min_value, max_value, user_query, params, data_filter=None, query_fn=None
+):
     """
     Find the min/max value of the specified fields. If either min/max is already
     specified, it will be used and not queried for.
@@ -1078,7 +1091,9 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
             quartiles.append(f"percentile({field}, 0.25)")
             quartiles.append(f"percentile({field}, 0.75)")
 
-    results = query(
+    if query_fn is None:
+        query_fn = query
+    results = query_fn(
         selected_columns=min_columns + max_columns + quartiles,
         query=user_query,
         params=params,

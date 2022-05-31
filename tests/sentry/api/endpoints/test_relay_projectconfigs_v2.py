@@ -376,15 +376,3 @@ def test_exposes_features(call_endpoint, task_runner):
         for config in result["configs"].values():
             config = config["config"]
             assert config["sessionMetrics"] == {"version": 1, "drop": False}
-
-
-@pytest.mark.django_db
-def test_v3(call_endpoint):
-    # For now v2 and v3 are supposed to be identical, the payload is backwards compatible if
-    # there are no pending configs and we never generate pending configs currently.
-    # with task_runner():
-    result, status_code = call_endpoint(full_config=False, version=3)
-
-    assert status_code < 400
-    assert result.get("configs")
-    assert not result.get("pending")

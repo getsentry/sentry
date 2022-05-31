@@ -71,7 +71,6 @@ import {DEFAULT_STATS_PERIOD} from '../data';
 import {getNumEquations} from '../utils';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
-import {DashboardStep} from './buildSteps/dashboardStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
 import {GroupByStep} from './buildSteps/groupByStep';
@@ -1211,20 +1210,6 @@ function WidgetBuilder({
                       tags={tags}
                     />
                   )}
-                  {notDashboardsOrigin && !widgetBuilderNewDesign && (
-                    <DashboardStep
-                      error={state.errors?.dashboard}
-                      dashboards={state.dashboards}
-                      onChange={selectedDashboard =>
-                        setState({
-                          ...state,
-                          selectedDashboard,
-                          errors: {...state.errors, dashboard: undefined},
-                        })
-                      }
-                      disabled={state.loading}
-                    />
-                  )}
                 </BuildSteps>
               </Main>
               <Footer
@@ -1237,6 +1222,7 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
+                organization={organization}
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
                 onWidgetSelect={prebuiltWidget => {
                   setLatestLibrarySelectionTitle(prebuiltWidget.title);

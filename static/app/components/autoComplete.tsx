@@ -196,8 +196,19 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
   makeHandleInputChange<E extends HTMLInputElement>(
     onChange: GetInputArgs<E>['onChange']
   ) {
-    return (e: React.ChangeEvent<E>) => {
-      const value = e.target.value;
+    // Some inputs (e.g. input) pass in only the event to the onChange listener and
+    // others (e.g. TextField) pass in both the value and the event to the onChange listener.
+    // This returned function is to accomodate both kinds of input components.
+    return (
+      valueOrEvent: string | React.ChangeEvent<E>,
+      event?: React.ChangeEvent<E>
+    ) => {
+      const value: string =
+        event === undefined
+          ? (valueOrEvent as React.ChangeEvent<E>).target.value
+          : (valueOrEvent as string);
+      const changeEvent: React.ChangeEvent<E> =
+        event === undefined ? (valueOrEvent as React.ChangeEvent<E>) : event;
 
       // We force `isOpen: true` here because:
       // 1) it's possible to have menu closed but input with focus (i.e. hitting "Esc")
@@ -207,7 +218,7 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
         inputValue: value,
       });
 
-      onChange?.(e);
+      onChange?.(changeEvent);
     };
   }
 

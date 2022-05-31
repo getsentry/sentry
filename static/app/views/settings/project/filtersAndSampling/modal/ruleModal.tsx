@@ -23,6 +23,7 @@ import {
   DynamicSamplingRules,
 } from 'sentry/types/dynamicSampling';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import {getInnerNameLabel, isCustomTagName} from '../utils';
@@ -45,6 +46,7 @@ type State = {
 type Props = ModalRenderProps & {
   api: Client;
   conditionCategories: Array<[DynamicSamplingInnerName, string]>;
+  disabled: boolean;
   emptyMessage: string;
   onSubmit: (
     props: Omit<State, 'errors'> & {
@@ -79,6 +81,7 @@ function RuleModal({
   onChange,
   extraFields,
   rule,
+  disabled,
 }: Props) {
   const [data, setData] = useState<State>(getInitialState());
   const [isSaving, setIsSaving] = useState(false);
@@ -153,6 +156,42 @@ function RuleModal({
       convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
     }
     setIsSaving(false);
+
+    const analyticsConditions = conditions.map(condition => condition.category);
+    const analyticsConditionsStringified = analyticsConditions.sort().join(', ');
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.save', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: analyticsConditions,
+      conditions_stringified: analyticsConditionsStringified,
+    });
+
+    if (defined(rule)) {
+      trackAdvancedAnalyticsEvent('sampling.settings.rule.update', {
+        organization,
+        project_id: project.id,
+        sampling_rate: sampleRate,
+        conditions: analyticsConditions,
+        conditions_stringified: analyticsConditionsStringified,
+        old_conditions: rule.condition.inner.map(({name}) => name),
+        old_conditions_stringified: rule.condition.inner
+          .map(({name}) => name)
+          .sort()
+          .join(', '),
+        old_sampling_rate: rule.sampleRate * 100,
+      });
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.create', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: analyticsConditions,
+      conditions_stringified: analyticsConditionsStringified,
+    });
   }
 
   function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
@@ -179,6 +218,13 @@ function RuleModal({
           !previousCategories.includes(value)
       )
       .map(({value}) => value);
+
+    trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+      organization,
+      project_id: project.id,
+      conditions: addedCategories,
+    });
+
     setData({
       ...data,
       conditions: [
@@ -205,6 +251,12 @@ function RuleModal({
     // If custom tag key changes, reset the value
     if (field === 'category') {
       newConditions[index].match = '';
+
+      trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+        organization,
+        project_id: project.id,
+        conditions: [value as DynamicSamplingInnerName],
+      });
     }
 
     setData({...data, conditions: newConditions});
@@ -253,14 +305,14 @@ function RuleModal({
 
   const predefinedConditionsOptions = conditionCategories.map(([value, label]) => {
     // Never disable the "Add Custom Tag" option, you can add more of those
-    const disabled =
+    const optionDisabled =
       value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
         ? false
         : conditions.some(condition => condition.category === value);
     return {
       value,
       label,
-      disabled,
+      disabled: optionDisabled,
       tooltip: disabled ? conditionAlreadyAddedTooltip : undefined,
     };
   });
@@ -361,8 +413,14 @@ function RuleModal({
           <Button
             priority="primary"
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
-            title={submitDisabled ? t('Required fields must be filled out') : undefined}
-            disabled={isSaving || submitDisabled}
+            title={
+              disabled
+                ? t('You do not have permission to add dynamic sampling rules.')
+                : submitDisabled
+                ? t('Required fields must be filled out')
+                : undefined
+            }
+            disabled={disabled || isSaving || submitDisabled}
           >
             {t('Save Rule')}
           </Button>
