@@ -3,7 +3,7 @@ import logging
 import sentry_sdk
 from django.conf import settings
 
-import sentry.options
+from sentry import options
 from sentry.relay import projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -49,7 +49,7 @@ def update_config_cache(
     sentry_sdk.set_tag("generate", generate)
 
     # TODO: Weird way to experiment with this easily.
-    late_debounce_free = 0 < sentry.options.get("relay.project-config-v3-enable")
+    late_debounce_free = 0 < options.get("relay.project-config-v3-enable")
 
     if not late_debounce_free and not should_update_cache(
         organization_id=organization_id, project_id=project_id, public_key=public_key
