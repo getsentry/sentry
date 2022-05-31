@@ -6,24 +6,21 @@ import {Panel, PanelFooter} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import Rules from './rules';
+import {Rules} from './rules';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
 type Props = Omit<React.ComponentProps<typeof Rules>, 'emptyMessage'> & {
   onAddRule: () => void;
-  isErrorPanel?: boolean;
 };
 
-function RulesPanel({
+export function RulesPanel({
   rules,
   onAddRule,
   onEditRule,
   onDeleteRule,
   onUpdateRules,
-  isErrorPanel,
   disabled,
 }: Props) {
-  const panelType = isErrorPanel ? t('error') : t('transaction');
   return (
     <Panel>
       <Rules
@@ -32,7 +29,7 @@ function RulesPanel({
         onDeleteRule={onDeleteRule}
         disabled={disabled}
         onUpdateRules={onUpdateRules}
-        emptyMessage={t('There are no %s rules to display', panelType)}
+        emptyMessage={t('There are no transaction rules to display')}
       />
       <StyledPanelFooter>
         <StyledButtonBar gap={1}>
@@ -40,15 +37,13 @@ function RulesPanel({
             {t('Read the docs')}
           </Button>
           <AddRuleButton priority="primary" onClick={onAddRule}>
-            {t('Add %s rule', panelType)}
+            {t('Add transaction rule')}
           </AddRuleButton>
         </StyledButtonBar>
       </StyledPanelFooter>
     </Panel>
   );
 }
-
-export default RulesPanel;
 
 const StyledPanelFooter = styled(PanelFooter)`
   padding: ${space(1)} ${space(2)};

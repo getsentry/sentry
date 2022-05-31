@@ -14,6 +14,7 @@ import {
   MetricsApiResponse,
   OrganizationSummary,
   PageFilters,
+  Release,
   SessionApiResponse,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -60,6 +61,7 @@ type State = {
   pageLinks?: string;
   queryFetchID?: symbol;
   rawResults?: SessionApiResponse[] | MetricsApiResponse[];
+  releases?: Release[];
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
 };
@@ -125,10 +127,16 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     timeseriesResults: undefined,
     rawResults: undefined,
     tableResults: undefined,
+    releases: undefined,
   };
 
   componentDidMount() {
     this._isMounted = true;
+
+    if (this.requiresCustomReleaseSorting()) {
+      this.fetchReleasesAndData();
+      return;
+    }
     this.fetchData();
   }
 
@@ -146,6 +154,19 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
     const widgetQueryNames = widget.queries.map(q => q.name);
     const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
+
+    if (
+      this.requiresCustomReleaseSorting() &&
+      (!isEqual(
+        widget.queries.map(q => q.orderby),
+        prevProps.widget.queries.map(q => q.orderby)
+      ) ||
+        !isSelectionEqual(selection, prevProps.selection) ||
+        !isEqual(organization, prevProps.organization))
+    ) {
+      this.fetchReleasesAndData();
+      return;
+    }
 
     if (
       limit !== prevProps.limit ||
@@ -231,6 +252,42 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     }
   }
 
+  requiresCustomReleaseSorting() {
+    const {widget} = this.props;
+    const useMetricsAPI = !!!widget.queries[0].columns.includes('session.status');
+    const rawOrderby = trimStart(widget.queries[0].orderby, '-');
+    return useMetricsAPI && rawOrderby === 'release';
+  }
+
+  async fetchReleasesAndData() {
+    const {selection, api, organization} = this.props;
+    const {environments, projects} = selection;
+
+    try {
+      const releases = await api.requestPromise(
+        `/organizations/${organization.slug}/releases/`,
+        {
+          method: 'GET',
+          data: {
+            sort: 'date',
+            project: projects,
+            per_page: 50,
+            environments,
+          },
+        }
+      );
+      if (!this._isMounted) {
+        return;
+      }
+      this.setState({releases});
+    } catch (error) {
+      addErrorMessage(
+        error.responseJSON ? error.responseJSON.error : t('Error sorting by releases')
+      );
+    }
+    this.fetchData();
+  }
+
   async fetchData() {
     const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
       this.props;
@@ -283,8 +340,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     //        period.
     //    2. If a recent release is not returned due to the 100 row limit
     //        imposed on the metrics query the user won't see it on the table/chart/
-    const isCustomReleaseSorting = !!!useSessionAPI && rawOrderby === 'release';
-
+    const isCustomReleaseSorting = this.requiresCustomReleaseSorting();
+    const {releases} = this.state;
     const interval = getWidgetInterval(
       widget,
       {start, end, period},
@@ -294,38 +351,22 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
-      try {
-        const releases = await api.requestPromise(
-          `/organizations/${organization.slug}/releases/`,
-          {
-            method: 'GET',
-            data: {
-              sort: 'date',
-              project: projects,
-              per_page: 50,
-              environments,
-              summaryStatsPeriod: period,
-            },
-          }
-        );
-
-        if (releases.length) {
-          releaseCondition += '(release:' + releases[0].version;
-          releasesArray.push(releases[0].version);
-          for (let i = 1; i < releases.length; i++) {
-            releaseCondition += ' OR release:' + releases[i].version;
-            releasesArray.push(releases[i].version);
-          }
-          releaseCondition += ')';
-
-          if (!!!isDescending) {
-            releasesArray.reverse();
-          }
+      if (releases && releases.length === 1) {
+        releaseCondition += `release:${releases[0].version}`;
+        releasesArray.push(releases[0].version);
+      }
+      if (releases && releases.length > 1) {
+        releaseCondition += 'release:[' + releases[0].version;
+        releasesArray.push(releases[0].version);
+        for (let i = 1; i < releases.length; i++) {
+          releaseCondition += ',' + releases[i].version;
+          releasesArray.push(releases[i].version);
         }
-      } catch (error) {
-        addErrorMessage(
-          error.responseJSON ? error.responseJSON.error : t('Error sorting by releases')
-        );
+        releaseCondition += ']';
+
+        if (!!!isDescending) {
+          releasesArray.reverse();
+        }
       }
     }
 

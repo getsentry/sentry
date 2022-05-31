@@ -152,11 +152,7 @@ runs:
       run: |
         cd "$WORKDIR"
         python setup.py install_egg_info
-        # GitHub Actions does not have `wheel` installed by default.
-        # Also, we need to install editable otherwise things like check migration
-        # will fail.
-        # These are all real slow steps, so do them all in parallel.
-        pip install wheel & \
+        # We need to install editable otherwise things like check migration will fail.
         pip install -r requirements-dev-frozen.txt & \
         SENTRY_LIGHT_BUILD=1 pip install --no-deps -e . & \
         wait

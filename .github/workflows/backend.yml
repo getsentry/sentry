@@ -185,6 +185,28 @@ jobs:
         run: |
           pip install -r requirements-dev-only-frozen.txt
           pre-commit install-hooks
+              - added|modified: 'requirements-dev-only-frozen.txt'
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements-dev-only-frozen.txt
+
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pre-commit
+          key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Setup pre-commit
+        # We don't use make setup-git because we're only interested in installing
+        # requirements-dev-only-frozen.txt as a fast path.
+        # We don't need pre-commit install --install-hooks since we're just interested
+        # in running the hooks.
+        run: |
+          pip install -r requirements-dev-only-frozen.txt
+          pre-commit install-hooks
 
       - name: Run pre-commit on changed files
         run: |
@@ -400,7 +422,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libxmlsec1-dev
-          pip install wheel # GitHub Actions does not have `wheel` installed by default
           pip install -r requirements-dev-frozen.txt
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})

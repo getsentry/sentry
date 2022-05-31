@@ -77,7 +77,7 @@ zstandard>=0.14.1
 msgpack>=1.0.0
 cryptography>=3.4.8
 # celery
-billiard>=3.6.3
+billiard>=3.6.4
 kombu>=4.6.11
 
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
