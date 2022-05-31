@@ -4,6 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import FiltersAndSampling from 'sentry/views/settings/project/filtersAndSampling';
 
 export const commonConditionCategories = [
@@ -31,7 +32,9 @@ export function renderComponent(withModal = true) {
   return render(
     <Fragment>
       {withModal && <GlobalModal />}
-      <FiltersAndSampling organization={organization} project={project} />
+      <OrganizationContext.Provider value={organization}>
+        <FiltersAndSampling project={project} />
+      </OrganizationContext.Provider>
     </Fragment>
   );
 }

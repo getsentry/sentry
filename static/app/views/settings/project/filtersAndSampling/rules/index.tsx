@@ -12,8 +12,8 @@ import {
   DynamicSamplingRuleType,
 } from 'sentry/types/dynamicSampling';
 
-import DraggableList, {UpdateItemsProps} from './draggableList';
-import Rule from './rule';
+import {DraggableList, UpdateItemsProps} from './draggableList';
+import {Rule} from './rule';
 import {layout} from './utils';
 
 type Props = {
@@ -29,7 +29,7 @@ type State = {
   rules: Array<DynamicSamplingRule>;
 };
 
-class Rules extends PureComponent<Props, State> {
+export class Rules extends PureComponent<Props, State> {
   state: State = {rules: []};
 
   componentDidMount() {
@@ -183,8 +183,6 @@ class Rules extends PureComponent<Props, State> {
     );
   }
 }
-
-export default Rules;
 
 const StyledPanelTable = styled(PanelTable)`
   overflow: visible;
