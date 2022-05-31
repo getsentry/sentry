@@ -542,6 +542,20 @@ class AuthIdentityHandler:
 
     def _dispatch_to_confirmation(self, is_new_account: bool) -> Tuple[Optional[User], str]:
         if self._logged_in_user:
+            identity_email = self.identity.get("email")
+            if identity_email:
+                unverified_emails = set(
+                    x.email for x in self._logged_in_user.get_unverified_emails()
+                )
+                if identity_email in unverified_emails:
+                    send_one_time_account_confirm_link(
+                        self._logged_in_user,
+                        self.organization,
+                        self.auth_provider,
+                        self.identity["email"],
+                        self.identity["id"],
+                    )
+                    return self._logged_in_user, "auth-confirm-account"
             return self._logged_in_user, "auth-confirm-link"
 
         if self._app_user and not self._has_usable_password():
