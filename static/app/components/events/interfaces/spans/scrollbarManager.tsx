@@ -10,7 +10,8 @@ import getDisplayName from 'sentry/utils/getDisplayName';
 import {setBodyUserSelect, UserSelectValues} from 'sentry/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
-import {SpansInViewMap} from './utils';
+import SpanBar from './spanBar';
+import {SpansInViewMap, spanTargetHash} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
@@ -20,6 +21,7 @@ export type ScrollbarManagerChildrenProps = {
   onScroll: () => void;
   onWheel: (deltaX: number) => void;
   scrollBarAreaRef: React.RefObject<HTMLDivElement>;
+  storeSpanBar: (spanBar: SpanBar) => void;
   updateScrollState: () => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
 };
@@ -34,6 +36,7 @@ const ScrollbarManagerContext = createContext<ScrollbarManagerChildrenProps>({
   updateScrollState: () => {},
   markSpanOutOfView: () => {},
   markSpanInView: () => {},
+  storeSpanBar: () => {},
 });
 
 const selectRefs = (
@@ -84,6 +87,42 @@ export class Provider extends Component<Props, State> {
     // but only for DOM elements that actually got rendered
 
     this.initializeScrollState();
+
+    const anchoredSpanHash = window.location.hash.split('#')[1];
+
+    // If the user is opening the span tree with an anchor link provided, we need to continously reconnect the observers.
+    // This is because we need to wait for the window to scroll to the anchored span first, or there will be inconsistencies in
+    // the spans that are actually considered in the view. The IntersectionObserver API cannot keep up with the speed
+    // at which the window scrolls to the anchored span, and will be unable to register the spans that went out of the view.
+    // We stop reconnecting the observers once we've confirmed that the anchored span is in the view (or after a timeout).
+
+    if (anchoredSpanHash) {
+      // We cannot assume the root is in view to start off, if there is an anchored span
+      this.spansInView.isRootSpanInView = false;
+      const anchoredSpanId = window.location.hash.replace(spanTargetHash(''), '');
+
+      // Continously check to see if the anchored span is in the view
+      this.anchorCheckInterval = setInterval(() => {
+        this.spanBars.forEach(spanBar => spanBar.connectObservers());
+
+        if (this.spansInView.has(anchoredSpanId)) {
+          clearInterval(this.anchorCheckInterval!);
+          this.anchorCheckInterval = null;
+        }
+      }, 50);
+
+      // If the anchored span is never found in the view (malformed ID), cancel the interval
+      setTimeout(() => {
+        if (this.anchorCheckInterval) {
+          clearInterval(this.anchorCheckInterval);
+          this.anchorCheckInterval = null;
+        }
+      }, 1000);
+
+      return;
+    }
+
+    this.spanBars.forEach(spanBar => spanBar.connectObservers());
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -107,8 +146,12 @@ export class Provider extends Component<Props, State> {
 
   componentWillUnmount() {
     this.cleanUpListeners();
+    if (this.anchorCheckInterval) {
+      clearInterval(this.anchorCheckInterval);
+    }
   }
 
+  anchorCheckInterval: NodeJS.Timer | null = null;
   contentSpanBar: Set<HTMLDivElement> = new Set();
   virtualScrollbar: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
   scrollBarArea: React.RefObject<HTMLDivElement> = createRef<HTMLDivElement>();
@@ -118,6 +161,7 @@ export class Provider extends Component<Props, State> {
   animationTimeout: NodeJS.Timeout | null = null;
   previousUserSelect: UserSelectValues | null = null;
   spansInView: SpansInViewMap = new SpansInViewMap();
+  spanBars: SpanBar[] = [];
 
   getReferenceSpanBar() {
     for (const currentSpanBar of this.contentSpanBar) {
@@ -514,6 +558,10 @@ export class Provider extends Component<Props, State> {
     });
   }
 
+  storeSpanBar = (spanBar: SpanBar) => {
+    this.spanBars.push(spanBar);
+  };
+
   render() {
     const childrenProps: ScrollbarManagerChildrenProps = {
       generateContentSpanBarRef: this.generateContentSpanBarRef,
@@ -525,6 +573,7 @@ export class Provider extends Component<Props, State> {
       updateScrollState: this.initializeScrollState,
       markSpanOutOfView: this.markSpanOutOfView,
       markSpanInView: this.markSpanInView,
+      storeSpanBar: this.storeSpanBar,
     };
 
     return (
