@@ -54,7 +54,7 @@ def create_topic(partitions=1, replication_factor=1):
         subprocess.check_call(command + ["--delete", "--topic", topic])
 
 
-def test_consumer_start_from_partition_start(requires_kafka):
+def test_consumer_start_from_partition_start():
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
     messages_delivered = defaultdict(list)
@@ -138,7 +138,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
         assert consumer.poll(1) is None
 
 
-def test_consumer_start_from_committed_offset(requires_kafka):
+def test_consumer_start_from_committed_offset():
     consumer_group = f"consumer-{uuid.uuid1().hex}"
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
@@ -235,7 +235,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
         assert consumer.poll(1) is None
 
 
-def test_consumer_rebalance_from_partition_start(requires_kafka):
+def test_consumer_rebalance_from_partition_start():
     consumer_group = f"consumer-{uuid.uuid1().hex}"
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
@@ -349,7 +349,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
             assert consumer.poll(1) is None
 
 
-def test_consumer_rebalance_from_committed_offset(requires_kafka):
+def test_consumer_rebalance_from_committed_offset():
     consumer_group = f"consumer-{uuid.uuid1().hex}"
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
@@ -510,7 +510,7 @@ def collect_messages_received(count):
     reason="assignment during rebalance requires partition rollback to last committed offset",
     run=False,
 )
-def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
+def test_consumer_rebalance_from_uncommitted_offset():
     consumer_group = f"consumer-{uuid.uuid1().hex}"
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
@@ -635,7 +635,6 @@ def kafka_message_payload():
     ]
 
 
-@pytest.mark.usefixtures("requires_kafka")
 class BatchedConsumerTest(TestCase):
     def _get_producer(self, topic):
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
