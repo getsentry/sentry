@@ -9,20 +9,23 @@ from tools.lib import gitroot
 
 def worker(args: tuple[str, ...]) -> None:
     # pip-compile doesn't let you customize the header, so we write
-    # one ourselves.
-    assert args[-2] == "-o-"
+    # one ourselves. However, pip-compile needs -o DEST otherwise
+    # it will bump >= pins even if they're satisfied. So, we need to
+    # unfortunately rewrite the whole file.
     dest = args[-1]
     try:
-        proc = run(args[:-1], check=True, capture_output=True)
+        run(args, check=True, capture_output=True)
     except CalledProcessError as e:
         raise e
 
-    with open(dest, "wb") as f:
+    with open(dest, "rb+") as f:
+        content = f.read()
+        f.seek(0, 0)
         f.write(
             b"""# DO NOT MODIFY. This file was generated with `make freeze-requirements`.
 
 """
-            + proc.stdout
+            + content
         )
 
 
@@ -43,7 +46,7 @@ def main() -> int:
             #    (
             #        *base_cmd,
             #        f"{base_path}/requirements-base.txt",
-            #        "-o-",
+            #        "-o",
             #        f"{base_path}/requirements-frozen.txt",
             #    ),
             # ),
@@ -52,7 +55,7 @@ def main() -> int:
                 (
                     *base_cmd,
                     f"{base_path}/requirements-dev.txt",
-                    "-o-",
+                    "-o",
                     f"{base_path}/requirements-dev-only-frozen.txt",
                 ),
             ),
@@ -62,7 +65,7 @@ def main() -> int:
             #        *base_cmd,
             #        f"{base_path}/requirements-base.txt",
             #        f"{base_path}/requirements-dev.txt",
-            #        "-o-",
+            #        "-o",
             #        f"{base_path}/requirements-dev-frozen.txt",
             #    ),
             # ),
