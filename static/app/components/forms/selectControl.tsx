@@ -102,12 +102,6 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * can't have a good type here.
    */
   value?: any;
-  /**
-   * If false (default), checkmarks/checkboxes will be vertically centered
-   * wrt the first line of the label text. If true, they will be centered
-   * wrt the entire height of the option wrap.
-   */
-  verticallyCenterCheckWrap?: boolean;
 };
 
 /**
@@ -243,7 +237,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       cursor: 'pointer',
       color: theme.textColor,
       background: 'transparent',
-      padding: `0 ${space(0.5)}`,
+      padding: 0,
       ':active': {
         background: 'transparent',
       },

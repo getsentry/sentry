@@ -11,18 +11,24 @@ export enum DynamicSamplingRuleType {
 
 export enum DynamicSamplingConditionOperator {
   /**
-   * The not combinator has a similar structure with the only difference that "inner" is not an array
-   * and contains directly the negated condition
-   */
-  NOT = 'not',
-  /**
-   * Combine multiple sub-conditions with the operator 'or'
-   */
-  OR = 'or',
-  /**
    * Combine multiple sub-conditions with the operator 'and'
    */
   AND = 'and',
+}
+
+export enum DynamicSamplingRuleOperator {
+  /**
+   * The first rule on the list
+   */
+  IF = 'if',
+  /**
+   * All other rules, except rules without a condition
+   */
+  ELSE_IF = 'else_if',
+  /**
+   * Rules without a condition. In this case the rule cannot be reordered and is “pinned” at the bottom of the list
+   */
+  ELSE = 'else',
 }
 
 export enum DynamicSamplingInnerOperator {
@@ -168,6 +174,10 @@ export type DynamicSamplingRule = {
    * Describes the type of rule
    */
   type: DynamicSamplingRuleType;
+  /**
+   * A rule can be disabled if it doesn't contain a condition (Else case)
+   */
+  disabled?: boolean;
 };
 
 export type DynamicSamplingRules = Array<DynamicSamplingRule>;
