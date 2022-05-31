@@ -48,7 +48,7 @@ def update_config_cache(
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
 
-    # Weird way to experiment with this easily.
+    # TODO: Weird way to experiment with this easily.
     late_debounce_free = 0 < sentry.options.get("relay.project-config-v3-enable")
 
     if not late_debounce_free and not should_update_cache(
