@@ -43,6 +43,7 @@ function Item({
 }: ItemProps) {
   return (
     <Wrapper
+      data-test-id="sampling-rule"
       ref={forwardRef}
       style={
         {

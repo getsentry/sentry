@@ -3,6 +3,8 @@ import {createPortal} from 'react-dom';
 import {DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
+import {DynamicSamplingRule} from 'sentry/types/dynamicSampling';
+
 import Item, {ItemProps} from './item';
 import SortableItem, {SortableItemProps} from './sortableItem';
 
@@ -15,7 +17,11 @@ export type UpdateItemsProps = {
 type DefaultProps = Pick<SortableItemProps, 'disabled' | 'wrapperStyle'>;
 
 type Props = Pick<ItemProps, 'renderItem'> & {
-  items: Array<string>;
+  items: Array<
+    Omit<DynamicSamplingRule, 'id'> & {
+      id: string;
+    }
+  >;
   onUpdateItems: (props: UpdateItemsProps) => void;
 } & DefaultProps;
 
@@ -39,7 +45,8 @@ class DraggableList extends Component<Props, State> {
     const {activeId} = this.state;
     const {items, onUpdateItems, renderItem, disabled, wrapperStyle} = this.props;
 
-    const getIndex = items.indexOf.bind(items);
+    const itemIds = items.map(item => item.id);
+    const getIndex = itemIds.indexOf.bind(itemIds);
     const activeIndex = activeId ? getIndex(activeId) : -1;
 
     return (
@@ -56,25 +63,26 @@ class DraggableList extends Component<Props, State> {
 
           if (over) {
             const overIndex = getIndex(over.id);
+
             if (activeIndex !== overIndex) {
               onUpdateItems({
                 activeIndex,
                 overIndex,
-                reorderedItems: arrayMove(items, activeIndex, overIndex),
+                reorderedItems: arrayMove(itemIds, activeIndex, overIndex),
               });
             }
           }
         }}
         onDragCancel={() => this.handleChangeActive(undefined)}
       >
-        <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          {items.map((item, index) => (
+        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+          {itemIds.map((itemId, index) => (
             <SortableItem
-              key={item}
-              id={item}
+              key={itemId}
+              id={itemId}
               index={index}
               renderItem={renderItem}
-              disabled={disabled}
+              disabled={disabled || items[index].disabled}
               wrapperStyle={wrapperStyle}
             />
           ))}
@@ -83,7 +91,7 @@ class DraggableList extends Component<Props, State> {
           <DragOverlay>
             {activeId ? (
               <Item
-                value={items[activeIndex]}
+                value={itemIds[activeIndex]}
                 renderItem={renderItem}
                 wrapperStyle={wrapperStyle({
                   index: activeIndex,
