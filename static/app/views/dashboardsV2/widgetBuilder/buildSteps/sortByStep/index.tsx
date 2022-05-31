@@ -108,7 +108,10 @@ export function SortByStep({
       return false;
     }
     if (option.value.kind === FieldValueKind.TAG) {
-      return columnSet.has(option.value.meta.name);
+      // Only allow sorting by release tag
+      return (
+        columnSet.has(option.value.meta.name) && option.value.meta.name === 'release'
+      );
     }
     return filterReleaseSortOptions({
       option,

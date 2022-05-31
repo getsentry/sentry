@@ -131,7 +131,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             "referrer": self.__class__.__name__,
         }
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         description, params, _ = self.get_description()
         return self.description_as_text(description, params, True)
 

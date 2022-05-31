@@ -144,18 +144,16 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     });
   };
 
-  handleChangeFilter = (activeFilters: Set<string>) => {
+  handleChangeFilter = (activeFilters: string[]) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-
-    const team = activeFilters.size ? [...activeFilters] : '';
 
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
         // Preserve empty team query parameter
-        team: team.length === 0 ? '' : team,
+        team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
   };

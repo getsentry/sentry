@@ -3,6 +3,7 @@ import logging
 import sentry_sdk
 from django.conf import settings
 
+from sentry import options
 from sentry.relay import projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -26,6 +27,7 @@ def update_config_cache(
     :param project_id: The project for which to invalidate configs.
     :param generate: If `True`, caches will be eagerly regenerated, not only
         invalidated.
+    :param update_reason: A string to set as tag in sentry.
     """
 
     from sentry.models import Project, ProjectKey, ProjectKeyStatus
@@ -46,57 +48,67 @@ def update_config_cache(
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
 
-    # Not running this at the beginning of the task to add tags in case there's
-    # something wrong going on.
-    if not should_update_cache(
+    # TODO: Weird way to experiment with this easily.
+    late_debounce_free = 0 < options.get("relay.project-config-v3-enable")
+
+    if not late_debounce_free and not should_update_cache(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     ):
         # XXX(iker): this approach doesn't work with celery's ack_late enabled.
         # If ack_late is enabled and the task fails after being marked as done,
         # the second attempt will exit early and not compute the project config.
+        metrics.incr("relay.tasks.update_config_cache.early_return", amount=1, sample_rate=1)
         return
 
-    if organization_id:
-        projects = list(Project.objects.filter(organization_id=organization_id))
-        keys = list(ProjectKey.objects.filter(project__in=projects))
-    elif project_id:
-        projects = [Project.objects.get(id=project_id)]
-        keys = list(ProjectKey.objects.filter(project__in=projects))
-    elif public_key:
-        try:
-            keys = [ProjectKey.objects.get(public_key=public_key)]
-        except ProjectKey.DoesNotExist:
-            # In this particular case, where a project key got deleted and
-            # triggered an update, we know that key doesn't exist and we want to
-            # avoid creating more tasks for it.
-            #
-            # In other similar cases, like an org being deleted, we potentially
-            # cannot find any keys anymore, so we don't know which cache keys
-            # to delete.
-            projectconfig_cache.set_many({public_key: {"disabled": True}})
-            return
+    try:
+        if organization_id:
+            projects = list(Project.objects.filter(organization_id=organization_id))
+            keys = list(ProjectKey.objects.filter(project__in=projects))
+        elif project_id:
+            projects = [Project.objects.get(id=project_id)]
+            keys = list(ProjectKey.objects.filter(project__in=projects))
+        elif public_key:
+            try:
+                keys = [ProjectKey.objects.get(public_key=public_key)]
+            except ProjectKey.DoesNotExist:
+                # In this particular case, where a project key got deleted and
+                # triggered an update, we know that key doesn't exist and we want to
+                # avoid creating more tasks for it.
+                #
+                # In other similar cases, like an org being deleted, we potentially
+                # cannot find any keys anymore, so we don't know which cache keys
+                # to delete.
+                projectconfig_cache.set_many({public_key: {"disabled": True}})
+                return
 
-    else:
-        assert False
+        else:
+            assert False
 
-    if generate:
-        config_cache = {}
-        for key in keys:
-            if key.status != ProjectKeyStatus.ACTIVE:
-                project_config = {"disabled": True}
-            else:
-                project_config = get_project_config(
-                    key.project, project_keys=[key], full_config=True
-                ).to_dict()
-            config_cache[key.public_key] = project_config
+        if generate:
+            config_cache = {}
+            for key in keys:
+                if key.status != ProjectKeyStatus.ACTIVE:
+                    project_config = {"disabled": True}
+                else:
+                    project_config = get_project_config(
+                        key.project, project_keys=[key], full_config=True
+                    ).to_dict()
+                config_cache[key.public_key] = project_config
 
-        projectconfig_cache.set_many(config_cache)
-    else:
-        cache_keys_to_delete = []
-        for key in keys:
-            cache_keys_to_delete.append(key.public_key)
+            projectconfig_cache.set_many(config_cache)
+        else:
+            cache_keys_to_delete = []
+            for key in keys:
+                cache_keys_to_delete.append(key.public_key)
 
-        projectconfig_cache.delete_many(cache_keys_to_delete)
+            projectconfig_cache.delete_many(cache_keys_to_delete)
+    finally:
+        if late_debounce_free:
+            projectconfig_debounce_cache.mark_task_done(
+                organization_id=organization_id,
+                project_id=project_id,
+                public_key=public_key,
+            )
 
 
 def should_update_cache(organization_id=None, project_id=None, public_key=None) -> bool:

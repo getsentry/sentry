@@ -7,6 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
+from sentry import options
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
@@ -51,7 +52,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
         no_cache = request.relay_request_data.get("no_cache") or False
         set_tag("relay_no_cache", no_cache)
 
-        if version == "3" and not no_cache:
+        enable_v3 = random.random() < options.get("relay.project-config-v3-enable")
+
+        if enable_v3 and version == "3" and not no_cache:
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
@@ -81,6 +84,10 @@ class RelayProjectConfigsEndpoint(Endpoint):
             else:
                 proj_configs[key] = computed
 
+        metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending), sample_rate=1)
+        metrics.incr(
+            "relay.project_configs.post_v3.fetched", amount=len(proj_configs), sample_rate=1
+        )
         res = {"configs": proj_configs, "pending": pending}
 
         return Response(res, status=200)

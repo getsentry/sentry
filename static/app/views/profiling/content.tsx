@@ -12,6 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
+import {ProfilesTable} from 'sentry/components/profiling/profilesTable';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -27,7 +28,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {ProfilingScatterChart} from './landing/profilingScatterChart';
-import {ProfilingTable} from './landing/profilingTable';
 
 interface ProfilingContentProps {
   location: Location;
@@ -38,8 +38,8 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
   const organization = useOrganization();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
-  const profileFilters = useProfileFilters(selection);
-  const [requestState, traces, pageLinks] = useProfiles({cursor, query, selection});
+  const profileFilters = useProfileFilters({query: '', selection});
+  const profiles = useProfiles({cursor, query, selection});
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
@@ -83,7 +83,7 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
                 </ActionBar>
-                {requestState === 'errored' && (
+                {profiles.type === 'errored' && (
                   <Alert type="error" showIcon>
                     {t('Unable to load profiles')}
                   </Alert>
@@ -97,16 +97,21 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                       utc: null,
                     }
                   }
-                  traces={traces}
-                  isLoading={requestState === 'loading'}
+                  traces={profiles.type === 'resolved' ? profiles.data.traces : []}
+                  isLoading={profiles.type === 'loading'}
                 />
-                <ProfilingTable
-                  isLoading={requestState === 'loading'}
-                  error={requestState === 'errored' ? t('Unable to load profiles') : null}
-                  location={location}
-                  traces={traces}
+                <ProfilesTable
+                  error={
+                    profiles.type === 'errored' ? t('Unable to load profiles') : null
+                  }
+                  isLoading={profiles.type === 'loading'}
+                  traces={profiles.type === 'resolved' ? profiles.data.traces : []}
                 />
-                <Pagination pageLinks={pageLinks} />
+                <Pagination
+                  pageLinks={
+                    profiles.type === 'resolved' ? profiles.data.pageLinks : null
+                  }
+                />
               </Layout.Main>
             </Layout.Body>
           </StyledPageContent>

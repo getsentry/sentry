@@ -2,7 +2,6 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {
   Panel as BasePanel,
   PanelBody as BasePanelBody,
@@ -16,9 +15,9 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {BreadcrumbType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
-import {getPrevUserAction} from 'sentry/utils/replays/getPrevUserAction';
+import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
@@ -34,7 +33,7 @@ type Props = {
   /**
    * Raw breadcrumbs, `undefined` means it is still loading
    */
-  crumbs: RawCrumb[] | undefined;
+  crumbs: Crumb[] | undefined;
   /**
    * Root replay event, `undefined` means it is still loading
    */
@@ -58,23 +57,26 @@ function UserActionsNavigator({event, crumbs}: Props) {
   const {setCurrentTime, setCurrentHoverTime, currentHoverTime, currentTime} =
     useReplayContext();
 
-  const {startTimestamp} = event || {};
-  const userActionCrumbs = transformCrumbs(crumbs || []).filter(crumb =>
-    USER_ACTIONS.includes(crumb.type)
-  );
-  const isLoaded = startTimestamp;
+  const startTimestamp = event?.startTimestamp || 0;
+  const userActionCrumbs =
+    crumbs?.filter(crumb => USER_ACTIONS.includes(crumb.type)) || [];
 
-  const currentUserAction = getPrevUserAction(
-    userActionCrumbs,
-    startTimestamp,
-    currentTime
-  );
+  const isLoaded = Boolean(event);
 
-  const closestUserAction = getPrevUserAction(
-    userActionCrumbs,
-    startTimestamp,
-    currentHoverTime ?? 0
-  );
+  const currentUserAction = getPrevBreadcrumb({
+    crumbs: userActionCrumbs,
+    targetTimestampMs: startTimestamp * 1000 + currentTime,
+    allowExact: true,
+  });
+
+  const closestUserAction =
+    currentHoverTime !== undefined
+      ? getPrevBreadcrumb({
+          crumbs: userActionCrumbs,
+          targetTimestampMs: startTimestamp * 1000 + (currentHoverTime ?? 0),
+          allowExact: true,
+        })
+      : undefined;
 
   const onMouseEnter = useCallback(
     (item: Crumb) => {

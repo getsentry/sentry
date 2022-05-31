@@ -28,7 +28,7 @@ export type ItemProps = {
   wrapperStyle?: React.CSSProperties;
 };
 
-function Item({
+export function Item({
   value,
   dragging,
   index,
@@ -43,6 +43,7 @@ function Item({
 }: ItemProps) {
   return (
     <Wrapper
+      data-test-id="sampling-rule"
       ref={forwardRef}
       style={
         {
@@ -70,8 +71,6 @@ function Item({
     </Wrapper>
   );
 }
-
-export default Item;
 
 const boxShadowBorder = '0 0 0 calc(1px / var(--scale-x, 1)) rgba(63, 63, 68, 0.05)';
 const boxShadowCommon = '0 1px calc(3px / var(--scale-x, 1)) 0 rgba(34, 33, 81, 0.15)';

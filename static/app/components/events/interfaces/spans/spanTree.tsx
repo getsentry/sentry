@@ -157,6 +157,9 @@ class SpanTree extends Component<PropType> {
       dragProps,
       onWheel,
       generateContentSpanBarRef,
+      markSpanOutOfView,
+      markSpanInView,
+      storeSpanBar,
     } = this.props;
     const generateBounds = waterfallModel.generateBounds({
       viewStart: dragProps.viewWindowStart,
@@ -317,6 +320,9 @@ class SpanTree extends Component<PropType> {
             isEmbeddedTransactionTimeAdjusted={payload.isEmbeddedTransactionTimeAdjusted}
             onWheel={onWheel}
             generateContentSpanBarRef={generateContentSpanBarRef}
+            markSpanOutOfView={markSpanOutOfView}
+            markSpanInView={markSpanInView}
+            storeSpanBar={storeSpanBar}
           />
         );
 

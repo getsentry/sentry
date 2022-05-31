@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
 from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -60,6 +61,8 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
+        except InvalidParams as err:
+            raise ParseError(err)
 
         referrer = request.GET.get("referrer")
         use_metrics = features.has(
@@ -208,6 +211,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             params = self.get_snuba_params(request, organization)
         except NoProjects:
             return Response([])
+        except InvalidParams as err:
+            raise ParseError(err)
 
         referrer = request.GET.get("referrer")
         use_metrics = features.has(
@@ -234,6 +239,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = "api.organization-events"
+
+        query_modified_by_user = request.GET.get("user_modified")
+        if query_modified_by_user in ["true", "false"]:
+            sentry_sdk.set_tag("query.user_modified", query_modified_by_user)
 
         def data_fn(offset, limit):
             query_details = {
