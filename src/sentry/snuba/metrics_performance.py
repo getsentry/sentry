@@ -20,6 +20,7 @@ from sentry.utils.snuba import SnubaTSResult
 def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
     """Go through the results of a metrics query and reverse resolve its tags"""
     tags: List[str] = []
+    cached_resolves: Dict[int, str] = {}
 
     with sentry_sdk.start_span(op="mep", description="resolve_tags"):
         for column in query_definition.columns:
@@ -32,7 +33,10 @@ def resolve_tags(results: Any, query_definition: MetricsQueryBuilder) -> Any:
 
         for tag in tags:
             for row in results["data"]:
-                row[tag] = indexer.reverse_resolve(row[tag])
+                if row[tag] not in cached_resolves:
+                    resolved_tag = indexer.reverse_resolve(row[tag])
+                    cached_resolves[row[tag]] = resolved_tag
+                row[tag] = cached_resolves[row[tag]]
             if tag in results["meta"]:
                 results["meta"][tag] = "string"
 
