@@ -85,7 +85,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.size is not None
         assert file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2 = file.getfile().read().strip().split(b"\r\n")
+        with file.getfile() as f:
+            header, raw1, raw2 = f.read().strip().split(b"\r\n")
         assert header == b"value,times_seen,last_seen,first_seen"
 
         raw1, raw2 = sorted([raw1, raw2])
@@ -117,7 +118,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.size is not None
         assert file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2 = file.getfile().read().strip().split(b"\r\n")
+        with file.getfile() as f:
+            header, raw1, raw2 = f.read().strip().split(b"\r\n")
         assert header == b"value,times_seen,last_seen,first_seen"
 
         raw1, raw2 = sorted([raw1, raw2])
@@ -193,7 +195,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.size is not None
         assert file.checksum is not None
         # Convert raw csv to list of line-strings
-        header = file.getfile().read().strip()
+        with file.getfile() as f:
+            header = f.read().strip()
         assert header == b"value,times_seen,last_seen,first_seen"
 
     @patch("sentry.data_export.models.ExportedData.email_success")
@@ -216,7 +219,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.size is not None
         assert file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2, raw3 = file.getfile().read().strip().split(b"\r\n")
+        with file.getfile() as f:
+            header, raw1, raw2, raw3 = f.read().strip().split(b"\r\n")
         assert header == b"title"
 
         assert raw1.startswith(b"<unlabeled event>")
@@ -250,7 +254,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.size is not None
         assert file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2 = file.getfile().read().strip().split(b"\r\n")
+        with file.getfile() as f:
+            header, raw1, raw2 = f.read().strip().split(b"\r\n")
         assert header == b"title"
 
         assert raw1.startswith(b"<unlabeled event>")
@@ -283,7 +288,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.size is not None
         assert file.checksum is not None
         # Convert raw csv to list of line-strings
-        header, raw1, raw2, raw3 = file.getfile().read().strip().split(b"\r\n")
+        with file.getfile() as f:
+            header, raw1, raw2, raw3 = f.read().strip().split(b"\r\n")
         assert header == b"title"
 
         assert raw1.startswith(b"<unlabeled event>")
@@ -346,7 +352,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.checksum is not None
         # Convert raw csv to list of line-strings
         # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
-        header, raw1, raw2 = file.getfile().read().strip().split(b"\r\n")
+        with file.getfile() as f:
+            header, raw1, raw2 = f.read().strip().split(b"\r\n")
         assert header == b"title"
 
         assert raw1.startswith(b"<unlabeled event>")
@@ -375,7 +382,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.checksum is not None
         # Convert raw csv to list of line-strings
         # capping MAX_FILE_SIZE forces the last batch to be dropped, leaving 2 rows
-        header, raw1, raw2 = file.getfile().read().strip().split(b"\r\n")
+        with file.getfile() as f:
+            header, raw1, raw2 = f.read().strip().split(b"\r\n")
         assert header == b"title"
 
         assert raw1.startswith(b"<unlabeled event>")
@@ -459,7 +467,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert file.headers == {"Content-Type": "text/csv"}
         assert file.size is not None
         assert file.checksum is not None
-        header, row = file.getfile().read().strip().split(b"\r\n")
+        with file.getfile() as f:
+            header, row = f.read().strip().split(b"\r\n")
 
     @patch("sentry.search.events.builder.raw_snql_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
@@ -589,7 +598,8 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
             assemble_download(de.id, batch_size=1)
         de = ExportedData.objects.get(id=de.id)
         # Convert raw csv to list of line-strings
-        header, raw1, raw2, raw3 = de._get_file().getfile().read().strip().split(b"\r\n")
+        with de._get_file().getfile() as f:
+            header, raw1, raw2, raw3 = f.read().strip().split(b"\r\n")
         assert header == b"environment"
 
         assert raw1.startswith(b"prod")
