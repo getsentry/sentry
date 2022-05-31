@@ -87,6 +87,13 @@ const generateOpAutocompleteGroup = (
   };
 };
 
+const escapeValue = (value: string): string => {
+  // Wrap in quotes if there is a space
+  return value.includes(' ') || value.includes('"')
+    ? `"${value.replace(/"/g, '\\"')}"`
+    : value;
+};
+
 type ActionProps = {
   api: Client;
   /**
@@ -809,13 +816,12 @@ class SmartSearchBar extends Component<Props, State> {
       this.setState({noValueQuery});
 
       return values.map(value => {
-        // Wrap in quotes if there is a space
-        const escapedValue =
-          value.includes(' ') || value.includes('"')
-            ? `"${value.replace(/"/g, '\\"')}"`
-            : value;
-
-        return {value: escapedValue, desc: escapedValue, type: ItemType.TAG_VALUE};
+        const escapedValue = escapeValue(value);
+        return {
+          value: escapedValue,
+          desc: escapedValue,
+          type: ItemType.TAG_VALUE,
+        };
       });
     },
     DEFAULT_DEBOUNCE_DURATION,
@@ -829,12 +835,17 @@ class SmartSearchBar extends Component<Props, State> {
   getPredefinedTagValues = (tag: Tag, query: string): SearchItem[] =>
     (tag.values ?? [])
       .filter(value => value.indexOf(query) > -1)
-      .map((value, i) => ({
-        value,
-        desc: value,
-        type: ItemType.TAG_VALUE,
-        ignoreMaxSearchItems: tag.maxSuggestedValues ? i < tag.maxSuggestedValues : false,
-      }));
+      .map((value, i) => {
+        const escapedValue = escapeValue(value);
+        return {
+          value: escapedValue,
+          desc: escapedValue,
+          type: ItemType.TAG_VALUE,
+          ignoreMaxSearchItems: tag.maxSuggestedValues
+            ? i < tag.maxSuggestedValues
+            : false,
+        };
+      });
 
   /**
    * Get recent searches
