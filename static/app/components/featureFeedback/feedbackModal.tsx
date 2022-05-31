@@ -66,7 +66,7 @@ export function FeedbackModal({
       return projects.find(p => p.id === location.query.project);
     }
     return undefined;
-  }, [projectsLoaded, location.query.project]);
+  }, [projectsLoaded, projects, location.query.project]);
 
   function handleSubmit() {
     const {subject, additionalInfo} = state;
