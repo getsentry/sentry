@@ -580,3 +580,25 @@ DataCategory = sentry_relay.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
 CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
+
+# TODO: @andriisoldatenko update with correct values
+# Dynamic sampling denylist
+DS_DENYLIST = frozenset(
+    [
+        "browser",
+        "browser.name",
+        "device",
+        "device.family",
+        "environment",
+        "gpu.name",
+        "gpu.vendor",
+        "level",
+        "logger",
+        "monitor.id" "os",
+        "os.name",
+        "os.rooted",
+        "runtime",
+        "runtime.name",
+        "transaction",
+    ]
+)

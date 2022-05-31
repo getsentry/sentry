@@ -31,3 +31,27 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["foo"]["uniqueValues"] == 1
         assert data["bar"]["canDelete"]
         assert data["bar"]["uniqueValues"] == 2
+
+    def test_simple_with_deny(self):
+        self.store_event(
+            data={
+                # "browser" is in denylist sentry.constants.DS_DENYLIST
+                "tags": {"browser": "chrome", "bar": "rab"},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={"tags": {"bar": "rab2"}, "timestamp": iso_format(before_now(minutes=1))},
+            project_id=self.project.id,
+        )
+
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, onlySamplingTags=1
+        )
+
+        data = {v["key"]: v for v in response.data}
+        assert len(data) == 1
+
+        assert data["bar"]["canDelete"]
+        assert data["bar"]["uniqueValues"] == 2
