@@ -407,7 +407,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libxmlsec1-dev
-          pip install wheel # GitHub Actions does not have `wheel` installed by default
           pip install -U -e ".[dev]"
 
       - name: Run backend typing (${{ steps.setup.outputs.matrix-instance-number }} of ${{ strategy.job-total }})

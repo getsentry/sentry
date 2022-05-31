@@ -38,6 +38,8 @@ openapi-spec-validator==0.4.0
 packaging==21.3
 parse==1.19.0
 pathspec==0.9.0
+pep517==0.12.0
+pip-tools==6.6.2
 platformdirs==2.5.2
 pluggy==0.13.1
 pre-commit==2.18.1
@@ -67,8 +69,10 @@ urllib3==1.26.9
 virtualenv==20.14.1
 websocket-client==1.3.2
 werkzeug==2.1.2
+wheel==0.37.1
 wrapt==1.14.1
 zipp==3.8.0
 
 # The following packages are considered to be unsafe in a requirements file:
+pip==22.1.2
 setuptools==62.3.2
