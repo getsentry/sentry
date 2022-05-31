@@ -90,7 +90,8 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      expect(screen.getByText('Transaction traces')).toBeInTheDocument();
+
+      expect(screen.getByText('If')).toBeInTheDocument();
 
       // Open rule modal - edit transaction rule
       await renderModal(screen.getByLabelText('Edit Rule'));
@@ -150,7 +151,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         screen.queryByText('Edit Transaction Sampling Rule')
       );
 
-      expect(screen.getByText('Transaction traces')).toBeInTheDocument();
+      expect(screen.getByText('If')).toBeInTheDocument();
       expect(screen.getByText('Release')).toBeInTheDocument();
 
       // Old values
@@ -342,7 +343,8 @@ describe('Filters and Sampling - Transaction rule', function () {
           expect(
             screen.queryByText('There are no transaction rules to display')
           ).not.toBeInTheDocument();
-          expect(screen.getByText('Transaction traces')).toBeInTheDocument();
+
+          expect(screen.getByText('If')).toBeInTheDocument();
           expect(screen.getByText('Release')).toBeInTheDocument();
           expect(screen.getByText('1.2.3')).toBeInTheDocument();
           expect(screen.getByText('20%')).toBeInTheDocument();
@@ -435,7 +437,7 @@ describe('Filters and Sampling - Transaction rule', function () {
             expect(
               screen.queryByText('There are no transaction rules to display')
             ).not.toBeInTheDocument();
-            expect(screen.getByText('Individual transactions')).toBeInTheDocument();
+            expect(screen.getByText('If')).toBeInTheDocument();
             expect(screen.getByText('Release')).toBeInTheDocument();
             expect(screen.getByText('1.2.3')).toBeInTheDocument();
             expect(screen.getByText('20%')).toBeInTheDocument();
@@ -550,12 +552,14 @@ describe('Filters and Sampling - Transaction rule', function () {
             expect(
               screen.queryByText('There are no transaction rules to display')
             ).not.toBeInTheDocument();
-            expect(screen.getByText('Individual transactions')).toBeInTheDocument();
+            expect(screen.getByText('If')).toBeInTheDocument();
             expect(screen.getByText('Legacy Browser')).toBeInTheDocument();
+
             for (const legacyBrowser of legacyBrowsers) {
               const {title} = LEGACY_BROWSER_LIST[legacyBrowser];
               expect(screen.getByText(title)).toBeInTheDocument();
             }
+
             expect(screen.getByText('20%')).toBeInTheDocument();
           });
         });
@@ -631,7 +635,8 @@ describe('Filters and Sampling - Transaction rule', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      expect(screen.getByText('Individual transactions')).toBeInTheDocument();
+
+      expect(screen.getByText('If')).toBeInTheDocument();
 
       // Open rule modal - edit transaction rule
       await renderModal(screen.getByLabelText('Edit Rule'));
@@ -691,7 +696,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         screen.queryByText('Edit Transaction Sampling Rule')
       );
 
-      expect(screen.getByText('Individual transactions')).toBeInTheDocument();
+      expect(screen.getByText('If')).toBeInTheDocument();
       expect(screen.getByText('Release')).toBeInTheDocument();
 
       // Old values

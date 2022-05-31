@@ -2,7 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   DynamicSamplingCondition,
@@ -37,8 +36,9 @@ function Conditions({condition}: Props) {
   switch (condition.op) {
     case DynamicSamplingConditionOperator.AND: {
       const {inner} = condition;
+
       if (!inner.length) {
-        return <Label>{t('All')}</Label>;
+        return null;
       }
 
       return (

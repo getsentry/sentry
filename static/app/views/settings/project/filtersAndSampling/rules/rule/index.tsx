@@ -1,26 +1,29 @@
 import {Component} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Tooltip from 'sentry/components/tooltip';
 import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {DynamicSamplingRule} from 'sentry/types/dynamicSampling';
+import {
+  DynamicSamplingRule,
+  DynamicSamplingRuleOperator,
+} from 'sentry/types/dynamicSampling';
 
 import {layout} from '../utils';
 
 import Actions from './actions';
 import Conditions from './conditions';
-import SampleRate from './sampleRate';
-import Type from './type';
 
 type Props = {
-  disabled: boolean;
   dragging: boolean;
   listeners: DraggableSyntheticListeners;
+  noPermission: boolean;
   onDeleteRule: () => void;
   onEditRule: () => void;
+  operator: DynamicSamplingRuleOperator;
   rule: DynamicSamplingRule;
   sorting: boolean;
   grabAttributes?: UseDraggableArguments['attributes'];
@@ -58,41 +61,55 @@ class Rule extends Component<Props, State> {
   };
 
   render() {
-    const {rule, onEditRule, onDeleteRule, disabled, listeners, grabAttributes} =
-      this.props;
+    const {
+      rule,
+      noPermission,
+      onEditRule,
+      onDeleteRule,
+      listeners,
+      operator,
+      grabAttributes,
+    } = this.props;
 
-    const {type, condition, sampleRate} = rule;
     const {isMenuActionsOpen} = this.state;
 
     return (
-      <Columns>
+      <Columns disabled={rule.disabled ?? noPermission}>
         <GrabColumn>
           <Tooltip
             title={
-              disabled
-                ? t('You do not have permission to reorder dynamic sampling rules.')
+              noPermission
+                ? t('You do not have permission to reorder rules.')
+                : operator === DynamicSamplingRuleOperator.ELSE
+                ? t('Rules without conditions cannot be reordered.')
                 : undefined
             }
           >
-            <IconGrabbableWrapper {...listeners} disabled={disabled} {...grabAttributes}>
+            <IconGrabbableWrapper {...listeners} {...grabAttributes}>
               <IconGrabbable />
             </IconGrabbableWrapper>
           </Tooltip>
         </GrabColumn>
         <Column>
-          <Type type={type} />
+          <Operator>
+            {operator === DynamicSamplingRuleOperator.IF
+              ? t('If')
+              : operator === DynamicSamplingRuleOperator.ELSE_IF
+              ? t('Else if')
+              : t('Else')}
+          </Operator>
         </Column>
         <Column>
-          <Conditions condition={condition} />
+          <Conditions condition={rule.condition} />
         </Column>
         <CenteredColumn>
-          <SampleRate sampleRate={sampleRate} />
+          <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
         </CenteredColumn>
         <Column>
           <Actions
             onEditRule={onEditRule}
             onDeleteRule={onDeleteRule}
-            disabled={disabled}
+            disabled={noPermission}
             onOpenMenuActions={this.handleChangeMenuAction}
             isMenuActionsOpen={isMenuActionsOpen}
           />
@@ -104,16 +121,13 @@ class Rule extends Component<Props, State> {
 
 export default Rule;
 
-const Columns = styled('div')`
-  display: grid;
-  align-items: center;
-  ${p => layout(p.theme)}
-  > * {
-    overflow: visible;
-    :nth-child(5n) {
-      justify-content: flex-end;
-    }
-  }
+const Operator = styled('div')`
+  color: ${p => p.theme.active};
+`;
+
+const SampleRate = styled('div')`
+  white-space: pre-wrap;
+  word-break: break-all;
 `;
 
 const Column = styled('div')`
@@ -126,23 +140,42 @@ const Column = styled('div')`
 `;
 
 const GrabColumn = styled(Column)`
-  cursor: inherit;
   [role='button'] {
     cursor: grab;
   }
 `;
 
+const Columns = styled('div')<{disabled: boolean}>`
+  display: grid;
+  align-items: center;
+  ${p => layout(p.theme)}
+  > * {
+    overflow: visible;
+    :nth-child(5n) {
+      justify-content: flex-end;
+    }
+  }
+
+  ${p =>
+    p.disabled &&
+    css`
+      ${Operator} {
+        color: ${p.theme.disabled};
+      }
+      ${GrabColumn} {
+        color: ${p.theme.disabled};
+        [role='button'] {
+          cursor: not-allowed;
+        }
+      }
+    `}
+`;
+
+const IconGrabbableWrapper = styled('div')`
+  outline: none;
+`;
+
 const CenteredColumn = styled(Column)`
   text-align: center;
   justify-content: center;
-`;
-
-const IconGrabbableWrapper = styled('div')<{disabled: boolean}>`
-  ${p =>
-    p.disabled &&
-    `
-    color: ${p.theme.disabled};
-    cursor: not-allowed;
-  `};
-  outline: none;
 `;
