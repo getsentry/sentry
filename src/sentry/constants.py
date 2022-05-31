@@ -581,8 +581,11 @@ DataCategory = sentry_relay.DataCategory
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
 CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
 
-# Dynamic sampling denylist composed manually from:
-# - iter_tags
+# Dynamic sampling denylist composed manually from
+# `src/sentry/event_manager.py:save`. We have function
+# `_derive_interface_tags_many(jobs)` which iterates across all interfaces
+# and execute `iter_tags`, so i've searched usage of `iter_tags` and build
+# current denylist:
 DS_DENYLIST = frozenset(
     [
         "browser",
