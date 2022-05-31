@@ -8,8 +8,8 @@ import {IconGrabbable} from 'sentry/icons/iconGrabbable';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  DynamicSamplingConditionOperator,
   DynamicSamplingRule,
+  DynamicSamplingRuleOperator,
 } from 'sentry/types/dynamicSampling';
 
 import {layout} from '../utils';
@@ -19,12 +19,12 @@ import Conditions from './conditions';
 import SampleRate from './sampleRate';
 
 type Props = {
-  disabled: boolean;
   dragging: boolean;
-  firstOnTheList: boolean;
   listeners: DraggableSyntheticListeners;
+  noPermission: boolean;
   onDeleteRule: () => void;
   onEditRule: () => void;
+  operator: DynamicSamplingRuleOperator;
   rule: DynamicSamplingRule;
   sorting: boolean;
   grabAttributes?: UseDraggableArguments['attributes'];
@@ -64,28 +64,24 @@ class Rule extends Component<Props, State> {
   render() {
     const {
       rule,
-      disabled,
+      noPermission,
       onEditRule,
       onDeleteRule,
       listeners,
-      firstOnTheList,
+      operator,
       grabAttributes,
     } = this.props;
 
-    const {condition, sampleRate} = rule;
     const {isMenuActionsOpen} = this.state;
 
-    const sampleAll =
-      condition.op === DynamicSamplingConditionOperator.AND && !condition.inner.length;
-
     return (
-      <Columns>
-        <GrabColumn disabled={sampleAll || disabled}>
+      <Columns disabled={rule.disabled ?? noPermission}>
+        <GrabColumn>
           <Tooltip
             title={
-              disabled
+              noPermission
                 ? t('You do not have permission to reorder rules.')
-                : sampleAll
+                : operator === DynamicSamplingRuleOperator.ELSE
                 ? t('Rules without conditions cannot be reordered.')
                 : undefined
             }
@@ -96,21 +92,25 @@ class Rule extends Component<Props, State> {
           </Tooltip>
         </GrabColumn>
         <Column>
-          <Operator disabled={sampleAll}>
-            {sampleAll ? t('Else') : firstOnTheList ? t('If') : t('Else if')}
+          <Operator>
+            {operator === DynamicSamplingRuleOperator.IF
+              ? t('If')
+              : operator === DynamicSamplingRuleOperator.ELSE_IF
+              ? t('Else if')
+              : t('Else')}
           </Operator>
         </Column>
         <Column>
-          <Conditions condition={condition} />
+          <Conditions condition={rule.condition} />
         </Column>
         <CenteredColumn>
-          <SampleRate sampleRate={sampleRate} />
+          <SampleRate sampleRate={rule.sampleRate} />
         </CenteredColumn>
         <Column>
           <Actions
             onEditRule={onEditRule}
             onDeleteRule={onDeleteRule}
-            disabled={disabled}
+            disabled={noPermission}
             onOpenMenuActions={this.handleChangeMenuAction}
             isMenuActionsOpen={isMenuActionsOpen}
           />
@@ -122,16 +122,8 @@ class Rule extends Component<Props, State> {
 
 export default Rule;
 
-const Columns = styled('div')`
-  display: grid;
-  align-items: center;
-  ${p => layout(p.theme)}
-  > * {
-    overflow: visible;
-    :nth-child(5n) {
-      justify-content: flex-end;
-    }
-  }
+const Operator = styled('div')`
+  color: ${p => p.theme.active};
 `;
 
 const Column = styled('div')`
@@ -143,29 +135,40 @@ const Column = styled('div')`
   word-break: break-all;
 `;
 
+const GrabColumn = styled(Column)`
+  [role='button'] {
+    cursor: grab;
+  }
+`;
+
+const Columns = styled('div')<{disabled: boolean}>`
+  display: grid;
+  align-items: center;
+  ${p => layout(p.theme)}
+  > * {
+    overflow: visible;
+    :nth-child(5n) {
+      justify-content: flex-end;
+    }
+  }
+
+  ${p =>
+    p.disabled &&
+    css`
+      ${Operator} {
+        color: ${p.theme.disabled};
+      }
+      ${GrabColumn} {
+        color: ${p.theme.disabled};
+        [role='button'] {
+          cursor: not-allowed;
+        }
+      }
+    `}
+`;
+
 const IconGrabbableWrapper = styled('div')`
   outline: none;
-`;
-
-const GrabColumn = styled(Column)<{disabled: boolean}>`
-  cursor: inherit;
-  ${p =>
-    p.disabled
-      ? css`
-          ${IconGrabbableWrapper} {
-            color: ${p.theme.disabled};
-            cursor: not-allowed;
-          }
-        `
-      : css`
-          [role='button'] {
-            cursor: grab;
-          }
-        `}
-`;
-
-const Operator = styled('div')<{disabled: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.active)};
 `;
 
 const CenteredColumn = styled(Column)`

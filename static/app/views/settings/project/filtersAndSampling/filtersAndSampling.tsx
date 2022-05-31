@@ -90,9 +90,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
     const [rulesWithoutConditions, rulesWithConditions] = partition(
       transactionRules,
-      transactionRule =>
-        transactionRule.condition.op === DynamicSamplingConditionOperator.AND &&
-        !transactionRule.condition.inner.length
+      transactionRule => !transactionRule.condition.inner.length
     );
 
     this.setState({rules: [...rulesWithConditions, ...rulesWithoutConditions]});

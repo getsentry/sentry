@@ -3,6 +3,8 @@ import {createPortal} from 'react-dom';
 import {DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
+import {DynamicSamplingRule} from 'sentry/types/dynamicSampling';
+
 import Item, {ItemProps} from './item';
 import SortableItem, {SortableItemProps} from './sortableItem';
 
@@ -15,10 +17,11 @@ export type UpdateItemsProps = {
 type DefaultProps = Pick<SortableItemProps, 'disabled' | 'wrapperStyle'>;
 
 type Props = Pick<ItemProps, 'renderItem'> & {
-  items: Array<{
-    disabled: boolean;
-    id: string;
-  }>;
+  items: Array<
+    Omit<DynamicSamplingRule, 'id'> & {
+      id: string;
+    }
+  >;
   onUpdateItems: (props: UpdateItemsProps) => void;
 } & DefaultProps;
 

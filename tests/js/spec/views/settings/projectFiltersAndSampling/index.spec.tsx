@@ -103,6 +103,15 @@ describe('Filters and Sampling', function () {
                     },
                   ],
                 },
+                id: 41,
+              },
+              {
+                sampleRate: 0.5,
+                type: 'transaction',
+                condition: {
+                  op: 'and',
+                  inner: [],
+                },
                 id: 42,
               },
             ],
@@ -142,8 +151,11 @@ describe('Filters and Sampling', function () {
       ).not.toBeInTheDocument();
 
       // Operator column
-      expect(screen.getByText('If')).toBeInTheDocument();
-      expect(screen.getByText('Else if')).toBeInTheDocument();
+      const samplingRules = screen.getAllByTestId('sampling-rule');
+      expect(samplingRules).toHaveLength(3);
+      expect(samplingRules[0]).toHaveTextContent('If');
+      expect(samplingRules[1]).toHaveTextContent('Else if');
+      expect(samplingRules[2]).toHaveTextContent('Else');
 
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 

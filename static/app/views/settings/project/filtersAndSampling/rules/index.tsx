@@ -7,8 +7,8 @@ import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {
-  DynamicSamplingConditionOperator,
   DynamicSamplingRule,
+  DynamicSamplingRuleOperator,
   DynamicSamplingRuleType,
 } from 'sentry/types/dynamicSampling';
 
@@ -68,10 +68,7 @@ class Rules extends PureComponent<Props, State> {
     const activeRule = rules[activeIndex];
     const overRule = rules[overIndex];
 
-    if (
-      overRule.condition.op === DynamicSamplingConditionOperator.AND &&
-      !overRule.condition.inner.length
-    ) {
+    if (!overRule.condition.inner.length) {
       addErrorMessage(
         t('Rules with conditions cannot be below rules without conditions')
       );
@@ -111,6 +108,7 @@ class Rules extends PureComponent<Props, State> {
 
     // Rules without conditions always have to be 'pinned' to the bottom of the list
     const items = rules.map(rule => ({
+      ...rule,
       id: String(rule.id),
       disabled: !rule.condition.inner.length,
     }));
@@ -146,19 +144,33 @@ class Rules extends PureComponent<Props, State> {
             };
           }}
           renderItem={({value, listeners, attributes, dragging, sorting}) => {
-            const currentRule = rules.find(rule => String(rule.id) === value);
+            const itemsRuleIndex = items.findIndex(item => item.id === value);
 
-            if (!currentRule) {
+            if (itemsRuleIndex === -1) {
               return null;
             }
 
+            const itemsRule = items[itemsRuleIndex];
+            const currentRule = {
+              condition: itemsRule.condition,
+              sampleRate: itemsRule.sampleRate,
+              type: itemsRule.type,
+              id: Number(itemsRule.id),
+            };
+
             return (
               <Rule
-                firstOnTheList={String(currentRule.id) === items[0].id}
-                rule={currentRule}
+                operator={
+                  itemsRule.id === items[0].id
+                    ? DynamicSamplingRuleOperator.IF
+                    : itemsRule.disabled
+                    ? DynamicSamplingRuleOperator.ELSE
+                    : DynamicSamplingRuleOperator.ELSE_IF
+                }
+                rule={{...currentRule, disabled: itemsRule.disabled}}
                 onEditRule={onEditRule(currentRule)}
                 onDeleteRule={onDeleteRule(currentRule)}
-                disabled={disabled}
+                noPermission={disabled}
                 listeners={listeners}
                 grabAttributes={attributes}
                 dragging={dragging}
