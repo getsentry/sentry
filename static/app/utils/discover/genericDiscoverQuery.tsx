@@ -190,7 +190,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       payload.referrer = referrer;
     }
 
-    if (['eventsv2', 'events'].includes(props.route)) {
+    if (['events', 'eventsv2'].includes(props.route)) {
       const queryUserModified = decodeScalar(location.query?.userModified);
       if (queryUserModified !== undefined) {
         payload.user_modified = queryUserModified;
