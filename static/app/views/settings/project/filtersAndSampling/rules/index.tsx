@@ -12,8 +12,13 @@ import {
   DynamicSamplingRuleType,
 } from 'sentry/types/dynamicSampling';
 
+<<<<<<< HEAD
 import {DraggableList, UpdateItemsProps} from './draggableList';
 import {Rule} from './rule';
+=======
+import DraggableList, {UpdateItemsProps} from './draggableList';
+import Rule from './rule';
+>>>>>>> master
 import {layout} from './utils';
 
 type Props = {
