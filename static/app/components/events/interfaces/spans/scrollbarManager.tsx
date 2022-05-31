@@ -117,7 +117,7 @@ export class Provider extends Component<Props, State> {
           clearInterval(this.anchorCheckInterval);
           this.anchorCheckInterval = null;
         }
-      }, 5000);
+      }, 1000);
 
       return;
     }
