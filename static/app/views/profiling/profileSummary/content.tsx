@@ -18,6 +18,7 @@ const PROFILES_COLUMN_ORDER = [
   'failed',
   'id',
   'timestamp',
+  'version_name',
   'device_model',
   'device_classification',
   'trace_duration_ms',

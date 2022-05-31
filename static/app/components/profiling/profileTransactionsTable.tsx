@@ -8,8 +8,8 @@ import GridEditable, {
 } from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {t} from 'sentry/locale';
 import {ProfileTransaction} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
@@ -34,7 +34,20 @@ function ProfileTransactionsTable(props: ProfileTransactionsTableProps) {
     return props.transactions.map(transaction => {
       const project = projects.find(proj => proj.id === transaction.project_id);
       return {
-        transaction: transaction.name,
+        transaction: project ? (
+          <Link
+            to={generateProfileSummaryRouteWithQuery({
+              location,
+              orgSlug: organization.slug,
+              projectSlug: project.slug,
+              transaction: transaction.name,
+            })}
+          >
+            {transaction.name}
+          </Link>
+        ) : (
+          transaction.name
+        ),
         count: transaction.profiles_count,
         project,
         p50: transaction.duration_ms.p50,
@@ -43,18 +56,6 @@ function ProfileTransactionsTable(props: ProfileTransactionsTableProps) {
         p95: transaction.duration_ms.p95,
         p99: transaction.duration_ms.p99,
         lastSeen: transaction.last_profile_at,
-        versions: transaction.versions.map(version => {
-          return {
-            value: version,
-            target: generateProfileSummaryRouteWithQuery({
-              location,
-              orgSlug: organization.slug,
-              projectSlug: project?.slug ?? '',
-              transaction: transaction.name,
-              version,
-            }),
-          };
-        }),
       };
     });
   }, [props.transactions, location, organization, projects]);
@@ -159,8 +160,6 @@ function ProfilingTransactionsTableCell({
           <DateTime date={value} />
         </Container>
       );
-    case 'versions':
-      return <ArrayLinks items={value} />;
     default:
       return <Container>{value}</Container>;
   }
@@ -175,7 +174,6 @@ type TableColumnKey =
   | 'p90'
   | 'p95'
   | 'p99'
-  | 'versions'
   | 'lastSeen';
 
 type TableDataRow = Record<TableColumnKey, any>;
@@ -185,7 +183,6 @@ type TableColumn = GridColumnOrder<TableColumnKey>;
 const COLUMN_ORDER: TableColumnKey[] = [
   'transaction',
   'project',
-  'versions',
   'lastSeen',
   'p75',
   'p95',
@@ -231,11 +228,6 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   p99: {
     key: 'p99',
     name: t('P99'),
-    width: COL_WIDTH_UNDEFINED,
-  },
-  versions: {
-    key: 'versions',
-    name: t('Versions'),
     width: COL_WIDTH_UNDEFINED,
   },
   lastSeen: {
