@@ -22,7 +22,7 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import {modalCss} from './modal/utils';
 import Modal from './modal';
-import RulesPanel from './rulesPanel';
+import {RulesPanel} from './rulesPanel';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
 type Props = AsyncView['props'] & {

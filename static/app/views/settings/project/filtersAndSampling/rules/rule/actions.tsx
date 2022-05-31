@@ -28,7 +28,7 @@ type Props = {
   onOpenMenuActions: () => void;
 };
 
-function Actions({
+export function Actions({
   disabled,
   onEditRule,
   onDeleteRule,
@@ -115,8 +115,6 @@ function Actions({
     </Fragment>
   );
 }
-
-export default Actions;
 
 const StyledButtonbar = styled(ButtonBar)`
   justify-content: flex-end;

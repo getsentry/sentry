@@ -1,12 +1,12 @@
-import {Component} from 'react';
+import {useState} from 'react';
 import {createPortal} from 'react-dom';
 import {DndContext, DragOverlay} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 
 import {DynamicSamplingRule} from 'sentry/types/dynamicSampling';
 
-import Item, {ItemProps} from './item';
-import SortableItem, {SortableItemProps} from './sortableItem';
+import {Item, ItemProps} from './item';
+import {SortableItem, SortableItemProps} from './sortableItem';
 
 export type UpdateItemsProps = {
   activeIndex: string;
@@ -14,98 +14,87 @@ export type UpdateItemsProps = {
   reorderedItems: Array<string>;
 };
 
-type DefaultProps = Pick<SortableItemProps, 'disabled' | 'wrapperStyle'>;
-
-type Props = Pick<ItemProps, 'renderItem'> & {
-  items: Array<
-    Omit<DynamicSamplingRule, 'id'> & {
-      id: string;
-    }
-  >;
-  onUpdateItems: (props: UpdateItemsProps) => void;
-} & DefaultProps;
+type Props = Pick<SortableItemProps, 'disabled' | 'wrapperStyle'> &
+  Pick<ItemProps, 'renderItem'> & {
+    items: Array<
+      Omit<DynamicSamplingRule, 'id'> & {
+        id: string;
+      }
+    >;
+    onUpdateItems: (props: UpdateItemsProps) => void;
+  };
 
 type State = {
   activeId?: string;
 };
 
-class DraggableList extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    disabled: false,
-    wrapperStyle: () => ({}),
-  };
+export function DraggableList({
+  items,
+  onUpdateItems,
+  renderItem,
+  disabled = false,
+  wrapperStyle = () => ({}),
+}: Props) {
+  const [state, setState] = useState<State>({});
 
-  state: State = {};
+  const itemIds = items.map(item => item.id);
+  const getIndex = itemIds.indexOf.bind(itemIds);
+  const activeIndex = state.activeId ? getIndex(state.activeId) : -1;
 
-  handleChangeActive = (activeId: State['activeId']) => {
-    this.setState({activeId});
-  };
+  return (
+    <DndContext
+      onDragStart={({active}) => {
+        if (!active) {
+          return;
+        }
 
-  render() {
-    const {activeId} = this.state;
-    const {items, onUpdateItems, renderItem, disabled, wrapperStyle} = this.props;
+        setState({activeId: active.id});
+      }}
+      onDragEnd={({over}) => {
+        setState({activeId: undefined});
 
-    const itemIds = items.map(item => item.id);
-    const getIndex = itemIds.indexOf.bind(itemIds);
-    const activeIndex = activeId ? getIndex(activeId) : -1;
+        if (over) {
+          const overIndex = getIndex(over.id);
 
-    return (
-      <DndContext
-        onDragStart={({active}) => {
-          if (!active) {
-            return;
+          if (activeIndex !== overIndex) {
+            onUpdateItems({
+              activeIndex,
+              overIndex,
+              reorderedItems: arrayMove(itemIds, activeIndex, overIndex),
+            });
           }
-
-          this.handleChangeActive(active.id);
-        }}
-        onDragEnd={({over}) => {
-          this.handleChangeActive(undefined);
-
-          if (over) {
-            const overIndex = getIndex(over.id);
-
-            if (activeIndex !== overIndex) {
-              onUpdateItems({
-                activeIndex,
-                overIndex,
-                reorderedItems: arrayMove(itemIds, activeIndex, overIndex),
-              });
-            }
-          }
-        }}
-        onDragCancel={() => this.handleChangeActive(undefined)}
-      >
-        <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-          {itemIds.map((itemId, index) => (
-            <SortableItem
-              key={itemId}
-              id={itemId}
-              index={index}
+        }
+      }}
+      onDragCancel={() => setState({activeId: undefined})}
+    >
+      <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
+        {itemIds.map((itemId, index) => (
+          <SortableItem
+            key={itemId}
+            id={itemId}
+            index={index}
+            renderItem={renderItem}
+            disabled={disabled || items[index].disabled}
+            wrapperStyle={wrapperStyle}
+          />
+        ))}
+      </SortableContext>
+      {createPortal(
+        <DragOverlay>
+          {state.activeId ? (
+            <Item
+              value={itemIds[activeIndex]}
               renderItem={renderItem}
-              disabled={disabled || items[index].disabled}
-              wrapperStyle={wrapperStyle}
+              wrapperStyle={wrapperStyle({
+                index: activeIndex,
+                isDragging: true,
+                isSorting: false,
+              })}
             />
-          ))}
-        </SortableContext>
-        {createPortal(
-          <DragOverlay>
-            {activeId ? (
-              <Item
-                value={itemIds[activeIndex]}
-                renderItem={renderItem}
-                wrapperStyle={wrapperStyle({
-                  index: activeIndex,
-                  isDragging: true,
-                  isSorting: false,
-                })}
-              />
-            ) : null}
-          </DragOverlay>,
-          document.body
-        )}
-      </DndContext>
-    );
-  }
+          ) : null}
+        </DragOverlay>,
+        document.body
+      )}
+    </DndContext>
+  );
 }
-
-export default DraggableList;

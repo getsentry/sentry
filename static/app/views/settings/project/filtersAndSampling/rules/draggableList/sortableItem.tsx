@@ -1,6 +1,6 @@
 import {useSortable} from '@dnd-kit/sortable';
 
-import Item from './item';
+import {Item} from './item';
 
 export type SortableItemProps = Pick<
   React.ComponentProps<typeof Item>,
@@ -16,7 +16,7 @@ export type SortableItemProps = Pick<
   disabled?: boolean;
 };
 
-function SortableItem({
+export function SortableItem({
   id,
   index,
   renderItem,
@@ -48,5 +48,3 @@ function SortableItem({
     />
   );
 }
-
-export default SortableItem;

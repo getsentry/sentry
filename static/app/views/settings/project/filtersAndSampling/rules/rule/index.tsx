@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect, useState} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,8 +14,8 @@ import {
 
 import {layout} from '../utils';
 
-import Actions from './actions';
-import Conditions from './conditions';
+import {Actions} from './actions';
+import {Conditions} from './conditions';
 
 type Props = {
   dragging: boolean;
@@ -33,93 +33,71 @@ type State = {
   isMenuActionsOpen: boolean;
 };
 
-class Rule extends Component<Props, State> {
-  state: State = {
-    isMenuActionsOpen: false,
-  };
+export function Rule({
+  dragging,
+  sorting,
+  rule,
+  noPermission,
+  onEditRule,
+  onDeleteRule,
+  listeners,
+  operator,
+  grabAttributes,
+}: Props) {
+  const [state, setState] = useState<State>({isMenuActionsOpen: false});
 
-  componentDidMount() {
-    this.checkMenuActionsVisibility();
-  }
-
-  componentDidUpdate() {
-    this.checkMenuActionsVisibility();
-  }
-
-  checkMenuActionsVisibility() {
-    const {dragging, sorting} = this.props;
-    const {isMenuActionsOpen} = this.state;
-    if ((dragging || sorting) && isMenuActionsOpen) {
-      this.setState({isMenuActionsOpen: false});
+  useEffect(() => {
+    if ((dragging || sorting) && state.isMenuActionsOpen) {
+      setState({isMenuActionsOpen: false});
     }
-  }
+  }, [dragging, sorting, state.isMenuActionsOpen]);
 
-  handleChangeMenuAction = () => {
-    this.setState(state => ({
-      isMenuActionsOpen: !state.isMenuActionsOpen,
-    }));
-  };
-
-  render() {
-    const {
-      rule,
-      noPermission,
-      onEditRule,
-      onDeleteRule,
-      listeners,
-      operator,
-      grabAttributes,
-    } = this.props;
-
-    const {isMenuActionsOpen} = this.state;
-
-    return (
-      <Columns disabled={rule.disabled ?? noPermission}>
-        <GrabColumn>
-          <Tooltip
-            title={
-              noPermission
-                ? t('You do not have permission to reorder rules.')
-                : operator === DynamicSamplingRuleOperator.ELSE
-                ? t('Rules without conditions cannot be reordered.')
-                : undefined
-            }
-          >
-            <IconGrabbableWrapper {...listeners} {...grabAttributes}>
-              <IconGrabbable />
-            </IconGrabbableWrapper>
-          </Tooltip>
-        </GrabColumn>
-        <Column>
-          <Operator>
-            {operator === DynamicSamplingRuleOperator.IF
-              ? t('If')
-              : operator === DynamicSamplingRuleOperator.ELSE_IF
-              ? t('Else if')
-              : t('Else')}
-          </Operator>
-        </Column>
-        <Column>
-          <Conditions condition={rule.condition} />
-        </Column>
-        <CenteredColumn>
-          <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
-        </CenteredColumn>
-        <Column>
-          <Actions
-            onEditRule={onEditRule}
-            onDeleteRule={onDeleteRule}
-            disabled={noPermission}
-            onOpenMenuActions={this.handleChangeMenuAction}
-            isMenuActionsOpen={isMenuActionsOpen}
-          />
-        </Column>
-      </Columns>
-    );
-  }
+  return (
+    <Columns disabled={rule.disabled ?? noPermission}>
+      <GrabColumn>
+        <Tooltip
+          title={
+            noPermission
+              ? t('You do not have permission to reorder rules.')
+              : operator === DynamicSamplingRuleOperator.ELSE
+              ? t('Rules without conditions cannot be reordered.')
+              : undefined
+          }
+        >
+          <IconGrabbableWrapper {...listeners} {...grabAttributes}>
+            <IconGrabbable />
+          </IconGrabbableWrapper>
+        </Tooltip>
+      </GrabColumn>
+      <Column>
+        <Operator>
+          {operator === DynamicSamplingRuleOperator.IF
+            ? t('If')
+            : operator === DynamicSamplingRuleOperator.ELSE_IF
+            ? t('Else if')
+            : t('Else')}
+        </Operator>
+      </Column>
+      <Column>
+        <Conditions condition={rule.condition} />
+      </Column>
+      <CenteredColumn>
+        <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
+      </CenteredColumn>
+      <Column>
+        <Actions
+          onEditRule={onEditRule}
+          onDeleteRule={onDeleteRule}
+          disabled={noPermission}
+          onOpenMenuActions={() =>
+            setState({isMenuActionsOpen: !state.isMenuActionsOpen})
+          }
+          isMenuActionsOpen={state.isMenuActionsOpen}
+        />
+      </Column>
+    </Columns>
+  );
 }
-
-export default Rule;
 
 const Operator = styled('div')`
   color: ${p => p.theme.active};
