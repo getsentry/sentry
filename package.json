@@ -57,7 +57,7 @@
     "@types/react-virtualized": "^9.21.20",
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.2",
-    "@types/webpack-dev-server": "^3.11.4",
+    "@types/webpack-dev-server": "^4.7.2",
     "@types/webpack-env": "^1.16.3",
     "@wojtekmaj/enzyme-adapter-react-17": "0.6.1",
     "ansicolor": "^1.1.95",
@@ -191,7 +191,7 @@
     "tsconfig-paths": "^4.0.0",
     "typescript-styled-plugin": "^0.18.2",
     "url-loader": "^4.1.0",
-    "webpack-dev-server": "^3.11.2"
+    "webpack-dev-server": "^4.9.1"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
