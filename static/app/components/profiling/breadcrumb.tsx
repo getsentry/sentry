@@ -53,7 +53,6 @@ function trailToCrumb(
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
           transaction: trail.payload.transaction,
-          version: trail.payload.version,
         }),
         label: t('Profile Summary'),
         preservePageFilters: true,
@@ -84,7 +83,6 @@ type ProfileSummaryTrail = {
   payload: {
     projectSlug: Project['slug'];
     transaction: string;
-    version: string;
   };
   type: 'profile summary';
 };

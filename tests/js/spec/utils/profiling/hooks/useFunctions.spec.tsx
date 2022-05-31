@@ -42,7 +42,6 @@ describe('useFunctions', function () {
           project,
           query: '',
           transaction: '',
-          version: '',
         }),
       {wrapper: TestContext}
     );
@@ -53,11 +52,7 @@ describe('useFunctions', function () {
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/profiling/functions/`,
       body: {
-        Versions: {
-          '': {
-            FunctionCalls: [],
-          },
-        },
+        functions: [],
       },
     });
 
@@ -67,7 +62,6 @@ describe('useFunctions', function () {
           project,
           query: '',
           transaction: '',
-          version: '',
           selection,
         }),
       {wrapper: TestContext}
