@@ -86,11 +86,11 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         for group_result in results["groups"]:
             key = None
             grouping = group_result["by"]["outcome"]
-            if grouping == "rate_limited":
+            if grouping == Outcome.RATE_LIMITED.api_name():
                 key = "dropped"
-            elif grouping == "filtered":
+            elif grouping == Outcome.FILTERED.api_name():
                 key = "filtered"
-            elif grouping == "accepted":
+            elif grouping == Outcome.ACCEPTED.api_name():
                 key = "accepted"
             else:
                 capture_exception(
