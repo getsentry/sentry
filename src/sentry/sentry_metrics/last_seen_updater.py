@@ -120,15 +120,8 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
         return set()
 
 
-def get_last_seen_updater(
-    topic: str,
-    group_id: str,
-    max_batch_size: int,
-    max_batch_time: float,
-    auto_offset_reset: str,
-    **options: Mapping[str, Union[str, int]],
-) -> StreamProcessor:
-    processing_factory = KafkaConsumerStrategyFactory(
+def _last_seen_updater_processing_factory(max_batch_size, max_batch_time):
+    return KafkaConsumerStrategyFactory(
         max_batch_time=max_batch_time,
         max_batch_size=max_batch_size,
         processes=None,
@@ -138,6 +131,17 @@ def get_last_seen_updater(
         prefilter=LastSeenUpdaterMessageFilter(metrics=get_metrics()),
         collector=lambda: LastSeenUpdaterCollector(metrics=get_metrics()),
     )
+
+
+def get_last_seen_updater(
+    topic: str,
+    group_id: str,
+    max_batch_size: int,
+    max_batch_time: float,
+    auto_offset_reset: str,
+    **options: Mapping[str, Union[str, int]],
+) -> StreamProcessor:
+    processing_factory = _last_seen_updater_processing_factory(max_batch_size, max_batch_time)
     return StreamProcessor(
         KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
         Topic(topic),
