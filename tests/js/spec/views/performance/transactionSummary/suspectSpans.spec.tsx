@@ -30,6 +30,8 @@ function initializeData({query} = {query: {}}) {
         },
       },
     },
+    project: 1,
+    projects: [],
   });
 
   act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
