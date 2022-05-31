@@ -210,7 +210,7 @@ class DebugFilesUploadTest(APITestCase):
         )
         assert response.get("Content-Length") == str(len(PROGUARD_SOURCE))
         assert response.get("Content-Type") == "application/octet-stream"
-        assert PROGUARD_SOURCE == BytesIO(b"".join(response.streaming_content)).getvalue()
+        assert PROGUARD_SOURCE == b"".join(response.streaming_content)
 
         # Download as a superuser
         self.login_as(user=self.user)
