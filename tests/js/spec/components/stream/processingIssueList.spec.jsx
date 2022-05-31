@@ -1,9 +1,9 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 
 describe('ProcessingIssueList', function () {
-  let wrapper, projects, organization, fetchIssueRequest;
+  let projects, organization, fetchIssueRequest;
 
   beforeEach(function () {
     fetchIssueRequest = MockApiClient.addMockResponse({
@@ -29,41 +29,34 @@ describe('ProcessingIssueList', function () {
   });
 
   describe('componentDidMount', function () {
-    let instance;
-    beforeEach(async function () {
-      wrapper = mountWithTheme(
-        <ProcessingIssueList organization={organization} projects={projects} />
-      );
-      instance = wrapper.instance();
-      await instance.componentDidMount();
-    });
+    it('fetches issues', async function () {
+      render(<ProcessingIssueList organization={organization} projects={projects} />);
+      await screen.findAllByText('Show details');
 
-    it('fetches issues', function () {
-      expect(instance.state.issues).toBeTruthy();
       expect(fetchIssueRequest).toHaveBeenCalled();
     });
   });
 
   describe('render', function () {
-    beforeEach(async function () {
-      wrapper = mountWithTheme(
+    it('renders multiple issues', async function () {
+      render(<ProcessingIssueList organization={organization} projects={projects} />);
+      const items = await screen.findAllByText(/There is 1 issue blocking/);
+      expect(items).toHaveLength(2);
+    });
+
+    it('forwards the showProject prop', async function () {
+      render(
         <ProcessingIssueList
           organization={organization}
           projects={projects}
           showProject
         />
       );
-      await wrapper.instance().componentDidMount();
-      wrapper.update();
-    });
+      const projectText = await screen.findByText(/test-project/);
+      expect(projectText).toBeInTheDocument();
 
-    it('renders multiple issues', function () {
-      expect(wrapper.find('ProcessingIssueHint')).toHaveLength(2);
-    });
-
-    it('forwards the showProject prop', function () {
-      const hint = wrapper.find('ProcessingIssueHint').first();
-      expect(hint.props().showProject).toBeTruthy();
+      const otherProject = screen.getByText(/other-project/);
+      expect(otherProject).toBeInTheDocument();
     });
   });
 });

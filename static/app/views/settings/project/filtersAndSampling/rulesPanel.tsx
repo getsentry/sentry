@@ -6,14 +6,14 @@ import {Panel, PanelFooter} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import Rules from './rules';
+import {Rules} from './rules';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
 type Props = Omit<React.ComponentProps<typeof Rules>, 'emptyMessage'> & {
   onAddRule: () => void;
 };
 
-function RulesPanel({
+export function RulesPanel({
   rules,
   onAddRule,
   onEditRule,
@@ -44,8 +44,6 @@ function RulesPanel({
     </Panel>
   );
 }
-
-export default RulesPanel;
 
 const StyledPanelFooter = styled(PanelFooter)`
   padding: ${space(1)} ${space(2)};

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
@@ -21,7 +22,7 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 
 import {modalCss} from './modal/utils';
 import Modal from './modal';
-import RulesPanel from './rulesPanel';
+import {RulesPanel} from './rulesPanel';
 import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
 
 type Props = AsyncView['props'] & {
@@ -87,7 +88,12 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         rule.type === DynamicSamplingRuleType.TRACE
     );
 
-    this.setState({rules: transactionRules});
+    const [rulesWithoutConditions, rulesWithConditions] = partition(
+      transactionRules,
+      transactionRule => !transactionRule.condition.inner.length
+    );
+
+    this.setState({rules: [...rulesWithConditions, ...rulesWithoutConditions]});
   }
 
   successfullySubmitted = (projectDetails: Project, successMessage?: React.ReactNode) => {

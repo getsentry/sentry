@@ -43,17 +43,16 @@ describe('Filters and Sampling', function () {
       expect(
         screen.getByText('There are no transaction rules to display')
       ).toBeInTheDocument();
+
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLink = screen.getByRole('button', {
-        name: 'Read the docs',
-      });
+      expect(
+        screen.getByRole('button', {
+          name: 'Read the docs',
+        })
+      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(readDocsButtonLink).toBeInTheDocument();
-
-      expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-
-      expect(screen.getByText('Type')).toBeInTheDocument();
+      expect(screen.getByText('Operator')).toBeInTheDocument();
       expect(screen.getByText('Conditions')).toBeInTheDocument();
       expect(screen.getByText('Rate')).toBeInTheDocument();
 
@@ -104,6 +103,15 @@ describe('Filters and Sampling', function () {
                     },
                   ],
                 },
+                id: 41,
+              },
+              {
+                sampleRate: 0.5,
+                type: 'transaction',
+                condition: {
+                  op: 'and',
+                  inner: [],
+                },
                 id: 42,
               },
             ],
@@ -141,21 +149,23 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      const transactionTraceRules = screen.getByText('Transaction traces');
-      expect(transactionTraceRules).toBeInTheDocument();
 
-      const individualTransactionRules = screen.getByText('Individual transactions');
-      expect(individualTransactionRules).toBeInTheDocument();
+      // Operator column
+      const samplingRules = screen.getAllByTestId('sampling-rule');
+      expect(samplingRules).toHaveLength(3);
+      expect(samplingRules[0]).toHaveTextContent('If');
+      expect(samplingRules[1]).toHaveTextContent('Else if');
+      expect(samplingRules[2]).toHaveTextContent('Else');
 
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLink = screen.getByRole('button', {
-        name: 'Read the docs',
-      });
-      expect(readDocsButtonLink).toBeInTheDocument();
-      expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
+      expect(
+        screen.getByRole('button', {
+          name: 'Read the docs',
+        })
+      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(screen.getByText('Type')).toBeInTheDocument();
+      expect(screen.getByText('Operator')).toBeInTheDocument();
       expect(screen.getByText('Conditions')).toBeInTheDocument();
       expect(screen.getByText('Rate')).toBeInTheDocument();
 

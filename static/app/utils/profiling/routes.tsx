@@ -66,12 +66,10 @@ export function generateProfileSummaryRouteWithQuery({
   projectSlug,
   transaction,
   query,
-  version,
 }: {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   transaction: string;
-  version: string;
   location?: Location;
   query?: Location['query'];
 }): LocationDescriptor {
@@ -82,7 +80,6 @@ export function generateProfileSummaryRouteWithQuery({
       ...location?.query,
       ...query,
       transaction,
-      version,
     },
   };
 }
