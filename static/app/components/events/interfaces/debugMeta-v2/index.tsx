@@ -324,13 +324,17 @@ class DebugMeta extends PureComponent<Props, State> {
     const filteredImages = [...usedImages, ...unusedImages];
 
     const filterOptions = this.getFilterOptions(filteredImages);
+    const defaultSelectedFilters = (filterOptions[0].options ?? []).filter(
+      opt => opt.value !== ImageStatus.UNUSED
+    );
 
     this.setState({
       filteredImages,
       filterOptions,
+      selectedFilters: defaultSelectedFilters,
       filteredImagesByFilter: this.getFilteredImagesByFilter(
         filteredImages,
-        filterOptions
+        defaultSelectedFilters
       ),
       filteredImagesBySearch: filteredImages,
     });
