@@ -1,15 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
 from arroyo import Message, Partition, Topic
 from arroyo.backends.kafka import KafkaPayload
+from django.utils import timezone
 
 from sentry.metrics.dummy import DummyMetricsBackend
+from sentry.sentry_metrics.indexer.models import StringIndexer
 from sentry.sentry_metrics.last_seen_updater import (
     LastSeenUpdaterMessageFilter,
+    _update_stale_last_seen,
     retrieve_db_read_keys,
 )
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 
 
@@ -77,3 +81,16 @@ def test_message_filter_header_contains_no_d(message_filter):
     with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
         message = empty_message_with_headers([("mapping_sources", "fhc")])
         assert message_filter.should_drop(message)
+
+
+class TestCollectMethod(TestCase):
+    def test_last_seen_update_of_old_item(self):
+        update_time = timezone.now()
+        old_item = StringIndexer.objects.create(
+            organization_id=1234,
+            string="test_123",
+            last_seen=timezone.now() - timedelta(days=1),
+        )
+        assert _update_stale_last_seen({old_item.id}, new_last_seen_time=update_time) == 1
+        updated_item = StringIndexer.objects.get(id=old_item.id)
+        assert updated_item.last_seen == update_time

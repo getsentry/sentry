@@ -1,3 +1,4 @@
+import datetime
 import functools
 import random
 from datetime import timedelta
@@ -56,13 +57,18 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
         return FetchType.DB_READ.value not in str(header_value)
 
 
-def _update_stale_last_seen(seen_ints: Set[int]) -> int:
+def _update_stale_last_seen(
+    seen_ints: Set[int], new_last_seen_time: Optional[datetime.datetime] = None
+) -> int:
+    if new_last_seen_time is None:
+        new_last_seen_time = timezone.now()
+
     # TODO: filter out ints that we've handled recently in memcache to reduce DB load
     # we may not need a cache, we should see as we dial up the accept rate
     return int(
         StringIndexer.objects.filter(
-            id__in=seen_ints, last_seen__time__lt=(timezone.now() - timedelta(hours=12))
-        ).update(last_seen=timezone.now())
+            id__in=seen_ints, last_seen__lt=(timezone.now() - timedelta(hours=12))
+        ).update(last_seen=new_last_seen_time)
     )
 
 
