@@ -136,7 +136,7 @@ describe('GroupActivity', function () {
       ],
     });
     expect(wrapper.find('GroupActivityItem').text()).toContain(
-      'marked this issue as resolved in'
+      'This commit was released in'
     );
   });
 
