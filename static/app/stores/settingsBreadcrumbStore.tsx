@@ -1,25 +1,26 @@
 import {PlainRoute} from 'react-router';
-import {createStore, StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {makeSafeRefluxStore} from 'sentry/utils/makeSafeRefluxStore';
+
+import {CommonStoreDefinition} from './types';
 
 type UpdateData = {
   routes: PlainRoute<any>[];
   title: string;
 };
 
-interface SettingsBreadcrumbStoreDefinition extends StoreDefinition {
-  getPathMap(): Internals['pathMap'];
+type State = {
+  pathMap: Record<string, string>;
+};
+
+interface SettingsBreadcrumbStoreDefinition extends CommonStoreDefinition<State> {
   init(): void;
   reset(): void;
   trimMappings(routes: PlainRoute<any>[]): void;
   updateRouteMap(update: UpdateData): void;
 }
-
-type Internals = {
-  pathMap: Record<string, string>;
-};
 
 const storeConfig: SettingsBreadcrumbStoreDefinition = {
   pathMap: {},
@@ -33,7 +34,11 @@ const storeConfig: SettingsBreadcrumbStoreDefinition = {
     this.pathMap = {};
   },
 
-  getPathMap() {
+  getState() {
+    return {pathMap: this.pathMap};
+  },
+
+  get() {
     return this.pathMap;
   },
 
