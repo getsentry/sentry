@@ -28,7 +28,6 @@ interface ProfileSummaryContentProps {
   project: Project;
   query: string;
   transaction: string;
-  version: string;
   selection?: PageFilters;
 }
 
@@ -50,7 +49,6 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     query: props.query,
     selection: props.selection,
     transaction: props.transaction,
-    version: props.version,
   });
 
   return (
