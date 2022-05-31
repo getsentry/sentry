@@ -7,14 +7,14 @@ export function generateProfilingRoute({orgSlug}: {orgSlug: Organization['slug']
   return `/organizations/${orgSlug}/profiling/`;
 }
 
-export function generateFunctionsRoute({
+export function generateProfileSummaryRoute({
   orgSlug,
   projectSlug,
 }: {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
 }): Path {
-  return `/organizations/${orgSlug}/profiling/functions/${projectSlug}/`;
+  return `/organizations/${orgSlug}/profiling/summary/${projectSlug}/`;
 }
 
 export function generateFlamegraphRoute({
@@ -60,29 +60,26 @@ export function generateProfilingRouteWithQuery({
   };
 }
 
-export function generateFunctionsRouteWithQuery({
+export function generateProfileSummaryRouteWithQuery({
   location,
   orgSlug,
   projectSlug,
   transaction,
   query,
-  version,
 }: {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   transaction: string;
-  version: string;
   location?: Location;
   query?: Location['query'];
 }): LocationDescriptor {
-  const pathname = generateFunctionsRoute({orgSlug, projectSlug});
+  const pathname = generateProfileSummaryRoute({orgSlug, projectSlug});
   return {
     pathname,
     query: {
       ...location?.query,
       ...query,
       transaction,
-      version,
     },
   };
 }

@@ -8,7 +8,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics import (
-    APIQueryDefinition,
+    QueryDefinition,
     get_metrics,
     get_series,
     get_single_metric_info,
@@ -117,10 +117,10 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int):
             try:
-                query = APIQueryDefinition(
+                query = QueryDefinition(
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_series(projects, query.to_query_definition())
+                data = get_series(projects, query.to_metrics_query())
                 data["query"] = query.query
             except (
                 InvalidField,

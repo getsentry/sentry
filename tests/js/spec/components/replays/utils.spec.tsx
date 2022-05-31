@@ -7,8 +7,29 @@ import {
   relativeTimeInMs,
   showPlayerTime,
 } from 'sentry/components/replays/utils';
+import {BreadcrumbLevelType, BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import type {ReplaySpan} from 'sentry/views/replays/types';
 
 const SECOND = 1000;
+
+function createSpan(span: Partial<ReplaySpan>): ReplaySpan {
+  return {
+    data: {},
+    ...span,
+  } as ReplaySpan;
+}
+
+function createCrumb({timestamp}: Pick<Crumb, 'timestamp'>): Crumb {
+  return {
+    timestamp,
+    color: 'white',
+    description: 'crumb description',
+    id: 1,
+    type: BreadcrumbType.DEFAULT,
+    data: {},
+    level: BreadcrumbLevelType.DEBUG,
+  };
+}
 
 describe('formatTime', () => {
   it.each([
@@ -82,11 +103,11 @@ describe('countColumns', () => {
 describe('getCrumbsByColumn', () => {
   const startTimestamp = 1649945987.326; // seconds
   const duration = 25710; // milliseconds
-  const CRUMB_1 = {timestamp: '2022-04-14T14:19:47.326000Z'};
-  const CRUMB_2 = {timestamp: '2022-04-14T14:19:49.249000Z'};
-  const CRUMB_3 = {timestamp: '2022-04-14T14:19:51.512000Z'};
-  const CRUMB_4 = {timestamp: '2022-04-14T14:19:57.326000Z'};
-  const CRUMB_5 = {timestamp: '2022-04-14T14:20:13.036000Z'};
+  const CRUMB_1 = createCrumb({timestamp: '2022-04-14T14:19:47.326000Z'});
+  const CRUMB_2 = createCrumb({timestamp: '2022-04-14T14:19:49.249000Z'});
+  const CRUMB_3 = createCrumb({timestamp: '2022-04-14T14:19:51.512000Z'});
+  const CRUMB_4 = createCrumb({timestamp: '2022-04-14T14:19:57.326000Z'});
+  const CRUMB_5 = createCrumb({timestamp: '2022-04-14T14:20:13.036000Z'});
 
   it('should return an empty list when no crumbs exist', () => {
     const columnCount = 3;
@@ -103,11 +124,12 @@ describe('getCrumbsByColumn', () => {
       [CRUMB_1, CRUMB_5],
       columnCount
     );
-    const expectedEntries = [
-      [1, [CRUMB_1]],
-      [3, [CRUMB_5]],
-    ];
-    expect(columns).toEqual(new Map(expectedEntries));
+    expect(columns).toEqual(
+      new Map([
+        [1, [CRUMB_1]],
+        [3, [CRUMB_5]],
+      ])
+    );
   });
 
   it('should group crumbs by bucket', () => {
@@ -119,12 +141,13 @@ describe('getCrumbsByColumn', () => {
       [CRUMB_1, CRUMB_2, CRUMB_3, CRUMB_4, CRUMB_5],
       columnCount
     );
-    const expectedEntries = [
-      [1, [CRUMB_1, CRUMB_2, CRUMB_3]],
-      [2, [CRUMB_4]],
-      [6, [CRUMB_5]],
-    ];
-    expect(columns).toEqual(new Map(expectedEntries));
+    expect(columns).toEqual(
+      new Map([
+        [1, [CRUMB_1, CRUMB_2, CRUMB_3]],
+        [2, [CRUMB_4]],
+        [6, [CRUMB_5]],
+      ])
+    );
   });
 });
 
@@ -134,121 +157,100 @@ describe('flattenSpans', () => {
   });
 
   it('should return the FlattenedSpanRange for a single span', () => {
-    const span = {
-      data: {},
-      span_id: 'abc',
-      start_timestamp: 10,
-      timestamp: 30,
-      trace_id: '',
-    };
+    const span = createSpan({
+      op: 'span',
+      startTimestamp: 10,
+      endTimestamp: 30,
+    });
     expect(flattenSpans([span])).toStrictEqual([
       {
         duration: 20000,
         endTimestamp: 30000,
         spanCount: 1,
-        spanId: 'abc',
         startTimestamp: 10000,
       },
     ]);
   });
 
   it('should return two non-overlapping spans', () => {
-    const span1 = {
-      data: {},
-      span_id: 'abc',
-      start_timestamp: 10,
-      timestamp: 30,
-      trace_id: '',
-    };
-    const span2 = {
-      data: {},
-      span_id: 'yzx',
-      start_timestamp: 60,
-      timestamp: 90,
-      trace_id: '',
-    };
+    const span1 = createSpan({
+      op: 'span1',
+      startTimestamp: 10,
+      endTimestamp: 30,
+    });
+    const span2 = createSpan({
+      op: 'span2',
+      startTimestamp: 60,
+      endTimestamp: 90,
+    });
 
     expect(flattenSpans([span1, span2])).toStrictEqual([
       {
         duration: 20000,
         endTimestamp: 30000,
         spanCount: 1,
-        spanId: 'abc',
         startTimestamp: 10000,
       },
       {
         duration: 30000,
         endTimestamp: 90000,
         spanCount: 1,
-        spanId: 'yzx',
         startTimestamp: 60000,
       },
     ]);
   });
 
   it('should merge two overlapping spans', () => {
-    const span1 = {
+    const span1 = createSpan({
+      op: 'span1',
       data: {},
-      span_id: 'abc',
-      start_timestamp: 10,
-      timestamp: 30,
-      trace_id: '',
-    };
-    const span2 = {
-      data: {},
-      span_id: 'def',
-      start_timestamp: 20,
-      timestamp: 40,
-      trace_id: '',
-    };
+      startTimestamp: 10,
+      endTimestamp: 30,
+    });
+    const span2 = createSpan({
+      op: 'span2',
+      startTimestamp: 20,
+      endTimestamp: 40,
+    });
 
     expect(flattenSpans([span1, span2])).toStrictEqual([
       {
         duration: 30000,
         endTimestamp: 40000,
         spanCount: 2,
-        spanId: 'abc',
         startTimestamp: 10000,
       },
     ]);
   });
 
   it('should merge overlapping spans that are not first in the list', () => {
-    const span0 = {
-      data: {},
-      span_id: 'aaa',
-      start_timestamp: 0,
-      timestamp: 1,
-      trace_id: '',
-    };
-    const span1 = {
-      data: {},
-      span_id: 'abc',
-      start_timestamp: 10,
-      timestamp: 30,
-      trace_id: '',
-    };
-    const span2 = {
-      data: {},
-      span_id: 'def',
-      start_timestamp: 20,
-      timestamp: 40,
-      trace_id: '',
-    };
+    const span0 = createSpan({
+      op: 'span0',
+      startTimestamp: 0,
+      endTimestamp: 1,
+    });
+    const span1 = createSpan({
+      op: 'span1',
+      startTimestamp: 10,
+      endTimestamp: 30,
+    });
+    const span2 = createSpan({
+      op: 'span2',
+      startTimestamp: 20,
+      endTimestamp: 40,
+    });
 
     expect(flattenSpans([span0, span1, span2])).toStrictEqual([
       {
         duration: 1000,
         endTimestamp: 1000,
         spanCount: 1,
-        spanId: 'aaa',
         startTimestamp: 0,
       },
       {
         duration: 30000,
         endTimestamp: 40000,
         spanCount: 2,
-        spanId: 'abc',
         startTimestamp: 10000,
       },
     ]);

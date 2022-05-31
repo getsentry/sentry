@@ -56,7 +56,10 @@ const framesList = [
 export function LineChartListWidget(props: PerformanceWidgetProps) {
   const mepSetting = useMEPSettingContext();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions} = props;
+  const {ContainerActions, organization} = props;
+  const useEvents = organization.features.includes(
+    'performance-frontend-use-events-endpoint'
+  );
   const pageError = usePageError();
 
   const field = props.fields[0];
@@ -115,83 +118,89 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             cursor="0:0:1"
             noPagination
             queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
+            useEvents={useEvents}
           />
         );
       },
       transform: transformDiscoverToList,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.chartSetting, mepSetting.memoizationKey]
   );
 
-  const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(() => {
-    return {
-      enabled: widgetData => {
-        return !!widgetData?.list?.data?.length;
-      },
-      fields: field,
-      component: provided => {
-        const eventView = props.eventView.clone();
-        if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
-          return null;
-        }
-        eventView.additionalConditions.setFilterValues('transaction', [
-          provided.widgetData.list.data[selectedListIndex].transaction as string,
-        ]);
-        if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
-          if (!provided.widgetData.list.data[selectedListIndex]?.issue) {
+  const chartQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
+    () => {
+      return {
+        enabled: widgetData => {
+          return !!widgetData?.list?.data?.length;
+        },
+        fields: field,
+        component: provided => {
+          const eventView = props.eventView.clone();
+          if (!provided.widgetData.list.data[selectedListIndex]?.transaction) {
             return null;
           }
-          eventView.fields = [
-            {field: 'issue'},
-            {field: 'issue.id'},
-            {field: 'transaction'},
-            {field},
-          ];
-          eventView.additionalConditions.setFilterValues('issue', [
-            provided.widgetData.list.data[selectedListIndex].issue as string,
+          eventView.additionalConditions.setFilterValues('transaction', [
+            provided.widgetData.list.data[selectedListIndex].transaction as string,
           ]);
-          eventView.additionalConditions.setFilterValues('event.type', ['error']);
-          eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
-          eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
-          eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
-          const mutableSearch = new MutableSearch(eventView.query);
-          mutableSearch.removeFilter('transaction.duration');
-          eventView.query = mutableSearch.formatString();
-        } else {
-          eventView.fields = [{field: 'transaction'}, {field}];
-        }
-        return (
-          <EventsRequest
-            {...pick(provided, eventsRequestQueryProps)}
-            limit={1}
-            includePrevious
-            includeTransformedData
-            partial
-            currentSeriesNames={[field]}
-            query={eventView.getQueryWithAdditionalConditions()}
-            interval={getInterval(
-              {
-                start: provided.start,
-                end: provided.end,
-                period: provided.period,
-              },
-              'medium'
-            )}
-            hideError
-            onError={pageError.setPageError}
-            queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
-            userModified={decodeScalar(props.location.query.userModified)}
-          />
-        );
-      },
-      transform: transformEventsRequestToArea,
-    };
-  }, [
-    props.chartSetting,
-    selectedListIndex,
-    mepSetting.memoizationKey,
-    props.location.query.userModified,
-  ]);
+          if (props.chartSetting === PerformanceWidgetSetting.MOST_RELATED_ISSUES) {
+            if (!provided.widgetData.list.data[selectedListIndex]?.issue) {
+              return null;
+            }
+            eventView.fields = [
+              {field: 'issue'},
+              {field: 'issue.id'},
+              {field: 'transaction'},
+              {field},
+            ];
+            eventView.additionalConditions.setFilterValues('issue', [
+              provided.widgetData.list.data[selectedListIndex].issue as string,
+            ]);
+            eventView.additionalConditions.setFilterValues('event.type', ['error']);
+            eventView.additionalConditions.setFilterValues('!tags[transaction]', ['']);
+            eventView.additionalConditions.removeFilter('transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            eventView.additionalConditions.removeFilter('!transaction.op'); // Remove transaction op incase it's applied from the performance view.
+            const mutableSearch = new MutableSearch(eventView.query);
+            mutableSearch.removeFilter('transaction.duration');
+            eventView.query = mutableSearch.formatString();
+          } else {
+            eventView.fields = [{field: 'transaction'}, {field}];
+          }
+          return (
+            <EventsRequest
+              {...pick(provided, eventsRequestQueryProps)}
+              limit={1}
+              includePrevious
+              includeTransformedData
+              partial
+              currentSeriesNames={[field]}
+              query={eventView.getQueryWithAdditionalConditions()}
+              interval={getInterval(
+                {
+                  start: provided.start,
+                  end: provided.end,
+                  period: provided.period,
+                },
+                'medium'
+              )}
+              hideError
+              onError={pageError.setPageError}
+              queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
+              userModified={decodeScalar(props.location.query.userModified)}
+            />
+          );
+        },
+        transform: transformEventsRequestToArea,
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      props.chartSetting,
+      selectedListIndex,
+      mepSetting.memoizationKey,
+      props.location.query.userModified,
+    ]
+  );
 
   const Queries = {
     list: listQuery,
@@ -257,7 +266,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                   additionalQuery,
                 });
 
-                const fieldString = getAggregateAlias(field);
+                const fieldString = useEvents ? field : getAggregateAlias(field);
 
                 const valueMap = {
                   [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
