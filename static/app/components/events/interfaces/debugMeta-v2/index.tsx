@@ -198,14 +198,14 @@ class DebugMeta extends PureComponent<Props, State> {
   }
 
   filterImagesBySearchTerm() {
-    const {filteredImages, filterOptions, searchTerm} = this.state;
+    const {filteredImages, selectedFilters, searchTerm} = this.state;
     const filteredImagesBySearch = filteredImages.filter(image =>
       this.filterImage(image, searchTerm.toLowerCase())
     );
 
     const filteredImagesByFilter = this.getFilteredImagesByFilter(
       filteredImagesBySearch,
-      filterOptions
+      selectedFilters
     );
 
     this.setState(
