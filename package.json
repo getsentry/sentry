@@ -102,6 +102,7 @@
     "mockdate": "3.0.5",
     "moment": "2.29.3",
     "moment-timezone": "0.5.33",
+    "pako": "^2.0.4",
     "papaparse": "^5.3.2",
     "pegjs": "^0.10.0",
     "pegjs-loader": "^0.5.6",
