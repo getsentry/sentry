@@ -132,7 +132,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   getDefaultState(): State {
     const {rule, location} = this.props;
     const triggersClone = [...rule.triggers];
-    const {aggregate, eventTypes: _eventTypes, dataset} = location?.query ?? {};
+    const {aggregate, eventTypes: _eventTypes, dataset, name} = location?.query ?? {};
     const eventTypes = typeof _eventTypes === 'string' ? [_eventTypes] : _eventTypes;
 
     // Warning trigger is removed if it is blank when saving
@@ -143,10 +143,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return {
       ...super.getDefaultState(),
 
+      name: name ?? rule.name ?? '',
       aggregate: aggregate ?? rule.aggregate,
       dataset: dataset ?? rule.dataset,
       eventTypes: eventTypes ?? rule.eventTypes,
-      query: rule.query || '',
+      query: rule.query ?? '',
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
       triggerErrors: new Map(),
@@ -683,6 +684,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {organization, ruleId, rule, onSubmitSuccess, router, disableProjectSelector} =
       this.props;
     const {
+      name,
       query,
       project,
       timeWindow,
@@ -794,11 +796,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               }`}
               submitDisabled={disabled}
               initialData={{
-                name: rule.name || '',
+                name,
                 dataset,
                 eventTypes,
                 aggregate,
-                query: rule.query || '',
+                query,
                 timeWindow: rule.timeWindow,
                 environment: rule.environment || null,
                 owner: rule.owner,
