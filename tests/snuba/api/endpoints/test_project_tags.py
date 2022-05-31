@@ -32,7 +32,7 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
         assert data["bar"]["canDelete"]
         assert data["bar"]["uniqueValues"] == 2
 
-    def test_simple_with_deny(self):
+    def test_simple_remove_tags_in_denylist(self):
         self.store_event(
             data={
                 # "browser" is in denylist sentry.constants.DS_DENYLIST
