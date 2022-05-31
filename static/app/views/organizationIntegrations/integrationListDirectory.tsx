@@ -501,12 +501,15 @@ export class IntegrationListDirectory extends AsyncComponent<
               {
                 link: (
                   <ExternalLink
-                    href="https://docs.sentry.io/product/integrations/integration-platform/#quick-start"
+                    href="https://docs.sentry.io/product/integrations/integration-platform/#example-app"
                     onClick={() => {
-                      trackAdvancedAnalyticsEvent('ecosystem.quick_start_clicked', {
-                        organization,
-                        view: 'integrations_directory',
-                      });
+                      trackAdvancedAnalyticsEvent(
+                        'ecosystem.integration_platform_example_docs_clicked',
+                        {
+                          organization,
+                          view: 'integrations_directory',
+                        }
+                      );
                     }}
                   />
                 ),

@@ -2,18 +2,18 @@ type View = {
   view?: 'integrations_directory' | 'developer_settings';
 };
 
-type ReferenceImplementationEventParams = {} & View;
+type ExampleAppEventParams = {} & View;
 
 export type EcosystemEventParameters = {
-  'ecosystem.example_source_code_clicked': ReferenceImplementationEventParams;
-  'ecosystem.quick_start_clicked': ReferenceImplementationEventParams;
+  'ecosystem.integration_platform_example_docs_clicked': ExampleAppEventParams;
+  'ecosystem.integration_platform_example_source_code_clicked': ExampleAppEventParams;
 };
 
 export type EcosystemEventKey = keyof EcosystemEventParameters;
 
 export const ecosystemEventMap: Record<EcosystemEventKey, string | null> = {
-  'ecosystem.quick_start_clicked':
-    'Ecosystem: Integration platform quick start link clicked',
-  'ecosystem.example_source_code_clicked':
-    'Ecosystem: Reference Implementation source code link clicked',
+  'ecosystem.integration_platform_example_docs_clicked':
+    'Ecosystem: Integration platform example app docs link clicked',
+  'ecosystem.integration_platform_example_source_code_clicked':
+    'Ecosystem: Integration platform example app source code link clicked',
 };

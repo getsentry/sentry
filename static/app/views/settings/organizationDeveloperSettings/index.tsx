@@ -182,12 +182,15 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
                 {
                   link: (
                     <ExternalLink
-                      href="https://docs.sentry.io/product/integrations/integration-platform/#quick-start"
+                      href="https://docs.sentry.io/product/integrations/integration-platform/#example-app"
                       onClick={() => {
-                        trackAdvancedAnalyticsEvent('ecosystem.quick_start_clicked', {
-                          organization,
-                          view: 'developer_settings',
-                        });
+                        trackAdvancedAnalyticsEvent(
+                          'ecosystem.integration_platform_example_docs_clicked',
+                          {
+                            organization,
+                            view: 'developer_settings',
+                          }
+                        );
                       }}
                     />
                   ),
@@ -211,10 +214,13 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
                 href="https://github.com/getsentry/integration-platform-example/"
                 style={{marginRight: space(1)}}
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent('ecosystem.example_source_code_clicked', {
-                    organization,
-                    view: 'developer_settings',
-                  });
+                  trackAdvancedAnalyticsEvent(
+                    'ecosystem.integration_platform_example_source_code_clicked',
+                    {
+                      organization,
+                      view: 'developer_settings',
+                    }
+                  );
                 }}
               >
                 {t('View Example')}
