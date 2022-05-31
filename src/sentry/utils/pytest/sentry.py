@@ -266,7 +266,8 @@ def pytest_runtest_teardown(item):
 
     from celery.app.control import Control
 
-    Control.discard_all()
+    celery_control = Control()
+    celery_control.discard_all()
 
     from sentry.models import OrganizationOption, ProjectOption, UserOption
 
