@@ -514,6 +514,9 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
         assert resp.status_code == 200
 
+        assert user.has_unverified_emails() is True
+        assert len(user.get_verified_emails()) == 0
+
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
         assert resp.redirect_chain == [
             (reverse("sentry-login"), 302),
