@@ -171,6 +171,7 @@ const getMargin = ({size}: {size: Size}) => {
 
 const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
   line-height: 1;
+  margin-bottom: ${space(0.25)};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
