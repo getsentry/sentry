@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
-import sentry.options
+from sentry import options
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
@@ -52,7 +52,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         no_cache = request.relay_request_data.get("no_cache") or False
         set_tag("relay_no_cache", no_cache)
 
-        enable_v3 = random.random() < sentry.options.get("relay.project-config-v3-enable")
+        enable_v3 = random.random() < options.get("relay.project-config-v3-enable")
 
         if enable_v3 and version == "3" and not no_cache:
             # Always compute the full config. It's invalid to send partial
