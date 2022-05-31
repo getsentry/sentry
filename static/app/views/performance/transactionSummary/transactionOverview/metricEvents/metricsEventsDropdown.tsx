@@ -62,24 +62,20 @@ function InnerDropdown() {
     options.find(({field}) => field === mepSetting.metricSettingState) || options[0];
 
   return (
-    <DropdownContainer>
-      <DropdownControl
-        buttonProps={{prefix: currentOption.prefix}}
-        label={currentOption.label}
-      >
-        {options.map(option => (
-          <DropdownItem
-            key={option.field}
-            eventKey={option.field}
-            isActive={option.field === currentOption.field}
-            onSelect={key => mepSetting.setMetricSettingState(key)}
-          >
-            {option.label}
-          </DropdownItem>
-        ))}
-      </DropdownControl>
-    </DropdownContainer>
+    <DropdownControl
+      buttonProps={{prefix: currentOption.prefix}}
+      label={currentOption.label}
+    >
+      {options.map(option => (
+        <DropdownItem
+          key={option.field}
+          eventKey={option.field}
+          isActive={option.field === currentOption.field}
+          onSelect={key => mepSetting.setMetricSettingState(key)}
+        >
+          {option.label}
+        </DropdownItem>
+      ))}
+    </DropdownControl>
   );
 }
-
-const DropdownContainer = styled('div')``;
