@@ -9,12 +9,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {
-  BreadcrumbLevelType,
-  BreadcrumbType,
-  Crumb,
-  RawCrumb,
-} from 'sentry/types/breadcrumbs';
+import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
@@ -29,7 +24,7 @@ type FilterOptions = NonNullable<
   React.ComponentProps<typeof SearchBarAction>['filterOptions']
 >;
 
-type FilterOptionWithLevels = FilterOptions[0] & {levels?: string[]};
+type FilterOptionWithLevels = FilterOptions[0] & {levels?: BreadcrumbLevelType[]};
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   data: {
