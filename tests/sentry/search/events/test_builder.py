@@ -583,6 +583,67 @@ class QueryBuilderTest(TestCase):
         with self.assertRaises(InvalidSearchQuery):
             query.get_snql_query()
 
+    def test_query_chained_or_tip(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "field:a OR field:b OR field:c",
+            selected_columns=[
+                "field",
+            ],
+        )
+        assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
+
+    def test_chained_or_with_different_terms(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "field:a or field:b or event.type:transaction or transaction:foo",
+            selected_columns=[
+                "field",
+            ],
+        )
+        # This query becomes something roughly like:
+        # field:a or (field:b or (event.type:transaciton or transaction: foo))
+        assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
+
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "event.type:transaction or transaction:foo or field:a or field:b",
+            selected_columns=[
+                "field",
+            ],
+        )
+        assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
+
+    def test_chained_or_with_different_terms_with_and(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            # There's an implicit and between field:b, and event.type:transaction
+            "field:a or field:b event.type:transaction",
+            selected_columns=[
+                "field",
+            ],
+        )
+        # This query becomes something roughly like:
+        # field:a or (field:b and event.type:transaction)
+        assert constants.QUERY_TIPS["CHAINED_OR"] not in query.tips["query"]
+
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            # There's an implicit and between event.type:transaction, and field:a
+            "event.type:transaction field:a or field:b",
+            selected_columns=[
+                "field",
+            ],
+        )
+        # This query becomes something roughly like:
+        # field:a or (field:b and event.type:transaction)
+        assert constants.QUERY_TIPS["CHAINED_OR"] not in query.tips["query"]
+
 
 def _metric_percentile_definition(
     org_id, quantile, field="transaction.duration", alias=None
@@ -1027,21 +1088,104 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 86400, "A day at midnight"
 
+        # If we're doing several days, allow more range
+        start = datetime.datetime(2015, 5, 18, 0, 10, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 28, 23, 59, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "Several days"
+
+        # We're doing a long period, use the biggest granularity
+        start = datetime.datetime(2015, 5, 18, 12, 33, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 7, 28, 17, 22, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "Big range"
+
         # If we're on the start of the hour we should use the hour granularity
         start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 3600, "On the hour"
 
+        # If we're close to the start of the hour we should use the hour granularity
+        start = datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 21, 1, 57, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "On the hour, close"
+
+        # A decently long period but not close to hour ends, still use hour bucket
+        start = datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 28, 1, 57, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "On the hour, long period"
+
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
         # granularity
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 19, 15, 15, 1, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 18, 15, 1, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 60, "A few hours, but random minute"
 
         # Less than a minute, no reason to work hard for such a small window, just use a minute
         start = datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
-        end = datetime.datetime(2015, 5, 19, 10, 15, 34, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 18, 10, 15, 34, tzinfo=timezone.utc)
         assert get_granularity(start, end) == 60, "less than a minute"
+
+    def test_granularity_boundaries(self):
+        # Need to pick granularity based on the period
+        def get_granularity(start, end):
+            params = {
+                "organization_id": self.organization.id,
+                "project_id": self.projects,
+                "start": start,
+                "end": end,
+            }
+            query = MetricsQueryBuilder(params)
+            return query.granularity.granularity
+
+        # See resolve_granularity on the MQB to see what these boundaries are
+
+        # Exactly 30d, at the 30 minute boundary
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 31, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "30d at boundary"
+
+        # Near 30d, but 1 hour before the boundary for end
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 30, 23, 29, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 30d, but 1 hour before boundary for end"
+
+        # Near 30d, but 1 hour after the boundary for start
+        start = datetime.datetime(2015, 5, 1, 1, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 31, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 30d, but 1 hour after boundary for start"
+
+        # Exactly 3d
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 4, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 86400, "3d at boundary"
+
+        # Near 3d, but 1 hour before the boundary for end
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 3, 23, 29, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 3d, but 1 hour before boundary for end"
+
+        # Near 3d, but 1 hour after the boundary for start
+        start = datetime.datetime(2015, 5, 1, 1, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 4, 0, 30, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "near 3d, but 1 hour after boundary for start"
+
+        # exactly 12 hours
+        start = datetime.datetime(2015, 5, 1, 0, 15, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 1, 12, 15, 0, tzinfo=timezone.utc)
+        assert get_granularity(start, end) == 3600, "12h at boundary"
+
+        # Near 12h, but 15 minutes before the boundary for end
+        start = datetime.datetime(2015, 5, 1, 0, 15, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 1, 12, 0, 0, tzinfo=timezone.utc)
+        assert (
+            get_granularity(start, end) == 60
+        ), "12h at boundary, but 15 min before the boundary for end"
+
+        # Near 12h, but 15 minutes after the boundary for start
+        start = datetime.datetime(2015, 5, 1, 0, 30, 0, tzinfo=timezone.utc)
+        end = datetime.datetime(2015, 5, 1, 12, 15, 0, tzinfo=timezone.utc)
+        assert (
+            get_granularity(start, end) == 60
+        ), "12h at boundary, but 15 min after the boundary for start"
 
     def test_run_query(self):
         self.store_metric(
@@ -1812,15 +1956,15 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         end = datetime.datetime(2015, 5, 19, 0, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end, 30) == 10, "A day at midnight, 30s interval"
         assert get_granularity(start, end, 900) == 60, "A day at midnight, 15min interval"
-        assert get_granularity(start, end, 3600) == 3600, "A day at midnight, 1hr interval"
-        assert get_granularity(start, end, 86400) == 86400, "A day at midnight, 1d interval"
+        assert get_granularity(start, end, 3600) == 60, "A day at midnight, 1hr interval"
+        assert get_granularity(start, end, 86400) == 3600, "A day at midnight, 1d interval"
 
         # If we're on the start of the hour we should use the hour granularity
         start = datetime.datetime(2015, 5, 18, 23, 0, 0, tzinfo=timezone.utc)
         end = datetime.datetime(2015, 5, 20, 1, 0, 0, tzinfo=timezone.utc)
         assert get_granularity(start, end, 30) == 10, "On the hour, 30s interval"
         assert get_granularity(start, end, 900) == 60, "On the hour, 15min interval"
-        assert get_granularity(start, end, 3600) == 3600, "On the hour, 1hr interval"
+        assert get_granularity(start, end, 3600) == 60, "On the hour, 1hr interval"
         assert get_granularity(start, end, 86400) == 3600, "On the hour, 1d interval"
 
         # Even though this is >24h of data, because its a random hour in the middle of the day to the next we use minute
@@ -1835,7 +1979,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             get_granularity(start, end, 3600) == 60
         ), "A few hours, but random minute, 1hr interval"
         assert (
-            get_granularity(start, end, 86400) == 60
+            get_granularity(start, end, 86400) == 3600
         ), "A few hours, but random minute, 1d interval"
 
         # Less than a minute, no reason to work hard for such a small window, just use a minute
@@ -1844,7 +1988,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         assert get_granularity(start, end, 30) == 10, "less than a minute, 30s interval"
         assert get_granularity(start, end, 900) == 60, "less than a minute, 15min interval"
         assert get_granularity(start, end, 3600) == 60, "less than a minute, 1hr interval"
-        assert get_granularity(start, end, 86400) == 60, "less than a minute, 1d interval"
+        assert get_granularity(start, end, 86400) == 3600, "less than a minute, 1d interval"
 
     def test_transaction_in_filter(self):
         query = TimeseriesMetricQueryBuilder(

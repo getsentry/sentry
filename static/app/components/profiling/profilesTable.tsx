@@ -140,9 +140,6 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
         orgSlug: organization.slug,
         projectSlug: project.slug,
         transaction: dataRow.transaction_name,
-        version: dataRow.version_code
-          ? `${dataRow.version_name} (build ${dataRow.version_code})`
-          : `${dataRow.version_name}`,
       });
 
       return (
