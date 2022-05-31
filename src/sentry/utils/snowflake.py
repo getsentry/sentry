@@ -48,11 +48,9 @@ def snowflake_id_generation(redis_key: str) -> int:
     segment_values[REGION_ID] = 0
     segment_values[REGION_SEQUENCE] = 0
 
-    # current_time = datetime.now().timestamp()
+    current_time = datetime.now().timestamp()
     # supports up to 130 years
-    # segment_values[TIME_DIFFERENCE] = int(current_time - SENTRY_EPOCH_START)
-
-    segment_values[TIME_DIFFERENCE] = 30
+    segment_values[TIME_DIFFERENCE] = int(current_time - SENTRY_EPOCH_START)
 
     total_bits_to_allocate = ID_VALIDATOR.length
     snowflake_id = 0
