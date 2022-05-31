@@ -507,10 +507,8 @@ function buildRoutes() {
       </Route>
       <Route
         path="filters-and-sampling/"
-        name={t('Filters & Sampling')}
-        componentPromise={() =>
-          import('sentry/views/settings/project/filtersAndSampling')
-        }
+        name={t('Sampling')}
+        componentPromise={() => import('sentry/views/settings/project/sampling')}
         component={SafeLazyLoad}
       />
       <Route

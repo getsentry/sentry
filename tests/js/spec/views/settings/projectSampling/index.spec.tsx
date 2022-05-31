@@ -1,7 +1,7 @@
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DYNAMIC_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/filtersAndSampling/utils';
+import {DYNAMIC_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/sampling/utils';
 
 import {renderComponent} from './utils';
 
@@ -17,7 +17,7 @@ describe('Filters and Sampling', function () {
       const {container} = renderComponent(false);
 
       // Title
-      expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
+      expect(screen.getByText('Sampling')).toBeInTheDocument();
 
       expect(
         screen.getByText(
@@ -123,7 +123,7 @@ describe('Filters and Sampling', function () {
       const {container} = renderComponent(false);
 
       // Title
-      expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
+      expect(screen.getByText('Sampling')).toBeInTheDocument();
 
       expect(
         screen.getByText(

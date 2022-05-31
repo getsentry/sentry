@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import SelectField from 'sentry/components/forms/selectField';
 import {t} from 'sentry/locale';
 import {Tag} from 'sentry/types';
-import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
+import {SamplingInnerName} from 'sentry/types/sampling';
 
 import {TruncatedLabel} from './truncatedLabel';
 import {formatCreateTagLabel} from './utils';
@@ -27,7 +27,7 @@ function TagKeyAutocomplete({tags, onChange, value, disabledOptions}: Props) {
 
   if (
     value &&
-    value !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG &&
+    value !== SamplingInnerName.EVENT_CUSTOM_TAG &&
     !tags.some(({key}) => key === value)
   ) {
     options.push({

@@ -9,7 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 import {
   DYNAMIC_SAMPLING_DOC_LINK,
   LEGACY_BROWSER_LIST,
-} from 'sentry/views/settings/project/filtersAndSampling/utils';
+} from 'sentry/views/settings/project/sampling/utils';
 
 import {commonConditionCategories, renderComponent, renderModal} from './utils';
 

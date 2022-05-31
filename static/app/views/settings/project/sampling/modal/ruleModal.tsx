@@ -17,11 +17,7 @@ import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SelectValue} from 'sentry/types';
-import {
-  DynamicSamplingInnerName,
-  DynamicSamplingRule,
-  DynamicSamplingRules,
-} from 'sentry/types/dynamicSampling';
+import {SamplingInnerName, SamplingRule, SamplingRules} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
@@ -45,15 +41,12 @@ type State = {
 
 type Props = ModalRenderProps & {
   api: Client;
-  conditionCategories: Array<[DynamicSamplingInnerName, string]>;
+  conditionCategories: Array<[SamplingInnerName, string]>;
   disabled: boolean;
   emptyMessage: string;
   onSubmit: (
     props: Omit<State, 'errors'> & {
-      submitRules: (
-        newRules: DynamicSamplingRules,
-        currentRuleIndex: number
-      ) => Promise<void>;
+      submitRules: (newRules: SamplingRules, currentRuleIndex: number) => Promise<void>;
     }
   ) => void;
   onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
@@ -62,7 +55,7 @@ type Props = ModalRenderProps & {
   title: string;
   extraFields?: React.ReactElement;
   onChange?: (props: State) => void;
-  rule?: DynamicSamplingRule;
+  rule?: SamplingRule;
 };
 
 function RuleModal({
@@ -102,7 +95,7 @@ function RuleModal({
 
   function getInitialState(): State {
     if (rule) {
-      const {condition: conditions, sampleRate} = rule as DynamicSamplingRule;
+      const {condition: conditions, sampleRate} = rule as SamplingRule;
 
       const {inner} = conditions;
 
@@ -138,7 +131,7 @@ function RuleModal({
 
   const {errors, conditions, sampleRate} = data;
 
-  async function submitRules(newRules: DynamicSamplingRules, currentRuleIndex: number) {
+  async function submitRules(newRules: SamplingRules, currentRuleIndex: number) {
     setIsSaving(true);
     try {
       const newProjectDetails = await api.requestPromise(
@@ -148,8 +141,8 @@ function RuleModal({
       onSubmitSuccess(
         newProjectDetails,
         rule
-          ? t('Successfully edited dynamic sampling rule')
-          : t('Successfully added dynamic sampling rule')
+          ? t('Successfully edited sampling rule')
+          : t('Successfully added sampling rule')
       );
       closeModal();
     } catch (error) {
@@ -209,12 +202,12 @@ function RuleModal({
     }
   }
 
-  function handleAddCondition(selectedOptions: SelectValue<DynamicSamplingInnerName>[]) {
+  function handleAddCondition(selectedOptions: SelectValue<SamplingInnerName>[]) {
     const previousCategories = conditions.map(({category}) => category);
     const addedCategories = selectedOptions
       .filter(
         ({value}) =>
-          value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG || // We can have more than 1 custom tag rules
+          value === SamplingInnerName.EVENT_CUSTOM_TAG || // We can have more than 1 custom tag rules
           !previousCategories.includes(value)
       )
       .map(({value}) => value);
@@ -255,7 +248,7 @@ function RuleModal({
       trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
         organization,
         project_id: project.id,
-        conditions: [value as DynamicSamplingInnerName],
+        conditions: [value as SamplingInnerName],
       });
     }
 
@@ -265,14 +258,14 @@ function RuleModal({
   const submitDisabled =
     !defined(sampleRate) ||
     !!conditions?.find(condition => {
-      if (condition.category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
+      if (condition.category === SamplingInnerName.EVENT_LEGACY_BROWSER) {
         return !(condition.legacyBrowsers ?? []).length;
       }
 
       if (
-        condition.category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
-        condition.category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
-        condition.category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS
+        condition.category === SamplingInnerName.EVENT_LOCALHOST ||
+        condition.category === SamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+        condition.category === SamplingInnerName.EVENT_WEB_CRAWLERS
       ) {
         return false;
       }
@@ -280,7 +273,7 @@ function RuleModal({
       // They probably did not specify custom tag key
       if (
         condition.category === '' ||
-        condition.category === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+        condition.category === SamplingInnerName.EVENT_CUSTOM_TAG
       ) {
         return true;
       }
@@ -292,7 +285,7 @@ function RuleModal({
     .filter(
       condition =>
         isCustomTagName(condition.category) &&
-        condition.category !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+        condition.category !== SamplingInnerName.EVENT_CUSTOM_TAG
     )
     .map(({category}) => ({
       value: category,
@@ -306,7 +299,7 @@ function RuleModal({
   const predefinedConditionsOptions = conditionCategories.map(([value, label]) => {
     // Never disable the "Add Custom Tag" option, you can add more of those
     const optionDisabled =
-      value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+      value === SamplingInnerName.EVENT_CUSTOM_TAG
         ? false
         : conditions.some(condition => condition.category === value);
     return {
@@ -336,25 +329,21 @@ function RuleModal({
                 options={[...customTagConditionsOptions, ...predefinedConditionsOptions]}
                 value={conditions
                   // We need to filter our custom tag option so that it can be selected multiple times without being unselected every other time
-                  .filter(
-                    ({category}) => category !== DynamicSamplingInnerName.EVENT_CUSTOM_TAG
-                  )
+                  .filter(({category}) => category !== SamplingInnerName.EVENT_CUSTOM_TAG)
                   .map(({category}) => category)}
                 onChange={handleAddCondition}
                 isSearchable
                 multiple
                 filterOption={(candidate, input) => {
                   // Always offer the "Add Custom Tag" option in the autocomplete
-                  if (candidate.value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG) {
+                  if (candidate.value === SamplingInnerName.EVENT_CUSTOM_TAG) {
                     return true;
                   }
                   return createFilter(null)(candidate, input);
                 }}
                 components={{
                   Option: containerProps => {
-                    if (
-                      containerProps.value === DynamicSamplingInnerName.EVENT_CUSTOM_TAG
-                    ) {
+                    if (containerProps.value === SamplingInnerName.EVENT_CUSTOM_TAG) {
                       return (
                         <components.Option className="select-option" {...containerProps}>
                           <AddCustomTag isFocused={containerProps.isFocused}>
