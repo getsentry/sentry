@@ -475,6 +475,60 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
         assert email_builder.call_count == 2
 
+    def test_flow_as_existing_unverified_user_with_new_account(self):
+        user = self.create_user("bar@example.com")
+
+        user.update(is_superuser=False)
+        org1 = self.create_organization(name="bar", owner=user)
+        path = reverse("sentry-auth-organization", args=[org1.slug])
+        # create a second org that the user belongs to, ensure they are redirected to correct
+        self.create_organization(name="zap", owner=user)
+
+        auth_provider = AuthProvider.objects.create(organization=org1, provider="dummy")
+
+        email = user.emails.all()[:1].get()
+        email.is_verified = False
+        email.save()
+        assert user.has_unverified_emails() is True
+        assert len(user.get_verified_emails()) == 0
+
+        resp = self.client.post(path, {"init": True})
+
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+
+        resp = self.client.post(path, {"email": "foo@example.com"})
+
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-identity.html")
+        assert resp.status_code == 200
+        assert resp.context["existing_user"] is None
+        assert resp.context["login_form"]
+
+        resp = self.client.post(
+            path, {"op": "login", "username": user.username, "password": "admin"}
+        )
+
+        # TODO: should user verify the UserEmail record and the IdP email?
+        self.assertTemplateUsed(resp, "sentry/auth-confirm-link.html")
+        assert resp.status_code == 200
+
+        resp = self.client.post(path, {"op": "confirm"}, follow=True)
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            (f"/organizations/{org1.slug}/issues/", 302),
+        ]
+        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
+
+        new_user = auth_identity.user
+        assert new_user == user
+
+        member = OrganizationMember.objects.get(organization=org1, user=user)
+        assert getattr(member.flags, "sso:linked")
+        assert not getattr(member.flags, "sso:invalid")
+        assert not getattr(member.flags, "member-limit:restricted")
+
     def test_flow_as_unauthenticated_existing_matched_user_via_secondary_email(self):
         auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider="dummy"
