@@ -41,9 +41,6 @@ type Props = {
 
 export default function SpanDetailsContentWrapper(props: Props) {
   const {location, organization, eventView, project, transactionName, spanSlug} = props;
-  const useEvents = organization.features.includes(
-    'discover-frontend-use-events-endpoint'
-  );
   const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
   const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
 
@@ -85,7 +82,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
             referrer="api.performance.transaction-spans"
             cursor="0:0:1"
             noPagination
-            useEvents={useEvents}
+            useEvents
           >
             {({tableData}) => {
               const totalCount: number | null =

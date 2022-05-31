@@ -41,9 +41,6 @@ export default function SuspectSpansTable(props: Props) {
     project,
   } = props;
 
-  const useAggregateAlias = !organization.features.includes(
-    'discover-frontend-use-events-endpoint'
-  );
   const data: TableDataRowWithExtras[] = suspectSpans.map(suspectSpan => ({
     operation: suspectSpan.op,
     group: suspectSpan.group,
@@ -52,13 +49,8 @@ export default function SuspectSpansTable(props: Props) {
     frequency:
       // Frequency is computed using the `uniq` function in ClickHouse.
       // Because it is an approximation, it can occasionally exceed the number of events.
-      defined(suspectSpan.frequency) &&
-      defined(useAggregateAlias ? totals?.count : totals?.['count()'])
-        ? Math.min(
-            1,
-            suspectSpan.frequency /
-              (useAggregateAlias ? totals!.count : totals!['count()'])
-          )
+      defined(suspectSpan.frequency) && defined(totals?.['count()'])
+        ? Math.min(1, suspectSpan.frequency / totals!['count()'])
         : null,
     avgOccurrences: suspectSpan.avgOccurrences,
     p50ExclusiveTime: suspectSpan.p50ExclusiveTime,
