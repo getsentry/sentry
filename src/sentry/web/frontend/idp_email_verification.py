@@ -2,7 +2,7 @@ from django.http.response import HttpResponse
 from rest_framework.request import Request
 
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY, get_verification_value_from_key
-from sentry.models import Organization
+from sentry.models import Organization, User, UserEmail
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
@@ -22,6 +22,16 @@ class AccountConfirmationView(BaseView):
 
         if verification_value and org:
             request.session[SSO_VERIFICATION_KEY] = key
+
+            email = verification_value["email"]
+            user_id = verification_value["user_id"]
+            user = User.objects.get(id=user_id)
+            # Verify any user/email
+            if email and user:
+                user_email = UserEmail.objects.get(user=user, email__iexact=email.strip())
+                if user_email:
+                    user_email.update(is_verified=True, validation_hash="")
+
             return render_to_response(
                 "sentry/idp_account_verified.html", context=context, request=request
             )
