@@ -146,7 +146,6 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
           if (release.dateReleased !== null) {
             deployed_releases.push(release);
           }
-          return deployed_releases;
         }
         if (deployed_releases.length !== 0) {
           return tct(

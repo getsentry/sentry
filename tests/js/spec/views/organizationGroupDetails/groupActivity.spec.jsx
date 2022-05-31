@@ -120,13 +120,12 @@ describe('GroupActivity', function () {
             commit: {
               releases: [
                 {
-                  dateCreated: 'string',
-                  dateReleased: 'string',
-                  ref: 'string',
-                  shortVersion: 'string',
-                  status: ReleaseStatus.Active,
-                  url: 'string',
-                  version: 'string',
+                  dateCreated: '2022-05-01',
+                  dateReleased: '2022-05-02',
+                  ref: 'random',
+                  shortVersion: 'random',
+                  url: 'random',
+                  version: 'random',
                 },
                 {},
               ],
