@@ -35,6 +35,7 @@ frontend_components_modified_lintable:
 backend_lintable: &backend_lintable
   - '**/*.py'
   - 'requirements-base.txt'
+  - 'requirements-dev-only-frozen.txt'
 
 # Currently used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
