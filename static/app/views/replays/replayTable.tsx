@@ -25,6 +25,7 @@ import {Replay} from './types';
 
 type Props = {
   replayList: Replay[];
+  showProjectColumn?: boolean;
 };
 
 type ReplayDurationAndErrors = {
@@ -36,7 +37,7 @@ type ReplayDurationAndErrors = {
   replayId: string;
 };
 
-function ReplayTable({replayList}: Props) {
+function ReplayTable({replayList, showProjectColumn}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -108,7 +109,7 @@ function ReplayTable({replayList}: Props) {
                 // this is the subheading for the avatar, so displayEmail in this case is a misnomer
                 displayEmail={getUrlPathname(replay.url) ?? ''}
               />
-              {isScreenLarge && (
+              {isScreenLarge && showProjectColumn && (
                 <Item>
                   <ProjectBadge
                     project={

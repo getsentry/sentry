@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
@@ -420,6 +421,14 @@ class GroupHeader extends Component<Props, State> {
                 {t('Similar Issues')}
               </ListLink>
             )}
+            <Feature features={['session-replay']} organization={organization}>
+              <ListLink
+                to={`${baseUrl}replays/${location.search}`}
+                isActive={() => currentTab === Tab.REPLAYS}
+              >
+                {t('Replays')}
+              </ListLink>
+            </Feature>
           </NavTabs>
         </div>
       </Layout.Header>
