@@ -331,7 +331,7 @@ function SummaryContent({
             location={location}
             organization={organization}
             eventView={eventView}
-            totals={defined(totalValues?.count) ? {count: totalValues!.count} : null}
+            totals={defined(totalValues?.count) ? {'count()': totalValues!.count} : null}
             projectId={projectId}
             transactionName={transactionName}
           />
