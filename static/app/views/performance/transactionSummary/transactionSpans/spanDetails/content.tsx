@@ -86,7 +86,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
           >
             {({tableData}) => {
               const totalCount: number | null =
-                (tableData?.data?.[0]?.count as number) ?? null;
+                (tableData?.data?.[0]?.['count()'] as number) ?? null;
 
               if (totalCount) {
                 setTag('spans.totalCount', totalCount);
