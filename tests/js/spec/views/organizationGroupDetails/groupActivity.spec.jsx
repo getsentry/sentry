@@ -88,6 +88,58 @@ describe('GroupActivity', function () {
       'assigned this issue to themselves'
     );
   });
+  it('resolved in commit with no releases', function () {
+    const wrapper = createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_commit',
+          id: '123',
+          data: {
+            author: 'hello',
+            commit: {
+              releases: [],
+            },
+          },
+          user: TestStubs.User(),
+        },
+      ],
+    });
+    expect(wrapper.find('GroupActivityItem').text()).toContain(
+      'marked this issue as resolved in'
+    );
+  });
+
+  it('resolved in commit with releases', function () {
+    const wrapper = createWrapper({
+      activity: [
+        {
+          type: 'set_resolved_in_commit',
+          id: '123',
+          data: {
+            author: 'hello',
+            commit: {
+              releases: [
+                {
+                  dateCreated: 'string',
+                  dateReleased: 'string',
+                  ref: 'string',
+                  shortVersion: 'string',
+                  status: ReleaseStatus.Active,
+                  url: 'string',
+                  version: 'string',
+                },
+                {},
+              ],
+            },
+          },
+          user: TestStubs.User(),
+        },
+      ],
+    });
+    expect(wrapper.find('GroupActivityItem').text()).toContain(
+      'marked this issue as resolved in'
+    );
+  });
 
   it('requests assignees that are not in the team store', async function () {
     const team = TestStubs.Team({id: '123', name: 'workflow'});
