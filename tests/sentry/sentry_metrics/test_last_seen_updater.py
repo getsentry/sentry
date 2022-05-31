@@ -86,11 +86,47 @@ def test_message_filter_header_contains_no_d(message_filter):
 class TestCollectMethod(TestCase):
     def test_last_seen_update_of_old_item(self):
         update_time = timezone.now()
-        old_item = StringIndexer.objects.create(
+        stale_item = StringIndexer.objects.create(
             organization_id=1234,
             string="test_123",
             last_seen=timezone.now() - timedelta(days=1),
         )
-        assert _update_stale_last_seen({old_item.id}, new_last_seen_time=update_time) == 1
-        updated_item = StringIndexer.objects.get(id=old_item.id)
-        assert updated_item.last_seen == update_time
+        assert _update_stale_last_seen({stale_item.id}, new_last_seen_time=update_time) == 1
+        reloaded_stale_item = StringIndexer.objects.get(id=stale_item.id)
+        assert reloaded_stale_item.last_seen == update_time
+
+    def test_last_seen_update_of_new_item_skips(self):
+        last_seen_original = timezone.now()
+        update_time = timezone.now() + timedelta(hours=1)
+        fresh_item = StringIndexer.objects.create(
+            organization_id=1234,
+            string="test_123",
+            last_seen=last_seen_original,
+        )
+        assert _update_stale_last_seen({fresh_item.id}, new_last_seen_time=update_time) == 0
+        reloaded_fresh_item = StringIndexer.objects.get(id=fresh_item.id)
+        assert reloaded_fresh_item.last_seen == last_seen_original
+
+    def test_mixed_fresh_and_stale_items(self):
+        last_seen_original = timezone.now()
+        update_time = timezone.now() + timedelta(hours=1)
+
+        fresh_item = StringIndexer.objects.create(
+            organization_id=1234,
+            string="test_123",
+            last_seen=last_seen_original,
+        )
+        stale_item = StringIndexer.objects.create(
+            organization_id=1234,
+            string="test_abc",
+            last_seen=timezone.now() - timedelta(days=1),
+        )
+
+        assert (
+            _update_stale_last_seen({fresh_item.id, stale_item.id}, new_last_seen_time=update_time)
+            == 1
+        )
+        reloaded_fresh_item = StringIndexer.objects.get(id=fresh_item.id)
+        assert reloaded_fresh_item.last_seen == last_seen_original
+        reloaded_stale_item = StringIndexer.objects.get(id=stale_item.id)
+        assert reloaded_stale_item.last_seen == update_time
