@@ -15,7 +15,7 @@ type Props = {
   condition: DynamicSamplingCondition;
 };
 
-function Conditions({condition}: Props) {
+export function Conditions({condition}: Props) {
   function getConvertedValue(value: DynamicSamplingConditionLogicalInner['value']) {
     if (Array.isArray(value)) {
       return (
@@ -58,8 +58,6 @@ function Conditions({condition}: Props) {
     }
   }
 }
-
-export default Conditions;
 
 const Wrapper = styled('div')`
   display: grid;
