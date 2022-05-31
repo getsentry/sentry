@@ -55,32 +55,29 @@ def test_retrieve_db_read_keys_meta_field_present_with_db_keys():
     assert key_set == {2000, 2001, 2002}
 
 
-@pytest.fixture
-def message_filter():
-    return LastSeenUpdaterMessageFilter(DummyMetricsBackend())
+class TestFilterMethod:
+    @pytest.fixture
+    def message_filter(self):
+        return LastSeenUpdaterMessageFilter(DummyMetricsBackend())
 
+    def empty_message_with_headers(self, headers):
+        payload = KafkaPayload(headers=headers, key=Mock(), value=Mock())
+        return Message(partition=Mock(), offset=0, payload=payload, timestamp=datetime.utcnow())
 
-def empty_message_with_headers(headers):
-    payload = KafkaPayload(headers=headers, key=Mock(), value=Mock())
-    return Message(partition=Mock(), offset=0, payload=payload, timestamp=datetime.utcnow())
+    def test_message_filter_no_header(self, message_filter):
+        with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
+            message = self.empty_message_with_headers([])
+            assert not message_filter.should_drop(message)
 
+    def test_message_filter_header_contains_d(self, message_filter):
+        with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
+            message = self.empty_message_with_headers([("mapping_sources", "hcd")])
+            assert not message_filter.should_drop(message)
 
-def test_message_filter_no_header(message_filter):
-    with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
-        message = empty_message_with_headers([])
-        assert not message_filter.should_drop(message)
-
-
-def test_message_filter_header_contains_d(message_filter):
-    with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
-        message = empty_message_with_headers([("mapping_sources", "hcd")])
-        assert not message_filter.should_drop(message)
-
-
-def test_message_filter_header_contains_no_d(message_filter):
-    with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
-        message = empty_message_with_headers([("mapping_sources", "fhc")])
-        assert message_filter.should_drop(message)
+    def test_message_filter_header_contains_no_d(self, message_filter):
+        with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
+            message = self.empty_message_with_headers([("mapping_sources", "fhc")])
+            assert message_filter.should_drop(message)
 
 
 class TestCollectMethod(TestCase):
