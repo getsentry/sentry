@@ -35,7 +35,7 @@ docker-pycreds==0.4.0
 docutils==0.15.2
 drf-spectacular==0.22.1
 email-reply-parser==0.5.12
-exam==0.5.1
+exam==0.10.6
 fido2==0.9.2
 filelock==3.7.0
 flake8==4.0.1
