@@ -19,7 +19,7 @@ class OrganizationUserTeamsTest(APITestCase):
     def test_simple(self):
         self.login_as(user=self.foo)
 
-        response = self.get_valid_response(self.org.slug)
+        response = self.get_success_response(self.org.slug)
 
         # Verify that only teams that the user is a member of, are returned
         assert len(response.data) == 2
@@ -37,7 +37,7 @@ class OrganizationUserTeamsTest(APITestCase):
     def test_super_user(self):
         self.login_as(user=self.bar, superuser=True)
 
-        response = self.get_valid_response(self.org.slug)
+        response = self.get_success_response(self.org.slug)
 
         # Verify that all teams are returned
         assert len(response.data) == 3

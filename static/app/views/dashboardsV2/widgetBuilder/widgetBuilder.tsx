@@ -71,7 +71,6 @@ import {DEFAULT_STATS_PERIOD} from '../data';
 import {getNumEquations} from '../utils';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
-import {DashboardStep} from './buildSteps/dashboardStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
 import {FilterResultsStep} from './buildSteps/filterResultsStep';
 import {GroupByStep} from './buildSteps/groupByStep';
@@ -675,6 +674,12 @@ function WidgetBuilder({
       if (isColumn) {
         newQuery.fields = fieldStrings;
         newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
+        if (state.dataSet === DataSet.RELEASES && newQuery.aggregates.length === 0) {
+          // Release Health widgets require an aggregate in tables
+          const defaultReleaseHealthAggregate = `crash_free_rate(${SessionField.SESSION})`;
+          newQuery.aggregates = [defaultReleaseHealthAggregate];
+          newQuery.fields = [...newQuery.fields, defaultReleaseHealthAggregate];
+        }
       } else if (state.displayType === DisplayType.TOP_N) {
         // Top N queries use n-1 fields for columns and the nth field for y-axis
         newQuery.fields = [
@@ -711,14 +716,14 @@ function WidgetBuilder({
 
           newQuery.orderby = `${orderbyPrefix}${newOrderByValue}`;
         } else {
-          const isFromAggregates = fieldStrings.includes(rawOrderby);
+          const isFromAggregates = newQuery.aggregates.includes(rawOrderby);
           const isCustomEquation = isEquation(rawOrderby);
           const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
 
           const keepCurrentOrderby =
             isFromAggregates || isCustomEquation || isUsedInGrouping;
-          const firstAggregateAlias = isEquation(fieldStrings[0])
-            ? `equation[${getNumEquations(fieldStrings) - 1}]`
+          const firstAggregateAlias = isEquation(newQuery.aggregates[0] ?? '')
+            ? `equation[${getNumEquations(newQuery.aggregates) - 1}]`
             : fieldStrings[0];
 
           newQuery.orderby = widgetBuilderNewDesign
@@ -1205,20 +1210,6 @@ function WidgetBuilder({
                       tags={tags}
                     />
                   )}
-                  {notDashboardsOrigin && !widgetBuilderNewDesign && (
-                    <DashboardStep
-                      error={state.errors?.dashboard}
-                      dashboards={state.dashboards}
-                      onChange={selectedDashboard =>
-                        setState({
-                          ...state,
-                          selectedDashboard,
-                          errors: {...state.errors, dashboard: undefined},
-                        })
-                      }
-                      disabled={state.loading}
-                    />
-                  )}
                 </BuildSteps>
               </Main>
               <Footer
@@ -1231,6 +1222,7 @@ function WidgetBuilder({
             </MainWrapper>
             <Side>
               <WidgetLibrary
+                organization={organization}
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
                 onWidgetSelect={prebuiltWidget => {
                   setLatestLibrarySelectionTitle(prebuiltWidget.title);

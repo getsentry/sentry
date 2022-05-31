@@ -24,16 +24,16 @@ except ImportError:
 
 from django.conf import settings
 
-settings.KAFKA_CLUSTERS["default"] = {
-    "common": {"bootstrap.servers": os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")}
-}
+SENTRY_KAFKA_HOSTS = os.environ.get("SENTRY_KAFKA_HOSTS", "127.0.0.1:9092")
+SENTRY_ZOOKEEPER_HOSTS = os.environ.get("SENTRY_ZOOKEEPER_HOSTS", "127.0.0.1:2181")
+settings.KAFKA_CLUSTERS["default"] = {"common": {"bootstrap.servers": SENTRY_KAFKA_HOSTS}}
 
 
 @contextmanager
 def create_topic(partitions=1, replication_factor=1):
     command = ["docker", "exec", "sentry_kafka", "kafka-topics"] + [
         "--zookeeper",
-        os.environ["SENTRY_ZOOKEEPER_HOSTS"],
+        SENTRY_ZOOKEEPER_HOSTS,
     ]
     topic = f"test-{uuid.uuid1().hex}"
     subprocess.check_call(
@@ -54,7 +54,7 @@ def create_topic(partitions=1, replication_factor=1):
         subprocess.check_call(command + ["--delete", "--topic", topic])
 
 
-def test_consumer_start_from_partition_start(requires_kafka):
+def test_consumer_start_from_partition_start():
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
     messages_delivered = defaultdict(list)
@@ -65,7 +65,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -138,7 +138,7 @@ def test_consumer_start_from_partition_start(requires_kafka):
         assert consumer.poll(1) is None
 
 
-def test_consumer_start_from_committed_offset(requires_kafka):
+def test_consumer_start_from_committed_offset():
     consumer_group = f"consumer-{uuid.uuid1().hex}"
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
@@ -150,7 +150,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -163,9 +163,9 @@ def test_consumer_start_from_committed_offset(requires_kafka):
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
-        Consumer(
-            {"bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"], "group.id": consumer_group}
-        ).commit(message=messages_delivered[topic][0], asynchronous=False)
+        Consumer({"bootstrap.servers": SENTRY_KAFKA_HOSTS, "group.id": consumer_group}).commit(
+            message=messages_delivered[topic][0], asynchronous=False
+        )
 
         # Create the synchronized consumer.
         consumer = SynchronizedConsumer(
@@ -235,7 +235,7 @@ def test_consumer_start_from_committed_offset(requires_kafka):
         assert consumer.poll(1) is None
 
 
-def test_consumer_rebalance_from_partition_start(requires_kafka):
+def test_consumer_rebalance_from_partition_start():
     consumer_group = f"consumer-{uuid.uuid1().hex}"
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
@@ -247,7 +247,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -349,7 +349,7 @@ def test_consumer_rebalance_from_partition_start(requires_kafka):
             assert consumer.poll(1) is None
 
 
-def test_consumer_rebalance_from_committed_offset(requires_kafka):
+def test_consumer_rebalance_from_committed_offset():
     consumer_group = f"consumer-{uuid.uuid1().hex}"
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
@@ -361,7 +361,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -374,9 +374,7 @@ def test_consumer_rebalance_from_committed_offset(requires_kafka):
 
         assert producer.flush(5) == 0, "producer did not successfully flush queue"
 
-        Consumer(
-            {"bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"], "group.id": consumer_group}
-        ).commit(
+        Consumer({"bootstrap.servers": SENTRY_KAFKA_HOSTS, "group.id": consumer_group}).commit(
             offsets=[
                 TopicPartition(message.topic(), message.partition(), message.offset() + 1)
                 for message in messages_delivered[topic][:2]
@@ -512,7 +510,7 @@ def collect_messages_received(count):
     reason="assignment during rebalance requires partition rollback to last committed offset",
     run=False,
 )
-def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
+def test_consumer_rebalance_from_uncommitted_offset():
     consumer_group = f"consumer-{uuid.uuid1().hex}"
     synchronize_commit_group = f"consumer-{uuid.uuid1().hex}"
 
@@ -524,7 +522,7 @@ def test_consumer_rebalance_from_uncommitted_offset(requires_kafka):
 
     producer = Producer(
         {
-            "bootstrap.servers": os.environ["SENTRY_KAFKA_HOSTS"],
+            "bootstrap.servers": SENTRY_KAFKA_HOSTS,
             "on_delivery": record_message_delivered,
         }
     )
@@ -637,7 +635,6 @@ def kafka_message_payload():
     ]
 
 
-@pytest.mark.usefixtures("requires_kafka")
 class BatchedConsumerTest(TestCase):
     def _get_producer(self, topic):
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]

@@ -19,6 +19,9 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
+INTERVAL_COUNT = 300
+INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
+
 
 @pytest.mark.parametrize(
     "url,expected",
@@ -328,15 +331,17 @@ class UnfurlTest(TestCase):
         assert len(chart_data["sessionResponse"]["groups"]) >= 1
         assert len(chart_data["incidents"]) == 0
 
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_discover(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
+    def test_unfurl_discover(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -359,18 +364,21 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
-        assert len(chart_data["stats"]["data"]) == 288
+        assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "data": [
+                (i * INTERVAL_COUNT, [{"count": 0}]) for i in range(int(INTERVALS_PER_DAY / 6))
+            ],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_previous_period(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-
+    def test_unfurl_discover_previous_period(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=previous&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -396,16 +404,27 @@ class UnfurlTest(TestCase):
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == 48
 
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "count()": {
+                "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+                "end": 1652903400,
+                "isMetricsData": False,
+                "order": 1,
+                "start": 1652817000,
+            },
+            "count_unique(user)": {
+                "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+                "end": 1652903400,
+                "isMetricsData": False,
+                "order": 1,
+                "start": 1652817000,
+            },
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_multi_y_axis(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-
+    def test_unfurl_discover_multi_y_axis(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count_unique%28user%29&yAxis=count%28%29"
         link_type, args = match_link(url)
 
@@ -428,19 +447,21 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
 
-        assert len(chart_data["stats"]["count()"]["data"]) == 288
-        assert len(chart_data["stats"]["count_unique(user)"]["data"]) == 288
+        assert len(chart_data["stats"]["count()"]["data"]) == INTERVALS_PER_DAY
+        assert len(chart_data["stats"]["count_unique(user)"]["data"]) == INTERVALS_PER_DAY
 
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "order": 1,
+            "start": 1652817000,
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_html_escaped(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-
+    def test_unfurl_discover_html_escaped(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&amp;field=event.type&amp;field=project&amp;field=user.display&amp;field=timestamp&amp;name=All+Events&amp;project={self.project.id}&amp;query=&amp;sort=-timestamp&amp;statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -463,10 +484,29 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
-        assert len(chart_data["stats"]["data"]) == 288
+        assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "default,first,capable-hagfish,None": {
+                "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+                "end": 1652903400,
+                "isMetricsData": False,
+                "order": 1,
+                "start": 1652817000,
+            },
+            "default,second,capable-hagfish,None": {
+                "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+                "end": 1652903400,
+                "isMetricsData": False,
+                "order": 1,
+                "start": 1652817000,
+            },
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_short_url(self, mock_generate_chart):
+    def test_unfurl_discover_short_url(self, mock_generate_chart, _):
         query = {
             "fields": ["message", "event.type", "project", "user.display", "count_unique(user)"],
             "query": "message:[first,second]",
@@ -482,16 +522,6 @@ class UnfurlTest(TestCase):
             version=2,
         )
         saved_query.set_projects([self.project.id])
-
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"message": "first", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={self.project.id}"
         link_type, args = match_link(url)
@@ -526,10 +556,19 @@ class UnfurlTest(TestCase):
         # 2 + 1 cause of Other
         assert len(chart_data["stats"].keys()) == 2
         first_key = list(chart_data["stats"].keys())[0]
-        assert len(chart_data["stats"][first_key]["data"]) == 288
+        assert len(chart_data["stats"][first_key]["data"]) == INTERVALS_PER_DAY
 
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_correct_y_axis_for_saved_query(self, mock_generate_chart):
+    def test_unfurl_correct_y_axis_for_saved_query(self, mock_generate_chart, _):
         query = {
             "fields": [
                 "message",
@@ -547,16 +586,6 @@ class UnfurlTest(TestCase):
             version=2,
         )
         saved_query.set_projects([self.project.id])
-
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"message": "first", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h&project={self.project.id}"
         link_type, args = match_link(url)
@@ -587,20 +616,29 @@ class UnfurlTest(TestCase):
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "p50(transaction.duration)"
-        assert len(chart_data["stats"]["data"]) == 288
+        assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "default,first": {
+                "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+                "end": 1652903400,
+                "isMetricsData": False,
+                "order": 1,
+                "start": 1652817000,
+            },
+            "default,second": {
+                "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+                "end": 1652903400,
+                "isMetricsData": False,
+                "order": 1,
+                "start": 1652817000,
+            },
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_top_events_url_param(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-
+    def test_top_events_url_param(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=message&field=event.type&field=count()&name=All+Events&query=message:[first,second]&sort=-count&statsPeriod=24h&display=top5&topEvents=2"
         link_type, args = match_link(url)
 
@@ -632,30 +670,41 @@ class UnfurlTest(TestCase):
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"].keys()) == 2
         first_key = list(chart_data["stats"].keys())[0]
-        assert len(chart_data["stats"][first_key]["data"]) == 288
+        assert len(chart_data["stats"][first_key]["data"]) == INTERVALS_PER_DAY
 
+    # patched return value determined by reading events stats output
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "default,second": {
+                "data": [(1212121, [{"count": 15}]), (1652659200, [{"count": 12}])],
+                "order": 0,
+                "isMetricsData": False,
+                "start": 1652572800,
+                "end": 1652659201,
+            },
+            "default,first": {
+                "data": [(1652572800, [{"count": 15}]), (1652659200, [{"count": 11}])],
+                "order": 1,
+                "isMetricsData": False,
+                "start": 1652572800,
+                "end": 1652659201,
+            },
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_top_daily_events_renders_bar_chart(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        first_event = self.store_event(
-            data={"message": "first", "fingerprint": ["group1"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
-        second_event = self.store_event(
-            data={"message": "second", "fingerprint": ["group2"], "timestamp": min_ago},
-            project_id=self.project.id,
-        )
+    def test_top_daily_events_renders_bar_chart(self, mock_generate_chart, _):
         url = (
             f"https://sentry.io/organizations/{self.organization.slug}/discover/results/"
-            f"?field=message"
-            f"&field=event.type"
-            f"&field=count()"
-            f"&name=All+Events"
-            f"&query=message:[{first_event.message},{second_event.message}]"
-            f"&sort=-count"
-            f"&statsPeriod=24h"
-            f"&display=dailytop5"
-            f"&topEvents=2"
+            "?field=message"
+            "&field=event.type"
+            "&field=count()"
+            "&name=All+Events"
+            "&query=message:[first,second]"
+            "&sort=-count"
+            "&statsPeriod=24h"
+            "&display=dailytop5"
+            "&topEvents=2"
         )
         link_type, args = match_link(url)
 
@@ -690,8 +739,17 @@ class UnfurlTest(TestCase):
         # Two buckets
         assert len(chart_data["stats"][first_key]["data"]) == 2
 
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_short_url_without_project_ids(self, mock_generate_chart):
+    def test_unfurl_discover_short_url_without_project_ids(self, mock_generate_chart, _):
         query = {
             "fields": ["title", "event.type", "project", "user.display", "timestamp"],
             "query": "",
@@ -705,14 +763,6 @@ class UnfurlTest(TestCase):
             version=2,
         )
         saved_query.set_projects([self.project.id])
-
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h"
         link_type, args = match_link(url)
@@ -743,18 +793,19 @@ class UnfurlTest(TestCase):
         assert mock_generate_chart.call_args[0][0] == ChartType.SLACK_DISCOVER_TOTAL_PERIOD
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count_unique(users)"
-        assert len(chart_data["stats"]["data"]) == 288
+        assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
+    @patch(
+        "sentry.api.bases.organization_events.OrganizationEventsV2EndpointBase.get_event_stats_data",
+        return_value={
+            "data": [(i * INTERVAL_COUNT, [{"count": 0}]) for i in range(INTERVALS_PER_DAY)],
+            "end": 1652903400,
+            "isMetricsData": False,
+            "start": 1652817000,
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_discover_without_project_ids(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-        self.store_event(
-            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
-        )
-
+    def test_unfurl_discover_without_project_ids(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -782,28 +833,36 @@ class UnfurlTest(TestCase):
         assert len(mock_generate_chart.mock_calls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
         assert chart_data["seriesName"] == "count()"
-        assert len(chart_data["stats"]["data"]) == 288
+        assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
+    @patch(
+        "sentry.snuba.discover.query",
+        return_value={
+            "data": [
+                {"geo.country_code": "AU", "count": 2},
+                {"geo.country_code": "CA", "count": 2},
+            ],
+            "meta": {"geo.country_code": "string", "count": "integer"},
+            "profile": {"bytes": 64, "blocks": 1, "rows": 2, "elapsed": 0.009087800979614258},
+            "trace_output": "",
+            "timing": {
+                "timestamp": 1652998746,
+                "duration_ms": 32,
+                "marks_ms": {
+                    "cache_get": 1,
+                    "cache_set": 2,
+                    "execute": 9,
+                    "get_configs": 0,
+                    "prepare_query": 8,
+                    "rate_limit": 2,
+                    "validate_schema": 8,
+                },
+                "tags": {},
+            },
+        },
+    )
     @patch("sentry.integrations.slack.unfurl.discover.generate_chart", return_value="chart-url")
-    def test_unfurl_world_map(self, mock_generate_chart):
-        min_ago = iso_format(before_now(minutes=1))
-        self.store_event(
-            data={
-                "fingerprint": ["group2"],
-                "timestamp": min_ago,
-                "user": {"geo": {"country_code": "CA", "region": "Canada"}},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "fingerprint": ["group2"],
-                "timestamp": min_ago,
-                "user": {"geo": {"country_code": "AU", "region": "Australia"}},
-            },
-            project_id=self.project.id,
-        )
-
+    def test_unfurl_world_map(self, mock_generate_chart, _):
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=worldmap&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&project={self.project.id}&query=&sort=-timestamp&statsPeriod=24h&yAxis=count%28%29"
         link_type, args = match_link(url)
 

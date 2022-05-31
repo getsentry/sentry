@@ -64,10 +64,15 @@ default_manager.add("organizations:dashboards-releases", OrganizationFeature, Tr
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
 default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
+default_manager.add(
+    "organizations:discover-frontend-use-events-endpoint", OrganizationFeature, True
+)
+default_manager.add(
+    "organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True
+)
 default_manager.add("organizations:duplicate-alert-rule", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
-default_manager.add("organizations:filters-and-sampling-error-rules", OrganizationFeature, True)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
@@ -109,6 +114,9 @@ default_manager.add("organizations:performance-onboarding-checklist", Organizati
 default_manager.add("organizations:performance-use-metrics", OrganizationFeature, True)
 default_manager.add("organizations:performance-dry-run-mep", OrganizationFeature, True)
 default_manager.add("organizations:performance-span-tree-autoscroll", OrganizationFeature, True)
+default_manager.add(
+    "organizations:performance-transaction-name-only-search", OrganizationFeature, True
+)
 default_manager.add("organizations:profiling", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:related-events", OrganizationFeature)
@@ -119,7 +127,6 @@ default_manager.add("organizations:release-health-return-metrics", OrganizationF
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)
 default_manager.add("organizations:required-email-verification", OrganizationFeature, True)
 default_manager.add("organizations:rule-page", OrganizationFeature)
-default_manager.add("organizations:selection-filters-v2", OrganizationFeature, True)
 default_manager.add("organizations:session-replay", OrganizationFeature, True)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, True)

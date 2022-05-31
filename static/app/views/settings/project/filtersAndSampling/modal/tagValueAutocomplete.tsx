@@ -9,7 +9,8 @@ import {Organization, Project} from 'sentry/types';
 import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
 import useApi from 'sentry/utils/useApi';
 
-import {getMatchFieldPlaceholder} from './utils';
+import {TruncatedLabel} from './truncatedLabel';
+import {formatCreateTagLabel, getMatchFieldPlaceholder} from './utils';
 
 type Tag = {
   value: string;
@@ -95,7 +96,7 @@ function TagValueAutocomplete({
   const createdOptions: Tag[] = !value
     ? []
     : value
-        .split(',')
+        .split('\n')
         .filter(v => !tagValues.some(tagValue => tagValue.value === v))
         .map(v => ({value: v}));
 
@@ -105,11 +106,11 @@ function TagValueAutocomplete({
       aria-label={getAriaLabel()}
       options={[...createdOptions, ...tagValues].map(tagValue => ({
         value: tagValue.value,
-        label: tagValue.value,
+        label: <TruncatedLabel value={tagValue.value} />,
       }))}
-      value={value?.split(',')}
+      value={value?.split('\n')}
       onChange={newValue => {
-        onChange(newValue?.join(','));
+        onChange(newValue?.join('\n'));
       }}
       components={{
         MultiValue: (multiValueProps: MultiValueProps<{}>) => (
@@ -119,6 +120,7 @@ function TagValueAutocomplete({
           />
         ),
       }}
+      formatCreateLabel={formatCreateTagLabel}
       placeholder={getMatchFieldPlaceholder(category)}
       inline={false}
       multiple

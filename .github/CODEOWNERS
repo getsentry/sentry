@@ -111,9 +111,12 @@ build-utils/        @getsentry/owners-js-build
 
 ### Visibility ###
 /src/sentry/api/endpoints/organization_tags.py                  @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_histogram.py      @getsentry/visibility
 /tests/snuba/api/endpoints/                                     @getsentry/visibility
 /src/sentry/api/serializers/snuba.py                            @getsentry/visibility
 /src/sentry/snuba/discover.py                                   @getsentry/visibility
+/src/sentry/snuba/metrics_performance.py                        @getsentry/visibility
+/src/sentry/snuba/metrics_enhanced_performance.py               @getsentry/visibility
 
 /src/sentry/search/events/                                      @getsentry/visibility
 /tests/snuba/search/test_backend.py                             @getsentry/visibility
@@ -345,20 +348,30 @@ build-utils/        @getsentry/owners-js-build
 ## End of SDK ##
 
 
-### Metrics ###
+### Telemetry Experience ###
 
-/src/sentry/snuba/metrics/                                            @getsentry/metrics
-/src/sentry/api/endpoints/organization_metrics.py                     @getsentry/metrics
-/src/sentry/api/endpoints/organization_sessions.py                    @getsentry/metrics
-src/sentry/snuba/metrics/query.py                                     @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metric_data.py          @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metric_details.py       @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metric_tag_details.py   @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metric_tags.py          @getsentry/metrics
-/tests/sentry/api/endpoints/test_organization_metrics.py              @getsentry/metrics
-/tests/sentry/snuba/metrics/                                          @getsentry/metrics
+/src/sentry/snuba/metrics/                                           @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_metrics.py                    @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_sessions.py                   @getsentry/telemetry-experience
+/src/sentry/snuba/metrics/query.py                                   @getsentry/telemetry-experience
+/src/sentry/release_health/metrics_sessions_v2.py                    @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_data.py         @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_details.py      @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_tag_details.py  @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metric_tags.py         @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_organization_metrics.py             @getsentry/telemetry-experience
+/tests/sentry/snuba/metrics/                                         @getsentry/telemetry-experience
+/tests/snuba/api/endpoints/test_organization_sessions.py             @getsentry/telemetry-experience
 
-### End of Metrics ###
+/static/app/views/settings/project/filtersAndSampling/               @getsentry/telemetry-experience
+/tests/js/spec/views/settings/projectFiltersAndSampling/             @getsentry/telemetry-experience
+/static/app/utils/metrics/                                           @getsentry/telemetry-experience
+/tests/js/spec/utils/metrics/                                        @getsentry/telemetry-experience
+/static/app/actionCreators/metrics.tsx                               @getsentry/telemetry-experience
+/tests/js/spec/actionCreators/metrics.spec.tsx                       @getsentry/telemetry-experience
+/static/app/types/metrics.tsx                                        @getsentry/telemetry-experience
+
+### End of Telemetry Experience ###
 
 ### Growth ###
 

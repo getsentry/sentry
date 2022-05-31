@@ -1,6 +1,3 @@
-import inspect
-import sys
-
 from sentry.utils.imports import import_string
 
 PACKAGES = {
@@ -9,31 +6,6 @@ PACKAGES = {
     "django.core.cache.backends.memcached.MemcachedCache": "memcache",
     "django.core.cache.backends.memcached.PyLibMCCache": "pylibmc",
 }
-
-
-def reraise_as(new_exception_or_type):
-    """
-    Obtained from https://github.com/dcramer/reraise/blob/master/src/reraise.py
-    >>> try:
-    >>>     do_something_crazy()
-    >>> except Exception:
-    >>>     reraise_as(UnhandledException)
-    """
-    __traceback_hide__ = True  # NOQA
-
-    e_type, e_value, e_traceback = sys.exc_info()
-
-    if inspect.isclass(new_exception_or_type):
-        new_exception = new_exception_or_type()
-    else:
-        new_exception = new_exception_or_type
-
-    new_exception.__cause__ = e_value
-
-    try:
-        raise new_exception.with_traceback(e_traceback)
-    finally:
-        del e_traceback
 
 
 def validate_settings(settings):
@@ -53,9 +25,9 @@ def validate_settings(settings):
 def validate_dependency(settings, dependency_type, dependency, package):
     try:
         import_string(package)
-    except ImportError:
+    except ImportError as e:
         msg = ConfigurationError.get_error_message(f"{dependency_type} {dependency}", package)
-        reraise_as(ConfigurationError(msg))
+        raise ConfigurationError(msg).with_traceback(e.__traceback__)
 
 
 class ConfigurationError(ValueError):

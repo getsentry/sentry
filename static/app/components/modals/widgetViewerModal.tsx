@@ -37,7 +37,11 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField, isEquation} from 'sentry/utils/discover/fields';
+import {
+  isAggregateField,
+  isEquation,
+  isEquationAlias,
+} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -260,6 +264,7 @@ function WidgetViewerModal(props: Props) {
   if (
     widget.widgetType === WidgetType.DISCOVER &&
     orderby &&
+    !isEquationAlias(rawOrderby) &&
     !fields.includes(rawOrderby)
   ) {
     fields.push(rawOrderby);
@@ -357,7 +362,8 @@ function WidgetViewerModal(props: Props) {
   let columnOrder = decodeColumnOrder(
     fields.map(field => ({
       field,
-    }))
+    })),
+    organization.features.includes('discover-frontend-use-events-endpoint')
   );
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
@@ -609,25 +615,26 @@ function WidgetViewerModal(props: Props) {
           }}
           location={location}
         />
-        {(links?.previous?.results || links?.next?.results) && (
-          <Pagination
-            pageLinks={pageLinks}
-            onCursor={newCursor => {
-              router.replace({
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  [WidgetViewerQueryField.CURSOR]: newCursor,
-                },
-              });
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
-                organization,
-                widget_type: WidgetType.RELEASE,
-                display_type: widget.displayType,
-              });
-            }}
-          />
-        )}
+        {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
+          (links?.previous?.results || links?.next?.results) && (
+            <Pagination
+              pageLinks={pageLinks}
+              onCursor={newCursor => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.CURSOR]: newCursor,
+                  },
+                });
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+                  organization,
+                  widget_type: WidgetType.RELEASE,
+                  display_type: widget.displayType,
+                });
+              }}
+            />
+          )}
       </Fragment>
     );
   };

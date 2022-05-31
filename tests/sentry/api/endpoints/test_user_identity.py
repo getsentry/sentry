@@ -20,5 +20,5 @@ class UserIdentityTest(APITestCase):
             scopes=[],
         )
 
-        response = self.get_valid_response(self.user.id)
+        response = self.get_success_response(self.user.id)
         assert response.data[0]["identityProvider"]["type"] == "slack"

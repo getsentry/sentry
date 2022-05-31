@@ -4,7 +4,7 @@ from sentry.coreapi import APIError
 from sentry.mediators.external_requests import IssueLinkRequester
 from sentry.testutils import TestCase
 from sentry.utils import json
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 class TestIssueLinkRequester(TestCase):

@@ -59,6 +59,9 @@ export type GrowthEventParameters = {
   };
   'growth.clicked_mobile_prompt_ask_teammate': MobilePromptBannerParams;
   'growth.clicked_mobile_prompt_setup_project': MobilePromptBannerParams;
+  'growth.clicked_sidebar': {
+    item: string;
+  };
   'growth.demo_click_docs': {};
   'growth.demo_click_get_started': {cta?: string};
   'growth.demo_click_request_demo': {};
@@ -145,6 +148,7 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.demo_click_get_started': 'Growth: Demo Click Get Started',
   'growth.demo_click_docs': 'Growth: Demo Click Docs',
   'growth.demo_click_request_demo': 'Growth: Demo Click Request Demo',
+  'growth.clicked_sidebar': 'Growth: Clicked Sidebar',
   'growth.onboarding_load_choose_platform':
     'Growth: Onboarding Load Choose Platform Page',
   'growth.onboarding_set_up_your_project': 'Growth: Onboarding Click Set Up Your Project',

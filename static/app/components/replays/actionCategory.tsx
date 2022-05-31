@@ -32,7 +32,12 @@ function getActionCategoryInfo(crumb: Crumb): ActionCategoryInfo {
     case BreadcrumbType.ERROR:
       return {
         title: t('Error'),
-        description: `${crumb.category}: ${crumb.message}`,
+        description: `${crumb.data?.type}: ${crumb.data?.value}`,
+      };
+    case BreadcrumbType.INIT:
+      return {
+        title: t('Replay Start'),
+        description: crumb.data?.url,
       };
     default:
       return {

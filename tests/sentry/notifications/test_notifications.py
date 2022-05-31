@@ -128,33 +128,6 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @responses.activate
-    def test_sends_assignment_notification(self):
-        """
-        Test that an email AND Slack notification are sent with
-        the expected values when an issue is assigned.
-        """
-
-        url = f"/api/0/issues/{self.group.id}/"
-        with self.tasks():
-            response = self.client.put(url, format="json", data={"assignedTo": self.user.username})
-        assert response.status_code == 200, response.content
-
-        msg = mail.outbox[0]
-        # check the txt version
-        assert f"assigned {self.short_id} to themselves" in msg.body
-        # check the html version
-        assert f"{self.short_id}</a> to themselves</p>" in msg.alternatives[0][0]
-
-        attachment, text = get_attachment()
-
-        assert text == f"Issue assigned to {self.name} by themselves"
-        assert attachment["title"] == self.group.title
-        assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
-        )
-
-    @responses.activate
     def test_sends_unassignment_notification(self):
         """
         Test that an email AND Slack notification are sent with

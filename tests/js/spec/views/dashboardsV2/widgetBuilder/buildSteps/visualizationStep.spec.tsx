@@ -44,7 +44,6 @@ describe('VisualizationStep', function () {
     ...initializeOrg(),
     organization: {
       features: [
-        'new-widget-builder-experience',
         'dashboards-edit',
         'global-views',
         'new-widget-builder-experience-design',

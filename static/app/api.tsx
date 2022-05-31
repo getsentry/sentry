@@ -83,7 +83,10 @@ const ALLOWED_ANON_PAGES = [
   /^\/join-request\//,
 ];
 
-const globalErrorHandlers: ((resp: ResponseMeta) => void)[] = [];
+/**
+ * Return true if we should skip calling the normal error handler
+ */
+const globalErrorHandlers: ((resp: ResponseMeta) => boolean)[] = [];
 
 export const initApiClientErrorHandling = () =>
   globalErrorHandlers.push((resp: ResponseMeta) => {
@@ -93,7 +96,7 @@ export const initApiClientErrorHandling = () =>
 
     // Ignore error unless it is a 401
     if (!resp || resp.status !== 401 || pageAllowsAnon) {
-      return;
+      return false;
     }
 
     const code = resp?.responseJSON?.detail?.code;
@@ -109,17 +112,18 @@ export const initApiClientErrorHandling = () =>
         'app-connect-authentication-error',
       ].includes(code)
     ) {
-      return;
+      return false;
     }
 
     // If user must login via SSO, redirect to org login page
     if (code === 'sso-required') {
       window.location.assign(extra.loginUrl);
-      return;
+      return true;
     }
 
     if (code === 'member-disabled-over-limit') {
       browserHistory.replace(extra.next);
+      return true;
     }
 
     // Otherwise, the user has become unauthenticated. Send them to auth
@@ -130,6 +134,7 @@ export const initApiClientErrorHandling = () =>
     } else {
       window.location.reload();
     }
+    return true;
   });
 
 /**
@@ -445,71 +450,80 @@ export class Client {
 
     // XXX(epurkhiser): We migrated off of jquery, so for now we have a
     // compatibility layer which mimics that of the jquery response objects.
-    fetchRequest.then(async response => {
-      // The Response's body can only be resolved/used at most once.
-      // So we clone the response so we can resolve the body content as text content.
-      // Response objects need to be cloned before its body can be used.
-      const responseClone = response.clone();
+    fetchRequest
+      .then(async response => {
+        // The Response's body can only be resolved/used at most once.
+        // So we clone the response so we can resolve the body content as text content.
+        // Response objects need to be cloned before its body can be used.
+        const responseClone = response.clone();
 
-      let responseJSON: any;
-      let responseText: any;
+        let responseJSON: any;
+        let responseText: any;
 
-      const {status, statusText} = response;
-      let {ok} = response;
-      let errorReason = 'Request not OK'; // the default error reason
+        const {status, statusText} = response;
+        let {ok} = response;
+        let errorReason = 'Request not OK'; // the default error reason
 
-      // Try to get text out of the response no matter the status
-      try {
-        responseText = await response.text();
-      } catch (error) {
-        ok = false;
-        if (error.name === 'AbortError') {
-          errorReason = 'Request was aborted';
-        } else {
-          errorReason = error.toString();
-        }
-      }
-
-      const responseContentType = response.headers.get('content-type');
-      const isResponseJSON = responseContentType?.includes('json');
-
-      const isStatus3XX = status >= 300 && status < 400;
-      if (status !== 204 && !isStatus3XX) {
+        // Try to get text out of the response no matter the status
         try {
-          responseJSON = await responseClone.json();
+          responseText = await response.text();
         } catch (error) {
+          ok = false;
           if (error.name === 'AbortError') {
-            ok = false;
             errorReason = 'Request was aborted';
-          } else if (isResponseJSON && error instanceof SyntaxError) {
-            // If the MIME type is `application/json` but decoding failed,
-            // this should be an error.
-            ok = false;
-            errorReason = 'JSON parse error';
+          } else {
+            errorReason = error.toString();
           }
         }
-      }
 
-      const responseMeta: ResponseMeta = {
-        status,
-        statusText,
-        responseJSON,
-        responseText,
-        getResponseHeader: (header: string) => response.headers.get(header),
-      };
+        const responseContentType = response.headers.get('content-type');
+        const isResponseJSON = responseContentType?.includes('json');
 
-      // Respect the response content-type header
-      const responseData = isResponseJSON ? responseJSON : responseText;
+        const isStatus3XX = status >= 300 && status < 400;
+        if (status !== 204 && !isStatus3XX) {
+          try {
+            responseJSON = await responseClone.json();
+          } catch (error) {
+            if (error.name === 'AbortError') {
+              ok = false;
+              errorReason = 'Request was aborted';
+            } else if (isResponseJSON && error instanceof SyntaxError) {
+              // If the MIME type is `application/json` but decoding failed,
+              // this should be an error.
+              ok = false;
+              errorReason = 'JSON parse error';
+            }
+          }
+        }
 
-      if (ok) {
-        successHandler(responseMeta, statusText, responseData);
-      } else {
-        globalErrorHandlers.forEach(handler => handler(responseMeta));
-        errorHandler(responseMeta, statusText, errorReason);
-      }
+        const responseMeta: ResponseMeta = {
+          status,
+          statusText,
+          responseJSON,
+          responseText,
+          getResponseHeader: (header: string) => response.headers.get(header),
+        };
 
-      completeHandler(responseMeta, statusText);
-    });
+        // Respect the response content-type header
+        const responseData = isResponseJSON ? responseJSON : responseText;
+
+        if (ok) {
+          successHandler(responseMeta, statusText, responseData);
+        } else {
+          const shouldSkipErrorHandler =
+            globalErrorHandlers.map(handler => handler(responseMeta)).filter(Boolean)
+              .length > 0;
+
+          if (!shouldSkipErrorHandler) {
+            errorHandler(responseMeta, statusText, errorReason);
+          }
+        }
+
+        completeHandler(responseMeta, statusText);
+      })
+      .catch(() => {
+        // Ignore all failed requests
+      });
 
     const request = new Request(fetchRequest, aborter);
     this.activeRequests[id] = request;

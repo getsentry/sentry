@@ -79,13 +79,13 @@ export type TagCollection = Record<string, Tag>;
 export type TagValue = {
   count: number;
   firstSeen: string;
-  key: string;
   lastSeen: string;
   name: string;
   value: string;
   email?: string;
   identifier?: string;
   ipAddress?: string;
+  key?: string;
   query?: string;
   username?: string;
 } & AvatarUser;
@@ -308,6 +308,7 @@ export type GroupActivityAssigned = GroupActivityBase & {
     assignee: string;
     assigneeType: string;
     user: Team | User;
+    assigneeEmail?: string;
   };
   type: GroupActivityType.ASSIGNED;
 };
@@ -529,6 +530,7 @@ export type UserReport = {
 export type KeyValueListData = {
   key: string;
   subject: string;
+  actionButton?: React.ReactNode;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
