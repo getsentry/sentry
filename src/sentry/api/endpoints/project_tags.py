@@ -21,9 +21,7 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 # existing api consumers.
                 include_values_seen=True,
             )
-            only_sampling_tags = request.GET.get("onlySamplingTags") == "1"
-
-            if only_sampling_tags:
+            if request.GET.get("onlySamplingTags") == "1":
                 kwargs.update(denylist=DS_DENYLIST)
 
             tag_keys = sorted(
