@@ -54,6 +54,43 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
   },
   {
     id: undefined,
+    title: t('Crash Rates for Recent Releases'),
+    description: t('Percentage of crashed sessions for latest releases.'),
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.RELEASE,
+    interval: '5m',
+    limit: 8,
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['crash_rate(session)', 'release'],
+        aggregates: ['crash_rate(session)'],
+        columns: ['release'],
+        orderby: '-release',
+      },
+    ],
+  },
+  {
+    id: undefined,
+    title: t('Session Health'),
+    description: t('Number of abnormal,crashed, errored and healthy sessions.'),
+    displayType: DisplayType.TABLE,
+    widgetType: WidgetType.RELEASE,
+    interval: '5m',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['session.status', 'sum(session)'],
+        aggregates: ['sum(session)'],
+        columns: ['session.status'],
+        orderby: '',
+      },
+    ],
+  },
+  {
+    id: undefined,
     title: t('LCP by Country'),
     description: t('Density map showing page load times by country.'),
     displayType: DisplayType.WORLD_MAP,

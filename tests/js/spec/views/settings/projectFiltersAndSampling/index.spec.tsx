@@ -19,7 +19,6 @@ describe('Filters and Sampling', function () {
       // Title
       expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
 
-      // Error rules container
       expect(
         screen.getByText(
           textWithMarkupMatcher(
@@ -34,9 +33,6 @@ describe('Filters and Sampling', function () {
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(screen.getByText('There are no error rules to display')).toBeInTheDocument();
-      expect(screen.getByText('Add error rule')).toBeInTheDocument();
-
       // Transaction traces and individual transactions rules container
       expect(
         screen.getByText(
@@ -47,20 +43,18 @@ describe('Filters and Sampling', function () {
       expect(
         screen.getByText('There are no transaction rules to display')
       ).toBeInTheDocument();
+
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLinks = screen.getAllByRole('button', {
-        name: 'Read the docs',
-      });
-      expect(readDocsButtonLinks).toHaveLength(2);
+      expect(
+        screen.getByRole('button', {
+          name: 'Read the docs',
+        })
+      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      for (const readDocsButtonLink of readDocsButtonLinks) {
-        expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-      }
-
-      expect(screen.getAllByText('Type')).toHaveLength(2);
-      expect(screen.getAllByText('Conditions')).toHaveLength(2);
-      expect(screen.getAllByText('Rate')).toHaveLength(2);
+      expect(screen.getByText('Operator')).toBeInTheDocument();
+      expect(screen.getByText('Conditions')).toBeInTheDocument();
+      expect(screen.getByText('Rate')).toBeInTheDocument();
 
       expect(container).toSnapshot();
     });
@@ -72,21 +66,6 @@ describe('Filters and Sampling', function () {
         body: TestStubs.Project({
           dynamicSampling: {
             rules: [
-              {
-                sampleRate: 0.2,
-                type: 'error',
-                condition: {
-                  op: 'and',
-                  inner: [
-                    {
-                      op: 'glob',
-                      name: 'event.release',
-                      value: ['1.2.3'],
-                    },
-                  ],
-                },
-                id: 39,
-              },
               {
                 sampleRate: 0.2,
                 type: 'trace',
@@ -124,6 +103,15 @@ describe('Filters and Sampling', function () {
                     },
                   ],
                 },
+                id: 41,
+              },
+              {
+                sampleRate: 0.5,
+                type: 'transaction',
+                condition: {
+                  op: 'and',
+                  inner: [],
+                },
                 id: 42,
               },
             ],
@@ -137,7 +125,6 @@ describe('Filters and Sampling', function () {
       // Title
       expect(screen.getByText('Filters & Sampling')).toBeInTheDocument();
 
-      // Error rules container
       expect(
         screen.getByText(
           textWithMarkupMatcher(
@@ -152,12 +139,6 @@ describe('Filters and Sampling', function () {
         })
       ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      expect(
-        screen.queryByText('There are no error rules to display')
-      ).not.toBeInTheDocument();
-      expect(screen.getByText('Errors only')).toBeInTheDocument();
-      expect(screen.getByText('Add error rule')).toBeInTheDocument();
-
       // Transaction traces and individual transactions rules container
       expect(
         screen.getByText(
@@ -168,26 +149,25 @@ describe('Filters and Sampling', function () {
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-      const transactionTraceRules = screen.getByText('Transaction traces');
-      expect(transactionTraceRules).toBeInTheDocument();
 
-      const individualTransactionRules = screen.getByText('Individual transactions');
-      expect(individualTransactionRules).toBeInTheDocument();
+      // Operator column
+      const samplingRules = screen.getAllByTestId('sampling-rule');
+      expect(samplingRules).toHaveLength(3);
+      expect(samplingRules[0]).toHaveTextContent('If');
+      expect(samplingRules[1]).toHaveTextContent('Else if');
+      expect(samplingRules[2]).toHaveTextContent('Else');
 
       expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
 
-      const readDocsButtonLinks = screen.getAllByRole('button', {
-        name: 'Read the docs',
-      });
-      expect(readDocsButtonLinks).toHaveLength(2);
+      expect(
+        screen.getByRole('button', {
+          name: 'Read the docs',
+        })
+      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
 
-      for (const readDocsButtonLink of readDocsButtonLinks) {
-        expect(readDocsButtonLink).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
-      }
-
-      expect(screen.getAllByText('Type')).toHaveLength(2);
-      expect(screen.getAllByText('Conditions')).toHaveLength(2);
-      expect(screen.getAllByText('Rate')).toHaveLength(2);
+      expect(screen.getByText('Operator')).toBeInTheDocument();
+      expect(screen.getByText('Conditions')).toBeInTheDocument();
+      expect(screen.getByText('Rate')).toBeInTheDocument();
 
       expect(container).toSnapshot();
     });
