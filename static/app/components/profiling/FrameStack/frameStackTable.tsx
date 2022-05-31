@@ -95,8 +95,11 @@ export function FrameStackTable({
 
   const {
     items,
+    tabIndexKey,
     scrollContainerStyles,
     containerStyles,
+    handleRowClick,
+    handleRowKeyDown,
     handleExpandTreeNode,
     handleSortingChange,
     handleScroll,
@@ -178,11 +181,15 @@ export function FrameStackTable({
               return (
                 <FrameStackTableRow
                   key={r.key}
+                  ref={n => (r.ref = n)}
                   node={r.item}
                   style={r.styles}
                   referenceNode={referenceNode}
+                  tabIndex={tabIndexKey === r.key ? 0 : 1}
                   flamegraphRenderer={flamegraphRenderer}
+                  onClick={() => handleRowClick(r.key)}
                   onExpandClick={handleExpandTreeNode}
+                  onKeyDown={evt => handleRowKeyDown(r.key, evt)}
                   onContextMenu={evt => {
                     setClickedContextMenuClose(r.item);
                     contextMenu.handleContextMenu(evt);
