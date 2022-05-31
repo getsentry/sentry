@@ -116,6 +116,7 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
                 }
         return set()
     except json.JSONDecodeError:
+        logger.error("last_seen_updater.invalid_json", exc_info=True)
         return set()
 
 
