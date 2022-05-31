@@ -58,6 +58,8 @@ def send_incident_alert_notification(
         "text": text,
         "attachments": json.dumps([blocks]),
         # Prevent duplicate unfurl
+        # https://api.slack.com/reference/messaging/link-unfurling#no_unfurling_please
+        "unfurl_links": False,
         "unfurl_media": False,
     }
 

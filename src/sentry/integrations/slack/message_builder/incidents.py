@@ -9,6 +9,7 @@ from sentry.integrations.slack.message_builder import (
     SlackBody,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.utils.dates import to_timestamp
 
 
@@ -51,5 +52,5 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
-        fallback_text = f"<{data['title_link']}|*{data['title']}*>"
+        fallback_text = f"<{data['title_link']}|*{escape_slack_text(data['title'])}*>"
         return self._build_blocks(*blocks, fallback_text=fallback_text, color=color)
