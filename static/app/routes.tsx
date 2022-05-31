@@ -954,7 +954,9 @@ function buildRoutes() {
         />
         <Route
           path=":projectId/"
-          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          getComponent={lazyLoad(
+            () => import('sentry/views/alerts/builder/projectProvider')
+          )}
         >
           <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
           <Route
@@ -977,7 +979,9 @@ function buildRoutes() {
         <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
         <Route
           path=":projectId/"
-          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+          getComponent={lazyLoad(
+            () => import('sentry/views/alerts/builder/projectProvider')
+          )}
         >
           <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
           <Route
@@ -988,13 +992,17 @@ function buildRoutes() {
       </Route>
       <Route
         path="wizard/"
-        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+        getComponent={lazyLoad(
+          () => import('sentry/views/alerts/builder/projectProvider')
+        )}
       >
         <IndexRoute component={make(() => import('sentry/views/alerts/wizard'))} />
       </Route>
       <Route
         path="new/"
-        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+        getComponent={lazyLoad(
+          () => import('sentry/views/alerts/builder/projectProvider')
+        )}
       >
         <IndexRedirect to="/organizations/:orgId/alerts/wizard/" />
         <Route
@@ -1008,7 +1016,9 @@ function buildRoutes() {
       />
       <Route
         path=":projectId/"
-        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
+        getComponent={lazyLoad(
+          () => import('sentry/views/alerts/builder/projectProvider')
+        )}
       >
         <Route path="new/" component={make(() => import('sentry/views/alerts/create'))} />
         <Route
