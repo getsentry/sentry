@@ -27,6 +27,7 @@ def update_config_cache(
     :param project_id: The project for which to invalidate configs.
     :param generate: If `True`, caches will be eagerly regenerated, not only
         invalidated.
+    :param update_reason: A string to set as tag in sentry.
     """
 
     from sentry.models import Project, ProjectKey, ProjectKeyStatus
