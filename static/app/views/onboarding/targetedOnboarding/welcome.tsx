@@ -55,7 +55,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
       organization,
       source,
     });
-  }, []);
+  });
 
   const onComplete = () => {
     trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
@@ -112,7 +112,7 @@ function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
           </ActionItem>
           <ActionItem {...fadeAway}>
             <InnerAction
-              title={t('Setup my team')}
+              title={t('Set up my team')}
               subText={tct(
                 'Invite [friends] coworkers. You shouldn’t have to fix what you didn’t break',
                 {friends: <Strike>{t('friends')}</Strike>}
