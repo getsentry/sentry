@@ -138,6 +138,7 @@ def get_project_config(project, full_config=True, project_keys=None):
 
     :return: a ProjectConfig object for the given project
     """
+    metrics.incr("sentry.relay.config.get_project_config")
     with configure_scope() as scope:
         scope.set_tag("project", project.id)
 
