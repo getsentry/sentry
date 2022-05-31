@@ -16,7 +16,6 @@ import {layout} from '../utils';
 
 import Actions from './actions';
 import Conditions from './conditions';
-import SampleRate from './sampleRate';
 
 type Props = {
   dragging: boolean;
@@ -104,7 +103,7 @@ class Rule extends Component<Props, State> {
           <Conditions condition={rule.condition} />
         </Column>
         <CenteredColumn>
-          <SampleRate sampleRate={rule.sampleRate} />
+          <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
         </CenteredColumn>
         <Column>
           <Actions
@@ -124,6 +123,11 @@ export default Rule;
 
 const Operator = styled('div')`
   color: ${p => p.theme.active};
+`;
+
+const SampleRate = styled('div')`
+  white-space: pre-wrap;
+  word-break: break-all;
 `;
 
 const Column = styled('div')`
