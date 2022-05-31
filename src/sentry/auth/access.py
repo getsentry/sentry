@@ -466,7 +466,7 @@ def from_member(
     return OrganizationMemberAccess(member, scopes, permissions)
 
 
-def from_auth(auth, organization: Organization, scopes=[]) -> Access:
+def from_auth(auth, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
     if auth.organization_id == organization.id:
