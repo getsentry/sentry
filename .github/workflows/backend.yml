@@ -177,23 +177,6 @@ jobs:
           cache-dependency-path: |
             requirements-dev-only-frozen.txt
 
-      - name: Setup pre-commit
-        # We don't use make setup-git because we're only interested in installing
-        # requirements-dev-only-frozen.txt as a fast path.
-        # We don't need pre-commit install --install-hooks since we're just interested
-        # in running the hooks.
-        run: |
-          pip install -r requirements-dev-only-frozen.txt
-          pre-commit install-hooks
-              - added|modified: 'requirements-dev-only-frozen.txt'
-
-      - uses: actions/setup-python@v3
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          cache-dependency-path: |
-            requirements-dev-only-frozen.txt
-
       - uses: actions/cache@v3
         with:
           path: ~/.cache/pre-commit
