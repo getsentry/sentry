@@ -223,7 +223,6 @@ export function PerformanceLanding(props: Props) {
                   />
                   <MetricsEventsDropdown />
                 </SearchFilterContainer>
-                ;
                 {initiallyLoaded ? (
                   <TeamKeyTransactionManager.Provider
                     organization={organization}
