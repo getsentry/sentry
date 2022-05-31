@@ -171,7 +171,6 @@ const getMargin = ({size}: {size: Size}) => {
 
 const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
   line-height: 1;
-  ${getMargin};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
@@ -186,6 +185,7 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
       : css`
           > a:first-child {
             display: flex;
+            height: ${space(3)};
           }
         `}
 `;
@@ -251,7 +251,4 @@ const StyledEventOrGroupTitle = styled(EventOrGroupTitle)<{
   hasSeen: boolean;
 }>`
   font-weight: ${p => (p.hasSeen ? 400 : 600)};
-  line-height: 1.2;
-  position: relative;
-  top: -${space(0.25)};
 `;
