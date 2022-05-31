@@ -585,13 +585,20 @@ CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
 # 1. `src/sentry/event_manager.py:save`. We have function
 # `_derive_interface_tags_many(jobs)` which iterates across all interfaces
 # and execute `iter_tags`, so i've searched usage of `iter_tags`.
-# 2. `src/sentry/event_manager.py:_pull_out_data` we have `set_tag`
+# 2. `src/sentry/event_manager.py:_pull_out_data` we have `set_tag`.
+# 3. `src/sentry/event_manager.py:_get_event_user_many` we have `set_tag`.
+# 4. `src/sentry/event_manager.py:_get_or_create_release_many` we have `set_tag`.
+#
+# Note:
+# should be sorted alphabetically for easy to maintanin in future
+# if you update this list please add explanation or source of it
 DS_DENYLIST = frozenset(
     [
         "browser",
         "browser.name",
         "device",
         "device.family",
+        "dist",
         "environment",
         "gpu.name",
         "gpu.vendor",
@@ -601,8 +608,10 @@ DS_DENYLIST = frozenset(
         "os",
         "os.name",
         "os.rooted",
+        "release",
         "runtime",
         "runtime.name",
         "transaction",
+        "user",
     ]
 )
