@@ -7,6 +7,7 @@ from sentry_relay import UnpackErrorSignatureExpired, validate_register_response
 from sentry import options
 from sentry.api.authentication import is_internal_relay, relay_from_id
 from sentry.api.base import Endpoint
+from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.models import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
@@ -22,6 +23,9 @@ class RelayRegisterResponseSerializer(RelayIdSerializer):
 class RelayRegisterResponseEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
+
+    enforce_rate_limit = True
+    rate_limits = RELAY_AUTH_RATE_LIMITS
 
     def post(self, request: Request) -> Response:
         """
