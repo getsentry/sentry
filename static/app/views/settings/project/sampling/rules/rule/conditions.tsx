@@ -53,7 +53,7 @@ export function Conditions({condition}: Props) {
       );
     }
     default: {
-      Sentry.captureException(new Error('Unknown dynamic sampling condition operator'));
+      Sentry.captureException(new Error('Unknown sampling condition operator'));
       return null; // this shall not happen
     }
   }

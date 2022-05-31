@@ -180,9 +180,7 @@ export function getNewCondition(condition: Condition): SamplingConditionLogicalI
   };
 }
 
-const unexpectedErrorMessage = t(
-  'An internal error occurred while saving dynamic sampling rule'
-);
+const unexpectedErrorMessage = t('An internal error occurred while saving sampling rule');
 
 type ResponseJSONDetailed = {
   detail: string[];

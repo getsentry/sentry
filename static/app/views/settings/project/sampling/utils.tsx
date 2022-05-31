@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import {LegacyBrowser, SamplingInnerName} from 'sentry/types/sampling';
 
-// TODO(PRISCILA): Update this link as soon as we have one for dynamic sampling
-export const DYNAMIC_SAMPLING_DOC_LINK =
+// TODO(PRISCILA): Update this link as soon as we have one for sampling
+export const SAMPLING_DOC_LINK =
   'https://docs.sentry.io/product/data-management-settings/filtering/';
 
 export const LEGACY_BROWSER_LIST = {

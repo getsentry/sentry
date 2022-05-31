@@ -7,8 +7,8 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {
-  DYNAMIC_SAMPLING_DOC_LINK,
   LEGACY_BROWSER_LIST,
+  SAMPLING_DOC_LINK,
 } from 'sentry/views/settings/project/sampling/utils';
 
 import {commonConditionCategories, renderComponent, renderModal} from './utils';
@@ -199,7 +199,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           screen.getByRole('link', {
             name: 'Learn more about tracing',
           })
-        ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
+        ).toHaveAttribute('href', SAMPLING_DOC_LINK);
         expect(screen.getByText('Add Condition')).toBeInTheDocument();
         expect(
           screen.getByText('Apply sampling rate to all transactions')

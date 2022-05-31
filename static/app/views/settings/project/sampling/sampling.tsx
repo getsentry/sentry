@@ -28,7 +28,7 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 import {modalCss} from './modal/utils';
 import Modal from './modal';
 import {RulesPanel} from './rulesPanel';
-import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
+import {SAMPLING_DOC_LINK} from './utils';
 
 type Props = AsyncView['props'] & {
   hasAccess: boolean;
@@ -150,8 +150,8 @@ class Sampling extends AsyncView<Props, State> {
 
     this.submitRules(
       newRules,
-      t('Successfully deleted dynamic sampling rule'),
-      t('An error occurred while deleting dynamic sampling rule')
+      t('Successfully deleted sampling rule'),
+      t('An error occurred while deleting sampling rule')
     );
   };
 

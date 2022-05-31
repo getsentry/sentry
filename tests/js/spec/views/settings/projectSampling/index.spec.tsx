@@ -1,7 +1,7 @@
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DYNAMIC_SAMPLING_DOC_LINK} from 'sentry/views/settings/project/sampling/utils';
+import {SAMPLING_DOC_LINK} from 'sentry/views/settings/project/sampling/utils';
 
 import {renderComponent} from './utils';
 
@@ -31,7 +31,7 @@ describe('Filters and Sampling', function () {
         screen.getByRole('link', {
           name: 'update your SDK configuration',
         })
-      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
+      ).toHaveAttribute('href', SAMPLING_DOC_LINK);
 
       // Transaction traces and individual transactions rules container
       expect(
@@ -50,7 +50,7 @@ describe('Filters and Sampling', function () {
         screen.getByRole('button', {
           name: 'Read the docs',
         })
-      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
+      ).toHaveAttribute('href', SAMPLING_DOC_LINK);
 
       expect(screen.getByText('Operator')).toBeInTheDocument();
       expect(screen.getByText('Conditions')).toBeInTheDocument();
@@ -137,7 +137,7 @@ describe('Filters and Sampling', function () {
         screen.getByRole('link', {
           name: 'update your SDK configuration',
         })
-      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
+      ).toHaveAttribute('href', SAMPLING_DOC_LINK);
 
       // Transaction traces and individual transactions rules container
       expect(
@@ -163,7 +163,7 @@ describe('Filters and Sampling', function () {
         screen.getByRole('button', {
           name: 'Read the docs',
         })
-      ).toHaveAttribute('href', DYNAMIC_SAMPLING_DOC_LINK);
+      ).toHaveAttribute('href', SAMPLING_DOC_LINK);
 
       expect(screen.getByText('Operator')).toBeInTheDocument();
       expect(screen.getByText('Conditions')).toBeInTheDocument();

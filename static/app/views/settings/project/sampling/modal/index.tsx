@@ -19,7 +19,7 @@ import {
 } from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 
-import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
+import {SAMPLING_DOC_LINK} from '../utils';
 
 import RuleModal from './ruleModal';
 import {generateConditionCategoriesOptions, getNewCondition} from './utils';
@@ -157,7 +157,7 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
                 {
                   link: (
                     <ExternalLink
-                      href={DYNAMIC_SAMPLING_DOC_LINK}
+                      href={SAMPLING_DOC_LINK}
                       onClick={event => event.stopPropagation()}
                     />
                   ),

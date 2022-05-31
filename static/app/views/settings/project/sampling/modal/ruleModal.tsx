@@ -404,7 +404,7 @@ function RuleModal({
             onClick={() => onSubmit({conditions, sampleRate, submitRules})}
             title={
               disabled
-                ? t('You do not have permission to add dynamic sampling rules.')
+                ? t('You do not have permission to add sampling rules.')
                 : submitDisabled
                 ? t('Required fields must be filled out')
                 : undefined
