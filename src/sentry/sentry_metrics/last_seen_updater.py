@@ -37,8 +37,12 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
     # majority of messages).
     def should_drop(self, message: Message[KafkaPayload]) -> bool:
         feature_enabled: float = options.get("sentry-metrics.last-seen-updater.accept-rate")
-        if random.random() > feature_enabled:
-            self.__metrics.incr("last_seen_updater.accept_rate_bypass")
+        bypass_for_user = random.random() > feature_enabled
+        self.__metrics.incr(
+            "last_seen_updater.accept_rate", sample_rate=0.001, tags={"bypass": bypass_for_user}
+        )
+
+        if bypass_for_user:
             return True
 
         header_value: Optional[str] = next(
@@ -103,13 +107,16 @@ class LastSeenUpdaterCollector(ProcessingStrategy[Set[int]]):  # type: ignore
 
 
 def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
-    parsed_message = json.loads(message.payload.value, use_rapid_json=True)
-    if MAPPING_META in parsed_message:
-        if FetchType.DB_READ.value in parsed_message[MAPPING_META]:
-            return {
-                int(key) for key in parsed_message[MAPPING_META][FetchType.DB_READ.value].keys()
-            }
-    return set()
+    try:
+        parsed_message = json.loads(message.payload.value, use_rapid_json=True)
+        if MAPPING_META in parsed_message:
+            if FetchType.DB_READ.value in parsed_message[MAPPING_META]:
+                return {
+                    int(key) for key in parsed_message[MAPPING_META][FetchType.DB_READ.value].keys()
+                }
+        return set()
+    except json.JSONDecodeError:
+        return set()
 
 
 def get_last_seen_updater(
