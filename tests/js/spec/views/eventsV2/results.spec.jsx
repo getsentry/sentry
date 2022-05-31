@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 import {triggerPress} from 'sentry-test/utils';
 
+import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Results from 'sentry/views/eventsV2/results';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -1593,6 +1594,55 @@ describe('Results', function () {
       const fooSegment = wrapper.find('[data-test-id="tag-foo-segment-bar"] Segment');
       const fooTarget = fooSegment.props().to;
       expect(fooTarget.query.query).toEqual('foo:bar');
+    });
+
+    it('respects pinned filters for prebuilt queries', async function () {
+      const organization = TestStubs.Organization({
+        features: [...features, 'global-views'],
+      });
+
+      const initialData = initializeOrg({
+        organization,
+        router: {
+          location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
+        },
+      });
+
+      jest.spyOn(PageFilterPersistence, 'getPageFilterStorage').mockReturnValue({
+        state: {
+          project: [1],
+          environment: [],
+          start: null,
+          end: null,
+          period: '14d',
+          utc: null,
+        },
+        pinnedFilters: new Set(['projects']),
+      });
+
+      const wrapper = mountWithThemeAndOrg(
+        <Results
+          organization={organization}
+          location={initialData.router.location}
+          router={initialData.router}
+        />,
+        initialData.routerContext,
+        organization
+      );
+
+      act(() =>
+        ProjectsStore.loadInitialData([
+          TestStubs.Project({id: 1, slug: 'Pinned Project'}),
+        ])
+      );
+      await tick();
+      wrapper.update();
+
+      const projectPageFilter = wrapper
+        .find('[data-test-id="global-header-project-selector"]')
+        .first();
+
+      expect(projectPageFilter.text()).toEqual('Pinned Project');
     });
   });
 });
