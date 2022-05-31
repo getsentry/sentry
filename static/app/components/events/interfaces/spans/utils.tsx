@@ -5,14 +5,16 @@ import isString from 'lodash/isString';
 import set from 'lodash/set';
 import moment from 'moment';
 
-import {TOGGLE_BORDER_BOX} from 'sentry/components/performance/waterfall/treeConnector';
+import {
+  TOGGLE_BORDER_BOX,
+  TOGGLE_BUTTON_MAX_WIDTH,
+} from 'sentry/components/performance/waterfall/treeConnector';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
-import {MARGIN_LEFT} from './spanBar';
 import {
   EnhancedSpan,
   GapSpanType,
@@ -821,12 +823,16 @@ export class SpansInViewMap {
     return true;
   }
 
+  has(spanId: string) {
+    return this.spanDepthsInView.has(spanId);
+  }
+
   getScrollVal() {
     if (this.isRootSpanInView) {
       return 0;
     }
 
     const avgDepth = Math.round(this.treeDepthSum / this.length);
-    return avgDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
+    return avgDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
   }
 }

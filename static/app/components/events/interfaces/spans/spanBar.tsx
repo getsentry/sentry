@@ -119,6 +119,7 @@ type SpanBarProps = {
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
   spanNumber: number;
+  storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
@@ -147,6 +148,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
   componentDidMount() {
     this._mounted = true;
     if (this.spanRowDOMRef.current) {
+      this.props.storeSpanBar(this);
       this.connectObservers();
     }
 
@@ -209,7 +211,8 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
       return;
     }
     const boundingRect = element.getBoundingClientRect();
-    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
+    // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
+    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
     this.setState({showDetail: true}, () => window.scrollTo(0, offset));
   };
 
@@ -578,7 +581,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
      */
 
     this.intersectionObserver = new IntersectionObserver(
-      entries => {
+      entries =>
         entries.forEach(entry => {
           if (!this._mounted) {
             return;
@@ -659,15 +662,13 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               return;
             }
 
-            if (this.props.numOfSpanChildren !== 0) {
-              // TODO: Remove this check when this feature is GA'd
-              if (organization.features.includes('performance-span-tree-autoscroll')) {
-                // If isIntersecting is false, this means the span is out of view below the viewport
-                if (!entry.isIntersecting) {
-                  this.props.markSpanOutOfView(span.span_id);
-                } else {
-                  this.props.markSpanInView(span.span_id, treeDepth);
-                }
+            // TODO: Remove this check when this feature is GA'd
+            if (organization.features.includes('performance-span-tree-autoscroll')) {
+              // If isIntersecting is false, this means the span is out of view below the viewport
+              if (!entry.isIntersecting) {
+                this.props.markSpanOutOfView(span.span_id);
+              } else {
+                this.props.markSpanInView(span.span_id, treeDepth);
               }
             }
 
@@ -688,11 +689,9 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
               return;
             }
 
-            if (this.props.numOfSpanChildren !== 0) {
-              // TODO: Remove this check when this feature is GA'd
-              if (organization.features.includes('performance-span-tree-autoscroll')) {
-                this.props.markSpanOutOfView(span.span_id);
-              }
+            // TODO: Remove this check when this feature is GA'd
+            if (organization.features.includes('performance-span-tree-autoscroll')) {
+              this.props.markSpanOutOfView(span.span_id);
             }
 
             return;
@@ -722,8 +721,7 @@ class SpanBar extends Component<SpanBarProps, SpanBarState> {
           }
 
           minimapSlider.style.top = `-${panYPixels}px`;
-        });
-      },
+        }),
       {
         threshold: INTERSECTION_THRESHOLDS,
         rootMargin: `-${MINIMAP_CONTAINER_HEIGHT * this.zoomLevel}px 0px 0px 0px`,

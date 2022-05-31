@@ -6,7 +6,7 @@ import {IconChevron} from 'sentry/icons';
 import space from 'sentry/styles/space';
 
 const TOGGLE_BUTTON_MARGIN_RIGHT = 16;
-const TOGGLE_BUTTON_MAX_WIDTH = 30;
+export const TOGGLE_BUTTON_MAX_WIDTH = 30;
 export const TOGGLE_BORDER_BOX = TOGGLE_BUTTON_MAX_WIDTH + TOGGLE_BUTTON_MARGIN_RIGHT;
 const TREE_TOGGLE_CONTAINER_WIDTH = 40;
 
