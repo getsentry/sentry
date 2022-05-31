@@ -438,6 +438,12 @@ class SmartSearchBar extends Component<Props, State> {
     }
   }
 
+  focusInputWithSelection = (startOffset: number, endOffset: number) => {
+    this.searchInput.current?.focus();
+    this.searchInput.current?.setSelectionRange(startOffset, endOffset);
+    this.onInputClick();
+  };
+
   onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     this.doSearch();
@@ -1390,17 +1396,18 @@ class SmartSearchBar extends Component<Props, State> {
         </SearchLabel>
 
         <InputWrapper>
+          {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
           <Highlight>
             {parsedQuery !== null ? (
               <HighlightQuery
                 parsedQuery={parsedQuery}
                 cursorPosition={cursor === -1 ? undefined : cursor}
+                focusInputWithSelection={this.focusInputWithSelection}
               />
             ) : (
               query
             )}
           </Highlight>
-          {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
         </InputWrapper>
 
         <ActionsBar gap={0.5}>
@@ -1520,6 +1527,7 @@ const Highlight = styled('div')`
   line-height: 25px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
+  pointer-events: none;
 `;
 
 const SearchInput = styled(

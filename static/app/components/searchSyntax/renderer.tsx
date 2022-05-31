@@ -14,39 +14,70 @@ type Props = {
    * The result from parsing the search query string
    */
   parsedQuery: ParseResult;
+
   /**
    * The current location of the cursror within the query. This is used to
    * highlight active tokens and trigger error tooltips.
    */
   cursorPosition?: number;
+
+  /**
+   * Focuses on the input with a defined selection. If the input is already focused, only the selection is made.
+   * If not defined, would not be interactive.
+   */
+  focusInputWithSelection?: (startOffset: number, endOffset: number) => void;
 };
 
 /**
  * Renders the parsed query with syntax highlighting.
  */
-export default function HighlightQuery({parsedQuery, cursorPosition}: Props) {
-  const result = renderResult(parsedQuery, cursorPosition ?? -1);
+export default function HighlightQuery({
+  parsedQuery,
+  cursorPosition,
+  focusInputWithSelection,
+}: Props) {
+  const result = renderResult(parsedQuery, cursorPosition ?? -1, focusInputWithSelection);
 
   return <Fragment>{result}</Fragment>;
 }
 
-function renderResult(result: ParseResult, cursor: number) {
+function renderResult(
+  result: ParseResult,
+  cursor: number,
+  focusInputWithSelection?: (startOffset: number, endOffset: number) => void
+) {
   return result
-    .map(t => renderToken(t, cursor))
+    .map(t => renderToken(t, cursor, focusInputWithSelection))
     .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
 }
 
-function renderToken(token: TokenResult<Token>, cursor: number) {
+function renderToken(
+  token: TokenResult<Token>,
+  cursor: number,
+  focusInputWithSelection?: (startOffset: number, endOffset: number) => void
+) {
   switch (token.type) {
     case Token.Spaces:
       return token.value;
 
     case Token.Filter:
-      return <FilterToken filter={token} cursor={cursor} />;
+      return (
+        <FilterToken
+          filter={token}
+          cursor={cursor}
+          focusInputWithSelection={focusInputWithSelection}
+        />
+      );
 
     case Token.ValueTextList:
     case Token.ValueNumberList:
-      return <ListToken token={token} cursor={cursor} />;
+      return (
+        <ListToken
+          token={token}
+          cursor={cursor}
+          focusInputWithSelection={focusInputWithSelection}
+        />
+      );
 
     case Token.ValueNumber:
       return <NumberToken token={token} />;
@@ -58,7 +89,11 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
       return <DateTime>{token.text}</DateTime>;
 
     case Token.LogicGroup:
-      return <LogicGroup>{renderResult(token.inner, cursor)}</LogicGroup>;
+      return (
+        <LogicGroup>
+          {renderResult(token.inner, cursor, focusInputWithSelection)}
+        </LogicGroup>
+      );
 
     case Token.LogicBoolean:
       return <LogicBoolean>{token.value}</LogicBoolean>;
@@ -81,9 +116,11 @@ const shakeAnimation = keyframes`
 const FilterToken = ({
   filter,
   cursor,
+  focusInputWithSelection,
 }: {
   cursor: number;
   filter: TokenResult<Token.Filter>;
+  focusInputWithSelection?: (startOffset: number, endOffset: number) => void;
 }) => {
   const isActive = isWithinToken(filter, cursor);
 
@@ -101,10 +138,11 @@ const FilterToken = ({
     if (!isActive && !hasLeft) {
       setHasLeft(true);
     }
-  }, [isActive]);
+  }, [hasLeft, isActive]);
 
   const showInvalid = hasLeft && !!filter.invalid;
   const showTooltip = showInvalid && isActive;
+  const isInteractive = !!focusInputWithSelection;
 
   const reduceMotion = useReducedMotion();
 
@@ -124,7 +162,7 @@ const FilterToken = ({
     window.requestAnimationFrame(
       () => (style.animation = `${shakeAnimation.name} 300ms`)
     );
-  }, [showInvalid]);
+  }, [reduceMotion, showInvalid]);
 
   return (
     <Tooltip
@@ -134,11 +172,34 @@ const FilterToken = ({
       forceVisible
       skipWrapper
     >
-      <Filter ref={filterElementRef} active={isActive} invalid={showInvalid}>
+      <Filter
+        onMouseDown={e => {
+          if (isInteractive) {
+            e.preventDefault();
+
+            /*
+              We calculate where to place the cursor offset from the position of the filter element and the position of the click event.
+            */
+            const filterLeft =
+              filterElementRef.current?.getBoundingClientRect().left ?? 0;
+            const filterWidth = filterElementRef.current?.offsetWidth ?? 1;
+            const percentage = (e.clientX - filterLeft) / filterWidth;
+            const offsetWidth = filter.location.end.offset - filter.location.start.offset;
+            const finalLocation =
+              filter.location.start.offset + Math.round(percentage * offsetWidth);
+
+            focusInputWithSelection?.(finalLocation, finalLocation);
+          }
+        }}
+        ref={filterElementRef}
+        active={isActive}
+        invalid={showInvalid}
+        isInteractive={isInteractive}
+      >
         {filter.negated && <Negation>!</Negation>}
         <KeyToken token={filter.key} negated={filter.negated} />
         {filter.operator && <Operator>{filter.operator}</Operator>}
-        <Value>{renderToken(filter.value, cursor)}</Value>
+        <Value>{renderToken(filter.value, cursor, focusInputWithSelection)}</Value>
       </Filter>
     </Tooltip>
   );
@@ -167,14 +228,16 @@ const KeyToken = ({
 const ListToken = ({
   token,
   cursor,
+  focusInputWithSelection,
 }: {
   cursor: number;
   token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
+  focusInputWithSelection?: (startOffset: number, endOffset: number) => void;
 }) => (
   <InList>
     {token.items.map(({value, separator}) => [
       <ListComma key="comma">{separator}</ListComma>,
-      value && renderToken(value, cursor),
+      value && renderToken(value, cursor, focusInputWithSelection),
     ])}
   </InList>
 );
@@ -189,6 +252,7 @@ const NumberToken = ({token}: {token: TokenResult<Token.ValueNumber>}) => (
 type FilterProps = {
   active: boolean;
   invalid: boolean;
+  isInteractive: boolean;
 };
 
 const colorType = (p: FilterProps) =>
@@ -196,16 +260,28 @@ const colorType = (p: FilterProps) =>
 
 const Filter = styled('span')<FilterProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
-  --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
+  --token-border-color: ${p => p.theme.searchTokenBorder[colorType(p)]};
   --token-value-color: ${p => (p.invalid ? p.theme.red300 : p.theme.blue300)};
 
   position: relative;
   animation-name: ${shakeAnimation};
+  cursor: ${p => {
+    if (p.isInteractive) {
+      return p.active ? 'text' : 'pointer';
+    }
+
+    return 'auto';
+  }};
+  pointer-events: ${p => (p.active ? 'none' : 'auto')};
+
+  &:hover {
+    opacity: ${p => (p.isInteractive ? '0.7' : 'inherit')};
+  }
 `;
 
 const filterCss = css`
   background: var(--token-bg);
-  border: 0.5px solid var(--token-border);
+  border: 0.5px solid var(--token-border-color);
   padding: ${space(0.25)} 0;
 `;
 
