@@ -7,6 +7,25 @@ from subprocess import CalledProcessError, run
 from tools.lib import gitroot
 
 
+def worker(args: tuple[str, ...]) -> None:
+    # pip-compile doesn't let you customize the header, so we write
+    # one ourselves.
+    assert args[-2] == "-o-"
+    dest = args[-1]
+    try:
+        proc = run(args[:-1], check=True, capture_output=True)
+    except CalledProcessError as e:
+        raise e
+
+    with open(dest, "wb") as f:
+        f.write(
+            b"""# DO NOT MODIFY. This file was generated with `make freeze-requirements`.
+
+"""
+            + proc.stdout
+        )
+
+
 def main() -> int:
     base_path = abspath(gitroot())
     base_cmd = (
@@ -20,38 +39,32 @@ def main() -> int:
     with ThreadPoolExecutor(max_workers=2) as executor:
         futures = (
             # executor.submit(
-            #    run,
+            #    worker,
             #    (
             #        *base_cmd,
             #        f"{base_path}/requirements-base.txt",
-            #        "-o",
+            #        "-o-",
             #        f"{base_path}/requirements-frozen.txt",
             #    ),
-            #    check=True,
-            #    capture_output=True,
             # ),
             executor.submit(
-                run,
+                worker,
                 (
                     *base_cmd,
                     f"{base_path}/requirements-dev.txt",
-                    "-o",
+                    "-o-",
                     f"{base_path}/requirements-dev-only-frozen.txt",
                 ),
-                check=True,
-                capture_output=True,
             ),
             # executor.submit(
-            #    run,
+            #    worker,
             #    (
             #        *base_cmd,
             #        f"{base_path}/requirements-base.txt",
             #        f"{base_path}/requirements-dev.txt",
-            #        "-o",
+            #        "-o-",
             #        f"{base_path}/requirements-dev-frozen.txt",
             #    ),
-            #    check=True,
-            #    capture_output=True,
             # ),
         )
 
