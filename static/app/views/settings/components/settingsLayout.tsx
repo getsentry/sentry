@@ -6,6 +6,7 @@ import Button from 'sentry/components/button';
 import {IconClose, IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn, slideInLeft} from 'sentry/styles/animations';
+import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
 
 import SettingsBreadcrumb from './settingsBreadcrumb';
@@ -165,6 +166,14 @@ const Content = styled('div')`
   flex: 1;
   padding: ${space(4)};
   min-width: 0; /* keep children from stretching container */
+
+  /**
+   * PageContent is not normally used in settings but <PermissionDenied /> uses it under the hood.
+   * This prevents double padding.
+   */
+  ${PageContent} {
+    padding: 0;
+  }
 `;
 
 export default SettingsLayout;
