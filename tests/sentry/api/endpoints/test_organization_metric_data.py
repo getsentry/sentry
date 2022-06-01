@@ -185,8 +185,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         ]
 
     def test_group_by_project(self):
-        p = self.create_project(name="foo")
-        p2 = self.create_project(name="boo")
+        prj_foo = self.create_project(name="foo")
+        prj_boo = self.create_project(name="boo")
 
         for minute in range(2):
             self.store_session(
@@ -199,7 +199,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for minute in range(3):
             self.store_session(
                 self.build_session(
-                    project_id=p.id,
+                    project_id=prj_foo.id,
                     started=(time.time() // 60 - minute) * 60,
                     status="ok",
                 )
@@ -207,7 +207,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         for minute in range(5):
             self.store_session(
                 self.build_session(
-                    project_id=p2.id,
+                    project_id=prj_boo.id,
                     started=(time.time() // 60 - minute) * 60,
                     status="ok",
                 )
@@ -216,15 +216,15 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         response = self.get_response(
             self.project.organization.slug,
             field=["sum(sentry.sessions.session)"],
-            project=[p.id, p2.id, self.project.id],
+            project=[prj_foo.id, prj_boo.id, self.project.id],
             interval="24h",
             statsPeriod="24h",
             groupBy="project",
         )
         assert response.status_code == 200
         expected_output = {
-            p.id: {
-                "by": {"project_id": p.id},
+            prj_foo.id: {
+                "by": {"project_id": prj_foo.id},
                 "series": {"sum(sentry.sessions.session)": [3.0]},
                 "totals": {"sum(sentry.sessions.session)": 3.0},
             },
@@ -233,8 +233,8 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
                 "series": {"sum(sentry.sessions.session)": [2.0]},
                 "totals": {"sum(sentry.sessions.session)": 2.0},
             },
-            p2.id: {
-                "by": {"project_id": p2.id},
+            prj_boo.id: {
+                "by": {"project_id": prj_boo.id},
                 "series": {"sum(sentry.sessions.session)": [5.0]},
                 "totals": {"sum(sentry.sessions.session)": 5.0},
             },

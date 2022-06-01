@@ -155,8 +155,8 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             and input_.lhs.parameters[0].name == "tags[project]"
         ):
             # Special condition as when we send a `project:<slug>` query, discover converter
-            # converts it into it a tags[project]:[<slug>] query, so we want to further process
-            # the lhs to get to its translation of `project_id` but we don't to further resolve
+            # converts it into a tags[project]:[<slug>] query, so we want to further process
+            # the lhs to get to its translation of `project_id` but we don't go further resolve
             # rhs and we just want to extract the project ids from the slugs
             rhs = [p.id for p in Project.objects.filter(slug__in=input_.rhs)]
             return Condition(lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=rhs)
