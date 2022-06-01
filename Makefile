@@ -1,6 +1,9 @@
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 
+freeze-requirements:
+	@python -S -m tools.freeze_requirements
+
 bootstrap \
 develop \
 clean \

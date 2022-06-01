@@ -14,7 +14,7 @@ from sentry.release_health.duplex import (
     ListSet,
     get_sessionsv2_schema,
 )
-from sentry.snuba.sessions_v2 import QueryDefinition
+from sentry.snuba.sessions_v2 import InvalidParams, QueryDefinition
 from sentry.testutils.helpers.features import Feature
 
 
@@ -555,3 +555,24 @@ def test_sessionsv2_config():
             allow_session_status_query=True,
             restrict_date_range=False,
         )
+
+
+@pytest.mark.django_db
+def test_raises_invalid_params(default_organization):
+    """When configured to return metrics, InvalidParams is a valid response that should not be suppressed"""
+    with Feature("organizations:release-health-return-metrics"):
+        backend = DuplexReleaseHealthBackend(datetime(2022, 4, 28, 16, 0, tzinfo=timezone.utc))
+        query = QueryDefinition(
+            query=MultiValueDict(
+                {
+                    "statsPeriod": ["24h"],
+                    "interval": ["1h"],
+                    "field": ["crash_rate(session)"],
+                    "groupBy": ["session.status"],  # Cannot group crash rate by session status
+                }
+            ),
+            params={},
+            query_config=SessionsQueryConfig(AllowedResolution.one_hour, False, True),
+        )
+        with pytest.raises(InvalidParams):
+            backend.run_sessions_query(default_organization.id, query, "")

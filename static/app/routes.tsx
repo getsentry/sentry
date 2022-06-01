@@ -39,22 +39,6 @@ type CustomProps = {
 const Route = BaseRoute as React.ComponentClass<RouteProps & CustomProps>;
 const IndexRoute = BaseIndexRoute as React.ComponentClass<IndexRouteProps & CustomProps>;
 
-/**
- * Use react-router to lazy load a route. Use this for codesplitting containers
- * (e.g. SettingsLayout)
- *
- * The typical method for lazy loading a route leaf node is using the
- * makeLazyloadComponent helper, which uses LazyLoad to codesplit views.
- *
- * For wrapper / layout views react-router handles the route tree better by
- * using getComponent with this lazyLoad helper. If we just use <LazyLoad> it
- * will end up having to re-render more components than necessary.
- */
-const lazyLoad =
-  (load: () => Promise<any>): RouteProps['getComponent'] =>
-  (_loc, cb) =>
-    load().then(module => cb(null, module.default));
-
 const hook = (name: HookName) => HookStore.get(name).map(cb => cb());
 
 const SafeLazyLoad = errorHandler(LazyLoad);
@@ -72,9 +56,12 @@ type ComponentType = React.ComponentType<any>;
 export function makeLazyloadComponent<C extends ComponentType>(
   resolve: () => PromisedImport<C>
 ) {
-  return (componentProps: React.ComponentProps<C>) => {
-    return <SafeLazyLoad component={resolve} {...componentProps} />;
+  // XXX: Assign the component to a variable so it has a displayname
+  const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
+    return <SafeLazyLoad {...props} component={resolve} />;
   };
+
+  return RouteLazyLoad;
 }
 
 // Shorthand to avoid extra line wrapping
@@ -102,13 +89,6 @@ function buildRoutes() {
   //   errorHandler wrapped version). This means the rendered component for the
   //   route will only be loaded when the route is loaded. This helps us
   //   "code-split" the app.
-  //
-  // * The `lazyLoad` function
-  //
-  //   This function is to be used with `getComponent`. It is used for
-  //   container component routes for performances reasons. See the
-  //   documentation on the function for more details.
-  //
   //
   // ## Hooks
   //
@@ -185,7 +165,7 @@ function buildRoutes() {
       />
       <Route
         path="/extensions/:integrationSlug/link/"
-        getComponent={lazyLoad(() => import('sentry/views/integrationOrganizationLink'))}
+        component={make(() => import('sentry/views/integrationOrganizationLink'))}
       />
       <Route
         path="/sentry-apps/:sentryAppSlug/external-install/"
@@ -230,7 +210,7 @@ function buildRoutes() {
     <Route
       path="account/"
       name={t('Account')}
-      getComponent={lazyLoad(
+      component={make(
         () => import('sentry/views/settings/account/accountSettingsLayout')
       )}
     >
@@ -361,7 +341,7 @@ function buildRoutes() {
     <Route
       path="projects/:projectId/"
       name={t('Project')}
-      getComponent={lazyLoad(
+      component={make(
         () => import('sentry/views/settings/project/projectSettingsLayout')
       )}
     >
@@ -481,9 +461,9 @@ function buildRoutes() {
         <Route path=":filterType/" />
       </Route>
       <Route
-        path="filters-and-sampling/"
-        name={t('Filters & Sampling')}
-        component={make(() => import('sentry/views/settings/project/filtersAndSampling'))}
+        path="sampling/"
+        name={t('Sampling')}
+        component={make(() => import('sentry/views/settings/project/sampling'))}
       />
       <Route
         path="issue-grouping/"
@@ -584,7 +564,7 @@ function buildRoutes() {
 
   const orgSettingsRoutes = (
     <Route
-      getComponent={lazyLoad(
+      component={make(
         () => import('sentry/views/settings/organization/organizationSettingsLayout')
       )}
     >
@@ -842,9 +822,7 @@ function buildRoutes() {
 
   const settingsRoutes = (
     <Route path="/settings/" name={t('Settings')} component={SettingsWrapper}>
-      <IndexRoute
-        getComponent={lazyLoad(() => import('sentry/views/settings/settingsIndex'))}
-      />
+      <IndexRoute component={make(() => import('sentry/views/settings/settingsIndex'))} />
       {accountSettingsRoutes}
       <Route name={t('Organization')} path=":orgId/">
         {orgSettingsRoutes}
