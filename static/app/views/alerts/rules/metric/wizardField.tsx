@@ -158,7 +158,6 @@ export default function WizardField({
     <FormField {...fieldProps}>
       {({onChange, value: aggregate, model, disabled}) => {
         const dataset: Dataset = model.getValue('dataset');
-        const eventTypes = [...(model.getValue('eventTypes') ?? [])];
 
         const selectedTemplate =
           alertType === 'custom'
@@ -167,8 +166,7 @@ export default function WizardField({
                 AlertWizardRuleTemplates,
                 template =>
                   matchTemplateAggregate(template, aggregate) &&
-                  matchTemplateDataset(template, dataset) &&
-                  eventTypes.includes(template.eventTypes)
+                  matchTemplateDataset(template, dataset)
               ) || 'num_errors';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
