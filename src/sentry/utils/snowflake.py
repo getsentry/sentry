@@ -79,14 +79,11 @@ def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> Tu
     for i in range(int(_TTL.total_seconds())):
         timestamp = starting_timestamp - i
 
-        sequence_value = cluster.get(str(timestamp))
-
-        if not sequence_value:
-            sequence_value = 0
-            cluster.setex(timestamp, int(_TTL.total_seconds()), sequence_value)
-            return timestamp, sequence_value
-
         sequence_value = cluster.incr(timestamp)
+        sequence_value -= 1
+
+        if sequence_value == 0:
+            cluster.expire(timestamp, int(_TTL.total_seconds()))
 
         if sequence_value < (1 << REGION_SEQUENCE.length):
             return timestamp, sequence_value
