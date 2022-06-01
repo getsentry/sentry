@@ -121,7 +121,9 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
         return set()
 
 
-def _last_seen_updater_processing_factory(max_batch_size, max_batch_time):
+def _last_seen_updater_processing_factory(
+    max_batch_size: int, max_batch_time: float
+) -> KafkaConsumerStrategyFactory:
     return KafkaConsumerStrategyFactory(
         max_batch_time=max_batch_time,
         max_batch_size=max_batch_size,
