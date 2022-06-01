@@ -105,7 +105,12 @@ function FrameStack(props: FrameStackProps) {
         </li>
         <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />
       </FrameTabs>
-      <FrameStackTable {...props} roots={roots ?? []} referenceNode={selectedNode} />
+      <FrameStackTable
+        {...props}
+        roots={roots ?? []}
+        referenceNode={selectedNode}
+        canvasPoolManager={props.canvasPoolManager}
+      />
     </FrameDrawer>
   ) : null;
 }
