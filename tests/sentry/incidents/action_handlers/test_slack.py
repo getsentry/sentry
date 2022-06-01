@@ -60,7 +60,9 @@ class SlackActionHandlerTest(FireTest, TestCase):
         slack_body = SlackIncidentsMessageBuilder(
             incident, IncidentStatus(incident.status), metric_value, chart_url
         ).build()
-        assert json.loads(data["attachments"][0])[0]["blocks"] == slack_body["blocks"]
+        attachments = json.loads(data["attachments"][0])
+        assert attachments[0]["color"] == slack_body["color"]
+        assert attachments[0]["blocks"] == slack_body["blocks"]
         assert data["text"][0] == slack_body["text"]
 
     def test_fire_metric_alert(self):
@@ -121,7 +123,9 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         slack_body = SlackIncidentsMessageBuilder(
             incident, IncidentStatus(incident.status), metric_value
         ).build()
-        assert json.loads(data["attachments"][0])[0]["blocks"] == slack_body["blocks"]
+        attachments = json.loads(data["attachments"][0])
+        assert attachments[0]["color"] == slack_body["color"]
+        assert attachments[0]["blocks"] == slack_body["blocks"]
         assert data["text"][0] == slack_body["text"]
 
     def test_fire_metric_alert(self):
