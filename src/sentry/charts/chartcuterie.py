@@ -57,7 +57,7 @@ class Chartcuterie(ChartRenderer):
     ) -> Union[str, bytes]:
         request_id = uuid4().hex
 
-        data = {
+        payload = {
             "requestId": request_id,
             "style": style.value,
             "data": data,
@@ -65,7 +65,7 @@ class Chartcuterie(ChartRenderer):
 
         # Override the default size defined by the chart style
         if size:
-            data.update(size)
+            payload.update(size)
 
         with sentry_sdk.start_span(
             op="charts.chartcuterie.generate_chart",
@@ -75,7 +75,7 @@ class Chartcuterie(ChartRenderer):
             # Using sentry json formatter to handle datetime objects
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
-                data=json.dumps(data, cls=json._default_encoder),
+                data=json.dumps(payload, cls=json._default_encoder),
                 headers={"Content-Type": "application/json"},
             )
 
