@@ -3,13 +3,13 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import useAsync from 'sentry/utils/useAsync';
+import useApiRequests from 'sentry/utils/useApiRequests';
 import {RouteContext} from 'sentry/views/routeContext';
 
-describe('useAsync', () => {
+describe('useApiRequests', () => {
   describe('error handling', () => {
     function HomePage() {
-      const {renderComponent, data} = useAsync({
+      const {renderComponent, data} = useApiRequests({
         endpoints: [['message', '/some/path/to/something/']],
         shouldRenderBadRequests: true,
       });
@@ -17,7 +17,7 @@ describe('useAsync', () => {
     }
 
     function UniqueErrorsAsyncComponent() {
-      const {renderComponent, data} = useAsync({
+      const {renderComponent, data} = useApiRequests({
         endpoints: [
           ['first', '/first/path/'],
           ['second', '/second/path/'],
@@ -136,7 +136,7 @@ describe('useAsync', () => {
       const mockOnAllEndpointsSuccess = jest.fn();
 
       function MultiRouteComponent() {
-        const {remainingRequests} = useAsync({
+        const {remainingRequests} = useApiRequests({
           endpoints: [
             ['data', '/some/path/to/something/'],
             ['project', '/another/path/here'],

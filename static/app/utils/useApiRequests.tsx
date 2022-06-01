@@ -87,7 +87,7 @@ type MetricsState = {
   hasMeasured: boolean;
 };
 
-function useAsync({
+function useApiRequests({
   endpoints = [],
   reloadOnVisible = false,
   shouldReloadOnVisible = false,
@@ -143,7 +143,7 @@ function useAsync({
       api.clear();
       document.removeEventListener('visibilitychange', visibilityReloader);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Take a measurement from when this component is initially created until it finishes it's first
@@ -160,15 +160,15 @@ function useAsync({
       });
       setMeasurement({...measurement, hasMeasured: true});
     }
-  }, [measurement]);
+  }, [measurement, routes]);
 
-  useEffect(() => void remountComponent(), [location.search, location.state, params]);
+  useEffect(() => void remountComponent(), [location.search, location.state, params]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (endpoints.length && state.remainingRequests === 0 && !state.hasError) {
       onLoadAllEndpointsSuccess();
     }
-  }, [state.remainingRequests, state.hasError]);
+  }, [state.remainingRequests, state.hasError, endpoints.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check if we should measure render time for this component
   function markShouldMeasure({
@@ -234,7 +234,7 @@ function useAsync({
       Sentry.addBreadcrumb({
         message: error.responseText,
         category: 'xhr',
-        level: Sentry.Severity.Error,
+        level: 'error',
       });
     }
     setState(prevState => {
@@ -377,4 +377,4 @@ function useAsync({
   };
 }
 
-export default useAsync;
+export default useApiRequests;
