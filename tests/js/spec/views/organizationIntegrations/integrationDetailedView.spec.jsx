@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import IntegrationDetailedView from 'sentry/views/organizationIntegrations/integrationDetailedView';
@@ -14,7 +14,6 @@ const mockResponse = mocks => {
 
 describe('IntegrationDetailedView', function () {
   const org = TestStubs.Organization();
-  let wrapper;
 
   beforeEach(() => {
     Client.clearMockResponses();
@@ -80,28 +79,30 @@ describe('IntegrationDetailedView', function () {
         ],
       ],
     ]);
+  });
 
-    wrapper = mountWithTheme(
+  it('shows integration name, status, and install button', function () {
+    render(
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}
         location={{query: {}}}
       />
     );
+    expect(screen.getByText('Bitbucket')).toBeInTheDocument();
+    expect(screen.getByText('Installed')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
   });
-  it('shows the Integration name and install status', async function () {
-    expect(wrapper.find('Name').props().children).toEqual('Bitbucket');
-    expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
-  });
-  it('shows the Add Installation button', async function () {
-    expect(wrapper.find('AddIntegrationButton').props().disabled).toEqual(false);
-  });
+
   it('view configurations', async function () {
-    wrapper = mountWithTheme(
+    render(
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}
         location={{query: {tab: 'configurations'}}}
       />
     );
-    expect(wrapper.find('InstallWrapper')).toHaveLength(1);
+
+    expect(screen.getByTestId('integration-name')).toHaveTextContent(
+      '{fb715533-bbd7-4666-aa57-01dc93dd9cc0}'
+    );
   });
 });

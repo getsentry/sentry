@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {RequestOptions} from 'sentry/api';
@@ -7,6 +6,7 @@ import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Button from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
+import {Panel, PanelItem} from 'sentry/components/panels';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
@@ -258,34 +258,25 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             {alertText}
           </Alert>
         )}
-        {configurations.map(integration => (
-          <InstallWrapper key={integration.id}>
-            <InstalledIntegration
-              organization={organization}
-              provider={provider}
-              integration={integration}
-              onRemove={this.onRemove}
-              onDisable={this.onDisable}
-              data-test-id={integration.id}
-              trackIntegrationAnalytics={this.trackIntegrationAnalytics}
-              requiresUpgrade={!!alertText}
-            />
-          </InstallWrapper>
-        ))}
+        <Panel>
+          {configurations.map(integration => (
+            <PanelItem key={integration.id}>
+              <InstalledIntegration
+                organization={organization}
+                provider={provider}
+                integration={integration}
+                onRemove={this.onRemove}
+                onDisable={this.onDisable}
+                data-test-id={integration.id}
+                trackIntegrationAnalytics={this.trackIntegrationAnalytics}
+                requiresUpgrade={!!alertText}
+              />
+            </PanelItem>
+          ))}
+        </Panel>
       </Fragment>
     );
   }
 }
-
-const InstallWrapper = styled('div')`
-  padding: ${space(2)};
-  border: 1px solid ${p => p.theme.border};
-  border-bottom: none;
-  background-color: ${p => p.theme.background};
-
-  &:last-child {
-    border-bottom: 1px solid ${p => p.theme.border};
-  }
-`;
 
 export default withOrganization(IntegrationDetailedView);
