@@ -299,7 +299,7 @@ class QueryDefinition:
         for i, field in enumerate(self.fields.values()):
             columns = field.get_snuba_columns(raw_groupby)
             if i == 0 or field == "sum(session)":  # Prefer first, but sum(session) always wins
-                self.primary_column = columns[0]  # Will be used in order by
+                self.primary_column = columns[i]  # Will be used in order by
             query_columns.update(columns)
         for groupby in self.groupby:
             query_columns.update(groupby.get_snuba_columns())

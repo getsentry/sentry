@@ -936,7 +936,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert result_sorted(response.data)["groups"] == [
+        assert response.data["groups"] == [
             {
                 "by": {"release": "foo@1.0.0"},
                 "series": {"count_unique(user)": [0], "sum(session)": [3]},
