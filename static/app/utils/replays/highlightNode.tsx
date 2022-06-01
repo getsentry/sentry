@@ -5,15 +5,25 @@ const DEFAULT_HIGHLIGHT_COLOR = 'rgba(168, 196, 236, 0.75)';
 const highlightsByNodeId: Map<number, {canvas: HTMLCanvasElement}> = new Map();
 
 interface AddHighlightParams {
-  annotation: string;
   nodeId: number;
   replayer: Replayer;
+  annotation?: string;
   color?: string;
 }
 
 interface RemoveHighlightParams {
   nodeId: number;
   replayer: Replayer;
+}
+
+interface ClearAllHighlightsParams {
+  replayer: Replayer;
+}
+
+export function clearAllHighlights({replayer}: ClearAllHighlightsParams) {
+  for (const nodeId of highlightsByNodeId.keys()) {
+    removeHighlightedNode({replayer, nodeId});
+  }
 }
 
 /**
@@ -42,7 +52,12 @@ export function removeHighlightedNode({replayer, nodeId}: RemoveHighlightParams)
 /**
  * Attempt to highlight the node inside of a replay recording
  */
-export function highlightNode({replayer, nodeId, annotation, color}: AddHighlightParams) {
+export function highlightNode({
+  replayer,
+  nodeId,
+  annotation = '',
+  color,
+}: AddHighlightParams) {
   // @ts-expect-error mouseTail is private
   const {mouseTail, wrapper} = replayer;
   const mirror = replayer.getMirror();
@@ -51,7 +66,7 @@ export function highlightNode({replayer, nodeId, annotation, color}: AddHighligh
   // TODO(replays): There is some sort of race condition here when you "rewind" a replay,
   // mirror will be empty and highlight does not get added because node is null
   if (!node || !replayer.iframe.contentDocument?.body?.contains(node)) {
-    return {canvas: null};
+    return null;
   }
 
   // @ts-ignore This builds locally, but fails in CI -- ignoring for now
@@ -67,7 +82,7 @@ export function highlightNode({replayer, nodeId, annotation, color}: AddHighligh
   const ctx = canvas.getContext('2d');
 
   if (!ctx) {
-    return {canvas: null};
+    return null;
   }
 
   // TODO(replays): Does not account for scrolling (should we attempt to keep highlight visible, or does it disappear)

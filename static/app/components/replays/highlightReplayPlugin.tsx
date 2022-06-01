@@ -77,13 +77,13 @@ class HighlightReplayPlugin {
 
     const highlightObj = event.data;
 
-    const {canvas} = highlightNode({
+    const highlightResult = highlightNode({
       replayer,
       nodeId: highlightObj.nodeId,
       annotation: highlightObj.text,
     });
 
-    if (!canvas) {
+    if (!highlightResult) {
       return;
     }
 
