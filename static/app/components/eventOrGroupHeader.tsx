@@ -186,7 +186,7 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
       : css`
           > a:first-child {
             display: flex;
-            height: ${space(3)};
+            min-height: ${space(3)};
           }
         `}
 `;
