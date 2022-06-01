@@ -29,7 +29,7 @@ import {
   SentryApp,
   SentryAppInstallation,
 } from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import {
   getAlertText,
@@ -503,13 +503,10 @@ export class IntegrationListDirectory extends AsyncComponent<
                   <ExternalLink
                     href="https://docs.sentry.io/product/integrations/integration-platform/#example-app"
                     onClick={() => {
-                      trackAdvancedAnalyticsEvent(
-                        'ecosystem.integration_platform_example_docs_clicked',
-                        {
-                          organization,
-                          view: 'integrations_directory',
-                        }
-                      );
+                      trackIntegrationAnalytics(PlatformEvents.EXAMPLE_DOCS, {
+                        organization,
+                        view: 'integrations_directory',
+                      });
                     }}
                   />
                 ),

@@ -12,7 +12,8 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
@@ -184,13 +185,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
                     <ExternalLink
                       href="https://docs.sentry.io/product/integrations/integration-platform/#example-app"
                       onClick={() => {
-                        trackAdvancedAnalyticsEvent(
-                          'ecosystem.integration_platform_example_docs_clicked',
-                          {
-                            organization,
-                            view: 'developer_settings',
-                          }
-                        );
+                        trackIntegrationAnalytics(PlatformEvents.EXAMPLE_DOCS, {
+                          organization,
+                          view: 'developer_settings',
+                        });
                       }}
                     />
                   ),
@@ -214,13 +212,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
                 href="https://github.com/getsentry/integration-platform-example/"
                 style={{marginRight: space(1)}}
                 onClick={() => {
-                  trackAdvancedAnalyticsEvent(
-                    'ecosystem.integration_platform_example_source_code_clicked',
-                    {
-                      organization,
-                      view: 'developer_settings',
-                    }
-                  );
+                  trackIntegrationAnalytics(PlatformEvents.EXAMPLE_SOURCE, {
+                    organization,
+                    view: 'developer_settings',
+                  });
                 }}
               >
                 {t('View Example')}

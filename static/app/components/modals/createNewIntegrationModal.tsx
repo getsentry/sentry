@@ -14,7 +14,7 @@ export type CreateNewIntegrationModalOptions = {
 
 type Props = ModalRenderProps & CreateNewIntegrationModalOptions;
 
-function CreateNewIntegration({Body, Header, Footer, closeModal, orgSlug}: Props) {
+function CreateNewIntegrationModal({Body, Header, Footer, closeModal, orgSlug}: Props) {
   const [option, selectOption] = useState('internal');
   const choices = [
     [
@@ -101,4 +101,4 @@ const RadioChoiceDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.6em;
 `;
-export default CreateNewIntegration;
+export default CreateNewIntegrationModal;
