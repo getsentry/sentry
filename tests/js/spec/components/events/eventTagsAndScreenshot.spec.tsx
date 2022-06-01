@@ -1,8 +1,10 @@
+import {Fragment} from 'react';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import ModalActions from 'sentry/actions/modalActions';
 import EventTagsAndScreenshot from 'sentry/components/events/eventTagsAndScreenshot';
+import GlobalModal from 'sentry/components/globalModal';
 import {EventAttachment} from 'sentry/types';
 
 import {deviceNameMapper} from '../../../../../static/app/components/deviceName';
@@ -261,18 +263,19 @@ describe('EventTagsAndScreenshot', function () {
     });
 
     it('no context and no tags', async function () {
-      const screenshotModal = jest.spyOn(ModalActions, 'openModal');
-
       const {container} = render(
-        <EventTagsAndScreenshot
-          event={event}
-          organization={organization}
-          projectId={project.slug}
-          location={router.location}
-          attachments={attachments}
-          onDeleteScreenshot={() => jest.fn()}
-          hasContext={false}
-        />
+        <Fragment>
+          <GlobalModal />
+          <EventTagsAndScreenshot
+            event={event}
+            organization={organization}
+            projectId={project.slug}
+            location={router.location}
+            attachments={attachments}
+            onDeleteScreenshot={() => jest.fn()}
+            hasContext={false}
+          />
+        </Fragment>
       );
 
       // Tags Container
@@ -298,8 +301,13 @@ describe('EventTagsAndScreenshot', function () {
       // Screenshot is clickable
       userEvent.click(screen.getByRole('img'));
 
-      // Open modal
-      expect(screenshotModal).toHaveBeenCalled();
+      // Open 'view screenshot' dialog
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('dialog')).getByText('Screenshot')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByLabelText('Close Modal'));
 
       expect(container).toSnapshot();
     });
