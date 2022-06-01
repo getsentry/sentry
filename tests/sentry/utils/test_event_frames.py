@@ -301,6 +301,66 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
         )
 
 
+class ReactNativeFilenameMungingTestCase(TestCase):
+    def test_simple(self):
+        frames = [
+            {
+                "function": "callFunctionReturnFlushedQueue",
+                "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+                "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                "lineno": 115,
+                "colno": 5,
+                "pre_context": [
+                    "  callFunctionReturnFlushedQueue(",
+                    "    module: string,",
+                    "    method: string,",
+                    "    args: mixed[],",
+                    "  ): null | [Array<number>, Array<number>, Array<mixed>, number] {",
+                ],
+                "context_line": "    this.__guard(() => {",
+                "post_context": [
+                    "      this.__callFunction(module, method, args);",
+                    "    });",
+                    "",
+                    "    return this.flushedQueue();",
+                    "  }",
+                ],
+                "in_app": False,
+                "data": {"sourcemap": "app:///main.jsbundle.map"},
+            },
+            {"function": "apply", "filename": "native", "abs_path": "native", "in_app": True},
+            {
+                "function": "onPress",
+                "module": "src/screens/EndToEndTestsScreen",
+                "filename": "src/screens/EndToEndTestsScreen.tsx",
+                "abs_path": "app:///src/screens/EndToEndTestsScreen.tsx",
+                "lineno": 57,
+                "colno": 11,
+                "pre_context": [
+                    "        }}>",
+                    "        throw new Error",
+                    "      </Text>",
+                    "      <Text",
+                    "        onPress={() => {",
+                ],
+                "context_line": "          new Promise(() => {",
+                "post_context": [
+                    "            throw new Error('Unhandled Promise Rejection');",
+                    "          });",
+                    "        }}",
+                    "        {...getTestProps('unhandledPromiseRejection')}>",
+                    "        Unhandled Promise Rejection",
+                ],
+                "in_app": True,
+                "data": {"sourcemap": "app:///main.jsbundle.map"},
+            },
+        ]
+
+        munged_frames = munged_filename_and_frames("javascript", frames)
+        assert not munged_frames
+
+
 class CocoaWaterFallTestCase(TestCase):
     def test_crashing_event_with_exception_interface_but_no_frame_should_waterfall_to_thread_frames(
         self,
