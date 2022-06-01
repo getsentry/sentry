@@ -124,7 +124,7 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
             # we can't use fixtures with unittest.TestCase
             message = kafka_message(headerless_kafka_payload(mixed_payload()))
-            processing_strategy = self.processing_factory().create(lambda x: print("commit called"))
+            processing_strategy = self.processing_factory().create(lambda x: None)
             processing_strategy.submit(message)
             processing_strategy.poll()
             processing_strategy.join(1)
@@ -141,16 +141,14 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
         with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
             ok_message = kafka_message(headerless_kafka_payload(mixed_payload()))
             bad_message = kafka_message(headerless_kafka_payload(bad_payload()))
-            processing_strategy = self.processing_factory().create(lambda x: print("commit called"))
+            processing_strategy = self.processing_factory().create(lambda x: None)
             processing_strategy.submit(bad_message)
             processing_strategy.submit(ok_message)
             processing_strategy.poll()
             processing_strategy.join(1)
 
         stale_item = StringIndexer.objects.get(id=self.stale_id)
-        # without doing a bunch of mocking around time objects, stale_item.last_seen
-        # should be approximately equal to timezone.now() but they won't be perfectly equal
-        assert (timezone.now() - stale_item.last_seen) < timedelta(seconds=30)
+        assert stale_item.last_seen > self.stale_last_seen
 
 
 class TestFilterMethod:
