@@ -1,13 +1,19 @@
 from __future__ import annotations
 
-from collections import namedtuple
 from copy import deepcopy
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
+from dataclasses import dataclass
+from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Set, Tuple, cast
 
 from sentry.utils.safe import PathSearchable, get_path
 
 FrameMunger = Callable[[str, MutableMapping[str, Any]], bool]
-SdkFrameMunger = namedtuple("SdkFrameMunger", ["frame_munger", "requires_sdk", "supported_sdks"])
+
+
+@dataclass
+class SdkFrameMunger:
+    frame_munger: FrameMunger
+    requires_sdk: bool = False
+    supported_sdks: Set[str] = frozenset()
 
 
 def java_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
@@ -34,12 +40,6 @@ def cocoa_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
     return False
 
 
-def js_react_native_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
-    # intentionally left blank
-    # react-native doesn't need frame munging
-    return False
-
-
 def package_relative_path(abs_path: str, package: str) -> str | None:
     """
     returns the left-biased shortened path relative to the package directory
@@ -57,11 +57,8 @@ def package_relative_path(abs_path: str, package: str) -> str | None:
 
 
 PLATFORM_FRAME_MUNGER: Mapping[str, SdkFrameMunger] = {
-    "java": SdkFrameMunger(java_frame_munger, False, {}),
-    "cocoa": SdkFrameMunger(cocoa_frame_munger, False, {}),
-    "javascript": SdkFrameMunger(
-        js_react_native_frame_munger, True, {"sentry.javascript.react-native"}
-    ),
+    "java": SdkFrameMunger(java_frame_munger),
+    "cocoa": SdkFrameMunger(cocoa_frame_munger),
 }
 
 
@@ -82,7 +79,7 @@ def munged_filename_and_frames(
     otherwise returns None.
     """
     munger = PLATFORM_FRAME_MUNGER.get(platform)
-    if not munger or (munger[1] and sdk_name not in munger[2]):
+    if not munger or (munger.requires_sdk and sdk_name not in munger.supported_sdks):
         return None
 
     copy_frames: Sequence[MutableMapping[str, Any]] = cast(
@@ -90,7 +87,7 @@ def munged_filename_and_frames(
     )
     frames_updated = False
     for frame in copy_frames:
-        frames_updated |= munger[0](key, frame)
+        frames_updated |= munger.frame_munger(key, frame)
     return (key, copy_frames) if frames_updated else None
 
 
