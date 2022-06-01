@@ -2320,8 +2320,13 @@ KAFKA_CLUSTERS = {
 }
 
 # These constants define kafka topic names, as well as keys into `KAFKA_TOPICS`
-# which contains cluster mappings for these topics. When changing or overriding
-# one of these topic names, also add a new mapping to `KAFKA_TOPICS`.
+# which contains cluster mappings for these topics. Follow these steps to
+# override a kafka topic name:
+#
+#  1. Change the value of the `KAFKA_*` constant (e.g. KAFKA_EVENTS).
+#  2. For changes in override files, such as `sentry.conf.py` or in getsentry's
+#     `prod.py`, also override the entirety of `KAFKA_TOPICS` to ensure the keys
+#     pick up the change.
 
 KAFKA_EVENTS = "events"
 # TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
