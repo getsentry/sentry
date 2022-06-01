@@ -58,7 +58,8 @@ function Conditions({
     async function fetchTags() {
       try {
         const response = await api.requestPromise(
-          `/projects/${orgSlug}/${projectSlug}/tags/`
+          `/projects/${orgSlug}/${projectSlug}/tags/`,
+          {query: {onlySamplingTags: 1}}
         );
         setTags(response);
       } catch {
