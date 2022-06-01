@@ -81,7 +81,7 @@ describe('IntegrationDetailedView', function () {
     ]);
   });
 
-  it('shows integration name, status, and install button', async function () {
+  it('shows integration name, status, and install button', function () {
     render(
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}
