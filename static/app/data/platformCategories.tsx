@@ -26,6 +26,7 @@ export const popularPlatformCategories = [
   'apple-ios',
   'flutter',
   'dart-flutter',
+  'unity',
 ] as const;
 
 export const frontend = [
