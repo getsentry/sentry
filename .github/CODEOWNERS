@@ -67,7 +67,7 @@ webpack.config.*    @getsentry/owners-js-build
 babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
 package.json        @getsentry/owners-js-deps
-yarn.lock        @getsentry/owners-js-deps
+yarn.lock           @getsentry/owners-js-deps
 
 # Design
 /static/app/icons/    @getsentry/design
