@@ -590,7 +590,7 @@ CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
 # 4. `src/sentry/event_manager.py:_get_or_create_release_many` we have `set_tag`.
 #
 # Note:
-# should be sorted alphabetically for easy to maintanin in future
+# should be sorted alphabetically so that it is easy to maintain in future
 # if you update this list please add explanation or source of it
 DS_DENYLIST = frozenset(
     [
