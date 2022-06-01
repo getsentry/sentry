@@ -72,9 +72,12 @@ type ComponentType = React.ComponentType<any>;
 export function makeLazyloadComponent<C extends ComponentType>(
   resolve: () => PromisedImport<C>
 ) {
-  return (componentProps: React.ComponentProps<C>) => {
-    return <SafeLazyLoad component={resolve} {...componentProps} />;
+  // XXX: Assign the component to a variable so it has a displayname
+  const RouteLazyLoad: React.FC<React.ComponentProps<C>> = props => {
+    return <SafeLazyLoad {...props} component={resolve} />;
   };
+
+  return RouteLazyLoad;
 }
 
 // Shorthand to avoid extra line wrapping
@@ -954,9 +957,7 @@ function buildRoutes() {
         />
         <Route
           path=":projectId/"
-          getComponent={lazyLoad(
-            () => import('sentry/views/alerts/builder/projectProvider')
-          )}
+          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
         >
           <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
           <Route
@@ -979,9 +980,7 @@ function buildRoutes() {
         <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
         <Route
           path=":projectId/"
-          getComponent={lazyLoad(
-            () => import('sentry/views/alerts/builder/projectProvider')
-          )}
+          component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
         >
           <IndexRedirect to="/organizations/:orgId/alerts/rules/" />
           <Route
@@ -992,17 +991,13 @@ function buildRoutes() {
       </Route>
       <Route
         path="wizard/"
-        getComponent={lazyLoad(
-          () => import('sentry/views/alerts/builder/projectProvider')
-        )}
+        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
       >
         <IndexRoute component={make(() => import('sentry/views/alerts/wizard'))} />
       </Route>
       <Route
         path="new/"
-        getComponent={lazyLoad(
-          () => import('sentry/views/alerts/builder/projectProvider')
-        )}
+        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
       >
         <IndexRedirect to="/organizations/:orgId/alerts/wizard/" />
         <Route
@@ -1016,9 +1011,7 @@ function buildRoutes() {
       />
       <Route
         path=":projectId/"
-        getComponent={lazyLoad(
-          () => import('sentry/views/alerts/builder/projectProvider')
-        )}
+        component={make(() => import('sentry/views/alerts/builder/projectProvider'))}
       >
         <Route path="new/" component={make(() => import('sentry/views/alerts/create'))} />
         <Route
