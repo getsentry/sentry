@@ -3,7 +3,6 @@ import functools
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models import Activity, Commit, Group, PullRequest
-from sentry.utils.compat import zip
 from sentry.utils.functional import apply_values
 
 
@@ -25,9 +24,6 @@ class ActivitySerializer(Serializer):
                 c.id: d
                 for c, d in zip(
                     commit_list,
-                    # serialize with just commits and no associated releases
-                    # serialize(commit_list, user, serializer=CommitSerializer()),
-                    # serialize with commit with any associated releases
                     serialize(commit_list, user, serializer=CommitWithReleaseSerializer()),
                 )
             }

@@ -141,13 +141,13 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
               author,
             });
       case GroupActivityType.SET_RESOLVED_IN_COMMIT:
-        const deployed_releases: Array<BaseRelease> = [];
-        for (const release of activity.data.commit.releases) {
+        const deployedReleases: Array<BaseRelease> = [];
+        for (const release of activity.data.commit?.releases) {
           if (release.dateReleased !== null) {
-            deployed_releases.push(release);
+            deployedReleases.push(release);
           }
         }
-        if (deployed_releases.length !== 0) {
+        if (deployedReleases.length !== 0) {
           return tct(
             '[author] marked this issue as resolved in [version]\n' +
               'This commit was released in [release]',
@@ -162,7 +162,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
               ),
               release: (
                 <Version
-                  version={deployed_releases[0].version}
+                  version={deployedReleases[0].version}
                   projectId={projectId}
                   tooltipRawVersion
                 />

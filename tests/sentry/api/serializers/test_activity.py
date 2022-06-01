@@ -60,7 +60,8 @@ class GroupActivityTestCase(TestCase):
         group = self.create_group(project)
         user = self.create_user()
         release = self.create_release(project=project, user=user)
-        commit = Commit.objects.filter(releasecommit__id=release.id).get()
+        release.save()
+        commit = Commit.objects.filter(releasecommit__release_id=release.id).get()
 
         Activity.objects.create(
             project_id=project.id,
@@ -80,7 +81,7 @@ class GroupActivityTestCase(TestCase):
         self.org = self.create_organization(name="komal-test")
         project = self.create_project(name="random-proj")
         user = self.create_user()
-        repo = self.create_repo(self.project, name="idk-org")
+        repo = self.create_repo(self.project, name="idk-repo")
         group = self.create_group(project)
 
         commit = Commit.objects.create(organization_id=self.org.id, repository_id=repo.id)
@@ -107,7 +108,7 @@ class GroupActivityTestCase(TestCase):
         release = self.create_release(project=project, user=user)
         release.date_released = None
         release.save()
-        commit = Commit.objects.filter(releasecommit__id=release.id).get()
+        commit = Commit.objects.filter(releasecommit__release_id=release.id).get()
 
         Activity.objects.create(
             project_id=project.id,
