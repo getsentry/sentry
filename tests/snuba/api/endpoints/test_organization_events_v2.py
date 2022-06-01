@@ -1,3 +1,4 @@
+import math
 from base64 import b64encode
 from unittest import mock
 
@@ -523,6 +524,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 403, response.content
 
         assert response.data["detail"] == "You do not have permission to perform this action."
+
+    def test_team_is_nan(self):
+        query = {"field": ["id"], "project": [self.project.id], "team": [math.nan]}
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+        assert response.data["detail"] == "Invalid Team ID: nan"
 
     def test_comparison_operators_on_numeric_field(self):
         project = self.create_project()
@@ -6454,6 +6462,13 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.data["detail"] == "You do not have permission to perform this action."
 
+    def test_team_is_nan(self):
+        query = {"field": ["id"], "project": [self.project.id], "team": [math.nan]}
+        response = self.do_request(query)
+        assert response.status_code == 400, response.content
+
+        assert response.data["detail"] == "Invalid Team ID: nan"
+
     def test_comparison_operators_on_numeric_field(self):
         project = self.create_project()
         event = self.store_event(
@@ -10946,6 +10961,20 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["p95"] == "<5k"
+
+    def test_chained_or_query_meta_tip(self):
+        query = {
+            "field": ["transaction"],
+            "query": "transaction:a OR transaction:b",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["tips"] == {
+            "query": "Did you know you can replace chained or conditions like `field:a OR field:b OR field:c` with `field:[a,b,c]`",
+            "columns": None,
+        }
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPerformanceTestCase):

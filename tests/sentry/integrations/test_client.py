@@ -105,6 +105,42 @@ class ApiClientTest(TestCase):
         ApiClient().head_cached("http://example.com", params={"param": "different"})
         assert len(responses.calls) == 2
 
+    @responses.activate
+    def test_default_redirect_behaviour(self):
+        destination_url = "http://example.com/destination"
+        destination_status = 202
+        destination_headers = {"Location": destination_url}
+
+        responses.add(responses.GET, destination_url, status=destination_status, json={})
+        responses.add(responses.DELETE, destination_url, status=destination_status, json={})
+
+        responses.add(
+            responses.GET, "http://example.com/1", status=301, headers=destination_headers
+        )
+        resp = ApiClient().get("http://example.com/1")
+        assert resp.status_code == destination_status
+
+        # By default, non GET requests are not allowed to redirect
+        responses.add(
+            responses.DELETE,
+            "http://example.com/2",
+            status=301,
+            headers=destination_headers,
+            json={},
+        )
+        resp = ApiClient().delete("http://example.com/2")
+        assert resp.status_code == 301
+
+        responses.add(
+            responses.DELETE,
+            "http://example.com/3",
+            status=301,
+            headers=destination_headers,
+            json={},
+        )
+        resp = ApiClient().delete("http://example.com/3", allow_redirects=True)
+        assert resp.status_code == destination_status
+
 
 class OAuthProvider(OAuth2Provider):
     key = "oauth"
