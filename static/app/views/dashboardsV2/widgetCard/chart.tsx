@@ -25,7 +25,7 @@ import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {EChartDataZoomHandler, EChartEventHandler} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
-import {getFieldFormatter, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getFieldFormatter} from 'sentry/utils/discover/fieldRenderers';
 import {
   getAggregateArg,
   getEquation,
@@ -39,6 +39,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
+import {DatasetConfig, getDatasetConfig} from '../datasetConfigs/base';
 import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
@@ -85,13 +86,23 @@ type WidgetCardChartProps = Pick<
 };
 
 type State = {
+  config: DatasetConfig;
   // For tracking height of the container wrapping BigNumber widgets
   // so we can dynamically scale font-size
   containerHeight: number;
 };
 
 class WidgetCardChart extends Component<WidgetCardChartProps, State> {
-  state = {containerHeight: 0};
+  constructor(props) {
+    const {
+      widget: {widgetType},
+    } = props;
+    super(props);
+    this.state = {
+      containerHeight: 0,
+      config: getDatasetConfig(widgetType),
+    };
+  }
 
   shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
     if (
@@ -128,10 +139,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     errorMessage,
     tableResults,
   }: TableResultProps): React.ReactNode {
+    const {config} = this.state;
     const {location, widget, organization, selection} = this.props;
-    const isAlias =
-      !organization.features.includes('discover-frontend-use-events-endpoint') &&
-      widget.widgetType !== WidgetType.RELEASE;
+    // TODO: Need a way to pass along organization to these configs so we can check feature flags
+    // const isAlias =
+    //   !organization.features.includes('discover-frontend-use-events-endpoint') &&
+    //   widget.widgetType !== WidgetType.RELEASE;
     if (errorMessage) {
       return (
         <StyledErrorPanel>
@@ -169,7 +182,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           data={result.data}
           organization={organization}
           stickyHeaders
-          getCustomFieldRenderer={(field, meta) => getFieldRenderer(field, meta, isAlias)}
+          getCustomFieldRenderer={config.customFieldRenderer}
         />
       );
     });
