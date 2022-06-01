@@ -602,7 +602,6 @@ DS_DENYLIST = frozenset(
         "browser.name",
         "device",
         "device.family",
-        "dist",
         "environment",
         "gpu.name",
         "gpu.vendor",
@@ -615,11 +614,12 @@ DS_DENYLIST = frozenset(
         "os",
         "os.name",
         "os.rooted",
-        "release",
         "runtime",
         "runtime.name",
+        "sentry:dist",
+        "sentry:release",
+        "sentry:user",
         "transaction",
         "url",
-        "user",
     ]
 )

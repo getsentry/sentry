@@ -213,12 +213,11 @@ class TagStorageTest(TestCase, SnubaTestCase):
         assert set(keys) == expected_keys
 
     def test_get_tag_keys_removed_from_denylist(self):
-        denylist_keys = frozenset(["browser"])
+        denylist_keys = frozenset(["browser", "sentry:release"])
         expected_keys = {
             "baz",
             "environment",
             "foo",
-            "sentry:release",
             "sentry:user",
             "level",
         }
@@ -235,7 +234,7 @@ class TagStorageTest(TestCase, SnubaTestCase):
                 project_id=self.proj1.id, environment_id=self.proj1env1.id
             )
         }
-        expected_keys |= {"browser"}
+        expected_keys |= {"browser", "sentry:release"}
         assert set(keys) == expected_keys
 
     def test_get_group_tag_key(self):

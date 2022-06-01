@@ -1,3 +1,4 @@
+from sentry.constants import DS_DENYLIST
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 
@@ -35,8 +36,8 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
     def test_simple_remove_tags_in_denylist(self):
         self.store_event(
             data={
-                # "browser" is in denylist sentry.constants.DS_DENYLIST
-                "tags": {"browser": "chrome", "bar": "rab"},
+                # "browser" and "sentry:dist" are in denylist sentry.constants.DS_DENYLIST
+                "tags": {"browser": "chrome", "bar": "rab", "sentry:dist": "test_dist"},
                 "timestamp": iso_format(before_now(minutes=1)),
             },
             project_id=self.project.id,
@@ -55,3 +56,19 @@ class ProjectTagsTest(APITestCase, SnubaTestCase):
 
         assert data["bar"]["canDelete"]
         assert data["bar"]["uniqueValues"] == 2
+
+    def test_simple_remove_tags_in_denylist_remove_all_tags(self):
+        self.store_event(
+            data={
+                "tags": {deny_tag: "value_{deny_tag}" for deny_tag in DS_DENYLIST},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, onlySamplingTags=1
+        )
+
+        data = {v["key"]: v for v in response.data}
+        assert len(data) == 0
+        assert data == {}
