@@ -156,7 +156,6 @@ transaction.startTimestamp = timestampWithMs() - realTime.value;
 
 transaction.setName('typescript.compile');
 
-// @TODO: Remove ts ignore once the types are added to the SDK
 transaction.setMeasurement('typescript.time.check', checkTime.value, 'ms');
 transaction.setMeasurement('typescript.time.bind', bindTime.value, 'ms');
 transaction.setMeasurement('typescript.time.parse', parseTime.value, 'ms');
