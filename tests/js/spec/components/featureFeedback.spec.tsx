@@ -1,11 +1,17 @@
 import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import GlobalModal from 'sentry/components/globalModal';
+import ModalStore from 'sentry/stores/modalStore';
 import {RouteContext} from 'sentry/views/routeContext';
 
 function TestComponent({router}: {router: InjectedRouter}) {
@@ -39,12 +45,15 @@ describe('FeatureFeedback', function () {
     await import('sentry/components/featureFeedback/feedbackModal');
   });
 
+  async function openModal() {
+    expect(screen.getByText('Give Feedback')).toBeInTheDocument();
+    userEvent.click(screen.getByText('Give Feedback'));
+    expect(await screen.findByText('Select type of feedback')).toBeInTheDocument();
+  }
+
   it('shows the modal on click', async function () {
     render(<TestComponent router={router} />);
-
-    expect(screen.getByText('Give Feedback')).toBeInTheDocument();
-
-    userEvent.click(screen.getByText('Give Feedback'));
+    await openModal();
 
     expect(
       await screen.findByRole('heading', {name: 'Submit Feedback'})
@@ -55,6 +64,7 @@ describe('FeatureFeedback', function () {
     jest.spyOn(indicators, 'addSuccessMessage');
 
     render(<TestComponent router={router} />);
+    await openModal();
 
     // Form fields
     expect(screen.getByText('Select type of feedback')).toBeInTheDocument();
@@ -96,11 +106,14 @@ describe('FeatureFeedback', function () {
 
   it('Close modal on click', async function () {
     render(<TestComponent router={router} />);
+    await openModal();
+
     userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('heading', {name: 'Submit Feedback'})
-      ).not.toBeInTheDocument();
-    });
+
+    ModalStore.reset();
+
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('heading', {name: 'Submit Feedback'})
+    );
   });
 });

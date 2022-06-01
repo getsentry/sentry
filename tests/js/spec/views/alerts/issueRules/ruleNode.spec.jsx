@@ -2,7 +2,7 @@ import selectEvent from 'react-select-event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import ModalActions from 'sentry/actions/modalActions';
+import ModalStore from 'sentry/stores/modalStore';
 import RuleNode from 'sentry/views/alerts/rules/issue/ruleNode';
 
 describe('RuleNode', () => {
@@ -221,7 +221,7 @@ describe('RuleNode', () => {
 
   it('renders sentry apps with schema forms correctly', () => {
     renderRuleNode(sentryAppNode);
-    const openModal = jest.spyOn(ModalActions, 'openModal');
+    const openModal = jest.spyOn(ModalStore, 'openModal');
 
     expect(screen.getByText(sentryAppNode.label)).toBeInTheDocument();
     const settingsButton = screen.getByLabelText('Settings');

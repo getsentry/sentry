@@ -1,7 +1,7 @@
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {openReprocessEventModal} from 'sentry/actionCreators/modal';
-import ModalActions from 'sentry/actions/modalActions';
+import ModalStore from 'sentry/stores/modalStore';
 
 const group = TestStubs.Group({
   id: '1337',
@@ -78,7 +78,7 @@ describe('ReprocessEventModal', function () {
     });
 
     jest.spyOn(window.location, 'reload').mockImplementation(() => {});
-    const closeModalFunc = jest.spyOn(ModalActions, 'closeModal');
+    const closeModalFunc = jest.spyOn(ModalStore, 'closeModal');
 
     // Number of events to be reprocessed field
     const reprocessQuantityField = wrapper.find('NumberField input');
