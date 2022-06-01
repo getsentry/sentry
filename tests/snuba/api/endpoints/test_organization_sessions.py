@@ -773,7 +773,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                     "project": [-1],
                     "statsPeriod": "3d",
                     "interval": "1d",
-                    "field": ["sum(session)", "count_unique(user)"],
+                    # "user" is the first field, but "session" always wins:
+                    "field": ["count_unique(user)", "sum(session)"],
                     "groupBy": ["project", "release", "environment"],
                 }
             )
@@ -936,7 +937,7 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 200, response.content
-        assert response.data["groups"] == [
+        assert result_sorted(response.data)["groups"] == [
             {
                 "by": {"release": "foo@1.0.0"},
                 "series": {"count_unique(user)": [0], "sum(session)": [3]},
