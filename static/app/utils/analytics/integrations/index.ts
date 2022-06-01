@@ -1,9 +1,9 @@
 import {IntegrationType, SentryAppStatus} from 'sentry/types';
 
-import {CodeownersEventParameters, CodeownersEvents} from './codeownersAnalyticsEvents';
+import {codeownersEventMap, CodeownersEventParameters} from './codeownersAnalyticsEvents';
 import {
+  stacktraceLinkEventMap,
   StacktraceLinkEventParameters,
-  StacktraceLinkEvents,
 } from './stacktraceLinkAnalyticsEvents';
 
 export type IntegrationView = {
@@ -113,6 +113,6 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.serverless_function_action': 'Integrations: Serverless Function Action',
   'integrations.cloudformation_link_clicked': 'Integrations: CloudFormation Link Clicked',
   'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',
-  ...CodeownersEvents,
-  ...StacktraceLinkEvents,
+  ...codeownersEventMap,
+  ...stacktraceLinkEventMap,
 };

@@ -4,23 +4,35 @@ import {PlatformType} from 'sentry/types';
 import {IntegrationView} from './index';
 
 export enum StacktraceLinkEvents {
-  'integrations.reconfigure_stacktrace_setup' = 'Integrations: Reconfigure Stacktrace Setup',
-  'integrations.stacktrace_complete_setup' = 'Integrations: Stacktrace Complete Setup',
-  'integrations.stacktrace_docs_clicked' = 'Integrations: Stacktrace Docs Clicked',
-  'integrations.stacktrace_link_clicked' = 'Integrations: Stacktrace Link Clicked',
-  'integrations.stacktrace_link_cta_dismissed' = 'Integrations: Stacktrace Link CTA Dismissed',
-  'integrations.stacktrace_manual_option_clicked' = 'Integrations: Stacktrace Manual Option Clicked',
-  'integrations.stacktrace_start_setup' = 'Integrations: Stacktrace Start Setup',
-  'integrations.stacktrace_submit_config' = 'Integrations: Stacktrace Submit Config',
+  RECONFIGURE_SETUP = 'integrations.reconfigure_stacktrace_setup',
+  COMPLETE_SETUP = 'integrations.stacktrace_complete_setup',
+  OPEN_DOCS = 'integrations.stacktrace_docs_clicked',
+  OPEN_LINK = 'integrations.stacktrace_link_clicked',
+  DISMISS_CTA = 'integrations.stacktrace_link_cta_dismissed',
+  MANUAL_OPTION = 'integrations.stacktrace_manual_option_clicked',
+  START_SETUP = 'integrations.stacktrace_start_setup',
+  SUBMIT = 'integrations.stacktrace_submit_config',
 }
 
-type StacktraceLinkEventParams = {
-  error_reason?: StacktraceErrorMessage;
-  platform?: PlatformType;
-  provider?: string;
-  setup_type?: 'automatic' | 'manual';
-} & IntegrationView;
+// This type allows analytics functions to use the string literal or enum.KEY
+type StacktraceLinkEventsLiterals = `${StacktraceLinkEvents}`;
 
 export type StacktraceLinkEventParameters = {
-  [key in keyof typeof StacktraceLinkEvents]: StacktraceLinkEventParams;
+  [key in StacktraceLinkEventsLiterals]: {
+    error_reason?: StacktraceErrorMessage;
+    platform?: PlatformType;
+    provider?: string;
+    setup_type?: 'automatic' | 'manual';
+  } & IntegrationView;
+};
+
+export const stacktraceLinkEventMap: Record<StacktraceLinkEventsLiterals, string> = {
+  [StacktraceLinkEvents.RECONFIGURE_SETUP]: 'Integrations: Reconfigure Stacktrace Setup',
+  [StacktraceLinkEvents.COMPLETE_SETUP]: 'Integrations: Stacktrace Complete Setup',
+  [StacktraceLinkEvents.OPEN_DOCS]: 'Integrations: Stacktrace Docs Clicked',
+  [StacktraceLinkEvents.OPEN_LINK]: 'Integrations: Stacktrace Link Clicked',
+  [StacktraceLinkEvents.DISMISS_CTA]: 'Integrations: Stacktrace Link CTA Dismissed',
+  [StacktraceLinkEvents.MANUAL_OPTION]: 'Integrations: Stacktrace Manual Option Clicked',
+  [StacktraceLinkEvents.START_SETUP]: 'Integrations: Stacktrace Start Setup',
+  [StacktraceLinkEvents.SUBMIT]: 'Integrations: Stacktrace Submit Config',
 };
