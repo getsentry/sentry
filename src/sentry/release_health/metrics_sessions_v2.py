@@ -533,6 +533,9 @@ def run_sessions_query(
             primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
             orderby = OrderBy(primary_metric_field, Direction.DESC)
 
+    if orderby is not None:
+        orderby = [orderby]
+
     metrics_query = MetricsQuery(
         org_id,
         project_ids,

@@ -28,10 +28,9 @@ from sentry.sentry_metrics.utils import (
     reverse_resolve_weak,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.metrics.fields import DerivedMetricExpression, metric_object_factory
+from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import (
     generate_bottom_up_dependency_tree_for_metrics,
-    get_derived_metrics,
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
@@ -41,56 +40,28 @@ from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
     FIELD_ALIAS_MAPPINGS,
     FIELD_REGEX,
-    MAX_POINTS,
-    OPERATIONS,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
-    UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     get_intervals,
 )
-from sentry.snuba.sessions_v2 import ONE_DAY  # TODO: unite metrics and sessions_v2
-from sentry.snuba.sessions_v2 import AllowedResolution, InvalidField, finite_or_none
+from sentry.snuba.sessions_v2 import finite_or_none
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import parse_snuba_datetime
 
 
-def parse_field(field: str, query_params) -> MetricField:
-    derived_metrics_mri = get_derived_metrics(exclude_private=True)
+def parse_field(field: str) -> MetricField:
     matches = FIELD_REGEX.match(field)
     try:
         if matches is None:
             raise TypeError
         operation = matches[1]
         metric_name = matches[2]
-        metric_mri = get_mri(metric_name)
-        if metric_mri in derived_metrics_mri and isinstance(
-            derived_metrics_mri[metric_mri], DerivedMetricExpression
-        ):
-            raise DerivedMetricParseException(
-                f"Failed to parse {field}. No operations can be applied on this field as it is "
-                f"already a derived metric with an aggregation applied to it."
-            )
     except (IndexError, TypeError):
+        operation = None
         metric_name = field
-        metric_mri = get_mri(metric_name)
-        if metric_mri in derived_metrics_mri and isinstance(
-            derived_metrics_mri[metric_mri], DerivedMetricExpression
-        ):
-            # The isinstance check is there to foreshadow adding raw metric aliases
-            return MetricField(op=None, metric_name=metric_name)
-        raise InvalidField(
-            f"Failed to parse '{field}'. Must be something like 'sum(my_metric)', or a supported "
-            f"aggregate derived metric like `session.crash_free_rate"
-        )
-
-    if operation not in OPERATIONS:
-        raise InvalidField(
-            f"Invalid operation '{operation}'. Must be one of {', '.join(OPERATIONS)}"
-        )
-
     return MetricField(operation, metric_name)
 
 
@@ -193,9 +164,6 @@ def parse_query(query_string: str, projects: Sequence[Project]) -> Sequence[Cond
     """Parse given filter query into a list of snuba conditions"""
     # HACK: Parse a sessions query, validate / transform afterwards.
     # We will want to write our own grammar + interpreter for this later.
-    for unallowed_tag in UNALLOWED_TAGS:
-        if f"{unallowed_tag}:" in query_string:
-            raise InvalidParams(f"Tag name {unallowed_tag} is not a valid query filter")
     try:
         query_builder = UnresolvedQuery(
             Dataset.Sessions,
@@ -220,25 +188,14 @@ class QueryDefinition:
 
     """
 
-    # ToDo(ahmed): Move validation down to `MetricsQuery`
-
     def __init__(self, projects, query_params, paginator_kwargs: Optional[Dict] = None):
         self._projects = projects
         paginator_kwargs = paginator_kwargs or {}
 
         self.query = query_params.get("query", "")
         self.parsed_query = parse_query(self.query, projects) if self.query else None
-
-        raw_fields = query_params.getlist("field", [])
         self.groupby = query_params.getlist("groupBy", [])
-
-        if len(raw_fields) == 0:
-            raise InvalidField('Request is missing a "field"')
-
-        self.fields = []
-        for key in raw_fields:
-            self.fields.append(parse_field(key, query_params))
-
+        self.fields = [parse_field(key) for key in query_params.getlist("field", [])]
         self.orderby = self._parse_orderby(query_params)
         self.limit: Optional[Limit] = self._parse_limit(paginator_kwargs)
         self.offset: Optional[Offset] = self._parse_offset(paginator_kwargs)
@@ -247,20 +204,14 @@ class QueryDefinition:
         self.rollup = rollup
         self.start = start
         self.end = end
+        # Histogram fields
         self.histogram_buckets = int(query_params.get("histogramBuckets", 100))
-        if self.histogram_buckets > 250:
-            raise InvalidField(
-                "We don't have more than 250 buckets stored for any given metric bucket."
-            )
         histogram_from = query_params.get("histogramFrom", None)
         histogram_to = query_params.get("histogramTo", None)
         self.histogram_from = float(histogram_from) if histogram_from is not None else None
         self.histogram_to = float(histogram_to) if histogram_to is not None else None
         self.include_series = query_params.get("includeSeries", "1") == "1"
         self.include_totals = query_params.get("includeTotals", "1") == "1"
-
-        if not (self.include_series or self.include_totals):
-            raise InvalidParams("Cannot omit both series and totals")
 
     def to_metrics_query(self) -> MetricsQuery:
         return MetricsQuery(
@@ -282,33 +233,32 @@ class QueryDefinition:
             histogram_to=self.histogram_to,
         )
 
-    def _parse_orderby(self, query_params):
-        orderby = query_params.getlist("orderBy", [])
-        if not orderby:
+    @staticmethod
+    def _parse_orderby(query_params):
+        orderbys = query_params.getlist("orderBy", [])
+        if not orderbys:
             return None
-        elif len(orderby) > 1:
-            raise InvalidParams("Only one 'orderBy' is supported")
 
-        orderby = orderby[0]
-        direction = Direction.ASC
-        if orderby[0] == "-":
-            orderby = orderby[1:]
-            direction = Direction.DESC
+        orderby_list = []
+        for orderby in orderbys:
+            direction = Direction.ASC
+            if orderby[0] == "-":
+                orderby = orderby[1:]
+                direction = Direction.DESC
 
-        try:
-            field = parse_field(orderby, query_params)
-        except KeyError:
-            # orderBy one of the group by fields may be supported in the future
-            raise InvalidParams("'orderBy' must be one of the provided 'fields'")
+            field = parse_field(orderby)
+            orderby_list.append(MetricsOrderBy(field, direction))
 
-        return MetricsOrderBy(field, direction)
+        return orderby_list
 
-    def _parse_limit(self, paginator_kwargs) -> Optional[Limit]:
+    @staticmethod
+    def _parse_limit(paginator_kwargs) -> Optional[Limit]:
         if "limit" not in paginator_kwargs:
             return
         return Limit(paginator_kwargs["limit"])
 
-    def _parse_offset(self, paginator_kwargs) -> Optional[Offset]:
+    @staticmethod
+    def _parse_offset(paginator_kwargs) -> Optional[Offset]:
         if "offset" not in paginator_kwargs:
             return
         return Offset(paginator_kwargs["offset"])
@@ -327,39 +277,17 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
 
-    # hard code min. allowed resolution to 10 seconds
-    allowed_resolution = AllowedResolution.ten_seconds
-
-    smallest_interval, interval_str = allowed_resolution.value
-    if interval % smallest_interval != 0 or interval < smallest_interval:
-        raise InvalidParams(
-            f"The interval has to be a multiple of the minimum interval of {interval_str}."
-        )
-
-    if ONE_DAY % interval != 0:
-        raise InvalidParams("The interval should divide one day without a remainder.")
-
     start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
+    date_range = timedelta(
+        seconds=int(interval * math.ceil((end - start).total_seconds() / interval))
+    )
 
-    date_range = end - start
-
-    date_range = timedelta(seconds=int(interval * math.ceil(date_range.total_seconds() / interval)))
-
-    if date_range.total_seconds() / interval > MAX_POINTS:
-        raise InvalidParams(
-            "Your interval and date range would create too many results. "
-            "Use a larger interval, or a smaller date range."
-        )
-
-    end_ts = int(interval * math.ceil(to_timestamp(end) / interval))
-    end = to_datetime(end_ts)
+    end = to_datetime(int(interval * math.ceil(to_timestamp(end) / interval)))
     start = end - date_range
-
     # NOTE: The sessions_v2 implementation cuts the `end` time to now + 1 minute
     # if `end` is in the future. This allows for better real time results when
     # caching is enabled on the snuba queries. Removed here for simplicity,
     # but we might want to reconsider once caching becomes an issue for metrics.
-
     return start, end, interval
 
 
@@ -393,8 +321,6 @@ class SnubaQueryBuilder:
     def _build_groupby(self) -> List[Column]:
         groupby_cols = []
         for field in self._metrics_query.groupby or []:
-            if field in UNALLOWED_TAGS:
-                raise InvalidParams(f"Tag name {field} cannot be used to groupBy query")
             # Handles the case when we are trying to group by `project` for example, but we want
             # to translate it to `project_id` as that is what the metrics dataset understands
             if field in FIELD_ALIAS_MAPPINGS:
@@ -409,7 +335,10 @@ class SnubaQueryBuilder:
     def _build_orderby(self) -> Optional[List[OrderBy]]:
         if self._metrics_query.orderby is None:
             return None
-        orderby = self._metrics_query.orderby
+        # ToDo: Currently we only support one orderBy field, if this were to change then we would
+        #  need to iterate over the list and generate orderBy instances accordingly
+        assert len(self._metrics_query.orderby) == 1
+        orderby = self._metrics_query.orderby[0]
         op = orderby.field.op
         metric_mri = get_mri(orderby.field.metric_name)
         metric_field_obj = metric_object_factory(op, metric_mri)
