@@ -179,6 +179,29 @@ class MatchCommitsPathTestCase(CommitTestCase):
             _match_commits_path(file_changes, "hello/app.py"), key=lambda fc: fc[0].id
         )
 
+    def test_path_shorter_than_filechange(self):
+        file_changes = [
+            self.create_commitfilechange(filename="app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M"),
+        ]
+
+        assert set(map(lambda x: x[0], _match_commits_path(file_changes, "e/f/g/h/app.py"))) == {
+            file_changes[1].commit,
+            file_changes[2].commit,
+        }
+
+    def test_path_longer_than_filechange(self):
+        file_changes = [
+            self.create_commitfilechange(filename="app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M"),
+        ]
+
+        assert set(
+            map(lambda x: x[0], _match_commits_path(file_changes, "/a/b/c/d/e/f/g/h/app.py"))
+        ) == {file_changes[1].commit, file_changes[2].commit}
+
 
 class GetPreviousReleasesTestCase(TestCase):
     def test_simple(self):
@@ -437,7 +460,10 @@ class GetEventFileCommitters(CommitTestCase):
                     "author_name": "Bob",
                     "message": "i fixed a bug",
                     "patch_set": [
-                        {"path": "com/jetbrains/kmm/androidApp/MainActivity.kt", "type": "M"}
+                        {
+                            "path": "App/src/main/com/jetbrains/kmm/androidApp/MainActivity.kt",
+                            "type": "M",
+                        }
                     ],
                 }
             ]
@@ -451,6 +477,67 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["score"] > 1
+
+    def test_cocoa_swift_repo_relative_path(self):
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "cocoa",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "button clicked",
+                            "module": "java.lang",
+                            "thread_id": 2,
+                            "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "in_app": False,
+                                        "image_addr": "0x0",
+                                        "instruction_addr": "0x1028d5aa4",
+                                        "symbol_addr": "0x0",
+                                    },
+                                    {
+                                        "package": "Runner",
+                                        "filename": "AppDelegate.swift",
+                                        "abs_path": "/Users/denis/Repos/sentry/sentry-mobile/ios/Runner/AppDelegate.swift",
+                                        "lineno": 5,
+                                        "in_app": True,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "Runner/AppDelegate.swift", "type": "M"}],
+                }
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["score"] > 1
 
     def test_matching(self):
         event = self.store_event(

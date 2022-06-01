@@ -233,6 +233,45 @@ def test_matcher_test_platform_java_threads():
     assert not Matcher("path", "*.py").test({})
 
 
+def test_matcher_test_platform_cocoa_threads():
+    data = {
+        "platform": "cocoa",
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "package": "SampleProject",
+                                "abs_path": "/Users/gszeto/code/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift",
+                                # munged_filename: "SampleProject/Classes/App Delegate/AppDelegate.swift"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+    }
+
+    assert Matcher("path", "*.swift").test(data)
+    assert Matcher("path", "SampleProject/Classes/App Delegate/AppDelegate.swift").test(data)
+    assert not Matcher(
+        "path", "SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift"
+    ).test(data)
+    assert Matcher("path", "**/App Delegate/AppDelegate.swift").test(data)
+    assert Matcher("codeowners", "*.swift").test(data)
+    assert Matcher("codeowners", "SampleProject/Classes/App Delegate/*.swift").test(data)
+    assert Matcher("codeowners", "SampleProject/Classes/App Delegate/AppDelegate.swift").test(data)
+    assert not Matcher(
+        "codeowners", "SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift"
+    ).test(data)
+    assert Matcher("codeowners", "**/App Delegate/AppDelegate.swift").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
 def test_matcher_test_platform_none_threads():
     data = {
         "threads": {
