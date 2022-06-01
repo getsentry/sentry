@@ -44,8 +44,25 @@ def mixed_payload():
     )
 
 
-def kafka_payload(mixed_payload):
-    return KafkaPayload(key=bytes("fake-key", encoding="utf-8"), value=mixed_payload, headers=[])
+def empty_payload():
+    return bytes(
+        """
+        {
+        }
+        """,
+        encoding="utf-8",
+    )
+
+
+def bad_payload():
+    return bytes(
+        "not JSON",
+        encoding="utf-8",
+    )
+
+
+def headerless_kafka_payload(payload_bytes):
+    return KafkaPayload(key=bytes("fake-key", encoding="utf-8"), value=payload_bytes, headers=[])
 
 
 def kafka_message(kafka_payload):
@@ -58,10 +75,21 @@ def kafka_message(kafka_payload):
 
 
 def test_retrieve_db_read_keys_meta_field_present_with_db_keys():
-    # Can't use fixtures with unittest.TestCase (in TestLastSeenUpdaterEndToEnd below)
-    message = kafka_message(kafka_payload(mixed_payload()))
+    message = kafka_message(headerless_kafka_payload(mixed_payload()))
     key_set = retrieve_db_read_keys(message)
     assert key_set == {2000, 2001, 2002}
+
+
+def test_retrieve_db_read_keys_meta_field_not_present():
+    message = kafka_message(headerless_kafka_payload(empty_payload()))
+    key_set = retrieve_db_read_keys(message)
+    assert key_set == set()
+
+
+def test_retrieve_db_read_keys_meta_field_bad_json():
+    message = kafka_message(headerless_kafka_payload(bad_payload()))
+    key_set = retrieve_db_read_keys(message)
+    assert key_set == set()
 
 
 class TestLastSeenUpdaterEndToEnd(TestCase):
@@ -69,35 +97,57 @@ class TestLastSeenUpdaterEndToEnd(TestCase):
     def processing_factory():
         return _last_seen_updater_processing_factory(max_batch_time=1.0, max_batch_size=1)
 
-    def test_basic_e2e(self):
-        stale_id = 2001
-        fresh_id = 2002
-        stale_last_seen = timezone.now() - timedelta(days=1)
-        fresh_last_seen = timezone.now() - timedelta(hours=1)
+    def setUp(self):
+        self.org_id = 1234
+        self.stale_id = 2001
+        self.fresh_id = 2002
+        self.stale_last_seen = timezone.now() - timedelta(days=1)
+        self.fresh_last_seen = timezone.now() - timedelta(hours=1)
         StringIndexer.objects.create(
-            organization_id=1234,
+            organization_id=self.org_id,
             string="e2e_0",
-            id=stale_id,
-            last_seen=stale_last_seen,
+            id=self.stale_id,
+            last_seen=self.stale_last_seen,
         )
         StringIndexer.objects.create(
-            organization_id=1234,
+            organization_id=self.org_id,
             string="e2e_1",
-            id=fresh_id,
-            last_seen=fresh_last_seen,
+            id=self.fresh_id,
+            last_seen=self.fresh_last_seen,
         )
 
+    def tearDown(self):
+        StringIndexer.objects.filter(id=self.fresh_id).delete()
+        StringIndexer.objects.filter(id=self.stale_id).delete()
+
+    def test_basic_flow(self):
         with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
-            message = kafka_message(kafka_payload(mixed_payload()))
+            # we can't use fixtures with unittest.TestCase
+            message = kafka_message(headerless_kafka_payload(mixed_payload()))
             processing_strategy = self.processing_factory().create(lambda x: print("commit called"))
             processing_strategy.submit(message)
             processing_strategy.poll()
             processing_strategy.join(1)
 
-        fresh_item = StringIndexer.objects.get(id=fresh_id)
-        assert fresh_item.last_seen == fresh_last_seen
+        fresh_item = StringIndexer.objects.get(id=self.fresh_id)
+        assert fresh_item.last_seen == self.fresh_last_seen
 
-        stale_item = StringIndexer.objects.get(id=stale_id)
+        stale_item = StringIndexer.objects.get(id=self.stale_id)
+        # without doing a bunch of mocking around time objects, stale_item.last_seen
+        # should be approximately equal to timezone.now() but they won't be perfectly equal
+        assert (timezone.now() - stale_item.last_seen) < timedelta(seconds=30)
+
+    def test_message_processes_after_bad_message(self):
+        with override_options({"sentry-metrics.last-seen-updater.accept-rate": 1.0}):
+            ok_message = kafka_message(headerless_kafka_payload(mixed_payload()))
+            bad_message = kafka_message(headerless_kafka_payload(bad_payload()))
+            processing_strategy = self.processing_factory().create(lambda x: print("commit called"))
+            processing_strategy.submit(bad_message)
+            processing_strategy.submit(ok_message)
+            processing_strategy.poll()
+            processing_strategy.join(1)
+
+        stale_item = StringIndexer.objects.get(id=self.stale_id)
         # without doing a bunch of mocking around time objects, stale_item.last_seen
         # should be approximately equal to timezone.now() but they won't be perfectly equal
         assert (timezone.now() - stale_item.last_seen) < timedelta(seconds=30)

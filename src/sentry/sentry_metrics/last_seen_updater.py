@@ -4,6 +4,7 @@ import random
 from datetime import timedelta
 from typing import Any, Mapping, Optional, Set, Union
 
+import rapidjson
 from arroyo import Message, Topic
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
 from arroyo.processing import StreamProcessor
@@ -115,7 +116,7 @@ def retrieve_db_read_keys(message: Message[KafkaPayload]) -> Set[int]:
                     int(key) for key in parsed_message[MAPPING_META][FetchType.DB_READ.value].keys()
                 }
         return set()
-    except json.JSONDecodeError:
+    except rapidjson.JSONDecodeError:
         logger.error("last_seen_updater.invalid_json", exc_info=True)
         return set()
 
