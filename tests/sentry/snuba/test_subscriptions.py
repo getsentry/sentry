@@ -68,6 +68,29 @@ class CreateSnubaQueryTest(TestCase):
         assert snuba_query.environment is None
         assert set(snuba_query.event_types) == {SnubaQueryEventType.EventType.DEFAULT}
 
+    def test_event_types_metrics(self):
+        dataset = QueryDatasets.METRICS
+        query = ""
+        aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
+        time_window = timedelta(minutes=10)
+        resolution = timedelta(minutes=1)
+
+        snuba_query = create_snuba_query(
+            dataset,
+            query,
+            aggregate,
+            time_window,
+            resolution,
+            None,
+        )
+        assert snuba_query.dataset == dataset.value
+        assert snuba_query.query == query
+        assert snuba_query.aggregate == aggregate
+        assert snuba_query.time_window == int(time_window.total_seconds())
+        assert snuba_query.resolution == int(resolution.total_seconds())
+        assert snuba_query.environment is None
+        assert snuba_query.event_types == []
+
 
 class CreateSnubaSubscriptionTest(TestCase):
     def test(self):
