@@ -20,7 +20,7 @@ logger = logging.getLogger("tasks.groupowner")
 
 
 def _process_suspect_commits(
-    event_id, event_platform, event_frames, group_id, project_id, **kwargs
+    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
 ):
     metrics.incr("sentry.tasks.process_suspect_commits.start")
     set_current_event_project(project_id)
@@ -50,7 +50,7 @@ def _process_suspect_commits(
                 "sentry.tasks.process_suspect_commits.get_serialized_event_file_committers"
             ):
                 committers = get_event_file_committers(
-                    project, group_id, event_frames, event_platform
+                    project, group_id, event_frames, event_platform, sdk_name
                 )
             owner_scores = {}
             for committer in committers:
@@ -111,12 +111,14 @@ def _process_suspect_commits(
     default_retry_delay=5,
     max_retries=5,
 )
-def process_suspect_commits(event_id, event_platform, event_frames, group_id, project_id, **kwargs):
+def process_suspect_commits(
+    event_id, event_platform, event_frames, group_id, project_id, sdk_name=None, **kwargs
+):
     lock = locks.get(f"process-suspect-commits:{group_id}", duration=10)
     try:
         with lock.acquire():
             _process_suspect_commits(
-                event_id, event_platform, event_frames, group_id, project_id, **kwargs
+                event_id, event_platform, event_frames, group_id, project_id, sdk_name, **kwargs
             )
     except UnableToAcquireLock:
         pass

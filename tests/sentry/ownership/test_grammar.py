@@ -272,6 +272,63 @@ def test_matcher_test_platform_cocoa_threads():
     assert not Matcher("path", "*.py").test({})
 
 
+def test_matcher_test_platform_react_native():
+    data = {
+        "platform": "javascript",
+        "exception": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "callFunctionReturnFlushedQueue",
+                                "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+                                "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                                "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                                "lineno": 115,
+                                "colno": 5,
+                                "in_app": False,
+                                "data": {"sourcemap": "app:///main.jsbundle.map"},
+                            },
+                            {
+                                "function": "apply",
+                                "filename": "native",
+                                "abs_path": "native",
+                                "in_app": True,
+                            },
+                            {
+                                "function": "onPress",
+                                "module": "src/screens/EndToEndTestsScreen",
+                                "filename": "src/screens/EndToEndTestsScreen.tsx",
+                                "abs_path": "app:///src/screens/EndToEndTestsScreen.tsx",
+                                "lineno": 57,
+                                "colno": 11,
+                                "in_app": True,
+                                "data": {"sourcemap": "app:///main.jsbundle.map"},
+                            },
+                        ]
+                    }
+                }
+            ],
+        },
+    }
+
+    assert Matcher("path", "src/screens/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("path", "src/*/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("path", "*/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("path", "**/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("path", "*.tsx").test(data)
+    assert Matcher("codeowners", "src/screens/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("codeowners", "*.tsx").test(data)
+    assert not Matcher("url", "*.tsx").test(data)
+
+    # external lib matching still works
+    assert Matcher("path", "**/Libraries/BatchedBridge/MessageQueue.js").test(data)
+
+    # we search on filename and abs_path, if a user explicitly tests on the abs_path, we let them
+    assert Matcher("path", "app:///src/screens/EndToEndTestsScreen.tsx").test(data)
+
+
 def test_matcher_test_platform_none_threads():
     data = {
         "threads": {

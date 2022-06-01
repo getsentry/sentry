@@ -14,7 +14,7 @@ from rest_framework.serializers import ValidationError
 
 from sentry.eventstore.models import EventSubjectTemplateData
 from sentry.models import ActorTuple, RepositoryProjectPathConfig
-from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
+from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import PathSearchable, get_path
 
@@ -107,9 +107,10 @@ class Matcher(namedtuple("Matcher", "type pattern")):
     def munge_if_needed(data: PathSearchable) -> Tuple[Sequence[Mapping[str, Any]], Sequence[str]]:
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
+        sdk_name = get_sdk_name(data)
         frames = find_stack_frames(data)
         if platform:
-            munged = munged_filename_and_frames(platform, frames, "munged_filename")
+            munged = munged_filename_and_frames(platform, frames, "munged_filename", sdk_name)
             if munged:
                 keys.append(munged[0])
                 frames = munged[1]
