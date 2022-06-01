@@ -7,31 +7,9 @@ import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {
   generateFlamegraphRouteWithQuery,
-  generateFunctionsRouteWithQuery,
+  generateProfileSummaryRouteWithQuery,
   generateProfilingRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
-
-type ProfilingTrail = {
-  type: 'landing';
-};
-
-type FunctionsTrail = {
-  payload: {
-    projectSlug: Project['slug'];
-    transaction: string;
-    version: string;
-  };
-  type: 'functions';
-};
-
-type FlamegraphTrail = {
-  payload: {
-    profileId: string;
-    projectSlug: string;
-    transaction: string;
-  };
-  type: 'flamegraph';
-};
 
 interface BreadcrumbProps {
   location: Location;
@@ -68,16 +46,15 @@ function trailToCrumb(
         preservePageFilters: true,
       };
     }
-    case 'functions': {
+    case 'profile summary': {
       return {
-        to: generateFunctionsRouteWithQuery({
+        to: generateProfileSummaryRouteWithQuery({
           location,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
           transaction: trail.payload.transaction,
-          version: trail.payload.version,
         }),
-        label: t('Functions'),
+        label: t('Profile Summary'),
         preservePageFilters: true,
       };
     }
@@ -98,7 +75,28 @@ function trailToCrumb(
   }
 }
 
-type Trail = ProfilingTrail | FunctionsTrail | FlamegraphTrail;
+type ProfilingTrail = {
+  type: 'landing';
+};
+
+type ProfileSummaryTrail = {
+  payload: {
+    projectSlug: Project['slug'];
+    transaction: string;
+  };
+  type: 'profile summary';
+};
+
+type FlamegraphTrail = {
+  payload: {
+    profileId: string;
+    projectSlug: string;
+    transaction: string;
+  };
+  type: 'flamegraph';
+};
+
+type Trail = ProfilingTrail | ProfileSummaryTrail | FlamegraphTrail;
 
 const StyledBreadcrumbs = styled(Breadcrumbs)`
   padding: 0;

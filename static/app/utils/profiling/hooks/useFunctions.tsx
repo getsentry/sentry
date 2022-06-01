@@ -14,7 +14,6 @@ interface UseFunctionsOptions {
   project: Project;
   query: string;
   transaction: string;
-  version: string;
   selection?: PageFilters;
 }
 
@@ -22,7 +21,6 @@ function useFunctions({
   project,
   query,
   transaction,
-  version,
   selection,
 }: UseFunctionsOptions): RequestState<FunctionCall[]> {
   const api = useApi();
@@ -44,12 +42,11 @@ function useFunctions({
       query,
       selection,
       transaction,
-      version,
     })
       .then(functions => {
         setRequestState({
           type: 'resolved',
-          data: functions.Versions[version]?.FunctionCalls ?? [],
+          data: functions.functions ?? [],
         });
       })
       .catch(err => {
@@ -58,16 +55,7 @@ function useFunctions({
       });
 
     return () => api.clear();
-  }, [
-    api,
-    organization,
-    project.slug,
-    query,
-    selection,
-    transaction,
-    version,
-    setRequestState,
-  ]);
+  }, [api, organization, project.slug, query, selection, transaction]);
 
   return requestState;
 }
@@ -80,18 +68,15 @@ function fetchFunctions(
     query,
     selection,
     transaction,
-    version,
   }: {
     projectSlug: Project['slug'];
     query: string;
     selection: PageFilters;
     transaction: string;
-    version: string;
   }
 ) {
   const conditions = new MutableSearch(query);
   conditions.setFilterValues('transaction_name', [transaction]);
-  conditions.setFilterValues('version', [version]);
 
   return api.requestPromise(
     `/projects/${organization.slug}/${projectSlug}/profiling/functions/`,
