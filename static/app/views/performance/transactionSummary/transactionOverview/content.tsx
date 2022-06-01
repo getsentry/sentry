@@ -496,7 +496,7 @@ const FilterActions = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: auto auto 1fr;
+    grid-template-columns: auto auto 1fr auto;
   }
 `;
 

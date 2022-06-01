@@ -1,9 +1,6 @@
-import styled from '@emotion/styled';
-
 import Feature from 'sentry/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {
   AutoSampleState,
   MEPState,
@@ -63,26 +60,20 @@ function InnerDropdown() {
     options.find(({field}) => field === mepSetting.metricSettingState) || options[0];
 
   return (
-    <DropdownContainer>
-      <DropdownControl
-        buttonProps={{prefix: currentOption.prefix}}
-        label={currentOption.label}
-      >
-        {options.map(option => (
-          <DropdownItem
-            key={option.field}
-            eventKey={option.field}
-            isActive={option.field === currentOption.field}
-            onSelect={key => mepSetting.setMetricSettingState(key)}
-          >
-            {option.label}
-          </DropdownItem>
-        ))}
-      </DropdownControl>
-    </DropdownContainer>
+    <DropdownControl
+      buttonProps={{prefix: currentOption.prefix}}
+      label={currentOption.label}
+    >
+      {options.map(option => (
+        <DropdownItem
+          key={option.field}
+          eventKey={option.field}
+          isActive={option.field === currentOption.field}
+          onSelect={key => mepSetting.setMetricSettingState(key)}
+        >
+          {option.label}
+        </DropdownItem>
+      ))}
+    </DropdownControl>
   );
 }
-
-const DropdownContainer = styled('div')`
-  margin-left: ${space(1)};
-`;
