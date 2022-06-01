@@ -5,7 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import FiltersAndSampling from 'sentry/views/settings/project/filtersAndSampling';
+import FiltersAndSampling from 'sentry/views/settings/project/sampling';
 
 export const commonConditionCategories = [
   'Release',

@@ -484,9 +484,9 @@ function buildRoutes() {
         <Route path=":filterType/" />
       </Route>
       <Route
-        path="filters-and-sampling/"
-        name={t('Filters & Sampling')}
-        component={make(() => import('sentry/views/settings/project/filtersAndSampling'))}
+        path="sampling/"
+        name={t('Sampling')}
+        component={make(() => import('sentry/views/settings/project/sampling'))}
       />
       <Route
         path="issue-grouping/"

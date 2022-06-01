@@ -5,7 +5,7 @@ import BulkController from 'sentry/components/bulkController';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {LegacyBrowser} from 'sentry/types/dynamicSampling';
+import {LegacyBrowser} from 'sentry/types/sampling';
 
 import {LEGACY_BROWSER_LIST} from '../utils';
 

@@ -1,7 +1,7 @@
-import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
+import {SamplingInnerName} from 'sentry/types/sampling';
 
 type Rule = {
-  conditions: DynamicSamplingInnerName[] | string[];
+  conditions: SamplingInnerName[] | string[];
   conditions_stringified: string;
   project_id: string;
   sampling_rate: number | null;
@@ -9,7 +9,7 @@ type Rule = {
 
 export type SamplingEventParameters = {
   'sampling.settings.condition.add': {
-    conditions: DynamicSamplingInnerName[] | string[];
+    conditions: SamplingInnerName[] | string[];
     project_id: string;
   };
   'sampling.settings.rule.create': Rule;

@@ -1,11 +1,11 @@
 import type {PlatformKey} from 'sentry/data/platformCategories';
 
 import type {TimeseriesValue} from './core';
-import type {DynamicSamplingRules} from './dynamicSampling';
 import type {SDKUpdatesSuggestion} from './event';
 import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
 import type {Deploy, Release} from './release';
+import type {SamplingRules} from './sampling';
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
@@ -21,7 +21,7 @@ export type Project = {
   // XXX: These are part of the DetailedProject serializer
   dynamicSampling: {
     next_id: number;
-    rules: DynamicSamplingRules;
+    rules: SamplingRules;
   } | null;
   environments: string[];
   eventProcessing: {

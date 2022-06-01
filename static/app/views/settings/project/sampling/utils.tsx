@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
-import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
+import {LegacyBrowser, SamplingInnerName} from 'sentry/types/sampling';
 
-// TODO(PRISCILA): Update this link as soon as we have one for dynamic sampling
-export const DYNAMIC_SAMPLING_DOC_LINK =
+// TODO(PRISCILA): Update this link as soon as we have one for sampling
+export const SAMPLING_DOC_LINK =
   'https://docs.sentry.io/product/data-management-settings/filtering/';
 
 export const LEGACY_BROWSER_LIST = {
@@ -40,46 +40,46 @@ export const LEGACY_BROWSER_LIST = {
   },
 };
 
-export function getInnerNameLabel(name: DynamicSamplingInnerName | string) {
+export function getInnerNameLabel(name: SamplingInnerName | string) {
   switch (name) {
-    case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
-    case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
+    case SamplingInnerName.TRACE_ENVIRONMENT:
+    case SamplingInnerName.EVENT_ENVIRONMENT:
       return t('Environment');
-    case DynamicSamplingInnerName.TRACE_RELEASE:
-    case DynamicSamplingInnerName.EVENT_RELEASE:
+    case SamplingInnerName.TRACE_RELEASE:
+    case SamplingInnerName.EVENT_RELEASE:
       return t('Release');
-    case DynamicSamplingInnerName.EVENT_USER_ID:
-    case DynamicSamplingInnerName.TRACE_USER_ID:
+    case SamplingInnerName.EVENT_USER_ID:
+    case SamplingInnerName.TRACE_USER_ID:
       return t('User Id');
-    case DynamicSamplingInnerName.EVENT_USER_SEGMENT:
-    case DynamicSamplingInnerName.TRACE_USER_SEGMENT:
+    case SamplingInnerName.EVENT_USER_SEGMENT:
+    case SamplingInnerName.TRACE_USER_SEGMENT:
       return t('User Segment');
-    case DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS:
+    case SamplingInnerName.EVENT_BROWSER_EXTENSIONS:
       return t('Browser Extensions');
-    case DynamicSamplingInnerName.EVENT_LOCALHOST:
+    case SamplingInnerName.EVENT_LOCALHOST:
       return t('Localhost');
-    case DynamicSamplingInnerName.EVENT_WEB_CRAWLERS:
+    case SamplingInnerName.EVENT_WEB_CRAWLERS:
       return t('Web Crawlers');
-    case DynamicSamplingInnerName.EVENT_LEGACY_BROWSER:
+    case SamplingInnerName.EVENT_LEGACY_BROWSER:
       return t('Legacy Browser');
-    case DynamicSamplingInnerName.EVENT_TRANSACTION:
-    case DynamicSamplingInnerName.TRACE_TRANSACTION:
+    case SamplingInnerName.EVENT_TRANSACTION:
+    case SamplingInnerName.TRACE_TRANSACTION:
       return t('Transaction');
-    case DynamicSamplingInnerName.EVENT_ERROR_MESSAGES:
+    case SamplingInnerName.EVENT_ERROR_MESSAGES:
       return t('Error Message');
-    case DynamicSamplingInnerName.EVENT_CSP:
+    case SamplingInnerName.EVENT_CSP:
       return t('Content Security Policy');
-    case DynamicSamplingInnerName.EVENT_IP_ADDRESSES:
+    case SamplingInnerName.EVENT_IP_ADDRESSES:
       return t('IP Address');
-    case DynamicSamplingInnerName.EVENT_OS_NAME:
+    case SamplingInnerName.EVENT_OS_NAME:
       return t('OS Name');
-    case DynamicSamplingInnerName.EVENT_OS_VERSION:
+    case SamplingInnerName.EVENT_OS_VERSION:
       return t('OS Version');
-    case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
+    case SamplingInnerName.EVENT_DEVICE_FAMILY:
       return t('Device Family');
-    case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
+    case SamplingInnerName.EVENT_DEVICE_NAME:
       return t('Device Name');
-    case DynamicSamplingInnerName.EVENT_CUSTOM_TAG:
+    case SamplingInnerName.EVENT_CUSTOM_TAG:
       return t('Custom Tag');
 
     default:
@@ -89,10 +89,9 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName | string) {
 
 const CUSTOM_TAG_PREFIX = 'event.tags.';
 
-export function isCustomTagName(name: DynamicSamplingInnerName | string): boolean {
+export function isCustomTagName(name: SamplingInnerName | string): boolean {
   return (
-    name === DynamicSamplingInnerName.EVENT_CUSTOM_TAG ||
-    name.startsWith(CUSTOM_TAG_PREFIX)
+    name === SamplingInnerName.EVENT_CUSTOM_TAG || name.startsWith(CUSTOM_TAG_PREFIX)
   );
 }
 
