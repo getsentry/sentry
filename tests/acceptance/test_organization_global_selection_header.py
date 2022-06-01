@@ -72,13 +72,13 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
         )
         self.browser.wait_until_test_id("awaiting-events")
 
-        self.browser.click('[data-test-id="page-filter-project-selector"]')
+        self.browser.click('[data-test-id="global-header-project-selector"]')
         self.browser.snapshot("globalSelectionHeader - project selector")
 
-        self.browser.click('[data-test-id="page-filter-environment-selector"]')
+        self.browser.click('[data-test-id="global-header-environment-selector"]')
         self.browser.snapshot("globalSelectionHeader - environment selector")
 
-        self.browser.click('[data-test-id="page-filter-timerange-selector"]')
+        self.browser.click('[data-test-id="global-header-timerange-selector"]')
         self.browser.snapshot("globalSelectionHeader - timerange selector")
 
     @pytest.mark.skip(reason="Has been flaky lately.")
@@ -167,16 +167,16 @@ class OrganizationGlobalHeaderTest(AcceptanceTestCase, SnubaTestCase):
             assert "environment=" not in self.browser.current_url
             assert self.issue_details.global_selection.get_selected_environment() == "All Env"
 
-            self.browser.click('[data-test-id="page-filter-environment-selector"]')
+            self.browser.click('[data-test-id="global-header-environment-selector"]')
             self.browser.click('[data-test-id="environment-prod"]')
             self.issues_list.wait_until_loaded()
             assert "environment=prod" in self.browser.current_url
             assert self.issue_details.global_selection.get_selected_environment() == "prod"
 
             # clear environment prod
-            self.browser.click('[data-test-id="page-filter-environment-selector"]')
+            self.browser.click('[data-test-id="global-header-environment-selector"]')
             self.browser.click('[data-test-id="environment-prod"] [role="checkbox"]')
-            self.browser.click('[data-test-id="page-filter-environment-selector"]')
+            self.browser.click('[data-test-id="global-header-environment-selector"]')
             self.issues_list.wait_until_loaded()
             assert "environment=" not in self.browser.current_url
             assert self.issue_details.global_selection.get_selected_environment() == "All Env"

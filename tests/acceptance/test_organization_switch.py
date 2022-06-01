@@ -37,7 +37,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
         @TimedRetryPolicy.wrap(timeout=20, exceptions=(TimeoutException,))
         def open_project_selector():
             self.browser.click_when_visible(
-                selector='[data-test-id="page-filter-project-selector"]'
+                selector='[data-test-id="global-header-project-selector"]'
             )
             # Check if the automplete-list has shown up, if that fails we
             # want to retry this step.
