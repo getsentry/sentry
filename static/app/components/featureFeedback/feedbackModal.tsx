@@ -37,9 +37,7 @@ export interface FeedBackModalProps {
   feedbackTypes: string[];
 }
 
-interface Props
-  extends FeedBackModalProps,
-    Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal'> {}
+interface Props extends FeedBackModalProps, ModalRenderProps {}
 
 type State = {additionalInfo?: string; subject?: number};
 
