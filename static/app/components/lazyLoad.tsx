@@ -25,12 +25,10 @@ type Props<C extends ComponentType> = Omit<React.ComponentProps<C>, 'route'> & {
  *
  * <LazyLoad component={() => import('./myComponent')} someComponentProps={...} />
  */
-function LazyLoad<C extends ComponentType>(props: Props<C>) {
-  const importComponent = props.component;
-
+function LazyLoad<C extends ComponentType>({component, ...props}: Props<C>) {
   const LazyComponent = useMemo(
-    () => lazy(() => retryableImport(importComponent)),
-    [importComponent]
+    () => lazy(() => retryableImport(component)),
+    [component]
   );
 
   return (
