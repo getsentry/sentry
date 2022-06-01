@@ -157,14 +157,11 @@ transaction.startTimestamp = timestampWithMs() - realTime.value;
 transaction.setName('typescript.compile');
 
 // @TODO: Remove ts ignore once the types are added to the SDK
-// @ts-ignore-expect setMeasurements does not exist?
-transaction.setMeasurements({
-  'typescript.time.check': {value: checkTime.value},
-  'typescript.time.bind': {value: bindTime.value},
-  'typescript.time.parse': {value: parseTime.value},
-  'typescript.time.total': {value: totalTime.value},
-  'typescript.memory.used': {value: memoryUsage.value},
-});
+transaction.setMeasurement('typescript.time.check', checkTime.value, 'ms');
+transaction.setMeasurement('typescript.time.bind', bindTime.value, 'ms');
+transaction.setMeasurement('typescript.time.parse', parseTime.value, 'ms');
+transaction.setMeasurement('typescript.time.total', totalTime.value, 'ms');
+transaction.setMeasurement('typescript.memory.used', memoryUsage.value, 'ms');
 
 transaction.setTag('branch', process.env.GITHUB_PR_REF);
 transaction.setTag('commit', process.env.GITHUB_PR_SHA);
