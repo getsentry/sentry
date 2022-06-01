@@ -9,7 +9,7 @@ updates:
       timezone: America/Los_Angeles
       time: '15:30'
     reviewers:
-      - '@getsentry/owners-js-build'
+      - '@getsentry/owners-js-deps'
     ignore:
       # Babel updates all really should happen in unison, so let's keep these
       # ignored for now and manually handle it
