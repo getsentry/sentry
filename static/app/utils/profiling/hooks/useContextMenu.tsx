@@ -50,7 +50,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
   );
 
   const getMenuProps = useCallback(() => {
-    const menuProps = itemProps.getMenuKeyboardEventHandlers();
+    const menuProps = itemProps.getMenuProps();
 
     return {
       ...menuProps,
@@ -64,7 +64,7 @@ export function useContextMenu({container}: UseContextMenuOptions) {
   }, [itemProps, wrapSetOpen]);
 
   const getMenuItemProps = useCallback(() => {
-    const menuItemProps = itemProps.getMenuItemKeyboardEventHandlers();
+    const menuItemProps = itemProps.getItemProps();
 
     return {
       ...menuItemProps,

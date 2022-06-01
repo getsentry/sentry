@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {forwardRef, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {IconSettings, IconUser} from 'sentry/icons';
@@ -21,82 +21,108 @@ function computeRelativeWeight(base: number, value: number) {
 interface FrameStackTableRowProps {
   flamegraphRenderer: FlamegraphRenderer;
   node: VirtualizedTreeNode<FlamegraphFrame>;
+  onClick: React.MouseEventHandler<HTMLDivElement>;
   onContextMenu: React.MouseEventHandler<HTMLDivElement>;
   onExpandClick: (
     node: VirtualizedTreeNode<FlamegraphFrame>,
     opts?: {expandChildren: boolean}
   ) => void;
+  onKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
   referenceNode: FlamegraphFrame;
   style: React.CSSProperties;
+  tabIndex: number;
 }
 
-export function FrameStackTableRow({
-  node,
-  flamegraphRenderer,
-  referenceNode,
-  onExpandClick,
-  onContextMenu,
-  style,
-}: FrameStackTableRowProps) {
-  const colorString = useMemo(() => {
-    return formatColorForFrame(node.node, flamegraphRenderer);
-  }, [node, flamegraphRenderer]);
-
-  const handleExpanding = useCallback(
-    (evt: React.MouseEvent) => {
-      onExpandClick(node, {expandChildren: evt.metaKey});
+export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowProps>(
+  (
+    {
+      node,
+      flamegraphRenderer,
+      referenceNode,
+      onExpandClick,
+      onContextMenu,
+      tabIndex,
+      onKeyDown,
+      onClick,
+      style,
     },
-    [node, onExpandClick]
-  );
+    ref
+  ) => {
+    const colorString = useMemo(() => {
+      return formatColorForFrame(node.node, flamegraphRenderer);
+    }, [node, flamegraphRenderer]);
 
-  return (
-    <FrameCallersRow style={style} onContextMenu={onContextMenu}>
-      <FrameCallersTableCell textAlign="right">
-        {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
-        <Weight
-          weight={computeRelativeWeight(
-            referenceNode.node.totalWeight,
-            node.node.node.selfWeight
-          )}
-        />
-      </FrameCallersTableCell>
-      <FrameCallersTableCell noPadding textAlign="right">
-        <FrameWeightTypeContainer>
-          <FrameWeightContainer>
-            {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
-            <Weight
-              weight={computeRelativeWeight(
-                referenceNode.node.totalWeight,
-                node.node.node.totalWeight
-              )}
-            />
-          </FrameWeightContainer>
-          <FrameTypeIndicator>
-            {node.node.node.frame.is_application ? (
-              <IconUser size="xs" />
-            ) : (
-              <IconSettings size="xs" />
-            )}
-          </FrameTypeIndicator>
-        </FrameWeightTypeContainer>
-      </FrameCallersTableCell>
-      <FrameCallersTableCell
-        // We stretch this table to 100% width.
-        style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
+    const handleExpanding = useCallback(
+      (evt: React.MouseEvent) => {
+        evt.stopPropagation();
+        onExpandClick(node, {expandChildren: evt.metaKey});
+      },
+      [node, onExpandClick]
+    );
+
+    return (
+      <FrameCallersRow
+        ref={ref}
+        style={style}
+        onContextMenu={onContextMenu}
+        tabIndex={tabIndex}
+        isSelected={tabIndex === 0}
+        onKeyDown={onKeyDown}
+        onClick={onClick}
       >
-        <FrameNameContainer>
-          <FrameColorIndicator backgroundColor={colorString} />
-          <FrameChildrenIndicator onClick={handleExpanding} open={node.expanded}>
-            {node.node.children.length > 0 ? '\u203A' : null}
-          </FrameChildrenIndicator>
-          <FrameName>{node.node.frame.name}</FrameName>
-        </FrameNameContainer>
-      </FrameCallersTableCell>
-    </FrameCallersRow>
-  );
-}
+        <FrameCallersTableCell textAlign="right">
+          {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
+          <Weight
+            isSelected={tabIndex === 0}
+            weight={computeRelativeWeight(
+              referenceNode.node.totalWeight,
+              node.node.node.selfWeight
+            )}
+          />
+        </FrameCallersTableCell>
+        <FrameCallersTableCell noPadding textAlign="right">
+          <FrameWeightTypeContainer>
+            <FrameWeightContainer>
+              {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
+              <Weight
+                isSelected={tabIndex === 0}
+                weight={computeRelativeWeight(
+                  referenceNode.node.totalWeight,
+                  node.node.node.totalWeight
+                )}
+              />
+            </FrameWeightContainer>
+            <FrameTypeIndicator isSelected={tabIndex === 0}>
+              {node.node.node.frame.is_application ? (
+                <IconUser size="xs" />
+              ) : (
+                <IconSettings size="xs" />
+              )}
+            </FrameTypeIndicator>
+          </FrameWeightTypeContainer>
+        </FrameCallersTableCell>
+        <FrameCallersTableCell
+          // We stretch this table to 100% width.
+          style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
+        >
+          <FrameNameContainer>
+            <FrameColorIndicator backgroundColor={colorString} />
+            <FrameChildrenIndicator
+              tabIndex={-1}
+              onClick={handleExpanding}
+              open={node.expanded}
+            >
+              {node.node.children.length > 0 ? '\u203A' : null}
+            </FrameChildrenIndicator>
+            <FrameName>{node.node.frame.name}</FrameName>
+          </FrameNameContainer>
+        </FrameCallersTableCell>
+      </FrameCallersRow>
+    );
+  }
+);
 
-const Weight = styled((props: {weight: number}) => {
+const Weight = styled((props: {isSelected: boolean; weight: number}) => {
   const {weight, ...rest} = props;
   return (
     <div {...rest}>
@@ -107,7 +133,8 @@ const Weight = styled((props: {weight: number}) => {
 })`
   display: inline-block;
   min-width: 7ch;
-  color: ${props => props.theme.subText};
+  color: ${p => (p.isSelected ? p.theme.white : p.theme.subText)};
+  opacity: ${p => (p.isSelected ? 0.8 : 1)};
 `;
 
 const FrameWeightTypeContainer = styled('div')`
@@ -117,14 +144,15 @@ const FrameWeightTypeContainer = styled('div')`
   position: relative;
 `;
 
-const FrameTypeIndicator = styled('div')`
+const FrameTypeIndicator = styled('div')<{isSelected: boolean}>`
   flex-shrink: 0;
   width: 26px;
   height: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.subText};
+  color: ${p => (p.isSelected ? p.theme.white : p.theme.subText)};
+  opacity: ${p => (p.isSelected ? 0.8 : 1)};
 `;
 
 const FrameWeightContainer = styled('div')`
@@ -147,12 +175,19 @@ const BackgroundWeightBar = styled('div')`
   width: 100%;
 `;
 
-const FrameCallersRow = styled('div')`
+const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: 100%;
 
+  background-color: ${p => (p.isSelected ? p.theme.blue300 : 'transparent')};
+  color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
+
   &:hover {
-    background-color: ${p => p.theme.surface400};
+    background-color: ${p => (p.isSelected ? p.theme.blue300 : p.theme.blue100)};
+  }
+
+  &:focus {
+    outline: none;
   }
 `;
 
