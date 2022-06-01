@@ -394,3 +394,7 @@ register("kafka.send-project-events-to-random-partitions", default=[])
 
 # Rate to project_configs_v3
 register("relay.project-config-v3-enable", default=0.0)
+
+# Mechanism for dialing up the last-seen-updater, which isn't needed outside
+# of SaaS (last_seen is a marker for deleting stale customer data)
+register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
