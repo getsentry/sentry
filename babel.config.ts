@@ -16,6 +16,7 @@ const config: TransformOptions = {
       {
         useBuiltIns: 'usage',
         corejs: '3.15',
+        bugfixes: true,
       },
     ],
     '@babel/preset-typescript',
