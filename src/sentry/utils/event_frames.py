@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import namedtuple
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import (
@@ -56,6 +57,12 @@ def cocoa_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
     return False
 
 
+def js_react_native_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
+    # intentionally left blank
+    # react-native doesn't need frame munging
+    return False
+
+
 def package_relative_path(abs_path: str, package: str) -> str | None:
     """
     returns the left-biased shortened path relative to the package directory
@@ -73,8 +80,11 @@ def package_relative_path(abs_path: str, package: str) -> str | None:
 
 
 PLATFORM_FRAME_MUNGER: Mapping[str, SdkFrameMunger] = {
-    "java": SdkFrameMunger(java_frame_munger),
-    "cocoa": SdkFrameMunger(cocoa_frame_munger),
+    "java": SdkFrameMunger(java_frame_munger, False, {}),
+    "cocoa": SdkFrameMunger(cocoa_frame_munger, False, {}),
+    "javascript": SdkFrameMunger(
+        js_react_native_frame_munger, True, {"sentry.javascript.react-native"}
+    ),
 }
 
 
