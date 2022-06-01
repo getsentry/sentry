@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import Feature from 'sentry/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {t} from 'sentry/locale';
