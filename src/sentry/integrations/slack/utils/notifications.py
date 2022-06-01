@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Mapping
 
+import sentry_sdk
+
+from sentry import features
 from sentry.constants import ObjectStatus
+from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models import AlertRuleTriggerAction, Incident, IncidentStatus
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
@@ -30,8 +34,19 @@ def send_incident_alert_notification(
         # Integration removed, but rule is still active.
         return
 
+    chart_url = None
+    if features.has("organizations:metric-alert-chartcuterie", incident.organization):
+        try:
+            chart_url = build_metric_alert_chart(
+                organization=incident.organization,
+                alert_rule=incident.alert_rule,
+                selected_incident=incident,
+            )
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+
     channel = action.target_identifier
-    attachment = SlackIncidentsMessageBuilder(incident, new_status, metric_value).build()
+    attachment = SlackIncidentsMessageBuilder(incident, new_status, metric_value, chart_url).build()
     payload = {
         "token": integration.metadata["access_token"],
         "channel": channel,

@@ -30,7 +30,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
     OP_TO_SNUBA_FUNCTION,
-    QueryDefinition,
+    MetricsQuery,
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_date_range,
@@ -51,7 +51,7 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.query import MetricField
-from sentry.snuba.metrics.query_builder import APIQueryDefinition
+from sentry.snuba.metrics.query_builder import QueryDefinition
 
 
 @dataclass
@@ -195,7 +195,7 @@ def test_parse_query(monkeypatch, query_string, expected):
         # will be values 10000, 10001 respectively
         local_indexer.record(org_id, s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
-    parsed = resolve_tags(org_id, parse_query(query_string))
+    parsed = resolve_tags(org_id, parse_query(query_string, []))
     assert parsed == expected
 
 
@@ -209,7 +209,7 @@ def test_parse_query(monkeypatch, query_string, expected):
 )
 def test_parse_query_invalid(query_string):
     with pytest.raises(InvalidParams):
-        parse_query(query_string)
+        parse_query(query_string, projects=[])
 
 
 @freeze_time("2018-12-11 03:21:00")
@@ -282,7 +282,7 @@ def test_timestamps():
 def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
     # Your typical release health query querying everything
-    query_definition = QueryDefinition(
+    query_definition = MetricsQuery(
         org_id=1,
         project_ids=[1],
         select=[
@@ -407,8 +407,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = APIQueryDefinition([PseudoProject(1, 1)], query_params)
-    query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition.to_query_definition())
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
+    query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition.to_metrics_query())
     snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
     assert fields_in_entities == {
         "metrics_counters": [
@@ -537,11 +537,11 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             "per_page": [2],
         }
     )
-    query_definition = APIQueryDefinition(
+    query_definition = QueryDefinition(
         [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
     )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition.to_query_definition()
+        [PseudoProject(1, 1)], query_definition.to_metrics_query()
     ).get_snuba_queries()
 
     org_id = 1
@@ -623,11 +623,11 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             "per_page": [2],
         }
     )
-    query_definition = APIQueryDefinition(
+    query_definition = QueryDefinition(
         [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
     )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition.to_query_definition()
+        [PseudoProject(1, 1)], query_definition.to_metrics_query()
     ).get_snuba_queries()
 
     org_id = 1
@@ -726,7 +726,7 @@ def test_translate_results(_1, _2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = APIQueryDefinition([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [("sum", SessionMRI.SESSION.value)],
         "metrics_distributions": [
@@ -850,7 +850,7 @@ def test_translate_results(_1, _2, monkeypatch):
     }
 
     assert SnubaResultConverter(
-        org_id, query_definition.to_query_definition(), fields_in_entities, intervals, results
+        org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {"session.status": "healthy"},
@@ -904,7 +904,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = APIQueryDefinition([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
@@ -969,7 +969,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
     }
 
     assert SnubaResultConverter(
-        1, query_definition.to_query_definition(), fields_in_entities, intervals, results
+        1, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {},
@@ -1003,7 +1003,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
             "statsPeriod": ["3d"],
         }
     )
-    query_definition = APIQueryDefinition([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
             ("sum", SessionMRI.SESSION.value),
@@ -1042,7 +1042,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
         get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
     )
     assert SnubaResultConverter(
-        org_id, query_definition.to_query_definition(), fields_in_entities, intervals, results
+        org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {},

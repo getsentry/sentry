@@ -1,6 +1,9 @@
 PIP := python -m pip --disable-pip-version-check
 WEBPACK := yarn build-acceptance
 
+freeze-requirements:
+	@python -S -m tools.freeze_requirements
+
 bootstrap \
 develop \
 clean \
@@ -117,20 +120,23 @@ test-js-ci: node-version-check
 	@yarn run test-ci
 	@echo ""
 
-test-python:
-	@echo "--> Running Python tests"
-	# This gets called by getsentry
-	pytest tests/integration tests/sentry
-
 test-python-ci:
-	make build-platform-assets
 	@echo "--> Running CI Python tests"
-	pytest tests/integration tests/sentry --cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
+	pytest tests/integration tests/sentry \
+		--ignore tests/sentry/eventstream/kafka \
+		--ignore tests/sentry/snuba \
+		--ignore tests/sentry/search/events \
+		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
+		--cov . --cov-report="xml:.artifacts/python.coverage.xml" --junit-xml=".artifacts/python.junit.xml" || exit 1
 	@echo ""
 
 test-snuba:
 	@echo "--> Running snuba tests"
-	pytest tests/snuba tests/sentry/eventstream/kafka tests/sentry/snuba/test_discover.py tests/sentry/search/events -vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
+	pytest tests/snuba \
+		tests/sentry/eventstream/kafka \
+		tests/sentry/snuba \
+		tests/sentry/search/events \
+		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml" --junit-xml=".artifacts/snuba.junit.xml"
 	@echo ""
 
 test-tools:
@@ -165,7 +171,10 @@ test-plugins:
 
 test-relay-integration:
 	@echo "--> Running Relay integration tests"
-	pytest tests/relay_integration -vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml" --junit-xml=".artifacts/relay.junit.xml"
+	pytest \
+		tests/relay_integration \
+		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
+		-vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml" --junit-xml=".artifacts/relay.junit.xml"
 	@echo ""
 
 test-api-docs: build-api-docs

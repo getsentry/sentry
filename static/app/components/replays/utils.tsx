@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
+import type {ReplaySpan} from 'sentry/views/replays/types';
 
 function padZero(num: number, len = 2): string {
   let str = String(num);
@@ -19,9 +19,14 @@ const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
 const TIME_FORMAT = 'HH:mm:ss';
 
-export function relativeTimeInMs(timestamp: string, relativeTime: number): number {
+/**
+ * @param timestamp The timestamp that is our reference point. Can be anything that `moment` accepts such as `'2022-05-04T19:47:52.915000Z'` or `1651664872.915`
+ * @param diffMs Number of milliseconds to adjust the timestamp by, either positive (future) or negative (past)
+ * @returns Unix timestamp of the adjusted timestamp, in milliseconds
+ */
+export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number): number {
   return moment(timestamp)
-    .diff(relativeTime * 1000)
+    .diff(diffMs * 1000)
     .valueOf();
 }
 
@@ -166,19 +171,19 @@ function doesOverlap(a: FlattenedSpanRange, b: FlattenedSpanRange) {
   return bStartsWithinA || bEndsWithinA;
 }
 
-export function flattenSpans(rawSpans: RawSpanType[]): FlattenedSpanRange[] {
+export function flattenSpans(rawSpans: ReplaySpan[]): FlattenedSpanRange[] {
   if (!rawSpans.length) {
     return [];
   }
 
   const spans = rawSpans.map(span => {
-    const startTimestamp = span.start_timestamp * 1000;
+    const startTimestamp = span.startTimestamp * 1000;
 
     // `endTimestamp` is at least msPerPixel wide, otherwise it disappears
-    const endTimestamp = span.timestamp * 1000;
+    const endTimestamp = span.endTimestamp * 1000;
     return {
       spanCount: 1,
-      spanId: span.span_id,
+      // spanId: span.span_id,
       startTimestamp,
       endTimestamp,
       duration: endTimestamp - startTimestamp,

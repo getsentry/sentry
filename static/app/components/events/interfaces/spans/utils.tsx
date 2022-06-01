@@ -5,6 +5,10 @@ import isString from 'lodash/isString';
 import set from 'lodash/set';
 import moment from 'moment';
 
+import {
+  TOGGLE_BORDER_BOX,
+  TOGGLE_BUTTON_MAX_WIDTH,
+} from 'sentry/components/performance/waterfall/treeConnector';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
@@ -759,5 +763,76 @@ export function getSpanGroupBounds(
       const _exhaustiveCheck: never = bounds;
       return _exhaustiveCheck;
     }
+  }
+}
+
+export class SpansInViewMap {
+  spanDepthsInView: Map<string, number>;
+  treeDepthSum: number;
+  length: number;
+  isRootSpanInView: boolean;
+
+  constructor() {
+    this.spanDepthsInView = new Map();
+    this.treeDepthSum = 0;
+    this.length = 0;
+    this.isRootSpanInView = true;
+  }
+
+  /**
+   *
+   * @param spanId
+   * @param treeDepth
+   * @returns false if the span is already stored, true otherwise
+   */
+  addSpan(spanId: string, treeDepth: number): boolean {
+    if (this.spanDepthsInView.has(spanId)) {
+      return false;
+    }
+
+    this.spanDepthsInView.set(spanId, treeDepth);
+    this.length += 1;
+    this.treeDepthSum += treeDepth;
+
+    if (treeDepth === 0) {
+      this.isRootSpanInView = true;
+    }
+
+    return true;
+  }
+
+  /**
+   *
+   * @param spanId
+   * @returns false if the span does not exist within the span, true otherwise
+   */
+  removeSpan(spanId: string): boolean {
+    if (!this.spanDepthsInView.has(spanId)) {
+      return false;
+    }
+
+    const treeDepth = this.spanDepthsInView.get(spanId);
+    this.spanDepthsInView.delete(spanId);
+    this.length -= 1;
+    this.treeDepthSum -= treeDepth!;
+
+    if (treeDepth === 0) {
+      this.isRootSpanInView = false;
+    }
+
+    return true;
+  }
+
+  has(spanId: string) {
+    return this.spanDepthsInView.has(spanId);
+  }
+
+  getScrollVal() {
+    if (this.isRootSpanInView) {
+      return 0;
+    }
+
+    const avgDepth = Math.round(this.treeDepthSum / this.length);
+    return avgDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
   }
 }

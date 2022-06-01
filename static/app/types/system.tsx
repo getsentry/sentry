@@ -182,11 +182,21 @@ export type Broadcast = {
 };
 
 export type SentryServiceIncident = {
+  affectedComponents: Array<{
+    name: string;
+    status: 'degraded_performance' | 'partial_outage' | 'major_outage' | 'operational';
+    updatedAt: string;
+  }>;
+  createdAt: string;
   id: string;
   name: string;
   status: string;
+  updates: Array<{
+    body: string;
+    status: string;
+    updatedAt: string;
+  }>;
   url: string;
-  updates?: string[];
 };
 
 export type SentryServiceStatus = {
