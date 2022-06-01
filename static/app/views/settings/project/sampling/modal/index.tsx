@@ -11,15 +11,15 @@ import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
-  DynamicSamplingConditionOperator,
-  DynamicSamplingInnerName,
-  DynamicSamplingRule,
-  DynamicSamplingRules,
-  DynamicSamplingRuleType,
-} from 'sentry/types/dynamicSampling';
+  SamplingConditionOperator,
+  SamplingInnerName,
+  SamplingRule,
+  SamplingRules,
+  SamplingRuleType,
+} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 
-import {DYNAMIC_SAMPLING_DOC_LINK} from '../utils';
+import {SAMPLING_DOC_LINK} from '../utils';
 
 import RuleModal from './ruleModal';
 import {generateConditionCategoriesOptions, getNewCondition} from './utils';
@@ -35,14 +35,14 @@ type Props = Omit<
   | 'emptyMessage'
   | 'onChage'
 > & {
-  rules: DynamicSamplingRules;
+  rules: SamplingRules;
 };
 
 function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
   const theme = useTheme();
 
   const [tracing, setTracing] = useState(
-    ruleToUpdate ? ruleToUpdate.type === DynamicSamplingRuleType.TRACE : true
+    ruleToUpdate ? ruleToUpdate.type === SamplingRuleType.TRACE : true
   );
 
   const [isTracingDisabled, setIsTracingDisabled] = useState(
@@ -64,12 +64,12 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
       return;
     }
 
-    const newRule: DynamicSamplingRule = {
+    const newRule: SamplingRule = {
       // All new/updated rules must have id equal to 0
       id: 0,
-      type: tracing ? DynamicSamplingRuleType.TRACE : DynamicSamplingRuleType.TRANSACTION,
+      type: tracing ? SamplingRuleType.TRACE : SamplingRuleType.TRANSACTION,
       condition: {
-        op: DynamicSamplingConditionOperator.AND,
+        op: SamplingConditionOperator.AND,
         inner: !conditions.length ? [] : conditions.map(getNewCondition),
       },
       sampleRate: sampleRate / 100,
@@ -81,7 +81,7 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
 
     const [transactionTraceRules, individualTransactionRules] = partition(
       newTransactionRules,
-      transactionRule => transactionRule.type === DynamicSamplingRuleType.TRACE
+      transactionRule => transactionRule.type === SamplingRuleType.TRACE
     );
 
     const newRules = [...transactionTraceRules, ...individualTransactionRules];
@@ -102,30 +102,30 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
       conditionCategories={generateConditionCategoriesOptions(
         tracing
           ? [
-              DynamicSamplingInnerName.TRACE_RELEASE,
-              DynamicSamplingInnerName.TRACE_ENVIRONMENT,
-              DynamicSamplingInnerName.TRACE_USER_ID,
-              DynamicSamplingInnerName.TRACE_USER_SEGMENT,
-              DynamicSamplingInnerName.TRACE_TRANSACTION,
+              SamplingInnerName.TRACE_RELEASE,
+              SamplingInnerName.TRACE_ENVIRONMENT,
+              SamplingInnerName.TRACE_USER_ID,
+              SamplingInnerName.TRACE_USER_SEGMENT,
+              SamplingInnerName.TRACE_TRANSACTION,
             ]
           : [
-              DynamicSamplingInnerName.EVENT_RELEASE,
-              DynamicSamplingInnerName.EVENT_ENVIRONMENT,
-              DynamicSamplingInnerName.EVENT_USER_ID,
-              DynamicSamplingInnerName.EVENT_USER_SEGMENT,
-              DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS,
-              DynamicSamplingInnerName.EVENT_LOCALHOST,
-              DynamicSamplingInnerName.EVENT_LEGACY_BROWSER,
-              DynamicSamplingInnerName.EVENT_WEB_CRAWLERS,
-              DynamicSamplingInnerName.EVENT_IP_ADDRESSES,
-              DynamicSamplingInnerName.EVENT_CSP,
-              DynamicSamplingInnerName.EVENT_ERROR_MESSAGES,
-              DynamicSamplingInnerName.EVENT_TRANSACTION,
-              DynamicSamplingInnerName.EVENT_OS_NAME,
-              DynamicSamplingInnerName.EVENT_OS_VERSION,
-              DynamicSamplingInnerName.EVENT_DEVICE_FAMILY,
-              DynamicSamplingInnerName.EVENT_DEVICE_NAME,
-              DynamicSamplingInnerName.EVENT_CUSTOM_TAG,
+              SamplingInnerName.EVENT_RELEASE,
+              SamplingInnerName.EVENT_ENVIRONMENT,
+              SamplingInnerName.EVENT_USER_ID,
+              SamplingInnerName.EVENT_USER_SEGMENT,
+              SamplingInnerName.EVENT_BROWSER_EXTENSIONS,
+              SamplingInnerName.EVENT_LOCALHOST,
+              SamplingInnerName.EVENT_LEGACY_BROWSER,
+              SamplingInnerName.EVENT_WEB_CRAWLERS,
+              SamplingInnerName.EVENT_IP_ADDRESSES,
+              SamplingInnerName.EVENT_CSP,
+              SamplingInnerName.EVENT_ERROR_MESSAGES,
+              SamplingInnerName.EVENT_TRANSACTION,
+              SamplingInnerName.EVENT_OS_NAME,
+              SamplingInnerName.EVENT_OS_VERSION,
+              SamplingInnerName.EVENT_DEVICE_FAMILY,
+              SamplingInnerName.EVENT_DEVICE_NAME,
+              SamplingInnerName.EVENT_CUSTOM_TAG,
             ]
       )}
       rule={ruleToUpdate}
@@ -157,7 +157,7 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
                 {
                   link: (
                     <ExternalLink
-                      href={DYNAMIC_SAMPLING_DOC_LINK}
+                      href={SAMPLING_DOC_LINK}
                       onClick={event => event.stopPropagation()}
                     />
                   ),

@@ -6,7 +6,7 @@ import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SelectField from 'sentry/components/forms/selectField';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {DynamicSamplingInnerName} from 'sentry/types/dynamicSampling';
+import {SamplingInnerName} from 'sentry/types/sampling';
 import useApi from 'sentry/utils/useApi';
 
 import {TruncatedLabel} from './truncatedLabel';
@@ -18,17 +18,17 @@ type Tag = {
 
 type Props = {
   category:
-    | DynamicSamplingInnerName.EVENT_ENVIRONMENT
-    | DynamicSamplingInnerName.EVENT_RELEASE
-    | DynamicSamplingInnerName.EVENT_TRANSACTION
-    | DynamicSamplingInnerName.EVENT_OS_NAME
-    | DynamicSamplingInnerName.EVENT_OS_VERSION
-    | DynamicSamplingInnerName.EVENT_DEVICE_FAMILY
-    | DynamicSamplingInnerName.EVENT_DEVICE_NAME
-    | DynamicSamplingInnerName.EVENT_CUSTOM_TAG
-    | DynamicSamplingInnerName.TRACE_ENVIRONMENT
-    | DynamicSamplingInnerName.TRACE_RELEASE
-    | DynamicSamplingInnerName.TRACE_TRANSACTION
+    | SamplingInnerName.EVENT_ENVIRONMENT
+    | SamplingInnerName.EVENT_RELEASE
+    | SamplingInnerName.EVENT_TRANSACTION
+    | SamplingInnerName.EVENT_OS_NAME
+    | SamplingInnerName.EVENT_OS_VERSION
+    | SamplingInnerName.EVENT_DEVICE_FAMILY
+    | SamplingInnerName.EVENT_DEVICE_NAME
+    | SamplingInnerName.EVENT_CUSTOM_TAG
+    | SamplingInnerName.TRACE_ENVIRONMENT
+    | SamplingInnerName.TRACE_RELEASE
+    | SamplingInnerName.TRACE_TRANSACTION
     | string;
   onChange: (value: string) => void;
   orgSlug: Organization['slug'];
@@ -50,22 +50,22 @@ function TagValueAutocomplete({
 
   function getAriaLabel() {
     switch (category) {
-      case DynamicSamplingInnerName.TRACE_RELEASE:
-      case DynamicSamplingInnerName.EVENT_RELEASE:
+      case SamplingInnerName.TRACE_RELEASE:
+      case SamplingInnerName.EVENT_RELEASE:
         return t('Search or add a release');
-      case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
-      case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
+      case SamplingInnerName.TRACE_ENVIRONMENT:
+      case SamplingInnerName.EVENT_ENVIRONMENT:
         return t('Search or add an environment');
-      case DynamicSamplingInnerName.TRACE_TRANSACTION:
-      case DynamicSamplingInnerName.EVENT_TRANSACTION:
+      case SamplingInnerName.TRACE_TRANSACTION:
+      case SamplingInnerName.EVENT_TRANSACTION:
         return t('Search or add a transaction');
-      case DynamicSamplingInnerName.EVENT_OS_NAME:
+      case SamplingInnerName.EVENT_OS_NAME:
         return t('Search or add an os name');
-      case DynamicSamplingInnerName.EVENT_OS_VERSION:
+      case SamplingInnerName.EVENT_OS_VERSION:
         return t('Search or add an os version');
-      case DynamicSamplingInnerName.EVENT_DEVICE_FAMILY:
+      case SamplingInnerName.EVENT_DEVICE_FAMILY:
         return t('Search or add a device family');
-      case DynamicSamplingInnerName.EVENT_DEVICE_NAME:
+      case SamplingInnerName.EVENT_DEVICE_NAME:
         return t('Search or add a device name');
 
       default:

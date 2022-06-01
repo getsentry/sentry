@@ -1,4 +1,4 @@
-export enum DynamicSamplingRuleType {
+export enum SamplingRuleType {
   /**
    * The rule applies to traces (transaction events considered in the context of a trace)
    */
@@ -9,14 +9,14 @@ export enum DynamicSamplingRuleType {
   TRANSACTION = 'transaction',
 }
 
-export enum DynamicSamplingConditionOperator {
+export enum SamplingConditionOperator {
   /**
    * Combine multiple sub-conditions with the operator 'and'
    */
   AND = 'and',
 }
 
-export enum DynamicSamplingRuleOperator {
+export enum SamplingRuleOperator {
   /**
    * The first rule on the list
    */
@@ -31,7 +31,7 @@ export enum DynamicSamplingRuleOperator {
   ELSE = 'else',
 }
 
-export enum DynamicSamplingInnerOperator {
+export enum SamplingInnerOperator {
   /**
    * It uses glob matches for checking (e.g. releases use glob matching "1.1.*" will match release 1.1.1 and 1.1.2)
    */
@@ -51,7 +51,7 @@ export enum DynamicSamplingInnerOperator {
  * Default naming strategy should be based on the path in the event, prefixed with `event.`.
  * To see the path in the event, click on the JSON button on the issue details page.
  */
-export enum DynamicSamplingInnerName {
+export enum SamplingInnerName {
   TRACE_RELEASE = 'trace.release',
   TRACE_ENVIRONMENT = 'trace.environment',
   TRACE_USER_ID = 'trace.user.id',
@@ -88,80 +88,80 @@ export enum LegacyBrowser {
   ANDROID_PRE_4 = 'android_pre_4',
 }
 
-type DynamicSamplingConditionLogicalInnerGlob = {
+type SamplingConditionLogicalInnerGlob = {
   name:
-    | DynamicSamplingInnerName.EVENT_RELEASE
-    | DynamicSamplingInnerName.TRACE_RELEASE
-    | DynamicSamplingInnerName.EVENT_TRANSACTION
-    | DynamicSamplingInnerName.TRACE_TRANSACTION
-    | DynamicSamplingInnerName.EVENT_OS_NAME
-    | DynamicSamplingInnerName.EVENT_OS_VERSION
-    | DynamicSamplingInnerName.EVENT_DEVICE_FAMILY
-    | DynamicSamplingInnerName.EVENT_DEVICE_NAME
-    | DynamicSamplingInnerName.EVENT_CUSTOM_TAG
+    | SamplingInnerName.EVENT_RELEASE
+    | SamplingInnerName.TRACE_RELEASE
+    | SamplingInnerName.EVENT_TRANSACTION
+    | SamplingInnerName.TRACE_TRANSACTION
+    | SamplingInnerName.EVENT_OS_NAME
+    | SamplingInnerName.EVENT_OS_VERSION
+    | SamplingInnerName.EVENT_DEVICE_FAMILY
+    | SamplingInnerName.EVENT_DEVICE_NAME
+    | SamplingInnerName.EVENT_CUSTOM_TAG
     | string; // for custom tags
-  op: DynamicSamplingInnerOperator.GLOB_MATCH;
+  op: SamplingInnerOperator.GLOB_MATCH;
   value: Array<string>;
 };
 
-type DynamicSamplingConditionLogicalInnerEq = {
+type SamplingConditionLogicalInnerEq = {
   name:
-    | DynamicSamplingInnerName.EVENT_ENVIRONMENT
-    | DynamicSamplingInnerName.TRACE_ENVIRONMENT
-    | DynamicSamplingInnerName.EVENT_USER_ID
-    | DynamicSamplingInnerName.TRACE_USER_ID
-    | DynamicSamplingInnerName.EVENT_USER_SEGMENT
-    | DynamicSamplingInnerName.TRACE_USER_SEGMENT;
-  op: DynamicSamplingInnerOperator.EQUAL;
+    | SamplingInnerName.EVENT_ENVIRONMENT
+    | SamplingInnerName.TRACE_ENVIRONMENT
+    | SamplingInnerName.EVENT_USER_ID
+    | SamplingInnerName.TRACE_USER_ID
+    | SamplingInnerName.EVENT_USER_SEGMENT
+    | SamplingInnerName.TRACE_USER_SEGMENT;
+  op: SamplingInnerOperator.EQUAL;
   options: {
     ignoreCase: boolean;
   };
   value: Array<string>;
 };
 
-type DynamicSamplingConditionLogicalInnerEqBoolean = {
+type SamplingConditionLogicalInnerEqBoolean = {
   name:
-    | DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS
-    | DynamicSamplingInnerName.EVENT_LOCALHOST
-    | DynamicSamplingInnerName.EVENT_WEB_CRAWLERS;
-  op: DynamicSamplingInnerOperator.EQUAL;
+    | SamplingInnerName.EVENT_BROWSER_EXTENSIONS
+    | SamplingInnerName.EVENT_LOCALHOST
+    | SamplingInnerName.EVENT_WEB_CRAWLERS;
+  op: SamplingInnerOperator.EQUAL;
   value: boolean;
 };
 
-type DynamicSamplingConditionLogicalInnerCustom = {
+type SamplingConditionLogicalInnerCustom = {
   name:
-    | DynamicSamplingInnerName.EVENT_CSP
-    | DynamicSamplingInnerName.EVENT_ERROR_MESSAGES
-    | DynamicSamplingInnerName.EVENT_IP_ADDRESSES;
-  op: DynamicSamplingInnerOperator.CUSTOM;
+    | SamplingInnerName.EVENT_CSP
+    | SamplingInnerName.EVENT_ERROR_MESSAGES
+    | SamplingInnerName.EVENT_IP_ADDRESSES;
+  op: SamplingInnerOperator.CUSTOM;
   value: Array<string>;
 };
 
-type DynamicSamplingConditionLogicalInnerCustomLegacyBrowser = {
-  name: DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
-  op: DynamicSamplingInnerOperator.CUSTOM;
+type SamplingConditionLogicalInnerCustomLegacyBrowser = {
+  name: SamplingInnerName.EVENT_LEGACY_BROWSER;
+  op: SamplingInnerOperator.CUSTOM;
   value: Array<LegacyBrowser>;
 };
 
-export type DynamicSamplingConditionLogicalInner =
-  | DynamicSamplingConditionLogicalInnerGlob
-  | DynamicSamplingConditionLogicalInnerEq
-  | DynamicSamplingConditionLogicalInnerEqBoolean
-  | DynamicSamplingConditionLogicalInnerCustom
-  | DynamicSamplingConditionLogicalInnerCustomLegacyBrowser;
+export type SamplingConditionLogicalInner =
+  | SamplingConditionLogicalInnerGlob
+  | SamplingConditionLogicalInnerEq
+  | SamplingConditionLogicalInnerEqBoolean
+  | SamplingConditionLogicalInnerCustom
+  | SamplingConditionLogicalInnerCustomLegacyBrowser;
 
-export type DynamicSamplingCondition = {
-  inner: Array<DynamicSamplingConditionLogicalInner>;
-  op: DynamicSamplingConditionOperator.AND;
+export type SamplingCondition = {
+  inner: Array<SamplingConditionLogicalInner>;
+  op: SamplingConditionOperator.AND;
 };
 
-export type DynamicSamplingRule = {
+export type SamplingRule = {
   /**
    * It is a possibly empty list of conditions to which the rule applies.
    * The conditions are combined using the and operator (so all the conditions must be satisfied for the rule to apply).
    * If the conditions field is an empty list the rule applies for all events that satisfy the projectIds and the ty fields.
    */
-  condition: DynamicSamplingCondition;
+  condition: SamplingCondition;
   /**
    * This is a unique number within a project
    */
@@ -173,11 +173,11 @@ export type DynamicSamplingRule = {
   /**
    * Describes the type of rule
    */
-  type: DynamicSamplingRuleType;
+  type: SamplingRuleType;
   /**
    * A rule can be disabled if it doesn't contain a condition (Else case)
    */
   disabled?: boolean;
 };
 
-export type DynamicSamplingRules = Array<DynamicSamplingRule>;
+export type SamplingRules = Array<SamplingRule>;

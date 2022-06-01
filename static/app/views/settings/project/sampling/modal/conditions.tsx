@@ -8,7 +8,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Project, Tag} from 'sentry/types';
-import {DynamicSamplingInnerName, LegacyBrowser} from 'sentry/types/dynamicSampling';
+import {LegacyBrowser, SamplingInnerName} from 'sentry/types/sampling';
 import useApi from 'sentry/utils/useApi';
 
 import {
@@ -24,7 +24,7 @@ import {TagValueAutocomplete} from './tagValueAutocomplete';
 import {getMatchFieldPlaceholder, getTagKey} from './utils';
 
 type Condition = {
-  category: DynamicSamplingInnerName | string; // string is used for custom tags
+  category: SamplingInnerName | string; // string is used for custom tags
   legacyBrowsers?: Array<LegacyBrowser>;
   match?: string;
 };
@@ -58,7 +58,8 @@ function Conditions({
     async function fetchTags() {
       try {
         const response = await api.requestPromise(
-          `/projects/${orgSlug}/${projectSlug}/tags/`
+          `/projects/${orgSlug}/${projectSlug}/tags/`,
+          {query: {onlySamplingTags: 1}}
         );
         setTags(response);
       } catch {
@@ -73,26 +74,25 @@ function Conditions({
     <Fragment>
       {conditions.map((condition, index) => {
         const {category, match, legacyBrowsers} = condition;
-        const displayLegacyBrowsers =
-          category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
+        const displayLegacyBrowsers = category === SamplingInnerName.EVENT_LEGACY_BROWSER;
         const isCustomTag = isCustomTagName(category);
 
         const isBooleanField =
-          category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
-          category === DynamicSamplingInnerName.EVENT_LOCALHOST ||
-          category === DynamicSamplingInnerName.EVENT_WEB_CRAWLERS;
+          category === SamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+          category === SamplingInnerName.EVENT_LOCALHOST ||
+          category === SamplingInnerName.EVENT_WEB_CRAWLERS;
         displayLegacyBrowsers;
 
         const isAutoCompleteField =
-          category === DynamicSamplingInnerName.EVENT_ENVIRONMENT ||
-          category === DynamicSamplingInnerName.EVENT_RELEASE ||
-          category === DynamicSamplingInnerName.EVENT_TRANSACTION ||
-          category === DynamicSamplingInnerName.EVENT_OS_NAME ||
-          category === DynamicSamplingInnerName.EVENT_DEVICE_FAMILY ||
-          category === DynamicSamplingInnerName.EVENT_DEVICE_NAME ||
-          category === DynamicSamplingInnerName.TRACE_ENVIRONMENT ||
-          category === DynamicSamplingInnerName.TRACE_RELEASE ||
-          category === DynamicSamplingInnerName.TRACE_TRANSACTION ||
+          category === SamplingInnerName.EVENT_ENVIRONMENT ||
+          category === SamplingInnerName.EVENT_RELEASE ||
+          category === SamplingInnerName.EVENT_TRANSACTION ||
+          category === SamplingInnerName.EVENT_OS_NAME ||
+          category === SamplingInnerName.EVENT_DEVICE_FAMILY ||
+          category === SamplingInnerName.EVENT_DEVICE_NAME ||
+          category === SamplingInnerName.TRACE_ENVIRONMENT ||
+          category === SamplingInnerName.TRACE_RELEASE ||
+          category === SamplingInnerName.TRACE_TRANSACTION ||
           isCustomTag;
 
         return (

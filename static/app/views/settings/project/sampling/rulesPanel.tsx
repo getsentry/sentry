@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 import {Rules} from './rules';
-import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
+import {SAMPLING_DOC_LINK} from './utils';
 
 type Props = Omit<React.ComponentProps<typeof Rules>, 'emptyMessage'> & {
   onAddRule: () => void;
@@ -33,7 +33,7 @@ export function RulesPanel({
       />
       <StyledPanelFooter>
         <StyledButtonBar gap={1}>
-          <Button href={DYNAMIC_SAMPLING_DOC_LINK} external>
+          <Button href={SAMPLING_DOC_LINK} external>
             {t('Read the docs')}
           </Button>
           <AddRuleButton priority="primary" onClick={onAddRule}>

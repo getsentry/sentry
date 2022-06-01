@@ -7,10 +7,10 @@ import {PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {
-  DynamicSamplingRule,
-  DynamicSamplingRuleOperator,
-  DynamicSamplingRuleType,
-} from 'sentry/types/dynamicSampling';
+  SamplingRule,
+  SamplingRuleOperator,
+  SamplingRuleType,
+} from 'sentry/types/sampling';
 
 import {DraggableList, UpdateItemsProps} from './draggableList';
 import {Rule} from './rule';
@@ -19,14 +19,14 @@ import {layout} from './utils';
 type Props = {
   disabled: boolean;
   emptyMessage: string;
-  onDeleteRule: (rule: DynamicSamplingRule) => () => void;
-  onEditRule: (rule: DynamicSamplingRule) => () => void;
-  onUpdateRules: (rules: Array<DynamicSamplingRule>) => void;
-  rules: Array<DynamicSamplingRule>;
+  onDeleteRule: (rule: SamplingRule) => () => void;
+  onEditRule: (rule: SamplingRule) => () => void;
+  onUpdateRules: (rules: Array<SamplingRule>) => void;
+  rules: Array<SamplingRule>;
 };
 
 type State = {
-  rules: Array<DynamicSamplingRule>;
+  rules: Array<SamplingRule>;
 };
 
 export class Rules extends PureComponent<Props, State> {
@@ -76,8 +76,8 @@ export class Rules extends PureComponent<Props, State> {
     }
 
     if (
-      activeRule.type === DynamicSamplingRuleType.TRACE &&
-      overRule.type === DynamicSamplingRuleType.TRANSACTION
+      activeRule.type === SamplingRuleType.TRACE &&
+      overRule.type === SamplingRuleType.TRANSACTION
     ) {
       addErrorMessage(
         t('Transaction traces rules cannot be under individual transactions rules')
@@ -86,8 +86,8 @@ export class Rules extends PureComponent<Props, State> {
     }
 
     if (
-      activeRule.type === DynamicSamplingRuleType.TRANSACTION &&
-      overRule.type === DynamicSamplingRuleType.TRACE
+      activeRule.type === SamplingRuleType.TRANSACTION &&
+      overRule.type === SamplingRuleType.TRACE
     ) {
       addErrorMessage(
         t('Individual transactions rules cannot be above transaction traces rules')
@@ -97,7 +97,7 @@ export class Rules extends PureComponent<Props, State> {
 
     const reorderedRules = ruleIds
       .map(ruleId => rules.find(rule => String(rule.id) === ruleId))
-      .filter(rule => !!rule) as Array<DynamicSamplingRule>;
+      .filter(rule => !!rule) as Array<SamplingRule>;
 
     this.setState({rules: reorderedRules});
   };
@@ -162,10 +162,10 @@ export class Rules extends PureComponent<Props, State> {
               <Rule
                 operator={
                   itemsRule.id === items[0].id
-                    ? DynamicSamplingRuleOperator.IF
+                    ? SamplingRuleOperator.IF
                     : itemsRule.disabled
-                    ? DynamicSamplingRuleOperator.ELSE
-                    : DynamicSamplingRuleOperator.ELSE_IF
+                    ? SamplingRuleOperator.ELSE
+                    : SamplingRuleOperator.ELSE_IF
                 }
                 rule={{...currentRule, disabled: itemsRule.disabled}}
                 onEditRule={onEditRule(currentRule)}

@@ -8,11 +8,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {
-  DynamicSamplingConditionOperator,
-  DynamicSamplingRule,
-  DynamicSamplingRules,
-  DynamicSamplingRuleType,
-} from 'sentry/types/dynamicSampling';
+  SamplingConditionOperator,
+  SamplingRule,
+  SamplingRules,
+  SamplingRuleType,
+} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withProject from 'sentry/utils/withProject';
 import AsyncView from 'sentry/views/asyncView';
@@ -23,7 +23,7 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 import {modalCss} from './modal/utils';
 import Modal from './modal';
 import {RulesPanel} from './rulesPanel';
-import {DYNAMIC_SAMPLING_DOC_LINK} from './utils';
+import {SAMPLING_DOC_LINK} from './utils';
 
 type Props = AsyncView['props'] & {
   hasAccess: boolean;
@@ -33,12 +33,12 @@ type Props = AsyncView['props'] & {
 
 type State = AsyncView['state'] & {
   projectDetails: Project | null;
-  rules: DynamicSamplingRules;
+  rules: SamplingRules;
 };
 
-class FiltersAndSampling extends AsyncView<Props, State> {
+class Sampling extends AsyncView<Props, State> {
   getTitle() {
-    return t('Filters & Sampling');
+    return t('Sampling');
   }
 
   getDefaultState() {
@@ -84,8 +84,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
     const transactionRules = rules.filter(
       rule =>
-        rule.type === DynamicSamplingRuleType.TRANSACTION ||
-        rule.type === DynamicSamplingRuleType.TRACE
+        rule.type === SamplingRuleType.TRANSACTION || rule.type === SamplingRuleType.TRACE
     );
 
     const [rulesWithoutConditions, rulesWithConditions] = partition(
@@ -104,7 +103,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     }
   };
 
-  handleOpenRule = (rule?: DynamicSamplingRule) => () => {
+  handleOpenRule = (rule?: SamplingRule) => () => {
     const {organization, project, hasAccess} = this.props;
     const {rules} = this.state;
 
@@ -127,7 +126,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     );
   };
 
-  handleDeleteRule = (rule: DynamicSamplingRule) => () => {
+  handleDeleteRule = (rule: SamplingRule) => () => {
     const {organization, project} = this.props;
     const {rules} = this.state;
 
@@ -145,12 +144,12 @@ class FiltersAndSampling extends AsyncView<Props, State> {
 
     this.submitRules(
       newRules,
-      t('Successfully deleted dynamic sampling rule'),
-      t('An error occurred while deleting dynamic sampling rule')
+      t('Successfully deleted sampling rule'),
+      t('An error occurred while deleting sampling rule')
     );
   };
 
-  handleUpdateRules = (rules: Array<DynamicSamplingRule>) => {
+  handleUpdateRules = (rules: Array<SamplingRule>) => {
     if (!rules.length) {
       return;
     }
@@ -159,7 +158,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   };
 
   async submitRules(
-    newRules: DynamicSamplingRules,
+    newRules: SamplingRules,
     successMessage?: string,
     errorMessage?: string
   ) {
@@ -185,7 +184,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     const disabled = !hasAccess;
 
     const hasNotSupportedConditionOperator = rules.some(
-      rule => rule.condition.op !== DynamicSamplingConditionOperator.AND
+      rule => rule.condition.op !== SamplingConditionOperator.AND
     );
 
     if (hasNotSupportedConditionOperator) {
@@ -204,7 +203,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           {tct(
             'Manage the inbound data you want to store. To change the sampling rate or rate limits, [link:update your SDK configuration]. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.',
             {
-              link: <ExternalLink href={DYNAMIC_SAMPLING_DOC_LINK} />,
+              link: <ExternalLink href={SAMPLING_DOC_LINK} />,
             }
           )}
         </TextBlock>
@@ -224,4 +223,6 @@ class FiltersAndSampling extends AsyncView<Props, State> {
   }
 }
 
-export default withProject(FiltersAndSampling);
+const SamplingWithProject = withProject(Sampling);
+
+export {SamplingWithProject as Sampling};
