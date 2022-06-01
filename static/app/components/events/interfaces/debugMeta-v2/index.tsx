@@ -62,13 +62,13 @@ type Props = DefaultProps &
 
 type State = {
   filterOptions: FilterOptions;
+  filterSelections: FilterOptions;
   filteredImages: Images;
   filteredImagesByFilter: Images;
   filteredImagesBySearch: Images;
   isOpen: boolean;
   scrollbarWidth: number;
   searchTerm: string;
-  selectedFilters: FilterOptions;
   panelTableHeight?: number;
 };
 
@@ -87,7 +87,7 @@ class DebugMeta extends PureComponent<Props, State> {
     scrollbarWidth: 0,
     isOpen: false,
     filterOptions: [],
-    selectedFilters: [],
+    filterSelections: [],
     filteredImages: [],
     filteredImagesByFilter: [],
     filteredImagesBySearch: [],
@@ -198,14 +198,14 @@ class DebugMeta extends PureComponent<Props, State> {
   }
 
   filterImagesBySearchTerm() {
-    const {filteredImages, selectedFilters, searchTerm} = this.state;
+    const {filteredImages, filterSelections, searchTerm} = this.state;
     const filteredImagesBySearch = filteredImages.filter(image =>
       this.filterImage(image, searchTerm.toLowerCase())
     );
 
     const filteredImagesByFilter = this.getFilteredImagesByFilter(
       filteredImagesBySearch,
-      selectedFilters
+      filterSelections
     );
 
     this.setState(
@@ -324,17 +324,17 @@ class DebugMeta extends PureComponent<Props, State> {
     const filteredImages = [...usedImages, ...unusedImages];
 
     const filterOptions = this.getFilterOptions(filteredImages);
-    const defaultSelectedFilters = (filterOptions[0].options ?? []).filter(
+    const defaultFilterSelections = (filterOptions[0].options ?? []).filter(
       opt => opt.value !== ImageStatus.UNUSED
     );
 
     this.setState({
       filteredImages,
       filterOptions,
-      selectedFilters: defaultSelectedFilters,
+      filterSelections: defaultFilterSelections,
       filteredImagesByFilter: this.getFilteredImagesByFilter(
         filteredImages,
-        defaultSelectedFilters
+        defaultFilterSelections
       ),
       filteredImagesBySearch: filteredImages,
     });
@@ -364,14 +364,14 @@ class DebugMeta extends PureComponent<Props, State> {
     return filteredImages.filter(image => checkedOptions.has(image.status));
   }
 
-  handleChangeFilter = (selectedFilters: FilterOptions) => {
+  handleChangeFilter = (filterSelections: FilterOptions) => {
     const {filteredImagesBySearch} = this.state;
     const filteredImagesByFilter = this.getFilteredImagesByFilter(
       filteredImagesBySearch,
-      selectedFilters
+      filterSelections
     );
 
-    this.setState({selectedFilters, filteredImagesByFilter}, this.updateGrid);
+    this.setState({filterSelections, filteredImagesByFilter}, this.updateGrid);
   };
 
   handleChangeSearchTerm = (searchTerm = '') => {
@@ -379,7 +379,7 @@ class DebugMeta extends PureComponent<Props, State> {
   };
 
   handleResetFilter = () => {
-    this.setState({selectedFilters: []}, this.filterImagesBySearchTerm);
+    this.setState({filterSelections: []}, this.filterImagesBySearchTerm);
   };
 
   handleResetSearchBar = () => {
@@ -479,14 +479,14 @@ class DebugMeta extends PureComponent<Props, State> {
   }
 
   getEmptyMessage() {
-    const {searchTerm, filteredImagesByFilter: images, selectedFilters} = this.state;
+    const {searchTerm, filteredImagesByFilter: images, filterSelections} = this.state;
 
     if (!!images.length) {
       return {};
     }
 
     if (searchTerm && !images.length) {
-      const hasActiveFilter = selectedFilters.length > 0;
+      const hasActiveFilter = filterSelections.length > 0;
 
       return {
         emptyMessage: t('Sorry, no images match your search query'),
@@ -513,7 +513,7 @@ class DebugMeta extends PureComponent<Props, State> {
       filterOptions,
       scrollbarWidth,
       isOpen,
-      selectedFilters,
+      filterSelections,
       filteredImagesByFilter: filteredImages,
     } = this.state;
     const {data} = this.props;
@@ -560,7 +560,7 @@ class DebugMeta extends PureComponent<Props, State> {
               query={searchTerm}
               filterOptions={showFilters ? filterOptions : undefined}
               onFilterChange={this.handleChangeFilter}
-              selectedFilters={selectedFilters}
+              filterSelections={filterSelections}
             />
             <StyledPanelTable
               isEmpty={!filteredImages.length}
