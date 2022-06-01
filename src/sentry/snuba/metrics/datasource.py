@@ -26,13 +26,10 @@ from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.query import Groupable, MetricsQuery
-from sentry.snuba.metrics.query_builder import (
-    ALLOWED_GROUPBY_COLUMNS,
-    SnubaQueryBuilder,
-    SnubaResultConverter,
-)
+from sentry.snuba.metrics.query_builder import SnubaQueryBuilder, SnubaResultConverter
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
+    FIELD_ALIAS_MAPPINGS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
@@ -459,7 +456,7 @@ def _get_group_limit_filters(
     # For example, (project_id, transaction) is translated to (project_id, tags[3])
     keys = tuple(
         resolve_tag_key(metrics_query.org_id, field)
-        if field not in ALLOWED_GROUPBY_COLUMNS
+        if field not in FIELD_ALIAS_MAPPINGS.values()
         else field
         for field in metrics_query.groupby
     )
