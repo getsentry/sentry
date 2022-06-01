@@ -42,22 +42,19 @@ type IntegrationCategorySelectEventParams = {
   category: string;
 } & IntegrationView;
 
-// Used once
 type IntegrationServerlessFunctionsViewedParams = {
   num_functions: number;
 } & SingleIntegrationEventParams;
 
-// Used once
 type IntegrationServerlessFunctionActionParams = {
   action: 'enable' | 'disable' | 'updateVersion';
 } & SingleIntegrationEventParams;
 
-// Used once
 type IntegrationInstallationInputValueChangeEventParams = {
   field_name: string;
 } & SingleIntegrationEventParams;
 
-// define the event key to payload mappings
+// Event key to payload mappings
 export type IntegrationEventParameters = {
   'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
   'integrations.code_mappings_viewed': SingleIntegrationEventParams;
@@ -68,7 +65,6 @@ export type IntegrationEventParameters = {
   'integrations.disabled': SingleIntegrationEventParams;
   'integrations.enabled': SingleIntegrationEventParams;
   'integrations.index_viewed': MultipleIntegrationsEventParams;
-  // for an individual configuration
   'integrations.install_modal_opened': SingleIntegrationEventParams;
   'integrations.installation_complete': SingleIntegrationEventParams;
   'integrations.installation_input_value_changed': IntegrationInstallationInputValueChangeEventParams;
@@ -89,7 +85,7 @@ export type IntegrationEventParameters = {
 
 export type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
-// define the event key to event name mappings
+// Event key to name mappings
 export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.upgrade_plan_modal_opened': 'Integrations: Upgrade Plan Modal Opened',
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
