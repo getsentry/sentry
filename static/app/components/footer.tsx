@@ -42,6 +42,9 @@ function BaseFooter({className}: Props) {
       </LeftLinks>
       <LogoLink />
       <RightLinks>
+        {!config.isSelfHosted && (
+          <FooterLink href="https://status.sentry.io/">{t('Service Status')}</FooterLink>
+        )}
         <FooterLink href="/api/">{t('API')}</FooterLink>
         <FooterLink href="/docs/">{t('Docs')}</FooterLink>
         <FooterLink href="https://github.com/getsentry/sentry">
