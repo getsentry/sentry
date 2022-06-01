@@ -15,7 +15,7 @@ export type CodeownersEventParameters = {
 
 export const codeownersEventMap: Record<CodeownersEventsLiterals, string> = {
   [CodeownersEvents.SETUP_CTA]: 'Integrations: Code Owners CTA Setup Clicked',
-  [CodeownersEvents.DOCS_CTA]: 'Integrations: Code Owners CTA Docs Clicked', // Reference in PR!,
+  [CodeownersEvents.DOCS_CTA]: 'Integrations: Code Owners CTA Docs Clicked',
   [CodeownersEvents.SHOW_PROMPT]: 'Integrations: Show Code Owners Prompt',
   [CodeownersEvents.DISMISS_PROMPT]: 'Integrations: Dismissed Code Owners Prompt',
 };
