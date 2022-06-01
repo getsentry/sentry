@@ -405,7 +405,7 @@ def from_request(
 
     # TODO: from_auth does not take scopes as a parameter so this fails for anon user
     if hasattr(request, "auth") and not request.user.is_authenticated:
-        return from_auth(request.auth, scopes=scopes)
+        return from_auth(request.auth, organization)
 
     return from_user(request.user, organization, scopes=scopes)
 
