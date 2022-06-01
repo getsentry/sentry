@@ -10,15 +10,11 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconDelete, IconDownload, IconEdit, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-const deleteRuleConfirmMessage = t(
-  'Are you sure you wish to delete this dynamic sampling rule?'
-);
+const deleteRuleConfirmMessage = t('Are you sure you wish to delete this sampling rule?');
 
-const deleteRuleMessage = t(
-  'You do not have permission to delete dynamic sampling rules.'
-);
+const deleteRuleMessage = t('You do not have permission to delete sampling rules.');
 
-const editRuleMessage = t('You do not have permission to edit dynamic sampling rules.');
+const editRuleMessage = t('You do not have permission to edit sampling rules.');
 
 type Props = {
   disabled: boolean;

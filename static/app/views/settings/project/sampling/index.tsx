@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {Project} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import FiltersAndSampling from './filtersAndSampling';
+import {Sampling} from './sampling';
 
 type Props = {
   project: Project;
@@ -23,17 +23,13 @@ function Index(props: Props) {
         <FeatureDisabled
           alert={PanelAlert}
           features={['organization:filters-and-sampling']}
-          featureName={t('Filters & Sampling')}
+          featureName={t('Sampling')}
         />
       )}
     >
       <Access organization={organization} access={['project:write']}>
         {({hasAccess}) => (
-          <FiltersAndSampling
-            {...props}
-            hasAccess={hasAccess}
-            organization={organization}
-          />
+          <Sampling {...props} hasAccess={hasAccess} organization={organization} />
         )}
       </Access>
     </Feature>

@@ -4,19 +4,19 @@ import * as Sentry from '@sentry/react';
 
 import space from 'sentry/styles/space';
 import {
-  DynamicSamplingCondition,
-  DynamicSamplingConditionLogicalInner,
-  DynamicSamplingConditionOperator,
-} from 'sentry/types/dynamicSampling';
+  SamplingCondition,
+  SamplingConditionLogicalInner,
+  SamplingConditionOperator,
+} from 'sentry/types/sampling';
 
 import {getInnerNameLabel, LEGACY_BROWSER_LIST} from '../../utils';
 
 type Props = {
-  condition: DynamicSamplingCondition;
+  condition: SamplingCondition;
 };
 
 export function Conditions({condition}: Props) {
-  function getConvertedValue(value: DynamicSamplingConditionLogicalInner['value']) {
+  function getConvertedValue(value: SamplingConditionLogicalInner['value']) {
     if (Array.isArray(value)) {
       return (
         <Fragment>
@@ -34,7 +34,7 @@ export function Conditions({condition}: Props) {
   }
 
   switch (condition.op) {
-    case DynamicSamplingConditionOperator.AND: {
+    case SamplingConditionOperator.AND: {
       const {inner} = condition;
 
       if (!inner.length) {
@@ -53,7 +53,7 @@ export function Conditions({condition}: Props) {
       );
     }
     default: {
-      Sentry.captureException(new Error('Unknown dynamic sampling condition operator'));
+      Sentry.captureException(new Error('Unknown sampling condition operator'));
       return null; // this shall not happen
     }
   }
