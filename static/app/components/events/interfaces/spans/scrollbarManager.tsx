@@ -293,11 +293,16 @@ export class Provider extends Component<Props, State> {
   initialMouseClickX: number | undefined = undefined;
 
   performScroll = (scrollLeft: number, isAnimated?: boolean) => {
+    const {interactiveLayerRef} = this.props;
+    if (!interactiveLayerRef.current) {
+      return;
+    }
+
     if (isAnimated) {
       this.startAnimation();
     }
 
-    const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
+    const interactiveLayerRefDOM = interactiveLayerRef.current;
     const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
     interactiveLayerRefDOM.scrollLeft = scrollLeft;
 
