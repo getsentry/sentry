@@ -20,23 +20,22 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 import {ProfilingScatterChart} from './landing/profilingScatterChart';
 
 interface ProfilingContentProps {
   location: Location;
-  selection?: PageFilters;
 }
 
-function ProfilingContent({location, selection}: ProfilingContentProps) {
+function ProfilingContent({location}: ProfilingContentProps) {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
   const profileFilters = useProfileFilters({query: '', selection});
@@ -140,4 +139,4 @@ const ActionBar = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export default withPageFilters(ProfilingContent);
+export default ProfilingContent;

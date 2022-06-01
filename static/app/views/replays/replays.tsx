@@ -12,22 +12,18 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageContent, PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import {NewQuery, PageFilters} from 'sentry/types';
+import {NewQuery} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 import ReplaysFilters from './filters';
 import ReplayTable from './replayTable';
 import {Replay} from './types';
-
-type Props = {
-  selection: PageFilters;
-};
 
 // certain query params can be either a string or an array of strings
 // so if we have an array we reduce it down to a string
@@ -40,9 +36,10 @@ const getQueryParamAsString = query => {
 
 const columns = [t('Session'), t('Project')];
 
-function Replays(props: Props) {
+function Replays() {
   const location = useLocation();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
 
   const [searchQuery, setSearchQuery] = useState<string>(
@@ -54,7 +51,6 @@ function Replays(props: Props) {
   }, [location.query.query]);
 
   const getEventView = () => {
-    const {selection} = props;
     const {query} = location;
     const eventQueryParams: NewQuery = {
       id: '',
@@ -219,4 +215,4 @@ const SortLink = styled(Link)`
   }
 `;
 
-export default withPageFilters(Replays);
+export default Replays;
