@@ -155,7 +155,7 @@
     "@storybook/addon-actions": "6.3.13",
     "@storybook/addon-docs": "6.3.13",
     "@storybook/addon-essentials": "6.3.13",
-    "@storybook/addon-links": "6.3.13",
+    "@storybook/addon-links": "6.5.6",
     "@storybook/addon-storysource": "6.3.13",
     "@storybook/addons": "6.3.13",
     "@storybook/builder-webpack5": "6.3.13",
