@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytz
+from django.core.exceptions import SuspiciousFileOperation
 
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA
 from sentry.event_manager import EventManager, set_tag
@@ -129,18 +130,26 @@ def load_data(
         language = platform_data["language"]
 
     samples_root = os.path.join(DATA_ROOT, "samples")
-    all_samples = {f for f in os.listdir(samples_root) if f.endswith(".json")}
 
     for platform in (platform, language, default):
         if not platform:
-            continue
+            raise ValueError("platform cannot be an empty value")
 
         # Verify by checking if the file is within our folder explicitly
         # avoids being able to have a name that invokes traversing directories.
-        json_path = f"{platform}.json"
+        json_file = f"{platform}.json"
 
-        if json_path not in all_samples:
-            continue
+        expected_commonpath = os.path.realpath(samples_root)
+        json_path = os.path.join(samples_root, json_file)
+        json_real_path = os.path.realpath(json_path)
+        if expected_commonpath != os.path.commonpath([expected_commonpath, json_real_path]):
+            raise SuspiciousFileOperation("potential path traversal attack detected")
+
+        if not os.path.exists(json_path):
+            raise FileNotFoundError(f"platform sample not found {json_path}")
+
+        if not os.path.isfile(json_path):
+            raise IsADirectoryError("expected file but found a directory instead")
 
         if not sample_name:
             try:
@@ -149,9 +158,9 @@ def load_data(
                 pass
 
         # XXX: At this point, it's assumed that `json_path` was safely found
-        # within `samples_root` due to the check above and cannot traverse
+        # within `samples_root` due to the checks above and cannot traverse
         # into paths.
-        with open(os.path.join(samples_root, json_path)) as fp:
+        with open(json_path) as fp:
             data = json.load(fp)
             break
 
