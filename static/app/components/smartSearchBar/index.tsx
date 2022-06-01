@@ -44,8 +44,17 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {ActionButton} from './actions';
+import SearchActionsDropdown from './searchActionsDropdown';
 import SearchDropdown from './searchDropdown';
-import {ItemType, SearchGroup, SearchItem} from './types';
+import {
+  commonActions,
+  ItemType,
+  SearchGroup,
+  SearchItem,
+  SelectFilterTokenParams,
+  TokenAction,
+  TokenActionType,
+} from './types';
 import {
   addSpace,
   createSearchGroups,
@@ -283,6 +292,8 @@ type State = {
    * The query in the input since we last updated our autocomplete list.
    */
   previousQuery?: string;
+
+  selectedFilterToken?: SelectFilterTokenParams;
 };
 
 class SmartSearchBar extends Component<Props, State> {
@@ -438,10 +449,48 @@ class SmartSearchBar extends Component<Props, State> {
     }
   }
 
-  focusInputWithSelection = (startOffset: number, endOffset: number) => {
-    this.searchInput.current?.focus();
-    this.searchInput.current?.setSelectionRange(startOffset, endOffset);
-    this.onInputClick();
+  selectFilterToken = (selectedFilterToken?: SelectFilterTokenParams) => {
+    this.setState({
+      selectedFilterToken,
+    });
+
+    // this.searchInput.current?.blur();
+  };
+
+  runTokenAction = (action: TokenAction) => {
+    const {query} = this.state;
+
+    switch (action.type) {
+      case TokenActionType.Delete: {
+        const newQuery =
+          // We trim to remove any remaining spaces
+          query.slice(0, action.token.location.start.offset).trim() +
+          query.slice(action.token.location.end.offset).trim();
+        this.updateQuery(newQuery);
+        break;
+      }
+      case TokenActionType.Negate: {
+        if (action.token.negated) {
+          const newQuery =
+            query.slice(0, action.token.location.start.offset) +
+            query.slice(action.token.key.location.start.offset);
+          this.updateQuery(newQuery);
+        } else {
+          const newQuery =
+            query.slice(0, action.token.key.location.start.offset) +
+            '!' +
+            query.slice(action.token.key.location.start.offset);
+          this.updateQuery(newQuery);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    if (this.state.selectedFilterToken) {
+      this.setState({selectedFilterToken: undefined});
+    }
   };
 
   onSubmit = (evt: React.FormEvent) => {
@@ -454,7 +503,10 @@ class SmartSearchBar extends Component<Props, State> {
       callIfFunction(this.props.onSearch, this.state.query)
     );
 
-  onQueryFocus = () => this.setState({inputHasFocus: true});
+  onQueryFocus = () => {
+    this.setState({inputHasFocus: true});
+    this.selectFilterToken(undefined);
+  };
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     // wait before closing dropdown in case blur was a result of clicking a
@@ -462,6 +514,7 @@ class SmartSearchBar extends Component<Props, State> {
     const blurHandler = () => {
       this.blurTimeout = undefined;
       this.setState({inputHasFocus: false});
+
       callIfFunction(this.props.onBlur, e.target.value);
     };
 
@@ -505,7 +558,28 @@ class SmartSearchBar extends Component<Props, State> {
     callIfFunction(this.props.onChange, mergedText, evt);
   };
 
-  onInputClick = () => this.updateAutoCompleteItems();
+  onInputClick = () => {
+    this.updateAutoCompleteItems();
+  };
+
+  handleActionKeys = (evt: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (this.state.selectedFilterToken && evt.altKey) {
+      commonActions.forEach(action => {
+        if (
+          this.state.selectedFilterToken &&
+          action.shortcut &&
+          action.shortcut.length === 2 &&
+          evt.code === action.shortcut[1].key
+        ) {
+          evt.preventDefault();
+          this.runTokenAction({
+            type: action.actionType,
+            token: this.state.selectedFilterToken.filterToken,
+          });
+        }
+      });
+    }
+  };
 
   /**
    * Handle keyboard navigation
@@ -515,6 +589,7 @@ class SmartSearchBar extends Component<Props, State> {
     const {key} = evt;
 
     callIfFunction(onKeyDown, evt);
+    this.handleActionKeys(evt);
 
     const hasSearchGroups = this.state.searchGroups.length > 0;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
@@ -1340,6 +1415,7 @@ class SmartSearchBar extends Component<Props, State> {
       inputHasFocus,
       numActionsVisible,
       loading,
+      selectedFilterToken,
     } = this.state;
 
     const input = (
@@ -1402,7 +1478,8 @@ class SmartSearchBar extends Component<Props, State> {
               <HighlightQuery
                 parsedQuery={parsedQuery}
                 cursorPosition={cursor === -1 ? undefined : cursor}
-                focusInputWithSelection={this.focusInputWithSelection}
+                selectFilterToken={this.selectFilterToken}
+                selectedFilterToken={selectedFilterToken}
               />
             ) : (
               query
@@ -1435,7 +1512,6 @@ class SmartSearchBar extends Component<Props, State> {
             </DropdownLink>
           )}
         </ActionsBar>
-
         {(loading || searchGroups.length > 0) && (
           <SearchDropdown
             css={{display: inputHasFocus ? 'block' : 'none'}}
@@ -1444,6 +1520,14 @@ class SmartSearchBar extends Component<Props, State> {
             onClick={this.onAutoComplete}
             loading={loading}
             searchSubstring={searchTerm}
+          />
+        )}
+        {selectedFilterToken && (
+          <SearchActionsDropdown
+            filterElementRef={selectedFilterToken?.filterTokenRef}
+            activeToken={selectedFilterToken?.filterToken}
+            deselect={() => this.selectFilterToken(undefined)}
+            runTokenAction={this.runTokenAction}
           />
         )}
       </Container>

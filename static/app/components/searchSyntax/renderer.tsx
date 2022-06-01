@@ -6,6 +6,8 @@ import {useReducedMotion} from 'framer-motion';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 
+import {SelectFilterTokenParams} from '../smartSearchBar/types';
+
 import {ParseResult, Token, TokenResult} from './parser';
 import {isWithinToken} from './utils';
 
@@ -21,11 +23,8 @@ type Props = {
    */
   cursorPosition?: number;
 
-  /**
-   * Focuses on the input with a defined selection. If the input is already focused, only the selection is made.
-   * If not defined, would not be interactive.
-   */
-  focusInputWithSelection?: (startOffset: number, endOffset: number) => void;
+  selectFilterToken?(p?: SelectFilterTokenParams): void;
+  selectedFilterToken?: SelectFilterTokenParams;
 };
 
 /**
@@ -34,9 +33,15 @@ type Props = {
 export default function HighlightQuery({
   parsedQuery,
   cursorPosition,
-  focusInputWithSelection,
+  selectFilterToken,
+  selectedFilterToken,
 }: Props) {
-  const result = renderResult(parsedQuery, cursorPosition ?? -1, focusInputWithSelection);
+  const result = renderResult(
+    parsedQuery,
+    cursorPosition ?? -1,
+    selectFilterToken,
+    selectedFilterToken
+  );
 
   return <Fragment>{result}</Fragment>;
 }
@@ -44,17 +49,19 @@ export default function HighlightQuery({
 function renderResult(
   result: ParseResult,
   cursor: number,
-  focusInputWithSelection?: (startOffset: number, endOffset: number) => void
+  selectFilterToken?: (p?: SelectFilterTokenParams) => void,
+  selectedFilterToken?: SelectFilterTokenParams
 ) {
   return result
-    .map(t => renderToken(t, cursor, focusInputWithSelection))
+    .map(t => renderToken(t, cursor, selectFilterToken, selectedFilterToken))
     .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
 }
 
 function renderToken(
   token: TokenResult<Token>,
   cursor: number,
-  focusInputWithSelection?: (startOffset: number, endOffset: number) => void
+  selectFilterToken?: (p?: SelectFilterTokenParams) => void,
+  selectedFilterToken?: SelectFilterTokenParams
 ) {
   switch (token.type) {
     case Token.Spaces:
@@ -65,19 +72,14 @@ function renderToken(
         <FilterToken
           filter={token}
           cursor={cursor}
-          focusInputWithSelection={focusInputWithSelection}
+          selectFilterToken={selectFilterToken}
+          selectedFilterToken={selectedFilterToken}
         />
       );
 
     case Token.ValueTextList:
     case Token.ValueNumberList:
-      return (
-        <ListToken
-          token={token}
-          cursor={cursor}
-          focusInputWithSelection={focusInputWithSelection}
-        />
-      );
+      return <ListToken token={token} cursor={cursor} />;
 
     case Token.ValueNumber:
       return <NumberToken token={token} />;
@@ -91,7 +93,7 @@ function renderToken(
     case Token.LogicGroup:
       return (
         <LogicGroup>
-          {renderResult(token.inner, cursor, focusInputWithSelection)}
+          {renderResult(token.inner, cursor, selectFilterToken, selectedFilterToken)}
         </LogicGroup>
       );
 
@@ -116,11 +118,13 @@ const shakeAnimation = keyframes`
 const FilterToken = ({
   filter,
   cursor,
-  focusInputWithSelection,
+  selectFilterToken,
+  selectedFilterToken,
 }: {
   cursor: number;
   filter: TokenResult<Token.Filter>;
-  focusInputWithSelection?: (startOffset: number, endOffset: number) => void;
+  selectFilterToken?: (p?: SelectFilterTokenParams) => void;
+  selectedFilterToken?: SelectFilterTokenParams;
 }) => {
   const isActive = isWithinToken(filter, cursor);
 
@@ -132,6 +136,8 @@ const FilterToken = ({
   // Used to trigger the shake animation when the element becomes invalid
   const filterElementRef = useRef<HTMLSpanElement>(null);
 
+  const isSelectedRef = useRef<boolean>(false);
+
   // Trigger the effect when isActive changes to updated whether the cursor has
   // left the token.
   useEffect(() => {
@@ -142,7 +148,7 @@ const FilterToken = ({
 
   const showInvalid = hasLeft && !!filter.invalid;
   const showTooltip = showInvalid && isActive;
-  const isInteractive = !!focusInputWithSelection;
+  const isInteractive = !!selectFilterToken;
 
   const reduceMotion = useReducedMotion();
 
@@ -164,6 +170,37 @@ const FilterToken = ({
     );
   }, [reduceMotion, showInvalid]);
 
+  const isSelected = !!(
+    selectedFilterToken?.filterTokenRef.current === filterElementRef.current
+  );
+  isSelectedRef.current = isSelected;
+
+  useEffect(() => {
+    if (isInteractive) {
+      const onKeyDown = e => {
+        if (isActive && e.key === 'Alt') {
+          selectFilterToken?.({filterToken: filter, filterTokenRef: filterElementRef});
+        }
+      };
+
+      const onKeyUp = e => {
+        if (isSelectedRef.current && e.key === 'Alt') {
+          selectFilterToken?.(undefined);
+        }
+      };
+
+      document.addEventListener('keydown', onKeyDown);
+      document.addEventListener('keyup', onKeyUp);
+
+      return () => {
+        document.removeEventListener('keydown', onKeyDown);
+        document.removeEventListener('keyup', onKeyUp);
+      };
+    }
+
+    return () => {};
+  }, [isActive, filter, isInteractive, selectFilterToken, isSelectedRef]);
+
   return (
     <Tooltip
       disabled={!showTooltip}
@@ -174,32 +211,34 @@ const FilterToken = ({
     >
       <Filter
         onMouseDown={e => {
-          if (isInteractive) {
-            e.preventDefault();
-
-            /*
-              We calculate where to place the cursor offset from the position of the filter element and the position of the click event.
-            */
-            const filterLeft =
-              filterElementRef.current?.getBoundingClientRect().left ?? 0;
-            const filterWidth = filterElementRef.current?.offsetWidth ?? 1;
-            const percentage = (e.clientX - filterLeft) / filterWidth;
-            const offsetWidth = filter.location.end.offset - filter.location.start.offset;
-            const finalLocation =
-              filter.location.start.offset + Math.round(percentage * offsetWidth);
-
-            focusInputWithSelection?.(finalLocation, finalLocation);
-          }
+          e.preventDefault();
+          e.stopPropagation();
+          selectFilterToken?.({filterToken: filter, filterTokenRef: filterElementRef});
+          // if (isInteractive) {
+          //   e.preventDefault();
+          //   /*
+          //     We calculate where to place the cursor offset from the position of the filter element and the position of the click event.
+          //   */
+          //   const filterLeft =
+          //     filterElementRef.current?.getBoundingClientRect().left ?? 0;
+          //   const filterWidth = filterElementRef.current?.offsetWidth ?? 1;
+          //   const percentage = (e.clientX - filterLeft) / filterWidth;
+          //   const offsetWidth = filter.location.end.offset - filter.location.start.offset;
+          //   const finalLocation =
+          //     filter.location.start.offset + Math.round(percentage * offsetWidth);
+          //   focusInputWithSelection?.(finalLocation, finalLocation);
+          // }
         }}
         ref={filterElementRef}
         active={isActive}
+        selected={isSelected}
         invalid={showInvalid}
         isInteractive={isInteractive}
       >
         {filter.negated && <Negation>!</Negation>}
         <KeyToken token={filter.key} negated={filter.negated} />
         {filter.operator && <Operator>{filter.operator}</Operator>}
-        <Value>{renderToken(filter.value, cursor, focusInputWithSelection)}</Value>
+        <Value>{renderToken(filter.value, cursor)}</Value>
       </Filter>
     </Tooltip>
   );
@@ -228,16 +267,14 @@ const KeyToken = ({
 const ListToken = ({
   token,
   cursor,
-  focusInputWithSelection,
 }: {
   cursor: number;
   token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
-  focusInputWithSelection?: (startOffset: number, endOffset: number) => void;
 }) => (
   <InList>
     {token.items.map(({value, separator}) => [
       <ListComma key="comma">{separator}</ListComma>,
-      value && renderToken(value, cursor, focusInputWithSelection),
+      value && renderToken(value, cursor),
     ])}
   </InList>
 );
@@ -253,10 +290,13 @@ type FilterProps = {
   active: boolean;
   invalid: boolean;
   isInteractive: boolean;
+  selected: boolean;
 };
 
 const colorType = (p: FilterProps) =>
-  `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;
+  `${p.invalid ? 'invalid' : 'valid'}${
+    p.selected ? 'Selected' : p.active ? 'Active' : ''
+  }` as const;
 
 const Filter = styled('span')<FilterProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
@@ -272,7 +312,7 @@ const Filter = styled('span')<FilterProps>`
 
     return 'auto';
   }};
-  pointer-events: ${p => (p.active ? 'none' : 'auto')};
+  pointer-events: ${p => (p.active || p.selected ? 'none' : 'auto')};
 
   &:hover {
     opacity: ${p => (p.isInteractive ? '0.7' : 'inherit')};

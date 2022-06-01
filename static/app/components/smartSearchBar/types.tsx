@@ -1,3 +1,5 @@
+import {Token, TokenResult} from '../searchSyntax/parser';
+
 export enum ItemType {
   DEFAULT = 'default',
   TAG_KEY = 'tag-key',
@@ -35,3 +37,49 @@ export type Tag = {
   predefined: boolean;
   values: string[];
 };
+
+export enum TokenActionType {
+  Delete = 'delete',
+  Negate = 'negate',
+}
+
+export type TokenAction = {
+  token: TokenResult<Token.Filter>;
+  type: TokenActionType;
+};
+
+export type SelectFilterTokenParams = {
+  filterToken: TokenResult<Token.Filter>;
+  filterTokenRef: React.RefObject<HTMLSpanElement>;
+};
+
+export const commonActions = [
+  {
+    text: 'Delete',
+    actionType: TokenActionType.Delete,
+    shortcut: [
+      {
+        text: 'Option',
+        key: 'Option',
+      },
+      {
+        glyph: '⌫',
+        key: 'Backspace',
+      },
+    ],
+  },
+  {
+    text: 'Negate',
+    actionType: TokenActionType.Negate,
+    shortcut: [
+      {
+        text: 'Option',
+        key: 'Option',
+      },
+      {
+        text: '!',
+        key: 'Digit1',
+      },
+    ],
+  },
+];
