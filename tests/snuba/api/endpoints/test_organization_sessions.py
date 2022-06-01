@@ -67,17 +67,7 @@ def make_session(project, **kwargs):
     )
 
 
-class SessionsTestCase(APITestCase):
-    def do_request(self, query, user=None, org=None):
-        self.login_as(user=user or self.user)
-        url = reverse(
-            "sentry-api-0-organization-sessions",
-            kwargs={"organization_slug": (org or self.organization).slug},
-        )
-        return self.client.get(url, query, format="json")
-
-
-class OrganizationSessionsEndpointTest(SessionsTestCase, SnubaTestCase):
+class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.setup_fixture()
@@ -1445,6 +1435,14 @@ class OrganizationSessionsEndpointMetricsTest(
 
 @patch("sentry.api.endpoints.organization_sessions.release_health", MetricsReleaseHealthBackend())
 class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCase):
+    def do_request(self, query, user=None, org=None):
+        self.login_as(user=user or self.user)
+        url = reverse(
+            "sentry-api-0-organization-sessions",
+            kwargs={"organization_slug": (org or self.organization).slug},
+        )
+        return self.client.get(url, query, format="json")
+
     @freeze_time(MOCK_DATETIME)
     def test_order_by_with_no_releases(self):
         """
