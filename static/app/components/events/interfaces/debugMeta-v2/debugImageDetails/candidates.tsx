@@ -336,7 +336,7 @@ class Candidates extends Component<Props, State> {
               onChange={value => this.handleChangeSearchTerm(value)}
               placeholder={t('Search debug file candidates')}
               filterOptions={filterOptions}
-              selectedFilters={filterSelections}
+              filterSelections={filterSelections}
               onFilterChange={this.handleChangeFilter}
             />
           )}
