@@ -1,9 +1,32 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    QuerySet,
+    sane_repr,
+)
 from sentry.utils.cache import memoize
 from sentry.utils.groupreference import find_referenced_groups
+
+if TYPE_CHECKING:
+    from sentry.models import Release
+
+
+class CommitManager(BaseManager):
+    def get_for_release(self, release: Release) -> QuerySet[Commit]:
+        return (
+            self.filter(releasecommit__release=release)
+            .order_by("-releasecommit__order")
+            .select_related("author")
+        )
 
 
 class Commit(Model):
@@ -17,6 +40,8 @@ class Commit(Model):
     # when the initial commit object is referenced (and thus created)
     author = FlexibleForeignKey("sentry.CommitAuthor", null=True)
     message = models.TextField(null=True)
+
+    objects = CommitManager()
 
     class Meta:
         app_label = "sentry"
