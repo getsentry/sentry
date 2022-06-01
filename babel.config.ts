@@ -14,6 +14,7 @@ const config: TransformOptions = {
     [
       '@babel/preset-env',
       {
+        targets: {esmodules: true},
         useBuiltIns: 'usage',
         corejs: '3.15',
         bugfixes: true,
