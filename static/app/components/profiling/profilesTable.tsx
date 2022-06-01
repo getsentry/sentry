@@ -17,19 +17,23 @@ import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {
   generateFlamegraphSummaryRoute,
-  generateFunctionsRouteWithQuery,
+  generateProfileSummaryRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-const REQUIRE_PROJECT_COLUMNS = new Set(['id', 'project_id', 'transaction_name']);
+const REQUIRE_PROJECT_COLUMNS: Set<TableColumnKey> = new Set([
+  'id',
+  'project_id',
+  'transaction_name',
+]);
 
 interface ProfilesTableProps {
   error: string | null;
   isLoading: boolean;
   traces: Trace[];
-  columnOrder?: TableColumnKey[];
+  columnOrder?: Readonly<TableColumnKey[]>;
 }
 
 function ProfilesTable(props: ProfilesTableProps) {
@@ -131,14 +135,11 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
         return <Container>{t('n/a')}</Container>;
       }
 
-      const profileSummaryTarget = generateFunctionsRouteWithQuery({
+      const profileSummaryTarget = generateProfileSummaryRouteWithQuery({
         location,
         orgSlug: organization.slug,
         projectSlug: project.slug,
         transaction: dataRow.transaction_name,
-        version: dataRow.version_code
-          ? `${dataRow.version_name} (build ${dataRow.version_code})`
-          : `${dataRow.version_name}`,
       });
 
       return (

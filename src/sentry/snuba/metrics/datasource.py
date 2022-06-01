@@ -25,14 +25,11 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
-from sentry.snuba.metrics.query import Groupable, QueryDefinition
-from sentry.snuba.metrics.query_builder import (
-    ALLOWED_GROUPBY_COLUMNS,
-    SnubaQueryBuilder,
-    SnubaResultConverter,
-)
+from sentry.snuba.metrics.query import Groupable, MetricsQuery
+from sentry.snuba.metrics.query_builder import SnubaQueryBuilder, SnubaResultConverter
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
+    FIELD_ALIAS_MAPPINGS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
@@ -449,17 +446,19 @@ class GroupLimitFilters:
 
 
 def _get_group_limit_filters(
-    query: QueryDefinition, results: List[Mapping[str, int]]
+    metrics_query: MetricsQuery, results: List[Mapping[str, int]]
 ) -> Optional[GroupLimitFilters]:
-    if not query.groupby or not results:
+    if not metrics_query.groupby or not results:
         return None
 
     # Translate the groupby fields of the query into their tag keys because these fields
     # will be used to filter down and order the results of the 2nd query.
     # For example, (project_id, transaction) is translated to (project_id, tags[3])
     keys = tuple(
-        resolve_tag_key(query.org_id, field) if field not in ALLOWED_GROUPBY_COLUMNS else field
-        for field in query.groupby
+        resolve_tag_key(metrics_query.org_id, field)
+        if field not in FIELD_ALIAS_MAPPINGS.values()
+        else field
+        for field in metrics_query.groupby
     )
 
     # Get an ordered list of tuples containing the values of the group keys.
@@ -556,19 +555,21 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
             queries[key]["data"] = filtered
 
 
-def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
+def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict:
     """Get time series for the given query"""
-    intervals = list(get_intervals(query.start, query.end, query.granularity.granularity))
+    intervals = list(
+        get_intervals(metrics_query.start, metrics_query.end, metrics_query.granularity.granularity)
+    )
     results = {}
     fields_in_entities = {}
 
-    if not query.groupby:
+    if not metrics_query.groupby:
         # When there is no groupBy columns specified, we don't want to go through running an
         # initial query first to get the groups because there are no groups, and it becomes just
         # one group which is basically identical to eliminating the orderBy altogether
-        query = replace(query, orderby=None)
+        metrics_query = replace(metrics_query, orderby=None)
 
-    if query.orderby is not None:
+    if metrics_query.orderby is not None:
         # ToDo(ahmed): Now that we have conditional aggregates as select statements, we might be
         #  able to shave off a query here. we only need the other queries for fields spanning other
         #  entities otherwise if all the fields belong to one entity then there is no need
@@ -581,14 +582,16 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
         # Multi-field select with order by functionality. Currently only supports the
         # performance table.
-        original_select = copy(query.select)
+        original_select = copy(metrics_query.select)
 
         # The initial query has to contain only one field which is the same as the order by
         # field
-        orderby_field = [field for field in query.select if field == query.orderby.field][0]
-        query = replace(query, select=[orderby_field])
+        orderby_field = [
+            field for field in metrics_query.select if field == metrics_query.orderby.field
+        ][0]
+        metrics_query = replace(metrics_query, select=[orderby_field])
 
-        snuba_queries, _ = SnubaQueryBuilder(projects, query).get_snuba_queries()
+        snuba_queries, _ = SnubaQueryBuilder(projects, metrics_query).get_snuba_queries()
         if len(snuba_queries) > 1:
             # Currently accepting an order by field that spans multiple entities is not
             # supported, but it might change in the future. Even then, it might be better
@@ -622,12 +625,12 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
             # the group by tags from the first query so we basically remove the order by columns,
             # and reset the query fields to the original fields because in the second query,
             # we want to query for all the metrics in the request api call
-            query = replace(query, select=original_select, orderby=None)
+            metrics_query = replace(metrics_query, select=original_select, orderby=None)
 
-            query_builder = SnubaQueryBuilder(projects, query)
+            query_builder = SnubaQueryBuilder(projects, metrics_query)
             snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
 
-            group_limit_filters = _get_group_limit_filters(query, initial_query_results)
+            group_limit_filters = _get_group_limit_filters(metrics_query, initial_query_results)
 
             # This loop has constant time complexity as it will always have a maximum of
             # three queries corresponding to the three available entities:
@@ -657,7 +660,9 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
                     results[entity][key] = {"data": snuba_result}
 
     else:
-        snuba_queries, fields_in_entities = SnubaQueryBuilder(projects, query).get_snuba_queries()
+        snuba_queries, fields_in_entities = SnubaQueryBuilder(
+            projects, metrics_query
+        ).get_snuba_queries()
         group_limit_filters = None
 
         for entity, queries in snuba_queries.items():
@@ -677,7 +682,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
                 snuba_limit = snuba_query.limit.limit if snuba_query.limit else None
                 if not group_limit_filters and snuba_limit and len(snuba_result) == snuba_limit:
-                    group_limit_filters = _get_group_limit_filters(query, snuba_result)
+                    group_limit_filters = _get_group_limit_filters(metrics_query, snuba_result)
 
                     # We're now applying a filter that past queries may not have
                     # had. To avoid partial results, remove extra groups that
@@ -689,7 +694,7 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
 
     assert projects
     converter = SnubaResultConverter(
-        projects[0].organization_id, query, fields_in_entities, intervals, results
+        projects[0].organization_id, metrics_query, fields_in_entities, intervals, results
     )
 
     result_groups = converter.translate_results()
@@ -697,12 +702,12 @@ def get_series(projects: Sequence[Project], query: QueryDefinition) -> dict:
     # groups that doesn't meet the limit of the query for each of the entities, and hence they
     # don't go through the pruning logic resulting in a total number of groups that is greater
     # than the limit, and hence we need to prune those excess groups
-    if len(result_groups) > query.limit.limit:
-        result_groups = result_groups[0 : query.limit.limit]
+    if len(result_groups) > metrics_query.limit.limit:
+        result_groups = result_groups[0 : metrics_query.limit.limit]
 
     return {
-        "start": query.start,
-        "end": query.end,
+        "start": metrics_query.start,
+        "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
     }

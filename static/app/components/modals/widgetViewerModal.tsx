@@ -362,7 +362,8 @@ function WidgetViewerModal(props: Props) {
   let columnOrder = decodeColumnOrder(
     fields.map(field => ({
       field,
-    }))
+    })),
+    organization.features.includes('discover-frontend-use-events-endpoint')
   );
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
@@ -614,25 +615,26 @@ function WidgetViewerModal(props: Props) {
           }}
           location={location}
         />
-        {(links?.previous?.results || links?.next?.results) && (
-          <Pagination
-            pageLinks={pageLinks}
-            onCursor={newCursor => {
-              router.replace({
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  [WidgetViewerQueryField.CURSOR]: newCursor,
-                },
-              });
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
-                organization,
-                widget_type: WidgetType.RELEASE,
-                display_type: widget.displayType,
-              });
-            }}
-          />
-        )}
+        {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
+          (links?.previous?.results || links?.next?.results) && (
+            <Pagination
+              pageLinks={pageLinks}
+              onCursor={newCursor => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.CURSOR]: newCursor,
+                  },
+                });
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+                  organization,
+                  widget_type: WidgetType.RELEASE,
+                  display_type: widget.displayType,
+                });
+              }}
+            />
+          )}
       </Fragment>
     );
   };
@@ -1055,6 +1057,7 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 2;
+  flex: 1;
 `;
 
 const ResultsContainer = styled('div')`

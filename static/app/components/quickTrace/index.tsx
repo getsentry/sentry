@@ -588,7 +588,7 @@ class MissingServiceNode extends Component<MissingServiceProps, MissingServiceSt
     const docsHref =
       docPlatform === null || docPlatform === 'javascript'
         ? 'https://docs.sentry.io/platforms/javascript/performance/connect-services/'
-        : `https://docs.sentry.io/platforms/${docPlatform}/performance#connecting-services`;
+        : `https://docs.sentry.io/platforms/${docPlatform}/performance/connecting-services`;
     return (
       <Fragment>
         {connectorSide === 'left' && <TraceConnector />}
