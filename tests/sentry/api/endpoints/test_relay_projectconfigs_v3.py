@@ -181,11 +181,6 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     assert task_mock.call_count == 0
 
 
-# This checks that if a race occurred during scheduling of the task and two were scheduled,
-# only one is actually executed since only one can delete the debouncing key.  This race is
-# allowed to happen for the experiment where we delete the debouncing key at the end of the
-# computation.
-@pytest.mark.xfail
 @patch("sentry.relay.projectconfig_cache.set_many")
 @pytest.mark.django_db
 def test_task_doesnt_run_if_not_debounced(
