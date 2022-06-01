@@ -65,16 +65,11 @@ function Modal({
             )}
           </Value>
 
-          <Label>{t('Name')}</Label>
-          <Value>{t('Screenshot')}</Value>
+          <Label>{t('Size')}</Label>
+          <Value>{defined(size) ? formatBytesBase2(size) : <NotAvailable />}</Value>
 
-          <Label coloredBg>{t('Size')}</Label>
-          <Value coloredBg>
-            {defined(size) ? formatBytesBase2(size) : <NotAvailable />}
-          </Value>
-
-          <Label>{t('MIME Type')}</Label>
-          <Value>{mimetype ?? <NotAvailable />}</Value>
+          <Label coloredBg>{t('MIME Type')}</Label>
+          <Value coloredBg>{mimetype ?? <NotAvailable />}</Value>
         </GeralInfo>
 
         <StyledImageVisualization

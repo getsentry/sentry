@@ -41,7 +41,7 @@ function QuestionTooltip({title, size, className, ...tooltipProps}: QuestionProp
   return (
     <QuestionIconContainer size={size} className={className}>
       <Tooltip title={title} {...tooltipProps}>
-        <IconQuestion size={size} />
+        <IconQuestion size={size} data-test-id="more-information" />
       </Tooltip>
     </QuestionIconContainer>
   );
