@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import namedtuple
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import (
