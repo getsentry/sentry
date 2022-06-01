@@ -139,7 +139,7 @@ export interface Config {
     release: string;
     whitelistUrls: string[];
   };
-  sentryUrl: string | undefined;
+  sentryUrl: string;
   singleOrganization: boolean;
   supportEmail: string;
   termsUrl: string | null;
