@@ -50,6 +50,10 @@ export type ResponseMeta<R = any> = {
    */
   getResponseHeader: (header: string) => string | null;
   /**
+   * The response blob
+   */
+  responseBlob: Blob;
+  /**
    * The response body decoded from json
    */
   responseJSON: R;
@@ -456,13 +460,27 @@ export class Client {
         // So we clone the response so we can resolve the body content as text content.
         // Response objects need to be cloned before its body can be used.
         const responseClone = response.clone();
+        const responseCloneForBlobParsing = response.clone();
 
         let responseJSON: any;
         let responseText: any;
+        let responseBlob: any;
 
         const {status, statusText} = response;
         let {ok} = response;
         let errorReason = 'Request not OK'; // the default error reason
+
+        // Try to get blob out of the response no matter the status
+        try {
+          responseBlob = await responseCloneForBlobParsing.blob();
+        } catch (error) {
+          ok = false;
+          if (error.name === 'AbortError') {
+            errorReason = 'Request was aborted';
+          } else {
+            errorReason = error.toString();
+          }
+        }
 
         // Try to get text out of the response no matter the status
         try {
@@ -502,6 +520,7 @@ export class Client {
           responseJSON,
           responseText,
           getResponseHeader: (header: string) => response.headers.get(header),
+          responseBlob,
         };
 
         // Respect the response content-type header

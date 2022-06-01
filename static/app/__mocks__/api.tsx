@@ -109,6 +109,7 @@ class Client implements ApiNamespace.Client {
         ...response,
         headers: response.headers ?? {},
         getResponseHeader: (key: string) => response.headers?.[key] ?? null,
+        responseBlob: new Blob(),
       },
       mock,
     ]);
