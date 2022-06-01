@@ -39,10 +39,10 @@ type State = {
   breadcrumbs: Crumb[];
   displayRelativeTime: boolean;
   filterOptions: FilterOptions;
+  filterSelections: FilterOptions;
   filteredByFilter: Crumb[];
   filteredBySearch: Crumb[];
   searchTerm: string;
-  selectedFilters: FilterOptions;
   relativeTime?: string;
 };
 
@@ -60,7 +60,7 @@ function BreadcrumbsContainer({
     filteredByFilter: [],
     filteredBySearch: [],
     filterOptions: [],
-    selectedFilters: [],
+    filterSelections: [],
     displayRelativeTime: false,
   });
 
@@ -256,7 +256,7 @@ function BreadcrumbsContainer({
     const newfilteredByFilter = getFilteredCrumbsByFilter(newfilterOptions);
     setState({
       ...state,
-      selectedFilters: newfilterOptions,
+      filterSelections: newfilterOptions,
       filteredByFilter: newfilteredByFilter,
       filteredBySearch: filterBySearch(searchTerm, newfilteredByFilter),
     });
@@ -272,7 +272,7 @@ function BreadcrumbsContainer({
   function handleResetFilter() {
     setState({
       ...state,
-      selectedFilters: [],
+      filterSelections: [],
       filteredByFilter: breadcrumbs,
       filteredBySearch: filterBySearch(searchTerm, breadcrumbs),
     });
@@ -292,7 +292,7 @@ function BreadcrumbsContainer({
     }
 
     if (searchTerm && !filteredBySearch.length) {
-      const hasActiveFilter = state.selectedFilters.length > 0;
+      const hasActiveFilter = state.filterSelections.length > 0;
 
       return {
         emptyMessage: t('Sorry, no breadcrumbs match your search query'),
@@ -327,8 +327,8 @@ function BreadcrumbsContainer({
           onChange={handleSearch}
           query={searchTerm}
           filterOptions={filterOptions}
+          filterSelections={state.filterSelections}
           onFilterChange={handleFilter}
-          selectedFilters={state.selectedFilters}
         />
       }
       wrapTitle={false}
