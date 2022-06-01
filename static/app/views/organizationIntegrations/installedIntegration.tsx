@@ -24,7 +24,6 @@ type Props = {
   organization: Organization;
   provider: IntegrationProvider;
   trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
-  className?: string;
   requiresUpgrade?: boolean;
 };
 
@@ -101,7 +100,7 @@ export default class InstalledIntegration extends Component<Props> {
   }
 
   render() {
-    const {className, integration, organization, provider, requiresUpgrade} = this.props;
+    const {integration, organization, provider, requiresUpgrade} = this.props;
 
     const removeConfirmProps =
       this.integrationStatus === 'active' && integration.provider.canDisable
@@ -113,7 +112,7 @@ export default class InstalledIntegration extends Component<Props> {
         {({hasAccess}) => {
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
           return (
-            <IntegrationFlex key={integration.id} className={className}>
+            <Fragment>
               <IntegrationItemBox>
                 <IntegrationItem integration={integration} />
               </IntegrationItemBox>
@@ -182,7 +181,7 @@ export default class InstalledIntegration extends Component<Props> {
                 // Let the hook handle the alert for disabled org integrations
                 hideTooltip={integration.organizationIntegrationStatus === 'disabled'}
               />
-            </IntegrationFlex>
+            </Fragment>
           );
         }}
       </Access>
@@ -192,11 +191,6 @@ export default class InstalledIntegration extends Component<Props> {
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.gray300};
-`;
-
-const IntegrationFlex = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const IntegrationItemBox = styled('div')`

@@ -18,6 +18,7 @@ const PROFILES_COLUMN_ORDER = [
   'failed',
   'id',
   'timestamp',
+  'version_name',
   'device_model',
   'device_classification',
   'trace_duration_ms',
@@ -28,7 +29,6 @@ interface ProfileSummaryContentProps {
   project: Project;
   query: string;
   transaction: string;
-  version: string;
   selection?: PageFilters;
 }
 
@@ -50,7 +50,6 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     query: props.query,
     selection: props.selection,
     transaction: props.transaction,
-    version: props.version,
   });
 
   return (
