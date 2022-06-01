@@ -231,6 +231,7 @@ def get_event_file_committers(
     event_frames: Sequence[Mapping[str, Any]],
     event_platform: str,
     frame_limit: int = 25,
+    sdk_name: str | None = None,
 ) -> Sequence[AuthorCommits]:
     group = Group.objects.get_from_cache(id=group_id)
 
@@ -247,7 +248,7 @@ def get_event_file_committers(
         raise Commit.DoesNotExist
 
     frames = event_frames or []
-    munged = munged_filename_and_frames(event_platform, frames, "munged_filename")
+    munged = munged_filename_and_frames(event_platform, frames, "munged_filename", sdk_name)
     if munged:
         frames = munged[1]
     app_frames = [frame for frame in frames if frame.get("in_app")][-frame_limit:]

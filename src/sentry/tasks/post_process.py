@@ -10,6 +10,7 @@ from sentry.signals import event_processed, issue_unignored, transaction_process
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
@@ -386,12 +387,14 @@ def post_process_group(
 
                             cache.set(group_cache_key, True, 604800)  # 1 week in seconds
                             event_frames = get_frame_paths(event)
+                            sdk_name = get_sdk_name(event.data)
                             process_suspect_commits.delay(
                                 event_id=event.event_id,
                                 event_platform=event.platform,
                                 event_frames=event_frames,
                                 group_id=event.group_id,
                                 project_id=event.project_id,
+                                sdk_name=sdk_name,
                             )
             except UnableToAcquireLock:
                 pass
