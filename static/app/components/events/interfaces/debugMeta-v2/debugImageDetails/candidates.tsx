@@ -14,8 +14,7 @@ import {Organization, Project} from 'sentry/types';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';
 
-import SearchBarAction from '../../searchBarAction';
-import SearchBarActionFilter from '../../searchBarAction/searchBarActionFilter';
+import SearchBarAction from '../../searchBarActionV2';
 
 import Status from './candidate/status';
 import Candidate from './candidate';
@@ -26,7 +25,9 @@ const filterOptionCategories = {
   source: t('Source'),
 };
 
-type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options'];
+type FilterOptions = NonNullable<
+  React.ComponentProps<typeof SearchBarAction>['filterOptions']
+>;
 
 type ImageCandidates = Image['candidates'];
 
@@ -44,6 +45,7 @@ type Props = {
 
 type State = {
   filterOptions: FilterOptions;
+  filterSelections: FilterOptions;
   filteredCandidatesByFilter: ImageCandidates;
   filteredCandidatesBySearch: ImageCandidates;
   searchTerm: string;
@@ -52,7 +54,8 @@ type State = {
 class Candidates extends Component<Props, State> {
   state: State = {
     searchTerm: '',
-    filterOptions: {},
+    filterOptions: [],
+    filterSelections: [],
     filteredCandidatesBySearch: [],
     filteredCandidatesByFilter: [],
   };
@@ -73,13 +76,13 @@ class Candidates extends Component<Props, State> {
   }
 
   filterCandidatesBySearch() {
-    const {searchTerm, filterOptions} = this.state;
+    const {searchTerm, filterSelections} = this.state;
     const {candidates} = this.props;
 
     if (!searchTerm.trim()) {
       const filteredCandidatesByFilter = this.getFilteredCandidatedByFilter(
         candidates,
-        filterOptions
+        filterSelections
       );
 
       this.setState({
@@ -118,7 +121,7 @@ class Candidates extends Component<Props, State> {
 
     const filteredCandidatesByFilter = this.getFilteredCandidatedByFilter(
       filteredCandidatesBySearch,
-      filterOptions
+      filterSelections
     );
 
     this.setState({
@@ -130,35 +133,45 @@ class Candidates extends Component<Props, State> {
   doSearch = debounce(this.filterCandidatesBySearch, 300);
 
   getFilters() {
+    const {imageStatus} = this.props;
     const candidates = [...this.props.candidates];
     const filterOptions = this.getFilterOptions(candidates);
+
+    const defaultFilterSelections = (
+      filterOptions.find(section => section.value === 'status')?.options ?? []
+    ).filter(
+      opt =>
+        opt.value !== `status-${CandidateDownloadStatus.NOT_FOUND}` ||
+        imageStatus === ImageStatus.MISSING
+    );
+
     this.setState({
       filterOptions,
+      filterSelections: defaultFilterSelections,
       filteredCandidatesBySearch: candidates,
       filteredCandidatesByFilter: this.getFilteredCandidatedByFilter(
         candidates,
-        filterOptions
+        defaultFilterSelections
       ),
     });
   }
 
   getFilterOptions(candidates: ImageCandidates) {
-    const {imageStatus} = this.props;
-
-    const filterOptions = {};
+    const filterOptions: FilterOptions = [];
 
     const candidateStatus = [
       ...new Set(candidates.map(candidate => candidate.download.status)),
     ];
 
     if (candidateStatus.length > 1) {
-      filterOptions[filterOptionCategories.status] = candidateStatus.map(status => ({
-        id: status,
-        symbol: <Status status={status} />,
-        isChecked:
-          status !== CandidateDownloadStatus.NOT_FOUND ||
-          imageStatus === ImageStatus.MISSING,
-      }));
+      filterOptions.push({
+        value: 'status',
+        label: filterOptionCategories.status,
+        options: candidateStatus.map(status => ({
+          value: `status-${status}`,
+          label: <Status status={status} />,
+        })),
+      });
     }
 
     const candidateSources = [
@@ -166,11 +179,14 @@ class Candidates extends Component<Props, State> {
     ];
 
     if (candidateSources.length > 1) {
-      filterOptions[filterOptionCategories.source] = candidateSources.map(sourceName => ({
-        id: sourceName,
-        symbol: sourceName,
-        isChecked: false,
-      }));
+      filterOptions.push({
+        value: 'source',
+        label: filterOptionCategories.source,
+        options: candidateSources.map(sourceName => ({
+          value: `source-${sourceName}`,
+          label: sourceName,
+        })),
+      });
     }
 
     return filterOptions as FilterOptions;
@@ -181,18 +197,18 @@ class Candidates extends Component<Props, State> {
     filterOptions: FilterOptions
   ) {
     const checkedStatusOptions = new Set(
-      filterOptions[filterOptionCategories.status]
-        ?.filter(filterOption => filterOption.isChecked)
-        .map(option => option.id)
+      filterOptions
+        .filter(option => option.value.split('-')[0] === 'status')
+        .map(option => option.value.split('-')[1])
     );
 
     const checkedSourceOptions = new Set(
-      filterOptions[filterOptionCategories.source]
-        ?.filter(filterOption => filterOption.isChecked)
-        .map(option => option.id)
+      filterOptions
+        .filter(option => option.value.split('-')[0] === 'source')
+        .map(option => option.value.split('-')[1])
     );
 
-    if (checkedStatusOptions.size === 0 && checkedSourceOptions.size === 0) {
+    if (filterOptions.length === 0) {
       return candidates;
     }
 
@@ -216,15 +232,13 @@ class Candidates extends Component<Props, State> {
   }
 
   getEmptyMessage() {
-    const {searchTerm, filteredCandidatesByFilter: images, filterOptions} = this.state;
+    const {searchTerm, filteredCandidatesByFilter: images, filterSelections} = this.state;
 
     if (!!images.length) {
       return {};
     }
 
-    const hasActiveFilter = Object.values(filterOptions)
-      .flatMap(filterOption => filterOption)
-      .find(filterOption => filterOption.isChecked);
+    const hasActiveFilter = filterSelections.length > 0;
 
     if (searchTerm || hasActiveFilter) {
       return {
@@ -250,34 +264,22 @@ class Candidates extends Component<Props, State> {
     this.setState({searchTerm});
   };
 
-  handleChangeFilter = (filterOptions: FilterOptions) => {
+  handleChangeFilter = (filterSelections: FilterOptions) => {
     const {filteredCandidatesBySearch} = this.state;
     const filteredCandidatesByFilter = this.getFilteredCandidatedByFilter(
       filteredCandidatesBySearch,
-      filterOptions
+      filterSelections
     );
-    this.setState({filterOptions, filteredCandidatesByFilter});
+    this.setState({filterSelections, filteredCandidatesByFilter});
   };
 
   handleResetFilter = () => {
-    const {filterOptions} = this.state;
-
-    this.setState(
-      {
-        filterOptions: Object.keys(filterOptions).reduce((accumulator, currentValue) => {
-          accumulator[currentValue] = filterOptions[currentValue].map(filterOption => ({
-            ...filterOption,
-            isChecked: false,
-          }));
-          return accumulator;
-        }, {}),
-      },
-      this.filterCandidatesBySearch
-    );
+    this.setState({filterSelections: []}, this.filterCandidatesBySearch);
   };
 
   handleResetSearchBar = () => {
     const {candidates} = this.props;
+
     this.setState({
       searchTerm: '',
       filteredCandidatesByFilter: candidates,
@@ -297,7 +299,8 @@ class Candidates extends Component<Props, State> {
       hasReprocessWarning,
     } = this.props;
 
-    const {searchTerm, filterOptions, filteredCandidatesByFilter} = this.state;
+    const {searchTerm, filterOptions, filterSelections, filteredCandidatesByFilter} =
+      this.state;
 
     const haveCandidatesOkOrDeletedDebugFile = candidates.some(
       candidate =>
@@ -332,12 +335,9 @@ class Candidates extends Component<Props, State> {
               query={searchTerm}
               onChange={value => this.handleChangeSearchTerm(value)}
               placeholder={t('Search debug file candidates')}
-              filter={
-                <SearchBarActionFilter
-                  options={filterOptions}
-                  onChange={this.handleChangeFilter}
-                />
-              }
+              filterOptions={filterOptions}
+              selectedFilters={filterSelections}
+              onFilterChange={this.handleChangeFilter}
             />
           )}
         </Header>
