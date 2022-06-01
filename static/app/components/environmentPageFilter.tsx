@@ -66,7 +66,7 @@ function EnvironmentPageFilter({
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('environments')}
-        data-test-id="page-filter-environment-selector"
+        data-test-id="global-header-environment-selector"
       >
         <DropdownTitle>
           <PageFilterPinIndicator filter="environments">
@@ -87,7 +87,7 @@ function EnvironmentPageFilter({
     <PageFilterDropdownButton
       showChevron={false}
       disabled
-      data-test-id="page-filter-environment-selector"
+      data-test-id="global-header-environment-selector"
     >
       <DropdownTitle>
         <IconWindow />

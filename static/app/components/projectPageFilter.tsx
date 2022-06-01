@@ -164,7 +164,7 @@ function ProjectPageFilter({
           hideBottomBorder={false}
           isOpen={isOpen}
           highlighted={desyncedFilters.has('projects')}
-          data-test-id="page-filter-project-selector"
+          data-test-id="global-header-project-selector"
         >
           <DropdownTitle>
             <PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>
@@ -182,7 +182,7 @@ function ProjectPageFilter({
     <PageFilterDropdownButton
       showChevron={false}
       disabled
-      data-test-id="page-filter-project-selector-loading"
+      data-test-id="global-header-project-selector-loading"
     >
       <DropdownTitle>
         <IconProject />

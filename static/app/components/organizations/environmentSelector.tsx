@@ -199,7 +199,7 @@ function EnvironmentSelector({
   if (forceEnvironment !== undefined) {
     return (
       <StyledHeaderItem
-        data-test-id="page-filter-environment-selector"
+        data-test-id="global-header-environment-selector"
         icon={<IconWindow />}
         isOpen={false}
         locked
@@ -216,7 +216,7 @@ function EnvironmentSelector({
   if (loadingProjects) {
     return (
       <StyledHeaderItem
-        data-test-id="page-filter-environment-selector"
+        data-test-id="global-header-environment-selector"
         icon={<IconWindow />}
         loading={loadingProjects}
         hasChanges={false}
@@ -281,7 +281,7 @@ function EnvironmentSelector({
               customDropdownButton({isOpen, actions, value: validatedValue})
             ) : (
               <StyledHeaderItem
-                data-test-id="page-filter-environment-selector"
+                data-test-id="global-header-environment-selector"
                 icon={<IconWindow />}
                 isOpen={isOpen}
                 hasSelected={value && !!value.length}
