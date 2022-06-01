@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Mapping, Optional, Sequence
 
+import sentry_sdk
 from pytz import utc
 from sentry_sdk import Hub, capture_exception
 
@@ -22,7 +23,6 @@ from sentry.relay.config.metric_extraction import get_metric_conditional_tagging
 from sentry.relay.utils import to_camel_case_name
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
-from sentry.utils.sdk import configure_scope
 
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
@@ -122,8 +122,7 @@ def get_quotas(project, keys=None):
 
 
 def get_project_config(project, full_config=True, project_keys=None):
-    """
-    Constructs the ProjectConfig information.
+    """Constructs the ProjectConfig information.
 
     :param project: The project to load configuration for. Ensure that
         organization is bound on this object; otherwise it will be loaded from
@@ -138,10 +137,13 @@ def get_project_config(project, full_config=True, project_keys=None):
 
     :return: a ProjectConfig object for the given project
     """
-    metrics.incr("sentry.relay.config.get_project_config")
-    with configure_scope() as scope:
+    with sentry_sdk.push_scope() as scope:
         scope.set_tag("project", project.id)
+        with metrics.timer("relay.config.get_project_config.duration"):
+            return _get_project_config(project, full_config=True, project_keys=None)
 
+
+def _get_project_config(project, full_config=True, project_keys=None):
     if project.status != ObjectStatus.VISIBLE:
         return ProjectConfig(project, disabled=True)
 
