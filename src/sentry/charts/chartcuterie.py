@@ -14,7 +14,7 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import ChartRenderer, logger
-from .types import ChartType
+from .types import ChartSize, ChartType
 
 
 class Chartcuterie(ChartRenderer):
@@ -52,7 +52,9 @@ class Chartcuterie(ChartRenderer):
         if not self.service_url:
             raise InvalidConfiguration("`chart-rendering.chartcuterie.url` is not configured")
 
-    def generate_chart(self, style: ChartType, data: Any, upload: bool = True) -> Union[str, bytes]:
+    def generate_chart(
+        self, style: ChartType, data: Any, upload: bool = True, size: Optional[ChartSize] = None
+    ) -> Union[str, bytes]:
         request_id = uuid4().hex
 
         data = {
@@ -60,6 +62,10 @@ class Chartcuterie(ChartRenderer):
             "style": style.value,
             "data": data,
         }
+
+        # Override the default size defined by the chart style
+        if size:
+            data.update(size)
 
         with sentry_sdk.start_span(
             op="charts.chartcuterie.generate_chart",
