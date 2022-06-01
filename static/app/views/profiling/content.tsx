@@ -12,7 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
-import {ProfilesTable} from 'sentry/components/profiling/profilesTable';
+import {ProfileTransactionsTable} from 'sentry/components/profiling/profileTransactionsTable';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
@@ -23,6 +23,7 @@ import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
+import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -40,6 +41,7 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
   const query = decodeScalar(location.query.query, '');
   const profileFilters = useProfileFilters({query: '', selection});
   const profiles = useProfiles({cursor, query, selection});
+  const transactions = useProfileTransactions({cursor, query, selection});
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {
@@ -100,16 +102,18 @@ function ProfilingContent({location, selection}: ProfilingContentProps) {
                   traces={profiles.type === 'resolved' ? profiles.data.traces : []}
                   isLoading={profiles.type === 'loading'}
                 />
-                <ProfilesTable
+                <ProfileTransactionsTable
                   error={
-                    profiles.type === 'errored' ? t('Unable to load profiles') : null
+                    transactions.type === 'errored' ? t('Unable to load profiles') : null
                   }
-                  isLoading={profiles.type === 'loading'}
-                  traces={profiles.type === 'resolved' ? profiles.data.traces : []}
+                  isLoading={transactions.type === 'loading'}
+                  transactions={
+                    transactions.type === 'resolved' ? transactions.data.transactions : []
+                  }
                 />
                 <Pagination
                   pageLinks={
-                    profiles.type === 'resolved' ? profiles.data.pageLinks : null
+                    transactions.type === 'resolved' ? transactions.data.pageLinks : null
                   }
                 />
               </Layout.Main>
