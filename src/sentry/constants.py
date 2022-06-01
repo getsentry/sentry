@@ -588,12 +588,16 @@ CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
 # 2. `src/sentry/event_manager.py:_pull_out_data` we have `set_tag`.
 # 3. `src/sentry/event_manager.py:_get_event_user_many` we have `set_tag`.
 # 4. `src/sentry/event_manager.py:_get_or_create_release_many` we have `set_tag`.
-#
+# 5. `src/sentry/interfaces/exception.py:Mechanism` we have `iter_tags`.
+# 6. `src/sentry/plugins/sentry_urls/models.py:UrlsPlugin`.
+# 7. `sentry/src/sentry/plugins/sentry_interface_types/models.py`.
+# 8. `src/sentry/plugins/sentry_useragents/models.py:UserAgentPlugin`.
 # Note:
 # should be sorted alphabetically so that it is easy to maintain in future
 # if you update this list please add explanation or source of it
 DS_DENYLIST = frozenset(
     [
+        "app.device",
         "browser",
         "browser.name",
         "device",
@@ -602,8 +606,11 @@ DS_DENYLIST = frozenset(
         "environment",
         "gpu.name",
         "gpu.vendor",
+        "handled",
+        "interface_type",
         "level",
         "logger",
+        "mechanism",
         "monitor.id",
         "os",
         "os.name",
@@ -612,6 +619,7 @@ DS_DENYLIST = frozenset(
         "runtime",
         "runtime.name",
         "transaction",
+        "url",
         "user",
     ]
 )
