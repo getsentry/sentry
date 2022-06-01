@@ -15,6 +15,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageHeading from 'sentry/components/pageHeading';
+import TxnNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -204,19 +205,36 @@ export function PerformanceLanding(props: Props) {
               <Fragment>
                 <SearchContainerWithFilter>
                   {pageFilters}
-                  <SearchBar
-                    searchSource="performance_landing"
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={filterString}
-                    fields={generateAggregateFields(
-                      organization,
-                      [...eventView.fields, {field: 'tps()'}],
-                      ['epm()', 'eps()']
-                    )}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
+                  <Feature
+                    features={['organizations:performance-transaction-name-only-search']}
+                  >
+                    {({hasFeature}) =>
+                      hasFeature ? (
+                        // transaction search handles onSearch within the component
+                        <TxnNameSearchBar
+                          searchSource="performance_landing_transaction_name_experiment"
+                          organization={organization}
+                          projectIds={eventView.project}
+                          query={filterString}
+                          location={location}
+                        />
+                      ) : (
+                        <SearchBar
+                          searchSource="performance_landing"
+                          organization={organization}
+                          projectIds={eventView.project}
+                          query={filterString}
+                          fields={generateAggregateFields(
+                            organization,
+                            [...eventView.fields, {field: 'tps()'}],
+                            ['epm()', 'eps()']
+                          )}
+                          onSearch={handleSearch}
+                          maxQueryLength={MAX_QUERY_LENGTH}
+                        />
+                      )
+                    }
+                  </Feature>
                   <MetricsEventsDropdown />
                 </SearchContainerWithFilter>
                 {initiallyLoaded ? (
