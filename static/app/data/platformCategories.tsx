@@ -40,6 +40,7 @@ export const frontend = [
   'javascript-gatsby',
   'javascript-vue',
   'javascript-nextjs',
+  'unity',
 ] as const;
 
 export const mobile = [
