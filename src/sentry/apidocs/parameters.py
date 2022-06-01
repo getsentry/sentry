@@ -124,7 +124,7 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
         name="sort",
         location="query",
         required=False,
-        type=int,
+        type=str,
         description="What to order the results of the query by. Must be something in the field list, excluding equations.",
     )
     PER_PAGE = OpenApiParameter(
