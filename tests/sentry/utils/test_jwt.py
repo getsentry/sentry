@@ -213,7 +213,7 @@ def test_encode_rs256() -> None:
     claims = {
         "iss": "me",
     }
-    encoded_hs256 = jwt_utils.encode(claims, "secret", headers=headers)
+    encoded_hs256 = jwt_utils.encode(claims, "secret", headers={**headers, "alg": "HS256"})
     encoded_rs256 = jwt_utils.encode(claims, RS256_KEY, headers=headers, algorithm="RS256")
 
     assert encoded_rs256.count(".") == 2
