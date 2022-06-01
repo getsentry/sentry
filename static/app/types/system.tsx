@@ -121,7 +121,6 @@ export interface Config {
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 
-  sentryUrl: string | undefined;
   // Maintain isOnPremise key for backcompat (plugins?).
   isOnPremise: boolean;
   isSelfHosted: boolean;
@@ -131,8 +130,8 @@ export interface Config {
    * This comes from django (django.contrib.messages)
    */
   messages: {level: keyof Theme['alert']; message: string}[];
-
   needsUpgrade: boolean;
+
   organizationUrl: string | undefined;
   privacyUrl: string | null;
   sentryConfig: {
@@ -140,6 +139,7 @@ export interface Config {
     release: string;
     whitelistUrls: string[];
   };
+  sentryUrl: string | undefined;
   singleOrganization: boolean;
   supportEmail: string;
   termsUrl: string | null;
