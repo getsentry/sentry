@@ -4,6 +4,7 @@ import space from 'sentry/styles/space';
 
 /* key maps and utils retrieved from  https://github.com/jaywcjlove/hotkeys */
 
+/** Includes a lot of leftover unused codes for the future in case we want glyphs for them */
 const _keyMap = {
   backspace: 8,
   tab: 9,
@@ -55,7 +56,7 @@ const _keyMap = {
   ']': 221,
   '\\': 220,
 
-  // special case for escaped +
+  // special case for escaped +, not actually a keycode
   '\\+': 9999,
 };
 
@@ -159,21 +160,23 @@ const Hotkeys = ({
   value: string;
   platform?: 'macos' | string;
 }) => {
-  const byOs = value.split(',').map(o => o.trim().split(/(?<!\\)\+/g));
+  // Split by commas and then split by +, but allow escaped /+
+  const byPlatform = value.split(',').map(o => o.trim().split(/(?<!\\)\+/g));
 
-  let hasMissing_ = false;
-  let output = byOs[0].map(key => {
+  let firstSetHasMissing = false;
+  let output = byPlatform[0].map(key => {
     const [node, hasMissing] = keyToDisplay(key, platform);
 
     if (hasMissing) {
-      hasMissing_ = true;
+      firstSetHasMissing = true;
     }
 
     return node;
   });
 
-  if (hasMissing_ && byOs.length > 1) {
-    output = byOs[1].map(key => keyToDisplay(key, platform)[0]);
+  // If the first set has any missing keys that don't exist on the platform (CMD), fallback to second if exists, otherwise just go forward with current.
+  if (firstSetHasMissing && byPlatform.length > 1) {
+    output = byPlatform[1].map(key => keyToDisplay(key, platform)[0]);
   }
 
   return <HotkeysContainer>{output}</HotkeysContainer>;
