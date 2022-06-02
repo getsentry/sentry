@@ -56,6 +56,30 @@ def cocoa_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
     return False
 
 
+def flutter_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
+    if not frame.get("abs_path"):
+        return False
+
+    abs_path = str(frame.get("abs_path"))
+
+    if abs_path.startswith("dart:"):
+        return False
+    elif abs_path.startswith("package:"):
+        if not frame.get("package"):
+            return False
+
+        pkg = frame.get("package")
+        if abs_path.find(f"package:{pkg}") == -1:
+            return False
+        else:
+            src_path = abs_path.replace(f"package:{pkg}", "", 1).strip("/")
+            if src_path:
+                frame[key] = src_path
+                return True
+
+    return False
+
+
 def package_relative_path(abs_path: str, package: str) -> str | None:
     """
     returns the left-biased shortened path relative to the package directory
@@ -75,6 +99,7 @@ def package_relative_path(abs_path: str, package: str) -> str | None:
 PLATFORM_FRAME_MUNGER: Mapping[str, SdkFrameMunger] = {
     "java": SdkFrameMunger(java_frame_munger),
     "cocoa": SdkFrameMunger(cocoa_frame_munger),
+    "other": SdkFrameMunger(flutter_frame_munger, True, {"sentry.dart.flutter"}),
 }
 
 

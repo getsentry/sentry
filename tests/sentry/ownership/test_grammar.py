@@ -329,6 +329,75 @@ def test_matcher_test_platform_react_native():
     assert Matcher("path", "app:///src/screens/EndToEndTestsScreen.tsx").test(data)
 
 
+def test_matcher_test_platform_other_flutter():
+    data = {
+        "platform": "other",
+        "sdk": {"name": "sentry.dart.flutter"},
+        "exception": {
+            "values": [
+                {
+                    "type": "StateError",
+                    "value": "Bad state: try catch",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "_dispatchPointerDataPacket",
+                                "filename": "hooks.dart",
+                                "abs_path": "dart:ui/hooks.dart",
+                                "lineno": 94,
+                                "colno": 31,
+                                "in_app": False,
+                            },
+                            {
+                                "function": "_InkResponseState._handleTap",
+                                "package": "flutter",
+                                "filename": "ink_well.dart",
+                                "abs_path": "package:flutter/src/material/ink_well.dart",
+                                "lineno": 1005,
+                                "colno": 21,
+                                "in_app": False,
+                            },
+                            {
+                                "function": "MainScaffold.build.<fn>",
+                                "package": "sentry_flutter_example",
+                                "filename": "main.dart",
+                                "abs_path": "package:sentry_flutter_example/main.dart",
+                                "lineno": 117,
+                                "colno": 32,
+                                "in_app": True,
+                            },
+                            {
+                                "function": "tryCatchModule",
+                                "package": "sentry_flutter_example",
+                                "filename": "test.dart",
+                                "abs_path": "package:sentry_flutter_example/a/b/test.dart",
+                                "lineno": 8,
+                                "colno": 5,
+                                "in_app": True,
+                            },
+                        ]
+                    },
+                }
+            ]
+        },
+    }
+
+    assert Matcher("path", "a/b/test.dart").test(data)
+    assert Matcher("path", "a/*/test.dart").test(data)
+    assert Matcher("path", "*/test.dart").test(data)
+    assert Matcher("path", "**/test.dart").test(data)
+    assert Matcher("path", "*.dart").test(data)
+    assert Matcher("codeowners", "a/b/test.dart").test(data)
+    assert Matcher("codeowners", "*.dart").test(data)
+    assert not Matcher("url", "*.dart").test(data)
+
+    # non in-app/user code still works here,
+    assert Matcher("path", "src/material/ink_well.dart").test(data)
+
+    # we search on filename and abs_path, if a user explicitly tests on the abs_path, we let them
+    assert Matcher("path", "package:sentry_flutter_example/a/b/test.dart").test(data)
+
+
 def test_matcher_test_platform_none_threads():
     data = {
         "threads": {
