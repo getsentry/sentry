@@ -16,6 +16,11 @@ import {Conditions} from './conditions';
 
 type Props = {
   dragging: boolean;
+  /**
+   * Hide the grab button if true.
+   * This is used when the list has a single item, making sorting not possible.
+   */
+  hideGrabButton: boolean;
   listeners: DraggableSyntheticListeners;
   noPermission: boolean;
   onDeleteRule: () => void;
@@ -40,6 +45,7 @@ export function Rule({
   listeners,
   operator,
   grabAttributes,
+  hideGrabButton,
 }: Props) {
   const [state, setState] = useState<State>({isMenuActionsOpen: false});
 
@@ -50,22 +56,27 @@ export function Rule({
   }, [dragging, sorting, state.isMenuActionsOpen]);
 
   return (
-    <Columns disabled={rule.disabled ?? noPermission}>
-      <GrabColumn>
-        <Tooltip
-          title={
-            noPermission
-              ? t('You do not have permission to reorder rules.')
-              : operator === SamplingRuleOperator.ELSE
-              ? t('Rules without conditions cannot be reordered.')
-              : undefined
-          }
-        >
-          <IconGrabbableWrapper {...listeners} {...grabAttributes}>
-            <IconGrabbable />
-          </IconGrabbableWrapper>
-        </Tooltip>
-      </GrabColumn>
+    <Columns disabled={rule.disabled || noPermission}>
+      {hideGrabButton ? (
+        <Column />
+      ) : (
+        <GrabColumn>
+          <Tooltip
+            title={
+              noPermission
+                ? t('You do not have permission to reorder rules.')
+                : operator === SamplingRuleOperator.ELSE
+                ? t('Rules without conditions cannot be reordered.')
+                : undefined
+            }
+          >
+            <IconGrabbableWrapper {...listeners} {...grabAttributes}>
+              <IconGrabbable />
+            </IconGrabbableWrapper>
+          </Tooltip>
+        </GrabColumn>
+      )}
+
       <Column>
         <Operator>
           {operator === SamplingRuleOperator.IF
@@ -134,9 +145,6 @@ const Columns = styled('div')<{disabled: boolean}>`
   ${p =>
     p.disabled &&
     css`
-      ${Operator} {
-        color: ${p.theme.disabled};
-      }
       ${GrabColumn} {
         color: ${p.theme.disabled};
         [role='button'] {
