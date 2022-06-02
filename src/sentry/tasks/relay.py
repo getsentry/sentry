@@ -219,7 +219,9 @@ def invalidate_project_config(organization_id=None, project_id=None, public_key=
         compute_project_configs(keys)
 
 
-def schedule_invalidation_task(trigger, organization_id=None, project_id=None, public_key=None):
+def schedule_invalidate_config_cache(
+    *, trigger, organization_id=None, project_id=None, public_key=None
+):
     """Schedules the :func:`invalidate_project_config` task.
 
     This takes care of not scheduling a duplicate task if one is already scheduled.  The
