@@ -10,6 +10,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Tooltip from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
@@ -170,7 +171,7 @@ const getMargin = ({size}: {size: Size}) => {
 
 const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
   line-height: 1;
-  ${getMargin};
+  margin-bottom: ${space(0.25)};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
@@ -185,6 +186,7 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
       : css`
           > a:first-child {
             display: flex;
+            min-height: ${space(3)};
           }
         `}
 `;
@@ -214,6 +216,7 @@ function Location(props) {
 
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   ${getMargin};
+  line-height: 1.2;
 `;
 
 const Message = styled('div')`
