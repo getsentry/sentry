@@ -82,10 +82,11 @@ export default function SpanDetailsContentWrapper(props: Props) {
             referrer="api.performance.transaction-spans"
             cursor="0:0:1"
             noPagination
+            useEvents
           >
             {({tableData}) => {
               const totalCount: number | null =
-                (tableData?.data?.[0]?.count as number) ?? null;
+                (tableData?.data?.[0]?.['count()'] as number) ?? null;
 
               if (totalCount) {
                 setTag('spans.totalCount', totalCount);

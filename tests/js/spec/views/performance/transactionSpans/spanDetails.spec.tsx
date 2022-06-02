@@ -24,8 +24,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      body: {data: [{count: 1}]},
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count()': 1}]},
     });
   });
 
