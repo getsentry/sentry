@@ -13,5 +13,6 @@ class DjangoCache(BaseCache):
         self._mark_transaction("delete")
 
     def get(self, key, version=None, raw=False):
-        return cache.get(key, version=version or self.version)
+        result = cache.get(key, version=version or self.version)
         self._mark_transaction("get")
+        return result
