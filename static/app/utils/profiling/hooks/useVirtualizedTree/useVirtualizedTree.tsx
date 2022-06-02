@@ -50,6 +50,7 @@ interface UseVirtualizedListProps<T extends TreeLike> {
   rowHeight: number;
   scrollContainerRef: React.MutableRefObject<HTMLElement | null>;
   overscroll?: number;
+  skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
 }
 
@@ -59,7 +60,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   props: UseVirtualizedListProps<T>
 ) {
   const [tree, setTree] = useState(() => {
-    const initialTree = VirtualizedTree.fromRoots(props.roots);
+    const initialTree = VirtualizedTree.fromRoots(props.roots, props.skipFunction);
 
     if (props.sortFunction) {
       initialTree.sort(props.sortFunction);
@@ -69,19 +70,19 @@ export function useVirtualizedTree<T extends TreeLike>(
   });
 
   useEffectAfterFirstRender(() => {
-    const newTree = VirtualizedTree.fromRoots(props.roots);
+    const newTree = VirtualizedTree.fromRoots(props.roots, props.skipFunction);
 
     if (props.sortFunction) {
       newTree.sort(props.sortFunction);
     }
 
     setTree(newTree);
-  }, [props.roots]);
+  }, [props.roots, props.skipFunction]);
 
   const [state, dispatch] = useReducer(VirtualizedTreeStateReducer, {
+    scrollTop: 0,
     roots: props.roots,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
-    scrollTop: 0,
     scrollHeight: props.scrollContainerRef.current?.getBoundingClientRect()?.height ?? 0,
   });
 
@@ -112,6 +113,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     // Points to the currently iterated item
     let indexPointer = 0;
 
+    // Max number of visible items in our list
     const MAX_VISIBLE_ITEMS = Math.ceil(
       (state.scrollHeight + OVERSCROLL_HEIGHT * 2) / props.rowHeight
     );
@@ -145,9 +147,13 @@ export function useVirtualizedTree<T extends TreeLike>(
   const scrollRafId = useRef<number | undefined>(undefined);
   const handleScroll = useCallback(element => {
     // use requestAnimationFrame to avoidoverupdating the UI.
+    if (scrollRafId.current) {
+      window.cancelAnimationFrame(scrollRafId.current);
+      scrollRafId.current = undefined;
+    }
+
     scrollRafId.current = window.requestAnimationFrame(() => {
       dispatch({type: 'set scroll top', payload: Math.max(element.target.scrollTop, 0)});
-      scrollRafId.current = undefined;
     });
   }, []);
 

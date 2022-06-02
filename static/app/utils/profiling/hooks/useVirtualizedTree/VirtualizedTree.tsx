@@ -12,7 +12,10 @@ export class VirtualizedTree<T extends TreeLike> {
   }
 
   // Rebuilds the tree
-  static fromRoots<T extends TreeLike>(items: T[]): VirtualizedTree<T> {
+  static fromRoots<T extends TreeLike>(
+    items: T[],
+    skipFn: (n: VirtualizedTreeNode<T>) => boolean = () => false
+  ): VirtualizedTree<T> {
     const roots: VirtualizedTreeNode<T>[] = [];
 
     function toTreeNode(
@@ -21,7 +24,17 @@ export class VirtualizedTree<T extends TreeLike> {
       collection: VirtualizedTreeNode<T>[] | null,
       depth: number
     ) {
-      const treeNode = new VirtualizedTreeNode<T>(node, parent, depth);
+      const treeNode = new VirtualizedTreeNode<T>(node, parent, depth, false, false);
+
+      // We cannot skip root nodes, so we check that the parent is not null.
+      // If the node should be skipped, then we don't add it to the tree and descend
+      // into its children without incrementing the depth.
+      if (parent && skipFn(treeNode)) {
+        for (let i = 0; i < node.children.length; i++) {
+          toTreeNode(node.children[i] as T, treeNode, parent.children, depth);
+        }
+        return;
+      }
 
       if (collection) {
         collection.push(treeNode);

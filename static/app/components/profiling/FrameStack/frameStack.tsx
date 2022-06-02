@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -38,6 +38,13 @@ function FrameStack(props: FrameStackProps) {
     return invertCallTree([selectedNode]);
   }, [selectedNode, tab]);
 
+  const handleRecursionChange = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      setRecursion(evt.currentTarget.checked ? 'collapsed' : null);
+    },
+    []
+  );
+
   const {height, onMouseDown} = useVerticallyResizableDrawer({
     initialHeight: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT,
     minHeight: 30,
@@ -62,7 +69,7 @@ function FrameStack(props: FrameStackProps) {
         </li>
         <li>
           <FrameDrawerLabel>
-            <input type="checkbox" />
+            <input type="checkbox" onChange={handleRecursionChange} />
             Collapse recursion
           </FrameDrawerLabel>
         </li>
@@ -70,6 +77,7 @@ function FrameStack(props: FrameStackProps) {
       </FrameTabs>
       <FrameStackTable
         {...props}
+        recursion={recursion}
         roots={roots ?? []}
         referenceNode={selectedNode}
         canvasPoolManager={props.canvasPoolManager}
