@@ -80,7 +80,6 @@ def send_and_save_webhook_request(
             org_id=org_id,
             event=event,
             url=url,
-            response=response,
             headers=app_platform_event.headers,
         )
         # Re-raise the exception because some of these tasks might retry on the exception

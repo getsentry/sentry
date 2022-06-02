@@ -82,7 +82,6 @@ def send_and_save_sentry_app_request(
             org_id=org_id,
             event=event,
             url=url,
-            response=resp,
             headers=kwargs.get("headers"),
         )
         # Re-raise the exception because some of these tasks might retry on the exception
