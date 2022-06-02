@@ -26,7 +26,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
 from sentry.utils.compat import zip
-from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
+from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
@@ -231,6 +231,7 @@ def get_event_file_committers(
     event_frames: Sequence[Mapping[str, Any]],
     event_platform: str,
     frame_limit: int = 25,
+    sdk_name: str | None = None,
 ) -> Sequence[AuthorCommits]:
     group = Group.objects.get_from_cache(id=group_id)
 
@@ -247,7 +248,7 @@ def get_event_file_committers(
         raise Commit.DoesNotExist
 
     frames = event_frames or []
-    munged = munged_filename_and_frames(event_platform, frames, "munged_filename")
+    munged = munged_filename_and_frames(event_platform, frames, "munged_filename", sdk_name)
     if munged:
         frames = munged[1]
     app_frames = [frame for frame in frames if frame.get("in_app")][-frame_limit:]
@@ -296,8 +297,14 @@ def get_serialized_event_file_committers(
     project: Project, event: Event, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
     event_frames = get_frame_paths(event)
+    sdk_name = get_sdk_name(event.data)
     committers = get_event_file_committers(
-        project, event.group_id, event_frames, event.platform, frame_limit=frame_limit
+        project,
+        event.group_id,
+        event_frames,
+        event.platform,
+        frame_limit=frame_limit,
+        sdk_name=sdk_name,
     )
     commits = [commit for committer in committers for commit in committer["commits"]]
     serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(

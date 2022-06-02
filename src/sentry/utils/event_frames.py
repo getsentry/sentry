@@ -1,11 +1,35 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Tuple, cast
+from dataclasses import dataclass, field
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Set,
+    Tuple,
+    cast,
+)
 
 from sentry.utils.safe import PathSearchable, get_path
 
-FrameMunger = Callable[[str, MutableMapping[str, Any]], bool]
+
+# mypy hack to work around callable assuing the first arg of callable is 'self'
+# https://github.com/python/mypy/issues/5485
+class FrameMunger(Protocol):
+    def __call__(self, key: str, frame: MutableMapping[str, Any]) -> bool:
+        pass
+
+
+@dataclass(frozen=True)
+class SdkFrameMunger:
+    frame_munger: FrameMunger
+    requires_sdk: bool = False
+    supported_sdks: Set[str] = field(default_factory=set)
 
 
 def java_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
@@ -25,7 +49,7 @@ def cocoa_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
     if not frame.get("package") or not frame.get("abs_path"):
         return False
 
-    rel_path = package_relative_path(frame.get("abs_path"), frame.get("package"))
+    rel_path = package_relative_path(str(frame.get("abs_path")), str(frame.get("package")))
     if rel_path:
         frame[key] = rel_path
         return True
@@ -48,14 +72,21 @@ def package_relative_path(abs_path: str, package: str) -> str | None:
     return None
 
 
-PLATFORM_FRAME_MUNGER: Mapping[str, FrameMunger] = {
-    "java": java_frame_munger,
-    "cocoa": cocoa_frame_munger,
+PLATFORM_FRAME_MUNGER: Mapping[str, SdkFrameMunger] = {
+    "java": SdkFrameMunger(java_frame_munger),
+    "cocoa": SdkFrameMunger(cocoa_frame_munger),
 }
 
 
+def get_sdk_name(event_data: PathSearchable) -> Optional[str]:
+    return get_path(event_data, "sdk", "name", filter=True) or None
+
+
 def munged_filename_and_frames(
-    platform: str, data_frames: Sequence[Mapping[str, Any]], key: str = "munged_filename"
+    platform: str,
+    data_frames: Sequence[Mapping[str, Any]],
+    key: str = "munged_filename",
+    sdk_name: str | None = None,
 ) -> Optional[Tuple[str, Sequence[Mapping[str, Any]]]]:
     """
     Applies platform-specific frame munging for filename pathing.
@@ -64,7 +95,7 @@ def munged_filename_and_frames(
     otherwise returns None.
     """
     munger = PLATFORM_FRAME_MUNGER.get(platform)
-    if not munger:
+    if not munger or (munger.requires_sdk and sdk_name not in munger.supported_sdks):
         return None
 
     copy_frames: Sequence[MutableMapping[str, Any]] = cast(
@@ -72,7 +103,7 @@ def munged_filename_and_frames(
     )
     frames_updated = False
     for frame in copy_frames:
-        frames_updated |= munger(key, frame)
+        frames_updated |= munger.frame_munger(key, frame)
     return (key, copy_frames) if frames_updated else None
 
 
