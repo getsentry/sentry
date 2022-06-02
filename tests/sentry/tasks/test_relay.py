@@ -56,11 +56,6 @@ def debounce_cache(monkeypatch):
     return debounce_cache
 
 
-@pytest.fixture
-def always_update_cache(monkeypatch):
-    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: True)
-
-
 @pytest.mark.django_db
 def test_debounce(
     monkeypatch,
@@ -112,7 +107,6 @@ def test_generate(
     task_runner,
     entire_organization,
     redis_cache,
-    always_update_cache,
 ):
     assert not redis_cache.get(default_projectkey.public_key)
 
@@ -148,7 +142,6 @@ def test_invalidate(
     task_runner,
     entire_organization,
     redis_cache,
-    always_update_cache,
 ):
 
     cfg = {"foo": "bar"}
