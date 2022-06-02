@@ -104,7 +104,7 @@ class TestDjangoNodeStorage:
             assert self.ns.get_multi([node_1[0], node_2[0], node_3[0]])
             assert mock_filter.call_count == 0
 
-        # Manually deleted item should still retreivable from cache
+        # Manually deleted item should still retrievable from cache
         Node.objects.get(id=node_1[0]).delete()
         assert self.ns.get(node_1[0]) == node_1[1]
         assert self.ns.get_multi([node_1[0], node_2[0]]) == {

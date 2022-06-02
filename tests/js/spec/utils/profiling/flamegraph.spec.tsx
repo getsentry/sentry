@@ -11,6 +11,7 @@ const makeEmptyEventedTrace = (): EventedProfile => {
       endValue: 0,
       unit: 'microseconds',
       type: 'evented',
+      threadID: 0,
       events: [],
     },
     createFrameIndex([])
@@ -35,6 +36,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -62,6 +64,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -82,13 +85,7 @@ describe('flamegraph', () => {
 
     expect(flamegraph.inverted).toBe(true);
     expect(flamegraph.leftHeavy).toBe(true);
-
-    expect(flamegraph.duration).toBe(1000);
     expect(flamegraph.profileIndex).toBe(10);
-    expect(flamegraph.name).toBe('profile');
-
-    expect(flamegraph.startedAt).toBe(0);
-    expect(flamegraph.endedAt).toBe(1000);
   });
 
   it('creates a call order graph', () => {
@@ -97,6 +94,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -133,6 +131,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -160,6 +159,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -189,6 +189,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -219,6 +220,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -254,6 +256,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -286,6 +289,7 @@ describe('flamegraph', () => {
       startValue: 0,
       endValue: 1000,
       unit: 'milliseconds',
+      threadID: 0,
       type: 'evented',
       events: [
         {type: 'O', at: 0, frame: 0},
@@ -319,37 +323,6 @@ describe('flamegraph', () => {
 
   it('Empty', () => {
     expect(Flamegraph.Empty().configSpace.equals(new Rect(0, 0, 1_000, 0))).toBe(true);
-  });
-
-  it('withOffset', () => {
-    const trace: Profiling.EventedProfile = {
-      name: 'profile',
-      startValue: 0,
-      endValue: 1000,
-      unit: 'milliseconds',
-      type: 'evented',
-      events: [
-        {type: 'O', at: 0, frame: 0},
-        {type: 'O', at: 0, frame: 1},
-        {type: 'C', at: 2, frame: 1},
-        {type: 'C', at: 3, frame: 0},
-      ],
-    };
-
-    const flamegraph = new Flamegraph(
-      EventedProfile.FromProfile(trace, createFrameIndex([{name: 'f0'}, {name: 'f1'}])),
-      10,
-      {
-        inverted: false,
-        leftHeavy: false,
-      }
-    );
-    flamegraph.withOffset(500);
-
-    expect(flamegraph.frames[0].start).toBe(500);
-    expect(flamegraph.frames[1].start).toBe(500);
-    expect(flamegraph.frames[1].end).toBe(502);
-    expect(flamegraph.frames[0].end).toBe(503);
   });
 
   it('setConfigSpace', () => {

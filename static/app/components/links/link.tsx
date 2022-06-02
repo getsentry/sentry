@@ -1,9 +1,10 @@
-import {useEffect} from 'react';
+import {forwardRef, useEffect} from 'react';
 import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
-import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
+
+import {linkStyles} from './styles';
 
 export interface LinkProps
   extends Omit<
@@ -22,6 +23,10 @@ export interface LinkProps
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
+  /**
+   * Forwarded ref
+   */
+  forwardedRef?: React.Ref<HTMLAnchorElement>;
 }
 
 /**
@@ -30,11 +35,12 @@ export interface LinkProps
  */
 
 interface WithRouterBaseLinkProps extends WithRouterProps, LinkProps {}
+
 function BaseLink({
   location,
   disabled,
   to,
-  ref,
+  forwardedRef,
   router: _router,
   params: _params,
   routes: _routes,
@@ -47,38 +53,24 @@ function BaseLink({
         new Error('The link component was rendered without being wrapped by a <Router />')
       );
     }
-  }, []);
+  }, [location]);
 
   if (!disabled && location) {
-    return <RouterLink to={to} ref={ref as any} {...props} />;
+    return <RouterLink to={to} ref={forwardedRef as any} {...props} />;
   }
 
-  if (typeof to === 'string') {
-    return <Anchor href={to} ref={ref} disabled={disabled} {...props} />;
-  }
-
-  return <Anchor href="" ref={ref} {...props} disabled />;
+  return <a href={typeof to === 'string' ? to : ''} ref={forwardedRef} {...props} />;
 }
 
-// Set the displayName for testing convenience
-BaseLink.displayName = 'Link';
-
 // Re-assign to Link to make auto-importing smarter
-const Link = withRouter(BaseLink);
+const Link = withRouter(
+  styled(
+    forwardRef<HTMLAnchorElement, Omit<WithRouterBaseLinkProps, 'forwardedRef'>>(
+      (props, ref) => <BaseLink forwardedRef={ref} {...props} />
+    )
+  )`
+    ${linkStyles}
+  `
+);
 
 export default Link;
-
-const Anchor = styled('a', {
-  shouldForwardProp: prop =>
-    typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled',
-})<{disabled?: boolean}>`
-  ${p =>
-    p.disabled &&
-    `
-  color:${p.theme.disabled};
-  pointer-events: none;
-  :hover {
-    color: ${p.theme.disabled};
-  }
-  `};
-`;

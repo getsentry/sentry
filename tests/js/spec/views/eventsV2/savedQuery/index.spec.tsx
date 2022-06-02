@@ -1,11 +1,15 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {openAddDashboardWidgetModal} from 'sentry/actionCreators/modal';
+import {
+  openAddDashboardWidgetModal,
+  openAddToDashboardModal,
+} from 'sentry/actionCreators/modal';
 import {NewQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
+import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboardsV2/types';
 import DiscoverBanner from 'sentry/views/eventsV2/banner';
 import {ALL_VIEWS} from 'sentry/views/eventsV2/data';
 import SavedQueryButtonGroup from 'sentry/views/eventsV2/savedQuery';
@@ -102,6 +106,11 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
     dateUpdated: '',
     id: '1',
   };
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
 
   describe('building on a new query', () => {
     const mockUtils = jest
@@ -335,6 +344,119 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
         expect.objectContaining({id: '1'})
       );
     });
+
+    it('opens a modal with the correct params for top 5 display mode', async function () {
+      const featuredOrganization = TestStubs.Organization({
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
+      });
+      const testData = initializeOrg({
+        ...initializeOrg(),
+        organization: featuredOrganization,
+      });
+      const savedTopNQuery = TestStubs.DiscoverSavedQuery({
+        display: DisplayModes.TOP5,
+        orderby: 'test',
+        fields: ['test', 'count()'],
+        topEvents: '2',
+      });
+      mount(
+        testData.router.location,
+        testData.organization,
+        testData.router,
+        EventView.fromSavedQuery(savedTopNQuery),
+        savedTopNQuery,
+        ['count()']
+      );
+      userEvent.click(screen.getByText('Add to Dashboard'));
+      expect(openAddDashboardWidgetModal).not.toHaveBeenCalled();
+
+      await waitFor(() => {
+        expect(openAddToDashboardModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            widget: {
+              title: 'Saved query #1',
+              displayType: DisplayType.AREA,
+              limit: 2,
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: ['test'],
+                  conditions: '',
+                  fields: ['test', 'count()', 'count()'],
+                  name: '',
+                  orderby: 'test',
+                },
+              ],
+            },
+            widgetAsQueryParams: expect.objectContaining({
+              defaultTableColumns: ['test', 'count()'],
+              defaultTitle: 'Saved query #1',
+              defaultWidgetQuery:
+                'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
+              displayType: DisplayType.AREA,
+              source: DashboardWidgetSource.DISCOVERV2,
+            }),
+          })
+        );
+      });
+    });
+
+    it('opens a modal with the correct params for default display mode', async function () {
+      const featuredOrganization = TestStubs.Organization({
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
+      });
+      const testData = initializeOrg({
+        ...initializeOrg(),
+        organization: featuredOrganization,
+      });
+      const savedDefaultQuery = TestStubs.DiscoverSavedQuery({
+        display: DisplayModes.DEFAULT,
+        orderby: 'count()',
+        fields: ['test', 'count()'],
+        yAxis: ['count()'],
+      });
+      mount(
+        testData.router.location,
+        testData.organization,
+        testData.router,
+        EventView.fromSavedQuery(savedDefaultQuery),
+        savedDefaultQuery,
+        ['count()']
+      );
+      userEvent.click(screen.getByText('Add to Dashboard'));
+      expect(openAddDashboardWidgetModal).not.toHaveBeenCalled();
+
+      await waitFor(() => {
+        expect(openAddToDashboardModal).toHaveBeenCalledWith(
+          expect.objectContaining({
+            widget: {
+              title: 'Saved query #1',
+              displayType: DisplayType.LINE,
+              queries: [
+                {
+                  aggregates: ['count()'],
+                  columns: [],
+                  conditions: '',
+                  fields: ['count()'],
+                  name: '',
+                  // Orderby gets dropped because ordering only applies to
+                  // Top-N and tables
+                  orderby: '',
+                },
+              ],
+            },
+            widgetAsQueryParams: expect.objectContaining({
+              defaultTableColumns: ['test', 'count()'],
+              defaultTitle: 'Saved query #1',
+              defaultWidgetQuery:
+                'name=&aggregates=count()&columns=&fields=count()&conditions=&orderby=',
+              displayType: DisplayType.LINE,
+              source: DashboardWidgetSource.DISCOVERV2,
+            }),
+          })
+        );
+      });
+    });
   });
 
   describe('modifying a saved query', () => {
@@ -525,7 +647,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             aggregates: ['count()'],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })
@@ -552,7 +674,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             aggregates: ['count()', 'failure_count()'],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })
@@ -583,7 +705,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
             ],
             columns: [],
             name: '',
-            orderby: '-count',
+            orderby: '-count()',
           },
           displayType: 'line',
         })

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
@@ -59,7 +59,7 @@ export function getProjectID(
   return project.id;
 }
 
-class OperationTitle extends React.Component<TitleProps> {
+class OperationTitle extends Component<TitleProps> {
   render() {
     const {onClick} = this.props;
     return (
@@ -90,7 +90,7 @@ type State = {
   widths: number[];
 };
 
-class EventsTable extends React.Component<Props, State> {
+class EventsTable extends Component<Props, State> {
   state: State = {
     widths: [],
   };
@@ -313,10 +313,11 @@ class EventsTable extends React.Component<Props, State> {
           location={location}
           setError={error => setError(error?.message)}
           referrer="api.performance.transaction-events"
+          useEvents
         >
           {({pageLinks, isLoading, tableData}) => {
             return (
-              <React.Fragment>
+              <Fragment>
                 <GridEditable
                   isLoading={isLoading}
                   data={tableData ? tableData.data : []}
@@ -330,7 +331,7 @@ class EventsTable extends React.Component<Props, State> {
                   location={location}
                 />
                 <Pagination pageLinks={pageLinks} />
-              </React.Fragment>
+              </Fragment>
             );
           }}
         </DiscoverQuery>

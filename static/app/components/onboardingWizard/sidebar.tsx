@@ -1,11 +1,10 @@
-import {Component} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import HighlightTopRight from 'sentry-images/pattern/highlight-top-right.svg';
 
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
-import {Client} from 'sentry/api';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import {CommonSidebarProps} from 'sentry/components/sidebar/types';
 import Tooltip from 'sentry/components/tooltip';
@@ -13,9 +12,10 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
 import testableTransition from 'sentry/utils/testableTransition';
-import withApi from 'sentry/utils/withApi';
+import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
 import ProgressHeader from './progressHeader';
 import Task from './task';
@@ -23,7 +23,6 @@ import {getMergedTasks} from './taskConfig';
 import {findActiveTasks, findCompleteTasks, findUpcomingTasks, taskIsDone} from './utils';
 
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
-  api: Client;
   onClose: () => void;
   organization: Organization;
   projects: Project[];
@@ -54,7 +53,8 @@ Heading.defaultProps = {
   transition: testableTransition(),
 };
 
-const completeNowHeading = <Heading key="now">{t('The Basics')}</Heading>;
+const customizedTasksHeading = <Heading key="customized">{t('The Basics')}</Heading>;
+const completeNowHeading = <Heading key="now">{t('Next Steps')}</Heading>;
 const upcomingTasksHeading = (
   <Heading key="upcoming">
     <Tooltip
@@ -67,112 +67,140 @@ const upcomingTasksHeading = (
 );
 const completedTasksHeading = <Heading key="complete">{t('Completed')}</Heading>;
 
-class OnboardingWizardSidebar extends Component<Props> {
-  async componentDidMount() {
-    // Add a minor delay to marking tasks complete to account for the animation
-    // opening of the sidebar panel
-    await this.markCompletion(INITIAL_MARK_COMPLETE_TIMEOUT);
-    this.markTasksAsSeen();
-  }
+function OnboardingWizardSidebar({
+  organization,
+  collapsed,
+  orientation,
+  onClose,
+  projects,
+}: Props) {
+  const api = useApi();
+  const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
 
-  componentWillUnmount() {
-    window.clearTimeout(this.markCompletionTimeout);
-    window.clearTimeout(this.markCompletionSeenTimeout);
-  }
+  const markCompletionTimeout = useRef<number | undefined>();
+  const markCompletionSeenTimeout = useRef<number | undefined>();
 
-  markCompletionTimeout: number | undefined = undefined;
-  markCompletionSeenTimeout: number | undefined = undefined;
-
-  markCompletion(time: number): Promise<void> {
-    window.clearTimeout(this.markCompletionTimeout);
+  function completionTimeout(time: number): Promise<void> {
+    window.clearTimeout(markCompletionTimeout.current);
     return new Promise(resolve => {
-      this.markCompletionTimeout = window.setTimeout(resolve, time);
-    });
-  }
-  markCompletionSeen(time: number): Promise<void> {
-    window.clearTimeout(this.markCompletionSeenTimeout);
-    return new Promise(resolve => {
-      this.markCompletionSeenTimeout = window.setTimeout(resolve, time);
+      markCompletionTimeout.current = window.setTimeout(resolve, time);
     });
   }
 
-  async markTasksAsSeen() {
-    const unseenTasks = this.segmentedTasks.all
-      .filter(task => taskIsDone(task) && !task.completionSeen)
-      .map(task => task.task);
-
-    // Incrementally mark tasks as seen. This gives the card completion
-    // animations time before we move each task into the completed section.
-    for (const task of unseenTasks) {
-      await this.markCompletionSeen(COMPLETION_SEEN_TIMEOUT);
-
-      const {api, organization} = this.props;
-      updateOnboardingTask(api, organization, {
-        task,
-        completionSeen: true,
-      });
-    }
+  function seenTimeout(time: number): Promise<void> {
+    window.clearTimeout(markCompletionSeenTimeout.current);
+    return new Promise(resolve => {
+      markCompletionSeenTimeout.current = window.setTimeout(resolve, time);
+    });
   }
 
-  get segmentedTasks() {
-    const {organization, projects} = this.props;
-    const all = getMergedTasks({organization, projects}).filter(task => task.display);
+  const {allTasks, customTasks, active, upcoming, complete} = useMemo(() => {
+    const all = getMergedTasks({
+      organization,
+      projects,
+      onboardingState: onboardingState || undefined,
+    }).filter(task => task.display);
+    const tasks = all.filter(task => !task.renderCard);
+    return {
+      allTasks: all,
+      customTasks: all.filter(task => task.renderCard),
+      active: tasks.filter(findActiveTasks),
+      upcoming: tasks.filter(findUpcomingTasks),
+      complete: tasks.filter(findCompleteTasks),
+    };
+  }, [organization, projects, onboardingState]);
 
-    const active = all.filter(findActiveTasks);
-    const upcoming = all.filter(findUpcomingTasks);
-    const complete = all.filter(findCompleteTasks);
+  const markTasksAsSeen = useCallback(
+    async function () {
+      const unseenTasks = allTasks
+        .filter(task => taskIsDone(task) && !task.completionSeen)
+        .map(task => task.task);
 
-    return {active, upcoming, complete, all};
-  }
-
-  makeTaskUpdater = (status: OnboardingTask['status']) => (task: OnboardingTaskKey) => {
-    const {api, organization} = this.props;
-    updateOnboardingTask(api, organization, {task, status, completionSeen: true});
-  };
-
-  renderItem = (task: OnboardingTask) => (
-    <AnimatedTaskItem
-      task={task}
-      key={`${task.task}`}
-      onSkip={this.makeTaskUpdater('skipped')}
-      onMarkComplete={this.makeTaskUpdater('complete')}
-    />
+      // Incrementally mark tasks as seen. This gives the card completion
+      // animations time before we move each task into the completed section.
+      for (const task of unseenTasks) {
+        await seenTimeout(COMPLETION_SEEN_TIMEOUT);
+        updateOnboardingTask(api, organization, {task, completionSeen: true});
+      }
+    },
+    [api, organization, allTasks]
   );
 
-  render() {
-    const {collapsed, orientation, onClose} = this.props;
-    const {all, active, upcoming, complete} = this.segmentedTasks;
+  const markSeenOnOpen = useCallback(
+    async function () {
+      // Add a minor delay to marking tasks complete to account for the animation
+      // opening of the sidebar panel
+      await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
+      markTasksAsSeen();
+    },
+    [markTasksAsSeen]
+  );
 
-    const completeList = (
-      <CompleteList key="complete-group">
-        <AnimatePresence initial={false}>{complete.map(this.renderItem)}</AnimatePresence>
-      </CompleteList>
-    );
+  useEffect(() => {
+    markSeenOnOpen();
 
-    const items = [
-      active.length > 0 && completeNowHeading,
-      ...active.map(this.renderItem),
-      upcoming.length > 0 && upcomingTasksHeading,
-      ...upcoming.map(this.renderItem),
-      complete.length > 0 && completedTasksHeading,
-      completeList,
-    ];
+    return () => {
+      window.clearTimeout(markCompletionTimeout.current);
+      window.clearTimeout(markCompletionSeenTimeout.current);
+    };
+  }, [markSeenOnOpen]);
 
+  function makeTaskUpdater(status: OnboardingTask['status']) {
+    return (task: OnboardingTaskKey) =>
+      updateOnboardingTask(api, organization, {task, status, completionSeen: true});
+  }
+
+  function renderItem(task: OnboardingTask) {
     return (
-      <TaskSidebarPanel
-        collapsed={collapsed}
-        hidePanel={onClose}
-        orientation={orientation}
-      >
-        <TopRight src={HighlightTopRight} />
-        <ProgressHeader allTasks={all} completedTasks={complete} />
-        <TaskList>
-          <AnimatePresence initial={false}>{items}</AnimatePresence>
-        </TaskList>
-      </TaskSidebarPanel>
+      <AnimatedTaskItem
+        task={task}
+        key={`${task.task}`}
+        onSkip={makeTaskUpdater('skipped')}
+        onMarkComplete={makeTaskUpdater('complete')}
+      />
     );
   }
+
+  const completeList = (
+    <CompleteList key="complete-group">
+      <AnimatePresence initial={false}>{complete.map(renderItem)}</AnimatePresence>
+    </CompleteList>
+  );
+
+  const customizedCards = customTasks
+    .map(task =>
+      task.renderCard?.({
+        organization,
+        task,
+        onboardingState,
+        setOnboardingState,
+        projects,
+      })
+    )
+    .filter(card => !!card);
+
+  const items = [
+    customizedCards.length > 0 && customizedTasksHeading,
+    ...customizedCards,
+    active.length > 0 && completeNowHeading,
+    ...active.map(renderItem),
+    upcoming.length > 0 && upcomingTasksHeading,
+    ...upcoming.map(renderItem),
+    complete.length > 0 && completedTasksHeading,
+    completeList,
+  ];
+
+  return (
+    <TaskSidebarPanel collapsed={collapsed} hidePanel={onClose} orientation={orientation}>
+      <TopRight src={HighlightTopRight} />
+      <ProgressHeader allTasks={allTasks} completedTasks={complete} />
+      <TaskList>
+        <AnimatePresence initial={false}>{items}</AnimatePresence>
+      </TaskList>
+    </TaskSidebarPanel>
+  );
 }
+
 const TaskSidebarPanel = styled(SidebarPanel)`
   width: 450px;
 `;
@@ -241,4 +269,4 @@ const TopRight = styled('img')`
   width: 60%;
 `;
 
-export default withApi(withOrganization(withProjects(OnboardingWizardSidebar)));
+export default withOrganization(withProjects(OnboardingWizardSidebar));

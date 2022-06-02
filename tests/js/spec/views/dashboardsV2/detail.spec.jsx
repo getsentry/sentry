@@ -357,7 +357,7 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
       const card = wrapper.find('WidgetCard').first();
-      card.find('StyledPanel').simulate('mouseOver');
+      card.find('WidgetCardPanel').simulate('mouseOver');
 
       // Remove the second and third widgets
       wrapper
@@ -411,7 +411,7 @@ describe('Dashboards > Detail', function () {
       wrapper.update();
 
       const card = wrapper.find('WidgetCard').first();
-      card.find('StyledPanel').simulate('mouseOver');
+      card.find('WidgetCardPanel').simulate('mouseOver');
 
       // Edit the first widget
       wrapper
@@ -546,7 +546,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'widget-library',
           ],
           projects: [TestStubs.Project()],
         }),
@@ -751,7 +750,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'widget-library',
           ],
           projects: [TestStubs.Project()],
         }),
@@ -796,7 +794,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-basic',
             'dashboards-edit',
             'discover-query',
-            'widget-library',
           ],
           projects: [TestStubs.Project()],
         }),
@@ -831,7 +828,9 @@ describe('Dashboards > Detail', function () {
       });
 
       expect(
-        wrapper.find(`MenuItemWrap[data-test-id="duplicate-widget"]`).props().isDisabled
+        wrapper.find(`MenuItemWrap[data-test-id="duplicate-widget"]`).props()[
+          'aria-disabled'
+        ]
       ).toEqual(true);
     });
 

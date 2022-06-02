@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 type HighlightProps = {
@@ -22,22 +22,22 @@ type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof HighlightProps> &
 const HighlightComponent = ({className, children, disabled, text}: Props) => {
   // There are instances when children is not string in breadcrumbs but not caught by TS
   if (!text || disabled || typeof children !== 'string') {
-    return <React.Fragment>{children}</React.Fragment>;
+    return <Fragment>{children}</Fragment>;
   }
 
   const highlightText = text.toLowerCase();
   const idx = children.toLowerCase().indexOf(highlightText);
 
   if (idx === -1) {
-    return <React.Fragment>{children}</React.Fragment>;
+    return <Fragment>{children}</Fragment>;
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       {children.substr(0, idx)}
       <span className={className}>{children.substr(idx, highlightText.length)}</span>
       {children.substr(idx + highlightText.length)}
-    </React.Fragment>
+    </Fragment>
   );
 };
 

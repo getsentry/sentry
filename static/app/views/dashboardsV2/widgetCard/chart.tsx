@@ -1,8 +1,8 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {LegendComponentOption} from 'echarts';
+import {DataZoomComponentOption, LegendComponentOption} from 'echarts';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -18,7 +18,7 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import {getSeriesSelection, processTableResults} from 'sentry/components/charts/utils';
 import {WorldMapChart} from 'sentry/components/charts/worldMapChart';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Placeholder from 'sentry/components/placeholder';
+import Placeholder, {PlaceholderProps} from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
@@ -43,6 +43,17 @@ import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
 
+const OTHER = 'Other';
+export const SLIDER_HEIGHT = 60;
+
+export type AugmentedEChartDataZoomHandler = (
+  params: Parameters<EChartDataZoomHandler>[0] & {
+    seriesEnd: string | number;
+    seriesStart: string | number;
+  },
+  instance: Parameters<EChartDataZoomHandler>[1]
+) => void;
+
 type TableResultProps = Pick<
   WidgetQueries['state'],
   'errorMessage' | 'loading' | 'tableResults'
@@ -58,15 +69,18 @@ type WidgetCardChartProps = Pick<
   selection: PageFilters;
   theme: Theme;
   widget: Widget;
+  chartZoomOptions?: DataZoomComponentOption;
   expandNumbers?: boolean;
   isMobile?: boolean;
   legendOptions?: LegendComponentOption;
+  noPadding?: boolean;
   onLegendSelectChanged?: EChartEventHandler<{
     name: string;
     selected: Record<string, boolean>;
     type: 'legendselectchanged';
   }>;
-  onZoom?: EChartDataZoomHandler;
+  onZoom?: AugmentedEChartDataZoomHandler;
+  showSlider?: boolean;
   windowWidth?: number;
 };
 
@@ -76,7 +90,7 @@ type State = {
   containerHeight: number;
 };
 
-class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
+class WidgetCardChart extends Component<WidgetCardChartProps, State> {
   state = {containerHeight: 0};
 
   shouldComponentUpdate(nextProps: WidgetCardChartProps, nextState: State): boolean {
@@ -115,17 +129,20 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     tableResults,
   }: TableResultProps): React.ReactNode {
     const {location, widget, organization, selection} = this.props;
+    const isAlias =
+      !organization.features.includes('discover-frontend-use-events-endpoint') &&
+      widget.widgetType !== WidgetType.RELEASE;
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
-    if (typeof tableResults === 'undefined' || loading) {
+    if (typeof tableResults === 'undefined') {
       // Align height to other charts.
-      return <LoadingPlaceholder height="200px" />;
+      return <LoadingPlaceholder />;
     }
 
     return tableResults.map((result, i) => {
@@ -147,13 +164,12 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           fields={fields}
           title={tableResults.length > 1 ? result.title : ''}
           loading={loading}
+          loader={<LoadingPlaceholder />}
           metadata={result.meta}
           data={result.data}
           organization={organization}
           stickyHeaders
-          getCustomFieldRenderer={(field, meta) =>
-            getFieldRenderer(field, meta, widget.widgetType !== WidgetType.METRICS)
-          }
+          getCustomFieldRenderer={(field, meta) => getFieldRenderer(field, meta, isAlias)}
         />
       );
     });
@@ -166,9 +182,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
   }: TableResultProps): React.ReactNode {
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -178,16 +194,20 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     const {containerHeight} = this.state;
     const {organization, widget, isMobile, expandNumbers} = this.props;
+    const isAlias =
+      !organization.features.includes('discover-frontend-use-events-endpoint') &&
+      widget.widgetType !== WidgetType.RELEASE;
 
     return tableResults.map(result => {
-      const tableMeta = result.meta ?? {};
-      const fields = Object.keys(tableMeta ?? {});
+      const tableMeta = {...result.meta};
+      const fields = Object.keys(tableMeta);
 
       const field = fields[0];
 
-      // Change tableMeta for the field from integer to number so we it doesn't get shortened
-      if (!!expandNumbers && tableMeta[field] === 'integer') {
-        tableMeta[field] = 'number';
+      // Change tableMeta for the field from integer to string since we will be rendering with toLocaleString
+      const shouldExpandInteger = !!expandNumbers && tableMeta[field] === 'integer';
+      if (shouldExpandInteger) {
+        tableMeta[field] = 'string';
       }
 
       if (!field || !result.data.length) {
@@ -195,13 +215,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       }
 
       const dataRow = result.data[0];
-      const fieldRenderer = getFieldFormatter(
-        field,
-        tableMeta,
-        widget.widgetType !== WidgetType.METRICS
-      );
+      const fieldRenderer = getFieldFormatter(field, tableMeta, isAlias);
 
-      const rendered = fieldRenderer(dataRow);
+      const rendered = fieldRenderer(
+        shouldExpandInteger ? {[field]: dataRow[field].toLocaleString()} : dataRow
+      );
 
       const isModalWidget = !!!(widget.id || widget.tempId);
       if (
@@ -266,6 +284,10 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
       organization,
       onZoom,
       legendOptions,
+      expandNumbers,
+      showSlider,
+      noPadding,
+      chartZoomOptions,
     } = this.props;
 
     if (widget.displayType === 'table') {
@@ -286,9 +308,11 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
           <LoadingScreen loading={loading} />
           <BigNumberResizeWrapper
             ref={el => {
-              if (el !== null) {
+              if (el !== null && !!!expandNumbers) {
                 const {height} = el.getBoundingClientRect();
-                this.setState({containerHeight: height});
+                if (height !== this.state.containerHeight) {
+                  this.setState({containerHeight: height});
+                }
               }
             }}
           >
@@ -300,9 +324,9 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
 
     if (errorMessage) {
       return (
-        <ErrorPanel>
+        <StyledErrorPanel>
           <IconWarning color="gray500" size="lg" />
-        </ErrorPanel>
+        </StyledErrorPanel>
       );
     }
 
@@ -365,10 +389,10 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     const chartOptions = {
       autoHeightResize,
       grid: {
-        left: 4,
-        right: 0,
+        left: 0,
+        right: 4,
         top: '40px',
-        bottom: 0,
+        bottom: showSlider ? SLIDER_HEIGHT : 0,
       },
       seriesOptions: {
         showSymbol: false,
@@ -386,20 +410,28 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     };
 
     return (
-      <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
+      <ChartZoom
+        router={router}
+        period={period}
+        start={start}
+        end={end}
+        utc={utc}
+        showSlider={showSlider}
+        chartZoomOptions={chartZoomOptions}
+      >
         {zoomRenderProps => {
           if (errorMessage) {
             return (
-              <ErrorPanel>
+              <StyledErrorPanel>
                 <IconWarning color="gray500" size="lg" />
-              </ErrorPanel>
+              </StyledErrorPanel>
             );
           }
 
-          const shouldColorOther =
-            widget.displayType === 'top_n' &&
-            timeseriesResults &&
-            timeseriesResults.length > 5;
+          const otherRegex = new RegExp(`(?:.* : ${OTHER}$)|^${OTHER}$`);
+          const shouldColorOther = timeseriesResults?.some(
+            ({seriesName}) => seriesName && seriesName.match(otherRegex)
+          );
           const colors = timeseriesResults
             ? theme.charts.getColorPalette(
                 timeseriesResults.length - (shouldColorOther ? 3 : 2)
@@ -427,16 +459,26 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
               })
             : [];
 
+          const seriesStart = series[0]?.data[0]?.name;
+          const seriesEnd = series[0]?.data[series[0].data.length - 1]?.name;
           return (
             <TransitionChart loading={loading} reloading={loading}>
               <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={autoHeightResize}>
+              <ChartWrapper autoHeightResize={autoHeightResize} noPadding={noPadding}>
                 {getDynamicText({
                   value: this.chartComponent({
                     ...zoomRenderProps,
                     ...chartOptions,
                     // Override default datazoom behaviour for updating Global Selection Header
-                    ...(onZoom ? {onDataZoom: onZoom} : {}),
+                    ...(onZoom
+                      ? {
+                          onDataZoom: (evt, chartProps) =>
+                            // Need to pass seriesStart and seriesEnd to onZoom since slider zooms
+                            // callback with percentage instead of datetime values. Passing seriesStart
+                            // and seriesEnd allows calculating datetime values with percentage.
+                            onZoom({...evt, seriesStart, seriesEnd}, chartProps),
+                        }
+                      : {}),
                     legend,
                     series,
                     onLegendSelectChanged,
@@ -451,6 +493,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps, State> {
     );
   }
 }
+
+export default withTheme(WidgetCardChart);
 
 const StyledTransparentLoadingMask = styled(props => (
   <TransparentLoadingMask {...props} maskBackgroundColor="transparent" />
@@ -470,7 +514,10 @@ const LoadingScreen = ({loading}: {loading: boolean}) => {
     </StyledTransparentLoadingMask>
   );
 };
-const LoadingPlaceholder = styled(Placeholder)`
+
+const LoadingPlaceholder = styled(({className}: PlaceholderProps) => (
+  <Placeholder height="200px" className={className} />
+))`
   background-color: ${p => p.theme.surface200};
 `;
 
@@ -495,9 +542,9 @@ const BigNumber = styled('div')`
   }
 `;
 
-const ChartWrapper = styled('div')<{autoHeightResize: boolean}>`
+const ChartWrapper = styled('div')<{autoHeightResize: boolean; noPadding?: boolean}>`
   ${p => p.autoHeightResize && 'height: 100%;'}
-  padding: 0 ${space(3)} ${space(3)};
+  padding: ${p => (!!p.noPadding ? `0` : `0 ${space(3)} ${space(3)}`)};
 `;
 
 const StyledSimpleTableChart = styled(SimpleTableChart)`
@@ -508,4 +555,6 @@ const StyledSimpleTableChart = styled(SimpleTableChart)`
   box-shadow: none;
 `;
 
-export default withTheme(WidgetCardChart);
+const StyledErrorPanel = styled(ErrorPanel)`
+  padding: ${space(2)};
+`;

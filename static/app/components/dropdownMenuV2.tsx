@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -74,11 +74,12 @@ function Menu({
   ...props
 }: Props) {
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
-  const stateCollection = [...state.collection];
+  const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef(null);
   const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
+  const {separatorProps} = useSeparator({elementType: 'li'});
 
   // If this is a submenu, pressing arrow left should close it (but not the
   // root menu).
@@ -103,6 +104,8 @@ function Menu({
       shouldCloseOnBlur,
       isDismissable,
       isOpen: true,
+      shouldCloseOnInteractOutside: target =>
+        target && triggerRef.current !== target && !triggerRef.current?.contains(target),
     },
     overlayRef
   );
@@ -140,7 +143,7 @@ function Menu({
         : state.selectionManager.isSelected(`${node.key}`);
     });
     setHasFocus(isLeafSubmenu);
-  }, [state.selectionManager.selectedKeys]);
+  }, [stateCollection, state.selectionManager]);
   // Menu props from useMenu, modified to disable keyboard events if the
   // current menu does not have focus.
   const modifiedMenuProps = {
@@ -202,7 +205,6 @@ function Menu({
       const isLastNode = collection.length - 1 === i;
       const showSeparator =
         !isLastNode && (node.type === 'section' || collection[i + 1]?.type === 'section');
-      const {separatorProps} = useSeparator({elementType: 'li'});
 
       let itemToRender: React.ReactNode;
 

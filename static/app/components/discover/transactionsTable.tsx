@@ -1,8 +1,7 @@
-import * as React from 'react';
+import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -33,6 +32,7 @@ type Props = {
   location: Location;
   organization: Organization;
   tableData: TableData | TrendsDataEvents | null;
+  useAggregateAlias: boolean;
   generateLink?: Record<
     string,
     (
@@ -47,7 +47,7 @@ type Props = {
   titles?: string[];
 };
 
-class TransactionsTable extends React.PureComponent<Props> {
+class TransactionsTable extends PureComponent<Props> {
   getTitles() {
     const {eventView, titles} = this.props;
     return titles ?? eventView.getFields();
@@ -67,30 +67,28 @@ class TransactionsTable extends React.PureComponent<Props> {
       if (column.key === 'span_ops_breakdown.relative') {
         return (
           <HeadCellContainer key={index}>
-            <GuideAnchor target="span_op_relative_breakdowns">
-              <SortLink
-                align={align}
-                title={
-                  title === t('operation duration') ? (
-                    <React.Fragment>
-                      {title}
-                      <StyledIconQuestion
-                        size="xs"
-                        position="top"
-                        title={t(
-                          `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
-                        )}
-                      />
-                    </React.Fragment>
-                  ) : (
-                    title
-                  )
-                }
-                direction={undefined}
-                canSort={false}
-                generateSortLink={generateSortLink}
-              />
-            </GuideAnchor>
+            <SortLink
+              align={align}
+              title={
+                title === t('operation duration') ? (
+                  <Fragment>
+                    {title}
+                    <StyledIconQuestion
+                      size="xs"
+                      position="top"
+                      title={t(
+                        `Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.`
+                      )}
+                    />
+                  </Fragment>
+                ) : (
+                  title
+                )
+              }
+              direction={undefined}
+              canSort={false}
+              generateSortLink={generateSortLink}
+            />
           </HeadCellContainer>
         );
       }
@@ -117,8 +115,15 @@ class TransactionsTable extends React.PureComponent<Props> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ): React.ReactNode[] {
-    const {eventView, organization, location, generateLink, handleCellAction, titles} =
-      this.props;
+    const {
+      eventView,
+      organization,
+      location,
+      generateLink,
+      handleCellAction,
+      titles,
+      useAggregateAlias,
+    } = this.props;
     const fields = eventView.getFields();
 
     if (titles && titles.length) {
@@ -129,10 +134,10 @@ class TransactionsTable extends React.PureComponent<Props> {
     const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
       // TODO add a better abstraction for this in fieldRenderers.
-      const fieldName = getAggregateAlias(field);
+      const fieldName = useAggregateAlias ? getAggregateAlias(field) : field;
       const fieldType = tableMeta[fieldName];
 
-      const fieldRenderer = getFieldRenderer(field, tableMeta);
+      const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
       let rendered = fieldRenderer(row, {organization, location});
 
       const target = generateLink?.[field]?.(organization, row, location.query);

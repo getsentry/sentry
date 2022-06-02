@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act} from 'sentry-test/reactTestingLibrary';
 
-import ModalActions from 'sentry/actions/modalActions';
+import ModalStore from 'sentry/stores/modalStore';
 import TeamStore from 'sentry/stores/teamStore';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -26,7 +26,7 @@ const WrappedComponent = ({data}) => {
           eventView={eventView}
           projects={data.projects}
           selection={eventView.getPageFilters()}
-          shouldShowOnboarding={false}
+          onboardingProject={undefined}
           handleSearch={() => {}}
           handleTrendsClick={() => {}}
           setError={() => {}}
@@ -112,7 +112,7 @@ describe('Performance > Landing > Index', function () {
       features: ['performance-use-metrics'],
     });
 
-    const spy = jest.spyOn(ModalActions, 'openModal');
+    const spy = jest.spyOn(ModalStore, 'openModal');
 
     wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
     await tick();

@@ -33,9 +33,12 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "123 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "123 events in the last 10 minutes"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -77,9 +80,12 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule.name
         )  # Pulls from trigger, not incident
         assert data["status"] == "Critical"  # Should pull from the action/trigger.
-        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "4 events in the last 10 minutes"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -89,9 +95,12 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         data = incident_attachment_info(incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "4 events in the last 10 minutes"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
@@ -101,16 +110,22 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         data = incident_attachment_info(incident, IncidentStatus.CLOSED)
         assert data["title"] == f"Resolved: {alert_rule.name}"
         assert data["status"] == "Resolved"
-        assert data["text"] == "4 events in the last 10 minutes\nFilter: level:error"
+        assert data["text"] == "4 events in the last 10 minutes"
         assert data["ts"] == date_started
-        assert data["title_link"] == "http://testserver/organizations/baz/alerts/1/"
+        assert (
+            data["title_link"]
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}"
+        )
         assert (
             data["logo_url"]
             == "http://testserver/_static/{version}/sentry/images/sentry-email-avatar.png"
         )
 
 
-@freeze_time("2021-10-18 13:00:00+00:00")
+MOCK_NOW = timezone.now().replace(hour=13, minute=0, second=0, microsecond=0)
+
+
+@freeze_time(MOCK_NOW)
 class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -215,7 +230,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, SnubaTestCase):
         assert data["text"] == "No sessions crash free rate in the last 60 minutes"
 
 
-@freeze_time("2021-10-18 13:00:00+00:00")
+@freeze_time(MOCK_NOW)
 class IncidentAttachmentInfoTestForMetricsCrashRateAlerts(
     IncidentAttachmentInfoTestForCrashRateAlerts, SessionMetricsTestCase
 ):

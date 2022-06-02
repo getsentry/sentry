@@ -17,11 +17,11 @@ const FEATURES = ['performance-view'];
 
 function WrappedComponent({organization, isMEPEnabled = false, location}) {
   return (
-    <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
-      <OrganizationContext.Provider value={organization}>
+    <OrganizationContext.Provider value={organization}>
+      <MEPSettingProvider _isMEPEnabled={isMEPEnabled}>
         <PerformanceContent organization={organization} location={location} />
-      </OrganizationContext.Provider>
-    </MEPSettingProvider>
+      </MEPSettingProvider>
+    </OrganizationContext.Provider>
   );
 }
 

@@ -267,30 +267,19 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         return [self.session_status]
 
     def get_granularity(self) -> int:
-        """
-        Both time_window and granularity are in seconds
-        Time windows <= 1h -> Granularity 10s
-        Time windows > 1h & <= 4h -> Granularity 60s
-        Time windows > 4h and <= 24h -> Granularity 1 hour
-        Time windows > 24h -> Granularity 1 day
-        """
-        # ToDo(ahmed): Uncomment this logic once we are through with the comparisons
-        # if self.time_window <= 3600:
-        #     granularity = 10
-        # elif self.time_window <= 4 * 3600:
-        #     granularity = 60
-        # elif 4 * 3600 < self.time_window <= 24 * 3600:
-        #     granularity = 3600
-        # else:
-        #     granularity = 24 * 3600
-
-        # ToDo(ahmed): Hack this out in favor of previous commented logic
-        # Adding this to enable sessions vs metrics crash rate alert comparisons as it only
-        # makes sense to compare against sessions crash rate alerts with these granularities
+        # Both time_window and granularity are in seconds
+        # Time windows <= 1h -> Granularity 10s
+        # Time windows > 1h & <= 4h -> Granularity 60s
+        # Time windows > 4h and <= 24h -> Granularity 1 hour
+        # Time windows > 24h -> Granularity 1 day
         if self.time_window <= 3600:
+            granularity = 10
+        elif self.time_window <= 4 * 3600:
             granularity = 60
-        else:
+        elif 4 * 3600 < self.time_window <= 24 * 3600:
             granularity = 3600
+        else:
+            granularity = 24 * 3600
         return granularity
 
     def build_snuba_filter(

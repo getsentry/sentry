@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,7 +12,7 @@ import {IconDelete, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Integration, IntegrationProvider, ObjectStatus, Organization} from 'sentry/types';
-import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 
 import AddIntegrationButton from './addIntegrationButton';
 import IntegrationItem from './integrationItem';
@@ -24,11 +24,10 @@ type Props = {
   organization: Organization;
   provider: IntegrationProvider;
   trackIntegrationAnalytics: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
-  className?: string;
   requiresUpgrade?: boolean;
 };
 
-export default class InstalledIntegration extends React.Component<Props> {
+export default class InstalledIntegration extends Component<Props> {
   handleUninstallClick = () => {
     this.props.trackIntegrationAnalytics('integrations.uninstall_clicked');
   };
@@ -67,12 +66,12 @@ export default class InstalledIntegration extends React.Component<Props> {
     const {body, actionText} = this.getRemovalBodyAndText(integration.provider.aspects);
 
     const message = (
-      <React.Fragment>
+      <Fragment>
         <Alert type="error" showIcon>
           {t('Deleting this integration has consequences!')}
         </Alert>
         {body}
-      </React.Fragment>
+      </Fragment>
     );
     return {
       message,
@@ -85,12 +84,12 @@ export default class InstalledIntegration extends React.Component<Props> {
     const {integration} = this.props;
     const {body, actionText} = integration.provider.aspects.disable_dialog || {};
     const message = (
-      <React.Fragment>
+      <Fragment>
         <Alert type="error" showIcon>
           {t('This integration cannot be removed in Sentry')}
         </Alert>
         {body}
-      </React.Fragment>
+      </Fragment>
     );
 
     return {
@@ -101,7 +100,7 @@ export default class InstalledIntegration extends React.Component<Props> {
   }
 
   render() {
-    const {className, integration, organization, provider, requiresUpgrade} = this.props;
+    const {integration, organization, provider, requiresUpgrade} = this.props;
 
     const removeConfirmProps =
       this.integrationStatus === 'active' && integration.provider.canDisable
@@ -113,7 +112,7 @@ export default class InstalledIntegration extends React.Component<Props> {
         {({hasAccess}) => {
           const disableAction = !(hasAccess && this.integrationStatus === 'active');
           return (
-            <IntegrationFlex key={integration.id} className={className}>
+            <Fragment>
               <IntegrationItemBox>
                 <IntegrationItem integration={integration} />
               </IntegrationItemBox>
@@ -182,7 +181,7 @@ export default class InstalledIntegration extends React.Component<Props> {
                 // Let the hook handle the alert for disabled org integrations
                 hideTooltip={integration.organizationIntegrationStatus === 'disabled'}
               />
-            </IntegrationFlex>
+            </Fragment>
           );
         }}
       </Access>
@@ -192,11 +191,6 @@ export default class InstalledIntegration extends React.Component<Props> {
 
 const StyledButton = styled(Button)`
   color: ${p => p.theme.gray300};
-`;
-
-const IntegrationFlex = styled('div')`
-  display: flex;
-  align-items: center;
 `;
 
 const IntegrationItemBox = styled('div')`

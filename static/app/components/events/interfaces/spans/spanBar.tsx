@@ -1,6 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
-import * as React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'sentry/components/count';
@@ -58,7 +58,6 @@ import {
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
 } from './constants';
 import * as DividerHandlerManager from './dividerHandlerManager';
-import * as ScrollbarManager from './scrollbarManager';
 import SpanBarCursorGuide from './spanBarCursorGuide';
 import SpanDetail from './spanDetail';
 import {MeasurementMarker} from './styles';
@@ -101,20 +100,26 @@ const INTERSECTION_THRESHOLDS: Array<number> = [
   0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99, 1.0,
 ];
 
-const MARGIN_LEFT = 0;
+export const MARGIN_LEFT = 0;
 
 type SpanBarProps = {
   continuingTreeDepths: Array<TreeDepthType>;
   event: Readonly<EventTransaction>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
+  isEmbeddedTransactionTimeAdjusted: boolean;
+  markSpanInView: (spanId: string, treeDepth: number) => void;
+  markSpanOutOfView: (spanId: string) => void;
   numOfSpanChildren: number;
   numOfSpans: number;
+  onWheel: (deltaX: number) => void;
   organization: Organization;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
   spanNumber: number;
+  storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
     | ((props: {eventSlug: string; orgSlug: string}) => void)
     | undefined;
@@ -135,7 +140,7 @@ type SpanBarState = {
   showDetail: boolean;
 };
 
-class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
+class SpanBar extends Component<SpanBarProps, SpanBarState> {
   state: SpanBarState = {
     showDetail: false,
   };
@@ -143,19 +148,56 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   componentDidMount() {
     this._mounted = true;
     if (this.spanRowDOMRef.current) {
+      this.props.storeSpanBar(this);
       this.connectObservers();
+    }
+
+    if (this.spanTitleRef.current) {
+      this.spanTitleRef.current.addEventListener('wheel', this.handleWheel, {
+        passive: false,
+      });
     }
   }
 
   componentWillUnmount() {
     this._mounted = false;
     this.disconnectObservers();
+
+    if (this.spanTitleRef.current) {
+      this.spanTitleRef.current.removeEventListener('wheel', this.handleWheel);
+    }
+
+    const {span} = this.props;
+    if ('type' in span) {
+      return;
+    }
+
+    this.props.markSpanOutOfView(span.span_id);
   }
 
-  spanRowDOMRef = React.createRef<HTMLDivElement>();
+  spanRowDOMRef = createRef<HTMLDivElement>();
+  spanTitleRef = createRef<HTMLDivElement>();
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
+
+  handleWheel = (event: WheelEvent) => {
+    // https://stackoverflow.com/q/57358640
+    // https://github.com/facebook/react/issues/14856
+    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+      return;
+    }
+
+    const {onWheel} = this.props;
+    onWheel(event.deltaX);
+  };
 
   toggleDisplayDetail = () => {
     this.setState(state => ({
@@ -169,7 +211,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return;
     }
     const boundingRect = element.getBoundingClientRect();
-    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
+    // The extra 1 pixel is necessary so that the span is recognized as in view by the IntersectionObserver
+    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT - 1;
     this.setState({showDetail: true}, () => window.scrollTo(0, offset));
   };
 
@@ -188,7 +231,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       <AnchorLinkManager.Consumer>
         {({registerScrollFn, scrollToHash}) => {
           if (!isGapSpan(span)) {
-            registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView);
+            registerScrollFn(spanTargetHash(span.span_id), this.scrollIntoView, false);
           }
 
           if (!this.state.showDetail || !isVisible) {
@@ -284,11 +327,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       return null;
     }
 
-    const measurements = getMeasurements(event);
+    const measurements = getMeasurements(event, generateBounds);
 
     return (
-      <React.Fragment>
-        {Array.from(measurements).map(([timestamp, verticalMark]) => {
+      <Fragment>
+        {Array.from(measurements.values()).map(verticalMark => {
+          const mark = Object.values(verticalMark.marks)[0];
+          const {timestamp} = mark;
           const bounds = getMeasurementBounds(timestamp, generateBounds);
 
           const shouldDisplay = defined(bounds.left) && defined(bounds.width);
@@ -307,7 +352,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             />
           );
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -424,11 +469,8 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  renderTitle(
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps,
-    errors: TraceError[] | null
-  ) {
-    const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
+  renderTitle(errors: TraceError[] | null) {
+    const {generateContentSpanBarRef} = this.props;
     const {
       span,
       treeDepth,
@@ -539,7 +581,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
      */
 
     this.intersectionObserver = new IntersectionObserver(
-      entries => {
+      entries =>
         entries.forEach(entry => {
           if (!this._mounted) {
             return;
@@ -615,6 +657,21 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             relativeToMinimap.top > 0 && relativeToMinimap.bottom > 0;
 
           if (rectBelowMinimap) {
+            const {span, treeDepth, organization} = this.props;
+            if ('type' in span) {
+              return;
+            }
+
+            // TODO: Remove this check when this feature is GA'd
+            if (organization.features.includes('performance-span-tree-autoscroll')) {
+              // If isIntersecting is false, this means the span is out of view below the viewport
+              if (!entry.isIntersecting) {
+                this.props.markSpanOutOfView(span.span_id);
+              } else {
+                this.props.markSpanInView(span.span_id, treeDepth);
+              }
+            }
+
             // if the first span is below the minimap, we scroll the minimap
             // to the top. this addresses spurious scrolling to the top of the page
             if (spanNumber <= 1) {
@@ -627,6 +684,16 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           const inAndAboveMinimap = relativeToMinimap.bottom <= 0;
 
           if (inAndAboveMinimap) {
+            const {span, organization} = this.props;
+            if ('type' in span) {
+              return;
+            }
+
+            // TODO: Remove this check when this feature is GA'd
+            if (organization.features.includes('performance-span-tree-autoscroll')) {
+              this.props.markSpanOutOfView(span.span_id);
+            }
+
             return;
           }
 
@@ -654,8 +721,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           }
 
           minimapSlider.style.top = `-${panYPixels}px`;
-        });
-      },
+        }),
       {
         threshold: INTERSECTION_THRESHOLDS,
         rootMargin: `-${MINIMAP_CONTAINER_HEIGHT * this.zoomLevel}px 0px 0px 0px`,
@@ -806,7 +872,19 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return null;
   }
 
-  renderWarningText({warningText}: {warningText?: string} = {}) {
+  renderWarningText() {
+    let warningText = this.getBounds().warning;
+
+    if (this.props.isEmbeddedTransactionTimeAdjusted) {
+      const embeddedWarningText = t(
+        'All child span timestamps have been adjusted to account for mismatched client and server clocks.'
+      );
+
+      warningText = warningText
+        ? `${warningText}. ${embeddedWarningText}`
+        : embeddedWarningText;
+    }
+
     if (!warningText) {
       return null;
     }
@@ -819,14 +897,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }
 
   renderHeader({
-    scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
     errors,
     transactions,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     errors: TraceError[] | null;
-    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
     transactions: QuickTraceEvent[] | null;
   }) {
     const {span, spanBarColor, spanBarHatch, spanNumber} = this.props;
@@ -851,8 +927,9 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           onClick={() => {
             this.toggleDisplayDetail();
           }}
+          ref={this.spanTitleRef}
         >
-          {this.renderTitle(scrollbarManagerChildrenProps, errors)}
+          {this.renderTitle(errors)}
         </RowCell>
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
@@ -885,7 +962,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                 spanBarHatch={!!spanBarHatch}
               >
                 {durationString}
-                {this.renderWarningText({warningText: bounds.warning})}
+                {this.renderWarningText()}
               </DurationPill>
             </RowRectangle>
           )}
@@ -947,7 +1024,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const {isSpanVisibleInView} = bounds;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Row
           ref={this.spanRowDOMRef}
           visible={isSpanVisibleInView}
@@ -959,35 +1036,31 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               const errors = this.getRelatedErrors(quickTrace);
               const transactions = this.getChildTransactions(quickTrace);
               return (
-                <React.Fragment>
-                  <ScrollbarManager.Consumer>
-                    {scrollbarManagerChildrenProps => (
-                      <DividerHandlerManager.Consumer>
-                        {(
-                          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                        ) =>
-                          this.renderHeader({
-                            dividerHandlerChildrenProps,
-                            scrollbarManagerChildrenProps,
-                            errors,
-                            transactions,
-                          })
-                        }
-                      </DividerHandlerManager.Consumer>
-                    )}
-                  </ScrollbarManager.Consumer>
+                <Fragment>
+                  <DividerHandlerManager.Consumer>
+                    {(
+                      dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                    ) =>
+                      this.renderHeader({
+                        dividerHandlerChildrenProps,
+                        errors,
+                        transactions,
+                      })
+                    }
+                  </DividerHandlerManager.Consumer>
+
                   {this.renderDetail({
                     isVisible: isSpanVisibleInView,
                     transactions,
                     errors,
                   })}
-                </React.Fragment>
+                </Fragment>
               );
             }}
           </QuickTraceContext.Consumer>
         </Row>
         {this.renderEmbeddedChildrenState()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

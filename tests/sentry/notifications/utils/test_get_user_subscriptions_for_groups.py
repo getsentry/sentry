@@ -51,25 +51,19 @@ class GetUserSubscriptionsForGroupsTestCase(TestCase):
             == {}
         )
 
-        assert (
-            get_user_subscriptions_for_groups(
-                groups_by_project=groups_by_project,
-                notification_settings_by_scope={},
-                subscriptions_by_group_id=subscriptions_by_group_id,
-                user=self.user,
-            )
-            == {self.group.id: (False, True, self.group_subscription)}
-        )
+        assert get_user_subscriptions_for_groups(
+            groups_by_project=groups_by_project,
+            notification_settings_by_scope={},
+            subscriptions_by_group_id=subscriptions_by_group_id,
+            user=self.user,
+        ) == {self.group.id: (False, True, self.group_subscription)}
 
-        assert (
-            get_user_subscriptions_for_groups(
-                groups_by_project=groups_by_project,
-                notification_settings_by_scope=notification_settings_by_scope,
-                subscriptions_by_group_id={},
-                user=self.user,
-            )
-            == {self.group.id: (True, False, None)}
-        )
+        assert get_user_subscriptions_for_groups(
+            groups_by_project=groups_by_project,
+            notification_settings_by_scope=notification_settings_by_scope,
+            subscriptions_by_group_id={},
+            user=self.user,
+        ) == {self.group.id: (True, False, None)}
 
     def test_get_user_subscriptions_for_groups(self):
         groups_by_project = {self.project: {self.group}}
@@ -88,12 +82,9 @@ class GetUserSubscriptionsForGroupsTestCase(TestCase):
             },
         }
         subscriptions_by_group_id = {self.group.id: self.group_subscription}
-        assert (
-            get_user_subscriptions_for_groups(
-                groups_by_project,
-                notification_settings_by_scope,
-                subscriptions_by_group_id,
-                user=self.user,
-            )
-            == {self.group.id: (False, True, self.group_subscription)}
-        )
+        assert get_user_subscriptions_for_groups(
+            groups_by_project,
+            notification_settings_by_scope,
+            subscriptions_by_group_id,
+            user=self.user,
+        ) == {self.group.id: (False, True, self.group_subscription)}

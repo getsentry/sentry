@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import responses
 
-from sentry.utils.compat import zip
-
 __all__ = (
     "TestCase",
     "TransactionTestCase",
@@ -61,6 +59,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
+from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
@@ -103,7 +102,6 @@ from sentry.models import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
-from sentry.rules import EventState
 from sentry.search.events.constants import (
     METRIC_FALSE_TAG_VALUE,
     METRIC_MISERABLE_TAG_KEY,
@@ -113,7 +111,6 @@ from sentry.search.events.constants import (
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.indexer.postgres import PGStringIndexer
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
@@ -505,13 +502,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
 
         return getattr(self.client, method)(url, format="json", data=data, **headers)
 
-    def get_valid_response(self, *args, **params):
-        """Deprecated. Calls `get_response` (see above) and asserts a specific status code."""
-        status_code = params.pop("status_code", 200)
-        resp = self.get_response(*args, **params)
-        assert resp.status_code == status_code, (resp.status_code, resp.content)
-        return resp
-
     def get_success_response(self, *args, **params):
         """
         Call `get_response` (see above) and assert the response's status code.
@@ -526,11 +516,23 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         if status_code and status_code >= 400:
             raise Exception("status_code must be < 400")
 
-        response = self.get_response(*args, **params)
+        method = params.pop("method", self.method).lower()
+
+        response = self.get_response(*args, method=method, **params)
 
         if status_code:
             assert_status_code(response, status_code)
+        elif method == "get":
+            assert_status_code(response, status.HTTP_200_OK)
+        # TODO(mgaeta): Add the other methods.
+        # elif method == "post":
+        #     assert_status_code(response, status.HTTP_201_CREATED)
+        elif method == "put":
+            assert_status_code(response, status.HTTP_200_OK)
+        elif method == "delete":
+            assert_status_code(response, status.HTTP_204_NO_CONTENT)
         else:
+            # TODO(mgaeta): Add other methods.
             assert_status_code(response, 200, 300)
 
         return response
@@ -645,6 +647,8 @@ class RuleTestCase(TestCase):
         return self.rule_cls(**kwargs)
 
     def get_state(self, **kwargs):
+        from sentry.rules import EventState
+
         kwargs.setdefault("is_new", True)
         kwargs.setdefault("is_regression", True)
         kwargs.setdefault("is_new_group_environment", True)
@@ -677,6 +681,7 @@ class PermissionTestCase(TestCase):
         self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
+        return resp
 
     def assert_cannot_access(self, user, path, method="GET", **kwargs):
         self.login_as(user, superuser=user.is_superuser)
@@ -739,7 +744,7 @@ class PermissionTestCase(TestCase):
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
 
-        self.assert_can_access(user, path, **kwargs)
+        return self.assert_can_access(user, path, **kwargs)
 
     def assert_role_cannot_access(self, path, role, **kwargs):
         user = self.create_user(is_superuser=False)
@@ -1111,24 +1116,31 @@ class SessionMetricsTestCase(SnubaTestCase):
                     session["duration"],
                 )
 
+        # Also extract user for non-init healthy sessions
+        # (see # https://github.com/getsentry/relay/pull/1275)
+        if session["seq"] > 0 and status in ("ok", "exited") and not user_is_nil:
+            self._push_metric(session, "set", SessionMRI.USER, {"session.status": "ok"}, user)
+
     def bulk_store_sessions(self, sessions):
         for session in sessions:
             self.store_session(session)
 
     @classmethod
     def _push_metric(cls, session, type, key: SessionMRI, tags, value):
+        org_id = session["org_id"]
+
         def metric_id(key: SessionMRI):
-            res = indexer.record(1, key.value)
+            res = indexer.record(org_id, key.value)
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
         def tag_value(name):
-            res = indexer.record(1, name)
+            res = indexer.record(org_id, name)
             assert res is not None, name
             return res
 
@@ -1186,6 +1198,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         "measurements.fcp": "metrics_distributions",
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
+        "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
     METRIC_STRINGS = []
@@ -1211,7 +1224,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        PGStringIndexer().bulk_record(org_strings=org_strings)
+        indexer.bulk_record(org_strings=org_strings)
 
     def store_metric(
         self,
@@ -1223,11 +1236,13 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
+        org_id = self.organization.id
+
         if tags is None:
             tags = {}
         else:
             tags = {
-                indexer.resolve(self.organization.id, key): indexer.resolve(
+                indexer.record(self.organization.id, key): indexer.record(
                     self.organization.id, value
                 )
                 for key, value in tags.items()
@@ -1247,9 +1262,9 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self._send_buckets(
             [
                 {
-                    "org_id": self.organization.id,
+                    "org_id": org_id,
                     "project_id": project,
-                    "metric_id": indexer.resolve(self.organization.id, internal_metric),
+                    "metric_id": indexer.resolve(org_id, internal_metric),
                     "timestamp": metric_timestamp,
                     "tags": tags,
                     "type": self.TYPE_MAP[entity],
@@ -1518,9 +1533,12 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.login_as(self.user)
 
 
-class TestMigrations(TestCase):
+class TestMigrations(TransactionTestCase):
     """
     From https://www.caktusgroup.com/blog/2016/02/02/writing-unit-tests-django-migrations/
+
+    Note that when running these tests locally you will need to set the `MIGRATIONS_TEST_MIGRATE=1`
+    environmental variable for these to pass.
     """
 
     @property
@@ -1531,6 +1549,7 @@ class TestMigrations(TestCase):
     migrate_to = None
 
     def setUp(self):
+        super().setUp()
         assert (
             self.migrate_from and self.migrate_to
         ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
@@ -1538,7 +1557,15 @@ class TestMigrations(TestCase):
         )
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
+
         executor = MigrationExecutor(connection)
+        matching_migrations = [m for m in executor.loader.applied_migrations if m[0] == self.app]
+        if not matching_migrations:
+            raise AssertionError(
+                "no migrations detected!\n\n"
+                "try running this test with `MIGRATIONS_TEST_MIGRATE=1 pytest ...`"
+            )
+        self.current_migration = [max(matching_migrations)]
         old_apps = executor.loader.project_state(self.migrate_from).apps
 
         # Reverse to the original migration
@@ -1552,6 +1579,12 @@ class TestMigrations(TestCase):
         executor.migrate(self.migrate_to)
 
         self.apps = executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        super().tearDown()
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()  # reload.
+        executor.migrate(self.current_migration)
 
     def setup_before_migration(self, apps):
         pass

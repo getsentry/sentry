@@ -17,6 +17,7 @@ interface Props {
   organization: Organization;
   widgetType: WidgetType;
   errors?: Record<string, string>[];
+  filterAggregateParameters?: (option: FieldValueOption) => boolean;
   filterPrimaryOptions?: (option: FieldValueOption) => boolean;
   noFieldsMessage?: string;
 }
@@ -29,6 +30,7 @@ export function ColumnFields({
   organization,
   errors,
   onChange,
+  filterAggregateParameters,
   filterPrimaryOptions,
   noFieldsMessage,
 }: Props) {
@@ -49,6 +51,7 @@ export function ColumnFields({
           showAliasField={organization.features.includes(
             'new-widget-builder-experience-design'
           )}
+          filterAggregateParameters={filterAggregateParameters}
           filterPrimaryOptions={filterPrimaryOptions}
           noFieldsMessage={noFieldsMessage}
         />

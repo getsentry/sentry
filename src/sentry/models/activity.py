@@ -22,21 +22,24 @@ if TYPE_CHECKING:
 
 class ActivityManager(BaseManager):
     def get_activities_for_group(self, group: "Group", num: int) -> Sequence["Group"]:
-        activity_items = set()
-        activity = []
+        activities = []
         activity_qs = self.filter(group=group).order_by("-datetime").select_related("user")
+
+        prev_sig = None
+        sig = None
         # we select excess so we can filter dupes
         for item in activity_qs[: num * 2]:
+            prev_sig = sig
             sig = (item.type, item.ident, item.user_id)
-            # TODO: we could just generate a signature (hash(text)) for notes
-            # so there's no special casing
-            if item.type == ActivityType.NOTE.value:
-                activity.append(item)
-            elif sig not in activity_items:
-                activity_items.add(sig)
-                activity.append(item)
 
-        activity.append(
+            if item.type == ActivityType.NOTE.value:
+                activities.append(item)
+                continue
+
+            if sig != prev_sig:
+                activities.append(item)
+
+        activities.append(
             Activity(
                 id=0,
                 project=group.project,
@@ -46,7 +49,7 @@ class ActivityManager(BaseManager):
             )
         )
 
-        return activity[:num]
+        return activities[:num]
 
     def create_group_activity(
         self,

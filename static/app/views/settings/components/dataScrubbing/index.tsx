@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -39,10 +39,7 @@ type State = {
   relayPiiConfig?: string;
 };
 
-class DataScrubbing<T extends ProjectId = undefined> extends React.Component<
-  Props<T>,
-  State
-> {
+class DataScrubbing<T extends ProjectId = undefined> extends Component<Props<T>, State> {
   state: State = {
     rules: [],
     savedRules: [],

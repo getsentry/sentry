@@ -14,13 +14,13 @@ export const unassignedValue = -1;
  */
 export const experimentList = [
   {
-    key: 'TargetedOnboardingWelcomePageExperimentV2',
+    key: 'TargetedOnboardingMobileRedirectExperiment',
     type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
+    parameter: 'scenario',
+    assignments: ['none', 'email-cta', 'hide'],
   },
   {
-    key: 'TargetedOnboardingMultiSelectExperiment',
+    key: 'TargetedOnboardingIntegrationSelectExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],

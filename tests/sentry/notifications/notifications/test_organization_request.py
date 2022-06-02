@@ -14,23 +14,22 @@ class DummyRoleBasedRecipientStrategy(RoleBasedRecipientStrategy):
 
 
 class DummyRequestNotification(OrganizationRequestNotification):
+    metrics_key = "dummy"
+    template_path = ""
     RoleBasedRecipientStrategyClass = DummyRoleBasedRecipientStrategy
 
 
 class GetParticipantsTest(TestCase):
     def setUp(self):
-        self.organization = self.create_organization()
-        self.user1 = self.create_user()
         self.user2 = self.create_user()
-        self.member1 = self.create_member(user=self.user1, organization=self.organization)
-        self.member2 = self.create_member(user=self.user2, organization=self.organization)
+        self.create_member(user=self.user2, organization=self.organization)
 
     def test_default_to_slack(self):
         notification = DummyRequestNotification(self.organization, self.user)
 
         assert notification.get_participants() == {
-            ExternalProviders.EMAIL: {self.user1, self.user2},
-            ExternalProviders.SLACK: {self.user1, self.user2},
+            ExternalProviders.EMAIL: {self.user, self.user2},
+            ExternalProviders.SLACK: {self.user, self.user2},
         }
 
     def test_turn_off_settings(self):
@@ -38,7 +37,7 @@ class GetParticipantsTest(TestCase):
             ExternalProviders.SLACK,
             NotificationSettingTypes.APPROVAL,
             NotificationSettingOptionValues.ALWAYS,
-            user=self.user1,
+            user=self.user,
         )
 
         NotificationSetting.objects.update_settings(
@@ -51,6 +50,6 @@ class GetParticipantsTest(TestCase):
         notification = DummyRequestNotification(self.organization, self.user)
 
         assert notification.get_participants() == {
-            ExternalProviders.EMAIL: {self.user1, self.user2},
-            ExternalProviders.SLACK: {self.user1, self.user2},
+            ExternalProviders.EMAIL: {self.user, self.user2},
+            ExternalProviders.SLACK: {self.user, self.user2},
         }

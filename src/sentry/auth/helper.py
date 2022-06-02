@@ -18,7 +18,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
@@ -31,7 +31,6 @@ from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
     Organization,
@@ -82,9 +81,16 @@ class AuthHelperSessionStore(PipelineSessionStore):
         super().mark_session()
         self.request.session.modified = True
 
+    def is_valid(self):
+        return super().is_valid() and self.flow in (
+            AuthHelper.FLOW_LOGIN,
+            AuthHelper.FLOW_SETUP_PROVIDER,
+        )
+
 
 @dataclass
 class AuthIdentityHandler:
+    # SSO auth handler
 
     auth_provider: Optional[AuthProvider]
     provider: Provider
@@ -118,6 +124,16 @@ class AuthIdentityHandler:
         pass
 
     def _login(self, user: Any) -> None:
+        metrics.incr(
+            "sso.login_attempt",
+            tags={
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": user.id,
+            },
+            sample_rate=1.0,
+            skip_internal=False,
+        )
         user_was_logged_in = auth.login(
             self.request,
             user,
@@ -126,6 +142,17 @@ class AuthIdentityHandler:
         )
         if not user_was_logged_in:
             raise self._NotCompletedSecurityChecks()
+
+        metrics.incr(
+            "sso.login_success",
+            tags={
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": user.id,
+            },
+            sample_rate=1.0,
+            skip_internal=False,
+        )
 
     @staticmethod
     def _set_linked_flag(member: OrganizationMember) -> None:
@@ -169,16 +196,6 @@ class AuthIdentityHandler:
             return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         state.clear()
-        metrics.incr(
-            "sso.login-success",
-            tags={
-                "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": user.id,
-            },
-            skip_internal=False,
-            sample_rate=1.0,
-        )
 
         if not is_active_superuser(self.request):
             # set activeorg to ensure correct redirect upon logging in
@@ -230,7 +247,7 @@ class AuthIdentityHandler:
             ip_address=self.request.META["REMOTE_ADDR"],
             target_object=om.id,
             target_user=om.user,
-            event=AuditLogEntryEvent.MEMBER_ADD,
+            event=audit_log.get_event_id("MEMBER_ADD"),
             data=om.get_audit_log_data(),
         )
 
@@ -308,7 +325,7 @@ class AuthIdentityHandler:
                 actor=self.user,
                 ip_address=self.request.META["REMOTE_ADDR"],
                 target_object=auth_identity.id,
-                event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+                event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
                 data=auth_identity.get_audit_log_data(),
             )
 
@@ -794,7 +811,7 @@ class AuthHelper(Pipeline):
             actor=request.user,
             ip_address=request.META["REMOTE_ADDR"],
             target_object=self.provider_model.id,
-            event=AuditLogEntryEvent.SSO_ENABLE,
+            event=audit_log.get_event_id("SSO_ENABLE"),
             data=self.provider_model.get_audit_log_data(),
         )
 
@@ -821,17 +838,32 @@ class AuthHelper(Pipeline):
                 "sentry-organization-auth-settings", args=[self.organization.slug]
             )
 
-        metrics.incr(
-            "sso.error",
-            tags={
-                "flow": self.state.flow,
-                "provider": self.provider.key,
-                "organization_id": self.organization.id,
-                "user_id": self.request.user.id,
-            },
-            skip_internal=False,
-            sample_rate=1.0,
-        )
+        if redirect_uri == "/":
+            metrics.incr(
+                "sso.error",
+                tags={
+                    "flow": self.state.flow,
+                    "provider": self.provider.key,
+                    "organization_id": self.organization.id,
+                    "user_id": self.request.user.id,
+                },
+                skip_internal=False,
+                sample_rate=1.0,
+            )
+        else:
+            metrics.incr(
+                "sso.exit",
+                tags={
+                    "flow": self.state.flow,
+                    "provider": self.provider.key,
+                    "organization_id": self.organization.id,
+                    "user_id": self.request.user.id,
+                },
+                skip_internal=False,
+                sample_rate=1.0,
+            )
+
+        # NOTE: Does NOT necessarily indicate a login _failure_
         logger.warning(
             "sso.login-pipeline.error",
             extra={
@@ -862,6 +894,6 @@ class AuthHelper(Pipeline):
             request=self.request,
             organization=self.organization,
             target_object=self.organization.id,
-            event=AuditLogEntryEvent.ORG_EDIT,
+            event=audit_log.get_event_id("ORG_EDIT"),
             data={"require_2fa": "to False when enabling SSO"},
         )

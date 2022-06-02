@@ -10,6 +10,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Tooltip from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
@@ -113,8 +114,16 @@ function EventOrGroupHeader({
             }`,
             query: {
               query,
-              ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}), // This adds sort to the query if one was selected from the issues list page
-              ...(location.query.project !== undefined ? {} : {_allp: 1}), // This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
+              // This adds sort to the query if one was selected from the
+              // issues list page
+              ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}),
+              // This appends _allp to the URL parameters if they have no
+              // project selected ("all" projects included in results). This is
+              // so that when we enter the issue details page and lock them to
+              // a project, we can properly take them back to the issue list
+              // page with no project selected (and not the locked project
+              // selected)
+              ...(location.query.project !== undefined ? {} : {_allp: 1}),
             },
           }}
           onClick={onClick}
@@ -162,7 +171,7 @@ const getMargin = ({size}: {size: Size}) => {
 
 const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
   line-height: 1;
-  ${getMargin};
+  margin-bottom: ${space(0.25)};
   & em {
     font-size: ${p => p.theme.fontSizeMedium};
     font-style: normal;
@@ -177,6 +186,7 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
       : css`
           > a:first-child {
             display: flex;
+            min-height: ${space(3)};
           }
         `}
 `;
@@ -206,6 +216,7 @@ function Location(props) {
 
 const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   ${getMargin};
+  line-height: 1.2;
 `;
 
 const Message = styled('div')`
@@ -215,8 +226,7 @@ const Message = styled('div')`
 
 const IconWrapper = styled('span')`
   position: relative;
-  top: 2px;
-
+  display: flex;
   margin-right: 5px;
 `;
 

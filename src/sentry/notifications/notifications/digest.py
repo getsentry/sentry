@@ -4,7 +4,6 @@ import logging
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping, Sequence
 
-from sentry import features
 from sentry.db.models import Model
 from sentry.digests import Digest
 from sentry.digests.utils import (
@@ -30,6 +29,7 @@ from sentry.notifications.utils.digest import (
     should_send_as_alert_notification,
 )
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.dates import to_timestamp
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, Team, User
@@ -39,7 +39,8 @@ logger = logging.getLogger(__name__)
 
 class DigestNotification(ProjectNotification):
     message_builder = "DigestNotificationMessageBuilder"
-    referrer_base = "digest"
+    metrics_key = "digest"
+    template_path = "sentry/emails/digests/body"
 
     def __init__(
         self,
@@ -53,15 +54,6 @@ class DigestNotification(ProjectNotification):
         self.target_type = target_type
         self.target_identifier = target_identifier
 
-    def get_filename(self) -> str:
-        return "digests/body"
-
-    def get_category(self) -> str:
-        return "digest_email"
-
-    def get_type(self) -> str:
-        return "notify.digest"
-
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "project", self.project.id, "alert_digest"
 
@@ -69,11 +61,20 @@ class DigestNotification(ProjectNotification):
         if not context:
             # This shouldn't be possible but adding a message just in case.
             return "Digest Report"
+
         return get_digest_subject(context["group"], context["counts"], context["start"])
 
-    def get_notification_title(self) -> str:
-        # This shouldn't be possible but adding a message just in case.
-        return "Digest Report"
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        if not context:
+            return "Digest Report"
+
+        return "<!date^{:.0f}^{count} {noun} detected in {project} {date} | Digest Report".format(
+            to_timestamp(context["start"]),
+            count=len(context["counts"]),
+            noun="issue" if len(context["counts"]) == 1 else "issues",
+            project=context["group"].project.name,
+            date="{date_pretty}",
+        )
 
     def get_title_link(self, recipient: Team | User) -> str | None:
         return None
@@ -106,9 +107,6 @@ class DigestNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(project),
             "project": project,
             "slack_link": get_integration_link(organization, "slack"),
-            "alert_status_page_enabled": features.has(
-                "organizations:alert-rule-status-page", project.organization
-            ),
             "rules_details": {rule.id: rule for rule in rule_details},
             "link_params_for_rule": get_email_link_extra_params(
                 "digest_email", None, rule_details, alert_timestamp

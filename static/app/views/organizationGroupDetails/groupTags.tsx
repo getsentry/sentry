@@ -6,6 +6,7 @@ import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Count from 'sentry/components/count';
 import {DeviceName} from 'sentry/components/deviceName';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -16,13 +17,15 @@ import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
-import {Group, TagWithTopValues} from 'sentry/types';
+import {Group, Organization, TagWithTopValues} from 'sentry/types';
 import {percent} from 'sentry/utils';
+import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = AsyncComponent['props'] & {
   baseUrl: string;
   environments: string[];
   group: Group;
+  organization: Organization;
 } & RouteComponentProps<{}, {}>;
 
 type State = AsyncComponent['state'] & {
@@ -118,6 +121,9 @@ class GroupTags extends AsyncComponent<Props, State> {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
+          <FilterSection>
+            <EnvironmentPageFilter />
+          </FilterSection>
           <Alert type="info">
             {tct(
               'Tags are automatically indexed for searching and breakdown charts. Learn how to [link: add custom tags to issues]',
@@ -139,6 +145,12 @@ const Container = styled('div')`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
+
+const FilterSection = styled('div')`
+  width: max-content;
+  max-width: 100%;
   margin-bottom: ${space(2)};
 `;
 
@@ -209,4 +221,4 @@ const TagBarCount = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-export default GroupTags;
+export default withOrganization(GroupTags);

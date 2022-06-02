@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
-import PanelTable, {PanelTableHeader} from 'sentry/components/panels/panelTable';
+import PanelTable, {
+  PanelTableHeader,
+  PanelTableProps,
+} from 'sentry/components/panels/panelTable';
 import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
@@ -23,21 +26,22 @@ import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 type Props = {
-  data: TableData['data'] | undefined;
   eventView: EventView;
   fieldAliases: string[];
   fields: string[];
   loading: boolean;
   location: Location;
-  metadata: TableData['meta'] | undefined;
   organization: Organization;
   title: string;
   className?: string;
+  data?: TableData['data'];
   fieldHeaderMap?: Record<string, string>;
   getCustomFieldRenderer?: (
     field: string,
     meta: MetaType
   ) => ReturnType<typeof getFieldRenderer> | null;
+  loader?: PanelTableProps['loader'];
+  metadata?: TableData['meta'];
   stickyHeaders?: boolean;
   topResultsIndicators?: number;
 };
@@ -57,6 +61,7 @@ function SimpleTableChart({
   topResultsIndicators,
   location,
   fieldAliases,
+  loader,
 }: Props) {
   function renderRow(
     index: number,
@@ -116,8 +121,12 @@ function SimpleTableChart({
   }
 
   const meta = metadata ?? {};
+  const usingEvents = organization.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
   const columns = decodeColumnOrder(
-    fields.map((field, index) => ({field, alias: fieldAliases[index]}))
+    fields.map((field, index) => ({field, alias: fieldAliases[index]})),
+    usingEvents
   );
 
   return (
@@ -126,6 +135,7 @@ function SimpleTableChart({
       <StyledPanelTable
         className={className}
         isLoading={loading}
+        loader={loader}
         headers={columns.map((column, index) => {
           const align = fieldAlignment(column.name, column.type, meta);
           const header =
@@ -172,7 +182,7 @@ const HeadCell = styled('div')<HeadCellProps>`
   padding: ${space(1)} ${space(3)};
 `;
 
-const TableCell = styled('div')`
+export const TableCell = styled('div')`
   padding: ${space(1)} ${space(3)};
 `;
 

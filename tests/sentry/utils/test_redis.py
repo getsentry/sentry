@@ -16,6 +16,7 @@ from sentry.utils.redis import (
     get_cluster_from_options,
     logger,
 )
+from sentry.utils.warnings import DeprecatedSettingWarning
 
 # Silence connection warnings
 logger.setLevel(logging.ERROR)
@@ -86,8 +87,8 @@ class ClusterManagerTestCase(TestCase):
         manager.get("foo")
 
 
-def test_get_cluster_from_options():
-    backend = object()
+def test_get_cluster_from_options_cluster_provided():
+    backend = mock.sentinel.backend
     manager = make_manager()
 
     cluster, options = get_cluster_from_options(
@@ -98,13 +99,29 @@ def test_get_cluster_from_options():
     assert cluster.pool_cls is _shared_pool
     assert options == {"foo": "bar"}
 
-    cluster, options = get_cluster_from_options(
-        backend, {"hosts": {0: {"db": 0}}, "foo": "bar"}, cluster_manager=manager
-    )
+
+def test_get_cluster_from_options_legacy_hosts_option():
+    backend = mock.sentinel.backend
+    manager = make_manager()
+
+    with pytest.warns(DeprecatedSettingWarning) as warninfo:
+        cluster, options = get_cluster_from_options(
+            backend, {"hosts": {0: {"db": 0}}, "foo": "bar"}, cluster_manager=manager
+        )
+
+    # it should have warned about the deprecated setting
+    (warn,) = warninfo
+    assert warn.message.setting == "'hosts' parameter of sentinel.backend"
+    assert warn.message.replacement == 'sentinel.backend["cluster"]'
 
     assert cluster is not manager.get("foo")  # kind of a silly assertion
     assert cluster.pool_cls is _shared_pool
     assert options == {"foo": "bar"}
+
+
+def test_get_cluster_from_options_both_options_invalid():
+    backend = mock.sentinel.backend
+    manager = make_manager()
 
     with pytest.raises(InvalidConfiguration):
         cluster, options = get_cluster_from_options(

@@ -1,5 +1,5 @@
 ---
-created: '2021-11-24T12:58:09.267025Z'
+created: '2022-04-19T11:58:31.796091Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -11,4 +11,5 @@ breakdownsV2:
     - browser
     - resource
     type: spanOperations
+metricConditionalTagging: null
 transactionMetrics: null

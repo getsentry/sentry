@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import {fetchRecentSearches} from 'sentry/actionCreators/savedSearches';
 import {Client} from 'sentry/api';
@@ -55,6 +55,10 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
   sort: string;
   tagValueLoader: TagValueLoader;
+  /**
+   * Used to define the max height of the menu in px.
+   */
+  maxMenuHeight?: number;
   projectIds?: string[];
   savedSearch?: SavedSearch;
 };
@@ -64,7 +68,7 @@ type State = {
   recentSearches: string[];
 };
 
-class IssueListSearchBar extends React.Component<Props, State> {
+class IssueListSearchBar extends Component<Props, State> {
   state: State = {
     defaultSearchItems: [SEARCH_ITEMS, []],
     recentSearches: [],

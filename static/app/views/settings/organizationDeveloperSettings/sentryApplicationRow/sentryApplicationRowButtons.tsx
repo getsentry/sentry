@@ -21,7 +21,7 @@ const SentryApplicationRowButtons = ({
   const isInternal = app.status === 'internal';
 
   return (
-    <Access access={['org:admin']}>
+    <Access access={['org:admin']} organization={organization}>
       {({hasAccess}) => {
         let disablePublishReason = '';
         let disableDeleteReason = '';

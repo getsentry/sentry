@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 
@@ -11,7 +11,6 @@ import {Client} from 'sentry/api';
 import Button, {ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -53,10 +52,7 @@ async function latestEventAvailable(
   }
 }
 
-class CreateSampleEventButton extends React.Component<
-  CreateSampleEventButtonProps,
-  State
-> {
+class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, State> {
   state: State = {
     creating: false,
   };
@@ -68,9 +64,8 @@ class CreateSampleEventButton extends React.Component<
       return;
     }
 
-    trackAdhocEvent({
-      eventKey: 'sample_event.button_viewed',
-      org_id: organization.id,
+    trackAdvancedAnalyticsEvent('sample_event.button_viewed', {
+      organization,
       project_id: project.id,
       source,
     });
@@ -83,13 +78,10 @@ class CreateSampleEventButton extends React.Component<
       return;
     }
 
-    const eventKey = `sample_event.${eventCreated ? 'created' : 'failed'}`;
-    const eventName = `Sample Event ${eventCreated ? 'Created' : 'Failed'}`;
+    const eventKey = `sample_event.${eventCreated ? 'created' : 'failed'}` as const;
 
-    trackAnalyticsEvent({
-      eventKey,
-      eventName,
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent(eventKey, {
+      organization,
       project_id: project.id,
       platform: project.platform || '',
       interval: EVENT_POLL_INTERVAL,
@@ -154,7 +146,7 @@ class CreateSampleEventButton extends React.Component<
         scope.setTag('retries', retries.toString());
         scope.setTag('duration', duration.toString());
 
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         Sentry.captureMessage('Failed to load sample event');
       });
       return;

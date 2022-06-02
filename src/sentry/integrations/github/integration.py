@@ -21,7 +21,7 @@ from sentry.integrations.mixins import RepositoryMixin
 from sentry.models import Integration, Organization, OrganizationIntegration, Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils import jwt
 from sentry.web.helpers import render_to_response
@@ -61,6 +61,12 @@ FEATURES = [
         trace linking.
         """,
         IntegrationFeatures.STACKTRACE_LINK,
+    ),
+    FeatureDescription(
+        """
+        Import your GitHub [CODEOWNERS file](https://docs.sentry.io/product/integrations/source-code-mgmt/github/#code-owners) and use it alongside your ownership rules to assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
     ),
 ]
 
@@ -217,7 +223,12 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
         return resp
 
     def build_integration(self, state: Mapping[str, str]) -> Mapping[str, Any]:
-        installation = self.get_installation_info(state["installation_id"])
+        try:
+            installation = self.get_installation_info(state["installation_id"])
+        except ApiError as api_error:
+            if api_error.code == 404:
+                raise IntegrationError("The GitHub installation could not be found.")
+            raise api_error
 
         integration = {
             "name": installation["account"]["login"],
@@ -249,7 +260,7 @@ class GitHubIntegrationProvider(IntegrationProvider):  # type: ignore
         )
 
 
-class GitHubInstallationRedirect(PipelineView):  # type: ignore
+class GitHubInstallationRedirect(PipelineView):
     def get_app_url(self) -> str:
         name = options.get("github-app.name")
         return f"https://github.com/apps/{slugify(name)}"
@@ -261,7 +272,8 @@ class GitHubInstallationRedirect(PipelineView):  # type: ignore
         if "installation_id" in request.GET:
             organization = self.get_active_organization(request)
 
-            # We want to wait until the scheduled deletions finish or else the post install to migrate repos do not work.
+            # We want to wait until the scheduled deletions finish or else the
+            # post install to migrate repos do not work.
             integration_pending_deletion_exists = OrganizationIntegration.objects.filter(
                 integration__provider=GitHubIntegrationProvider.key,
                 organization=organization,

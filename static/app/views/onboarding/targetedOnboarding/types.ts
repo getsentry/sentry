@@ -1,4 +1,3 @@
-import {Client} from 'sentry/api';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {Organization} from 'sentry/types';
 
@@ -25,22 +24,22 @@ export type StepDescriptor = {
   hasFooter?: boolean;
 };
 
-export type ClientState = {
+export type OnboardingState = {
   // map from platform id to project id. Contains projects ever created by onboarding.
   platformToProjectIdMap: {[key in PlatformKey]?: string};
+
+  // an array of intgration slugs
+  selectedIntegrations: string[];
 
   // Contains platforms currently selected. This is different from `platforms` because
   // a project created by onboarding could be unselected by the user in the future.
   selectedPlatforms: PlatformKey[];
+  mobileEmailSent?: boolean;
+  state?:
+    | 'started'
+    | 'projects_selected'
+    | 'integrations_selected'
+    | 'finished'
+    | 'skipped';
+  url?: string;
 };
-
-export function fetchClientState(api: Client, orgSlug: string): Promise<ClientState> {
-  return api
-    .requestPromise(`/organizations/${orgSlug}/client-state/onboarding/`)
-    .then(lastState => {
-      // Set default values
-      lastState.platformToProjectIdMap = lastState.platformToProjectIdMap || {};
-      lastState.selectedPlatforms = lastState.selectedPlatforms || [];
-      return lastState;
-    });
-}

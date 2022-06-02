@@ -9,6 +9,8 @@ from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.utils import metrics
+
 from . import is_frontend_request
 
 api_access_logger = logging.getLogger("sentry.access.api")
@@ -45,6 +47,7 @@ def _get_rate_limit_stats_dict(request: Request) -> dict[str, str]:
         "concurrent_limit": str(None),
         "concurrent_requests": str(None),
         "reset_time": str(None),
+        "group": str(None),
         "limit": str(None),
         "remaining": str(None),
     }
@@ -74,10 +77,9 @@ def _create_api_access_log(
         user_id = getattr(request_user, "id", None)
         is_app = getattr(request_user, "is_sentry_app", None)
         org_id = getattr(getattr(request, "organization", None), "id", None)
-
         request_auth = _get_request_auth(request)
         auth_id = getattr(request_auth, "id", None)
-        status_code = response.status_code if response else 500
+        status_code = getattr(response, "status_code", 500)
         log_metrics = dict(
             method=str(request.method),
             view=view,
@@ -97,6 +99,7 @@ def _create_api_access_log(
             **_get_rate_limit_stats_dict(request),
         )
         api_access_logger.info("api.access", extra=log_metrics)
+        metrics.incr("middleware.access_log.created")
     except Exception:
         api_access_logger.exception("api.access: Error capturing API access logs")
 

@@ -21,7 +21,6 @@ const EventTags = ({event: {tags = []}, organization, projectId, location}: Prop
 
   const orgSlug = organization.slug;
   const streamPath = `/organizations/${orgSlug}/issues/`;
-  const releasesPath = `/organizations/${orgSlug}/releases/`;
 
   return (
     <Pills>
@@ -33,7 +32,6 @@ const EventTags = ({event: {tags = []}, organization, projectId, location}: Prop
           organization={organization}
           query={generateQueryWithTag(location.query, tag)}
           streamPath={streamPath}
-          releasesPath={releasesPath}
         />
       ))}
     </Pills>

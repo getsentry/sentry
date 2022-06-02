@@ -55,7 +55,6 @@ type TestStubFixtures = {
   Groups: SimpleStub;
   Incident: OverridableStub;
   IncidentActivity: OverridableStub;
-  IncidentRule: OverridableStub;
   IncidentStats: OverridableStub;
   IncidentTrigger: OverridableStub;
   InstallWizard: OverridableStub;
@@ -63,12 +62,14 @@ type TestStubFixtures = {
   JiraIntegrationProvider: OverridableStub;
   Member: OverridableStub;
   Members: OverridableStubList;
+  MetricRule: OverridableStub;
   MetricsField: OverridableStub;
   MetricsFieldByMeasurementRating: OverridableStub;
   MetricsFieldByTransactionStatus: OverridableStub;
   MetricsFieldsByMeasurementRating: OverridableStub;
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
+  MetricsTotalCountByReleaseIn24h: SimpleStub;
   OrgOwnedApps: SimpleStub;
   Organization: OverridableStub;
   OrganizationEvent: OverridableStub;
@@ -102,6 +103,7 @@ type TestStubFixtures = {
   SentryAppToken: OverridableStub;
   SentryAppWebhookRequest: OverridableStub;
   ServiceIncident: OverridableStub;
+  SessionEmptyGroupedResponse: SimpleStub;
   SessionStatusCountByProjectInPeriod: SimpleStub;
   SessionStatusCountByReleaseInPeriod: SimpleStub;
   SessionTotalCountByProjectIn24h: SimpleStub;
@@ -110,6 +112,7 @@ type TestStubFixtures = {
   SessionUserCountByStatusByRelease: SimpleStub;
   SessionUserStatusCountByProjectInPeriod: SimpleStub;
   SessionUserStatusCountByReleaseInPeriod: SimpleStub;
+  SessionsField: OverridableStub;
   SesssionTotalCountByReleaseIn24h: SimpleStub;
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;

@@ -267,7 +267,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "world_map",
                     "interval": "5m",
                     "queries": [
-                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
                     ],
                 },
                 {
@@ -278,6 +284,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "Errors",
                             "fields": ["count()", "project"],
+                            "columns": ["project"],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:error",
                         }
                     ],
@@ -335,10 +343,26 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         data = {
             "title": "First dashboard",
             "widgets": [
-                {"id": str(self.widget_1.id)},
-                {"id": str(self.widget_2.id)},
-                {"id": str(self.widget_3.id)},
-                {"id": str(self.widget_4.id)},
+                {
+                    "id": str(self.widget_1.id),
+                    "columns": [],
+                    "aggregates": [],
+                },
+                {
+                    "id": str(self.widget_2.id),
+                    "columns": [],
+                    "aggregates": [],
+                },
+                {
+                    "id": str(self.widget_3.id),
+                    "columns": [],
+                    "aggregates": [],
+                },
+                {
+                    "id": str(self.widget_4.id),
+                    "columns": [],
+                    "aggregates": [],
+                },
                 {
                     "title": "Error Counts by Country",
                     "displayType": "world_map",
@@ -347,6 +371,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "Errors",
                             "fields": [],
+                            "columns": [],
                             "aggregates": ["count()"],
                             "conditions": "event.type:error",
                         }
@@ -389,7 +414,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "displayType": "line",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -406,7 +439,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "line",
                     "interval": "5m",
                     "limit": None,
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
                 },
                 {
                     "title": "Duration Distribution",
@@ -417,6 +458,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "",
                             "fields": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
+                            "columns": [],
+                            "aggregates": [
                                 "p50(transaction.duration)",
                                 "p75(transaction.duration)",
                                 "p95(transaction.duration)",
@@ -454,6 +501,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                                 "p75(transaction.duration)",
                                 "p95(transaction.duration)",
                             ],
+                            "columns": [],
+                            "aggregates": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -482,6 +535,12 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                                 "p75(transaction.duration)",
                                 "p95(transaction.duration)",
                             ],
+                            "columns": [],
+                            "aggregates": [
+                                "p50(transaction.duration)",
+                                "p75(transaction.duration)",
+                                "p95(transaction.duration)",
+                            ],
                             "conditions": "event.type:transaction",
                         }
                     ],
@@ -501,7 +560,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Errors",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -522,6 +589,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "Errors",
                             "fields": ["p95(transaction.duration)"],
+                            "columns": [],
+                            "aggregates": ["p95(transaction.duration)"],
                             "conditions": "foo: bar:",
                         }
                     ],
@@ -541,7 +610,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Invalid fields",
                     "displayType": "line",
                     "interval": "5m",
-                    "queries": [{"name": "Errors", "fields": ["wrong()"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["wrong()"],
+                            "columns": [],
+                            "aggregates": ["wrong()"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -557,7 +634,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "title": "Invalid fields",
                     "displayType": "line",
-                    "queries": [{"name": "Errors", "fields": ["p95(user)"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95(user)"],
+                            "columns": [],
+                            "aggregates": ["p95(user)"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -578,6 +663,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "Durations",
                             "fields": ["p95(transaction.duration)"],
+                            "columns": [],
+                            "aggregates": ["p95(transaction.duration)"],
                             "conditions": "",
                         }
                     ],
@@ -612,10 +699,16 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "id": str(self.widget_1.id),
                     "title": "New title",
                     "queries": [
-                        {"id": str(self.widget_1_data_1.id)},
+                        {
+                            "id": str(self.widget_1_data_1.id),
+                            "columns": [],
+                            "aggregates": [],
+                        },
                         {
                             "name": "transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         },
                     ],
@@ -648,6 +741,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                             "id": str(self.widget_1_data_1.id),
                             "name": "transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         },
                     ],
@@ -674,8 +769,16 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "id": str(self.widget_1.id),
                     "title": "New title",
                     "queries": [
-                        {"id": str(self.widget_1_data_2.id)},
-                        {"id": str(self.widget_1_data_1.id)},
+                        {
+                            "id": str(self.widget_1_data_2.id),
+                            "columns": [],
+                            "aggregates": [],
+                        },
+                        {
+                            "id": str(self.widget_1_data_1.id),
+                            "columns": [],
+                            "aggregates": [],
+                        },
                     ],
                 },
                 {"id": str(self.widget_2.id)},
@@ -700,7 +803,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                 {
                     "id": str(self.widget_1.id),
                     "title": "New title",
-                    "queries": [{"id": str(self.widget_2_data_1.id)}],
+                    "queries": [
+                        {
+                            "id": str(self.widget_2_data_1.id),
+                            "columns": [],
+                            "aggregates": [],
+                        }
+                    ],
                 },
             ],
         }
@@ -717,6 +826,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "queries": [
                         {
                             "fields": ["title", "count()"],
+                            "columns": ["title"],
+                            "aggregates": ["count()"],
                             "conditions": "",
                             "orderby": "message",
                         }
@@ -739,7 +850,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "title": "Errors over time",
                     "displayType": "line",
                     "queries": [
-                        {"name": "Errors", "fields": ["count()"], "conditions": "event.type:error"}
+                        {
+                            "name": "Errors",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
                     ],
                 },
                 {"id": str(self.widget_4.id)},
@@ -764,7 +881,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "id": str(self.widget_1.id),
                     "title": "Invalid fields",
                     "displayType": "line",
-                    "queries": [{"name": "Errors", "fields": ["p95(user)"], "conditions": ""}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95(user)"],
+                            "columns": [],
+                            "aggregates": ["p95(user)"],
+                            "conditions": "",
+                        }
+                    ],
                 },
             ],
         }
@@ -780,7 +905,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "id": str(self.widget_1.id),
                     "title": "Invalid fields",
                     "displayType": "line",
-                    "queries": [{"name": "Errors", "fields": ["p95()"], "conditions": "foo: bar:"}],
+                    "queries": [
+                        {
+                            "name": "Errors",
+                            "fields": ["p95()"],
+                            "columns": [],
+                            "aggregates": ["p95()"],
+                            "conditions": "foo: bar:",
+                        }
+                    ],
                 },
             ],
         }
@@ -926,6 +1059,8 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         {
                             "name": "transactions",
                             "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
                             "conditions": "event.type:transaction",
                         },
                     ],
@@ -1009,7 +1144,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "table",
                     "widgetType": "issue",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:unresolved"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:unresolved",
+                        }
+                    ],
                 },
             ],
         }
@@ -1026,7 +1169,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "table",
                     "widgetType": "issue",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:())"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:())",
+                        }
+                    ],
                 },
             ],
         }
@@ -1044,7 +1195,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "table",
                     "widgetType": "discover",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:unresolved"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:unresolved",
+                        }
+                    ],
                 },
             ],
         }
@@ -1062,14 +1221,30 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "displayType": "table",
                     "widgetType": "issue",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:unresolved"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:unresolved",
+                        }
+                    ],
                 },
                 {
                     "title": "Resolved Issues",
                     "displayType": "table",
                     "widgetType": "issue",
                     "interval": "5m",
-                    "queries": [{"name": "", "fields": ["count()"], "conditions": "is:resolved"}],
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "is:resolved",
+                        }
+                    ],
                 },
                 {
                     "title": "Transactions",
@@ -1077,7 +1252,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "widgetType": "discover",
                     "interval": "5m",
                     "queries": [
-                        {"name": "", "fields": ["count()"], "conditions": "event.type:transaction"}
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:transaction",
+                        }
                     ],
                 },
                 {
@@ -1086,7 +1267,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                     "widgetType": "discover",
                     "interval": "5m",
                     "queries": [
-                        {"name": "", "fields": ["count()"], "conditions": "event.type:error"}
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "event.type:error",
+                        }
                     ],
                 },
             ],

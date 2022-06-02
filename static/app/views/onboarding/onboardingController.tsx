@@ -1,36 +1,27 @@
-import {ComponentPropsWithoutRef, useEffect} from 'react';
+import {useEffect} from 'react';
 
 import {logExperiment} from 'sentry/utils/analytics';
-import withExperiment from 'sentry/utils/withExperiment';
+import isMobile from 'sentry/utils/isMobile';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import TargetedOnboarding from './targetedOnboarding/onboarding';
-import Onboarding from './onboarding';
 
-type Props = Omit<ComponentPropsWithoutRef<typeof Onboarding>, 'projects'> & {
-  experimentAssignment: 0 | 1;
-  logExperiment: () => void;
-};
+type Props = Omit<React.ComponentPropsWithoutRef<typeof TargetedOnboarding>, 'projects'>;
 
-function OnboardingController({experimentAssignment, ...rest}: Props) {
+function OnboardingController({...rest}: Props) {
   useEffect(() => {
+    if (isMobile()) {
+      logExperiment({
+        key: 'TargetedOnboardingMobileRedirectExperiment',
+        organization: rest.organization,
+      });
+    }
     logExperiment({
-      key: 'TargetedOnboardingWelcomePageExperimentV2',
+      key: 'TargetedOnboardingIntegrationSelectExperiment',
       organization: rest.organization,
     });
-  }, []);
-  if (
-    (rest.params.step === 'welcome' && experimentAssignment) ||
-    rest.organization?.experiments.TargetedOnboardingMultiSelectExperiment
-  ) {
-    return <TargetedOnboarding {...rest} />;
-  }
-  return <Onboarding {...rest} />;
+  }, [rest.organization]);
+  return <TargetedOnboarding {...rest} />;
 }
 
-export default withOrganization(
-  withExperiment(OnboardingController, {
-    experiment: 'TargetedOnboardingWelcomePageExperimentV2',
-    injectLogExperiment: true,
-  })
-);
+export default withOrganization(OnboardingController);

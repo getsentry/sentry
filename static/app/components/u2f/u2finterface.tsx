@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 import * as cbor from 'cbor-web';
 
@@ -42,7 +42,7 @@ type State = {
   responseElement: HTMLInputElement | null;
 };
 
-class U2fInterface extends React.Component<Props, State> {
+class U2fInterface extends Component<Props, State> {
   state: State = {
     isSupported: null,
     formElement: null,

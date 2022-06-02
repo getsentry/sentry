@@ -1,40 +1,42 @@
-import * as React from 'react';
+import {useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, PageFilters, Project} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
 
 import GroupDetails from './groupDetails';
 
 type Props = {
   children: React.ReactNode;
   isGlobalSelectionReady: boolean;
-  organization: Organization;
-  projects: Project[];
   selection: PageFilters;
 } & RouteComponentProps<{groupId: string; orgId: string}, {}>;
 
-class OrganizationGroupDetails extends React.Component<Props> {
-  componentDidMount() {
-    analytics('issue_page.viewed', {
-      group_id: parseInt(this.props.params.groupId, 10),
-      org_id: parseInt(this.props.organization.id, 10),
-    });
-  }
+function OrganizationGroupDetails({selection, ...props}: Props) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
 
-  render() {
-    const {selection, ...props} = this.props;
-    return (
-      <GroupDetails
-        key={`${this.props.params.groupId}-envs:${selection.environments.join(',')}`}
-        environments={selection.environments}
-        {...props}
-      />
-    );
-  }
+  const {params} = props;
+
+  useEffect(() => {
+    analytics('issue_page.viewed', {
+      group_id: parseInt(params.groupId, 10),
+      org_id: parseInt(organization.id, 10),
+    });
+  }, [organization, params.groupId]);
+
+  return (
+    <GroupDetails
+      key={`${params.groupId}-envs:${selection.environments.join(',')}`}
+      environments={selection.environments}
+      organization={organization}
+      projects={projects}
+      {...props}
+    />
+  );
 }
 
-export default withOrganization(withProjects(withPageFilters(OrganizationGroupDetails)));
+export default withPageFilters(OrganizationGroupDetails);

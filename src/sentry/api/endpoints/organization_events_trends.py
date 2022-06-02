@@ -415,14 +415,9 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
-    def has_snql_feature(self, organization, request):
-        return features.has("organizations:trends-use-snql", organization, actor=request.user)
-
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
-        use_snql = self.has_snql_feature(organization, request)
-        sentry_sdk.set_tag("discover.use_snql", use_snql)
 
         try:
             params = self.get_snuba_params(request, organization)
@@ -465,59 +460,37 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         orderby = self.get_orderby(request)
         query = request.GET.get("query")
 
-        if use_snql:
-            with self.handle_query_errors():
-                trend_query = TrendQueryBuilder(
-                    dataset=Dataset.Discover,
-                    params=params,
-                    selected_columns=selected_columns,
-                    auto_fields=False,
-                    auto_aggregations=True,
-                    use_aggregate_conditions=True,
-                )
-                snql_trend_columns = self.resolve_trend_columns(
-                    trend_query, function, column, middle
-                )
-                trend_query.columns.extend(snql_trend_columns.values())
-                trend_query.aggregates.extend(snql_trend_columns.values())
-                trend_query.params["aliases"] = self.get_snql_function_aliases(
-                    snql_trend_columns, trend_type
-                )
-                # Both orderby and conditions need to be resolved after the columns because of aliasing
-                trend_query.orderby = trend_query.resolve_orderby(orderby)
-                trend_query.groupby = trend_query.resolve_groupby()
-                where, having = trend_query.resolve_conditions(query, use_aggregate_conditions=True)
-                trend_query.where += where
-                trend_query.having += having
-        else:
-            params["aliases"] = self.get_function_aliases(trend_type)
-            trend_columns = self.get_trend_columns(function, column, middle)
+        with self.handle_query_errors():
+            trend_query = TrendQueryBuilder(
+                dataset=Dataset.Discover,
+                params=params,
+                selected_columns=selected_columns,
+                auto_fields=False,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+            )
+            snql_trend_columns = self.resolve_trend_columns(trend_query, function, column, middle)
+            trend_query.columns.extend(snql_trend_columns.values())
+            trend_query.aggregates.extend(snql_trend_columns.values())
+            trend_query.params["aliases"] = self.get_snql_function_aliases(
+                snql_trend_columns, trend_type
+            )
+            # Both orderby and conditions need to be resolved after the columns because of aliasing
+            trend_query.orderby = trend_query.resolve_orderby(orderby)
+            trend_query.groupby = trend_query.resolve_groupby()
+            where, having = trend_query.resolve_conditions(query, use_aggregate_conditions=True)
+            trend_query.where += where
+            trend_query.having += having
 
         def data_fn(offset, limit):
-            if use_snql:
-                trend_query.offset = Offset(offset)
-                trend_query.limit = Limit(limit)
-                result = raw_snql_query(
-                    trend_query.get_snql_query(),
-                    referrer="api.trends.get-percentage-change.wip-snql",
-                )
-                result = discover.transform_results(
-                    result, trend_query.function_alias_map, {}, None
-                )
-                return result
-            else:
-                return discover.query(
-                    selected_columns=selected_columns + trend_columns,
-                    query=query,
-                    params=params,
-                    orderby=orderby,
-                    offset=offset,
-                    limit=limit,
-                    referrer="api.trends.get-percentage-change",
-                    auto_fields=True,
-                    auto_aggregations=True,
-                    use_aggregate_conditions=True,
-                )
+            trend_query.offset = Offset(offset)
+            trend_query.limit = Limit(limit)
+            result = raw_snql_query(
+                trend_query.get_snql_query(),
+                referrer="api.trends.get-percentage-change",
+            )
+            result = discover.transform_results(result, trend_query.function_alias_map, {}, None)
+            return result
 
         with self.handle_query_errors():
             return self.paginate(
@@ -531,7 +504,6 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
                     selected_columns,
                     orderby,
                     query,
-                    use_snql,
                 ),
                 default_per_page=5,
                 max_per_page=5,
@@ -548,7 +520,6 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
         selected_columns,
         orderby,
         query,
-        use_snql,
     ):
         def on_results(events_results):
             def get_event_stats(query_columns, query, params, rollup, zerofill_results, _=None):
@@ -564,7 +535,6 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
                     top_events=events_results,
                     referrer="api.trends.get-event-stats",
                     zerofill_results=zerofill_results,
-                    use_snql=use_snql,
                 )
 
             stats_results = (
@@ -601,7 +571,6 @@ class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
         selected_columns,
         orderby,
         query,
-        use_snql,
     ):
         return lambda events_results: self.handle_results_with_meta(
             request, organization, params["project_id"], events_results

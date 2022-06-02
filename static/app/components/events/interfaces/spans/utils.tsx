@@ -5,11 +5,16 @@ import isString from 'lodash/isString';
 import set from 'lodash/set';
 import moment from 'moment';
 
+import {
+  TOGGLE_BORDER_BOX,
+  TOGGLE_BUTTON_MAX_WIDTH,
+} from 'sentry/components/performance/waterfall/treeConnector';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
+import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import {
   EnhancedSpan,
   GapSpanType,
@@ -499,7 +504,10 @@ export function isEventFromBrowserJavaScriptSDK(event: EventTransaction): boolea
 export const durationlessBrowserOps = ['mark', 'paint'];
 
 type Measurements = {
-  [name: string]: number | undefined;
+  [name: string]: {
+    timestamp: number;
+    value: number | undefined;
+  };
 };
 
 type VerticalMark = {
@@ -514,7 +522,7 @@ function hasFailedThreshold(marks: Measurements): boolean {
   );
 
   return records.some(record => {
-    const value = marks[record.slug];
+    const {value} = marks[record.slug];
     if (typeof value === 'number' && typeof record.poorThreshold === 'number') {
       return value >= record.poorThreshold;
     }
@@ -522,7 +530,10 @@ function hasFailedThreshold(marks: Measurements): boolean {
   });
 }
 
-export function getMeasurements(event: EventTransaction): Map<number, VerticalMark> {
+export function getMeasurements(
+  event: EventTransaction,
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
+): Map<number, VerticalMark> {
   if (!event.measurements) {
     return new Map();
   }
@@ -545,32 +556,53 @@ export function getMeasurements(event: EventTransaction): Map<number, VerticalMa
     const name = measurement.name.slice('mark.'.length);
     const value = measurement.value;
 
-    if (mergedMeasurements.has(measurement.timestamp)) {
-      const verticalMark = mergedMeasurements.get(measurement.timestamp) as VerticalMark;
+    const bounds = generateBounds({
+      startTimestamp: measurement.timestamp,
+      endTimestamp: measurement.timestamp,
+    });
 
-      verticalMark.marks = {
-        ...verticalMark.marks,
-        [name]: value,
-      };
-
-      if (!verticalMark.failedThreshold) {
-        verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
-      }
-
-      mergedMeasurements.set(measurement.timestamp, verticalMark);
+    // This condition will never be hit, since we're using the same value for start and end in generateBounds
+    // I've put this condition here to prevent the TS linter from complaining
+    if (bounds.type !== 'TIMESTAMPS_EQUAL') {
       return;
     }
 
+    const roundedPos = Math.round(bounds.start * 100);
+
+    // Compare this position with the position of the other measurements, to determine if
+    // they are close enough to be bucketed together
+
+    for (const [otherPos] of mergedMeasurements) {
+      const positionDelta = Math.abs(otherPos - roundedPos);
+      if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
+        const verticalMark = mergedMeasurements.get(otherPos)!;
+
+        verticalMark.marks = {
+          ...verticalMark.marks,
+          [name]: {
+            value,
+            timestamp: measurement.timestamp,
+          },
+        };
+
+        if (!verticalMark.failedThreshold) {
+          verticalMark.failedThreshold = hasFailedThreshold(verticalMark.marks);
+        }
+
+        mergedMeasurements.set(otherPos, verticalMark);
+        return;
+      }
+    }
+
     const marks = {
-      [name]: value,
+      [name]: {value, timestamp: measurement.timestamp},
     };
 
-    mergedMeasurements.set(measurement.timestamp, {
+    mergedMeasurements.set(roundedPos, {
       marks,
       failedThreshold: hasFailedThreshold(marks),
     });
   });
-
   return mergedMeasurements;
 }
 
@@ -731,5 +763,76 @@ export function getSpanGroupBounds(
       const _exhaustiveCheck: never = bounds;
       return _exhaustiveCheck;
     }
+  }
+}
+
+export class SpansInViewMap {
+  spanDepthsInView: Map<string, number>;
+  treeDepthSum: number;
+  length: number;
+  isRootSpanInView: boolean;
+
+  constructor() {
+    this.spanDepthsInView = new Map();
+    this.treeDepthSum = 0;
+    this.length = 0;
+    this.isRootSpanInView = true;
+  }
+
+  /**
+   *
+   * @param spanId
+   * @param treeDepth
+   * @returns false if the span is already stored, true otherwise
+   */
+  addSpan(spanId: string, treeDepth: number): boolean {
+    if (this.spanDepthsInView.has(spanId)) {
+      return false;
+    }
+
+    this.spanDepthsInView.set(spanId, treeDepth);
+    this.length += 1;
+    this.treeDepthSum += treeDepth;
+
+    if (treeDepth === 0) {
+      this.isRootSpanInView = true;
+    }
+
+    return true;
+  }
+
+  /**
+   *
+   * @param spanId
+   * @returns false if the span does not exist within the span, true otherwise
+   */
+  removeSpan(spanId: string): boolean {
+    if (!this.spanDepthsInView.has(spanId)) {
+      return false;
+    }
+
+    const treeDepth = this.spanDepthsInView.get(spanId);
+    this.spanDepthsInView.delete(spanId);
+    this.length -= 1;
+    this.treeDepthSum -= treeDepth!;
+
+    if (treeDepth === 0) {
+      this.isRootSpanInView = false;
+    }
+
+    return true;
+  }
+
+  has(spanId: string) {
+    return this.spanDepthsInView.has(spanId);
+  }
+
+  getScrollVal() {
+    if (this.isRootSpanInView) {
+      return 0;
+    }
+
+    const avgDepth = Math.round(this.treeDepthSum / this.length);
+    return avgDepth * (TOGGLE_BORDER_BOX / 2) - TOGGLE_BUTTON_MAX_WIDTH / 2;
   }
 }

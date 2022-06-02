@@ -1,13 +1,17 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountGlobalModal} from 'sentry-test/modal';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {
-  const {organization} = initializeOrg();
+  const organization = TestStubs.Organization();
   const release = TestStubs.Release({projects: [{slug: 'project1'}, {slug: 'project2'}]});
   const location = {
     pathname: `/organizations/sentry/releases/${release.version}/`,
@@ -31,7 +35,7 @@ describe('ReleaseActions', function () {
   });
 
   it('archives a release', async function () {
-    const wrapper = mountWithTheme(
+    render(
       <ReleaseActions
         organization={organization}
         projectSlug={release.projects[0].slug}
@@ -41,23 +45,23 @@ describe('ReleaseActions', function () {
         location={location}
       />
     );
+    renderGlobalModal();
 
-    wrapper.find('ActionsButton').simulate('click');
+    userEvent.click(screen.getByLabelText('Actions'));
 
-    const actions = wrapper.find('MenuItem');
-    const archiveAction = actions.at(0);
+    const archiveAction = screen.getByTestId('archive');
 
-    expect(actions.length).toBe(1);
-    expect(archiveAction.text()).toBe('Archive');
+    expect(archiveAction).toBeInTheDocument();
+    expect(archiveAction).toHaveTextContent('Archive');
 
-    archiveAction.simulate('click');
-    const modal = await mountGlobalModal();
+    userEvent.click(archiveAction);
 
-    const affectedProjects = modal.find('ProjectBadge');
+    expect(await screen.findByText('Archive Release')).toBeInTheDocument();
+    const affectedProjects = screen.getAllByTestId('badge-display-name');
     expect(affectedProjects.length).toBe(2);
 
     // confirm modal
-    modal.find('Modal Button[priority="primary"]').simulate('click');
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.anything(),
@@ -69,18 +73,17 @@ describe('ReleaseActions', function () {
         },
       })
     );
-
-    await tick();
-
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/releases/`
+    await waitFor(() =>
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/releases/`
+      )
     );
   });
 
   it('restores a release', async function () {
     const refetchDataMock = jest.fn();
 
-    const wrapper = mountWithTheme(
+    render(
       <ReleaseActions
         organization={organization}
         projectSlug={release.projects[0].slug}
@@ -90,23 +93,23 @@ describe('ReleaseActions', function () {
         location={location}
       />
     );
+    renderGlobalModal();
 
-    wrapper.find('ActionsButton').simulate('click');
+    userEvent.click(screen.getByLabelText('Actions'));
 
-    const actions = wrapper.find('MenuItem');
-    const restoreAction = actions.at(0);
+    const restoreAction = screen.getByTestId('restore');
 
-    expect(actions.length).toBe(1);
-    expect(restoreAction.text()).toBe('Restore');
+    expect(restoreAction).toBeInTheDocument(1);
+    expect(restoreAction).toHaveTextContent('Restore');
 
-    restoreAction.simulate('click');
-    const modal = await mountGlobalModal();
+    userEvent.click(restoreAction);
 
-    const affectedProjects = modal.find('ProjectBadge');
+    expect(await screen.findByText('Restore Release')).toBeInTheDocument();
+    const affectedProjects = screen.getAllByTestId('badge-display-name');
     expect(affectedProjects.length).toBe(2);
 
     // confirm modal
-    modal.find('Button[priority="primary"]').simulate('click');
+    userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.anything(),
@@ -119,13 +122,12 @@ describe('ReleaseActions', function () {
       })
     );
 
-    await tick();
-
-    expect(refetchDataMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(refetchDataMock).toHaveBeenCalledTimes(1));
   });
 
   it('navigates to a next/prev release', function () {
-    const wrapper = mountWithTheme(
+    const routerContext = TestStubs.routerContext();
+    const {rerender} = render(
       <ReleaseActions
         organization={organization}
         projectSlug={release.projects[0].slug}
@@ -133,47 +135,28 @@ describe('ReleaseActions', function () {
         refetchData={jest.fn()}
         releaseMeta={{projects: release.projects}}
         location={location}
-      />
+      />,
+      {context: routerContext}
     );
 
-    expect(wrapper.find('Link[aria-label="Oldest"]').prop('to')).toEqual({
-      pathname: '/organizations/sentry/releases/0/',
-      query: {
-        project: 1,
-        statsPeriod: '24h',
-        yAxis: 'events',
-        activeRepo: undefined,
-      },
-    });
-    expect(wrapper.find('Link[aria-label="Older"]').prop('to')).toEqual({
-      pathname: '/organizations/sentry/releases/123/',
-      query: {
-        project: 1,
-        statsPeriod: '24h',
-        yAxis: 'events',
-        activeRepo: undefined,
-      },
-    });
-    expect(wrapper.find('Link[aria-label="Newer"]').prop('to')).toEqual({
-      pathname: '/organizations/sentry/releases/456/',
-      query: {
-        project: 1,
-        statsPeriod: '24h',
-        yAxis: 'events',
-        activeRepo: undefined,
-      },
-    });
-    expect(wrapper.find('Link[aria-label="Newest"]').prop('to')).toEqual({
-      pathname: '/organizations/sentry/releases/999/',
-      query: {
-        project: 1,
-        statsPeriod: '24h',
-        yAxis: 'events',
-        activeRepo: undefined,
-      },
-    });
+    expect(screen.getByLabelText('Oldest')).toHaveAttribute(
+      'href',
+      '/organizations/sentry/releases/0/?project=1&statsPeriod=24h&yAxis=events'
+    );
+    expect(screen.getByLabelText('Older')).toHaveAttribute(
+      'href',
+      '/organizations/sentry/releases/123/?project=1&statsPeriod=24h&yAxis=events'
+    );
+    expect(screen.getByLabelText('Newer')).toHaveAttribute(
+      'href',
+      '/organizations/sentry/releases/456/?project=1&statsPeriod=24h&yAxis=events'
+    );
+    expect(screen.getByLabelText('Newest')).toHaveAttribute(
+      'href',
+      '/organizations/sentry/releases/999/?project=1&statsPeriod=24h&yAxis=events'
+    );
 
-    const wrapper2 = mountWithTheme(
+    rerender(
       <ReleaseActions
         organization={organization}
         projectSlug={release.projects[0].slug}
@@ -184,17 +167,13 @@ describe('ReleaseActions', function () {
           ...location,
           pathname: `/organizations/sentry/releases/${release.version}/files-changed/`,
         }}
-      />
+      />,
+      {context: routerContext}
     );
 
-    expect(wrapper2.find('Link[aria-label="Newer"]').prop('to')).toEqual({
-      pathname: '/organizations/sentry/releases/456/files-changed/',
-      query: {
-        project: 1,
-        statsPeriod: '24h',
-        yAxis: 'events',
-        activeRepo: undefined,
-      },
-    });
+    expect(screen.getByLabelText('Newer')).toHaveAttribute(
+      'href',
+      '/organizations/sentry/releases/456/files-changed/?project=1&statsPeriod=24h&yAxis=events'
+    );
   });
 });

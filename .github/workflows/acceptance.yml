@@ -14,7 +14,27 @@ on:
   pull_request:
 
 jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      acceptance: ${{ steps.changes.outputs.acceptance }}
+      backend: ${{ steps.changes.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for backend file changes
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
   frontend:
+    if: needs.files-changed.outputs.acceptance == 'true'
+    needs: files-changed
     name: frontend tests
     runs-on: ubuntu-20.04
     timeout-minutes: 20
@@ -81,7 +101,7 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@v2
+        uses: getsentry/action-visual-snapshot@main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -93,6 +113,8 @@ jobs:
           type: frontend
 
   webpack:
+    if: needs.files-changed.outputs.acceptance == 'true'
+    needs: files-changed
     name: create frontend bundle
     runs-on: ubuntu-20.04
     timeout-minutes: 10
@@ -150,6 +172,8 @@ jobs:
           path: dist.tar.gz
 
   acceptance:
+    if: needs.files-changed.outputs.acceptance == 'true'
+    needs: files-changed
     name: acceptance
     runs-on: ubuntu-20.04
     timeout-minutes: 20
@@ -161,6 +185,7 @@ jobs:
         python-version: [3.8.12]
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
         instance: [0, 1, 2, 3]
+        pg-version: ['9.6']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
       MATRIX_INSTANCE_TOTAL: 4
@@ -178,6 +203,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
+          pg-version: ${{ matrix.pg-version }}
 
       - name: Wait for frontend build
         uses: getsentry/action-wait-for-check@v1.0.0
@@ -207,24 +233,18 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@v2
+        uses: getsentry/action-visual-snapshot@main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
-      # We use the below to determine the flag to use in codecov
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ steps.changes.outputs.backend == 'true' }}
+        if: needs.files-changed.outputs.backend == 'true'
 
   chartcuterie:
+    if: needs.files-changed.outputs.acceptance == 'true'
+    needs: files-changed
     name: chartcuterie integration
     runs-on: ubuntu-20.04
     timeout-minutes: 30
@@ -279,38 +299,47 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@v2
+        uses: getsentry/action-visual-snapshot@main
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
-      # We use the below to determine the flag to use in codecov (only upload on backend changes)
-      - name: Check for python file changes
-        uses: getsentry/paths-filter@v2
-        id: changes
-        with:
-          token: ${{ github.token }}
-          filters: .github/file-filters.yml
-
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: ${{ steps.changes.outputs.backend == 'true' }}
+        if: needs.files-changed.outputs.backend == 'true'
 
   visual-diff:
+    if: needs.files-changed.outputs.acceptance == 'true'
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [acceptance, frontend, chartcuterie]
     name: triggers visual snapshot
-    # Do not execute on forks or on master
-    if: github.repository == 'getsentry/sentry' && github.ref != 'refs/heads/master'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
-
     steps:
+      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@v2
+        uses: getsentry/action-visual-snapshot@main
+        # Forks are handled in visual-diff.yml
+        if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+  # Since Visual Snapshot is a required check we need to pretend to have run
+  fake-visual-snapshot:
+    name: Visual Snapshot
+    # Opposite condition to "triggers visual snapshot" required check
+    if: needs.files-changed.outputs.acceptance != 'true'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Sentaur attack
+        run: |
+          echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"

@@ -171,13 +171,11 @@ class Errors extends Component<Props, State> {
             </ErrorList>,
           ]}
         >
-          <span data-test-id="alert-summary-info">
-            {tn(
-              'There was %s problem processing this event',
-              'There were %s problems processing this event',
-              errors.length
-            )}
-          </span>
+          {tn(
+            'There was %s problem processing this event',
+            'There were %s problems processing this event',
+            errors.length
+          )}
         </StyledAlert>
       </StyledDataSection>
     );

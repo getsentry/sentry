@@ -123,4 +123,4 @@ def resolve_type_hint(hint) -> Any:
     elif isinstance(hint, typing._TypedDictMeta):
         raise UnableToProceedError("Wrong TypedDict class, please use typing_extensions.TypedDict")
     else:
-        raise UnableToProceedError()
+        raise UnableToProceedError(hint)

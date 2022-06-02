@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import {SentryAppComponent} from 'sentry/types';
@@ -20,7 +20,7 @@ function withSentryAppComponents<P extends InjectedAppComponentsProps>(
   WrappedComponent: React.ComponentType<P>,
   {componentType}: Options = {}
 ) {
-  class WithSentryAppComponents extends React.Component<
+  class WithSentryAppComponents extends Component<
     Omit<P, keyof InjectedAppComponentsProps> & Partial<InjectedAppComponentsProps>,
     State
   > {

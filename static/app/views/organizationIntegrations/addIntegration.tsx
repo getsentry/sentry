@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as qs from 'query-string';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -25,7 +25,7 @@ type Props = {
   modalParams?: {[key: string]: string};
 };
 
-export default class AddIntegration extends React.Component<Props> {
+export default class AddIntegration extends Component<Props> {
   componentDidMount() {
     window.addEventListener('message', this.didReceiveMessage);
   }

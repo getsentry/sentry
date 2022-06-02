@@ -3,17 +3,12 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.features.helpers import requires_feature
-from sentry.models import (
-    AuditLogEntryEvent,
-    Integration,
-    ObjectStatus,
-    OrganizationIntegration,
-    ScheduledDeletion,
-)
+from sentry.models import Integration, ObjectStatus, OrganizationIntegration, ScheduledDeletion
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
 
@@ -90,7 +85,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
                     request=request,
                     organization=organization,
                     target_object=integration.id,
-                    event=AuditLogEntryEvent.INTEGRATION_REMOVE,
+                    event=audit_log.get_event_id("INTEGRATION_REMOVE"),
                     data={"provider": integration.provider, "name": integration.name},
                 )
 

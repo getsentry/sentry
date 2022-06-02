@@ -1,9 +1,13 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {motion, MotionProps} from 'framer-motion';
-import {preloadIcons} from 'platformicons';
 
+import OnboardingInstall from 'sentry-images/spot/onboarding-install.svg';
+import OnboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
+
+import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
+import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -12,16 +16,6 @@ import testableTransition from 'sentry/utils/testableTransition';
 import FallingError from './components/fallingError';
 import WelcomeBackground from './components/welcomeBackground';
 import {StepProps} from './types';
-
-const easterEggText = [
-  t('Be careful. She’s barely hanging on as it is.'),
-  t("You know this error's not real, right?"),
-  t("It's that big button, right up there."),
-  t('You could do this all day. But you really shouldn’t.'),
-  tct("Ok, really, that's enough. Click [ready:I'm Ready].", {ready: <em />}),
-  tct("Next time you do that, [bold:we're starting].", {bold: <strong />}),
-  t("We weren't kidding, let's get going."),
-];
 
 const fadeAway: MotionProps = {
   variants: {
@@ -32,104 +26,208 @@ const fadeAway: MotionProps = {
   transition: testableTransition({duration: 0.8}),
 };
 
-function OnboardingWelcome(props: StepProps) {
+type TextWrapperProps = {
+  cta: React.ReactNode;
+  src: string;
+  subText: React.ReactNode;
+  title: React.ReactNode;
+};
+
+function InnerAction({title, subText, cta, src}: TextWrapperProps) {
+  return (
+    <Fragment>
+      <ActionImage src={src} />
+      <TextWrapper>
+        <ActionTitle>{title}</ActionTitle>
+        <SubText>{subText}</SubText>
+      </TextWrapper>
+      <ButtonWrapper>{cta}</ButtonWrapper>
+    </Fragment>
+  );
+}
+
+function TargetedOnboardingWelcome({organization, ...props}: StepProps) {
+  const source = 'targeted_onboarding';
   useEffect(() => {
-    // Next step will render the platform picker (using both large and small
-    // icons). Keep things smooth by prefetching them. Preload a bit late to
-    // avoid jank on welcome animations.
-    let preloadIconsTimeout: number | null = window.setTimeout(() => {
-      preloadIcons();
-      preloadIconsTimeout = null;
-    }, 1500);
-
     trackAdvancedAnalyticsEvent('growth.onboarding_start_onboarding', {
-      organization: props.organization ?? null,
+      organization,
+      source,
     });
-
-    return () => {
-      if (preloadIconsTimeout) {
-        window.clearTimeout(preloadIconsTimeout);
-      }
-    };
   }, []);
 
+  const onComplete = () => {
+    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_instrument_app', {
+      organization,
+      source,
+    });
+
+    props.onComplete({});
+  };
   return (
-    <FallingError
-      onFall={fallCount => fallCount >= easterEggText.length && props.onComplete({})}
-    >
-      {({fallingError, fallCount, triggerFall}) => (
+    <FallingError>
+      {({fallingError, fallCount, isFalling}) => (
         <Wrapper>
           <WelcomeBackground />
-          <motion.h1 {...fadeAway}>{t('Welcome to Sentry')}</motion.h1>
-          <motion.p {...fadeAway}>
+          <motion.h1 {...fadeAway} style={{marginBottom: space(0.5)}}>
+            {t('Welcome to Sentry')}
+          </motion.h1>
+          <SubHeaderText style={{marginBottom: space(4)}} {...fadeAway}>
             {t(
-              'Find the errors and performance slowdowns that keep you up at night. In two steps.'
+              'Your code is probably broken. Maybe not. Find out for sure. Get started below.'
             )}
-          </motion.p>
-          <CTAContainer {...fadeAway}>
-            <Button
-              data-test-id="welcome-next"
-              disabled={!props.active}
-              priority="primary"
-              onClick={() => {
-                triggerFall();
-                props.onComplete({});
-              }}
+          </SubHeaderText>
+          <ActionItem {...fadeAway}>
+            <InnerAction
+              title={t('Install Sentry')}
+              subText={t(
+                'Select your languages or frameworks and install the SDKs to start tracking issues'
+              )}
+              src={OnboardingInstall}
+              cta={
+                <Fragment>
+                  <ButtonWithFill
+                    onClick={() => {
+                      // triggerFall();
+                      onComplete();
+                    }}
+                    priority="primary"
+                  >
+                    {t('Start')}
+                  </ButtonWithFill>
+                  {(fallCount === 0 || isFalling) && (
+                    <PositionedFallingError>{fallingError}</PositionedFallingError>
+                  )}
+                </Fragment>
+              }
+            />
+          </ActionItem>
+          <ActionItem {...fadeAway}>
+            <InnerAction
+              title={t('Setup my team')}
+              subText={tct(
+                'Invite [friends] coworkers. You shouldn’t have to fix what you didn’t break',
+                {friends: <Strike>{t('friends')}</Strike>}
+              )}
+              src={OnboardingSetup}
+              cta={
+                <ButtonWithFill
+                  onClick={() => {
+                    openInviteMembersModal({source});
+                  }}
+                  priority="primary"
+                >
+                  {t('Invite Team')}
+                </ButtonWithFill>
+              }
+            />
+          </ActionItem>
+          <motion.p style={{margin: 0}} {...fadeAway}>
+            {t("Gee, I've used Sentry before.")}
+            <br />
+            <Link
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+                  organization,
+                  source,
+                })
+              }
+              to={`/organizations/${organization.slug}/issues/`}
             >
-              {t("I'm Ready")}
-            </Button>
-            <PositionedFallingError>{fallingError}</PositionedFallingError>
-          </CTAContainer>
-          <SecondaryAction {...fadeAway}>
-            {fallCount > 0 ? easterEggText[fallCount - 1] : <br />}
-          </SecondaryAction>
+              {t('Skip onboarding.')}
+            </Link>
+          </motion.p>
         </Wrapper>
       )}
     </FallingError>
   );
 }
 
-const CTAContainer = styled(motion.div)`
-  margin-bottom: ${space(2)};
-  position: relative;
-
-  button {
-    position: relative;
-    z-index: 2;
-  }
-`;
+export default TargetedOnboardingWelcome;
 
 const PositionedFallingError = styled('span')`
   display: block;
   position: absolute;
+  right: 0px;
   top: 30px;
-  right: -5px;
-  z-index: 0;
-`;
-
-const SecondaryAction = styled(motion.small)`
-  color: ${p => p.theme.subText};
-  margin-top: 100px;
 `;
 
 const Wrapper = styled(motion.div)`
+  position: relative;
+  margin-top: auto;
+  margin-bottom: auto;
   max-width: 400px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding-top: 100px;
+  margin-left: auto;
+  margin-right: auto;
 
   h1 {
     font-size: 42px;
   }
 `;
 
-Wrapper.defaultProps = {
-  variants: {exit: {x: 0}},
-  transition: testableTransition({
-    staggerChildren: 0.2,
-  }),
-};
+const ActionItem = styled(motion.div)`
+  min-height: 120px;
+  border-radius: ${space(0.5)};
+  padding: ${space(2)};
+  margin-bottom: ${space(2)};
+  justify-content: space-around;
+  border: 1px solid ${p => p.theme.gray200};
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    display: grid;
+    grid-template-columns: 125px auto 125px;
+    width: 680px;
+    align-items: center;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    flex-direction: column;
+  }
+`;
 
-export default OnboardingWelcome;
+const TextWrapper = styled('div')`
+  text-align: left;
+  margin: auto ${space(3)};
+  min-height: 70px;
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    text-align: center;
+    margin: ${space(1)} ${space(1)};
+    margin-top: ${space(3)};
+  }
+`;
+
+const Strike = styled('span')`
+  text-decoration: line-through;
+`;
+
+const ActionTitle = styled('h5')`
+  font-weight: 900;
+  margin: 0 0 ${space(0.5)};
+  color: ${p => p.theme.gray400};
+`;
+
+const SubText = styled('span')`
+  font-weight: 400;
+  color: ${p => p.theme.gray400};
+`;
+
+const SubHeaderText = styled(motion.h6)`
+  color: ${p => p.theme.gray300};
+`;
+
+const ButtonWrapper = styled('div')`
+  margin: ${space(1)};
+  position: relative;
+`;
+
+const ActionImage = styled('img')`
+  height: 100px;
+`;
+
+const ButtonWithFill = styled(Button)`
+  width: 100%;
+  position: relative;
+  z-index: 1;
+`;

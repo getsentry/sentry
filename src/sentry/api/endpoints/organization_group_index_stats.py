@@ -10,7 +10,6 @@ from sentry.api.serializers.models.group import StreamGroupSerializerSnuba
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.models import Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.compat import map
 
 
 class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):

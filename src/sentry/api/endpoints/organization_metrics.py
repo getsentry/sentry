@@ -118,9 +118,10 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
         def data_fn(offset: int, limit: int):
             try:
                 query = QueryDefinition(
-                    request.GET, paginator_kwargs={"limit": limit, "offset": offset}
+                    projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_series(projects, query)
+                data = get_series(projects, query.to_metrics_query())
+                data["query"] = query.query
             except (
                 InvalidField,
                 InvalidParams,

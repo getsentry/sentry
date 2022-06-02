@@ -10,6 +10,7 @@ export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
   SYSTEM_ALERTS = 'SystemAlerts',
   U2F_SIGN = 'U2fSign',
+  SU_ACCESS_FORM = 'SuperuserAccessForm',
 }
 
 export type OnSentryInitConfiguration =
@@ -115,6 +116,7 @@ export interface Config {
   distPrefix: string;
   dsn: string;
   dsn_requests: string;
+  enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
   invitesEnabled: boolean;
@@ -149,6 +151,7 @@ export interface Config {
     ip_address: string;
     isStaff: boolean;
   };
+  validateSUForm: boolean;
   version: {
     build: string;
     current: string;
@@ -179,11 +182,21 @@ export type Broadcast = {
 };
 
 export type SentryServiceIncident = {
+  affectedComponents: Array<{
+    name: string;
+    status: 'degraded_performance' | 'partial_outage' | 'major_outage' | 'operational';
+    updatedAt: string;
+  }>;
+  createdAt: string;
   id: string;
   name: string;
   status: string;
+  updates: Array<{
+    body: string;
+    status: string;
+    updatedAt: string;
+  }>;
   url: string;
-  updates?: string[];
 };
 
 export type SentryServiceStatus = {

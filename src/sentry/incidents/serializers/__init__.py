@@ -36,6 +36,6 @@ UNSUPPORTED_QUERIES = {"release:latest"}
 CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [30, 60, 120, 240, 720, 1440]
 
 
-from .alert_rule import AlertRuleSerializer  # NOQA
-from .alert_rule_trigger import AlertRuleTriggerSerializer  # NOQA
-from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer  # NOQA
+from .alert_rule import AlertRuleSerializer
+from .alert_rule_trigger import AlertRuleTriggerSerializer
+from .alert_rule_trigger_action import AlertRuleTriggerActionSerializer

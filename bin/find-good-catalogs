@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import json  # noqa: b317
+import json  # noqa: S003
 import os
 
 import click

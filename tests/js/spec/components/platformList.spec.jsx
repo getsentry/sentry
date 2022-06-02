@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import PlatformList from 'sentry/components/platformList';
 
@@ -6,34 +6,33 @@ describe('PlatformList', function () {
   const platforms = ['java', 'php', 'javascript', 'cocoa', 'ruby'];
 
   it('renders max of three icons from platforms', function () {
-    const wrapper = mountWithTheme(<PlatformList platforms={platforms} />);
-    const icons = wrapper.find('StyledPlatformIcon');
-    expect(icons).toHaveLength(3);
+    render(<PlatformList platforms={platforms} />);
+    expect(screen.getAllByRole('img')).toHaveLength(3);
   });
 
   it('renders default if no platforms', function () {
-    const wrapper = mountWithTheme(<PlatformList platforms={[]} />);
-    const icons = wrapper.find('StyledPlatformIcon');
-    expect(icons.first().prop('platform')).toBe('default');
-    expect(icons).toHaveLength(1);
+    render(<PlatformList platforms={[]} />);
+    expect(screen.getByRole('img')).toBeInTheDocument();
   });
 
-  it('displays counter', function () {
-    const wrapper = mountWithTheme(<PlatformList platforms={platforms} showCounter />);
-    const icons = wrapper.find('StyledPlatformIcon');
+  it('displays counter', async function () {
+    render(<PlatformList platforms={platforms} showCounter />);
+    const icons = screen.getAllByRole('img');
     expect(icons).toHaveLength(3);
-    const counter = wrapper.find('Counter');
-    expect(counter.text()).toEqual('2+');
+
+    // Check tooltip content,
+    const extra = screen.getByText('2');
+    userEvent.hover(extra);
+    expect(await screen.findByText('2 other platforms')).toBeInTheDocument();
   });
 
   it('displays counter according to the max value', function () {
     const max = 2;
-    const wrapper = mountWithTheme(
-      <PlatformList platforms={platforms} max={max} showCounter />
-    );
-    const icons = wrapper.find('StyledPlatformIcon');
+    render(<PlatformList platforms={platforms} max={max} showCounter />);
+    const icons = screen.getAllByRole('img');
     expect(icons).toHaveLength(max);
-    const counter = wrapper.find('Counter');
-    expect(counter.text()).toEqual(`${platforms.length - max}+`);
+
+    const extraCounter = platforms.length - max;
+    expect(screen.getByText(extraCounter)).toBeInTheDocument();
   });
 });

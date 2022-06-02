@@ -236,7 +236,10 @@ class BaseGuideAnchor extends Component<Props, State> {
  * Wraps the GuideAnchor so we don't have to render it if it's disabled
  * Using a class so we automatically have children as a typed prop
  */
-type WrapperProps = React.PropsWithChildren<{disabled?: boolean} & Props>;
+type WrapperProps = Props & {
+  children?: React.ReactNode;
+  disabled?: boolean;
+};
 
 /**
  * A GuideAnchor puts an informative hovercard around an element. Guide anchors

@@ -1,3 +1,4 @@
+import {lightTheme} from '../../theme';
 import {FlamegraphFrame} from '../flamegraphFrame';
 
 import {makeColorBucketTheme, makeColorMap, makeStackToColor} from './../colors/utils';
@@ -7,7 +8,7 @@ const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI 
 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',
 'Courier New', monospace`;
 
-const FRAME_FONT = `"Source Code Pro", Courier, monospace`;
+const FRAME_FONT = lightTheme.text.familyMono;
 
 // Luma chroma hue settings
 export interface LCH {
@@ -118,7 +119,7 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
   },
   SIZES: {
     BAR_HEIGHT: 20,
-    BAR_FONT_SIZE: 12,
+    BAR_FONT_SIZE: 11,
     BAR_PADDING: 4,
     FLAMEGRAPH_DEPTH_OFFSET: 12,
     SPANS_DEPTH_OFFSET: 4,
@@ -176,7 +177,7 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
   },
   SIZES: {
     BAR_HEIGHT: 20,
-    BAR_FONT_SIZE: 12,
+    BAR_FONT_SIZE: 11,
     BAR_PADDING: 4,
     FLAMEGRAPH_DEPTH_OFFSET: 12,
     SPANS_DEPTH_OFFSET: 4,

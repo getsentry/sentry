@@ -30,7 +30,7 @@ import {Hooks} from 'sentry/types/hooks';
 import {
   integrationEventMap,
   IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+} from 'sentry/utils/analytics/integrations';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 const mapIntegrationParams = analyticsParams => {
@@ -71,12 +71,10 @@ const generateIntegrationFeatures = p =>
     gatedFeatureGroups: [],
   });
 
-const defaultFeatureGateComponents = {
+const defaultFeatureGateComponents: ReturnType<Hooks['integrations:feature-gates']> = {
   IntegrationFeatures: generateIntegrationFeatures,
-  IntegrationDirectoryFeatures: generateIntegrationFeatures,
   FeatureList: generateFeaturesList,
-  IntegrationDirectoryFeatureList: generateFeaturesList,
-} as ReturnType<Hooks['integrations:feature-gates']>;
+};
 
 export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
@@ -16,7 +14,7 @@ function WidgetBuilderContainer(props: WidgetBuilderProps) {
 
   return (
     <Feature
-      features={['new-widget-builder-experience', 'dashboards-edit']}
+      features={['new-widget-builder-experience-design', 'dashboards-edit']}
       organization={organization}
       renderDisabled={() => (
         <PageContent>

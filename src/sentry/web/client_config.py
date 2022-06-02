@@ -3,7 +3,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.messages import get_messages
 from django.core.cache import cache
 from django.db.models import F
-from pkg_resources import parse_version
+from packaging.version import parse as parse_version
 
 import sentry
 from sentry import features, options
@@ -113,7 +113,7 @@ def get_client_config(request=None):
         user = getattr(request, "user", None) or AnonymousUser()
         messages = get_messages(request)
         session = getattr(request, "session", None)
-        is_superuser = is_active_superuser(request)
+        active_superuser = is_active_superuser(request)
         language_code = getattr(request, "LANGUAGE_CODE", "en")
 
         # User identity is used by the sentry SDK
@@ -127,7 +127,7 @@ def get_client_config(request=None):
         user_identity = {}
         messages = []
         session = None
-        is_superuser = False
+        active_superuser = False
         language_code = "en"
 
     enabled_features = []
@@ -140,7 +140,7 @@ def get_client_config(request=None):
 
     needs_upgrade = False
 
-    if is_superuser:
+    if active_superuser:
         needs_upgrade = _needs_upgrade()
 
     public_dsn = _get_public_dsn()
@@ -184,6 +184,8 @@ def get_client_config(request=None):
             ),
         },
         "demoMode": settings.DEMO_MODE,
+        "enableAnalytics": settings.ENABLE_ANALYTICS,
+        "validateSUForm": getattr(settings, "VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON", False),
     }
     if user and user.is_authenticated:
         context.update(

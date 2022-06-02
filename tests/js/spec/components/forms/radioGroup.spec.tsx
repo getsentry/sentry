@@ -32,7 +32,6 @@ describe('RadioGroup', function () {
     expect(container).toSnapshot();
 
     expect(screen.getByRole('radio', {name: 'Select Choice One'})).toBeDisabled();
-    expect(screen.getByText('Choice One')).toHaveStyle({opacity: 0.4});
   });
 
   it('renders disabled choice', async function () {

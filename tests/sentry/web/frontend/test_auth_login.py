@@ -13,6 +13,7 @@ from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import OrganizationMember, User
 from sentry.testutils import TestCase
 from sentry.utils import json
+from sentry.utils.client_state import get_client_state_key, get_redis_client
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -235,15 +236,12 @@ class AuthLoginTest(TestCase):
         resp = self.client.post(
             self.path,
             {"username": self.user.username, "password": "admin", "op": "login"},
-            follow=False,
-        )
-        self.assertRedirects(resp, reverse("sentry-login"), target_status_code=302)
-        resp = self.client.post(
-            self.path,
-            {"username": self.user.username, "password": "admin", "op": "login"},
             follow=True,
         )
-        self.assertRedirects(resp, "/organizations/new/")
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            ("/organizations/new/", 302),
+        ]
 
     def test_redirects_already_authed_non_superuser(self):
         self.user.update(is_superuser=False)
@@ -252,12 +250,36 @@ class AuthLoginTest(TestCase):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
 
-    def test_doesnt_redirect_already_authed_superuser(self):
+    def test_redirect_superuser(self):
         self.login_as(self.user, superuser=False)
 
         resp = self.client.get(self.path)
 
-        assert resp.status_code == 200
+        with self.feature("organizations:create"):
+            resp = self.client.get(self.path)
+            self.assertRedirects(resp, "/organizations/new/")
+
+        self.login_as(self.user, superuser=True)
+
+        resp = self.client.get(self.path)
+
+        with self.feature("organizations:create"):
+            resp = self.client.get(self.path)
+            self.assertRedirects(resp, "/organizations/new/")
+
+    def test_redirect_onboarding(self):
+        org = self.create_organization(owner=self.user)
+        key = get_client_state_key(org.slug, "onboarding", None)
+        get_redis_client().set(key, json.dumps({"state": "started", "url": "select-platform/"}))
+
+        self.client.get(self.path)
+
+        resp = self.client.post(
+            self.path, {"username": self.user.username, "password": "admin", "op": "login"}
+        )
+
+        assert resp.status_code == 302
+        assert resp.get("Location", "").endswith(f"/onboarding/{org.slug}/select-platform/")
 
 
 @pytest.mark.skipif(

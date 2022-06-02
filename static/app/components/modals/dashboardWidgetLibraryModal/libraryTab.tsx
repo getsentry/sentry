@@ -1,9 +1,11 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   DEFAULT_WIDGETS,
   WidgetTemplate,
@@ -12,6 +14,7 @@ import WidgetLibraryCard from 'sentry/views/dashboardsV2/widgetLibrary/widgetCar
 
 type Props = {
   errored: boolean;
+  organization: Organization;
   selectedWidgets: WidgetTemplate[];
   setErrored: (errored: boolean) => void;
   setSelectedWidgets: (widgets: WidgetTemplate[]) => void;
@@ -20,11 +23,18 @@ type Props = {
 function DashboardWidgetLibraryTab({
   selectedWidgets,
   errored,
+  organization,
   setSelectedWidgets,
   setErrored,
 }: Props) {
+  let defaultWidgets = DEFAULT_WIDGETS;
+  if (!!!organization.features.includes('dashboards-releases')) {
+    defaultWidgets = defaultWidgets.filter(
+      widget => !!!(widget.widgetType === WidgetType.RELEASE)
+    );
+  }
   return (
-    <React.Fragment>
+    <Fragment>
       {errored && !!!selectedWidgets.length ? (
         <Alert type="error">
           {t(
@@ -33,7 +43,7 @@ function DashboardWidgetLibraryTab({
         </Alert>
       ) : null}
       <WidgetLibraryGrid>
-        {DEFAULT_WIDGETS.map((widgetCard, index) => {
+        {defaultWidgets.map((widgetCard, index) => {
           return (
             <WidgetLibraryCard
               data-test-id={`widget-library-card-${index}`}
@@ -46,7 +56,7 @@ function DashboardWidgetLibraryTab({
           );
         })}
       </WidgetLibraryGrid>
-    </React.Fragment>
+    </Fragment>
   );
 }
 

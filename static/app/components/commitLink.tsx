@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
@@ -78,7 +76,7 @@ function CommitLink({inline, commitId, repository}: Props) {
       {shortId}
     </Button>
   ) : (
-    <ExternalLink className="inline-commit" href={commitUrl}>
+    <ExternalLink href={commitUrl}>
       {providerData.icon}
       {' ' + shortId}
     </ExternalLink>

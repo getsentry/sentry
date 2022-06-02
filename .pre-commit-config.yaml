@@ -13,11 +13,10 @@ exclude: >
     )
 
 repos:
-# For some tools, we install them locally (in the virtualenv).
-# This makes it easier to use them directly (as opposed to pre-commit run),
-# and it's also faster as pre-commit doesn't have to manage them.
-# The thing we lose here is autoupdate, but we have git hooks that
-# let you know when requirements-pre-commit.txt changes.
+# Many of these hooks are local because people use a variety of IDEs
+# with autoformatters that need to call out to things like `black` directly.
+# pre-commit run is not the same, and something like pre-commit exec does
+# not exist yet.
 -   repo: local
     hooks:
     - id: pyupgrade
@@ -26,9 +25,6 @@ repos:
       args: ['--py38-plus', '--keep-runtime-typing']
       language: system
       types: [python]
-      # We can't change this mock to unittest.mock until Python 3.8,
-      # refer to the comment in this file.
-      exclude: 'src/sentry/utils/compat/mock.py'
     # Configuration for black exists in pyproject.toml,
     # but we let pre-commit take care of the file filtering.
     - id: black
@@ -36,6 +32,7 @@ repos:
       entry: black
       language: system
       types: [python]
+      require_serial: true
     # Configuration for isort exists in pyproject.toml,
     # but we let pre-commit take care of the file filtering.
     - id: isort
@@ -54,15 +51,17 @@ repos:
     - id: lint-requirements
       name: lint-requirements
       entry: bin/lint-requirements
-      language: system
+      language: python
       files: requirements-base.txt
       pass_filenames: false
+      additional_dependencies: [packaging==21.3]
     - id: pyright
       name: pyright
       entry: pyright
       language: node
+      files: ^src/
       types: [ python ]
-      pass_filenames: true
+      require_serial: true
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
 
@@ -83,4 +82,5 @@ repos:
       exclude_types: [svg]
     - id: trailing-whitespace
       exclude_types: [svg]
+      exclude: ^scripts/patches/
     - id: debug-statements

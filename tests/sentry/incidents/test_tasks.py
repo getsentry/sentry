@@ -29,6 +29,7 @@ from sentry.incidents.tasks import (
     handle_trigger_action,
     send_subscriber_notifications,
 )
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
@@ -214,7 +215,13 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
 
     def build_subscription_update(self):
         timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
-        data = {"count": 100}
+        data = {
+            "count": 100,
+            resolve_tag_key(self.organization.id, "session.status"): resolve(
+                self.organization.id, "healthy"
+            ),
+            "value": 2.0,
+        }
         values = {"data": [data]}
         return {
             "subscription_id": self.subscription.subscription_id,

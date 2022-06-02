@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import ActivityAvatar from 'sentry/components/activity/item/avatar';
@@ -134,7 +133,7 @@ const DateSelected = styled('div')`
 `;
 
 const DateStatus = styled('span')`
-  color: ${p => p.theme.purple300};
+  color: ${p => p.theme.subText};
   padding-left: ${space(1)};
 `;
 

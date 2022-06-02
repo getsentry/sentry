@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'sentry/components/acl/access';
@@ -98,7 +98,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Title>Permissions</Title>
         {permissions.read.length > 0 && (
           <Permission>
@@ -134,7 +134,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
             </Text>
           </Permission>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -155,7 +155,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
     const featureProps = {organization, features};
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Heading>
           <SentryAppIcon sentryApp={sentryApp} size={50} />
           <HeadingInfo>
@@ -167,7 +167,7 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
         <FeatureList {...featureProps} provider={{...sentryApp, key: sentryApp.slug}} />
         <IntegrationFeatures {...featureProps}>
           {({disabled, disabledReason}) => (
-            <React.Fragment>
+            <Fragment>
               {!disabled && this.renderPermissions()}
               <Footer>
                 <Author>{t('Authored By %s', sentryApp.author)}</Author>
@@ -195,10 +195,10 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
                   </Access>
                 </div>
               </Footer>
-            </React.Fragment>
+            </Fragment>
           )}
         </IntegrationFeatures>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

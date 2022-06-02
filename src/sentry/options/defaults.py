@@ -29,7 +29,7 @@ register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK)
-register("system.maximum-file-size", default=2 ** 31, flags=FLAG_PRIORITIZE_DISK)
+register("system.maximum-file-size", default=2**31, flags=FLAG_PRIORITIZE_DISK)
 
 # Redis
 register(
@@ -67,7 +67,7 @@ register("mail.username", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITI
 register("mail.password", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.use-tls", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.use-ssl", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
-register("mail.subject-prefix", default="[Sentry] ", flags=FLAG_PRIORITIZE_DISK)
+register("mail.subject-prefix", default="[Sentry]", flags=FLAG_PRIORITIZE_DISK)
 register("mail.from", default="root@localhost", flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
 register("mail.enable-replies", default=False, flags=FLAG_PRIORITIZE_DISK)
@@ -204,6 +204,8 @@ register("aws-lambda.python.layer-name", default="SentryPythonServerlessSDK")
 register("aws-lambda.python.layer-version")
 # the region of the host account we use for assuming the role
 register("aws-lambda.host-region", default="us-east-2")
+# the number of threads we should use to install Lambdas
+register("aws-lambda.thread-count", default=100)
 
 # Snuba
 register("snuba.search.pre-snuba-candidates-optimizer", type=Bool, default=False)
@@ -384,3 +386,15 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
+
+# Send event messages for specific project IDs to random partitions in Kafka
+# contents are a list of project IDs to message types to be randomly assigned
+# e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
+register("kafka.send-project-events-to-random-partitions", default=[])
+
+# Rate to project_configs_v3
+register("relay.project-config-v3-enable", default=0.0)
+
+# Mechanism for dialing up the last-seen-updater, which isn't needed outside
+# of SaaS (last_seen is a marker for deleting stale customer data)
+register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)

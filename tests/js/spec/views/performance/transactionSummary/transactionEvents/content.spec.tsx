@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {act} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -9,6 +10,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
   WebVital,
 } from 'sentry/utils/discover/fields';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import EventsPageContent from 'sentry/views/performance/transactionSummary/transactionEvents/content';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
@@ -38,7 +40,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
     project: 1,
     projects: [],
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
   return initialData;
 }
 
@@ -50,7 +52,7 @@ describe('Performance Transaction Events Content', function () {
   let eventView;
   let initialData;
   const query =
-    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
+    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
     transactionName = 'transactionName';
     fields = [
@@ -108,19 +110,21 @@ describe('Performance Transaction Events Content', function () {
     ];
     // Transaction list response
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       headers: {
         Link:
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
       body: {
         meta: {
-          id: 'string',
-          'user.display': 'string',
-          'transaction.duration': 'duration',
-          'project.id': 'integer',
-          timestamp: 'date',
+          fields: {
+            id: 'string',
+            'user.display': 'string',
+            'transaction.duration': 'duration',
+            'project.id': 'integer',
+            timestamp: 'date',
+          },
         },
         data,
       },
@@ -157,24 +161,26 @@ describe('Performance Transaction Events Content', function () {
 
   it('basic rendering', async function () {
     const wrapper = mountWithTheme(
-      <EventsPageContent
-        eventView={eventView}
-        organization={organization}
-        location={initialData.router.location}
-        transactionName={transactionName}
-        spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-        onChangeSpanOperationBreakdownFilter={() => {}}
-        eventsDisplayFilterName={EventsDisplayFilterName.p100}
-        onChangeEventsDisplayFilter={() => {}}
-        setError={() => {}}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <EventsPageContent
+          eventView={eventView}
+          organization={organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          onChangeEventsDisplayFilter={() => {}}
+          setError={() => {}}
+        />
+      </OrganizationContext.Provider>,
       initialData.routerContext
     );
     await tick();
     wrapper.update();
 
     expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('SearchRowMenuItem')).toHaveLength(2);
+    expect(wrapper.find('DropdownControl')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
 
@@ -191,25 +197,27 @@ describe('Performance Transaction Events Content', function () {
 
   it('rendering with webvital selected', async function () {
     const wrapper = mountWithTheme(
-      <EventsPageContent
-        eventView={eventView}
-        organization={organization}
-        location={initialData.router.location}
-        transactionName={transactionName}
-        spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
-        onChangeSpanOperationBreakdownFilter={() => {}}
-        eventsDisplayFilterName={EventsDisplayFilterName.p100}
-        onChangeEventsDisplayFilter={() => {}}
-        webVital={WebVital.LCP}
-        setError={() => {}}
-      />,
+      <OrganizationContext.Provider value={organization}>
+        <EventsPageContent
+          eventView={eventView}
+          organization={organization}
+          location={initialData.router.location}
+          transactionName={transactionName}
+          spanOperationBreakdownFilter={SpanOperationBreakdownFilter.None}
+          onChangeSpanOperationBreakdownFilter={() => {}}
+          eventsDisplayFilterName={EventsDisplayFilterName.p100}
+          onChangeEventsDisplayFilter={() => {}}
+          webVital={WebVital.LCP}
+          setError={() => {}}
+        />
+      </OrganizationContext.Provider>,
       initialData.routerContext
     );
     await tick();
     wrapper.update();
 
     expect(wrapper.find('EventsTable')).toHaveLength(1);
-    expect(wrapper.find('SearchRowMenuItem')).toHaveLength(2);
+    expect(wrapper.find('DropdownControl')).toHaveLength(1);
     expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
     expect(wrapper.find('Filter')).toHaveLength(1);
 

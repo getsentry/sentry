@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -54,14 +55,23 @@ class SavedSearch(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_savedsearch"
-        # Note that we also have a partial unique constraint on:
-        #   (organization_id, name, type) WHERE owner_id IS NULL
-        #   (is_global, name) WHERE is_global
         unique_together = (
             ("project", "name"),
             # Each user can have one default search per org
             ("organization", "owner", "type"),
         )
+        constraints = [
+            UniqueConstraint(
+                fields=["organization", "name", "type"],
+                condition=Q(owner__isnull=True),
+                name="sentry_savedsearch_is_global_6793a2f9e1b59b95",
+            ),
+            UniqueConstraint(
+                fields=["is_global", "name"],
+                condition=Q(is_global=True),
+                name="sentry_savedsearch_organization_id_313a24e907cdef99",
+            ),
+        ]
 
     @property
     def is_pinned(self):

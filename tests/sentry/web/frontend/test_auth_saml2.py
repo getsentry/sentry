@@ -8,9 +8,11 @@ from django.db import models
 from django.urls import reverse
 from exam import fixture
 
+from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
+from sentry.auth.helper import AuthHelperSessionStore
 from sentry.auth.providers.saml2.provider import HAS_SAML2, Attributes, SAML2Provider
-from sentry.models import AuditLogEntry, AuditLogEntryEvent, AuthProvider, Organization
+from sentry.models import AuditLogEntry, AuthProvider, Organization
 from sentry.testutils import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 
@@ -119,6 +121,24 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert auth.status_code == 200
         assert auth.context["existing_user"] == self.user
 
+    def test_auth_idp_initiated_invalid_flow_from_session(self):
+        original_is_valid = AuthHelperSessionStore.is_valid
+
+        def side_effect(self):
+            self.flow = None
+            assert original_is_valid(self) is False
+            return False
+
+        with mock.patch(
+            "sentry.auth.helper.AuthHelperSessionStore.is_valid",
+            side_effect=side_effect,
+            autospec=True,
+        ):
+            auth = self.accept_auth()
+
+        assert auth.status_code == 200
+        assert auth.context["existing_user"] == self.user
+
     @mock.patch("sentry.auth.helper.logger")
     def test_auth_setup(self, auth_log):
         self.auth_provider.delete()
@@ -146,9 +166,10 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert not org.flags.require_2fa.is_set
 
         event = AuditLogEntry.objects.get(
-            target_object=org.id, event=AuditLogEntryEvent.ORG_EDIT, actor=self.user
+            target_object=org.id, event=audit_log.get_event_id("ORG_EDIT"), actor=self.user
         )
-        assert "require_2fa to False when enabling SSO" in event.get_note()
+        audit_log_event = audit_log.get(event.event)
+        assert "require_2fa to False when enabling SSO" in audit_log_event.render(event)
         auth_log.info.assert_called_once_with(
             "Require 2fa disabled during sso setup", extra={"organization_id": self.org.id}
         )

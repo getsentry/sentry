@@ -99,14 +99,12 @@ const ApplicationNameWrapper = styled('div')`
 `;
 
 const ApplicationName = styled(Link)`
-  font-size: ${p => p.theme.headerFontSize};
-  font-weight: bold;
-  margin-bottom: ${space(0.5)};
+  margin-bottom: ${space(1)};
 `;
 
 const ClientId = styled('div')`
-  color: ${p => p.theme.gray200};
-  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export default Row;

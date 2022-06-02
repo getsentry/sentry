@@ -133,6 +133,14 @@ def _dist_count_aggregation_on_tx_satisfaction_factory(
     )
 
 
+def _set_count_aggregation_on_tx_satisfaction_factory(
+    org_id, satisfaction: str, metric_ids, alias=None
+):
+    return _aggregation_on_tx_satisfaction_func_factory("uniqIf")(
+        org_id=org_id, satisfaction_value=satisfaction, metric_ids=metric_ids, alias=alias
+    )
+
+
 def all_sessions(org_id: int, metric_ids, alias=None):
     return _counter_sum_aggregation_on_session_status_factory(
         org_id, session_status="init", metric_ids=metric_ids, alias=alias
@@ -140,9 +148,7 @@ def all_sessions(org_id: int, metric_ids, alias=None):
 
 
 def all_users(org_id: int, metric_ids, alias=None):
-    return _set_uniq_aggregation_on_session_status_factory(
-        org_id, session_status="init", metric_ids=metric_ids, alias=alias
-    )
+    return uniq_aggregation_on_metric(metric_ids, alias)
 
 
 def crashed_sessions(org_id: int, metric_ids, alias=None):
@@ -181,7 +187,7 @@ def errored_all_users(org_id: int, metric_ids, alias=None):
     )
 
 
-def sessions_errored_set(metric_ids, alias=None):
+def uniq_aggregation_on_metric(metric_ids, alias=None):
     return Function(
         "uniqIf",
         [
@@ -241,8 +247,13 @@ def apdex(satifactory_snql, tolerable_snql, total_snql, alias=None):
     )
 
 
-def percentage(arg1_snql, arg2_snql, alias=None):
-    return Function("minus", [1, Function("divide", [arg1_snql, arg2_snql])], alias)
+def miserable_users(org_id, metric_ids, alias=None):
+    return _set_count_aggregation_on_tx_satisfaction_factory(
+        org_id=org_id,
+        satisfaction=TransactionSatisfactionTagValue.FRUSTRATED.value,
+        metric_ids=metric_ids,
+        alias=alias,
+    )
 
 
 def subtraction(arg1_snql, arg2_snql, alias=None):
@@ -261,6 +272,11 @@ def division_float(arg1_snql, arg2_snql, alias=None):
         [arg1_snql, arg2_snql],
         alias=alias,
     )
+
+
+def complement(arg1_snql, alias=None):
+    """(x) -> (1 - x)"""
+    return Function("minus", [1.0, arg1_snql], alias=alias)
 
 
 def session_duration_filters(org_id):

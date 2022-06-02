@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import ErrorLevel from 'sentry/components/events/errorLevel';

@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 
+from sentry import audit_log
 from sentry.api.endpoints.project_details import (
     DynamicSamplingConditionSerializer,
     DynamicSamplingSerializer,
@@ -10,7 +11,6 @@ from sentry.api.endpoints.project_details import (
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.models import (
     AuditLogEntry,
-    AuditLogEntryEvent,
     DeletedProject,
     EnvironmentProject,
     Integration,
@@ -72,6 +72,11 @@ def _remove_ids_from_dynamic_rules(dynamic_rules):
     return dynamic_rules
 
 
+def first_symbol_source_id(sources_json):
+    sources = json.loads(sources_json)
+    return sources[0]["id"]
+
+
 class ProjectDetailsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
 
@@ -79,7 +84,7 @@ class ProjectDetailsTest(APITestCase):
         project = self.project  # force creation
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(project.organization.slug, project.slug)
+        response = self.get_success_response(project.organization.slug, project.slug)
         assert response.data["id"] == str(project.id)
 
     def test_numeric_org_slug(self):
@@ -100,7 +105,7 @@ class ProjectDetailsTest(APITestCase):
         self.create_group(project=project)
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             project.organization.slug, project.slug, qs_params={"include": "stats"}
         )
         assert response.data["stats"]["unresolved"] == 1
@@ -113,7 +118,7 @@ class ProjectDetailsTest(APITestCase):
         self.create_group(project=project)
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             project.organization.slug,
             project.slug,
             qs_params={"expand": "hasAlertIntegration"},
@@ -128,7 +133,7 @@ class ProjectDetailsTest(APITestCase):
         self.create_group(project=project)
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             project.organization.slug, project.slug, qs_params={"expand": "hasAlertIntegration"}
         )
         assert not response.data["hasAlertIntegrationInstalled"]
@@ -138,7 +143,7 @@ class ProjectDetailsTest(APITestCase):
         project.update_option("sentry:dynamic_sampling", _dyn_sampling_data())
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(project.organization.slug, project.slug)
+        response = self.get_success_response(project.organization.slug, project.slug)
         assert response.data["dynamicSampling"] == _dyn_sampling_data()
 
     def test_project_renamed_302(self):
@@ -146,20 +151,22 @@ class ProjectDetailsTest(APITestCase):
         self.login_as(user=self.user)
 
         # Rename the project
-        self.get_valid_response(
+        self.get_success_response(
             project.organization.slug, project.slug, method="put", slug="foobar"
         )
 
-        response = self.get_valid_response(project.organization.slug, project.slug, status_code=302)
+        response = self.get_success_response(
+            project.organization.slug, project.slug, status_code=302
+        )
         assert (
             AuditLogEntry.objects.get(
-                organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+                organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
             ).data.get("old_slug")
             == project.slug
         )
         assert (
             AuditLogEntry.objects.get(
-                organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+                organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
             ).data.get("new_slug")
             == "foobar"
         )
@@ -184,7 +191,7 @@ class ProjectDetailsTest(APITestCase):
         ProjectRedirect.record(other_project, "old_slug")
         self.login_as(user=user)
 
-        self.get_valid_response(other_org.slug, "old_slug", status_code=403)
+        self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
 class ProjectUpdateTest(APITestCase):
@@ -201,11 +208,11 @@ class ProjectUpdateTest(APITestCase):
         project = Project.objects.get(id=self.project.id)
         options = {"mail:subject_prefix": "[Sentry]"}
 
-        self.get_valid_response(self.org_slug, self.proj_slug, options=options)
+        self.get_success_response(self.org_slug, self.proj_slug, options=options)
         assert project.get_option("mail:subject_prefix") == "[Sentry]"
 
         options["mail:subject_prefix"] = ""
-        self.get_valid_response(self.org_slug, self.proj_slug, options=options)
+        self.get_success_response(self.org_slug, self.proj_slug, options=options)
         assert project.get_option("mail:subject_prefix") == ""
 
     def test_simple_member_restriction(self):
@@ -219,7 +226,7 @@ class ProjectUpdateTest(APITestCase):
         )
         self.login_as(user)
 
-        self.get_valid_response(
+        self.get_error_response(
             self.org_slug,
             self.proj_slug,
             slug="zzz",
@@ -239,7 +246,7 @@ class ProjectUpdateTest(APITestCase):
         )
         self.login_as(user=user)
 
-        self.get_valid_response(
+        self.get_error_response(
             self.org_slug,
             self.proj_slug,
             slug="zzz",
@@ -252,22 +259,22 @@ class ProjectUpdateTest(APITestCase):
         assert not ProjectBookmark.objects.filter(user=user, project_id=project.id).exists()
 
     def test_name(self):
-        self.get_valid_response(self.org_slug, self.proj_slug, name="hello world")
+        self.get_success_response(self.org_slug, self.proj_slug, name="hello world")
         project = Project.objects.get(id=self.project.id)
         assert project.name == "hello world"
 
     def test_slug(self):
-        self.get_valid_response(self.org_slug, self.proj_slug, slug="foobar")
+        self.get_success_response(self.org_slug, self.proj_slug, slug="foobar")
         project = Project.objects.get(id=self.project.id)
         assert project.slug == "foobar"
         assert ProjectRedirect.objects.filter(project=self.project, redirect_slug=self.proj_slug)
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
 
     def test_invalid_slug(self):
         new_project = self.create_project()
-        self.get_valid_response(
+        self.get_error_response(
             self.org_slug,
             self.proj_slug,
             slug=new_project.slug,
@@ -277,7 +284,7 @@ class ProjectUpdateTest(APITestCase):
         assert project.slug != new_project.slug
 
     def test_reserved_slug(self):
-        self.get_valid_response(
+        self.get_error_response(
             self.org_slug,
             self.proj_slug,
             slug=list(RESERVED_PROJECT_SLUGS)[0],
@@ -285,12 +292,12 @@ class ProjectUpdateTest(APITestCase):
         )
 
     def test_platform(self):
-        self.get_valid_response(self.org_slug, self.proj_slug, platform="python")
+        self.get_success_response(self.org_slug, self.proj_slug, platform="python")
         project = Project.objects.get(id=self.project.id)
         assert project.platform == "python"
 
     def test_platform_invalid(self):
-        self.get_valid_response(self.org_slug, self.proj_slug, platform="lol", status_code=400)
+        self.get_error_response(self.org_slug, self.proj_slug, platform="lol", status_code=400)
 
     def test_options(self):
         options = {
@@ -316,24 +323,24 @@ class ProjectUpdateTest(APITestCase):
             "sentry:verify_ssl": False,
         }
         with self.feature("projects:custom-inbound-filters"):
-            self.get_valid_response(self.org_slug, self.proj_slug, options=options)
+            self.get_success_response(self.org_slug, self.proj_slug, options=options)
 
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:origins", []) == options["sentry:origins"].split("\n")
         assert project.get_option("sentry:resolve_age", 0) == options["sentry:resolve_age"]
         assert project.get_option("sentry:scrub_data", True) == options["sentry:scrub_data"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:scrub_defaults", True) == options["sentry:scrub_defaults"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:sensitive_fields", []) == options["sentry:sensitive_fields"]
         )
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:safe_fields", []) == options["sentry:safe_fields"]
         assert (
@@ -346,7 +353,7 @@ class ProjectUpdateTest(APITestCase):
         )
         assert project.get_option("sentry:grouping_config", "") == options["sentry:grouping_config"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:csp_ignored_sources_defaults", True)
@@ -363,51 +370,51 @@ class ProjectUpdateTest(APITestCase):
         ]
         assert project.get_option("mail:subject_prefix", "[Sentry]")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:resolve_age", 1)
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:scrub_ip_address", True)
             == options["sentry:scrub_ip_address"]
         )
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:origins", "*")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert (
             project.get_option("sentry:scrape_javascript", False)
             == options["sentry:scrape_javascript"]
         )
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:token", "*")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:token_header", "*")
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
         assert project.get_option("sentry:verify_ssl", False) == options["sentry:verify_ssl"]
         assert AuditLogEntry.objects.filter(
-            organization=project.organization, event=AuditLogEntryEvent.PROJECT_EDIT
+            organization=project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
         ).exists()
 
     def test_bookmarks(self):
-        self.get_valid_response(self.org_slug, self.proj_slug, isBookmarked="false")
+        self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")
         assert not ProjectBookmark.objects.filter(
             project_id=self.project.id, user=self.user
         ).exists()
 
     def test_subscription(self):
-        self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="true")
+        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="true")
         value0 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
@@ -416,7 +423,7 @@ class ProjectUpdateTest(APITestCase):
         )
         assert value0 == NotificationSettingOptionValues.ALWAYS
 
-        self.get_valid_response(self.org_slug, self.proj_slug, isSubscribed="false")
+        self.get_success_response(self.org_slug, self.proj_slug, isSubscribed="false")
         value1 = NotificationSetting.objects.get_settings(
             provider=ExternalProviders.EMAIL,
             type=NotificationSettingTypes.ISSUE_ALERTS,
@@ -426,72 +433,72 @@ class ProjectUpdateTest(APITestCase):
         assert value1 == NotificationSettingOptionValues.NEVER
 
     def test_security_token(self):
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
+        resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
         assert self.project.get_security_token() == "fizzbuzz"
         assert resp.data["securityToken"] == "fizzbuzz"
 
         # can delete
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, securityToken="")
+        resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="")
         assert self.project.get_security_token() == ""
         assert resp.data["securityToken"] == ""
 
     def test_security_token_header(self):
         value = "X-Hello-World"
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader=value)
         assert self.project.get_option("sentry:token_header") == "X-Hello-World"
         assert resp.data["securityTokenHeader"] == "X-Hello-World"
 
         # can delete
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, securityTokenHeader="")
+        resp = self.get_success_response(self.org_slug, self.proj_slug, securityTokenHeader="")
         assert self.project.get_option("sentry:token_header") == ""
         assert resp.data["securityTokenHeader"] == ""
 
     def test_verify_ssl(self):
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, verifySSL=False)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, verifySSL=False)
         assert self.project.get_option("sentry:verify_ssl") is False
         assert resp.data["verifySSL"] is False
 
     def test_scrub_ip_address(self):
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, scrubIPAddresses=True)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, scrubIPAddresses=True)
         assert self.project.get_option("sentry:scrub_ip_address") is True
         assert resp.data["scrubIPAddresses"] is True
 
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, scrubIPAddresses=False)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, scrubIPAddresses=False)
         assert self.project.get_option("sentry:scrub_ip_address") is False
         assert resp.data["scrubIPAddresses"] is False
 
     def test_scrape_javascript(self):
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, scrapeJavaScript=False)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, scrapeJavaScript=False)
         assert self.project.get_option("sentry:scrape_javascript") is False
         assert resp.data["scrapeJavaScript"] is False
 
     def test_default_environment(self):
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, defaultEnvironment="dev")
+        resp = self.get_success_response(self.org_slug, self.proj_slug, defaultEnvironment="dev")
         assert self.project.get_option("sentry:default_environment") == "dev"
         assert resp.data["defaultEnvironment"] == "dev"
 
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, defaultEnvironment="")
+        resp = self.get_success_response(self.org_slug, self.proj_slug, defaultEnvironment="")
         assert self.project.get_option("sentry:default_environment") == ""
         assert resp.data["defaultEnvironment"] == ""
 
     def test_resolve_age(self):
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, resolveAge=5)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, resolveAge=5)
         assert self.project.get_option("sentry:resolve_age") == 5
         assert resp.data["resolveAge"] == 5
 
         # can set to 0 or delete
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, resolveAge="")
+        resp = self.get_success_response(self.org_slug, self.proj_slug, resolveAge="")
         assert self.project.get_option("sentry:resolve_age") == 0
         assert resp.data["resolveAge"] == 0
 
     def test_allowed_domains(self):
         value = ["foobar.com", "https://example.com"]
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, allowedDomains=value)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, allowedDomains=value)
         assert self.project.get_option("sentry:origins") == ["foobar.com", "https://example.com"]
         assert resp.data["allowedDomains"] == ["foobar.com", "https://example.com"]
 
         # cannot be empty
-        resp = self.get_valid_response(
+        resp = self.get_error_response(
             self.org_slug, self.proj_slug, allowedDomains="", status_code=400
         )
         assert self.project.get_option("sentry:origins") == ["foobar.com", "https://example.com"]
@@ -499,7 +506,7 @@ class ProjectUpdateTest(APITestCase):
             "Empty value will block all requests, use * to accept from all domains"
         ]
 
-        resp = self.get_valid_response(
+        resp = self.get_success_response(
             self.org_slug,
             self.proj_slug,
             allowedDomains=["*", ""],
@@ -509,7 +516,7 @@ class ProjectUpdateTest(APITestCase):
 
     def test_safe_fields(self):
         value = ["foobar.com", "https://example.com"]
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, safeFields=value)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, safeFields=value)
         assert self.project.get_option("sentry:safe_fields") == [
             "foobar.com",
             "https://example.com",
@@ -517,7 +524,7 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["safeFields"] == ["foobar.com", "https://example.com"]
 
     def test_store_crash_reports(self):
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, storeCrashReports=10)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, storeCrashReports=10)
         assert self.project.get_option("sentry:store_crash_reports") == 10
         assert resp.data["storeCrashReports"] == 10
 
@@ -531,13 +538,13 @@ class ProjectUpdateTest(APITestCase):
 
     def test_relay_pii_config(self):
         value = '{"applications": {"freeform": []}}'
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, relayPiiConfig=value)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, relayPiiConfig=value)
         assert self.project.get_option("sentry:relay_pii_config") == value
         assert resp.data["relayPiiConfig"] == value
 
     def test_sensitive_fields(self):
         value = ["foobar.com", "https://example.com"]
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, sensitiveFields=value)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, sensitiveFields=value)
         assert self.project.get_option("sentry:sensitive_fields") == [
             "foobar.com",
             "https://example.com",
@@ -545,34 +552,34 @@ class ProjectUpdateTest(APITestCase):
         assert resp.data["sensitiveFields"] == ["foobar.com", "https://example.com"]
 
     def test_data_scrubber(self):
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, dataScrubber=False)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, dataScrubber=False)
         assert self.project.get_option("sentry:scrub_data") is False
         assert resp.data["dataScrubber"] is False
 
     def test_data_scrubber_defaults(self):
-        resp = self.get_valid_response(self.org_slug, self.proj_slug, dataScrubberDefaults=False)
+        resp = self.get_success_response(self.org_slug, self.proj_slug, dataScrubberDefaults=False)
         assert self.project.get_option("sentry:scrub_defaults") is False
         assert resp.data["dataScrubberDefaults"] is False
 
     def test_digests_delay(self):
-        self.get_valid_response(self.org_slug, self.proj_slug, digestsMinDelay=1000)
+        self.get_success_response(self.org_slug, self.proj_slug, digestsMinDelay=1000)
         assert self.project.get_option("digests:mail:minimum_delay") == 1000
 
-        self.get_valid_response(self.org_slug, self.proj_slug, digestsMaxDelay=1200)
+        self.get_success_response(self.org_slug, self.proj_slug, digestsMaxDelay=1200)
         assert self.project.get_option("digests:mail:maximum_delay") == 1200
 
-        self.get_valid_response(
+        self.get_success_response(
             self.org_slug, self.proj_slug, digestsMinDelay=300, digestsMaxDelay=600
         )
         assert self.project.get_option("digests:mail:minimum_delay") == 300
         assert self.project.get_option("digests:mail:maximum_delay") == 600
 
     def test_digests_min_without_max(self):
-        self.get_valid_response(self.org_slug, self.proj_slug, digestsMinDelay=1200)
+        self.get_success_response(self.org_slug, self.proj_slug, digestsMinDelay=1200)
         assert self.project.get_option("digests:mail:minimum_delay") == 1200
 
     def test_digests_max_without_min(self):
-        self.get_valid_response(self.org_slug, self.proj_slug, digestsMaxDelay=1200)
+        self.get_success_response(self.org_slug, self.proj_slug, digestsMaxDelay=1200)
         assert self.project.get_option("digests:mail:maximum_delay") == 1200
 
     def test_invalid_digests_min_delay(self):
@@ -580,8 +587,8 @@ class ProjectUpdateTest(APITestCase):
 
         self.project.update_option("digests:mail:minimum_delay", min_delay)
 
-        self.get_valid_response(self.org_slug, self.proj_slug, digestsMinDelay=59, status_code=400)
-        self.get_valid_response(
+        self.get_error_response(self.org_slug, self.proj_slug, digestsMinDelay=59, status_code=400)
+        self.get_error_response(
             self.org_slug, self.proj_slug, digestsMinDelay=3601, status_code=400
         )
 
@@ -594,26 +601,26 @@ class ProjectUpdateTest(APITestCase):
         self.project.update_option("digests:mail:minimum_delay", min_delay)
         self.project.update_option("digests:mail:maximum_delay", max_delay)
 
-        self.get_valid_response(self.org_slug, self.proj_slug, digestsMaxDelay=59, status_code=400)
-        self.get_valid_response(
+        self.get_error_response(self.org_slug, self.proj_slug, digestsMaxDelay=59, status_code=400)
+        self.get_error_response(
             self.org_slug, self.proj_slug, digestsMaxDelay=3601, status_code=400
         )
 
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
         # test sending only max
-        self.get_valid_response(self.org_slug, self.proj_slug, digestsMaxDelay=100, status_code=400)
+        self.get_error_response(self.org_slug, self.proj_slug, digestsMaxDelay=100, status_code=400)
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
         # test sending min + invalid max
-        self.get_valid_response(
+        self.get_error_response(
             self.org_slug, self.proj_slug, digestsMinDelay=120, digestsMaxDelay=100, status_code=400
         )
         assert self.project.get_option("digests:mail:minimum_delay") == min_delay
         assert self.project.get_option("digests:mail:maximum_delay") == max_delay
 
     def test_dynamic_sampling_requires_feature_enabled(self):
-        self.get_valid_response(
+        self.get_error_response(
             self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data(), status_code=403
         )
 
@@ -622,7 +629,7 @@ class ProjectUpdateTest(APITestCase):
         Test that we can set sampling rules
         """
         with Feature({"organizations:filters-and-sampling": True}):
-            self.get_valid_response(
+            self.get_success_response(
                 self.org_slug, self.proj_slug, dynamicSampling=_dyn_sampling_data()
             )
         original_config = _dyn_sampling_data()
@@ -646,8 +653,8 @@ class ProjectUpdateTest(APITestCase):
         """
         data = _dyn_sampling_data()
         with Feature({"organizations:filters-and-sampling": True}):
-            self.get_valid_response(self.org_slug, self.proj_slug, dynamicSampling=data)
-            response = self.get_valid_response(self.org_slug, self.proj_slug, method="get")
+            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=data)
+            response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = _remove_ids_from_dynamic_rules(response.data["dynamicSampling"])
         original_data = _remove_ids_from_dynamic_rules(data)
         assert saved_config == original_data
@@ -694,8 +701,8 @@ class ProjectUpdateTest(APITestCase):
             ]
         }
         with Feature({"organizations:filters-and-sampling": True}):
-            self.get_valid_response(self.org_slug, self.proj_slug, dynamicSampling=config)
-        response = self.get_valid_response(self.org_slug, self.proj_slug, method="get")
+            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=config)
+        response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = response.data["dynamicSampling"]
         next_id = saved_config["next_id"]
         id1 = saved_config["rules"][0]["id"]
@@ -740,8 +747,8 @@ class ProjectUpdateTest(APITestCase):
             # turn it back from ordered dict to dict (both main obj and rules)
             saved_config = dict(saved_config)
             saved_config["rules"] = [dict(rule) for rule in saved_config["rules"]]
-            self.get_valid_response(self.org_slug, self.proj_slug, dynamicSampling=saved_config)
-        response = self.get_valid_response(self.org_slug, self.proj_slug, method="get")
+            self.get_success_response(self.org_slug, self.proj_slug, dynamicSampling=saved_config)
+        response = self.get_success_response(self.org_slug, self.proj_slug, method="get")
         saved_config = response.data["dynamicSampling"]
         new_ids = [rule["id"] for rule in saved_config["rules"]]
         # first rule is new, second rule got a new id because it is changed,
@@ -757,20 +764,20 @@ class ProjectUpdateTest(APITestCase):
         assert response.status_code == 400
 
         expiry = int(now + 3600 * 24 * 1)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
         )
         assert response.data["secondaryGroupingExpiry"] == expiry
 
         expiry = int(now + 3600 * 24 * 89)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
         )
         assert response.data["secondaryGroupingExpiry"] == expiry
 
         # Larger timestamps are capped to 91 days:
         expiry = int(now + 3600 * 24 * 365)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             self.org_slug, self.proj_slug, secondaryGroupingExpiry=expiry
         )
         expiry = response.data["secondaryGroupingExpiry"]
@@ -793,9 +800,11 @@ class ProjectUpdateTest(APITestCase):
                 "username": "honkhonk",
                 "password": "beepbeep",
             }
-            self.get_valid_response(
+            self.get_success_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
             )
+            config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
+
             assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
 
             # redact password
@@ -807,7 +816,7 @@ class ProjectUpdateTest(APITestCase):
             call = faux.faux(create_audit_entry)
             assert call.kwarg_equals("data", {"sentry:symbol_sources": [redacted_source]})
 
-            self.get_valid_response(
+            self.get_success_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([redacted_source])
             )
             # on save the magic object should be replaced with the previously set password
@@ -830,9 +839,11 @@ class ProjectUpdateTest(APITestCase):
                 "username": "honkhonk",
                 "password": "beepbeep",
             }
-            self.get_valid_response(
+            self.get_success_response(
                 self.org_slug, self.proj_slug, symbolSources=json.dumps([config])
             )
+            config["id"] = first_symbol_source_id(self.project.get_option("sentry:symbol_sources"))
+
             assert self.project.get_option("sentry:symbol_sources") == json.dumps([config])
 
             # prepare new call, this secret is not known
@@ -981,7 +992,7 @@ class CopyProjectSettingsTest(APITestCase):
 
     def test_simple(self):
         project = self.create_project()
-        self.get_valid_response(
+        self.get_success_response(
             project.organization.slug, project.slug, copy_from_project=self.other_project.id
         )
         self.assert_settings_copied(project)
@@ -996,7 +1007,7 @@ class CopyProjectSettingsTest(APITestCase):
             "sentry:scrub_data": True,
             "sentry:scrub_defaults": True,
         }
-        self.get_valid_response(project.organization.slug, project.slug, **data)
+        self.get_success_response(project.organization.slug, project.slug, **data)
         self.assert_settings_copied(project)
         self.assert_other_project_settings_not_changed()
 
@@ -1005,7 +1016,7 @@ class CopyProjectSettingsTest(APITestCase):
         other_project = self.create_project(
             organization=self.create_organization(), fire_project_created=True
         )
-        resp = self.get_valid_response(
+        resp = self.get_error_response(
             project.organization.slug,
             project.slug,
             copy_from_project=other_project.id,
@@ -1017,7 +1028,7 @@ class CopyProjectSettingsTest(APITestCase):
 
     def test_project_does_not_exist(self):
         project = self.create_project(fire_project_created=True)
-        resp = self.get_valid_response(
+        resp = self.get_error_response(
             project.organization.slug, project.slug, copy_from_project=1234567890, status_code=400
         )
         assert resp.data == {"copy_from_project": ["Project to copy settings from not found."]}
@@ -1034,7 +1045,7 @@ class CopyProjectSettingsTest(APITestCase):
 
         self.organization.flags.allow_joinleave = False
         self.organization.save()
-        resp = self.get_valid_response(
+        resp = self.get_error_response(
             project.organization.slug,
             project.slug,
             copy_from_project=self.other_project.id,
@@ -1065,7 +1076,7 @@ class CopyProjectSettingsTest(APITestCase):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
-        resp = self.get_valid_response(
+        resp = self.get_error_response(
             project.organization.slug,
             project.slug,
             copy_from_project=self.other_project.id,
@@ -1084,7 +1095,7 @@ class CopyProjectSettingsTest(APITestCase):
     def test_copy_project_settings_fails(self, mock_copy_settings_from):
         mock_copy_settings_from.return_value = False
         project = self.create_project(fire_project_created=True)
-        resp = self.get_valid_response(
+        resp = self.get_error_response(
             project.organization.slug,
             project.slug,
             copy_from_project=self.other_project.id,
@@ -1107,7 +1118,7 @@ class ProjectDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
         with self.settings(SENTRY_PROJECT=0):
-            self.get_valid_response(project.organization.slug, project.slug, status_code=204)
+            self.get_success_response(project.organization.slug, project.slug, status_code=204)
 
         assert ScheduledDeletion.objects.filter(model_name="Project", object_id=project.id).exists()
 
@@ -1127,7 +1138,7 @@ class ProjectDeleteTest(APITestCase):
         self.login_as(user=self.user)
 
         with self.settings(SENTRY_PROJECT=project.id):
-            self.get_valid_response(project.organization.slug, project.slug, status_code=403)
+            self.get_error_response(project.organization.slug, project.slug, status_code=403)
 
         assert not ScheduledDeletion.objects.filter(
             model_name="Project", object_id=project.id

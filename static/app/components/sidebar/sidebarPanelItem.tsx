@@ -1,36 +1,55 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
+import ExternalLink from 'sentry/components/links/externalLink';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import {t} from '../../locale';
-import ExternalLink from '../links/externalLink';
-
 type Props = {
+  /**
+   * Content rendered instaed the panel item
+   */
   children?: React.ReactNode;
+  /**
+   * The text for the CTA link at the bottom of the panel item
+   */
   cta?: string;
+  /**
+   * Has the item been seen? affects the styling of the panel item
+   */
   hasSeen?: boolean;
-  image?: string;
+  /**
+   * The URL to use for the CTA
+   */
   link?: string;
+  /**
+   * A message with muted styling which appears above the children content
+   */
   message?: React.ReactNode;
+  /**
+   * The title of the sidebar item
+   */
   title?: string;
+  /**
+   * Actions to the right of the title
+   */
+  titleAction?: React.ReactNode;
 };
 
 const SidebarPanelItem = ({
   hasSeen,
   title,
-  image,
   message,
   link,
   cta,
+  titleAction,
   children,
 }: Props) => (
   <SidebarPanelItemRoot>
-    {title && <Title hasSeen={hasSeen}>{title}</Title>}
-    {image && (
-      <ImageBox>
-        <img src={image} />
-      </ImageBox>
+    {title && (
+      <TitleWrapper>
+        <Title hasSeen={hasSeen}>{title}</Title>
+        {titleAction}
+      </TitleWrapper>
     )}
     {message && <Message>{message}</Message>}
 
@@ -54,10 +73,10 @@ const SidebarPanelItemRoot = styled('div')`
   padding: ${space(3)};
 `;
 
-const ImageBox = styled('div')`
-  border: 1px solid #e1e4e5;
-  padding: ${space(2)};
-  border-radius: 2px;
+const TitleWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  gap: ${space(1)};
 `;
 
 const Title = styled('div')<Pick<Props, 'hasSeen'>>`
@@ -72,7 +91,7 @@ const Title = styled('div')<Pick<Props, 'hasSeen'>>`
 `;
 
 const Text = styled('div')`
-  margin-bottom: ${space(0.5)};
+  margin: ${space(0.5)} 0;
 
   &:last-child {
     margin-bottom: 0;

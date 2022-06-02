@@ -12,7 +12,7 @@ export type GapSpanType = {
 };
 
 export type RawSpanType = {
-  data: Object;
+  data: Record<string, any>;
   span_id: string;
   start_timestamp: number;
   // this is essentially end_timestamp
@@ -76,6 +76,7 @@ export type SpanSiblingGroupProps = {
 type CommonEnhancedProcessedSpanType = {
   continuingTreeDepths: Array<TreeDepthType>;
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
+  isEmbeddedTransactionTimeAdjusted: boolean;
   isLastSibling: boolean;
   numOfSpanChildren: number;
   showEmbeddedChildren: boolean;

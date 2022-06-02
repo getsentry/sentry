@@ -15,9 +15,10 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 from django.views.generic import View
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry import eventstore, features
-from sentry.app import tsdb
+from sentry import eventstore
 from sentry.constants import LOG_LEVELS
 from sentry.digests import Record
 from sentry.digests.notifications import Notification, build_digest
@@ -181,22 +182,18 @@ class ActivityMailPreview:
         return context
 
     def text_body(self):
-        return render_to_string(self.email.get_template(), context=self.get_context())
+        txt_template = f"{self.email.template_path}.txt"
+        return render_to_string(txt_template, context=self.get_context())
 
     def html_body(self):
+        html_template = f"{self.email.template_path}.html"
         try:
-            return inline_css(
-                render_to_string(self.email.get_html_template(), context=self.get_context())
-            )
+            return inline_css(render_to_string(html_template, context=self.get_context()))
         except Exception:
             import traceback
 
             traceback.print_exc()
             raise
-
-
-from rest_framework.request import Request
-from rest_framework.response import Response
 
 
 class ActivityMailDebugView(View):
@@ -295,7 +292,6 @@ def alert(request):
             "interfaces": interface_list,
             "tags": event.tags,
             "project_label": project.slug,
-            "alert_status_page_enabled": features.has("organizations:alert-rule-status-page", org),
             "commits": [
                 {
                     # TODO(dcramer): change to use serializer
@@ -474,21 +470,6 @@ def report(request):
             int(random.weibullvariate(5, 1) * random.paretovariate(0.2)),
         )
 
-    def build_calendar_data(project):
-        start, stop = reports.get_calendar_query_range(interval, 3)
-        rollup = 60 * 60 * 24
-        series = []
-
-        weekend = frozenset((5, 6))
-        value = int(random.weibullvariate(5000, 3))
-        for timestamp in tsdb.get_optimal_rollup_series(start, stop, rollup)[1]:
-            damping = random.uniform(0.2, 0.6) if to_datetime(timestamp).weekday in weekend else 1
-            jitter = random.paretovariate(1.2)
-            series.append((timestamp, int(value * damping * jitter)))
-            value = value * random.uniform(0.25, 2)
-
-        return reports.clean_calendar_data(project, series, start, stop, rollup, stop)
-
     def build_report(project):
         daily_maximum = random.randint(1000, 10000)
 
@@ -497,9 +478,7 @@ def report(request):
             (
                 timestamp + (i * rollup),
                 (
-                    # Resolved issues
-                    random.randint(0, daily_maximum),
-                    # Unresolved issues
+                    # Issues
                     random.randint(0, daily_maximum),
                     # Transactions
                     random.randint(0, daily_maximum),
@@ -518,7 +497,6 @@ def report(request):
             aggregates,
             build_issue_summaries(),
             build_usage_outcomes(),
-            build_calendar_data(project),
             key_events=[(g.id, random.randint(0, 1000)) for g in Group.objects.all()[:3]],
             key_transactions=[("/transaction/1", 1234, project.id, 1111, 2222)],
         )
@@ -527,11 +505,7 @@ def report(request):
         personal = {"resolved": random.randint(0, 100), "users": int(random.paretovariate(0.2))}
     else:
         personal = {"resolved": 0, "users": 0}
-
-    if request.GET.get("new"):
-        html_template = "sentry/emails/reports/new.html"
-    else:
-        html_template = "sentry/emails/reports/body.html"
+    html_template = "sentry/emails/reports/body.html"
 
     return MailPreview(
         html_template=html_template,

@@ -6,15 +6,11 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import ratelimits, roles
+from sentry import audit_log, features, ratelimits, roles
 from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
-from sentry.api.serializers import (
-    DetailedUserSerializer,
-    OrganizationMemberWithTeamsSerializer,
-    RoleSerializer,
-    serialize,
-)
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
 from sentry.api.serializers.rest_framework import ListField
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
@@ -25,7 +21,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
     InviteStatus,
@@ -37,6 +32,7 @@ from sentry.models import (
     TeamStatus,
     UserOption,
 )
+from sentry.roles import organization_roles, team_roles
 from sentry.utils import metrics
 
 from . import get_allowed_roles
@@ -100,20 +96,6 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         except ValueError:
             raise OrganizationMember.DoesNotExist()
 
-    def _serialize_member(self, member, request, allowed_roles=None):
-        context = serialize(member, serializer=OrganizationMemberWithTeamsSerializer())
-
-        if request.access.has_scope("member:admin"):
-            context["invite_link"] = member.get_invite_link()
-            context["user"] = serialize(member.user, request.user, DetailedUserSerializer())
-
-        context["isOnlyOwner"] = member.is_only_owner()
-        context["roles"] = serialize(
-            roles.get_all(), serializer=RoleSerializer(), allowed_roles=allowed_roles
-        )
-
-        return context
-
     @extend_schema(
         operation_id="Retrieve an Organization Member",
         parameters=[
@@ -121,7 +103,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             MEMBER_ID_PARAM,
         ],
         responses={
-            200: OrganizationMemberWithTeamsSerializer,  # The Sentry response serializer
+            200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOTFOUND,
@@ -134,15 +116,18 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
     ) -> Response:
         """
-        Retrive an organization member's details.
+        Retrieve an organization member's details.
 
         Will return a pending invite as long as it's already approved.
         """
-        _, allowed_roles = get_allowed_roles(request, organization, member)
-
-        context = self._serialize_member(member, request, allowed_roles)
-
-        return Response(context)
+        allowed_roles = get_allowed_roles(request, organization, member)
+        return Response(
+            serialize(
+                member,
+                request.user,
+                OrganizationMemberWithRolesSerializer(allowed_roles),
+            )
+        )
 
     # TODO:
     # @extend_schema(
@@ -152,7 +137,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
     #         MEMBER_ID_PARAM,
     #     ],
     #     responses={
-    #         200: OrganizationMemberWithTeamsSerializer,  # The Sentry response serializer
+    #         200: OrganizationMemberWithRolesSerializer,  # The Sentry response serializer
     #         401: RESPONSE_UNAUTHORIZED,
     #         403: RESPONSE_FORBIDDEN,
     #         404: RESPONSE_NOTFOUND,
@@ -175,7 +160,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
-        allowed_roles = None
+        allowed_roles = get_allowed_roles(request, organization)
         result = serializer.validated_data
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
@@ -230,12 +215,13 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     [OrganizationMemberTeam(team=team, organizationmember=member) for team in teams]
                 )
 
-        if result.get("role"):
-            _, allowed_roles = get_allowed_roles(request, organization)
+        assigned_role = result.get("role")
+        if assigned_role:
+            allowed_roles = get_allowed_roles(request, organization)
             allowed_role_ids = {r.id for r in allowed_roles}
 
             # A user cannot promote others above themselves
-            if result["role"] not in allowed_role_ids:
+            if assigned_role not in allowed_role_ids:
                 return Response(
                     {"role": "You do not have permission to assign the given role."}, status=403
                 )
@@ -247,23 +233,62 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user and (result["role"] != member.role):
+            if member.user == request.user and (assigned_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
-            member.update(role=result["role"])
+            if (
+                organization_roles.get(assigned_role).is_retired
+                and assigned_role != member.role
+                and features.has("organizations:team-roles", organization)
+            ):
+                message = f"The role '{assigned_role}' is deprecated and may no longer be assigned."
+                return Response({"detail": message}, status=400)
+
+            self._change_org_member_role(member, assigned_role)
 
         self.create_audit_entry(
             request=request,
             organization=organization,
             target_object=member.id,
             target_user=member.user,
-            event=AuditLogEntryEvent.MEMBER_EDIT,
+            event=audit_log.get_event_id("MEMBER_EDIT"),
             data=member.get_audit_log_data(),
         )
 
-        context = self._serialize_member(member, request, allowed_roles)
+        return Response(
+            serialize(
+                member,
+                request.user,
+                OrganizationMemberWithRolesSerializer(
+                    allowed_roles=allowed_roles,
+                ),
+            )
+        )
 
-        return Response(context)
+    @staticmethod
+    def _change_org_member_role(member: OrganizationMember, role: str) -> None:
+        new_minimum_team_role = roles.get_minimum_team_role(role)
+        lesser_team_roles = [
+            r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
+        ]
+
+        with transaction.atomic():
+            # If the member has any existing team roles that are less than or equal
+            # to their new minimum role, overwrite the redundant team roles with
+            # null. We do this because such a team role would be effectively
+            # invisible in the UI, and would be surprising if it were left behind
+            # after the user's org role is lowered again.
+            omt_update_count = OrganizationMemberTeam.objects.filter(
+                organizationmember=member, role__in=lesser_team_roles
+            ).update(role=None)
+
+            member.update(role=role)
+
+        if omt_update_count > 0:
+            metrics.incr(
+                "team_roles.update_to_minimum",
+                tags={"target_org_role": role, "count": omt_update_count},
+            )
 
     @extend_schema(
         operation_id="Delete an Organization Member",
@@ -334,7 +359,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             organization=organization,
             target_object=member.id,
             target_user=member.user,
-            event=AuditLogEntryEvent.MEMBER_REMOVE,
+            event=audit_log.get_event_id("MEMBER_REMOVE"),
             data=audit_data,
         )
 

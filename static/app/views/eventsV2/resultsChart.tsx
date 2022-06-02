@@ -14,12 +14,14 @@ import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {valueIsEqual} from 'sentry/utils';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+  TOP_EVENT_MODES,
   TOP_N,
 } from 'sentry/utils/discover/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -157,6 +159,19 @@ type ContainerProps = {
 };
 
 class ResultsChartContainer extends Component<ContainerProps> {
+  state = {
+    yAxisOptions: this.getYAxisOptions(this.props.eventView),
+  };
+
+  componentWillReceiveProps(nextProps) {
+    const yAxisOptions = this.getYAxisOptions(this.props.eventView);
+    const nextYAxisOptions = this.getYAxisOptions(nextProps.eventView);
+
+    if (!valueIsEqual(yAxisOptions, nextYAxisOptions, true)) {
+      this.setState({yAxisOptions: nextYAxisOptions});
+    }
+  }
+
   shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
@@ -169,6 +184,18 @@ class ResultsChartContainer extends Component<ContainerProps> {
     }
 
     return !isEqual(restProps, restNextProps);
+  }
+
+  getYAxisOptions(eventView) {
+    const yAxisOptions = eventView.getYAxisOptions();
+
+    // Equations on World Map isn't supported on the events-geo endpoint
+    // Disabling equations as an option to prevent erroring out
+    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
+      return yAxisOptions.filter(({value}) => !isEquation(value));
+    }
+
+    return yAxisOptions;
   }
 
   render() {
@@ -186,6 +213,8 @@ class ResultsChartContainer extends Component<ContainerProps> {
       yAxis,
     } = this.props;
 
+    const {yAxisOptions} = this.state;
+
     const hasQueryFeature = organization.features.includes('discover-query');
     const displayOptions = eventView
       .getDisplayOptions()
@@ -193,21 +222,14 @@ class ResultsChartContainer extends Component<ContainerProps> {
         // top5 modes are only available with larger packages in saas.
         // We remove instead of disable here as showing tooltips in dropdown
         // menus is clunky.
-        if (
-          [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(
-            opt.value as DisplayModes
-          ) &&
-          !hasQueryFeature
-        ) {
+        if (TOP_EVENT_MODES.includes(opt.value) && !hasQueryFeature) {
           return false;
         }
         return true;
       })
       .map(opt => {
         // Can only use default display or total daily with multi y axis
-        if (
-          [DisplayModes.TOP5, DisplayModes.DAILYTOP5].includes(opt.value as DisplayModes)
-        ) {
+        if (TOP_EVENT_MODES.includes(opt.value)) {
           opt.label = DisplayModes.TOP5 === opt.value ? 'Top Period' : 'Top Daily';
         }
         if (
@@ -224,28 +246,6 @@ class ResultsChartContainer extends Component<ContainerProps> {
         }
         return opt;
       });
-
-    let yAxisOptions = eventView.getYAxisOptions();
-    // Hide multi y axis checkbox when in an unsupported Display Mode
-    if (
-      !MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES.includes(
-        eventView.getDisplayMode() as DisplayModes
-      )
-    ) {
-      yAxisOptions = yAxisOptions.map(option => {
-        return {
-          ...option,
-          disabled: true,
-          tooltip: t('Multiple Y-Axis cannot be plotted on this Display mode.'),
-          checkboxHidden: true,
-        };
-      });
-    }
-    // Equations on World Map isn't supported on the events-geo endpoint
-    // Disabling equations as an option to prevent erroring out
-    if (eventView.getDisplayMode() === DisplayModes.WORLDMAP) {
-      yAxisOptions = yAxisOptions.filter(({value}) => !isEquation(value));
-    }
 
     return (
       <StyledPanel>

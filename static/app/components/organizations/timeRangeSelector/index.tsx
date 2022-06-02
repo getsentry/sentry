@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -171,7 +171,7 @@ type State = {
   utc?: boolean | null;
 };
 
-class TimeRangeSelector extends React.PureComponent<Props, State> {
+class TimeRangeSelector extends PureComponent<Props, State> {
   static defaultProps = defaultProps;
 
   constructor(props: Props) {
@@ -448,7 +448,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                 onSelect={this.handleSelect}
                 subPanel={
                   isAbsoluteSelected && (
-                    <div>
+                    <AbsoluteRangeWrap>
                       <DateRangeHook
                         start={start ?? null}
                         end={end ?? null}
@@ -467,7 +467,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
                           }
                         />
                       </SubmitRow>
-                    </div>
+                    </AbsoluteRangeWrap>
                   )
                 }
               >
@@ -525,6 +525,11 @@ const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;
+`;
+
+const AbsoluteRangeWrap = styled('div')`
+  display: flex;
+  flex-direction: column;
 `;
 
 const SubmitRow = styled('div')`

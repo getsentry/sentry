@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -15,7 +14,7 @@ import Tooltip from 'sentry/components/tooltip';
 import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {AvatarProject, Organization, Project} from 'sentry/types';
 import {defined, isUrl} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import EventView, {EventData, MetaType} from 'sentry/utils/discover/eventView';
@@ -296,11 +295,23 @@ const SPECIAL_FIELDS: SpecialFields = {
   project: {
     sortField: 'project',
     renderFunc: (data, {organization}) => {
+      let slugs: string[] | undefined = undefined;
+      let projectIds: number[] | undefined = undefined;
+      if (typeof data.project === 'number') {
+        projectIds = [data.project];
+      } else {
+        slugs = [data.project];
+      }
       return (
         <Container>
-          <Projects orgId={organization.slug} slugs={[data.project]}>
+          <Projects orgId={organization.slug} slugs={slugs} projectIds={projectIds}>
             {({projects}) => {
-              const project = projects.find(p => p.slug === data.project);
+              let project: Project | AvatarProject | undefined;
+              if (typeof data.project === 'number') {
+                project = projects.find(p => p.id === data.project.toString());
+              } else {
+                project = projects.find(p => p.slug === data.project);
+              }
               return (
                 <ProjectBadge
                   project={project ? project : {slug: data.project}}
@@ -356,7 +367,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   'count_unique(user)': {
     sortField: 'count_unique(user)',
     renderFunc: data => {
-      const count = data.count_unique_user;
+      const count = data.count_unique_user ?? data['count_unique(user)'];
       if (typeof count === 'number') {
         return (
           <FlexContainer>

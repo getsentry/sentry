@@ -20,7 +20,7 @@ import {darkTheme, lightTheme, Theme} from 'sentry/utils/theme';
 import {DocsGlobalStyles, StoryGlobalStyles} from './globalStyles';
 
 // Theme decorator for stories
-const withThemeStory: DecoratorFn = (Story, context) => {
+const WithThemeStory: DecoratorFn = (Story, context) => {
   const isDark = useDarkMode();
   const currentTheme = isDark ? darkTheme : lightTheme;
 
@@ -38,10 +38,10 @@ const withThemeStory: DecoratorFn = (Story, context) => {
   );
 };
 
-addDecorator(withThemeStory);
+addDecorator(WithThemeStory);
 
 // Theme decorator for MDX Docs
-const withThemeDocs: DecoratorFn = ({children, context}) => {
+const WithThemeDocs: DecoratorFn = ({children, context}) => {
   const isDark = useDarkMode();
   const currentTheme = isDark ? darkTheme : lightTheme;
 
@@ -69,7 +69,7 @@ const withThemeDocs: DecoratorFn = ({children, context}) => {
 // Option defaults:
 addParameters({
   docs: {
-    container: withThemeDocs,
+    container: WithThemeDocs,
     components: {Meta, code: Code, ColorChip, DocsLinks, DoDont, Sample},
   },
   options: {

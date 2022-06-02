@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {components} from 'react-select';
 
 import InputField, {InputFieldProps} from 'sentry/components/forms/inputField';
@@ -23,7 +23,7 @@ interface RenderProps
   projects: Project[]; // can't use AvatarProject since we need the ID
 }
 
-class RenderField extends React.Component<RenderProps> {
+class RenderField extends Component<RenderProps> {
   static defaultProps = defaultProps;
 
   // need to map the option object to the value

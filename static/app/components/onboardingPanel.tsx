@@ -1,13 +1,13 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels';
 import space from 'sentry/styles/space';
 
-type Props = React.PropsWithChildren<{
+type Props = {
+  children: React.ReactNode;
   image: React.ReactNode;
   className?: string;
-}>;
+};
 
 function OnboardingPanel({className, image, children}: Props) {
   return (

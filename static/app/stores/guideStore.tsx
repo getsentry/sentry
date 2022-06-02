@@ -6,6 +6,7 @@ import getGuidesContent from 'sentry/components/assistant/getGuidesContent';
 import {Guide, GuidesContent, GuidesServerData} from 'sentry/components/assistant/types';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
+import HookStore from 'sentry/stores/hookStore';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {
   cleanupActiveRefluxSubscriptions,
@@ -76,12 +77,14 @@ const defaultState: GuideStoreState = {
 interface GuideStoreDefinition extends StoreDefinition {
   browserHistoryListener: null | (() => void);
 
+  closeGuide(dismissed?: boolean): void;
   fetchSucceeded(data: GuidesServerData): void;
   nextStep(): void;
   recordCue(guide: string): void;
   registerAnchor(target: string): void;
   setForceHide(forceHide: boolean): void;
   state: GuideStoreState;
+  toStep(step: number): void;
   unregisterAnchor(target: string): void;
   updatePrevGuide(nextGuide: Guide | null): void;
 }
@@ -223,7 +226,7 @@ const storeConfig: GuideStoreDefinition = {
    *  - If the user has already seen the guide, don't show the guide
    *  - Otherwise show the guide
    */
-  updateCurrentGuide() {
+  updateCurrentGuide(dismissed?: boolean) {
     const {anchors, guides, forceShow} = this.state;
 
     let guideOptions = guides
@@ -273,6 +276,7 @@ const storeConfig: GuideStoreDefinition = {
         : 0;
     this.state.currentGuide = nextGuide;
     this.trigger(this.state);
+    HookStore.get('callback:on-guide-update').map(cb => cb(nextGuide, {dismissed}));
   },
 };
 

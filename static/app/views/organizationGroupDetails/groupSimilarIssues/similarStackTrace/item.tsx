@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -42,7 +42,7 @@ const initialState = {visible: true, checked: false, busy: false};
 
 type State = typeof initialState;
 
-class Item extends React.Component<Props, State> {
+class Item extends Component<Props, State> {
   state: State = initialState;
 
   componentWillUnmount() {

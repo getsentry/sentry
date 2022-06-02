@@ -1,8 +1,11 @@
+import {act} from 'react-dom/test-utils';
+
 import {selectDropdownMenuItem} from 'sentry-test/dropdownMenu';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByLabel} from 'sentry-test/select-new';
+import {triggerPress} from 'sentry-test/utils';
 
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
@@ -409,7 +412,11 @@ describe('IssueListActions', function () {
     });
 
     it('acknowledges group', async function () {
-      wrapper.find('IssueListActions').setState({anySelected: true});
+      await act(async () => {
+        wrapper.find('IssueListActions').setState({anySelected: true});
+        await tick();
+        wrapper.update();
+      });
       SelectedGroupStore.add(['1', '2', '3']);
       SelectedGroupStore.toggleSelectAll();
       const inbox = {
@@ -435,7 +442,11 @@ describe('IssueListActions', function () {
     });
 
     it('mark reviewed disabled for group that is already reviewed', async function () {
-      wrapper.find('IssueListActions').setState({anySelected: true});
+      await act(async () => {
+        wrapper.find('IssueListActions').setState({anySelected: true});
+        await tick();
+        wrapper.update();
+      });
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
@@ -445,6 +456,51 @@ describe('IssueListActions', function () {
       expect(
         wrapper.find('button[aria-label="Mark Reviewed"]').props()['aria-disabled']
       ).toBe(true);
+    });
+  });
+
+  describe('sort', function () {
+    let onSortChange;
+    afterEach(() => {
+      wrapper.unmount();
+    });
+
+    beforeEach(function () {
+      const organization = TestStubs.Organization();
+
+      onSortChange = jest.fn();
+      wrapper = mountWithTheme(
+        <IssueListActions
+          api={new MockApiClient()}
+          query=""
+          organization={organization}
+          groupIds={['1', '2', '3']}
+          selection={{
+            projects: [],
+            environments: [],
+            datetime: {start: null, end: null, period: null, utc: true},
+          }}
+          onRealtimeChange={function () {}}
+          onSelectStatsPeriod={function () {}}
+          onSortChange={onSortChange}
+          realtimeActive={false}
+          statsPeriod="24h"
+          queryCount={100}
+          displayCount="3 of 3"
+          sort="date"
+        />
+      );
+    });
+
+    it('calls onSortChange with new sort value', async function () {
+      await act(async () => {
+        triggerPress(wrapper.find('IssueListSortOptions button'));
+        await tick();
+        wrapper.update();
+      });
+      wrapper.find('SelectOption').at(3).simulate('click');
+
+      expect(onSortChange).toHaveBeenCalledWith('freq');
     });
   });
 });

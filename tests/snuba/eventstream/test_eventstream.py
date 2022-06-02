@@ -52,7 +52,12 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
         # insert what would have been the Kafka payload directly
         # into Snuba, expect an HTTP 200 and for the event to now exist
         snuba_eventstream = SnubaEventStream()
-        snuba_eventstream._send(self.project.id, "insert", (payload1, payload2))
+        snuba_eventstream._send(
+            self.project.id,
+            "insert",
+            (payload1, payload2),
+            is_transaction_event=insert_kwargs["group"] is None,
+        )
 
     @patch("sentry.eventstream.insert")
     def test(self, mock_eventstream_insert):

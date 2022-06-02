@@ -1,4 +1,3 @@
-import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -68,7 +67,4 @@ const Actions = styled(ButtonBar)`
 const Wrapper = styled('div')`
   background: ${p => p.theme.background};
   border-top: 1px solid ${p => p.theme.gray200};
-  position: sticky;
-  bottom: 0;
-  z-index: ${p => p.theme.zIndex.initial};
 `;

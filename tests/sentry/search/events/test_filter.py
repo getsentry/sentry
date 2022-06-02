@@ -764,27 +764,18 @@ class GetSnubaQueryArgsTest(TestCase):
         project_2 = self.create_project()
         group = self.create_group(project=self.project, short_id=self.project.next_short_id())
         group_2 = self.create_group(project=project_2, short_id=self.project.next_short_id())
-        assert (
-            get_filter(
-                f"project.name:[{self.project.slug}, {project_2.slug}]",
-                params={"project_id": [self.project.id, project_2.id]},
-            ).conditions
-            == [["project_id", "IN", [project_2.id, self.project.id]]]
-        )
-        assert (
-            get_filter(
-                f"issue:[{group.qualified_short_id}, {group_2.qualified_short_id}]",
-                params={"organization_id": self.project.organization_id},
-            ).conditions
-            == [["issue.id", "IN", [group.id, group_2.id]]]
-        )
-        assert (
-            get_filter(
-                f"issue:[{group.qualified_short_id}, unknown]",
-                params={"organization_id": self.project.organization_id},
-            ).conditions
-            == [[["coalesce", ["issue.id", 0]], "IN", [0, group.id]]]
-        )
+        assert get_filter(
+            f"project.name:[{self.project.slug}, {project_2.slug}]",
+            params={"project_id": [self.project.id, project_2.id]},
+        ).conditions == [["project_id", "IN", [project_2.id, self.project.id]]]
+        assert get_filter(
+            f"issue:[{group.qualified_short_id}, {group_2.qualified_short_id}]",
+            params={"organization_id": self.project.organization_id},
+        ).conditions == [["issue.id", "IN", [group.id, group_2.id]]]
+        assert get_filter(
+            f"issue:[{group.qualified_short_id}, unknown]",
+            params={"organization_id": self.project.organization_id},
+        ).conditions == [[["coalesce", ["issue.id", 0]], "IN", [0, group.id]]]
         assert get_filter("environment:[prod, dev]").conditions == [
             [["environment", "IN", {"prod", "dev"}]]
         ]
@@ -1793,6 +1784,12 @@ class SemverBuildFilterConverterTest(BaseSemverConverterTest, TestCase):
         with pytest.raises(ValueError, match="organization_id is a required param"):
             _semver_filter_converter(filter, key, {"something": 1})
 
+        filter = SearchFilter(SearchKey(key), "IN", SearchValue("sentry"))
+        with pytest.raises(
+            InvalidSearchQuery, match="Invalid operation 'IN' for semantic version filter."
+        ):
+            _semver_filter_converter(filter, key, {"organization_id": 1})
+
     def test_empty(self):
         self.run_test("=", "test", "IN", [SEMVER_EMPTY_RELEASE])
 
@@ -1822,6 +1819,11 @@ class ParseSemverTest(unittest.TestCase):
             match=INVALID_SEMVER_MESSAGE,
         ):
             assert parse_semver("hello", ">") is None
+        with pytest.raises(
+            InvalidSearchQuery,
+            match="Invalid operation 'IN' for semantic version filter.",
+        ):
+            assert parse_semver("1.2.3.4", "IN") is None
 
     def test_normal(self):
         self.run_test("1", ">", SemverFilter("gt", [1, 0, 0, 0, 1, ""]))

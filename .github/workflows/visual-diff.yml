@@ -1,0 +1,27 @@
+name: visual diff
+on:
+  # This allows PRs opened from forks to execute the Visual Snapshots
+  # since secrets are not passed to workflows when triggered via forks
+  # Using workflow_run is less preferred since it executes even when jobs
+  # do not pass
+  workflow_run:
+    workflows:
+      - acceptance
+    types:
+      - completed
+
+jobs:
+  visual-diff:
+    # Only execute this check when a PR is opened from a fork rather than the upstream repo
+    if: github.event.workflow_run.head_repository.full_name != 'getsentry/sentry'
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@main
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}

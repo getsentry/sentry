@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import {updateEnvironments} from 'sentry/actionCreators/pageFilters';
 import Badge from 'sentry/components/badge';
-import MultipleEnvironmentSelector from 'sentry/components/organizations/multipleEnvironmentSelector';
+import EnvironmentSelector from 'sentry/components/organizations/environmentSelector';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
+import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
@@ -14,7 +15,7 @@ import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-type EnvironmentSelectorProps = React.ComponentProps<typeof MultipleEnvironmentSelector>;
+type EnvironmentSelectorProps = React.ComponentProps<typeof EnvironmentSelector>;
 
 type Props = {
   router: WithRouterProps['router'];
@@ -57,7 +58,7 @@ function EnvironmentPageFilter({
         : value.slice(0, 1);
     const summary = value.length
       ? environmentsToShow.map(env => trimSlug(env, maxTitleLength)).join(', ')
-      : t('All Environments');
+      : t('All Env');
 
     return (
       <PageFilterDropdownButton
@@ -65,9 +66,12 @@ function EnvironmentPageFilter({
         hideBottomBorder={false}
         isOpen={isOpen}
         highlighted={desyncedFilters.has('environments')}
+        data-test-id="global-header-environment-selector"
       >
         <DropdownTitle>
-          <IconWindow />
+          <PageFilterPinIndicator filter="environments">
+            <IconWindow />
+          </PageFilterPinIndicator>
           <TitleContainer>
             {summary}
             {!!value.length && value.length > environmentsToShow.length && (
@@ -80,16 +84,20 @@ function EnvironmentPageFilter({
   };
 
   const customLoadingIndicator = (
-    <PageFilterDropdownButton showChevron={false} disabled>
+    <PageFilterDropdownButton
+      showChevron={false}
+      disabled
+      data-test-id="global-header-environment-selector"
+    >
       <DropdownTitle>
         <IconWindow />
-        {t('Loading\u2026')}
+        <TitleContainer>{t('Loading\u2026')}</TitleContainer>
       </DropdownTitle>
     </PageFilterDropdownButton>
   );
 
   return (
-    <MultipleEnvironmentSelector
+    <EnvironmentSelector
       organization={organization}
       projects={projects}
       loadingProjects={!projectsLoaded || !isReady}
@@ -108,7 +116,7 @@ function EnvironmentPageFilter({
 const TitleContainer = styled('div')`
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex: 1 1 0%;
   margin-left: ${space(1)};
   overflow: hidden;
@@ -118,7 +126,6 @@ const TitleContainer = styled('div')`
 
 const DropdownTitle = styled('div')`
   display: flex;
-  overflow: hidden;
   align-items: center;
   flex: 1;
 `;

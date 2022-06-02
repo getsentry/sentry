@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {Location} from 'history';
 
 import {
@@ -30,7 +30,7 @@ type State = {
   isExpanded: boolean;
 };
 
-class TransactionGroup extends React.Component<Props, State> {
+class TransactionGroup extends Component<Props, State> {
   state: State = {
     isExpanded: true,
   };
@@ -63,7 +63,7 @@ class TransactionGroup extends React.Component<Props, State> {
     const {isExpanded} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <TransactionBar
           location={location}
           organization={organization}
@@ -80,7 +80,7 @@ class TransactionGroup extends React.Component<Props, State> {
           barColor={barColor}
         />
         {isExpanded && renderedChildren}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -19,6 +19,7 @@ import {
   RepositoryProjectPathConfigWithIntegration,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {
   getIntegrationIcon,
@@ -165,7 +166,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const provider = this.config?.provider;
     if (provider) {
       trackIntegrationAnalytics(
-        'integrations.stacktrace_link_clicked',
+        StacktraceLinkEvents.OPEN_LINK,
         {
           view: 'stacktrace_issue_details',
           provider: provider.key,
@@ -264,7 +265,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const {frame} = this.props;
     const {config} = this.match;
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledHovercard
           header={
             error === 'stack_root_mismatch' ? (
@@ -292,7 +293,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         >
           <StyledIconInfo size="xs" />
         </StyledHovercard>
-      </React.Fragment>
+      </Fragment>
     );
   }
 

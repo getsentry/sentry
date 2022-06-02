@@ -4,7 +4,7 @@ from .github import *  # NOQA
 from .github_enterprise import *  # NOQA
 from .gitlab import *  # NOQA
 from .google import *  # NOQA
-from .manager import IdentityManager  # NOQA
+from .manager import IdentityManager
 from .oauth2 import *  # NOQA
 from .slack import *  # NOQA
 from .vercel import *  # NOQA

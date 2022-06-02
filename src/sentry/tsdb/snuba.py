@@ -7,7 +7,6 @@ from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.tsdb.base import BaseTSDB, TSDBModel
 from sentry.utils import outcomes, snuba
-from sentry.utils.compat import map, zip
 from sentry.utils.dates import to_datetime
 
 SnubaModelQuerySettings = namedtuple(
@@ -80,7 +79,7 @@ class SnubaTSDB(BaseTSDB):
         model: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "times_seen",
+            "quantity",
             [["reason", "=", reason], OUTCOMES_CATEGORY_CONDITION],
         )
         for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
@@ -90,55 +89,55 @@ class SnubaTSDB(BaseTSDB):
         TSDBModel.organization_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
-            "times_seen",
+            "quantity",
             [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
-            "times_seen",
+            "quantity",
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.organization_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "org_id",
-            "times_seen",
+            "quantity",
             [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.project_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "times_seen",
+            "quantity",
             [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.project_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "times_seen",
+            "quantity",
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.project_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "project_id",
-            "times_seen",
+            "quantity",
             [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.key_total_received: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
-            "times_seen",
+            "quantity",
             [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.key_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
-            "times_seen",
+            "quantity",
             [["outcome", "=", outcomes.Outcome.RATE_LIMITED], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
             "key_id",
-            "times_seen",
+            "quantity",
             [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
         ),
     }
@@ -149,82 +148,6 @@ class SnubaTSDB(BaseTSDB):
             project_filter_model_query_settings.items(),
             outcomes_partial_query_settings.items(),
             non_outcomes_query_settings.items(),
-        )
-    )
-
-    project_filter_model_query_settings_lower_rollup = {
-        model: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "project_id",
-            None,
-            [["reason", "=", reason], OUTCOMES_CATEGORY_CONDITION],
-        )
-        for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
-    }
-
-    # The Outcomes dataset aggregates outcomes into chunks of an hour. So, for rollups less than an hour, we want to
-    # query the raw outcomes dataset, with a few different settings (defined in lower_rollup_query_settings).
-    other_lower_rollup_query_settings = {
-        TSDBModel.organization_total_received: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "org_id",
-            None,
-            [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
-        ),
-        TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "org_id",
-            None,
-            [["outcome", "=", outcomes.Outcome.RATE_LIMITED], OUTCOMES_CATEGORY_CONDITION],
-        ),
-        TSDBModel.organization_total_blacklisted: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "org_id",
-            None,
-            [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
-        ),
-        TSDBModel.project_total_received: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "project_id",
-            None,
-            [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
-        ),
-        TSDBModel.project_total_rejected: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "project_id",
-            None,
-            [["outcome", "=", outcomes.Outcome.RATE_LIMITED], OUTCOMES_CATEGORY_CONDITION],
-        ),
-        TSDBModel.project_total_blacklisted: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "project_id",
-            None,
-            [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
-        ),
-        TSDBModel.key_total_received: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "key_id",
-            None,
-            [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
-        ),
-        TSDBModel.key_total_rejected: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "key_id",
-            None,
-            [["outcome", "=", outcomes.Outcome.RATE_LIMITED], OUTCOMES_CATEGORY_CONDITION],
-        ),
-        TSDBModel.key_total_blacklisted: SnubaModelQuerySettings(
-            snuba.Dataset.OutcomesRaw,
-            "key_id",
-            None,
-            [["outcome", "=", outcomes.Outcome.FILTERED], OUTCOMES_CATEGORY_CONDITION],
-        ),
-    }
-
-    lower_rollup_query_settings = dict(
-        itertools.chain(
-            project_filter_model_query_settings_lower_rollup.items(),
-            other_lower_rollup_query_settings.items(),
         )
     )
 
@@ -244,6 +167,7 @@ class SnubaTSDB(BaseTSDB):
         group_on_time=False,
         conditions=None,
         use_cache=False,
+        jitter_value=None,
     ):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
@@ -259,17 +183,19 @@ class SnubaTSDB(BaseTSDB):
         ]:
             keys = list(set(map(lambda x: int(x), keys)))
 
-        # 10s is the only rollup under an hour that we support
-        if rollup and rollup == 10 and model in self.lower_rollup_query_settings:
-            model_query_settings = self.lower_rollup_query_settings.get(model)
-        else:
-            model_query_settings = self.model_query_settings.get(model)
+        model_query_settings = self.model_query_settings.get(model)
 
         if model_query_settings is None:
             raise Exception(f"Unsupported TSDBModel: {model.name}")
 
         model_group = model_query_settings.groupby
         model_aggregate = model_query_settings.aggregate
+
+        # 10s is the only rollup under an hour that we support
+        if rollup == 10 and model_query_settings.dataset == snuba.Dataset.Outcomes:
+            model_dataset = snuba.Dataset.OutcomesRaw
+        else:
+            model_dataset = model_query_settings.dataset
 
         groupby = []
         if group_on_model and model_group is not None:
@@ -294,6 +220,11 @@ class SnubaTSDB(BaseTSDB):
         # we grab the original bucketed series and add the rollup time to the
         # timestamp of the last bucket to get the end time.
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
+
+        # If jitter_value is provided then we use it to offset the buckets we round start/end to by
+        # up  to `rollup` seconds.
+        series = self._add_jitter_to_series(series, start, rollup, jitter_value)
+
         start = to_datetime(series[0])
         end = to_datetime(series[-1] + rollup)
         limit = min(10000, int(len(keys) * ((end - start).total_seconds() / rollup)))
@@ -312,7 +243,7 @@ class SnubaTSDB(BaseTSDB):
 
         if keys:
             result = snuba.query(
-                dataset=model_query_settings.dataset,
+                dataset=model_dataset,
                 start=start,
                 end=end,
                 groupby=groupby,
@@ -384,13 +315,9 @@ class SnubaTSDB(BaseTSDB):
         environment_ids=None,
         conditions=None,
         use_cache=False,
+        jitter_value=None,
     ):
-        # 10s is the only rollup under an hour that we support
-        if rollup and rollup == 10 and model in self.lower_rollup_query_settings:
-            model_query_settings = self.lower_rollup_query_settings.get(model)
-        else:
-            model_query_settings = self.model_query_settings.get(model)
-
+        model_query_settings = self.model_query_settings.get(model)
         assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
 
         if model_query_settings.dataset == snuba.Dataset.Outcomes:
@@ -409,6 +336,7 @@ class SnubaTSDB(BaseTSDB):
             group_on_time=True,
             conditions=conditions,
             use_cache=use_cache,
+            jitter_value=jitter_value,
         )
         # convert
         #    {group:{timestamp:count, ...}}
@@ -436,7 +364,15 @@ class SnubaTSDB(BaseTSDB):
         return {k: sorted(result[k].items()) for k in result}
 
     def get_distinct_counts_totals(
-        self, model, keys, start, end=None, rollup=None, environment_id=None, use_cache=False
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+        use_cache=False,
+        jitter_value=None,
     ):
         return self.get_data(
             model,
@@ -447,6 +383,7 @@ class SnubaTSDB(BaseTSDB):
             [environment_id] if environment_id is not None else None,
             aggregation="uniq",
             use_cache=use_cache,
+            jitter_value=jitter_value,
         )
 
     def get_distinct_counts_union(

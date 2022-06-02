@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -41,7 +41,7 @@ type State = {
   v2: boolean;
 };
 
-class SimilarStackTrace extends React.Component<Props, State> {
+class SimilarStackTrace extends Component<Props, State> {
   state: State = {
     similarItems: [],
     filteredSimilarItems: [],

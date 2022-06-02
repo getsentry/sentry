@@ -55,8 +55,8 @@ def setup_relay(default_project):
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
-    def inner(full_config, public_keys=None):
-        path = reverse("sentry-api-0-relay-projectconfigs") + "?version=2"
+    def inner(full_config, public_keys=None, version="2"):
+        path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
@@ -375,5 +375,4 @@ def test_exposes_features(call_endpoint, task_runner):
 
         for config in result["configs"].values():
             config = config["config"]
-            assert "features" in config
-            assert config["features"] == ["organizations:metrics-extraction"]
+            assert config["sessionMetrics"] == {"version": 1, "drop": False}

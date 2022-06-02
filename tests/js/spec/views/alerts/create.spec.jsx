@@ -292,8 +292,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });
@@ -345,8 +344,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });
@@ -395,8 +393,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });
@@ -445,8 +442,7 @@ describe('ProjectAlertsCreate', function () {
 
         await waitFor(() => {
           expect(wrapper.router.push).toHaveBeenCalledWith({
-            pathname: '/organizations/org-slug/alerts/rules/',
-            query: {project: '2'},
+            pathname: '/organizations/org-slug/alerts/rules/project-slug/1/details/',
           });
         });
       });

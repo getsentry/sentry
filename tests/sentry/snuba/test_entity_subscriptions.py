@@ -105,7 +105,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id,
             "groupby": groupby,
-            "granularity": 60,
+            "granularity": 10,
         }
         assert entity_subscription.entity_key == EntityKey.MetricsSets
         assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsSets]
@@ -137,7 +137,7 @@ class EntitySubscriptionTestCase(TestCase):
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id,
             "groupby": groupby,
-            "granularity": 60,
+            "granularity": 10,
         }
         assert entity_subscription.entity_key == EntityKey.MetricsCounters
         assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsCounters]

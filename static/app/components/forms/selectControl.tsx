@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 import ReactSelect, {
   components as selectComponents,
   GroupedOptionsType,
@@ -74,6 +74,16 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    */
   inFieldLabel?: string;
   /**
+   * Whether this is used inside compactSelect. See
+   * components/compactSelect.tsx
+   */
+  isCompact?: boolean;
+  /**
+   * Maximum width of the menu component. Menu item labels that overflow the
+   * menu's boundaries will automatically be truncated.
+   */
+  maxMenuWidth?: number | string;
+  /**
    * Used by MultiSelectControl.
    */
   multiple?: boolean;
@@ -92,12 +102,6 @@ export type ControlProps<OptionType = GeneralSelectValue> = Omit<
    * can't have a good type here.
    */
   value?: any;
-  /**
-   * If false (default), checkmarks/checkboxes will be vertically centered
-   * wrt the first line of the label text. If true, they will be centered
-   * wrt the entire height of the option wrap.
-   */
-  verticallyCenterCheckWrap?: boolean;
 };
 
 /**
@@ -121,6 +125,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
+  const {isCompact, isSearchable, maxMenuWidth} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -165,10 +170,26 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       ...(!state.isSearchable && {
         cursor: 'pointer',
       }),
+      ...(isCompact && {
+        padding: `${space(0.5)} ${space(0.5)}`,
+        borderRadius: 0,
+        border: 'none',
+        boxShadow: 'none',
+        cursor: 'initial',
+        minHeight: 'none',
+        ...(isSearchable
+          ? {marginTop: 1}
+          : {
+              height: 0,
+              padding: 0,
+              overflow: 'hidden',
+            }),
+      }),
     }),
 
     menu: (provided: React.CSSProperties) => ({
       ...provided,
+      fontSize: theme.fontSizeMedium,
       zIndex: theme.zIndex.dropdown,
       background: theme.backgroundElevated,
       border: `1px solid ${theme.border}`,
@@ -176,14 +197,47 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       boxShadow: theme.dropShadowHeavy,
       width: 'auto',
       minWidth: '100%',
+      maxWidth: maxMenuWidth ?? 'auto',
+      ...(isCompact && {
+        position: 'relative',
+        margin: 0,
+        borderRadius: 0,
+        border: 'none',
+        boxShadow: 'none',
+        zIndex: 'initial',
+        ...(isSearchable && {paddingTop: 0}),
+      }),
     }),
+
+    menuList: (provided: React.CSSProperties) => ({
+      ...provided,
+      ...(isCompact &&
+        isSearchable && {
+          paddingTop: 0,
+        }),
+    }),
+
+    menuPortal: () => ({
+      maxWidth: maxMenuWidth ?? '24rem',
+      zIndex: theme.zIndex.dropdown,
+      width: '90%',
+      position: 'fixed',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%, -50%)',
+      background: theme.backgroundElevated,
+      border: `1px solid ${theme.border}`,
+      borderRadius: theme.borderRadius,
+      boxShadow: theme.dropShadowHeavy,
+      overflow: 'hidden',
+    }),
+
     option: (provided: React.CSSProperties) => ({
       ...provided,
-      fontSize: theme.fontSizeMedium,
       cursor: 'pointer',
       color: theme.textColor,
       background: 'transparent',
-      padding: `0 ${space(0.5)}`,
+      padding: 0,
       ':active': {
         background: 'transparent',
       },
@@ -191,10 +245,22 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     valueContainer: (provided: React.CSSProperties) => ({
       ...provided,
       alignItems: 'center',
+      ...(isCompact && {
+        fontSize: theme.fontSizeMedium,
+        padding: `${space(0.5)} ${space(1)}`,
+        border: `1px solid ${theme.innerBorder}`,
+        borderRadius: theme.borderRadius,
+        cursor: 'text',
+        background: theme.backgroundSecondary,
+      }),
     }),
     input: (provided: React.CSSProperties) => ({
       ...provided,
       color: theme.formText,
+      ...(isCompact && {
+        padding: 0,
+        margin: 0,
+      }),
     }),
     singleValue: (provided: React.CSSProperties) => ({
       ...provided,
@@ -203,6 +269,10 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     placeholder: (provided: React.CSSProperties) => ({
       ...provided,
       color: theme.formPlaceholder,
+      ...(isCompact && {
+        padding: 0,
+        margin: 0,
+      }),
     }),
     multiValue: (provided: React.CSSProperties) => ({
       ...provided,
@@ -238,6 +308,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       gridAutoFlow: 'column',
       gridGap: '2px',
       marginRight: '6px',
+      ...(isCompact && {display: 'none'}),
     }),
     clearIndicator: indicatorStyles,
     dropdownIndicator: indicatorStyles,
@@ -402,7 +473,7 @@ function SelectPicker<OptionType>({
 }
 
 // The generics need to be filled here as forwardRef can't expose generics.
-const RefForwardedSelectControl = React.forwardRef<
+const RefForwardedSelectControl = forwardRef<
   ReactSelect<GeneralSelectValue>,
   ControlProps<GeneralSelectValue>
 >(function RefForwardedSelectControl(props, ref) {

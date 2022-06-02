@@ -1,18 +1,10 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import {assignToActor, assignToUser} from 'sentry/actionCreators/group';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import {
-  Actor,
-  CodeOwner,
-  Committer,
-  Group,
-  Organization,
-  Project,
-  RepositoryProjectPathConfig,
-} from 'sentry/types';
+import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
@@ -36,7 +28,6 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  codeMappings: RepositoryProjectPathConfig[];
   codeowners: CodeOwner[];
   event_owners: {owners: Array<Actor>; rules: Rules};
   isDismissed: boolean;
@@ -49,7 +40,6 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       event: {rules: [], owners: []},
       codeowners: [],
       isDismissed: true,
-      codeMappings: [],
     };
   }
 
@@ -59,11 +49,6 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
       [
         'event_owners',
         `/projects/${organization.slug}/${project.slug}/events/${event.id}/owners/`,
-      ],
-      [
-        'codeMappings',
-        `/organizations/${organization.slug}/code-mappings/`,
-        {query: {project: -1}},
       ],
     ];
     if (organization.features.includes('integrations-codeowners')) {
@@ -97,12 +82,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
 
   async checkCodeOwnersPrompt() {
     const {api, organization, project} = this.props;
-    const {codeMappings} = this.state;
 
-    // Show CTA to all orgs that have Stack Trace Linking setup.
-    if (!codeMappings.length) {
-      return;
-    }
     this.setState({loading: true});
     // check our prompt backend
     const promptData = await promptsCheck(api, {
@@ -226,7 +206,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     const {codeowners, isDismissed} = this.state;
     const owners = this.getOwnerList();
     return (
-      <React.Fragment>
+      <Fragment>
         {owners.length > 0 && (
           <SuggestedAssignees owners={owners} onAssign={this.handleAssign} />
         )}
@@ -238,7 +218,7 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
           isDismissed={isDismissed}
           handleCTAClose={this.handleCTAClose}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

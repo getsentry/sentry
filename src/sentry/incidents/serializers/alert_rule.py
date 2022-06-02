@@ -3,6 +3,7 @@ import operator
 from copy import copy
 from datetime import timedelta
 
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import serializers
@@ -26,10 +27,9 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import AlertRule, AlertRuleThresholdType, AlertRuleTrigger
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import get_entity_subscription_for_dataset
-from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
+from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.snuba.tasks import build_snuba_filter
 from sentry.utils import json
-from sentry.utils.compat import zip
 from sentry.utils.snuba import raw_snql_query
 
 from . import CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS, DATASET_VALID_EVENT_TYPES, UNSUPPORTED_QUERIES
@@ -354,6 +354,19 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             )
 
     def create(self, validated_data):
+        org_subscription_count = QuerySubscription.objects.filter(
+            project__organization_id=self.context["organization"].id,
+            status__in=(
+                QuerySubscription.Status.ACTIVE.value,
+                QuerySubscription.Status.CREATING.value,
+                QuerySubscription.Status.UPDATING.value,
+            ),
+        ).count()
+
+        if org_subscription_count >= settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG:
+            raise serializers.ValidationError(
+                f"You may not exceed {settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG} metric alerts per organization"
+            )
         with transaction.atomic():
             triggers = validated_data.pop("triggers")
             alert_rule = create_alert_rule(

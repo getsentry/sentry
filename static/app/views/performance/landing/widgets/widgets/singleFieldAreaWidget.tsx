@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
 
@@ -22,10 +23,10 @@ type DataType = {
 };
 
 export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
-  const {ContainerActions} = props;
+  const {ContainerActions, location} = props;
   const globalSelection = props.eventView.getPageFilters();
   const pageError = usePageError();
-  const {isMEPEnabled} = useMEPSettingContext();
+  const mepSetting = useMEPSettingContext();
 
   if (props.fields.length !== 1) {
     throw new Error(`Single field area can only accept a single field (${props.fields})`);
@@ -58,14 +59,15 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
               )}
               hideError
               onError={pageError.setPageError}
-              queryExtras={getMEPQueryParams(isMEPEnabled)}
+              queryExtras={getMEPQueryParams(mepSetting)}
+              userModified={decodeScalar(location.query.userModified)}
             />
           )}
         </QueryBatchNode>
       ),
       transform: transformEventsRequestToArea,
     }),
-    [props.chartSetting]
+    [props.chartSetting, mepSetting.memoizationKey, location.query.userModified]
   );
 
   const Queries = {

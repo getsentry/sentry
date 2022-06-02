@@ -7,28 +7,27 @@ import {createFrameIndex} from './utils';
 
 export class SampledProfile extends Profile {
   static FromProfile(
-    sampled: Profiling.SampledProfile,
+    sampledProfile: Profiling.SampledProfile,
     frameIndex: ReturnType<typeof createFrameIndex>
   ): Profile {
-    const {startValue, endValue, samples, weights} = sampled;
-
     const profile = new SampledProfile(
-      endValue - startValue,
-      startValue,
-      endValue,
-      sampled.name,
-      sampled.unit
+      sampledProfile.endValue - sampledProfile.startValue,
+      sampledProfile.startValue,
+      sampledProfile.endValue,
+      sampledProfile.name,
+      sampledProfile.unit,
+      sampledProfile.threadID
     );
 
-    if (samples.length !== weights.length) {
+    if (sampledProfile.samples.length !== sampledProfile.weights.length) {
       throw new Error(
-        `Expected samples.length (${samples.length}) to equal weights.length (${weights.length})`
+        `Expected samples.length (${sampledProfile.samples.length}) to equal weights.length (${sampledProfile.weights.length})`
       );
     }
 
-    for (let i = 0; i < samples.length; i++) {
-      const stack = samples[i];
-      const weight = weights[i];
+    for (let i = 0; i < sampledProfile.samples.length; i++) {
+      const stack = sampledProfile.samples[i];
+      const weight = sampledProfile.weights[i];
 
       profile.appendSampleWithWeight(
         stack.map(n => {

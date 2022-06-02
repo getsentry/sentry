@@ -1,7 +1,8 @@
-import * as React from 'react';
+import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
@@ -15,7 +16,12 @@ import {
   PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {
+  EventsTableData,
+  TableData,
+  TableDataWithTitle,
+} from 'sentry/utils/discover/discoverQuery';
+import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
@@ -23,7 +29,14 @@ import {
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
-import {eventViewFromWidget, getWidgetInterval} from '../utils';
+import {
+  eventViewFromWidget,
+  getDashboardsMEPQueryParams,
+  getNumEquations,
+  getWidgetInterval,
+} from '../utils';
+
+import {DashboardsMEPContext} from './dashboardsMEPContext';
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
 
@@ -83,6 +96,15 @@ export function flattenMultiSeriesDataWithGrouping(
   return seriesWithOrdering;
 }
 
+function getIsMetricsDataFromSeriesResponse(result: RawResult): boolean | undefined {
+  const multiIsMetricsData = Object.values(result)
+    .map(({isMetricsData}) => isMetricsData)
+    // One non-metrics series will cause all of them to be marked as such
+    .reduce((acc, value) => (acc === false ? false : value), undefined);
+
+  return isMultiSeriesStats(result) ? multiIsMetricsData : result.isMetricsData;
+}
+
 function transformResult(
   query: WidgetQuery,
   result: RawResult,
@@ -116,7 +138,11 @@ function transformResult(
       });
     }
 
-    output = [...seriesWithOrdering.sort().map(item => item[1])];
+    output = [
+      ...seriesWithOrdering
+        .sort((itemA, itemB) => itemA[0] - itemB[0])
+        .map(item => item[1]),
+    ];
   } else {
     const field = query.aggregates[0];
     const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
@@ -141,10 +167,10 @@ type Props = {
   cursor?: string;
   limit?: number;
   onDataFetched?: (results: {
+    pageLinks?: string;
     tableResults?: TableDataWithTitle[];
     timeseriesResults?: Series[];
   }) => void;
-  pagination?: boolean;
 };
 
 type State = {
@@ -157,7 +183,7 @@ type State = {
   timeseriesResults?: Series[];
 };
 
-class WidgetQueries extends React.Component<Props, State> {
+class WidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
     queryFetchID: undefined,
@@ -254,19 +280,25 @@ class WidgetQueries extends React.Component<Props, State> {
     this._isMounted = false;
   }
 
+  static contextType = DashboardsMEPContext;
+  context: React.ContextType<typeof DashboardsMEPContext> | undefined;
+
   private _isMounted: boolean = false;
 
+  get isMEPEnabled() {
+    // Events endpoint can return either always transactions, metrics, or metrics with a fallback to transactions (basically auto).
+    // For now, we are always keeping it on "auto" (if you have feature flag enabled).
+    // There's a chance that in the future this might become an explicit selector in the product.
+    return this.props.organization.features.includes('dashboards-mep');
+  }
+
   fetchEventData(queryFetchID: symbol) {
-    const {
-      selection,
-      api,
-      organization,
-      widget,
-      limit,
-      cursor,
-      pagination,
-      onDataFetched,
-    } = this.props;
+    const {selection, api, organization, widget, limit, cursor, onDataFetched} =
+      this.props;
+
+    const shouldUseEvents = organization.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
 
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
@@ -278,13 +310,22 @@ class WidgetQueries extends React.Component<Props, State> {
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
         per_page: limit ?? DEFAULT_TABLE_LIMIT,
-        ...(!!!pagination ? {noPagination: true} : {cursor}),
+        cursor,
+        ...getDashboardsMEPQueryParams(this.isMEPEnabled),
       };
+
+      if (query.orderby) {
+        params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
+      }
+
+      const eventsUrl = shouldUseEvents
+        ? `/organizations/${organization.slug}/events/`
+        : `/organizations/${organization.slug}/eventsv2/`;
       if (widget.displayType === 'table') {
-        url = `/organizations/${organization.slug}/eventsv2/`;
+        url = eventsUrl;
         params.referrer = 'api.dashboards.tablewidget';
       } else if (widget.displayType === 'big_number') {
-        url = `/organizations/${organization.slug}/eventsv2/`;
+        url = eventsUrl;
         params.per_page = 1;
         params.referrer = 'api.dashboards.bignumberwidget';
       } else if (widget.displayType === 'world_map') {
@@ -297,19 +338,31 @@ class WidgetQueries extends React.Component<Props, State> {
         );
       }
 
-      return doDiscoverQuery<TableData>(api, url, {
+      // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
+      return doDiscoverQuery<TableData | EventsTableData>(api, url, {
         ...eventView.generateQueryStringObject(),
         ...params,
       });
     });
 
     let completed = 0;
+    let isMetricsData: boolean | undefined;
     promises.forEach(async (promise, i) => {
       try {
         const [data, _textstatus, resp] = await promise;
+        // If one of the queries is sampled, then mark the whole thing as sampled
+        isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
 
         // Cast so we can add the title.
-        const tableData = data as TableDataWithTitle;
+        let tableData = data as TableDataWithTitle;
+        // events api uses a different response format so we need to construct tableData differently
+        if (shouldUseEvents) {
+          const fieldsMeta = (data as EventsTableData).meta?.fields;
+          tableData = {
+            ...data,
+            meta: {...fieldsMeta, isMetricsData: data.meta?.isMetricsData},
+          } as TableDataWithTitle;
+        }
         tableData.title = widget.queries[i]?.name ?? '';
 
         // Overwrite the local var to work around state being stale in tests.
@@ -318,8 +371,9 @@ class WidgetQueries extends React.Component<Props, State> {
         if (!this._isMounted) {
           return;
         }
+        const pageLinks = resp?.getResponseHeader('Link');
 
-        onDataFetched?.({tableResults});
+        onDataFetched?.({tableResults, pageLinks: pageLinks ?? undefined});
 
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
@@ -330,7 +384,7 @@ class WidgetQueries extends React.Component<Props, State> {
           return {
             ...prevState,
             tableResults,
-            pageLinks: resp?.getResponseHeader('Link'),
+            pageLinks,
           };
         });
       } catch (err) {
@@ -341,6 +395,7 @@ class WidgetQueries extends React.Component<Props, State> {
         if (!this._isMounted) {
           return;
         }
+        this.context?.setIsMetricsData(isMetricsData);
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -388,6 +443,7 @@ class WidgetQueries extends React.Component<Props, State> {
           partial: true,
           topEvents: TOP_N,
           field: [...query.columns, ...query.aggregates],
+          queryExtras: getDashboardsMEPQueryParams(this.isMEPEnabled),
         };
         if (query.orderby) {
           requestData.orderby = query.orderby;
@@ -407,6 +463,7 @@ class WidgetQueries extends React.Component<Props, State> {
           includePrevious: false,
           referrer: `api.dashboards.widget.${displayType}-chart`,
           partial: true,
+          queryExtras: getDashboardsMEPQueryParams(this.isMEPEnabled),
         };
 
         if (
@@ -415,20 +472,56 @@ class WidgetQueries extends React.Component<Props, State> {
           query.columns?.length !== 0
         ) {
           requestData.topEvents = widget.limit ?? TOP_N;
-          // Aggregates need to be in fields as well
           requestData.field = [...query.columns, ...query.aggregates];
+
+          // Compare field and orderby as aliases to ensure requestData has
+          // the orderby selected
+          // If the orderby is an equation alias, do not inject it
+          const orderby = trimStart(query.orderby, '-');
+          if (
+            query.orderby &&
+            !isEquationAlias(orderby) &&
+            !requestData.field.includes(orderby)
+          ) {
+            requestData.field.push(orderby);
+          }
+
+          // The "Other" series is only included when there is one
+          // y-axis and one query
+          requestData.excludeOther =
+            query.aggregates.length !== 1 || widget.queries.length !== 1;
+
+          if (isEquation(trimStart(query.orderby, '-'))) {
+            const nextEquationIndex = getNumEquations(query.aggregates);
+            const isDescending = query.orderby.startsWith('-');
+            const prefix = isDescending ? '-' : '';
+
+            // Construct the alias form of the equation and inject it into the request
+            requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
+            requestData.field = [
+              ...query.columns,
+              ...query.aggregates,
+              trimStart(query.orderby, '-'),
+            ];
+          }
         }
       }
       return doEventsRequest(api, requestData);
     });
 
     let completed = 0;
+    let isMetricsData: boolean | undefined;
     promises.forEach(async (promise, requestIndex) => {
       try {
         const rawResults = await promise;
         if (!this._isMounted) {
           return;
         }
+        // If one of the queries is sampled, then mark the whole thing as sampled
+        isMetricsData =
+          isMetricsData === false
+            ? false
+            : getIsMetricsDataFromSeriesResponse(rawResults);
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request
@@ -471,6 +564,7 @@ class WidgetQueries extends React.Component<Props, State> {
         if (!this._isMounted) {
           return;
         }
+        this.context?.setIsMetricsData(isMetricsData);
         this.setState(prevState => {
           if (prevState.queryFetchID !== queryFetchID) {
             // invariant: a different request was initiated after this request

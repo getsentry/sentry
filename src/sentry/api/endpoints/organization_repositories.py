@@ -1,3 +1,4 @@
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,6 +8,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, Repository
 from sentry.plugins.base import bindings
+from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 from sentry.utils.sdk import capture_exception
 
 UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
@@ -14,6 +16,9 @@ UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
+    rate_limits = RateLimitConfig(
+        group="CLI", limit_overrides={"POST": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
+    )
 
     def get(self, request: Request, organization) -> Response:
         """
@@ -23,11 +28,15 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         Return a list of version control repositories for a given organization.
 
         :pparam string organization_slug: the organization short name
+        :qparam string query: optional filter by repository name
         :auth: required
         """
         queryset = Repository.objects.filter(organization_id=organization.id)
 
         status = request.GET.get("status", "active")
+        query = request.GET.get("query")
+        if query:
+            queryset = queryset.filter(Q(name__icontains=query))
         if status == "active":
             queryset = queryset.filter(status=ObjectStatus.VISIBLE)
         elif status == "deleted":

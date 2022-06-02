@@ -1,16 +1,19 @@
 import logging
 import random
+from typing import Optional
 
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span, start_transaction
 
+from sentry import options
 from sentry.api.authentication import RelayAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
+from sentry.tasks.relay import schedule_update_config_cache
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -46,7 +49,17 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if version == "2":
+        no_cache = request.relay_request_data.get("no_cache") or False
+        set_tag("relay_no_cache", no_cache)
+
+        enable_v3 = random.random() < options.get("relay.project-config-v3-enable")
+
+        if enable_v3 and version == "3" and not no_cache:
+            # Always compute the full config. It's invalid to send partial
+            # configs to processing relays, and these validate the requests they
+            # get with permissions and trim configs down accordingly.
+            return self._post_or_schedule_by_key(request)
+        elif version in ["2", "3"]:
             return self._post_by_key(
                 request=request,
                 full_config_requested=full_config_requested,
@@ -57,7 +70,47 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 full_config_requested=full_config_requested,
             )
         else:
-            return Response("Unsupported version, we only support version null, 1 and 2.", 400)
+            return Response("Unsupported version, we only support versions 1 to 3.", 400)
+
+    def _post_or_schedule_by_key(self, request: Request):
+        public_keys = set(request.relay_request_data.get("publicKeys") or ())
+
+        proj_configs = {}
+        pending = []
+        for key in public_keys:
+            computed = self._get_cached_or_schedule(key)
+            if not computed:
+                pending.append(key)
+            else:
+                proj_configs[key] = computed
+
+        metrics.incr("relay.project_configs.post_v3.pending", amount=len(pending), sample_rate=1)
+        metrics.incr(
+            "relay.project_configs.post_v3.fetched", amount=len(proj_configs), sample_rate=1
+        )
+        res = {"configs": proj_configs, "pending": pending}
+
+        return Response(res, status=200)
+
+    def _get_cached_or_schedule(self, public_key) -> Optional[dict]:
+        """
+        Returns the config of a project if it's in the cache; else, schedules a
+        task to compute and write it into the cache.
+
+        Debouncing of the project happens after the task has been scheduled.
+        """
+        cached_config = projectconfig_cache.get(public_key)
+        if cached_config:
+            return cached_config
+
+        schedule_update_config_cache(
+            generate=True,
+            organization_id=None,
+            project_id=None,
+            public_key=public_key,
+            update_reason="project_config.post_v3",
+        )
+        return None
 
     def _post_by_key(self, request: Request, full_config_requested):
         public_keys = request.relay_request_data.get("publicKeys")

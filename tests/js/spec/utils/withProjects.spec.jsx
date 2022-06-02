@@ -1,5 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import withProjects from 'sentry/utils/withProjects';
@@ -9,23 +8,28 @@ describe('withProjects HoC', function () {
     act(() => ProjectsStore.reset());
   });
 
-  it('works', function () {
-    const MyComponent = () => null;
-    const Container = withProjects(MyComponent);
-    const wrapper = mountWithTheme(<Container />);
+  function Output({projects, loadingProjects}) {
+    if (loadingProjects) {
+      return <p>Loading</p>;
+    }
+    return (
+      <p>
+        {projects.map(project => (
+          <span key={project.slug}>{project.slug}</span>
+        ))}
+      </p>
+    );
+  }
 
-    expect(wrapper.find('MyComponent').prop('projects')).toEqual([]);
-    expect(wrapper.find('MyComponent').prop('loadingProjects')).toEqual(true);
+  it('works', async function () {
+    const Container = withProjects(Output);
+    render(<Container />);
+    expect(await screen.findByText('Loading')).toBeInTheDocument();
 
     // Insert into projects store
     const project = TestStubs.Project();
     act(() => ProjectsStore.loadInitialData([project]));
 
-    wrapper.update();
-    const projectProp = wrapper.find('MyComponent').prop('projects');
-    expect(projectProp).toHaveLength(1);
-    expect(projectProp[0].id).toBe(project.id);
-    const loadingProp = wrapper.find('MyComponent').prop('loadingProjects');
-    expect(loadingProp).toBe(false);
+    expect(await screen.findByText(project.slug)).toBeInTheDocument();
   });
 });

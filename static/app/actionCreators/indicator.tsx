@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {isValidElement} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -83,9 +83,13 @@ export function addLoadingMessage(
 }
 
 export function addErrorMessage(msg: React.ReactNode, options?: Options) {
-  if (typeof msg === 'string' || React.isValidElement(msg)) {
+  if (typeof msg === 'string' || isValidElement(msg)) {
     return addMessageWithType('error')(msg, options);
   }
+  // When non string, non-react element responses are passed, addErrorMessage
+  // crashes the entire page because it falls outside any error
+  // boundaries defined for the components on the page. Adding a fallback
+  // to prevent page crashes.
   return addMessageWithType('error')(
     t(
       "You've hit an issue, fortunately we use Sentry to monitor Sentry. So it's likely we're already looking into this!"

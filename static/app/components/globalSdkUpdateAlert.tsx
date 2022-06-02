@@ -5,20 +5,20 @@ import Alert, {AlertProps} from 'sentry/components/alert';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
-import {PageFilters, ProjectSdkUpdates} from 'sentry/types';
+import {ProjectSdkUpdates} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 
 import {SidebarPanelKey} from './sidebar/types';
 import Button from './button';
 
 interface InnerGlobalSdkSuggestionsProps extends AlertProps {
+  className?: string;
   sdkUpdates?: ProjectSdkUpdates[] | null;
-  selection?: PageFilters;
 }
 
 function InnerGlobalSdkUpdateAlert(
@@ -26,6 +26,7 @@ function InnerGlobalSdkUpdateAlert(
 ): React.ReactElement | null {
   const api = useApi();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const [showUpdateAlert, setShowUpdateAlert] = useState<boolean>(false);
 
@@ -74,11 +75,10 @@ function InnerGlobalSdkUpdateAlert(
   // looking at any projects outside of My Projects (like All Projects), this
   // will only show the updates relevant to the to user.
   const projectSpecificUpdates =
-    props.selection?.projects?.length === 0 ||
-    props.selection?.projects[0] === ALL_ACCESS_PROJECTS
+    selection?.projects?.length === 0 || selection?.projects[0] === ALL_ACCESS_PROJECTS
       ? props.sdkUpdates
       : props.sdkUpdates.filter(update =>
-          props.selection?.projects?.includes(parseInt(update.projectId, 10))
+          selection?.projects?.includes(parseInt(update.projectId, 10))
         );
 
   // Check if we have at least one suggestion out of the list of updates
@@ -90,6 +90,7 @@ function InnerGlobalSdkUpdateAlert(
     <Alert
       type="info"
       showIcon
+      className={props.className}
       trailingItems={
         <Fragment>
           <Button
@@ -114,9 +115,7 @@ function InnerGlobalSdkUpdateAlert(
   );
 }
 
-const WithSdkUpdatesGlobalSdkUpdateAlert = withSdkUpdates(
-  withPageFilters(InnerGlobalSdkUpdateAlert)
-);
+const WithSdkUpdatesGlobalSdkUpdateAlert = withSdkUpdates(InnerGlobalSdkUpdateAlert);
 
 export {
   WithSdkUpdatesGlobalSdkUpdateAlert as GlobalSdkUpdateAlert,

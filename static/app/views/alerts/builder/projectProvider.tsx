@@ -1,4 +1,4 @@
-import {cloneElement, isValidElement, useEffect} from 'react';
+import {cloneElement, Fragment, isValidElement, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
@@ -26,10 +26,20 @@ function AlertBuilderProjectProvider(props: Props) {
 
   const {children, params, organization, ...other} = props;
   const projectId = params.projectId || props.location.query.project;
-  const {projects, initiallyLoaded, fetching, fetchError} = useProjects({
-    slugs: [projectId],
-  });
-  const project = projects.find(({slug}) => slug === projectId);
+  const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+  const useFirstProject = hasAlertWizardV3 && projectId === undefined;
+
+  // calling useProjects() without args fetches all projects
+  const {projects, initiallyLoaded, fetching, fetchError} = useProjects(
+    useFirstProject
+      ? undefined
+      : {
+          slugs: [projectId],
+        }
+  );
+  const project = useFirstProject
+    ? projects.find(p => p.isMember)
+    : projects.find(({slug}) => slug === projectId);
 
   useEffect(() => {
     if (!project) {
@@ -38,7 +48,7 @@ function AlertBuilderProjectProvider(props: Props) {
 
     // fetch members list for mail action fields
     fetchOrgMembers(api, organization.slug, [project.id]);
-  }, [project]);
+  }, [api, organization, project]);
 
   if (!initiallyLoaded || fetching) {
     return <LoadingIndicator />;
@@ -51,14 +61,19 @@ function AlertBuilderProjectProvider(props: Props) {
     );
   }
 
-  return children && isValidElement(children)
-    ? cloneElement(children, {
-        ...other,
-        ...children.props,
-        project,
-        organization,
-      })
-    : children;
+  return (
+    <Fragment>
+      {children && isValidElement(children)
+        ? cloneElement(children, {
+            ...other,
+            ...children.props,
+            project,
+            projectId: useFirstProject ? project.slug : projectId,
+            organization,
+          })
+        : children}
+    </Fragment>
+  );
 }
 
 export default AlertBuilderProjectProvider;

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -28,7 +28,7 @@ type Props = WithRouterProps &
     query?: string;
   };
 
-class ListLink extends React.Component<Props> {
+class ListLink extends Component<Props> {
   static displayName = 'ListLink';
 
   static defaultProps: DefaultProps = {

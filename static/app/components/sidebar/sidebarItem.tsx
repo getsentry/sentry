@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment, isValidElement} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -8,6 +8,8 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import Tooltip from 'sentry/components/tooltip';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
 import {Theme} from 'sentry/utils/theme';
 
@@ -15,7 +17,7 @@ import {SidebarOrientation} from './types';
 
 const LabelHook = HookOrDefault({
   hookName: 'sidebar:item-label',
-  defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
 type Props = WithRouterProps & {
@@ -68,6 +70,11 @@ type Props = WithRouterProps & {
    */
   isNewSeenKeySuffix?: string;
   onClick?: (id: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
+  /**
+   * The current organization. Useful for analytics.
+   */
+  organization?: Organization;
+
   to?: string;
 };
 
@@ -87,12 +94,13 @@ const SidebarItem = ({
   className,
   orientation,
   isNewSeenKeySuffix,
+  organization,
   onClick,
   ...props
 }: Props) => {
   // label might be wrapped in a guideAnchor
   let labelString = label;
-  if (React.isValidElement(label)) {
+  if (isValidElement(label)) {
     labelString = label?.props?.children ?? label;
   }
   // If there is no active panel open and if path is active according to react-router
@@ -117,6 +125,12 @@ const SidebarItem = ({
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
+  const recordAnalytics = () => {
+    trackAdvancedAnalyticsEvent('growth.clicked_sidebar', {
+      item: id,
+      organization: organization || null,
+    });
+  };
   return (
     <Tooltip disabled={!collapsed} title={label} position={placement}>
       <StyledSidebarItem
@@ -127,6 +141,7 @@ const SidebarItem = ({
         className={className}
         onClick={(event: React.MouseEvent<HTMLAnchorElement>) => {
           !(to || href) && event.preventDefault();
+          recordAnalytics();
           onClick?.(id, event);
           showIsNew && localStorage.setItem(isNewSeenKey, 'true');
         }}

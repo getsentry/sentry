@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -49,7 +49,7 @@ type State = {
   teamMemberList: Member[];
 };
 
-class TeamMembers extends React.Component<Props, State> {
+class TeamMembers extends Component<Props, State> {
   state: State = {
     loading: true,
     error: false,

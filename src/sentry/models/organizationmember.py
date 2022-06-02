@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, List, Mapping, MutableMapping
+from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -18,18 +18,17 @@ from django.utils.translation import ugettext_lazy as _
 from structlog import get_logger
 
 from bitfield import BitField
-from sentry import features, roles
-from sentry.constants import ALERTS_MEMBER_WRITE_DEFAULT, EVENTS_MEMBER_ADMIN_DEFAULT
+from sentry import features
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.team import TeamStatus
+from sentry.roles import organization_roles
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models import Integration, Organization, User
-
 
 INVITE_DAYS_VALID = 30
 
@@ -111,7 +110,7 @@ class OrganizationMember(Model):
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmember_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
-    role = models.CharField(max_length=32, default=str(roles.get_default().id))
+    role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     flags = BitField(
         flags=(
             ("sso:linked", "sso:linked"),
@@ -370,23 +369,9 @@ class OrganizationMember(Model):
             ).values("team"),
         )
 
-    def get_scopes(self):
-        scopes = roles.get(self.role).scopes
-
-        disabled_scopes = set()
-
-        if self.role == "member":
-            if not self.organization.get_option(
-                "sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT
-            ):
-                disabled_scopes.add("event:admin")
-            if not self.organization.get_option(
-                "sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT
-            ):
-                disabled_scopes.add("alerts:write")
-
-        scopes = frozenset(s for s in scopes if s not in disabled_scopes)
-        return scopes
+    def get_scopes(self) -> FrozenSet[str]:
+        role_obj = organization_roles.get(self.role)
+        return self.organization.get_scopes(role_obj)
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
@@ -416,7 +401,7 @@ class OrganizationMember(Model):
         """
         Approve a member invite/join request and send an audit log entry
         """
-        from sentry.models.auditlogentry import AuditLogEntryEvent
+        from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
         self.approve_invite()
@@ -438,9 +423,9 @@ class OrganizationMember(Model):
             organization_id=self.organization_id,
             target_object=self.id,
             data=self.get_audit_log_data(),
-            event=AuditLogEntryEvent.MEMBER_INVITE
+            event=audit_log.get_event_id("MEMBER_INVITE")
             if settings.SENTRY_ENABLE_INVITES
-            else AuditLogEntryEvent.MEMBER_ADD,
+            else audit_log.get_event_id("MEMBER_ADD"),
         )
 
     def reject_member_invitation(
@@ -452,7 +437,7 @@ class OrganizationMember(Model):
         """
         Reject a member invite/jin request and send an audit log entry
         """
-        from sentry.models.auditlogentry import AuditLogEntryEvent
+        from sentry import audit_log
         from sentry.utils.audit import create_audit_entry_from_user
 
         self.delete()
@@ -464,7 +449,7 @@ class OrganizationMember(Model):
             organization_id=self.organization_id,
             target_object=self.id,
             data=self.get_audit_log_data(),
-            event=AuditLogEntryEvent.INVITE_REQUEST_REMOVE,
+            event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
 
     def get_allowed_roles_to_invite(self):
@@ -472,16 +457,20 @@ class OrganizationMember(Model):
         Return a list of roles which that member could invite
         Must check if member member has member:admin first before checking
         """
-        return [r for r in roles.get_all() if r.priority <= roles.get(self.role).priority]
+        return [
+            r
+            for r in organization_roles.get_all()
+            if r.priority <= organization_roles.get(self.role).priority
+        ]
 
     def is_only_owner(self) -> bool:
-        if self.role != roles.get_top_dog().id:
+        if self.role != organization_roles.get_top_dog().id:
             return False
 
         return (
             not OrganizationMember.objects.filter(
                 organization=self.organization_id,
-                role=roles.get_top_dog().id,
+                role=organization_roles.get_top_dog().id,
                 user__isnull=False,
                 user__is_active=True,
             )

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
 
@@ -27,10 +27,12 @@ type Props = {
   groupIds: string[];
   onDelete: () => void;
   onSelectStatsPeriod: (period: string) => void;
+  onSortChange: (sort: string) => void;
   organization: Organization;
   query: string;
   queryCount: number;
   selection: PageFilters;
+  sort: string;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[]) => void;
   onMarkReviewed?: (itemIds: string[]) => void;
@@ -45,7 +47,7 @@ type State = {
   selectedProjectSlug?: string;
 };
 
-class IssueListActions extends React.Component<Props, State> {
+class IssueListActions extends Component<Props, State> {
   state: State = {
     anySelected: false,
     multiSelected: false, // more than one selected
@@ -268,6 +270,8 @@ class IssueListActions extends React.Component<Props, State> {
           </ActionsCheckbox>
           {!displayReprocessingActions && (
             <ActionSet
+              sort={this.props.sort}
+              onSortChange={this.props.onSortChange}
               orgSlug={organization.slug}
               queryCount={queryCount}
               query={query}
@@ -306,7 +310,7 @@ class IssueListActions extends React.Component<Props, State> {
                 })
               )
             ) : (
-              <React.Fragment>
+              <Fragment>
                 {tn(
                   '%s issue on this page selected.',
                   '%s issues on this page selected.',
@@ -324,7 +328,7 @@ class IssueListActions extends React.Component<Props, State> {
                         count: queryCount,
                       })}
                 </SelectAllLink>
-              </React.Fragment>
+              </Fragment>
             )}
           </SelectAllNotice>
         )}

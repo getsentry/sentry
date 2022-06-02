@@ -5,7 +5,6 @@ from typing import Any, Iterable, Mapping, MutableMapping
 
 import pytz
 
-from sentry import features
 from sentry.db.models import Model
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
@@ -29,9 +28,9 @@ logger = logging.getLogger(__name__)
 
 class AlertRuleNotification(ProjectNotification):
     message_builder = "IssueNotificationMessageBuilder"
-    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
     metrics_key = "issue_alert"
-    referrer_base = "alert-rule"
+    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
+    template_path = "sentry/emails/error"
 
     def __init__(
         self,
@@ -56,12 +55,6 @@ class AlertRuleNotification(ProjectNotification):
             target_identifier=self.target_identifier,
             event=self.event,
         )
-
-    def get_filename(self) -> str:
-        return "error"
-
-    def get_category(self) -> str:
-        return "issue_alert_email"
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return str(self.event.get_email_subject())
@@ -89,9 +82,6 @@ class AlertRuleNotification(ProjectNotification):
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
-        alert_status_page_enabled = features.has(
-            "organizations:alert-rule-status-page", self.project.organization
-        )
         rule_details = get_rules(self.rules, self.organization, self.project)
         context = {
             "project_label": self.project.get_full_name(),
@@ -105,7 +95,6 @@ class AlertRuleNotification(ProjectNotification):
             "environment": environment,
             "slack_link": get_integration_link(self.organization, "slack"),
             "has_alert_integration": has_alert_integration(self.project),
-            "alert_status_page_enabled": alert_status_page_enabled,
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -115,7 +104,7 @@ class AlertRuleNotification(ProjectNotification):
 
         return context
 
-    def get_notification_title(self) -> Any:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
 
         title_str = "Alert triggered"
@@ -128,9 +117,6 @@ class AlertRuleNotification(ProjectNotification):
                 title_str += f" (+{len(self.rules) - 1} other)"
 
         return title_str
-
-    def get_type(self) -> str:
-        return "notify.error"
 
     def send(self) -> None:
         from sentry.notifications.notify import notify

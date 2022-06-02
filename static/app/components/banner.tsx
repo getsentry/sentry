@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,7 +16,7 @@ function dismissBanner(bannerKey: string) {
 
 function useDismissable(bannerKey: string) {
   const key = makeKey(bannerKey);
-  const [value, setValue] = React.useState(localStorage.getItem(key));
+  const [value, setValue] = useState(localStorage.getItem(key));
 
   const dismiss = () => {
     setValue('true');

@@ -1,8 +1,8 @@
-import * as React from 'react';
+import {forwardRef} from 'react';
 
 import SvgIcon, {SVGIconProps} from './svgIcon';
 
-const IconVsts = React.forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
+const IconVsts = forwardRef<SVGSVGElement, SVGIconProps>((props, ref) => {
   return (
     <SvgIcon {...props} ref={ref}>
       <polygon points="0 5.85 1.54 3.81 6.84 2.3 6.84 0 12.57 3.43 2.27 5.54 2.27 11.42 0 10.43 0 5.85" />

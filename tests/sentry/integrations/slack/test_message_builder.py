@@ -11,9 +11,9 @@ from sentry.incidents.models import IncidentStatus
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
+from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models import Group, Team, User
 from sentry.testutils import TestCase
-from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
 
@@ -79,83 +79,7 @@ def build_test_message(
     }
 
 
-class BuildIncidentAttachmentTest(TestCase):
-    def test_simple(self):
-        logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-        alert_rule = self.create_alert_rule()
-        incident = self.create_incident(alert_rule=alert_rule, status=2)
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
-        title = f"Resolved: {alert_rule.name}"
-        incident_footer_ts = (
-            "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
-                to_timestamp(incident.date_started), "{date_pretty}", "{time}"
-            )
-        )
-        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
-            "fallback": title,
-            "title": title,
-            "title_link": absolute_uri(
-                reverse(
-                    "sentry-metric-alert",
-                    kwargs={
-                        "organization_slug": incident.organization.slug,
-                        "incident_id": incident.identifier,
-                    },
-                )
-            ),
-            "text": "0 events in the last 10 minutes\nFilter: level:error",
-            "fields": [],
-            "mrkdwn_in": ["text"],
-            "footer_icon": logo_url,
-            "footer": incident_footer_ts,
-            "color": LEVEL_TO_COLOR["_incident_resolved"],
-            "actions": [],
-        }
-
-    def test_metric_value(self):
-        logo_url = absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-        alert_rule = self.create_alert_rule()
-        incident = self.create_incident(alert_rule=alert_rule, status=2)
-
-        # This test will use the action/method and not the incident to build status
-        title = f"Critical: {alert_rule.name}"
-        metric_value = 5000
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        self.create_alert_rule_trigger_action(
-            alert_rule_trigger=trigger, triggered_for_incident=incident
-        )
-        incident_footer_ts = (
-            "<!date^{:.0f}^Sentry Incident - Started {} at {} | Sentry Incident>".format(
-                to_timestamp(incident.date_started), "{date_pretty}", "{time}"
-            )
-        )
-        # This should fail because it pulls status from `action` instead of `incident`
-        assert SlackIncidentsMessageBuilder(
-            incident, IncidentStatus.CRITICAL, metric_value=metric_value
-        ).build() == {
-            "fallback": title,
-            "title": title,
-            "title_link": absolute_uri(
-                reverse(
-                    "sentry-metric-alert",
-                    kwargs={
-                        "organization_slug": incident.organization.slug,
-                        "incident_id": incident.identifier,
-                    },
-                )
-            ),
-            "text": f"{metric_value} events in the last 10 minutes\nFilter: level:error",
-            "fields": [],
-            "mrkdwn_in": ["text"],
-            "footer_icon": logo_url,
-            "footer": incident_footer_ts,
-            "color": LEVEL_TO_COLOR["fatal"],
-            "actions": [],
-        }
-
+class BuildGroupAttachmentTest(TestCase):
     def test_build_group_attachment(self):
         group = self.create_group(project=self.project)
 
@@ -211,3 +135,277 @@ class BuildIncidentAttachmentTest(TestCase):
             SlackIssuesMessageBuilder(warning_event.group, warning_event).build()["color"]
             == "#FFC227"
         )
+
+
+class BuildIncidentAttachmentTest(TestCase):
+    def test_simple(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=2)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        title = f"Resolved: {alert_rule.name}"
+        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+            to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+        )
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
+            )
+            + f"?alert={incident.identifier}&referrer=slack"
+        )
+        assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"0 events in the last 10 minutes\n{timestamp}",
+                    },
+                }
+            ],
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "text": f"<{link}|*{title}*>",
+        }
+
+    def test_metric_value(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=2)
+
+        # This test will use the action/method and not the incident to build status
+        title = f"Critical: {alert_rule.name}"
+        metric_value = 5000
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+            to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+        )
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
+            )
+            + f"?alert={incident.identifier}&referrer=slack"
+        )
+        # This should fail because it pulls status from `action` instead of `incident`
+        assert SlackIncidentsMessageBuilder(
+            incident, IncidentStatus.CRITICAL, metric_value=metric_value
+        ).build() == {
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"5000 events in the last 10 minutes\n{timestamp}",
+                    },
+                }
+            ],
+            "color": LEVEL_TO_COLOR["fatal"],
+            "text": f"<{link}|*{title}*>",
+        }
+
+    def test_chart(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=2)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        title = f"Resolved: {alert_rule.name}"
+        timestamp = "<!date^{:.0f}^Started {} at {} | Sentry Incident>".format(
+            to_timestamp(incident.date_started), "{date_pretty}", "{time}"
+        )
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
+            )
+            + f"?alert={incident.identifier}&referrer=slack"
+        )
+        assert SlackIncidentsMessageBuilder(
+            incident, IncidentStatus.CLOSED, chart_url="chart-url"
+        ).build() == {
+            "blocks": [
+                {
+                    "type": "section",
+                    "text": {
+                        "type": "mrkdwn",
+                        "text": f"0 events in the last 10 minutes\n{timestamp}",
+                    },
+                },
+                {"alt_text": "Metric Alert Chart", "image_url": "chart-url", "type": "image"},
+            ],
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "text": f"<{link}|*{title}*>",
+        }
+
+
+class BuildMetricAlertAttachmentTest(TestCase):
+    def test_metric_alert_without_incidents(self):
+        alert_rule = self.create_alert_rule()
+        title = f"Resolved: {alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
+        )
+        assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
+        }
+
+    def test_metric_alert_with_selected_incident(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        title = f"Resolved: {alert_rule.name}"
+        link = (
+            absolute_uri(
+                reverse(
+                    "sentry-metric-alert-details",
+                    kwargs={
+                        "organization_slug": alert_rule.organization.slug,
+                        "alert_rule_id": alert_rule.id,
+                    },
+                )
+            )
+            + f"?alert={incident.identifier}"
+        )
+        assert SlackMetricAlertMessageBuilder(alert_rule, incident).build() == {
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
+        }
+
+    def test_metric_alert_with_active_incident(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CRITICAL.value)
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        title = f"Critical: {alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
+        )
+        assert SlackMetricAlertMessageBuilder(alert_rule).build() == {
+            "color": LEVEL_TO_COLOR["fatal"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n0 events in the last 10 minutes",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
+        }
+
+    def test_metric_value(self):
+        alert_rule = self.create_alert_rule()
+        incident = self.create_incident(alert_rule=alert_rule, status=IncidentStatus.CLOSED.value)
+
+        # This test will use the action/method and not the incident to build status
+        title = f"Critical: {alert_rule.name}"
+        metric_value = 5000
+        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        self.create_alert_rule_trigger_action(
+            alert_rule_trigger=trigger, triggered_for_incident=incident
+        )
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
+        )
+        assert SlackMetricAlertMessageBuilder(
+            alert_rule, incident, IncidentStatus.CRITICAL, metric_value=metric_value
+        ).build() == {
+            "color": LEVEL_TO_COLOR["fatal"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}?alert={incident.identifier}|*{title}*>  \n"
+                        f"{metric_value} events in the last 10 minutes",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+            ],
+        }
+
+    def test_metric_alert_chart(self):
+        alert_rule = self.create_alert_rule()
+        title = f"Resolved: {alert_rule.name}"
+        link = absolute_uri(
+            reverse(
+                "sentry-metric-alert-details",
+                kwargs={
+                    "organization_slug": alert_rule.organization.slug,
+                    "alert_rule_id": alert_rule.id,
+                },
+            )
+        )
+        assert SlackMetricAlertMessageBuilder(alert_rule, chart_url="chart_url").build() == {
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
+            "blocks": [
+                {
+                    "text": {
+                        "text": f"<{link}|*{title}*>  \n",
+                        "type": "mrkdwn",
+                    },
+                    "type": "section",
+                },
+                {"alt_text": "Metric Alert Chart", "image_url": "chart_url", "type": "image"},
+            ],
+        }

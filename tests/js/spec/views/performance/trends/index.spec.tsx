@@ -131,7 +131,14 @@ function _initializeData(
   const data = initializeData(newSettings);
 
   // Modify page filters store to stop rerendering due to the test harness.
-  (PageFiltersStore as any)._hasInitialState = true;
+  PageFiltersStore.onInitializeUrlState(
+    {
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '24h', utc: null},
+    },
+    new Set()
+  );
   PageFiltersStore.updateDateTime(defaultTrendsSelectionDate);
   if (!options?.selectedProjectId) {
     PageFiltersStore.updateProjects(
@@ -284,6 +291,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -298,6 +306,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -313,6 +322,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -336,6 +346,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -365,6 +376,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -390,6 +402,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -419,6 +432,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -448,6 +462,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -472,6 +487,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -487,6 +503,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -502,6 +519,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -517,6 +535,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -539,6 +558,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -593,6 +613,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -664,6 +685,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 
@@ -690,6 +712,7 @@ describe('Performance > Trends', function () {
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
         context: data.routerContext,
+        organization: data.organization,
       }
     );
 

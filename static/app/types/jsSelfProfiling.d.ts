@@ -1,5 +1,5 @@
 // Type definitions for https://wicg.github.io/js-self-profiling/
-namespace JSSelfProfiling {
+declare namespace JSSelfProfiling {
   type Marker = 'script' | 'gc' | 'style' | 'layout' | 'paint' | 'other';
 
   type Sample = {
@@ -35,6 +35,6 @@ namespace JSSelfProfiling {
 
     new (options: {sampleInterval: number; maxBufferSize: number}): Profiler;
     addEventListener(event: 'samplebufferfull', callback: BufferFullCallback): void;
-    stop: () => Promise<ProfilerTrace>;
+    stop: () => Promise<Trace>;
   }
 }

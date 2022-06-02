@@ -1,57 +1,115 @@
 from dataclasses import dataclass
-from typing import Callable, List
-
-import sentry_sdk
+from typing import List, Optional
 
 from sentry.models.auditlogentry import AuditLogEntry
 
 
-@dataclass
+class DuplicateAuditLogEvent(Exception):
+    pass
+
+
+class AuditLogEventNotRegistered(Exception):
+    pass
+
+
+"""
+The audit log system records changes made to an organization and displays them in
+organization settings.
+
+To add a new audit log event:
+
+1. Create a new instance of AuditLogEvent. You'll need an event_id, name, api_name,
+   and optional template.
+
+   Note: The template uses AuditLogEntry.data fields to construct a simple audit
+   log message. For more complicated messages, subclass AuditLogEvent in events.py
+   and override the render function.
+
+2. Register the AuditLogEvent using `default_manager.add()`.
+
+    default_manager.add(
+        AuditLogEvent(
+            event_id=1,
+            name="MEMBER_INVITE",
+            api_name="member.invite",
+            template="invited member {email}",
+        )
+    )
+
+3. Record your AuditLogEvent.
+
+    self.create_audit_entry(
+        request=request,
+        organization_id=organization.id,
+        target_object=member.id,
+        data={"email": "email@gmail.com"},
+        event=audit_log.get_event_id(MEMBER_INVITE),
+    )
+"""
+
+
+@dataclass(init=False)
 class AuditLogEvent:
+    # Unique event ID (ex. 1)
     event_id: int
+
+    # Unique event name (ex. MEMBER_INVITE)
     name: str
+
+    # Unique event api name (ex. member.invite)
     api_name: str
-    # render holds a function that will determine the message to be displayed in the audit log
-    render: Callable[[AuditLogEntry], str]
+
+    # Simple template for rendering the audit log message using
+    # the AuditLogEntry.data fields. For more complicated messages,
+    # subclass AuditLogEvent and override the render method.
+    template: Optional[str] = None
+
+    def __init__(self, event_id, name, api_name, template=None):
+        self.event_id = event_id
+        self.name = name
+        self.api_name = api_name
+        self.template = template
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        if not self.template:
+            return ""
+        return self.template.format(**audit_log_entry.data)
 
 
 class AuditLogEventManager:
-    _event_registry = {}
-    _event_id_lookup = {}
+    def __init__(self) -> None:
+        self._event_registry = {}
+        self._event_id_lookup = {}
+        self._api_name_lookup = {}
 
     def add(self, audit_log_event: AuditLogEvent):
         if (
             audit_log_event.name in self._event_registry
             or audit_log_event.event_id in self._event_id_lookup
+            or audit_log_event.api_name in self._api_name_lookup
         ):
-            # TODO(mbauer404): raise exception once getsentry specific audit logs
-            # have been permanently moved from sentry into getsentry
-            with sentry_sdk.push_scope() as scope:
-                scope.level = "warning"
-                sentry_sdk.capture_message(
-                    f"Duplicate audit log: {audit_log_event.name} with ID {audit_log_event.event_id}"
-                )
-            return
+            raise DuplicateAuditLogEvent(
+                f"Duplicate audit log: {audit_log_event.name} with ID {audit_log_event.event_id} and api name {audit_log_event.api_name}"
+            )
 
         self._event_registry[audit_log_event.name] = audit_log_event
         self._event_id_lookup[audit_log_event.event_id] = audit_log_event
+        self._api_name_lookup[audit_log_event.api_name] = audit_log_event
 
-    def get(self, event_id: int) -> "AuditLogEvent":
+    def get(self, event_id: int) -> AuditLogEvent:
         if event_id not in self._event_id_lookup:
-            raise Exception("Event ID does not exist")
+            raise AuditLogEventNotRegistered(f"Event ID {event_id} does not exist")
         return self._event_id_lookup[event_id]
 
     def get_event_id(self, name: str) -> int:
         if name not in self._event_registry:
-            raise Exception("Event does not exist")
+            raise AuditLogEventNotRegistered(f"Event {name} does not exist")
         return self._event_registry[name].event_id
 
+    def get_event_id_from_api_name(self, api_name: str) -> int:
+        if api_name not in self._api_name_lookup:
+            return None
+        return self._api_name_lookup[api_name].event_id
+
     def get_api_names(self) -> List[str]:
-        # returns a list of all the api names
-        api_names: list = []
-        for audit_log_event in self._event_registry.values():
-            api_names.append(audit_log_event.api_name)
-        return api_names
-
-
-audit_log_manager = AuditLogEventManager()
+        return self._api_name_lookup.keys()

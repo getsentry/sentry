@@ -46,6 +46,7 @@ describe('StackTracePreview', () => {
       );
     });
   });
+
   it('fetches from issues when issueId when eventId and projectSlug are not provided', async () => {
     const api = new MockApiClient();
     const spy = jest
@@ -72,6 +73,7 @@ describe('StackTracePreview', () => {
       );
     });
   });
+
   it('renders error message', async () => {
     const api = new MockApiClient();
     jest
@@ -94,6 +96,7 @@ describe('StackTracePreview', () => {
 
     expect(await screen.findByText(/Failed to load stack trace/)).toBeInTheDocument();
   });
+
   it('warns about no stacktrace', async () => {
     const api = new MockApiClient();
     jest
@@ -118,6 +121,7 @@ describe('StackTracePreview', () => {
       await screen.findByText(/There is no stack trace available for this issue./)
     ).toBeInTheDocument();
   });
+
   it.each([
     ['stack-trace-content', []],
     ['stack-trace-content-v2', ['grouping-stacktrace-ui']],

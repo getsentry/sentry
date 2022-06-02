@@ -3,12 +3,15 @@ import * as PropTypes from 'prop-types';
 
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import {GroupEvents} from 'sentry/views/organizationGroupDetails/groupEvents';
 
 const OrganizationGroupEvents = GroupEvents;
 
 describe('groupEvents', function () {
   let request;
+
+  const organization = TestStubs.Organization();
 
   beforeEach(function () {
     request = MockApiClient.addMockResponse({
@@ -51,12 +54,15 @@ describe('groupEvents', function () {
 
   it('renders', function () {
     const component = mountWithTheme(
-      <OrganizationGroupEvents
-        api={new MockApiClient()}
-        group={TestStubs.Group()}
-        params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
-        location={{query: {}}}
-      />
+      <OrganizationContext.Provider value={organization}>
+        <OrganizationGroupEvents
+          organization={organization}
+          api={new MockApiClient()}
+          group={TestStubs.Group()}
+          params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
+          location={{query: {}}}
+        />
+      </OrganizationContext.Provider>
     );
 
     expect(component).toSnapshot();
@@ -65,6 +71,7 @@ describe('groupEvents', function () {
   it('handles search', function () {
     const component = shallow(
       <OrganizationGroupEvents
+        organization={organization}
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}
@@ -97,6 +104,7 @@ describe('groupEvents', function () {
   it('handles environment filtering', function () {
     shallow(
       <OrganizationGroupEvents
+        organization={organization}
         api={new MockApiClient()}
         params={{orgId: 'orgId', projectId: 'projectId', groupId: '1'}}
         group={TestStubs.Group()}

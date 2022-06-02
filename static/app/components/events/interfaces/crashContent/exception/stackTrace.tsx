@@ -1,12 +1,14 @@
+import {useContext} from 'react';
+
 import {Panel} from 'sentry/components/panels';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ExceptionValue, Group, Organization, PlatformType} from 'sentry/types';
+import {ExceptionValue, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';
-import useOrganization from 'sentry/utils/useOrganization';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 import StackTraceContent from '../stackTrace/content';
@@ -38,14 +40,10 @@ function StackTrace({
   expandFirstFrame,
   event,
 }: Props) {
-  let organization: Organization | null = null;
-
-  try {
-    organization = useOrganization();
-  } catch {
-    // Organization context may be unavailable for the shared event view. We
-    // don't need to do anything if it's unavailable.
-  }
+  // Organization context may be unavailable for the shared event view, so we
+  // avoid using the `useOrganization` hook here and directly useContext
+  // instead.
+  const organization = useContext(OrganizationContext);
 
   if (!defined(stacktrace)) {
     return null;

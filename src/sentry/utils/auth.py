@@ -2,8 +2,10 @@ import logging
 from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Container, Optional
+from urllib.parse import urlencode
 
 from django.conf import settings
+from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.contrib.auth import login as _login
 from django.contrib.auth.backends import ModelBackend
 from django.http.request import HttpRequest
@@ -17,7 +19,6 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.auth")
 
 _LOGIN_URL = None
-
 from typing import Any, Dict, Mapping
 
 MFA_SESSION_KEY = "mfa"
@@ -377,3 +378,13 @@ class EmailAuthBackend(ModelBackend):
 
     def user_can_authenticate(self, user):
         return True
+
+
+def make_login_link_with_redirect(path, redirect):
+    """
+    append an after login redirect to a path.
+    note: this function assumes that the redirect has been validated
+    """
+    query_string = urlencode({REDIRECT_FIELD_NAME: redirect})
+    redirect_uri = f"{path}?{query_string}"
+    return redirect_uri

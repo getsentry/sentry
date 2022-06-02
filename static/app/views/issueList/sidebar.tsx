@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import map from 'lodash/map';
@@ -31,7 +31,7 @@ type State = {
   textFilter: string;
 };
 
-class IssueListSidebar extends React.Component<Props, State> {
+class IssueListSidebar extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     tags: {},
     query: '',
@@ -114,7 +114,7 @@ class IssueListSidebar extends React.Component<Props, State> {
         {loading ? (
           <LoadingIndicator />
         ) : (
-          <React.Fragment>
+          <Fragment>
             <SidebarSection title={t('Text')}>
               <form onSubmit={this.onTextFilterSubmit}>
                 <Input
@@ -138,7 +138,7 @@ class IssueListSidebar extends React.Component<Props, State> {
                 tagValueLoader={tagValueLoader}
               />
             ))}
-          </React.Fragment>
+          </Fragment>
         )}
       </StreamSidebar>
     );

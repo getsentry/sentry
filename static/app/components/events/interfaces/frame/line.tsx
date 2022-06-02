@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
@@ -80,7 +80,7 @@ function makeFilter(
   return addr;
 }
 
-export class Line extends React.Component<Props, State> {
+export class Line extends Component<Props, State> {
   static defaultProps = {
     isExpanded: false,
     emptySourceNotation: false,

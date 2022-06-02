@@ -71,14 +71,28 @@ class Buffer(Service, metaclass=BufferMount):
 
             # HACK(dcramer): this is gross, but we don't have a good hook to compute this property today
             # XXX(dcramer): remove once we can replace 'priority' with something reasonable via Snuba
-            if model is Group and "last_seen" in update_kwargs and "times_seen" in update_kwargs:
-                update_kwargs["score"] = ScoreClause(
-                    group=None,
-                    times_seen=update_kwargs["times_seen"],
-                    last_seen=update_kwargs["last_seen"],
-                )
-
-            _, created = model.objects.create_or_update(values=update_kwargs, **filters)
+            if model is Group:
+                if "last_seen" in update_kwargs and "times_seen" in update_kwargs:
+                    update_kwargs["score"] = ScoreClause(
+                        group=None,
+                        times_seen=update_kwargs["times_seen"],
+                        last_seen=update_kwargs["last_seen"],
+                    )
+                # XXX: create_or_update doesn't fire `post_save` signals, and so this update never
+                # ends up in the cache. This causes issues when handling issue alerts, and likely
+                # elsewhere. Use `update` here since we're already special casing, and we know that
+                # the group will already exist.
+                try:
+                    group = Group.objects.get(**filters)
+                except Group.DoesNotExist:
+                    # If the group was deleted by the time we flush buffers we don't care, just
+                    # continue
+                    pass
+                else:
+                    group.update(**update_kwargs)
+                created = False
+            else:
+                _, created = model.objects.create_or_update(values=update_kwargs, **filters)
 
         buffer_incr_complete.send_robust(
             model=model,

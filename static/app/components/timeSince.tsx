@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {PureComponent} from 'react';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import moment from 'moment-timezone';
@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {ColorOrAlias} from 'sentry/utils/theme';
 
 import Tooltip from './tooltip';
 
@@ -46,13 +47,15 @@ interface Props extends DefaultProps, React.TimeHTMLAttributes<HTMLTimeElement> 
   shorten?: boolean;
 
   tooltipTitle?: React.ReactNode;
+
+  tooltipUnderlineColor?: ColorOrAlias;
 }
 
 type State = {
   relative: string;
 };
 
-class TimeSince extends React.PureComponent<Props, State> {
+class TimeSince extends PureComponent<Props, State> {
   static defaultProps: DefaultProps = {
     suffix: 'ago',
   };
@@ -106,6 +109,7 @@ class TimeSince extends React.PureComponent<Props, State> {
       disabledAbsoluteTooltip,
       className,
       tooltipTitle,
+      tooltipUnderlineColor,
       shorten: _shorten,
       extraShort: _extraShort,
       ...props
@@ -124,6 +128,8 @@ class TimeSince extends React.PureComponent<Props, State> {
     return (
       <Tooltip
         disabled={disabledAbsoluteTooltip}
+        underlineColor={tooltipUnderlineColor}
+        showUnderline
         title={
           <div>
             <div>{tooltipTitle}</div>
@@ -131,7 +137,7 @@ class TimeSince extends React.PureComponent<Props, State> {
           </div>
         }
       >
-        <time dateTime={dateObj.toISOString()} className={className} {...props}>
+        <time dateTime={dateObj?.toISOString()} className={className} {...props}>
           {this.state.relative}
         </time>
       </Tooltip>

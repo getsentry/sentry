@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
@@ -21,7 +21,7 @@ import withApi from 'sentry/utils/withApi';
 import withRelease from 'sentry/utils/withRelease';
 import withRepositories from 'sentry/utils/withRepositories';
 
-type Props = {
+interface Props extends React.ComponentProps<typeof Hovercard> {
   api: Client;
   organization: Organization;
   projectSlug: string;
@@ -36,13 +36,13 @@ type Props = {
   repositories?: Array<Repository>;
   repositoriesError?: Error;
   repositoriesLoading?: boolean;
-};
+}
 
 type State = {
   visible: boolean;
 };
 
-class VersionHoverCard extends React.Component<Props, State> {
+class VersionHoverCard extends Component<Props, State> {
   state: State = {
     visible: false,
   };

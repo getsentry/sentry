@@ -3,9 +3,7 @@ import {mat3, vec2} from 'gl-matrix';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
-import {Frame} from '../frame';
 import {
-  computeClampedConfigView,
   createProgram,
   createShader,
   getContext,
@@ -24,7 +22,6 @@ class FlamegraphRenderer {
   program: WebGLProgram | null = null;
 
   theme: FlamegraphTheme;
-  origin: vec2;
   frames: ReadonlyArray<FlamegraphFrame> = [];
   roots: ReadonlyArray<FlamegraphFrame> = [];
 
@@ -34,15 +31,6 @@ class FlamegraphRenderer {
   colors: Array<number> = [];
 
   colorMap: Map<string | number, number[]> = new Map();
-
-  logicalSpace: Rect = Rect.Empty();
-  logicalToPhysicalSpace: mat3 = mat3.create();
-
-  physicalSpace: Rect = new Rect(0, 0, 0, 0);
-  physicalToLogicalSpace: mat3 = mat3.create();
-
-  configSpace: Rect = new Rect(0, 0, 0, 0);
-  configView: Rect = new Rect(0, 0, 0, 0);
 
   lastDragPosition: vec2 | null = null;
 
@@ -78,13 +66,11 @@ class FlamegraphRenderer {
     canvas: HTMLCanvasElement,
     flamegraph: Flamegraph,
     theme: FlamegraphTheme,
-    origin: vec2 = vec2.fromValues(0, 0),
     options: {draw_border: boolean} = {draw_border: false}
   ) {
     this.flamegraph = flamegraph;
     this.canvas = canvas;
     this.theme = theme;
-    this.origin = origin;
     this.options = options;
 
     this.init();
@@ -104,115 +90,13 @@ class FlamegraphRenderer {
       this.theme.COLORS.COLOR_MAP,
       this.theme.COLORS.COLOR_BUCKET
     );
+
     this.colorMap = colorMap;
     this.colors = colorBuffer;
 
     this.initCanvasContext();
-    this.initPhysicalSpace();
-    this.initConfigSpace();
     this.initVertices();
     this.initShaders();
-  }
-
-  initPhysicalSpace(): void {
-    if (!this.gl) {
-      throw new Error('Uninitialized WebGL context');
-    }
-
-    // Setup physical space which may differ depending on device px ratio
-    this.physicalSpace = new Rect(0, 0, this.gl.canvas.width, this.gl.canvas.height);
-    this.logicalSpace = this.physicalSpace.scaledBy(
-      1 / window.devicePixelRatio,
-      1 / window.devicePixelRatio
-    );
-
-    this.logicalToPhysicalSpace = mat3.fromScaling(
-      mat3.create(),
-      vec2.fromValues(window.devicePixelRatio, window.devicePixelRatio)
-    );
-    this.physicalToLogicalSpace = mat3.invert(mat3.create(), this.logicalToPhysicalSpace);
-  }
-
-  get configSpaceToPhysicalSpace(): mat3 {
-    return mat3.fromValues(
-      this.physicalSpace.width / this.configSpace.width,
-      0,
-      0,
-      0,
-      this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio,
-      0,
-      -((this.configSpace.x * this.physicalSpace.width) / this.configSpace.width) +
-        this.origin[0],
-      -(this.configSpace.y * this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio) +
-        this.origin[1],
-      1
-    );
-  }
-
-  get configToPhysicalSpace(): mat3 {
-    return mat3.fromValues(
-      this.physicalSpace.width / this.configView.width,
-      0,
-      0,
-      0,
-      this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio,
-      0,
-      -((this.configView.x * this.physicalSpace.width) / this.configView.width) +
-        this.origin[0],
-      -(this.configView.y * this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio) +
-        this.origin[1],
-      1
-    );
-  }
-
-  initConfigSpace(): void {
-    const BAR_HEIGHT = this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio;
-
-    this.configSpace = new Rect(
-      0,
-      0,
-      this.flamegraph.configSpace.width,
-      Math.max(
-        this.flamegraph.depth + this.theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-        this.physicalSpace.height / BAR_HEIGHT - (this.flamegraph.inverted ? 1 : 0)
-      )
-    );
-
-    this.configView = Rect.From(this.configSpace).withHeight(
-      this.physicalSpace.height / BAR_HEIGHT
-    );
-
-    if (this.flamegraph.inverted) {
-      this.configView = this.configView.translateY(
-        this.configSpace.height - this.configView.height + 1
-      );
-    }
-  }
-
-  onResizeUpdateSpace(): void {
-    this.initPhysicalSpace();
-
-    const BAR_HEIGHT = this.theme.SIZES.BAR_HEIGHT * window.devicePixelRatio;
-
-    this.configSpace = new Rect(
-      0,
-      0,
-      this.flamegraph.configSpace.width,
-      Math.max(
-        this.flamegraph.depth + this.theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
-        this.physicalSpace.height / BAR_HEIGHT - (this.flamegraph.inverted ? 1 : 0)
-      )
-    );
-
-    this.configView = Rect.From(this.configView).withHeight(
-      this.physicalSpace.height / BAR_HEIGHT
-    );
-
-    if (this.flamegraph.inverted) {
-      this.configView = this.configView.translateY(
-        this.configSpace.height - this.configView.height + 1
-      );
-    }
   }
 
   initVertices(): void {
@@ -227,14 +111,11 @@ class FlamegraphRenderer {
 
     for (let index = 0; index < length; index++) {
       const frame = this.frames[index];
-      const depth = this.flamegraph.inverted
-        ? this.configSpace.height - frame.depth
-        : frame.depth;
 
       const x1 = frame.start;
       const x2 = frame.end;
-      const y1 = depth;
-      const y2 = depth + 1;
+      const y1 = frame.depth;
+      const y2 = frame.depth + 1;
 
       // top left -> top right -> bottom left ->
       // bottom left -> top right -> bottom right
@@ -274,6 +155,10 @@ class FlamegraphRenderer {
     }
     // Setup webgl canvas context
     this.gl = getContext(this.canvas, 'webgl');
+
+    if (!this.gl) {
+      throw new Error('Uninitialized WebGL context');
+    }
 
     this.gl.enable(this.gl.BLEND);
     this.gl.blendFuncSeparate(
@@ -463,57 +348,8 @@ class FlamegraphRenderer {
     this.gl.useProgram(this.program);
   }
 
-  setConfigView(configView: Rect): Rect {
-    this.configView = computeClampedConfigView(
-      configView,
-      {
-        min: this.flamegraph.profile.minFrameDuration,
-        max: this.configSpace.width,
-      },
-      {
-        min: 0,
-        max: this.configSpace.height,
-      },
-      !!this.flamegraph.inverted
-    );
-    return this.configView;
-  }
-
-  transformConfigView(transformation: mat3): Rect {
-    const newConfigViewSpace = this.configView.transformRect(transformation);
-
-    this.configView = computeClampedConfigView(
-      newConfigViewSpace,
-      {
-        min: this.flamegraph.profile.minFrameDuration,
-        max: this.configSpace.width,
-      },
-      {
-        min: 0,
-        max: this.configSpace.height,
-      },
-      !!this.flamegraph.inverted
-    );
-
-    return this.configView;
-  }
-
-  getColorForFrame(frame: Frame): number[] {
+  getColorForFrame(frame: FlamegraphFrame): number[] {
     return this.colorMap.get(frame.key) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR;
-  }
-
-  getConfigSpaceCursor(
-    logicalSpaceCursor: vec2,
-    configToPhysicalSpace: mat3 = this.configToPhysicalSpace
-  ): vec2 {
-    const physicalSpaceCursor = vec2.transformMat3(
-      vec2.create(),
-      logicalSpaceCursor,
-      this.logicalToPhysicalSpace
-    );
-
-    const physicalToConfig = mat3.invert(mat3.create(), configToPhysicalSpace);
-    return vec2.transformMat3(vec2.create(), physicalSpaceCursor, physicalToConfig);
   }
 
   getHoveredNode(configSpaceCursor: vec2): FlamegraphFrame | null {
@@ -525,12 +361,7 @@ class FlamegraphRenderer {
         return;
       }
 
-      const frameRect = new Rect(
-        frame.start,
-        this.flamegraph.inverted ? this.configSpace.height - frame.depth : frame.depth,
-        frame.end - frame.start,
-        1
-      );
+      const frameRect = new Rect(frame.start, frame.depth, frame.end - frame.start, 1);
 
       // We treat entire flamegraph as a segment tree, this allows us to query in O(log n) time by
       // only looking at the nodes that are relevant to the current cursor position. We discard any values
@@ -546,8 +377,8 @@ class FlamegraphRenderer {
       }
 
       // Descend into the rest of the children
-      for (const child of frame.children) {
-        findHoveredNode(child, depth + 1);
+      for (let i = 0; i < frame.children.length; i++) {
+        findHoveredNode(frame.children[i], depth + 1);
       }
     };
 
@@ -559,8 +390,8 @@ class FlamegraphRenderer {
   }
 
   draw(
-    searchResults: Record<FlamegraphFrame['frame']['key'], FlamegraphFrame> | null,
-    configToPhysicalSpace = this.configToPhysicalSpace
+    configViewToPhysicalSpace: mat3,
+    searchResults: Record<FlamegraphFrame['frame']['key'], FlamegraphFrame> | null = null
   ): void {
     if (!this.gl) {
       throw new Error('Uninitialized WebGL context');
@@ -585,7 +416,7 @@ class FlamegraphRenderer {
     this.gl.uniformMatrix3fv(this.uniforms.u_projection, false, projectionMatrix);
 
     // Model to projection
-    this.gl.uniformMatrix3fv(this.uniforms.u_model, false, configToPhysicalSpace);
+    this.gl.uniformMatrix3fv(this.uniforms.u_model, false, configViewToPhysicalSpace);
 
     // Check if we should draw border
     this.gl.uniform1i(this.uniforms.u_draw_border, this.options.draw_border ? 1 : 0);
@@ -594,7 +425,7 @@ class FlamegraphRenderer {
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
 
     const physicalSpacePixel = new Rect(0, 0, 1, 1);
-    const physicalToConfig = mat3.invert(mat3.create(), configToPhysicalSpace);
+    const physicalToConfig = mat3.invert(mat3.create(), configViewToPhysicalSpace);
     const configSpacePixel = physicalSpacePixel.transformRect(physicalToConfig);
 
     this.gl.uniform2f(
@@ -629,6 +460,7 @@ class FlamegraphRenderer {
         this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);
       }
     } else {
+      this.gl.uniform1i(this.uniforms.u_is_search_result, 0);
       for (let i = 0; i < length; i++) {
         const vertexOffset = i * VERTICES;
 

@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 

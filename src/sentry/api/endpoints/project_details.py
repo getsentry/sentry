@@ -2,6 +2,7 @@ import math
 import time
 from datetime import timedelta
 from itertools import chain
+from uuid import uuid4
 
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -10,7 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_relay.processing import validate_sampling_condition, validate_sampling_configuration
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -31,7 +32,6 @@ from sentry.lang.native.symbolicator import (
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
 from sentry.models import (
-    AuditLogEntryEvent,
     Group,
     GroupStatus,
     NotificationSetting,
@@ -240,13 +240,25 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         except InvalidSourcesError as e:
             raise serializers.ValidationError(str(e))
 
-        sources_json = json.dumps(sources) if sources else ""
-
         # If no sources are added or modified, we're either only deleting sources or doing nothing.
         # This is always allowed.
         added_or_modified_sources = [s for s in sources if s not in orig_sources]
         if not added_or_modified_sources:
-            return sources_json
+            return json.dumps(sources) if sources else ""
+
+        # All modified sources should get a new UUID, as a way to invalidate caches.
+        # Downstream symbolicator uses this ID as part of a cache key, so assigning
+        # a new ID does have the following effects/tradeoffs:
+        # * negative cache entries (eg auth errors) are retried immediately.
+        # * positive caches are re-fetches as well, making it less effective.
+        for source in added_or_modified_sources:
+            # This should only apply to sources which are being fed to symbolicator.
+            # App Store Connect in particular is managed in a completely different
+            # way, and needs its `id` to stay valid for a longer time.
+            if source["type"] != "appStoreConnect":
+                source["id"] = str(uuid4())
+
+        sources_json = json.dumps(sources) if sources else ""
 
         # Adding sources is only allowed if custom symbol sources are enabled.
         has_sources = features.has(
@@ -429,12 +441,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             "organizations:filters-and-sampling", project.organization, actor=request.user
         )
 
-        allow_dynamic_sampling_error_rules = features.has(
-            "organizations:filters-and-sampling-error-rules",
-            project.organization,
-            actor=request.user,
-        )
-
         if not allow_dynamic_sampling and result.get("dynamicSampling"):
             # trying to set dynamic sampling with feature disabled
             return Response(
@@ -604,19 +610,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         if "dynamicSampling" in result:
             raw_dynamic_sampling = result["dynamicSampling"]
-            if (
-                not allow_dynamic_sampling_error_rules
-                and self._dynamic_sampling_contains_error_rule(raw_dynamic_sampling)
-            ):
-                return Response(
-                    {
-                        "detail": [
-                            "Dynamic Sampling only accepts rules of type transaction or trace"
-                        ]
-                    },
-                    status=400,
-                )
-
             fixed_rules = self._fix_rule_ids(project, raw_dynamic_sampling)
             project.update_option("sentry:dynamic_sampling", fixed_rules)
 
@@ -730,7 +723,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_EDIT,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
                 data=changed_proj_settings,
             )
 
@@ -770,7 +763,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 request=request,
                 organization=project.organization,
                 target_object=project.id,
-                event=AuditLogEntryEvent.PROJECT_REMOVE,
+                event=audit_log.get_event_id("PROJECT_REMOVE"),
                 data=project.get_audit_log_data(),
                 transaction_id=scheduled.id,
             )

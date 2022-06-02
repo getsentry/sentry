@@ -1,105 +1,101 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections import defaultdict
+from typing import Any, Mapping, MutableMapping
 
-from sentry.models import Team, User
+from sentry.models import Activity, NotificationSetting, Organization, Team, User
+from sentry.notifications.types import GroupSubscriptionReason
+from sentry.types.integrations import ExternalProviders
 
 from .base import GroupActivityNotification
 
 
-class AssignedActivityNotification(GroupActivityNotification):
-    referrer_base = "assigned-activity"
+def _get_user_option(assignee_id: int) -> User | None:
+    try:
+        return User.objects.get_from_cache(id=assignee_id)
+    except User.DoesNotExist:
+        return None
 
-    def get_activity_name(self) -> str:
-        return "Assigned"
+
+def _get_team_option(assignee_id: int, organization: Organization) -> Team | None:
+    return Team.objects.filter(id=assignee_id, organization=organization).first()
+
+
+def is_team_assignee(activity: Activity) -> bool:
+    assignee_type: str | None = activity.data.get("assigneeType")
+    return assignee_type == "team"
+
+
+def get_assignee_str(activity: Activity, organization: Organization) -> str:
+    """Get a human-readable version of the assignment's target."""
+
+    assignee_id = activity.data.get("assignee")
+    assignee_email: str | None = activity.data.get("assigneeEmail")
+
+    if is_team_assignee(activity):
+        assignee_team = _get_team_option(assignee_id, organization)
+        if assignee_team:
+            return f"the {assignee_team.slug} team"
+        return "an unknown team"
+
+    # TODO(mgaeta): Refactor GroupAssigneeManager to not make IDs into strings.
+    if str(activity.user_id) == str(assignee_id):
+        return "themselves"
+
+    assignee_user = _get_user_option(assignee_id)
+    if assignee_user:
+        assignee: str = assignee_user.get_display_name()
+        return assignee
+    if assignee_email:
+        return assignee_email
+    return "an unknown user"
+
+
+class AssignedActivityNotification(GroupActivityNotification):
+    metrics_key = "assigned_activity"
+    title = "Assigned"
+
+    def get_assignee(self) -> str:
+        return get_assignee_str(self.activity, self.organization)
 
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        activity = self.activity
-        data = activity.data
+        return "{author} assigned {an issue} to {assignee}", {"assignee": self.get_assignee()}, {}
 
-        # legacy Activity objects from before assignable teams
-        if "assigneeType" not in data or data["assigneeType"] == "user":
-            if activity.user_id and str(activity.user_id) == data["assignee"]:
-                return "{author} assigned {an issue} to themselves", {}, {}
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        assignee = self.get_assignee()
 
-            try:
-                assignee = User.objects.get_from_cache(id=data["assignee"])
-            except User.DoesNotExist:
-                pass
-            else:
-                return (
-                    "{author} assigned {an issue} to {assignee}",
-                    {"assignee": assignee.get_display_name()},
-                    {},
-                )
-
-            if data.get("assigneeEmail"):
-                return (
-                    "{author} assigned {an issue} to {assignee}",
-                    {"assignee": data["assigneeEmail"]},
-                    {},
-                )
-
-            return "{author} assigned {an issue} to an unknown user", {}, {}
-
-        if data["assigneeType"] == "team":
-            try:
-                assignee_team = Team.objects.get(
-                    id=data["assignee"], organization=self.organization
-                )
-            except Team.DoesNotExist:
-                return "{author} assigned {an issue} to an unknown team", {}, {}
-            else:
-                return (
-                    "{author} assigned {an issue} to the {assignee} team",
-                    {"assignee": assignee_team.slug},
-                    {},
-                )
-
-        raise NotImplementedError("Unknown Assignee Type ")
-
-    def get_category(self) -> str:
-        return "assigned_activity_email"
-
-    def build_notification_title(self) -> tuple[str, str]:
-        activity = self.activity
-        data = activity.data
-        user = self.activity.user
-        if user:
-            author = user.name or user.email
-        else:
-            author = "Sentry"
-
-        # TODO: refactor so assignee type doesn't change
-
-        # legacy Activity objects from before assignable teams
-        if "assigneeType" not in data or data["assigneeType"] == "user":
-            author = "themselves"
-
-            try:
-                assignee = User.objects.get_from_cache(id=data["assignee"])
-            except User.DoesNotExist:
-                assignee = data.get("assigneeEmail", "an unknown user")
-            else:
-                assignee = assignee.get_display_name()
-            return author, assignee
-
-        if data.get("assigneeType") == "team":
-            try:
-                assignee_team = Team.objects.get(
-                    id=data["assignee"], organization=self.organization
-                )
-            except Team.DoesNotExist:
-                assignee = "an unknown team"
-            else:
-                assignee = f"#{assignee_team.slug}"
-        else:
-            # need this case to ensure assignee is bound
-            assignee = "unknown"
-        return author, assignee
-
-    def get_notification_title(self) -> str:
-        author, assignee = self.build_notification_title()
-        if author == "Sentry":
+        if not self.activity.user:
             return f"Issue automatically assigned to {assignee}"
+
+        author = self.activity.user.get_display_name()
+        if assignee == "themselves":
+            author, assignee = assignee, author
+
         return f"Issue assigned to {assignee} by {author}"
+
+    def get_participants_with_group_subscription_reason(
+        self,
+    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
+        """Hack to tack on the assigned team to the list of users subscribed to the group."""
+        users_by_provider = super().get_participants_with_group_subscription_reason()
+        if is_team_assignee(self.activity):
+            assignee_id = self.activity.data.get("assignee")
+            assignee_team = _get_team_option(assignee_id, self.organization)
+
+            if assignee_team:
+                teams_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
+                    parent=self.project,
+                    recipients=[assignee_team],
+                    type=self.notification_setting_type,
+                )
+                actors_by_provider: MutableMapping[
+                    ExternalProviders,
+                    MutableMapping[Team | User, int],
+                ] = defaultdict(dict)
+                actors_by_provider.update({**users_by_provider})
+                for provider, teams in teams_by_provider.items():
+                    for team in teams:
+                        actors_by_provider[provider][team] = GroupSubscriptionReason.assigned
+                return actors_by_provider
+
+        return users_by_provider

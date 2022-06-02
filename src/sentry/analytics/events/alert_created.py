@@ -13,6 +13,8 @@ class AlertCreatedEvent(analytics.Event):
         analytics.Attribute("is_api_token"),
         # `alert_rule_ui_component` can be `alert-rule-action`
         analytics.Attribute("alert_rule_ui_component", required=False),
+        analytics.Attribute("duplicate_rule", required=False),
+        analytics.Attribute("wizard_v3", required=False),
     )
 
 

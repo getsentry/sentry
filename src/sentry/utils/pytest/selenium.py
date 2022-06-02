@@ -20,7 +20,6 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.ui import WebDriverWait
 
-from sentry.utils.compat import map
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger("sentry.testutils")
@@ -298,7 +297,7 @@ class Browser:
         """
         self.driver.implicitly_wait(duration)
 
-    def snapshot(self, name, mobile_only=False):
+    def snapshot(self, name, mobile_only=False, desktop_only=False):
         """
         Capture a screenshot of the current state of the page.
         """
@@ -346,14 +345,15 @@ class Browser:
                         "window.__closeAllTooltips && window.__closeAllTooltips()"
                     )
 
-        with self.mobile_viewport():
-            screenshot_path = f"{snapshot_dir}-mobile/{filename}.png"
-            self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
+        if not desktop_only:
+            with self.mobile_viewport():
+                screenshot_path = f"{snapshot_dir}-mobile/{filename}.png"
+                self.driver.find_element_by_tag_name("body").screenshot(screenshot_path)
 
-            if os.environ.get("SENTRY_SCREENSHOT"):
-                import click
+                if os.environ.get("SENTRY_SCREENSHOT"):
+                    import click
 
-                click.launch(screenshot_path)
+                    click.launch(screenshot_path)
 
         return self
 

@@ -15,19 +15,18 @@ export class EventedProfile extends Profile {
     eventedProfile: Profiling.EventedProfile,
     frameIndex: ReturnType<typeof createFrameIndex>
   ): EventedProfile {
-    const {startValue, endValue, name, unit} = eventedProfile;
-
     const profile = new EventedProfile(
-      endValue - startValue,
-      startValue,
-      endValue,
-      name,
-      unit
+      eventedProfile.endValue - eventedProfile.startValue,
+      eventedProfile.startValue,
+      eventedProfile.endValue,
+      eventedProfile.name,
+      eventedProfile.unit,
+      eventedProfile.threadID
     );
 
     // If frames are offset, we need to set lastValue to profile start, so that delta between
     // samples is correctly offset by the start value.
-    profile.lastValue = startValue;
+    profile.lastValue = Math.max(0, eventedProfile.startValue);
 
     for (const event of eventedProfile.events) {
       const frame = frameIndex[event.frame];

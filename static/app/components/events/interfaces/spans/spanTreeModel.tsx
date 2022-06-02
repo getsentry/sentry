@@ -44,6 +44,7 @@ class SpanTreeModel {
   fetchEmbeddedChildrenState: FetchEmbeddedChildrenState = 'idle';
   showEmbeddedChildren: boolean = false;
   embeddedChildren: Array<SpanTreeModel> = [];
+  isEmbeddedTransactionTimeAdjusted: boolean = false;
   // This controls if a chain of nested spans that are the only sibling to be visually grouped together or not.
   // On initial render, they're visually grouped together.
   isNestedSpanGroupExpanded: boolean = false;
@@ -86,6 +87,7 @@ class SpanTreeModel {
       toggleNestedSpanGroup: action,
       expandedSiblingGroups: observable,
       toggleSiblingSpanGroup: action,
+      isEmbeddedTransactionTimeAdjusted: observable,
     });
   }
 
@@ -176,6 +178,7 @@ class SpanTreeModel {
       fetchEmbeddedChildrenState: 'idle',
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: undefined,
+      isEmbeddedTransactionTimeAdjusted: this.isEmbeddedTransactionTimeAdjusted,
     };
     return gapSpan;
   }
@@ -291,6 +294,7 @@ class SpanTreeModel {
           ? this.toggleNestedSpanGroup
           : undefined,
       toggleSiblingSpanGroup: undefined,
+      isEmbeddedTransactionTimeAdjusted: this.isEmbeddedTransactionTimeAdjusted,
     };
 
     if (wrappedSpan.type === 'root_span') {
@@ -328,6 +332,10 @@ class SpanTreeModel {
       const siblingGroupOccurrenceMap = {};
 
       const addGroupToMap = (prevSpanModel: SpanTreeModel, group: SpanTreeModel[]) => {
+        if (!group.length) {
+          return;
+        }
+
         const groupKey = `${prevSpanModel.span.op}.${prevSpanModel.span.description}`;
 
         if (!siblingGroupOccurrenceMap[groupKey]) {
@@ -465,6 +473,8 @@ class SpanTreeModel {
                   toggleNestedSpanGroup: undefined,
                   toggleSiblingSpanGroup:
                     index === 0 ? this.toggleSiblingSpanGroup : undefined,
+                  isEmbeddedTransactionTimeAdjusted:
+                    spanModel.isEmbeddedTransactionTimeAdjusted,
                 };
 
                 acc.previousSiblingEndTimestamp = spanModel.span.timestamp;
@@ -525,6 +535,8 @@ class SpanTreeModel {
               toggleNestedSpanGroup: undefined,
               toggleSiblingSpanGroup:
                 index === 0 ? this.toggleSiblingSpanGroup : undefined,
+              isEmbeddedTransactionTimeAdjusted:
+                spanModel.isEmbeddedTransactionTimeAdjusted,
             };
 
             return enhancedSibling;
@@ -534,7 +546,7 @@ class SpanTreeModel {
             type: 'span_group_siblings',
             span: this.span,
             treeDepth: treeDepth + 1,
-            continuingTreeDepths,
+            continuingTreeDepths: descendantContinuingTreeDepths,
             spanSiblingGrouping: wrappedSiblings,
             isLastSibling: groupIndex === groupedDescendants.length - 1,
             occurrence: occurrence ?? 0,
@@ -764,6 +776,26 @@ class SpanTreeModel {
           }
 
           const parsedTrace = parseTrace(event);
+
+          // We need to adjust the timestamps for this embedded transaction only if it is not within the bounds of its parent span
+          if (
+            parsedTrace.traceStartTimestamp < this.span.start_timestamp ||
+            parsedTrace.traceEndTimestamp > this.span.timestamp
+          ) {
+            const startTimeDelta =
+              this.span.start_timestamp - parsedTrace.traceStartTimestamp;
+
+            parsedTrace.traceStartTimestamp += startTimeDelta;
+            parsedTrace.traceEndTimestamp += startTimeDelta;
+
+            parsedTrace.spans.forEach(span => {
+              span.start_timestamp += startTimeDelta;
+              span.timestamp += startTimeDelta;
+            });
+
+            this.isEmbeddedTransactionTimeAdjusted = true;
+          }
+
           const rootSpan = generateRootSpan(parsedTrace);
           const parsedRootSpan = new SpanTreeModel(
             rootSpan,
@@ -771,7 +803,6 @@ class SpanTreeModel {
             this.api,
             false
           );
-
           this.embeddedChildren = [parsedRootSpan];
           this.fetchEmbeddedChildrenState = 'idle';
           addTraceBounds(parsedRootSpan.generateTraceBounds());

@@ -5,10 +5,10 @@ import * as qs from 'query-string';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
 import Pill from 'sentry/components/pill';
+import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
-import {IconInfo, IconOpen} from 'sentry/icons';
+import {IconOpen} from 'sentry/icons';
 import {Organization} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
 import {isUrl} from 'sentry/utils';
@@ -24,19 +24,11 @@ type Props = {
   organization: Organization;
   projectId: string;
   query: Query;
-  releasesPath: string;
   streamPath: string;
   tag: EventTag;
 };
 
-const EventTagsPill = ({
-  tag,
-  query,
-  organization,
-  projectId,
-  streamPath,
-  releasesPath,
-}: Props) => {
+const EventTagsPill = ({tag, query, organization, projectId, streamPath}: Props) => {
   const locationSearch = `?${qs.stringify(query)}`;
   const {key, value} = tag;
   const isRelease = key === 'release';
@@ -45,30 +37,28 @@ const EventTagsPill = ({
 
   return (
     <Pill name={name} value={value} type={type}>
-      <EventTagsPillValue
-        tag={tag}
-        meta={getMeta(tag, 'value')}
-        streamPath={streamPath}
-        locationSearch={locationSearch}
-        isRelease={isRelease}
-      />
+      {isRelease ? (
+        <VersionHoverCard
+          organization={organization}
+          projectSlug={projectId}
+          releaseVersion={value}
+          showUnderline
+          underlineColor="linkUnderline"
+        >
+          <Version version={String(value)} truncate />
+        </VersionHoverCard>
+      ) : (
+        <EventTagsPillValue
+          tag={tag}
+          meta={getMeta(tag, 'value')}
+          streamPath={streamPath}
+          locationSearch={locationSearch}
+        />
+      )}
       {isUrl(value) && (
         <ExternalLink href={value} className="external-icon">
           <IconOpen size="xs" css={iconStyle} />
         </ExternalLink>
-      )}
-      {isRelease && (
-        <div className="pill-icon">
-          <VersionHoverCard
-            organization={organization}
-            projectSlug={projectId}
-            releaseVersion={value}
-          >
-            <Link to={{pathname: `${releasesPath}${value}/`, search: locationSearch}}>
-              <IconInfo size="xs" css={iconStyle} />
-            </Link>
-          </VersionHoverCard>
-        </div>
       )}
     </Pill>
   );

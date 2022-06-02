@@ -17,6 +17,7 @@ from sentry.models import (
     DashboardWidgetTypes,
 )
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.fields import is_function
 from sentry.snuba.dataset import Dataset
 from sentry.utils.dates import parse_stats_period
 
@@ -141,25 +142,27 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
         conditions = self._get_attr(data, "conditions", "")
         orderby = self._get_attr(data, "orderby", "")
         is_table = is_table_display_type(self.context.get("displayType"))
-
-        # TODO(dam): Use columns and aggregates for validation
-        fields = self._get_attr(data, "fields", []).copy()
-        equations, fields = categorize_columns(fields)
-
-        # TODO(dam): Temp code while we are sure adoption
-        # of fromtend code that sends this data is high enough
         columns = self._get_attr(data, "columns", []).copy()
         aggregates = self._get_attr(data, "aggregates", []).copy()
+        fields = columns + aggregates
 
-        if not columns and not aggregates:
-            for field in fields:
-                if is_aggregate(field):
-                    aggregates.append(field)
-                else:
-                    columns.append(field)
+        # Handle the orderby since it can be a value that's not included in fields
+        # e.g. a custom equation, or a function that isn't plotted as a y-axis
+        injected_orderby_equation, orderby_prefix = None, None
+        stripped_orderby = orderby.lstrip("-")
+        if is_equation(stripped_orderby):
+            # The orderby is a custom equation and needs to be added to fields
+            injected_orderby_equation = stripped_orderby
+            fields.append(injected_orderby_equation)
+            orderby_prefix = "-" if orderby.startswith("-") else ""
+        elif is_function(stripped_orderby) and stripped_orderby not in fields:
+            fields.append(stripped_orderby)
 
-            data["columns"] = columns
-            data["aggregates"] = aggregates
+        equations, fields = categorize_columns(fields)
+
+        if injected_orderby_equation is not None and orderby_prefix is not None:
+            # Subtract one because the equation is injected to fields
+            orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
         try:
             parse_search_query(conditions)
@@ -185,9 +188,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
             builder = UnresolvedQuery(
                 dataset=Dataset.Discover,
                 params=params,
-                equation_config={"auto_add": not is_table, "aggregates_only": not is_table},
+                equation_config={
+                    "auto_add": not is_table or injected_orderby_equation,
+                    "aggregates_only": not is_table,
+                },
             )
 
+            builder.resolve_time_conditions()
             builder.resolve_conditions(conditions, use_aggregate_conditions=True)
             builder.resolve_params()
         except InvalidSearchQuery as err:

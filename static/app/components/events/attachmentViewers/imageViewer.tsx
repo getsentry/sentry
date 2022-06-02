@@ -10,12 +10,14 @@ type Props = Omit<ViewerProps, 'attachment'> & {
   attachment: Omit<ViewerProps['attachment'], 'event_id'> & {
     event_id?: string;
   };
+  onError?: React.ReactEventHandler<HTMLImageElement>;
+  onLoad?: React.ReactEventHandler<HTMLImageElement>;
 };
 
-function ImageViewer({className, ...props}: Props) {
+function ImageViewer({className, onLoad, onError, ...props}: Props) {
   return (
     <Container className={className}>
-      <img src={getAttachmentUrl(props, true)} />
+      <img src={getAttachmentUrl(props, true)} onLoad={onLoad} onError={onError} />
     </Container>
   );
 }

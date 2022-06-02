@@ -259,7 +259,7 @@ class ProjectDetail extends AsyncView<Props, State> {
               </Layout.HeaderActions>
             </Layout.Header>
 
-            <Layout.Body>
+            <Layout.Body noRowGap>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
               <Layout.Main fullWidth>
                 <StyledSdkUpdatesAlert />
@@ -353,7 +353,7 @@ const ProjectFiltersWrapper = styled('div')`
 
 const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-bottom: 0;
+    margin-bottom: ${space(2)};
   }
 `;
 

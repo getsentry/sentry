@@ -24,9 +24,10 @@ from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService, SentryAppService
 from sentry.rules.base import CallbackFuture
-from sentry.tasks.sentry_apps import notify_sentry_app, send_and_save_webhook_request
+from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+from sentry.utils.sentry_apps import send_and_save_webhook_request
 
 logger = logging.getLogger("sentry.integrations.sentry_app")
 PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS = ["PagerDuty", "Slack"]

@@ -39,7 +39,7 @@ def main(argv):
     elif argv[0] == "dump-db":
         # Dumps (part of) the AppConnectBuild table.
         for build in AppConnectBuild.objects.all():
-            print(  # noqa: B314
+            print(  # noqa: S002
                 f"{build!r} app_id={build.app_id} bundle_id={build.bundle_id} platform={build.platform} version={build.bundle_short_version} build={build.bundle_version} fetched={build.fetched}"
             )
 

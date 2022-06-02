@@ -1,4 +1,3 @@
-import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -123,8 +122,9 @@ const Version = ({
     </TooltipContent>
   );
 
-  const getPopperStyles = () => {
-    // if the version name is not a hash (sha1 or sha265) and we are not on mobile, allow tooltip to be as wide as 500px
+  const getOverlayStyle = () => {
+    // if the version name is not a hash (sha1 or sha265) and we are not on
+    // mobile, allow tooltip to be as wide as 500px
     if (/(^[a-f0-9]{40}$)|(^[a-f0-9]{64}$)/.test(version)) {
       return undefined;
     }
@@ -142,7 +142,7 @@ const Version = ({
       disabled={!tooltipRawVersion}
       isHoverable
       containerDisplayMode={truncate ? 'block' : 'inline-block'}
-      popperStyle={getPopperStyles()}
+      overlayStyle={getOverlayStyle()}
     >
       {renderVersion()}
     </Tooltip>

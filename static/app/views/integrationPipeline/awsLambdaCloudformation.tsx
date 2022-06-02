@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
@@ -54,7 +54,7 @@ type State = {
   submitting?: boolean;
 };
 
-export default class AwsLambdaCloudformation extends React.Component<Props, State> {
+export default class AwsLambdaCloudformation extends Component<Props, State> {
   state: State = {
     accountNumber: this.props.accountNumber,
     region: this.props.region,
@@ -194,7 +194,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
       showInputs,
     } = this.state;
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/cloud-monitoring/aws-lambda/" />
         <StyledList symbol="colored-numeric" initialCounterValue={initialStepNumber}>
           <ListItem>
@@ -208,7 +208,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               {t('Go to AWS')}
             </StyledButton>
             {!showInputs && (
-              <React.Fragment>
+              <Fragment>
                 <p>
                   {t(
                     "Once you've created Sentry's CloudFormation stack (or if you already have one) press the button below to continue."
@@ -217,7 +217,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
                 <Button name="showInputs" onClick={this.handleChangeShowInputs}>
                   {t("I've created the stack")}
                 </Button>
-              </React.Fragment>
+              </Fragment>
             )}
           </ListItem>
           {showInputs ? (
@@ -266,7 +266,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               />
             </ListItem>
           ) : (
-            <React.Fragment />
+            <Fragment />
           )}
         </StyledList>
         <FooterWithButtons
@@ -274,7 +274,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
           onClick={this.handleSubmit}
           disabled={submitting || !this.formValid}
         />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

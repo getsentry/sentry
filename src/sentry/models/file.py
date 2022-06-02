@@ -38,7 +38,7 @@ UPLOAD_RETRY_TIME = getattr(settings, "SENTRY_UPLOAD_RETRY_TIME", 60)  # 1min
 DEFAULT_BLOB_SIZE = 1024 * 1024  # one mb
 CHUNK_STATE_HEADER = "__state"
 MULTI_BLOB_UPLOAD_CONCURRENCY = 8
-MAX_FILE_SIZE = 2 ** 31  # 2GB is the maximum offset supported by fileblob
+MAX_FILE_SIZE = 2**31  # 2GB is the maximum offset supported by fileblob
 
 
 class nooplogger:

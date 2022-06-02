@@ -24,7 +24,7 @@ frontend: &frontend
   - 'docs-ui/**'
   - 'static/**'
   - 'tests/js/**'
-  - '.github/workflows/js-*.yml'
+  - '.github/workflows/frontend.yml'
 
 frontend_modified_lintable:
   - added|modified: *frontend_lintable
@@ -35,16 +35,18 @@ frontend_components_modified_lintable:
 backend_lintable: &backend_lintable
   - '**/*.py'
   - 'requirements-base.txt'
+  - 'requirements-dev-only-frozen.txt'
 
 # Currently used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
 
 backend_build_changes: &backend_build_changes
-  - 'Makefile'
-  - '.pre-commit-config.yaml'
-  - '.github/workflows/!(js-*)'
   - '.github/actions/setup-sentry/action.yml'
+  - '.github/workflows/!(frontend)'
+  - '.pre-commit-config.yaml'
+  - 'Makefile'
+  - 'pyproject.toml'
 
 backend: &backend
   - *backend_build_changes
@@ -56,14 +58,25 @@ backend: &backend
   - 'migrations_lockfile.txt'
   - 'config/**/*'
 
-plugins:
+# This is the ultimate controller for acceptance.yml
+acceptance: &acceptance
+  - *backend
+  - *frontend
+
+plugins: &plugins
   - *backend
   - 'src/sentry_plugins/**/*.html'
 
-api_docs:
+api_docs: &api_docs
   - *backend
   - 'api-docs/**'
   - 'tests/apidocs/**'
+
+# This is the ultimate controller for backend.yml
+backend_any_type: &backend_any_type
+  - *backend
+  - *api_docs
+  - *plugins
 
 migrations_added:
   - added: 'src/sentry/migrations/*'

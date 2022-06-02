@@ -31,10 +31,11 @@ const GroupReleaseStats = ({
   group,
   currentRelease,
 }: Props) => {
-  const environmentLabel =
+  const environment =
     environments.length > 0
       ? environments.map(env => env.displayName).join(', ')
-      : t('All Environments');
+      : undefined;
+  const environmentLabel = environment ? environment : t('All Environments');
 
   const shortEnvironmentLabel =
     environments.length > 1
@@ -49,7 +50,7 @@ const GroupReleaseStats = ({
   const releaseTrackingUrl = `/settings/${organization.slug}/projects/${project.slug}/release-tracking/`;
 
   return (
-    <SidebarSection title={<span data-test-id="env-label">{environmentLabel}</span>}>
+    <div>
       {!group || !allEnvironments ? (
         <Placeholder height="288px" />
       ) : (
@@ -57,7 +58,8 @@ const GroupReleaseStats = ({
           <GraphContainer>
             <GroupReleaseChart
               group={allEnvironments}
-              environment={environmentLabel}
+              environment={environment}
+              environmentLabel={environmentLabel}
               environmentStats={group.stats}
               release={currentRelease?.release}
               releaseStats={currentRelease?.stats}
@@ -70,7 +72,8 @@ const GroupReleaseStats = ({
           <GraphContainer>
             <GroupReleaseChart
               group={allEnvironments}
-              environment={environmentLabel}
+              environment={environment}
+              environmentLabel={environmentLabel}
               environmentStats={group.stats}
               release={currentRelease?.release}
               releaseStats={currentRelease?.stats}
@@ -154,7 +157,7 @@ const GroupReleaseStats = ({
           ) : null}
         </Fragment>
       )}
-    </SidebarSection>
+    </div>
   );
 };
 

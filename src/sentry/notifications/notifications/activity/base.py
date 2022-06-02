@@ -21,25 +21,26 @@ if TYPE_CHECKING:
 
 
 class ActivityNotification(ProjectNotification, abc.ABC):
-    notification_setting_type = NotificationSettingTypes.WORKFLOW
     metrics_key = "activity"
+    notification_setting_type = NotificationSettingTypes.WORKFLOW
+    template_path = "sentry/emails/activity/generic"
 
     def __init__(self, activity: Activity) -> None:
         super().__init__(activity.project)
         self.activity = activity
 
-    def get_title(self) -> str:
-        raise NotImplementedError
-
-    def get_filename(self) -> str:
-        return "activity/generic"
+    @property
+    @abc.abstractmethod
+    def title(self) -> str:
+        """The header for Workflow notifications."""
+        pass
 
     def get_base_context(self) -> MutableMapping[str, Any]:
         """The most basic context shared by every notification type."""
         return {
             "data": self.activity.data,
             "author": self.activity.user,
-            "title": self.get_title(),
+            "title": self.title,
             "project": self.project,
             "project_link": self.get_project_link(),
             **super().get_base_context(),
@@ -54,9 +55,6 @@ class ActivityNotification(ProjectNotification, abc.ABC):
     @property
     def reference(self) -> Model | None:
         return self.activity
-
-    def get_type(self) -> str:
-        return f"notify.activity.{self.activity.get_type_display()}"
 
     @abc.abstractmethod
     def get_context(self) -> MutableMapping[str, Any]:
@@ -82,14 +80,8 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         super().__init__(activity)
         self.group = activity.group
 
-    def get_activity_name(self) -> str:
-        raise NotImplementedError
-
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         raise NotImplementedError
-
-    def get_title(self) -> str:
-        return self.get_activity_name()
 
     def get_group_link(self) -> str:
         # method only used for emails
@@ -121,7 +113,6 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         description, params, html_params = self.get_description()
         return {
             **self.get_base_context(),
-            "activity_name": self.get_activity_name(),
             "text_description": self.description_as_text(description, params),
             "html_description": self.description_as_html(description, html_params or params),
         }
@@ -140,7 +131,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
             "referrer": self.__class__.__name__,
         }
 
-    def get_notification_title(self) -> str:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         description, params, _ = self.get_description()
         return self.description_as_text(description, params, True)
 

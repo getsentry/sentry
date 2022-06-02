@@ -7,7 +7,6 @@ from packaging import version
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.bases import OrganizationEventsEndpointBase
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
 from sentry.snuba import discover
@@ -91,9 +90,6 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
                     "project_id": [p.id for p in projects],
                 },
                 referrer="api.organization-sdk-updates",
-                use_snql=features.has(
-                    "organizations:performance-use-snql", organization, actor=request.user
-                ),
             )
 
         return Response(serialize(result["data"], projects))

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -19,7 +19,7 @@ type State = {
 };
 
 const TimePicker = styled(
-  class TimePicker extends React.Component<Props, State> {
+  class TimePicker extends Component<Props, State> {
     state: State = {
       focused: false,
     };

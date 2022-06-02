@@ -19,7 +19,7 @@ import {SampledProfile} from './sampledProfile';
 import {createFrameIndex, wrapWithSpan} from './utils';
 
 export interface ImportOptions {
-  transaction: Transaction;
+  transaction: Transaction | undefined;
 }
 
 export interface ProfileGroup {
@@ -40,26 +40,39 @@ export function importProfile(
 
   try {
     if (isJSProfile(input)) {
-      transaction.setTag('profile.type', 'js-self-profile');
+      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
+      if (transaction) {
+        transaction.setTag('profile.type', 'js-self-profile');
+      }
       return importJSSelfProfile(input, traceID, {transaction});
     }
 
     if (isChromeTraceFormat(input)) {
-      transaction.setTag('profile.type', 'chrometrace');
+      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
+      if (transaction) {
+        transaction.setTag('profile.type', 'chrometrace');
+      }
       return importChromeTrace(input, traceID, {transaction});
     }
 
     if (isSchema(input)) {
-      transaction.setTag('profile.type', 'schema');
+      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
+      if (transaction) {
+        transaction.setTag('profile.type', 'schema');
+      }
       return importSchema(input, traceID, {transaction});
     }
 
     throw new Error('Unsupported trace format');
   } catch (error) {
-    transaction.setStatus('internal_error');
+    if (transaction) {
+      transaction.setStatus('internal_error');
+    }
     throw error;
   } finally {
-    transaction.finish();
+    if (transaction) {
+      transaction.finish();
+    }
   }
 }
 
@@ -103,7 +116,7 @@ function importSchema(
 
   return {
     traceID,
-    name: input.name,
+    name: input.transactionName,
     activeProfileIndex: input.activeProfileIndex ?? 0,
     profiles: input.profiles.map(profile =>
       importSingleProfile(profile, frameIndex, options)
@@ -117,6 +130,11 @@ function importSingleProfile(
   {transaction}: ImportOptions
 ): Profile {
   if (isEventedProfile(profile)) {
+    // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
+    if (!transaction) {
+      return EventedProfile.FromProfile(profile, frameIndex);
+    }
+
     return wrapWithSpan(
       transaction,
       () => EventedProfile.FromProfile(profile, frameIndex),
@@ -127,6 +145,11 @@ function importSingleProfile(
     );
   }
   if (isSampledProfile(profile)) {
+    // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
+    if (!transaction) {
+      return SampledProfile.FromProfile(profile, frameIndex);
+    }
+
     return wrapWithSpan(
       transaction,
       () => SampledProfile.FromProfile(profile, frameIndex),
@@ -137,6 +160,11 @@ function importSingleProfile(
     );
   }
   if (isJSProfile(profile)) {
+    // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
+    if (!transaction) {
+      return JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames));
+    }
+
     return wrapWithSpan(
       transaction,
       () => JSSelfProfile.FromProfile(profile, createFrameIndex(profile.frames)),

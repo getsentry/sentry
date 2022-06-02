@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
 import {HookName, Hooks} from 'sentry/types/hooks';
@@ -34,7 +34,7 @@ type HookState<H extends HookName> = {
  *   </Hook>
  */
 function Hook<H extends HookName>({name, ...props}: Props<H>) {
-  class HookComponent extends React.Component<{}, HookState<H>> {
+  class HookComponent extends Component<{}, HookState<H>> {
     static displayName = `Hook(${name})`;
 
     state = {

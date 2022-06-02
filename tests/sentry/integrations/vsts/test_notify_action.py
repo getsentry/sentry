@@ -3,8 +3,8 @@ from time import time
 import responses
 from freezegun import freeze_time
 
+from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.integrations.vsts.notify_action import AzureDevopsCreateTicketAction
 from sentry.models import ExternalIssue, GroupLink, Identity, IdentityProvider, Integration, Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.types.rules import RuleFuture
@@ -50,7 +50,8 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "integration": self.integration.model.id,
             }
         )
-        azuredevops_rule.rule = Rule.objects.create(project=self.project, label="test rule")
+        azuredevops_rule.rule = self.create_project_rule(project=self.project)
+        responses.reset()
         responses.add(
             responses.PATCH,
             "https://fabrikam-fiber-inc.visualstudio.com/0987654321/_apis/wit/workitems/$Microsoft.VSTS.WorkItemTypes.Task",
@@ -58,7 +59,8 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
             content_type="application/json",
         )
 
-        results = list(azuredevops_rule.after(event=event, state=self.get_state()))
+        after_res = azuredevops_rule.after(event=event, state=self.get_state())
+        results = list(after_res)
         assert len(results) == 1
 
         # Trigger rule callback

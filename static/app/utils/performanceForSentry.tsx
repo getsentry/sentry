@@ -60,7 +60,6 @@ export class PerformanceInteraction {
       const currentIdleTransaction = getCurrentSentryReactTransaction();
       if (currentIdleTransaction) {
         // If interaction is started while idle still exists.
-        LongTaskObserver.setLongTaskTags(currentIdleTransaction);
         currentIdleTransaction.setTag('finishReason', 'sentry.interactionStarted'); // Override finish reason so we can capture if this has effects on idle timeout.
         currentIdleTransaction.finish();
       }
@@ -96,8 +95,6 @@ export class PerformanceInteraction {
       }
       clearTimeout(PerformanceInteraction.interactionTimeoutId);
 
-      LongTaskObserver.setLongTaskTags(PerformanceInteraction.interactionTransaction);
-
       if (immediate) {
         PerformanceInteraction.interactionTransaction?.finish();
         PerformanceInteraction.interactionTransaction = null;
@@ -116,11 +113,10 @@ export class PerformanceInteraction {
   }
 }
 
-class LongTaskObserver {
+export class LongTaskObserver {
   private static observer: PerformanceObserver;
   private static longTaskCount = 0;
   private static lastTransaction: IdleTransaction | Transaction | undefined;
-  private static currentId: string;
 
   static setLongTaskTags(t: IdleTransaction | Transaction) {
     t.setTag('ui.longTaskCount', LongTaskObserver.longTaskCount);
@@ -131,9 +127,8 @@ class LongTaskObserver {
     t.setTag('ui.longTaskCount.grouped', group < 1001 ? `<=${group}` : `>1000`);
   }
 
-  static getPerformanceObserver(id: string): PerformanceObserver | null {
+  static startPerformanceObserver(): PerformanceObserver | null {
     try {
-      LongTaskObserver.currentId = id;
       if (LongTaskObserver.observer) {
         LongTaskObserver.observer.disconnect();
         try {
@@ -171,7 +166,7 @@ class LongTaskObserver {
             const startSeconds = timeOrigin + entry.startTime / 1000;
             LongTaskObserver.longTaskCount++;
             transaction.startChild({
-              description: `Long Task - ${LongTaskObserver.currentId}`,
+              description: `Long Task`,
               op: `ui.sentry.long-task`,
               startTimestamp: startSeconds,
               endTimestamp: startSeconds + entry.duration / 1000,
@@ -202,25 +197,7 @@ class LongTaskObserver {
   }
 }
 
-export const ProfilerWithTasks = ({id, children}: {children: ReactNode; id: string}) => {
-  useEffect(() => {
-    let observer;
-    try {
-      if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
-        return () => {};
-      }
-      observer = LongTaskObserver.getPerformanceObserver(id);
-    } catch (e) {
-      captureException(e);
-      // Defensive since this is auxiliary code.
-    }
-    return () => {
-      if (observer && observer.disconnect) {
-        observer.disconnect();
-      }
-    };
-  }, []);
-
+export const CustomerProfiler = ({id, children}: {children: ReactNode; id: string}) => {
   return (
     <Profiler id={id} onRender={onRenderCallback}>
       {children}
@@ -247,7 +224,7 @@ export const VisuallyCompleteWithData = ({
       if (!window.PerformanceObserver || !browserPerformanceTimeOrigin) {
         return () => {};
       }
-      observer = LongTaskObserver.getPerformanceObserver(id);
+      observer = LongTaskObserver.startPerformanceObserver();
     } catch (_) {
       // Defensive since this is auxiliary code.
     }
@@ -276,12 +253,9 @@ export const VisuallyCompleteWithData = ({
 
       if (!isVisuallyCompleteSet.current) {
         const time = performance.now();
-        transaction.registerBeforeFinishCallback((t, _) => {
+        transaction.registerBeforeFinishCallback((t: Transaction, _) => {
           // Should be called after performance entries finish callback.
-          t.setMeasurements({
-            ...t._measurements,
-            visuallyComplete: {value: time},
-          });
+          t.setMeasurement('visuallyComplete', time, 'ms');
         });
         isVisuallyCompleteSet.current = true;
       }
@@ -307,36 +281,31 @@ export const VisuallyCompleteWithData = ({
             return;
           }
 
-          transaction.registerBeforeFinishCallback(t => {
+          transaction.registerBeforeFinishCallback((t: Transaction) => {
             if (!browserPerformanceTimeOrigin) {
               return;
             }
             // Should be called after performance entries finish callback.
-            const lcp = t._measurements.lcp?.value;
+            const lcp = (t as any)._measurements.lcp?.value;
 
             // Adjust to be relative to transaction.startTimestamp
             const entryStartSeconds =
               browserPerformanceTimeOrigin / 1000 + measureEntry.startTime / 1000;
             const time = (entryStartSeconds - transaction.startTimestamp) * 1000;
 
-            const newMeasurements = {
-              ...t._measurements,
-              visuallyCompleteData: {value: time},
-            };
-
             if (lcp) {
-              newMeasurements.lcpDiffVCD = {value: lcp - time};
+              t.setMeasurement('lcpDiffVCD', lcp - time, 'ms');
             }
 
             t.setTag('longTaskCount', longTaskCount.current);
-            t.setMeasurements(newMeasurements);
+            t.setMeasurement('visuallyCompleteData', time, 'ms');
           });
         }, 0);
       }
     } catch (_) {
       // Defensive catch since this code is auxiliary.
     }
-  }, [hasData]);
+  }, [hasData, id]);
 
   return (
     <Profiler id={id} onRender={onRenderCallback}>

@@ -190,7 +190,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
         metrics.incr("snuba.snql.subscription.create", tags={"dataset": snuba_query.dataset})
         snql_query = json_to_snql(body, entity_subscription.entity_key.value)
         snql_query.validate()
-        body["query"] = str(snql_query)
+        body["query"] = str(snql_query.query)
         body["type"] = "delegate"  # mark this as a combined subscription
     except Exception as e:
         logger.warning(

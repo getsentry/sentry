@@ -1,4 +1,5 @@
-import * as React from 'react';
+import {Fragment} from 'react';
+import moment from 'moment';
 
 import CommitLink from 'sentry/components/commitLink';
 import Duration from 'sentry/components/duration';
@@ -7,9 +8,9 @@ import Link from 'sentry/components/links/link';
 import PullRequestLink from 'sentry/components/pullRequestLink';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {
+  BaseRelease,
   GroupActivity,
   GroupActivityAssigned,
   GroupActivitySetIgnored,
@@ -93,12 +94,10 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
       return tct('[author] assigned this issue to themselves', {author});
     }
 
-    assignee = MemberListStore.getById(data.assignee);
-
-    if (typeof assignee === 'object' && assignee?.email) {
+    if (data.assigneeType === 'user' && data.assigneeEmail) {
       return tct('[author] assigned this issue to [assignee]', {
         author,
-        assignee: assignee.email,
+        assignee: data.assigneeEmail,
       });
     }
 
@@ -143,6 +142,63 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
               author,
             });
       case GroupActivityType.SET_RESOLVED_IN_COMMIT:
+        const deployedReleases: Array<BaseRelease> = [];
+        for (const release of activity.data.commit?.releases) {
+          if (release.dateReleased !== null) {
+            deployedReleases.push(release);
+          }
+        }
+        deployedReleases.sort(
+          (a, b) => moment(a.dateReleased).valueOf() - moment(b.dateReleased).valueOf()
+        );
+        if (deployedReleases.length === 1) {
+          return tct(
+            '[author] marked this issue as resolved in [version]\n' +
+              'This commit was released in [release]',
+            {
+              author,
+              version: (
+                <CommitLink
+                  inline
+                  commitId={activity.data.commit.id}
+                  repository={activity.data.commit.repository}
+                />
+              ),
+              release: (
+                <Version
+                  version={deployedReleases[0].version}
+                  projectId={projectId}
+                  tooltipRawVersion
+                />
+              ),
+            }
+          );
+        }
+        if (deployedReleases.length > 1) {
+          return tct(
+            '[author] marked this issue as resolved in [version]\n' +
+              'This commit was released in [release] and ' +
+              (deployedReleases.length - 1) +
+              ' others',
+            {
+              author,
+              version: (
+                <CommitLink
+                  inline
+                  commitId={activity.data.commit.id}
+                  repository={activity.data.commit.repository}
+                />
+              ),
+              release: (
+                <Version
+                  version={deployedReleases[0].version}
+                  projectId={projectId}
+                  tooltipRawVersion
+                />
+              ),
+            }
+          );
+        }
         return tct('[author] marked this issue as resolved in [version]', {
           author,
           version: (
@@ -266,7 +322,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
     }
   }
 
-  return <React.Fragment>{renderContent()}</React.Fragment>;
+  return <Fragment>{renderContent()}</Fragment>;
 }
 
 export default GroupActivityItem;

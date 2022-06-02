@@ -1,7 +1,7 @@
-from sentry import analytics
+from sentry import analytics, audit_log
 from sentry.constants import SentryAppInstallationStatus
 from sentry.mediators import Mediator, Param, service_hooks
-from sentry.models import ApiGrant, AuditLogEntryEvent, SentryApp, SentryAppInstallation
+from sentry.models import ApiGrant, SentryApp, SentryAppInstallation
 from sentry.tasks.sentry_apps import installation_webhook
 from sentry.utils.cache import memoize
 
@@ -61,7 +61,7 @@ class Creator(Mediator):
                 request=self.request,
                 organization=self.install.organization,
                 target_object=self.install.organization.id,
-                event=AuditLogEntryEvent.SENTRY_APP_INSTALL,
+                event=audit_log.get_event_id("SENTRY_APP_INSTALL"),
                 data={"sentry_app": self.sentry_app.name},
             )
 

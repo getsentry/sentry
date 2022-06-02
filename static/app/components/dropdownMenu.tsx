@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'sentry/constants';
@@ -17,7 +17,6 @@ export type GetActorArgs<E extends Element> = {
 
 export type GetMenuArgs<E extends Element> = {
   className?: string;
-  itemCount?: number;
   onClick?: (e: React.MouseEvent<E>) => void;
   onKeyDown?: (event: React.KeyboardEvent<E>) => void;
   onMouseDown?: (e: React.MouseEvent<E>) => void;
@@ -111,7 +110,7 @@ type State = {
   isOpen: boolean;
 };
 
-class DropdownMenu extends React.Component<Props, State> {
+class DropdownMenu extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     keepMenuOpen: false,
     closeOnEscape: true,
@@ -161,7 +160,7 @@ class DropdownMenu extends React.Component<Props, State> {
     if (!this.dropdownActor) {
       // Log an error, should be lower priority
       Sentry.withScope(scope => {
-        scope.setLevel(Sentry.Severity.Warning);
+        scope.setLevel('warning');
         Sentry.captureException(new Error('DropdownMenu does not have "Actor" attached'));
       });
     }
@@ -402,26 +401,19 @@ class DropdownMenu extends React.Component<Props, State> {
       ...props,
       ...refProps,
       onMouseEnter: (e: React.MouseEvent<E>) => {
-        if (typeof onMouseEnter === 'function') {
-          onMouseEnter(e);
-        }
+        onMouseEnter?.(e);
 
-        // There is a delay before closing a menu on mouse leave, cancel this action if mouse enters menu again
+        // There is a delay before closing a menu on mouse leave, cancel this
+        // action if mouse enters menu again
         window.clearTimeout(this.mouseLeaveTimeout);
       },
       onMouseLeave: (e: React.MouseEvent<E>) => {
-        if (typeof onMouseLeave === 'function') {
-          onMouseLeave(e);
-        }
-
+        onMouseLeave?.(e);
         this.handleMouseLeave(e);
       },
       onClick: (e: React.MouseEvent<E>) => {
         this.handleDropdownMenuClick(e);
-
-        if (typeof onClick === 'function') {
-          onClick(e);
-        }
+        onClick?.(e);
       },
     };
   };

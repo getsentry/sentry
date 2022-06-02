@@ -2,7 +2,7 @@ from django.conf import settings
 
 from sentry.utils.services import LazyServiceWrapper
 
-from .base import BaseTSDB  # NOQA
+from .base import BaseTSDB
 from .dummy import DummyTSDB
 
 LazyServiceWrapper(

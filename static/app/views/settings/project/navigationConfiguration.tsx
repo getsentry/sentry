@@ -50,7 +50,6 @@ export default function getConfiguration({
           path: `${pathPrefix}/ownership/`,
           title: t('Issue Owners'),
           description: t('Manage issue ownership rules for a project'),
-          badge: () => 'new',
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
@@ -69,8 +68,8 @@ export default function getConfiguration({
           ),
         },
         {
-          path: `${pathPrefix}/filters-and-sampling/`,
-          title: t('Filters & Sampling'),
+          path: `${pathPrefix}/sampling/`,
+          title: t('Sampling'),
           show: () => !!organization?.features?.includes('filters-and-sampling'),
           description: t("Manage an organization's inbound data"),
           badge: () => 'new',

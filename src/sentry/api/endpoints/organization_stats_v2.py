@@ -97,7 +97,7 @@ class OrgStatsQueryParamsSerializer(serializers.Serializer):
         ("error", "transaction", "attachment"),
         required=False,
         help_text=(
-            "If filtering by attachments, you cannot filter by any other category due to quantity values becoming non-sensical (combining bytes and event counts).\n\n"
+            "If filtering by attachments, you cannot filter by any other category due to quantity values becoming nonsensical (combining bytes and event counts).\n\n"
             "If filtering by `error`, it will automatically add `default` and `security` as we currently roll those two categories into `error` for displaying."
         ),
     )
@@ -142,7 +142,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         parameters=[GLOBAL_PARAMS.ORG_SLUG, OrgStatsQueryParamsSerializer],
         request=None,
         responses={
-            200: inline_sentry_response_serializer("Outcomes Response", StatsApiResponse),
+            200: inline_sentry_response_serializer("OutcomesResponse", StatsApiResponse),
             401: RESPONSE_UNAUTHORIZED,
             404: RESPONSE_NOTFOUND,
         },

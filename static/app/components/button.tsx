@@ -29,6 +29,7 @@ interface BaseButtonProps
   barId?: string;
   borderless?: boolean;
   busy?: boolean;
+  'data-test-id'?: string;
   disabled?: boolean;
   download?: HTMLAnchorElement['download'];
   external?: boolean;
@@ -37,7 +38,7 @@ interface BaseButtonProps
   icon?: React.ReactNode;
   name?: string;
   onClick?: (e: React.MouseEvent) => void;
-  priority?: 'default' | 'primary' | 'danger' | 'link' | 'success' | 'form';
+  priority?: 'default' | 'primary' | 'danger' | 'link' | 'form';
   rel?: HTMLAnchorElement['rel'];
   size?: 'zero' | 'xsmall' | 'small';
   target?: HTMLAnchorElement['target'];
@@ -204,7 +205,6 @@ const getColors = ({
   const getFocusState = () => {
     switch (priority) {
       case 'primary':
-      case 'success':
       case 'danger':
         return `
           border-color: ${focusBorder};
@@ -224,7 +224,6 @@ const getColors = ({
   const getBackgroundColor = () => {
     switch (priority) {
       case 'primary':
-      case 'success':
       case 'danger':
         return `background-color: ${background};`;
       default:
@@ -370,7 +369,7 @@ const getIconMargin = ({size, hasChildren}: IconProps) => {
     return '0';
   }
 
-  return size === 'xsmall' ? '6px' : '8px';
+  return size && ['xsmall', 'zero'].includes(size) ? '6px' : '8px';
 };
 
 const Icon = styled('span')<IconProps & Omit<StyledButtonProps, 'theme'>>`

@@ -20,6 +20,7 @@ type Options = {
   comparisonDelta?: number;
   end?: DateString;
   environment?: Readonly<string[]>;
+  excludeOther?: boolean;
   field?: string[];
   generatePathname?: (org: OrganizationSummary) => string;
   includePrevious?: boolean;
@@ -35,6 +36,7 @@ type Options = {
   start?: DateString;
   team?: Readonly<string | string[]>;
   topEvents?: number;
+  userModified?: string;
   withoutZerofill?: boolean;
   yAxis?: string | string[];
 };
@@ -47,6 +49,7 @@ type Options = {
  * @param {Object} options.organization Organization object
  * @param {Number[]} options.project List of project ids
  * @param {String[]} options.environment List of environments to query for
+ * @param {Boolean} options.excludeOther Exclude the "Other" series when making a topEvents query
  * @param {String[]} options.team List of teams to query for
  * @param {String} options.period Time period to query for, in the format: <integer><units> where units are "d" or "h"
  * @param {String} options.interval Time interval to group results in, in the format: <integer><units> where units are "d", "h", "m", "s"
@@ -82,8 +85,14 @@ export const doEventsRequest = (
     queryBatching,
     generatePathname,
     queryExtras,
+    excludeOther,
+    userModified,
   }: Options
 ): Promise<EventsStats | MultiSeriesEventsStats> => {
+  const pathname =
+    generatePathname?.(organization) ??
+    `/organizations/${organization.slug}/events-stats/`;
+
   const shouldDoublePeriod = canIncludePreviousPeriod(includePrevious, period);
   const urlQuery = Object.fromEntries(
     Object.entries({
@@ -100,6 +109,8 @@ export const doEventsRequest = (
       partial: partial ? '1' : undefined,
       withoutZerofill: withoutZerofill ? '1' : undefined,
       referrer: referrer ? referrer : 'api.organization-event-stats',
+      excludeOther: excludeOther ? '1' : undefined,
+      user_modified: pathname.includes('events-stats') ? userModified : undefined,
     }).filter(([, value]) => typeof value !== 'undefined')
   );
 
@@ -115,10 +126,6 @@ export const doEventsRequest = (
       ...queryExtras,
     },
   };
-
-  const pathname =
-    generatePathname?.(organization) ??
-    `/organizations/${organization.slug}/events-stats/`;
 
   if (queryBatching?.batchRequest) {
     return queryBatching.batchRequest(api, pathname, queryObject);

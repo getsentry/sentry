@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import ScoreBar from 'sentry/components/scoreBar';
 import Tooltip from 'sentry/components/tooltip';
 import CHART_PALETTE from 'sentry/constants/chartPalette';

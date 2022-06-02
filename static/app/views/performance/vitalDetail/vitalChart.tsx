@@ -18,6 +18,7 @@ import {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {WebVital} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 
 import {replaceSeriesName, transformEventStatsSmoothed} from '../trends/utils';
@@ -26,6 +27,7 @@ import {ViewProps} from '../types';
 import {
   getMaxOfSeries,
   getVitalChartDefinitions,
+  getVitalChartTitle,
   vitalNameFromLocation,
   VitalState,
   vitalStateColors,
@@ -86,7 +88,7 @@ function VitalChart({
     <Panel>
       <ChartContainer>
         <HeaderTitleLegend>
-          {t('Duration p75')}
+          {getVitalChartTitle(vitalName)}
           <QuestionTooltip
             size="sm"
             position="top"
@@ -109,6 +111,7 @@ function VitalChart({
               includePrevious={false}
               yAxis={[yAxis]}
               partial
+              userModified={decodeScalar(location.query.userModified)}
             >
               {({timeseriesData: results, errored, loading, reloading}) => {
                 if (errored) {
@@ -224,11 +227,11 @@ export function _VitalChart(props: _VitalChartProps) {
     utc,
     vitalFields,
   } = props;
+  const theme = useTheme();
 
   if (!_results || !vitalFields) {
     return null;
   }
-  const theme = useTheme();
 
   const chartOptions: Omit<LineChartProps, 'series'> = {
     grid,

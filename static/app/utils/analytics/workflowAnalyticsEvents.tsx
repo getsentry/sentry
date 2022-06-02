@@ -43,9 +43,13 @@ export type TeamInsightsEventParameters = {
       | 'open_in_discover'
       | ResolutionStatus;
   };
+  'issue_details.event_json_clicked': {group_id: number};
+  'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.viewed': IssueDetailsWithAlert;
   'new_alert_rule.viewed': RuleViewed & {
+    duplicate_rule: string;
     session_id: string;
+    wizard_v3: string;
   };
   'team_insights.viewed': {};
 };
@@ -64,8 +68,10 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'issue_alert_rule_details.edit_clicked': 'Issue Alert Rule Details: Edit Clicked',
   'issue_alert_rule_details.viewed': 'Issue Alert Rule Details: Viewed',
-  'issue_details.viewed': 'Issue Details: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
+  'issue_details.event_json_clicked': 'Issue Details: Event JSON Clicked',
+  'issue_details.event_navigation_clicked': 'Issue Details: Event Navigation Clicked',
+  'issue_details.viewed': 'Issue Details: Viewed',
   'new_alert_rule.viewed': 'New Alert Rule: Viewed',
   'team_insights.viewed': 'Team Insights: Viewed',
 };

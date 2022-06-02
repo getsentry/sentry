@@ -225,7 +225,7 @@ class Dashboard extends Component<Props, State> {
       paramDashboardId,
     } = this.props;
 
-    if (organization.features.includes('new-widget-builder-experience')) {
+    if (organization.features.includes('new-widget-builder-experience-design')) {
       if (paramDashboardId) {
         router.push({
           pathname: `/organizations/${organization.slug}/dashboard/${paramDashboardId}/widget/new/`,
@@ -252,26 +252,16 @@ class Dashboard extends Component<Props, State> {
       organization,
     });
 
-    if (organization.features.includes('widget-library')) {
-      trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
-        organization,
-      });
-      openAddDashboardWidgetModal({
-        organization,
-        dashboard,
-        selection,
-        onAddWidget: handleAddCustomWidget,
-        onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
-        source: DashboardWidgetSource.LIBRARY,
-      });
-      return;
-    }
+    trackAdvancedAnalyticsEvent('dashboards_views.widget_library.opened', {
+      organization,
+    });
     openAddDashboardWidgetModal({
       organization,
       dashboard,
       selection,
       onAddWidget: handleAddCustomWidget,
-      source: DashboardWidgetSource.DASHBOARDS,
+      onAddLibraryWidget: (widgets: Widget[]) => handleUpdateWidgetList(widgets),
+      source: DashboardWidgetSource.LIBRARY,
     });
   };
 
@@ -345,7 +335,7 @@ class Dashboard extends Component<Props, State> {
     } = this.props;
 
     if (
-      organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-design') &&
       (!organization.features.includes('new-widget-builder-experience-modal-access') ||
         isEditing)
     ) {
@@ -538,10 +528,10 @@ class Dashboard extends Component<Props, State> {
     const {layouts, isMobile} = this.state;
     const {isEditing, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.METRICS) {
-        return organization.features.includes('dashboards-metrics');
+      if (widgetType === WidgetType.RELEASE) {
+        return organization.features.includes('dashboards-releases');
       }
       return true;
     });
@@ -593,10 +583,10 @@ class Dashboard extends Component<Props, State> {
   renderDndDashboard = () => {
     const {isEditing, onUpdate, dashboard, organization, widgetLimitReached} = this.props;
     let {widgets} = dashboard;
-    // Filter out any issue/metrics widgets if the user does not have the feature flag
+    // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
-      if (widgetType === WidgetType.METRICS) {
-        return organization.features.includes('dashboards-metrics');
+      if (widgetType === WidgetType.RELEASE) {
+        return organization.features.includes('dashboards-releases');
       }
       return true;
     });

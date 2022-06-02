@@ -1,5 +1,4 @@
-import {CSSProperties} from 'react';
-import * as React from 'react';
+import {Component, createRef} from 'react';
 import {findDOMNode} from 'react-dom';
 import styled from '@emotion/styled';
 
@@ -13,7 +12,7 @@ const Wrapper = styled('div')`
   display: flex;
 `;
 
-const StyledInput = styled('input')<{rtl?: boolean}>`
+export const StyledInput = styled('input')<{rtl?: boolean}>`
   ${inputStyles};
   background-color: ${p => p.theme.backgroundSecondary};
   border-right-width: 0;
@@ -33,7 +32,7 @@ const OverflowContainer = styled('div')`
   border: none;
 `;
 
-const StyledCopyButton = styled(Button)`
+export const StyledCopyButton = styled(Button)`
   flex-shrink: 1;
   border-radius: 0 0.25em 0.25em 0;
   box-shadow: none;
@@ -44,16 +43,18 @@ type Props = {
    * Text to copy
    */
   children: string;
+  className?: string;
+  disabled?: boolean;
   onCopy?: (value: string, event: React.MouseEvent) => void;
   /**
    * Always show the ending of a long overflowing text in input
    */
   rtl?: boolean;
-  style?: CSSProperties;
+  style?: React.CSSProperties;
 };
 
-class TextCopyInput extends React.Component<Props> {
-  textRef = React.createRef<HTMLInputElement>();
+class TextCopyInput extends Component<Props> {
+  textRef = createRef<HTMLInputElement>();
 
   // Select text when copy button is clicked
   handleCopyClick = (e: React.MouseEvent) => {
@@ -93,7 +94,7 @@ class TextCopyInput extends React.Component<Props> {
   };
 
   render() {
-    const {style, children, rtl} = this.props;
+    const {className, disabled, style, children, rtl} = this.props;
 
     /**
      * We are using direction: rtl; to always show the ending of a long overflowing text in input.
@@ -106,10 +107,11 @@ class TextCopyInput extends React.Component<Props> {
     const inputValue = rtl ? '\u202A' + children + '\u202C' : children;
 
     return (
-      <Wrapper>
+      <Wrapper className={className}>
         <OverflowContainer>
           <StyledInput
             readOnly
+            disabled={disabled}
             ref={this.textRef}
             style={style}
             value={inputValue}
@@ -118,7 +120,11 @@ class TextCopyInput extends React.Component<Props> {
           />
         </OverflowContainer>
         <Clipboard hideUnsupported value={children}>
-          <StyledCopyButton type="button" onClick={this.handleCopyClick}>
+          <StyledCopyButton
+            type="button"
+            disabled={disabled}
+            onClick={this.handleCopyClick}
+          >
             <IconCopy />
           </StyledCopyButton>
         </Clipboard>

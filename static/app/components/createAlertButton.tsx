@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -27,8 +27,13 @@ import useApi from 'sentry/utils/useApi';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'sentry/views/alerts/incidentRules/constants';
+} from 'sentry/views/alerts/rules/metric/constants';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
+import {
+  AlertType,
+  AlertWizardRuleTemplates,
+  DEFAULT_WIZARD_TEMPLATE,
+} from 'sentry/views/alerts/wizard/options';
 
 /**
  * Discover query supports more features than alert rules
@@ -72,7 +77,7 @@ function IncompatibleQueryAlert({
   const {hasProjectError, hasEnvironmentError, hasEventTypeError, hasYAxisError} =
     incompatibleQuery;
 
-  const totalErrors = Object.values(incompatibleQuery).filter(val => val === true).length;
+  const totalErrors = Object.values(incompatibleQuery).filter(val => val).length;
 
   const eventTypeError = eventView.clone();
   eventTypeError.query += ' event.type:error';
@@ -134,7 +139,7 @@ function IncompatibleQueryAlert({
       }
     >
       {totalErrors === 1 && (
-        <React.Fragment>
+        <Fragment>
           {hasProjectError &&
             t('An alert can use data from only one Project. Select one and try again.')}
           {hasEnvironmentError &&
@@ -153,10 +158,10 @@ function IncompatibleQueryAlert({
                 yAxis: <StyledCode>{eventView.getYAxis()}</StyledCode>,
               }
             )}
-        </React.Fragment>
+        </Fragment>
       )}
       {totalErrors > 1 && (
-        <React.Fragment>
+        <Fragment>
           {t('Yikes! That button didn’t work. Please fix the following problems:')}
           <StyledUnorderedList>
             {hasProjectError && <li>{t('Select one Project.')}</li>}
@@ -182,7 +187,7 @@ function IncompatibleQueryAlert({
               </li>
             )}
           </StyledUnorderedList>
-        </React.Fragment>
+        </Fragment>
       )}
     </StyledAlert>
   );
@@ -207,8 +212,10 @@ type CreateAlertFromViewButtonProps = ButtonProps & {
   onSuccess: () => void;
   organization: Organization;
   projects: Project[];
+  alertType?: AlertType;
   className?: string;
   referrer?: string;
+  useAlertWizardV3?: boolean;
 };
 
 function incompatibleYAxis(eventView: EventView): boolean {
@@ -263,6 +270,8 @@ function CreateAlertFromViewButton({
   referrer,
   onIncompatibleQuery,
   onSuccess,
+  useAlertWizardV3,
+  alertType,
   ...buttonProps
 }: CreateAlertFromViewButtonProps) {
   // Must have exactly one project selected and not -1 (all projects)
@@ -287,16 +296,29 @@ function CreateAlertFromViewButton({
       ''
     );
   }
-
   const hasErrors = Object.values(errors).some(x => x);
+
+  const alertTemplate = alertType
+    ? AlertWizardRuleTemplates[alertType]
+    : DEFAULT_WIZARD_TEMPLATE;
+
   const to = hasErrors
     ? undefined
     : {
-        pathname: `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
+        pathname: useAlertWizardV3
+          ? `/organizations/${organization.slug}/alerts/new/metric/`
+          : `/organizations/${organization.slug}/alerts/${project?.slug}/new/`,
         query: {
           ...queryParams,
           createFromDiscover: true,
           referrer,
+          ...(useAlertWizardV3
+            ? {
+                ...alertTemplate,
+                project: project?.slug,
+                aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
+              }
+            : {}),
         },
       };
 
@@ -353,10 +375,23 @@ const CreateAlertButton = withRouter(
     ...buttonProps
   }: Props) => {
     const api = useApi();
-
     const createAlertUrl = (providedProj: string) => {
-      const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
-      return `${alertsBaseUrl}/wizard/${referrer ? `?referrer=${referrer}` : ''}`;
+      const hasAlertWizardV3 = organization.features.includes('alert-wizard-v3');
+      const alertsBaseUrl = hasAlertWizardV3
+        ? `/organizations/${organization.slug}/alerts`
+        : `/organizations/${organization.slug}/alerts/${providedProj}`;
+      const alertsArgs = [
+        `${referrer ? `referrer=${referrer}` : ''}`,
+        `${
+          hasAlertWizardV3 && providedProj && providedProj !== ':projectId'
+            ? `project=${providedProj}`
+            : ''
+        }`,
+      ].filter(item => item !== '');
+
+      return `${alertsBaseUrl}/wizard/${alertsArgs.length ? '?' : ''}${alertsArgs.join(
+        '&'
+      )}`;
     };
 
     function handleClickWithoutProject(event: React.MouseEvent) {
@@ -395,7 +430,7 @@ const CreateAlertButton = withRouter(
         tooltipProps={{
           isHoverable: true,
           position: 'top',
-          popperStyle: {
+          overlayStyle: {
             maxWidth: '270px',
           },
         }}

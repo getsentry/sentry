@@ -1,16 +1,22 @@
+import {InjectedRouter} from 'react-router';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import GlobalModal from 'sentry/components/globalModal';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import {
+  AppStoreConnectCredentialsStatus,
   CustomRepo,
   CustomRepoAppStoreConnect,
   CustomRepoHttp,
@@ -21,17 +27,26 @@ import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/
 function TestComponent({
   organization,
   customRepositories,
+  credetialsStatus,
   ...props
 }: Omit<React.ComponentProps<typeof CustomRepositories>, 'customRepositories'> & {
-  customRepositories?: [CustomRepoHttp, CustomRepoAppStoreConnect];
+  credetialsStatus?: AppStoreConnectCredentialsStatus;
+  customRepositories?:
+    | [CustomRepoHttp, CustomRepoAppStoreConnect]
+    | [CustomRepoHttp]
+    | [CustomRepoAppStoreConnect];
 }) {
+  const appStoreConnectRepo = customRepositories?.find(
+    customRepository => customRepository.type === CustomRepoType.APP_STORE_CONNECT
+  );
+
   return (
     <AppStoreConnectContext.Provider
       value={
-        customRepositories?.[1]
+        appStoreConnectRepo
           ? {
-              [customRepositories[1].id]: {
-                credentials: {status: 'valid'},
+              [appStoreConnectRepo.id]: {
+                credentials: credetialsStatus ?? {status: 'valid'},
                 lastCheckedBuilds: null,
                 latestBuildNumber: null,
                 latestBuildVersion: null,
@@ -52,20 +67,25 @@ function TestComponent({
   );
 }
 
-describe('Custom Repositories', function () {
-  const api = new MockApiClient();
-  const {project, organization, router, routerContext} = initializeOrg();
+function getProps(props?: {router: InjectedRouter}) {
+  const {organization, router, project, routerContext} = initializeOrg({
+    ...initializeOrg(),
+    router: props?.router,
+  });
 
-  const props = {
-    api,
+  return {
+    api: new MockApiClient(),
     organization,
     project,
     router,
     projSlug: project.slug,
     isLoading: false,
     location: router.location,
+    routerContext,
   };
+}
 
+describe('Custom Repositories', function () {
   const httpRepository: CustomRepo = {
     id: '7ebdb871-eb65-0183-8001-ea7df90613a7',
     layout: {type: 'native', casing: 'default'},
@@ -95,7 +115,11 @@ describe('Custom Repositories', function () {
   });
 
   it('renders', async function () {
-    const {rerender} = render(<TestComponent {...props} />, {context: routerContext});
+    const props = getProps();
+
+    const {rerender} = render(<TestComponent {...props} />, {
+      context: props.routerContext,
+    });
 
     // Section title
     expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
@@ -184,11 +208,12 @@ describe('Custom Repositories', function () {
   });
 
   it('renders with custom-symbol-sources feature enabled', async function () {
-    const newOrganization = {...organization, features: ['custom-symbol-sources']};
+    const props = getProps();
+    const newOrganization = {...props.organization, features: ['custom-symbol-sources']};
 
     const {rerender} = render(
       <TestComponent {...props} organization={newOrganization} />,
-      {context: routerContext}
+      {context: props.routerContext}
     );
 
     // Section title
@@ -238,7 +263,12 @@ describe('Custom Repositories', function () {
   });
 
   it('renders with app-store-connect-multiple feature enabled', async function () {
-    const newOrganization = {...organization, features: ['app-store-connect-multiple']};
+    const props = getProps();
+
+    const newOrganization = {
+      ...props.organization,
+      features: ['app-store-connect-multiple'],
+    };
 
     render(
       <TestComponent
@@ -246,7 +276,7 @@ describe('Custom Repositories', function () {
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
       />,
-      {context: routerContext}
+      {context: props.routerContext}
     );
 
     // Section title
@@ -276,11 +306,16 @@ describe('Custom Repositories', function () {
     // Display modal content
     // A new App Store Connect instance is available
     expect(await screen.findByText('App Store Connect credentials')).toBeInTheDocument();
+
+    // Close Modal
+    userEvent.click(screen.getByLabelText('Close Modal'));
   });
 
   it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', function () {
+    const props = getProps();
+
     const newOrganization = {
-      ...organization,
+      ...props.organization,
       features: ['custom-symbol-sources', 'app-store-connect-multiple'],
     };
 
@@ -290,7 +325,7 @@ describe('Custom Repositories', function () {
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
       />,
-      {context: routerContext}
+      {context: props.routerContext}
     );
 
     // Content
@@ -306,5 +341,225 @@ describe('Custom Repositories', function () {
     expect(screen.getByText(appStoreConnectRepository.name)).toBeInTheDocument();
     expect(screen.getByText(DEBUG_SOURCE_TYPES.appStoreConnect)).toBeInTheDocument();
     expect(actions[1]).toBeEnabled();
+  });
+
+  describe('Sync Now button', function () {
+    const props = getProps();
+
+    it('enabled and send requests', async function () {
+      // Request succeeds
+      const refreshMockSuccess = MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/${props.project.slug}/appstoreconnect/${appStoreConnectRepository.id}/refresh/`,
+        method: 'POST',
+        statusCode: 200,
+      });
+
+      jest.spyOn(indicators, 'addSuccessMessage');
+
+      const {rerender} = render(
+        <TestComponent
+          {...props}
+          organization={props.organization}
+          customRepositories={[httpRepository, appStoreConnectRepository]}
+        />,
+        {context: props.routerContext}
+      );
+
+      const syncNowButton = screen.getByRole('button', {name: 'Sync Now'});
+      expect(syncNowButton).toBeEnabled();
+
+      userEvent.click(syncNowButton);
+
+      await waitFor(() => expect(refreshMockSuccess).toHaveBeenCalledTimes(1));
+
+      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+        'Repository sync started.'
+      );
+
+      // Request Fails
+      const refreshMockFail = MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/${props.project.slug}/appstoreconnect/${appStoreConnectRepository.id}/refresh/`,
+        method: 'POST',
+        statusCode: 429,
+      });
+
+      jest.spyOn(indicators, 'addErrorMessage');
+
+      rerender(
+        <TestComponent
+          {...props}
+          organization={props.organization}
+          customRepositories={[httpRepository, appStoreConnectRepository]}
+        />
+      );
+
+      userEvent.click(screen.getByRole('button', {name: 'Sync Now'}));
+
+      await waitFor(() => expect(refreshMockFail).toHaveBeenCalledTimes(1));
+
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Rate limit for refreshing repository exceeded. Try again in a few minutes.'
+      );
+    });
+
+    it('disabled', async function () {
+      const refreshMock = MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/${props.project.slug}/appstoreconnect/${appStoreConnectRepository.id}/refresh/`,
+        method: 'POST',
+        statusCode: 200,
+      });
+
+      render(
+        <TestComponent
+          {...props}
+          organization={props.organization}
+          customRepositories={[httpRepository, appStoreConnectRepository]}
+          credetialsStatus={{status: 'invalid', code: 'app-connect-authentication-error'}}
+        />,
+        {context: props.routerContext}
+      );
+
+      const syncNowButton = screen.getByRole('button', {name: 'Sync Now'});
+      expect(syncNowButton).toBeDisabled();
+
+      userEvent.hover(syncNowButton);
+
+      expect(
+        await screen.findByText(
+          'Authentication is required before this repository can sync with App Store Connect.'
+        )
+      ).toBeInTheDocument();
+
+      userEvent.click(syncNowButton);
+
+      await waitFor(() => expect(refreshMock).toHaveBeenCalledTimes(0));
+    });
+
+    it('does not render', function () {
+      render(
+        <TestComponent
+          {...props}
+          organization={props.organization}
+          customRepositories={[httpRepository]}
+        />,
+        {context: props.routerContext}
+      );
+
+      expect(screen.queryByRole('button', {name: 'Sync Now'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Update saved store', function () {
+    const props = getProps({
+      router: {
+        ...TestStubs.router(),
+        location: {
+          ...TestStubs.location(),
+          pathname: `/settings/org-slug/projects/project-2/debug-symbols/`,
+          query: {
+            customRepository: appStoreConnectRepository.id,
+          },
+        },
+        params: {orgId: 'org-slug', projectId: 'project-slug'},
+      },
+    });
+
+    it('credentials valid for the application', async function () {
+      jest.useFakeTimers();
+      // Request succeeds
+      const updateCredentialsMockSucceeds = MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/${props.project.slug}/appstoreconnect/apps/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {
+          apps: [
+            {
+              appId: appStoreConnectRepository.appId,
+              name: appStoreConnectRepository.appName,
+              bundleId: appStoreConnectRepository.bundleId,
+            },
+          ],
+        },
+      });
+
+      const updateMockSucceeds = MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/${props.project.slug}/appstoreconnect/${appStoreConnectRepository.id}/`,
+        method: 'POST',
+        statusCode: 200,
+      });
+
+      jest.spyOn(indicators, 'addSuccessMessage');
+
+      render(
+        <TestComponent
+          {...props}
+          organization={props.organization}
+          customRepositories={[appStoreConnectRepository]}
+        />,
+        {context: props.routerContext}
+      );
+
+      // Display modal content
+      expect(
+        await screen.findByText('App Store Connect credentials')
+      ).toBeInTheDocument();
+
+      userEvent.click(screen.getByText('Update'));
+
+      await waitFor(() => expect(updateMockSucceeds).toHaveBeenCalledTimes(1));
+      expect(updateCredentialsMockSucceeds).toHaveBeenCalledTimes(1);
+
+      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+        'Successfully updated custom repository'
+      );
+
+      act(() => {
+        jest.runAllTimers();
+      });
+    });
+
+    it('credentials not authorized for the application', async function () {
+      // Request fails
+      const updateCredentialsMockFails = MockApiClient.addMockResponse({
+        url: `/projects/${props.organization.slug}/${props.project.slug}/appstoreconnect/apps/`,
+        method: 'POST',
+        statusCode: 200,
+        body: {
+          apps: [
+            {appId: '8172187', name: 'Release Health', bundleId: 'io.sentry.mobile.app'},
+          ],
+        },
+      });
+
+      jest.spyOn(indicators, 'addErrorMessage');
+
+      render(
+        <TestComponent
+          {...props}
+          organization={props.organization}
+          customRepositories={[appStoreConnectRepository]}
+        />,
+        {context: props.routerContext}
+      );
+
+      // Display modal content
+      expect(
+        await screen.findByText('App Store Connect credentials')
+      ).toBeInTheDocument();
+
+      // Type invalid key
+      userEvent.type(
+        screen.getByPlaceholderText('(Private Key unchanged)'),
+        'invalid key{enter}'
+      );
+
+      userEvent.click(screen.getByText('Update'));
+
+      await waitFor(() => expect(updateCredentialsMockFails).toHaveBeenCalledTimes(1));
+
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Credentials not authorized for this application'
+      );
+    });
   });
 });

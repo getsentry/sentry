@@ -13,6 +13,7 @@ import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {Column} from 'sentry/utils/discover/fields';
 import theme from 'sentry/utils/theme';
+import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import ColumnEditCollection from './columnEditCollection';
@@ -23,7 +24,6 @@ type Props = {
   // Fired when column selections have been applied.
   onApply: (columns: Column[]) => void;
   organization: Organization;
-  tagKeys: null | string[];
   spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
@@ -32,7 +32,6 @@ function ColumnEditModal(props: Props) {
     Header,
     Body,
     Footer,
-    tagKeys,
     measurementKeys,
     spanOperationBreakdownKeys,
     organization,
@@ -40,14 +39,17 @@ function ColumnEditModal(props: Props) {
     closeModal,
   } = props;
 
-  // Run on initial render.
+  // Only run once for each organization.id.
   useEffect(() => {
     trackAnalyticsEvent({
       eventKey: 'discover_v2.column_editor.open',
       eventName: 'Discoverv2: Open column editor',
       organization_id: parseInt(organization.id, 10),
     });
-  }, []);
+  }, [organization.id]);
+
+  const {tags} = useTags();
+  const tagKeys = Object.values(tags).map(({key}) => key);
 
   const [columns, setColumns] = useState<Column[]>(props.columns);
 
@@ -70,12 +72,12 @@ function ColumnEditModal(props: Props) {
       <Body>
         <Instruction>
           {tct(
-            'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [tagFieldLink: Tag and field] columns will help you view more details about the events (i.e. title).',
+            'To group events, add [functionLink: functions] f(x) that may take in additional parameters. [fieldTagLink: Tag and field] columns will help you view more details about the events (i.e. title).',
             {
               functionLink: (
                 <ExternalLink href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns" />
               ),
-              tagFieldLink: (
+              fieldTagLink: (
                 <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#event-properties" />
               ),
             }

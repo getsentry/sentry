@@ -45,8 +45,9 @@ const NotFoundAlert = styled(Alert)`
 `;
 
 const Heading = styled('h1')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin: ${space(1)} 0;
+  font-size: ${p => p.theme.fontSizeLarge};
+  line-height: 1.4;
+  margin-bottom: ${space(1)};
 `;
 
 export default NotFound;

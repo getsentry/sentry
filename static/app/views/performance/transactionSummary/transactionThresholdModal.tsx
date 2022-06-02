@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -51,7 +51,7 @@ type State = {
   threshold: number | undefined;
 };
 
-class TransactionThresholdModal extends React.Component<Props, State> {
+class TransactionThresholdModal extends Component<Props, State> {
   state: State = {
     threshold: this.props.transactionThreshold,
     metric: this.props.transactionThresholdMetric,
@@ -175,7 +175,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
 
   renderModalFields() {
     return (
-      <React.Fragment>
+      <Fragment>
         <Field
           data-test-id="response-metric"
           label={t('Calculation Method')}
@@ -224,7 +224,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
             min={100}
           />
         </Field>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -243,7 +243,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
     });
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>
           <h4>{t('Transaction Settings')}</h4>
         </Header>
@@ -282,7 +282,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
             </Button>
           </ButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

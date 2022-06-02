@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
@@ -29,14 +29,13 @@ import {
   Organization,
   PageFilters,
   SelectValue,
+  SessionField,
   TagCollection,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getColumnsAndAggregates} from 'sentry/utils/discover/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
-import {SessionMetric} from 'sentry/utils/metrics/fields';
-import {MetricsProvider} from 'sentry/utils/metrics/metricsProvider';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -54,10 +53,14 @@ import {
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
-import {generateMetricsWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/metricWidget/fields';
 import {
-  getMetricFields,
+  generateReleaseWidgetFieldOptions,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
+} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
+import {
   mapErrors,
+  NEW_DASHBOARD_ID,
   normalizeQueries,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
@@ -133,9 +136,9 @@ const newIssueQuery: WidgetQuery = {
 
 const newMetricsQuery: WidgetQuery = {
   name: '',
-  fields: [`sum(${SessionMetric.SESSION})`],
+  fields: [`crash_free_rate(${SessionField.SESSION})`],
   columns: [],
-  aggregates: [`sum(${SessionMetric.SESSION})`],
+  aggregates: [`crash_free_rate(${SessionField.SESSION})`],
   conditions: '',
   orderby: '',
 };
@@ -149,13 +152,13 @@ const IssueDataset: [WidgetType, string] = [
   t('Issues (States, Assignment, Time, etc.)'),
 ];
 const MetricsDataset: [WidgetType, React.ReactElement] = [
-  WidgetType.METRICS,
-  <React.Fragment key="metrics-dataset">
+  WidgetType.RELEASE,
+  <Fragment key="metrics-dataset">
     {t('Health (Releases, sessions)')} <FeatureBadge type="alpha" />
-  </React.Fragment>,
+  </Fragment>,
 ];
 
-class AddDashboardWidgetModal extends React.Component<Props, State> {
+class AddDashboardWidgetModal extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
@@ -284,7 +287,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       !(
         dashboards.find(({title, id}) => {
           return title === selectedDashboard?.label && id === selectedDashboard?.value;
-        }) || selectedDashboard.value === 'new'
+        }) || selectedDashboard.value === NEW_DASHBOARD_ID
       )
     ) {
       errors.dashboard = t('This field may not be blank');
@@ -326,7 +329,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
         organization,
       });
 
-      if (selectedDashboard.value === 'new') {
+      if (selectedDashboard.value === NEW_DASHBOARD_ID) {
         browserHistory.push({
           pathname: `/organizations/${organization.slug}/dashboards/new/`,
           query: pathQuery,
@@ -374,7 +377,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
 
       if (
         newDisplayType === DisplayType.WORLD_MAP &&
-        prevState.widgetType === WidgetType.METRICS
+        prevState.widgetType === WidgetType.RELEASE
       ) {
         // World Map display type only supports Discover Dataset
         // so set state to default discover query.
@@ -495,7 +498,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     switch (widgetType) {
       case WidgetType.ISSUE:
         return newIssueQuery;
-      case WidgetType.METRICS:
+      case WidgetType.RELEASE:
         return newMetricsQuery;
       case WidgetType.DISCOVER:
       default:
@@ -568,7 +571,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       };
     });
     return (
-      <React.Fragment>
+      <Fragment>
         <p>
           {t(
             `Choose which dashboard you'd like to add this query to. It will appear as a widget.`
@@ -607,13 +610,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             }}
           />
         </Field>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
   renderWidgetQueryForm(
     querySelection: PageFilters,
-    metricsWidgetFieldOptions: ReturnType<typeof generateMetricsWidgetFieldOptions>
+    releaseWidgetFieldOptions: ReturnType<typeof generateReleaseWidgetFieldOptions>
   ) {
     const {organization, tags} = this.props;
     const state = this.state;
@@ -631,7 +634,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
     switch (state.widgetType) {
       case WidgetType.ISSUE:
         return (
-          <React.Fragment>
+          <Fragment>
             <IssueWidgetQueriesForm
               organization={organization}
               selection={querySelection}
@@ -658,12 +661,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               currentWidgetDragging={false}
               noLazyLoad
             />
-          </React.Fragment>
+          </Fragment>
         );
 
-      case WidgetType.METRICS:
+      case WidgetType.RELEASE:
         return (
-          <React.Fragment>
+          <Fragment>
             <WidgetQueriesForm
               organization={organization}
               selection={querySelection}
@@ -671,7 +674,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               widgetType={state.widgetType}
               queries={state.queries}
               errors={errors?.queries}
-              fieldOptions={metricsWidgetFieldOptions}
+              fieldOptions={releaseWidgetFieldOptions}
               onChange={(queryIndex: number, widgetQuery: WidgetQuery) =>
                 this.handleQueryChange(widgetQuery, queryIndex)
               }
@@ -697,12 +700,12 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               currentWidgetDragging={false}
               noLazyLoad
             />
-          </React.Fragment>
+          </Fragment>
         );
       case WidgetType.DISCOVER:
       default:
         return (
-          <React.Fragment>
+          <Fragment>
             <Measurements>
               {({measurements}) => {
                 const measurementKeys = Object.values(measurements).map(({key}) => key);
@@ -743,8 +746,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
               isSorting={false}
               currentWidgetDragging={false}
               noLazyLoad
+              showStoredAlert
             />
-          </React.Fragment>
+          </Fragment>
         );
     }
   }
@@ -780,7 +784,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       showDatasetSelector && state.displayType === DisplayType.TABLE;
 
     const showMetricsDatasetSelector =
-      showDatasetSelector && organization.features.includes('dashboards-metrics');
+      showDatasetSelector && organization.features.includes('dashboards-releases');
 
     const datasetChoices: [WidgetType, React.ReactElement | string][] = [DiscoverDataset];
 
@@ -800,8 +804,13 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
       ? {...selection, datetime: {start, end, period: null, utc: null}}
       : selection;
 
+    const metricsWidgetFieldOptions = generateReleaseWidgetFieldOptions(
+      Object.values(SESSIONS_FIELDS),
+      SESSIONS_TAGS
+    );
+
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>
           <h4>
             {this.omitDashboardProp
@@ -867,8 +876,8 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             </StyledField>
           </DoubleFieldWrapper>
           {(showIssueDatasetSelector || showMetricsDatasetSelector) && (
-            <React.Fragment>
-              <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
+            <Fragment>
+              <StyledFieldLabel>{t('Dataset')}</StyledFieldLabel>
               <StyledRadioGroup
                 style={{flex: 1}}
                 choices={datasetChoices}
@@ -876,25 +885,9 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
                 label={t('Dataset')}
                 onChange={this.handleDatasetChange}
               />
-            </React.Fragment>
+            </Fragment>
           )}
-          <MetricsProvider
-            projects={querySelection.projects}
-            fields={getMetricFields(state.queries)}
-            organization={organization}
-            skipLoad={!organization.features.includes('dashboards-metrics')}
-          >
-            {({metas: metricsMeta, tags: metricsTags}) => {
-              const metricsWidgetFieldOptions = generateMetricsWidgetFieldOptions(
-                Object.values(metricsMeta),
-                Object.values(metricsTags).map(({key}) => key)
-              );
-              return this.renderWidgetQueryForm(
-                querySelection,
-                metricsWidgetFieldOptions
-              );
-            }}
-          </MetricsProvider>
+          {this.renderWidgetQueryForm(querySelection, metricsWidgetFieldOptions)}
         </Body>
         <Footer>
           <ButtonBar gap={1}>
@@ -920,7 +913,7 @@ class AddDashboardWidgetModal extends React.Component<Props, State> {
             </Button>
           </ButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

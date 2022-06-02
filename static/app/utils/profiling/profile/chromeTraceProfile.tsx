@@ -21,8 +21,8 @@ type ThreadId = number;
 
 export function splitEventsByProcessAndTraceId(
   trace: ChromeTrace.ArrayFormat
-): Record<ProcessId, Record<ThreadId, ChromeTrace.Event[]>> {
-  const collections: Record<ProcessId, Record<ThreadId, ChromeTrace.Event[]>> = {};
+): Map<ProcessId, Map<ThreadId, ChromeTrace.Event[]>> {
+  const collections: Map<ProcessId, Map<ThreadId, ChromeTrace.Event[]>> = new Map();
 
   for (let i = 0; i < trace.length; i++) {
     const event = trace[i];
@@ -34,14 +34,19 @@ export function splitEventsByProcessAndTraceId(
       continue;
     }
 
-    if (!collections[event.pid]) {
-      collections[event.pid] = {};
-    }
-    if (!collections[event.pid][event.tid]) {
-      collections[event.pid][event.tid] = [];
+    let processes = collections.get(event.pid);
+    if (!processes) {
+      processes = new Map();
+      collections.set(event.pid, processes);
     }
 
-    collections[event.pid][event.tid].push(event);
+    let threads = processes.get(event.tid);
+    if (!threads) {
+      threads = [];
+      processes.set(event.tid, threads);
+    }
+
+    threads.push(event);
   }
 
   return collections;
@@ -78,8 +83,8 @@ function getNextQueue(
 }
 
 function buildProfile(
-  processId: string,
-  threadId: string,
+  processId: number,
+  threadId: number,
   events: ChromeTrace.Event[]
 ): ChromeTraceProfile {
   let processName: string = `pid (${processId})`;
@@ -138,17 +143,23 @@ function buildProfile(
   }
 
   const firstTimestamp = beginQueue[beginQueue.length - 1].ts;
+  const lastTimestamp = endQueue[0]?.ts ?? beginQueue[0].ts;
 
   if (typeof firstTimestamp !== 'number') {
     throw new Error('First begin event contains no timestamp');
   }
 
+  if (typeof lastTimestamp !== 'number') {
+    throw new Error('Last end event contains no timestamp');
+  }
+
   const profile = new ChromeTraceProfile(
-    0,
-    0,
-    0,
+    lastTimestamp - firstTimestamp,
+    firstTimestamp,
+    lastTimestamp,
     `${processName}: ${threadName}`,
-    'milliseconds'
+    'microseconds', // the trace event format provides timestamps in microseconds
+    threadId
   );
 
   const stack: ChromeTrace.Event[] = [];
@@ -254,18 +265,11 @@ export function parseChromeTraceArrayFormat(
   const profiles: Profile[] = [];
   const eventsByProcessAndThreadID = splitEventsByProcessAndTraceId(input);
 
-  for (const processId in eventsByProcessAndThreadID) {
-    for (const threadId in eventsByProcessAndThreadID[processId]) {
+  for (const [processId, threads] of eventsByProcessAndThreadID) {
+    for (const [threadId, events] of threads) {
       wrapWithSpan(
         options?.transaction,
-        () =>
-          profiles.push(
-            buildProfile(
-              processId,
-              threadId,
-              eventsByProcessAndThreadID[processId][threadId] ?? []
-            )
-          ),
+        () => profiles.push(buildProfile(processId, threadId, events ?? [])),
         {
           op: 'profile.import',
           description: 'chrometrace',

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -27,7 +27,7 @@ type Props = {
   release?: Release;
 };
 
-class SeenInfo extends React.Component<Props> {
+class SeenInfo extends Component<Props> {
   shouldComponentUpdate(nextProps: Props) {
     const {date, release} = this.props;
 
@@ -48,6 +48,7 @@ class SeenInfo extends React.Component<Props> {
     return (
       <HovercardWrapper>
         <StyledHovercard
+          showUnderline
           header={
             <div>
               <TimeSinceWrapper>
@@ -81,10 +82,10 @@ class SeenInfo extends React.Component<Props> {
                 <StyledTimeSince date={date} disabledAbsoluteTooltip />
               </TooltipWrapper>
             ) : dateGlobal && environment === '' ? (
-              <React.Fragment>
+              <Fragment>
                 <TimeSince date={dateGlobal} disabledAbsoluteTooltip />
                 <StyledTimeSince date={dateGlobal} disabledAbsoluteTooltip />
-              </React.Fragment>
+              </Fragment>
             ) : (
               <NoDateTime>{t('N/A')}</NoDateTime>
             )}
@@ -92,7 +93,7 @@ class SeenInfo extends React.Component<Props> {
         </StyledHovercard>
         <DateWrapper>
           {defined(release) ? (
-            <React.Fragment>
+            <Fragment>
               {t('in release ')}
               <VersionHoverCard
                 organization={organization}
@@ -103,7 +104,7 @@ class SeenInfo extends React.Component<Props> {
                   <Version version={release.version} projectId={projectId} />
                 </span>
               </VersionHoverCard>
-            </React.Fragment>
+            </Fragment>
           ) : null}
         </DateWrapper>
       </HovercardWrapper>
@@ -120,6 +121,7 @@ const dateTimeCss = p => css`
 
 const HovercardWrapper = styled('div')`
   display: flex;
+  align-items: baseline;
 `;
 
 const DateWrapper = styled('div')`
@@ -156,6 +158,7 @@ const TimeSinceWrapper = styled('div')`
 
 const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.2;
 `;
 
 const StyledHovercard = styled(Hovercard)`

@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -32,7 +32,7 @@ function getExclamation() {
   return exclamation[Math.floor(Math.random() * exclamation.length)];
 }
 
-class ErrorBoundary extends React.Component<Props, State> {
+class ErrorBoundary extends Component<Props, State> {
   static defaultProps: DefaultProps = {
     mini: false,
   };

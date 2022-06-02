@@ -222,7 +222,7 @@ export type SessionApiResponse = SeriesApi & {
   start: string;
 };
 
-export enum SessionField {
+export enum SessionFieldWithOperation {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
   DURATION = 'p50(session.duration)',

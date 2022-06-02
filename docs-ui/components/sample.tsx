@@ -35,9 +35,13 @@ const Sample = ({children, showThemeSwitcher = false, noBorder = false}: Props) 
    * If theme switcher is shown, use the correct theme object based on themeName.
    * Else, fall back to the global theme object.
    */
-  const [theme, setTheme] = useState<Theme>(
-    showThemeSwitcher ? (themeName === 'light' ? lightTheme : darkTheme) : useTheme()
+  const globalTheme = useTheme();
+  const [switcherTheme, setSwitcherTheme] = useState<Theme>(
+    themeName === 'light' ? lightTheme : darkTheme
   );
+
+  const setTheme = setSwitcherTheme;
+  const theme = showThemeSwitcher ? switcherTheme : globalTheme;
 
   const toggleTheme = () => {
     if (themeName === 'light') {

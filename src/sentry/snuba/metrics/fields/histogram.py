@@ -1,6 +1,8 @@
+import math
 from typing import List, Optional, Tuple
 
 import sentry_sdk
+from snuba_sdk import Column, Function
 
 ClickhouseHistogram = List[Tuple[float, float, float]]
 
@@ -58,4 +60,70 @@ def rebucket_histogram(
                 rv_height = overlap_perc * height
                 rv[lower_target, upper_target] += rv_height
 
-    return [(lower, upper, height) for (lower, upper), height in rv.items()]
+    return [(lower, upper, math.ceil(height)) for (lower, upper), height in rv.items()]
+
+
+def zoom_histogram(
+    org_id: int,
+    histogram_buckets: int,
+    histogram_from: Optional[float] = None,
+    histogram_to: Optional[float] = None,
+) -> Optional[Function]:
+    # The histogram "zoom" function is only there to limit the number of
+    # histogram merge states we have to merge in order to get greater accuracy
+    # on lower zoom levels. Since the maximum number of histogram buckets in
+    # ClickHouse is a constant number (250), any row we can filter out
+    # before aggregation is a potential win in accuracy.
+    #
+    # We do two things:
+    #
+    # - We throw away any buckets whose maximum value is lower than
+    #   histogram_from, as we know there are no values in those buckets that
+    #   overlap with our zoom range.
+    # - We throw away any buckets whose minimum value is higher than
+    #   histogram_to, for the same reason.
+    #
+    # Note that we may still end up merging histogram states whose min/max
+    # bounds are not strictly within the user-defined bounds
+    # histogram_from/histogram_to. It is the job of rebucket_histogram to get
+    # rid of those extra datapoints in query results.
+    #
+    # We use `arrayReduce("maxMerge", [max])` where one would typically write
+    # `maxMerge(max)`, or maybe `maxMergeArray([max])` This is because
+    # ClickHouse appears to have some sort of internal limitation where nested
+    # aggregate functions are disallowed even if they would make sense, at the
+    # same time ClickHouse doesn't appear to be clever enough to detect this
+    # constellation in all cases. The following ClickHouse SQL is invalid:
+    #
+    #   select histogramMergeIf(histogram_buckets, maxMerge(max) >= 123)
+    #
+    # yet somehow this is fine:
+    #
+    #   select histogramMergeIf(histogram_buckets, arrayReduce('maxMerge', [max]) >= 123)
+    #
+    # We can't put this sort of filter in the where-clause as the metrics API
+    # allows for querying histograms alongside other kinds of data, so almost
+    # all user-defined filters end up in a -If aggregate function.
+    conditions = []
+    if histogram_from is not None:
+        conditions.append(
+            Function(
+                "greaterOrEquals",
+                [Function("arrayReduce", ["maxMerge", [Column("max")]]), histogram_from],
+            )
+        )
+
+    if histogram_to is not None:
+        conditions.append(
+            Function(
+                "lessOrEquals",
+                [Function("arrayReduce", ["minMerge", [Column("min")]]), histogram_to],
+            )
+        )
+
+    if len(conditions) == 1:
+        return conditions[0]
+    elif conditions:
+        return Function("and", conditions)
+    else:
+        return None

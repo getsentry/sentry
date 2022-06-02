@@ -63,6 +63,7 @@ const teamStoreConfig: TeamStoreDefinition = {
     this.unsubscribeListeners.push(
       this.listenTo(TeamActions.updateSuccess, this.onUpdateSuccess)
     );
+    this.unsubscribeListeners.push(this.listenTo(TeamActions.reset, this.reset));
   },
 
   reset() {
@@ -75,38 +76,33 @@ const teamStoreConfig: TeamStoreDefinition = {
     };
   },
 
-  loadInitialData(items, hasMore, cursor) {
+  setTeams(teams, hasMore, cursor) {
     this.initialized = true;
     this.state = {
-      teams: items.sort((a, b) => a.slug.localeCompare(b.slug)),
+      teams,
       loadedUserTeams: defined(hasMore) ? !hasMore : this.state.loadedUserTeams,
       loading: false,
       hasMore: hasMore ?? this.state.hasMore,
       cursor: cursor ?? this.state.cursor,
     };
-    this.trigger(new Set(items.map(item => item.id)));
+    this.trigger(new Set(teams.map(team => team.id)));
+  },
+
+  loadInitialData(items, hasMore, cursor) {
+    const teams = this.updateTeams(items);
+    this.setTeams(teams, hasMore, cursor);
   },
 
   loadUserTeams(userTeams: Team[]) {
-    const teamIdMap = this.state.teams.reduce((acc: Record<string, Team>, team: Team) => {
-      acc[team.id] = team;
-      return acc;
-    }, {});
+    const teams = this.updateTeams(userTeams);
 
-    // Replace or insert new user teams
-    userTeams.reduce((acc: Record<string, Team>, userTeam: Team) => {
-      acc[userTeam.id] = userTeam;
-      return acc;
-    }, teamIdMap);
-
-    const teams = Object.values(teamIdMap).sort((a, b) => a.slug.localeCompare(b.slug));
     this.state = {
       ...this.state,
       loadedUserTeams: true,
       teams,
     };
 
-    this.trigger(new Set(Object.keys(teamIdMap)));
+    this.trigger(new Set(teams.map(team => team.id)));
   },
 
   onUpdateSuccess(itemId, response) {
@@ -147,12 +143,12 @@ const teamStoreConfig: TeamStoreDefinition = {
   },
 
   onRemoveSuccess(slug: string) {
-    const {teams} = this.state;
-    this.loadInitialData(teams.filter(team => team.slug !== slug));
+    const teams = this.state.teams.filter(team => team.slug !== slug);
+    this.setTeams(teams);
   },
 
   onCreateSuccess(team: Team) {
-    this.loadInitialData([...this.state.teams, team]);
+    this.loadInitialData([team]);
   },
 
   getState() {
@@ -171,6 +167,21 @@ const teamStoreConfig: TeamStoreDefinition = {
 
   getAll() {
     return this.state.teams;
+  },
+
+  updateTeams(teams: Team[]) {
+    const teamIdMap = this.state.teams.reduce((acc: Record<string, Team>, team: Team) => {
+      acc[team.id] = team;
+      return acc;
+    }, {});
+
+    // Replace or insert new user teams
+    teams.reduce((acc: Record<string, Team>, userTeam: Team) => {
+      acc[userTeam.id] = userTeam;
+      return acc;
+    }, teamIdMap);
+
+    return Object.values(teamIdMap).sort((a, b) => a.slug.localeCompare(b.slug));
   },
 };
 

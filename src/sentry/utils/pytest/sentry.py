@@ -58,6 +58,9 @@ def pytest_configure(config):
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
+    # silence (noisy) loggers by default when testing
+    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"
+
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
 
@@ -156,13 +159,15 @@ def pytest_configure(config):
         }
     )
 
+    settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
+
     # Plugin-related settings
     settings.ASANA_CLIENT_ID = "abc"
     settings.ASANA_CLIENT_SECRET = "123"
     settings.BITBUCKET_CONSUMER_KEY = "abc"
     settings.BITBUCKET_CONSUMER_SECRET = "123"
-    settings.GITHUB_APP_ID = "abc"
-    settings.GITHUB_API_SECRET = "123"
+    settings.SENTRY_OPTIONS["github-login.client-id"] = "abc"
+    settings.SENTRY_OPTIONS["github-login.client-secret"] = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 

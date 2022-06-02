@@ -40,6 +40,10 @@ class ProjectDocsPlatformEndpoint(ProjectEndpoint):
         data = load_doc(platform)
         if not data:
             raise ResourceDoesNotExist
+        keys = ("id", "name", "html", "link")
+        for key in keys:
+            if key not in data:
+                raise ResourceDoesNotExist
 
         project_key = ProjectKey.get_default(project)
 

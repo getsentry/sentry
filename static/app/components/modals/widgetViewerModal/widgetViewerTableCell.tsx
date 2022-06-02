@@ -1,6 +1,7 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
+import trimStart from 'lodash/trimStart';
 
 import {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
@@ -21,7 +22,9 @@ import {
   fieldAlignment,
   getAggregateAlias,
   getEquationAliasIndex,
+  isAggregateField,
   isEquationAlias,
+  Sort,
 } from 'sentry/utils/discover/fields';
 import {
   eventDetailsRouteWithEventView,
@@ -48,7 +51,7 @@ type Props = {
 };
 
 export const renderIssueGridHeaderCell =
-  ({location, widget, tableData, organization}: Props) =>
+  ({location, widget, tableData, organization, onHeaderClick}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
     const tableMeta = tableData?.meta;
     const align = fieldAlignment(column.name, column.type, tableMeta);
@@ -70,9 +73,10 @@ export const renderIssueGridHeaderCell =
           },
         })}
         onClick={() => {
+          onHeaderClick?.();
           trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
             organization,
-            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            widget_type: WidgetType.ISSUE,
             display_type: widget.displayType,
             column: column.name,
             order: 'desc',
@@ -85,9 +89,14 @@ export const renderIssueGridHeaderCell =
 export const renderDiscoverGridHeaderCell =
   ({location, selection, widget, tableData, organization, onHeaderClick}: Props) =>
   (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+    const {orderby} = widget.queries[0];
+    // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
+    const aggregateAliasOrderBy = `${
+      orderby.startsWith('-') ? '-' : ''
+    }${getAggregateAlias(trimStart(orderby, '-'))}`;
     const eventView = eventViewFromWidget(
       widget.title,
-      widget.queries[0],
+      {...widget.queries[0], orderby: aggregateAliasOrderBy},
       selection,
       widget.displayType
     );
@@ -99,7 +108,7 @@ export const renderDiscoverGridHeaderCell =
         return undefined;
       }
 
-      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const nextEventView = eventView.sortOnField(field, tableMeta, undefined, true);
       const queryStringObject = nextEventView.generateQueryStringObject();
 
       return {
@@ -130,7 +139,7 @@ export const renderDiscoverGridHeaderCell =
           onHeaderClick?.();
           trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
             organization,
-            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            widget_type: WidgetType.DISCOVER,
             display_type: widget.displayType,
             column: column.name,
             order: currentSort?.kind === 'desc' ? 'asc' : 'desc',
@@ -151,6 +160,9 @@ export const renderGridBodyCell =
     const columnKey = String(column.key);
     const isTopEvents = widget.displayType === DisplayType.TOP_N;
     let cell: React.ReactNode;
+    const isAlias =
+      !organization.features.includes('discover-frontend-use-events-endpoint') &&
+      widget.widgetType !== WidgetType.RELEASE;
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
         cell = (
@@ -162,7 +174,11 @@ export const renderGridBodyCell =
         if (!tableData || !tableData.meta) {
           return dataRow[column.key];
         }
-        cell = getFieldRenderer(columnKey, tableData.meta)(dataRow, {
+        cell = getFieldRenderer(
+          columnKey,
+          tableData.meta,
+          isAlias
+        )(dataRow, {
           organization,
           location,
         });
@@ -182,17 +198,19 @@ export const renderGridBodyCell =
         }
         break;
     }
-
+    const topResultsCount = tableData
+      ? Math.min(tableData?.data.length, DEFAULT_NUM_TOP_EVENTS)
+      : DEFAULT_NUM_TOP_EVENTS;
     return (
-      <React.Fragment>
+      <Fragment>
         {isTopEvents &&
         isFirstPage &&
         rowIndex < DEFAULT_NUM_TOP_EVENTS &&
         columnIndex === 0 ? (
-          <TopResultsIndicator count={DEFAULT_NUM_TOP_EVENTS} index={rowIndex} />
+          <TopResultsIndicator count={topResultsCount} index={rowIndex} />
         ) : null}
         {cell}
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -234,6 +252,58 @@ export const renderPrependColumns =
         </Link>
       </Tooltip>,
     ];
+  };
+
+export const renderReleaseGridHeaderCell =
+  ({location, widget, tableData, organization, onHeaderClick}: Props) =>
+  (column: TableColumn<keyof TableDataRow>, _columnIndex: number): React.ReactNode => {
+    const tableMeta = tableData?.meta;
+    const align = fieldAlignment(column.name, column.type, tableMeta);
+    const widgetOrderBy = widget.queries[0].orderby;
+    const sort: Sort = {
+      kind: widgetOrderBy.startsWith('-') ? 'desc' : 'asc',
+      field: widgetOrderBy.startsWith('-') ? widgetOrderBy.slice(1) : widgetOrderBy,
+    };
+    const canSort = isAggregateField(column.name);
+    const titleText = column.name;
+
+    function generateSortLink(): LocationDescriptorObject {
+      const columnSort =
+        column.name === sort.field
+          ? {...sort, kind: sort.kind === 'desc' ? 'asc' : 'desc'}
+          : {kind: 'desc', field: column.name};
+
+      return {
+        ...location,
+        query: {
+          ...location.query,
+          [WidgetViewerQueryField.SORT]:
+            columnSort.kind === 'desc' ? `-${columnSort.field}` : columnSort.field,
+          [WidgetViewerQueryField.PAGE]: undefined,
+          [WidgetViewerQueryField.CURSOR]: undefined,
+        },
+      };
+    }
+
+    return (
+      <SortLink
+        align={align}
+        title={<StyledTooltip title={titleText}>{titleText}</StyledTooltip>}
+        direction={sort.field === column.name ? sort.kind : undefined}
+        canSort={canSort}
+        generateSortLink={generateSortLink}
+        onClick={() => {
+          onHeaderClick?.();
+          trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.sort', {
+            organization,
+            widget_type: WidgetType.RELEASE,
+            display_type: widget.displayType,
+            column: column.name,
+            order: sort?.kind === 'desc' ? 'asc' : 'desc',
+          });
+        }}
+      />
+    );
   };
 
 const StyledTooltip = styled(Tooltip)`

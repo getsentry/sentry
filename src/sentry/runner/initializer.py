@@ -1,3 +1,4 @@
+import importlib.metadata
 import logging
 import os
 import sys
@@ -6,7 +7,6 @@ import click
 from django.conf import settings
 
 from sentry.utils import metrics, warnings
-from sentry.utils.compat import map
 from sentry.utils.sdk import configure_sdk
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -14,8 +14,6 @@ logger = logging.getLogger("sentry.runner.initializer")
 
 
 def register_plugins(settings, raise_on_plugin_load_failure=False):
-    from pkg_resources import iter_entry_points
-
     from sentry.plugins.base import plugins
 
     # entry_points={
@@ -23,7 +21,14 @@ def register_plugins(settings, raise_on_plugin_load_failure=False):
     #         'phabricator = sentry_phabricator.plugins:PhabricatorPlugin'
     #     ],
     # },
-    for ep in iter_entry_points("sentry.plugins"):
+    entry_points = {
+        ep
+        for dist in importlib.metadata.distributions()
+        for ep in dist.entry_points
+        if ep.group == "sentry.plugins"
+    }
+
+    for ep in entry_points:
         try:
             plugin = ep.load()
         except Exception:
@@ -392,7 +397,6 @@ def setup_services(validate=True):
         tagstore,
         tsdb,
     )
-    from sentry.utils.settings import reraise_as
 
     from .importer import ConfigurationError
 
@@ -414,16 +418,16 @@ def setup_services(validate=True):
             try:
                 service.validate()
             except AttributeError as e:
-                reraise_as(
-                    ConfigurationError(f"{service.__name__} service failed to call validate()\n{e}")
-                )
+                raise ConfigurationError(
+                    f"{service.__name__} service failed to call validate()\n{e}"
+                ).with_traceback(e.__traceback__)
         try:
             service.setup()
         except AttributeError as e:
             if not hasattr(service, "setup") or not callable(service.setup):
-                reraise_as(
-                    ConfigurationError(f"{service.__name__} service failed to call setup()\n{e}")
-                )
+                raise ConfigurationError(
+                    f"{service.__name__} service failed to call setup()\n{e}"
+                ).with_traceback(e.__traceback__)
             raise
 
 

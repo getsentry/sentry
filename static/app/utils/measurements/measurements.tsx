@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 
 import {MobileVital, WebVital} from 'sentry/utils/discover/fields';
 import {
@@ -43,7 +43,7 @@ type Props = {
 
 function Measurements({children}: Props) {
   const measurements = {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
-  return <React.Fragment>{children({measurements})}</React.Fragment>;
+  return <Fragment>{children({measurements})}</Fragment>;
 }
 
 export default Measurements;

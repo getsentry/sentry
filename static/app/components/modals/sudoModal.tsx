@@ -1,7 +1,8 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
+import {logout} from 'sentry/actionCreators/account';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Alert from 'sentry/components/alert';
@@ -28,6 +29,7 @@ type Props = WithRouterProps &
      * User is a superuser without an active su session
      */
     isSuperuser?: boolean;
+    needsReload?: boolean;
     /**
      * expects a function that returns a Promise
      */
@@ -39,17 +41,15 @@ type State = {
   busy: boolean;
   error: boolean;
   errorType: string;
-  showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
 };
 
-class SudoModal extends React.Component<Props, State> {
+class SudoModal extends Component<Props, State> {
   state: State = {
     error: false,
     errorType: '',
     busy: false,
-    showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
     authenticators: [],
@@ -59,27 +59,24 @@ class SudoModal extends React.Component<Props, State> {
     this.getAuthenticators();
   }
 
-  handleSubmit = async data => {
+  handleSubmit = async () => {
     const {api, isSuperuser} = this.props;
-
-    if (this.state.showAccessForms && isSuperuser) {
-      this.setState({
-        showAccessForms: false,
-        superuserAccessCategory: data.superuserAccessCategory,
-        superuserReason: data.superuserReason,
-      });
-    } else {
-      try {
-        await api.requestPromise('/auth/', {method: 'PUT', data});
-        this.handleSuccess();
-      } catch (err) {
-        this.handleError(err);
-      }
+    const data = {
+      isSuperuserModal: isSuperuser,
+      superuserAccessCategory: 'cops_csm',
+      superuserReason: 'COPS and CSM use',
+    };
+    try {
+      await api.requestPromise('/auth/', {method: 'PUT', data});
+      this.handleSuccess();
+    } catch (err) {
+      this.handleError(err);
     }
   };
 
   handleSuccess = () => {
-    const {closeModal, isSuperuser, location, router, retryRequest} = this.props;
+    const {closeModal, isSuperuser, location, needsReload, router, retryRequest} =
+      this.props;
 
     if (!retryRequest) {
       closeModal();
@@ -88,10 +85,13 @@ class SudoModal extends React.Component<Props, State> {
 
     if (isSuperuser) {
       router.replace({pathname: location.pathname, state: {forceUpdate: new Date()}});
+      if (needsReload) {
+        window.location.reload();
+      }
       return;
     }
 
-    this.setState({busy: true, showAccessForms: true}, () => {
+    this.setState({busy: true}, () => {
       retryRequest().then(() => {
         this.setState({busy: false}, closeModal);
       });
@@ -112,7 +112,6 @@ class SudoModal extends React.Component<Props, State> {
     this.setState({
       busy: false,
       error: true,
-      showAccessForms: true,
       errorType,
     });
   };
@@ -135,6 +134,16 @@ class SudoModal extends React.Component<Props, State> {
     }
   };
 
+  handleLogout = async () => {
+    const {api} = this.props;
+    try {
+      await logout(api);
+    } catch {
+      // ignore errors
+    }
+    window.location.assign(`/auth/login/?next=${encodeURIComponent(location.pathname)}`);
+  };
+
   async getAuthenticators() {
     const {api} = this.props;
 
@@ -148,13 +157,22 @@ class SudoModal extends React.Component<Props, State> {
 
   renderBodyContent() {
     const {isSuperuser} = this.props;
-    const {authenticators, error, showAccessForms, errorType} = this.state;
+    const {authenticators, error, errorType} = this.state;
     const user = ConfigStore.get('user');
     const isSelfHosted = ConfigStore.get('isSelfHosted');
+    const validateSUForm = ConfigStore.get('validateSUForm');
 
-    if (!user.hasPasswordAuth && authenticators.length === 0) {
+    if (errorType === ErrorCodes.invalidSSOSession) {
+      this.handleLogout();
+      return null;
+    }
+
+    if (
+      (!user.hasPasswordAuth && authenticators.length === 0) ||
+      (isSuperuser && !isSelfHosted && validateSUForm)
+    ) {
       return (
-        <React.Fragment>
+        <Fragment>
           <StyledTextBlock>
             {isSuperuser
               ? t(
@@ -175,11 +193,14 @@ class SudoModal extends React.Component<Props, State> {
               onSubmitSuccess={this.handleSuccess}
               onSubmitError={this.handleError}
               initialData={{isSuperuserModal: isSuperuser}}
+              extraButton={
+                <BackWrapper>
+                  <Button onClick={this.handleSubmit}>{t('COPS/CSM')}</Button>
+                </BackWrapper>
+              }
               resetOnError
             >
-              {!isSelfHosted && showAccessForms && isSuperuser && (
-                <Hook name="component:superuser-access-category" />
-              )}
+              {!isSelfHosted && <Hook name="component:superuser-access-category" />}
             </Form>
           ) : (
             <Button
@@ -189,12 +210,12 @@ class SudoModal extends React.Component<Props, State> {
               {t('Continue')}
             </Button>
           )}
-        </React.Fragment>
+        </Fragment>
       );
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledTextBlock>
           {isSuperuser
             ? t(
@@ -212,37 +233,31 @@ class SudoModal extends React.Component<Props, State> {
         <Form
           apiMethod="PUT"
           apiEndpoint="/auth/"
-          submitLabel={showAccessForms ? t('Continue') : t('Confirm Password')}
-          onSubmit={this.handleSubmit}
+          submitLabel={t('Confirm Password')}
           onSubmitSuccess={this.handleSuccess}
           onSubmitError={this.handleError}
           hideFooter={!user.hasPasswordAuth && authenticators.length === 0}
           initialData={{isSuperuserModal: isSuperuser}}
           resetOnError
         >
-          {!isSelfHosted && showAccessForms && isSuperuser && (
-            <Hook name="component:superuser-access-category" />
-          )}
-          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) &&
-            user.hasPasswordAuth && (
-              <StyledInputField
-                type="password"
-                inline={false}
-                label={t('Password')}
-                name="password"
-                autoFocus
-                flexibleControlStateSize
-              />
-            )}
-          {((!showAccessForms && isSuperuser) || !isSuperuser || isSelfHosted) && (
-            <U2fContainer
-              authenticators={authenticators}
-              displayMode="sudo"
-              onTap={this.handleU2fTap}
+          {user.hasPasswordAuth && (
+            <StyledInputField
+              type="password"
+              inline={false}
+              label={t('Password')}
+              name="password"
+              autoFocus
+              flexibleControlStateSize
             />
           )}
+
+          <U2fContainer
+            authenticators={authenticators}
+            displayMode="sudo"
+            onTap={this.handleU2fTap}
+          />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -250,10 +265,10 @@ class SudoModal extends React.Component<Props, State> {
     const {Header, Body} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Confirm Password to Continue')}</Header>
         <Body>{this.renderBodyContent()}</Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -271,4 +286,9 @@ const StyledInputField = styled(InputField)`
 
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
+`;
+
+const BackWrapper = styled('div')`
+  width: 100%;
+  margin-left: ${space(4)};
 `;

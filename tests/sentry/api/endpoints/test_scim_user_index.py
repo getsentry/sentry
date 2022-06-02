@@ -2,8 +2,9 @@ import unittest
 
 from django.urls import reverse
 
+from sentry import audit_log
 from sentry.models import OrganizationMember
-from sentry.models.auditlogentry import AuditLogEntry, AuditLogEntryEvent
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.scim.endpoints.utils import SCIMQueryParamSerializer
 from sentry.testutils import SCIMAzureTestCase, SCIMTestCase
 
@@ -50,7 +51,7 @@ class SCIMMemberIndexTests(SCIMTestCase):
         }
 
         assert AuditLogEntry.objects.filter(
-            target_object=member.id, event=AuditLogEntryEvent.MEMBER_INVITE
+            target_object=member.id, event=audit_log.get_event_id("MEMBER_INVITE")
         ).exists()
         assert correct_post_data == response.data
         assert member.email == "test.user@okta.local"

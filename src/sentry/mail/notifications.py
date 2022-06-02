@@ -19,9 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
-    headers = {
-        "X-SMTPAPI": json.dumps({"category": notification.get_category()}),
-    }
+    headers = {"X-SMTPAPI": json.dumps({"category": notification.metrics_key})}
     if isinstance(notification, ProjectNotification):
         headers["X-Sentry-Project"] = notification.project.slug
 
@@ -53,7 +51,7 @@ def get_subject_with_prefix(
 ) -> bytes:
     prefix = ""
     if isinstance(notification, ProjectNotification):
-        prefix = build_subject_prefix(notification.project)
+        prefix = f"{build_subject_prefix(notification.project).rstrip()} "
     return f"{prefix}{notification.get_subject(context)}".encode()
 
 
@@ -150,11 +148,11 @@ def get_builder_args_from_context(
     output = {
         "subject": get_subject_with_prefix(notification, context),
         "context": context,
-        "template": notification.get_template(),
-        "html_template": notification.get_html_template(),
+        "template": f"{notification.template_path}.txt",
+        "html_template": f"{notification.template_path}.html",
         "headers": get_headers(notification),
         "reference": notification.reference,
-        "type": notification.get_type(),
+        "type": notification.metrics_key,
     }
     # add in optinal fields
     from_email = notification.from_email

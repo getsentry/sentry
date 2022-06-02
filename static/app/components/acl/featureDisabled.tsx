@@ -77,25 +77,11 @@ function FeatureDisabled({
           )}
         </HelpText>
         <Clipboard hideUnsupported value={installText(features, featureName)}>
-          <CopyButton
-            borderless
-            size="xsmall"
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-            icon={<IconCopy size="xs" />}
-          >
+          <CopyButton borderless size="xsmall" icon={<IconCopy size="xs" />}>
             {t('Copy to Clipboard')}
           </CopyButton>
         </Clipboard>
-        <Pre
-          onClick={e => {
-            e.stopPropagation();
-            e.preventDefault();
-            selectText(e.target as HTMLElement);
-          }}
-        >
+        <Pre onClick={e => selectText(e.target as HTMLElement)}>
           <code>{installText(features, featureName)}</code>
         </Pre>
       </Fragment>
@@ -119,16 +105,7 @@ function FeatureDisabled({
             </ToggleButton>
           )}
         </FeatureDisabledMessage>
-        {showDescription && (
-          <HelpDescription
-            onClick={e => {
-              e.stopPropagation();
-              e.preventDefault();
-            }}
-          >
-            {renderHelp()}
-          </HelpDescription>
-        )}
+        {showDescription && <HelpDescription>{renderHelp()}</HelpDescription>}
       </Fragment>
     );
   }

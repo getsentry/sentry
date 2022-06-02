@@ -1,15 +1,14 @@
 // Import to ensure echarts components are loaded.
 import './components/markPoint';
 
-import * as React from 'react';
 import {useTheme} from '@emotion/react';
 import set from 'lodash/set';
 
 import {getFormattedDate} from 'sentry/utils/dates';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 
-import {BarChart, BarChartSeries} from './barChart';
-import BaseChart from './baseChart';
+import {BarChart, BarChartProps, BarChartSeries} from './barChart';
+import type BaseChart from './baseChart';
 import {truncationFormatter} from './utils';
 
 type Marker = {
@@ -21,9 +20,7 @@ type Marker = {
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
-type BarChartProps = React.ComponentProps<typeof BarChart>;
-
-type Props = Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> & {
+interface Props extends Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> {
   /**
    * Chart height
    */
@@ -81,7 +78,7 @@ type Props = Omit<ChartProps, 'css' | 'colors' | 'series' | 'height'> & {
    * Whether timestamps are should be shown in UTC or local timezone.
    */
   utc?: boolean;
-};
+}
 
 function MiniBarChart({
   markers,
@@ -107,11 +104,11 @@ function MiniBarChart({
   // Ensure bars overlap and that empty values display as we're disabling the axis lines.
   if (!!series?.length) {
     chartSeries = series.map((original, i: number) => {
-      const updated = {
+      const updated: BarChartSeries = {
         ...original,
         cursor: 'normal',
         type: 'bar',
-      } as BarChartSeries;
+      };
 
       if (i === 0) {
         updated.barMinHeight = 1;
@@ -124,8 +121,8 @@ function MiniBarChart({
       }
       set(updated, 'itemStyle.color', colorList[i]);
       set(updated, 'itemStyle.opacity', 0.6);
-      set(updated, 'itemStyle.emphasis.opacity', 1.0);
-      set(updated, 'itemStyle.emphasis.color', emphasisColors?.[i] ?? colorList[i]);
+      set(updated, 'emphasis.itemStyle.opacity', 1.0);
+      set(updated, 'emphasis.itemStyle.color', emphasisColors?.[i] ?? colorList[i]);
 
       return updated;
     });
