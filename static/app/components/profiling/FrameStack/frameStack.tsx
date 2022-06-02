@@ -95,13 +95,16 @@ function FrameStack(props: FrameStackProps) {
             {t('Bottom Up')}
           </Button>
         </li>
-        <li
-          onClick={() => setTab('call order')}
-          className={tab === 'call order' ? 'active' : undefined}
-        >
-          <Button priority="link" size="zero">
+        <li className={tab === 'call order' ? 'active' : undefined}>
+          <Button priority="link" size="zero" onClick={() => setTab('call order')}>
             {t('Call Order')}
           </Button>
+        </li>
+        <li>
+          <FrameDrawerLabel>
+            <input type="checkbox" />
+            Collapse recursion
+          </FrameDrawerLabel>
         </li>
         <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />
       </FrameTabs>
@@ -114,6 +117,18 @@ function FrameStack(props: FrameStackProps) {
     </FrameDrawer>
   ) : null;
 }
+
+const FrameDrawerLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  margin-bottom: 0;
+  height: 100%;
+
+  > input {
+    margin: 0 ${space(0.5)} 0 0;
+  }
+`;
 
 const FrameDrawer = styled('div')`
   display: flex;
