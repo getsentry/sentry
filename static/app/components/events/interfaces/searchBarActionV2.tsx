@@ -27,20 +27,21 @@ function SearchBarAction({
   onFilterChange,
   className,
 }: Props) {
-  function trigger({props, ref}) {
-    return (
-      <StyledTrigger
-        size="small"
-        priority={filterSelections && filterSelections.length > 0 ? 'primary' : 'default'}
-        ref={ref}
-        {...props}
-      >
-        {filterSelections?.length
-          ? tn('%s Active Filter', '%s Active Filters', filterSelections.length)
-          : t('Filter By')}
-      </StyledTrigger>
-    );
-  }
+  const trigger: React.ComponentProps<typeof CompactSelect>['trigger'] = ({
+    props,
+    ref,
+  }) => (
+    <StyledTrigger
+      size="small"
+      priority={filterSelections && filterSelections.length > 0 ? 'primary' : 'default'}
+      ref={ref}
+      {...props}
+    >
+      {filterSelections?.length
+        ? tn('%s Active Filter', '%s Active Filters', filterSelections.length)
+        : t('Filter By')}
+    </StyledTrigger>
+  );
 
   return (
     <Wrapper className={className}>
