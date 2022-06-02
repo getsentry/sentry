@@ -1,19 +1,35 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import dataclass
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Set, Tuple, cast
+from dataclasses import dataclass, field
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Protocol,
+    Sequence,
+    Set,
+    Tuple,
+    cast,
+)
 
 from sentry.utils.safe import PathSearchable, get_path
 
-FrameMunger = Callable[[str, MutableMapping[str, Any]], bool]
+
+# mypy hack to work around callable assuing the first arg of callable is 'self'
+# https://github.com/python/mypy/issues/5485
+class FrameMunger(Protocol):
+    def __call__(self, key: str, frame: MutableMapping[str, Any]) -> bool:
+        pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class SdkFrameMunger:
     frame_munger: FrameMunger
     requires_sdk: bool = False
-    supported_sdks: Set[str] = frozenset()
+    supported_sdks: Set[str] = field(default_factory=set)
 
 
 def java_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
@@ -33,7 +49,7 @@ def cocoa_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
     if not frame.get("package") or not frame.get("abs_path"):
         return False
 
-    rel_path = package_relative_path(frame.get("abs_path"), frame.get("package"))
+    rel_path = package_relative_path(str(frame.get("abs_path")), str(frame.get("package")))
     if rel_path:
         frame[key] = rel_path
         return True
