@@ -42,12 +42,7 @@ function walk({
   value: Value;
 } & Pick<
   Props,
-  | 'withAnnotatedText'
-  | 'preserveQuotes'
-  | 'jsonConsts'
-  | 'meta'
-  | 'maxDefaultDepth'
-  | 'jsonConsts'
+  'withAnnotatedText' | 'preserveQuotes' | 'jsonConsts' | 'meta' | 'maxDefaultDepth'
 >) {
   let i = 0;
 
