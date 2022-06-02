@@ -14,7 +14,8 @@ export class VirtualizedTree<T extends TreeLike> {
   // Rebuilds the tree
   static fromRoots<T extends TreeLike>(
     items: T[],
-    skipFn: (n: VirtualizedTreeNode<T>) => boolean = () => false
+    skipFn: (n: VirtualizedTreeNode<T>) => boolean = () => false,
+    expandedNodes?: Set<T>
   ): VirtualizedTree<T> {
     const roots: VirtualizedTreeNode<T>[] = [];
 
@@ -24,7 +25,12 @@ export class VirtualizedTree<T extends TreeLike> {
       collection: VirtualizedTreeNode<T>[] | null,
       depth: number
     ) {
-      const treeNode = new VirtualizedTreeNode<T>(node, parent, depth, false, false);
+      const treeNode = new VirtualizedTreeNode<T>(
+        node,
+        parent,
+        depth,
+        expandedNodes ? expandedNodes.has(node) : false
+      );
 
       // We cannot skip root nodes, so we check that the parent is not null.
       // If the node should be skipped, then we don't add it to the tree and descend
@@ -49,7 +55,7 @@ export class VirtualizedTree<T extends TreeLike> {
       toTreeNode(items[i], null, roots, 0);
     }
 
-    return new VirtualizedTree<T>(roots);
+    return new VirtualizedTree<T>(roots, undefined);
   }
 
   // Returns a list of nodes that are visible in the tree.
@@ -121,5 +127,25 @@ export class VirtualizedTree<T extends TreeLike> {
     }
 
     this.flattened = VirtualizedTree.toExpandedList(this.roots);
+  }
+
+  getAllExpandedNodes(previouslyExpandedNodes: Set<T>): Set<T> {
+    const expandedNodes = new Set<T>([...previouslyExpandedNodes]);
+
+    function visit(node: VirtualizedTreeNode<T>) {
+      if (node.expanded) {
+        expandedNodes.add(node.node);
+      }
+
+      for (let i = 0; i < node.children.length; i++) {
+        visit(node.children[i]);
+      }
+    }
+
+    for (let i = 0; i < this.roots.length; i++) {
+      visit(this.roots[i]);
+    }
+
+    return expandedNodes;
   }
 }

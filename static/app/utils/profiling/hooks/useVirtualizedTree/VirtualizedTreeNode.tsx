@@ -3,20 +3,17 @@ export class VirtualizedTreeNode<T> {
   parent: VirtualizedTreeNode<T> | null;
   children: VirtualizedTreeNode<T>[];
   expanded: boolean;
-  skipped: boolean;
   depth: number;
 
   constructor(
     node: T,
     parent: VirtualizedTreeNode<T> | null,
     depth: number,
-    expanded: boolean,
-    skipped: boolean
+    expanded: boolean
   ) {
     this.node = node;
     this.parent = parent;
     this.expanded = expanded ?? false;
-    this.skipped = skipped ?? false;
     this.children = [];
     this.depth = depth;
   }

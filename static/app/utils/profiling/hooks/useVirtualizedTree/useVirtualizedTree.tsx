@@ -69,8 +69,16 @@ export function useVirtualizedTree<T extends TreeLike>(
     return initialTree;
   });
 
+  const expandedHistory = useRef<Set<T>>(new Set());
   useEffectAfterFirstRender(() => {
-    const newTree = VirtualizedTree.fromRoots(props.roots, props.skipFunction);
+    const expandedNodes = tree.getAllExpandedNodes(expandedHistory.current);
+    const newTree = VirtualizedTree.fromRoots(
+      props.roots,
+      props.skipFunction,
+      expandedNodes
+    );
+
+    expandedHistory.current = expandedNodes;
 
     if (props.sortFunction) {
       newTree.sort(props.sortFunction);
@@ -172,7 +180,10 @@ export function useVirtualizedTree<T extends TreeLike>(
   const handleExpandTreeNode = useCallback(
     (node: VirtualizedTreeNode<T>, opts?: {expandChildren: boolean}) => {
       tree.expandNode(node, !node.expanded, opts);
-      setTree(new VirtualizedTree(tree.roots, tree.flattened));
+      const newTree = new VirtualizedTree(tree.roots, tree.flattened);
+      expandedHistory.current = newTree.getAllExpandedNodes(new Set());
+
+      setTree(newTree);
     },
     [tree]
   );
