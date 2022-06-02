@@ -8,6 +8,7 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {getFieldDoc} from 'sentry/utils/discover/fields';
 
+import Hotkeys from '../hotkeys';
 import {Token, TokenResult} from '../searchSyntax/parser';
 
 import {commonActions, TokenAction} from './types';
@@ -106,7 +107,7 @@ const SearchActionsDropdown = ({
                       token: activeToken,
                     });
                   }}
-                  shortcut={action.shortcut}
+                  hotkeysDisplay={action.hotkeys.display}
                 />
               );
             })}
@@ -170,24 +171,18 @@ const DropdownContent = styled('div')`
 
 const DropdownAction = ({
   text,
-  shortcut,
+  hotkeysDisplay,
   onClick,
 }: {
   onClick: () => void;
-  shortcut: {glyph?: string; text?: string}[];
   text: string;
+  hotkeysDisplay?: string;
 }) => {
   return (
     <DropdownActionContainer onClick={onClick}>
       <SearchItemTitleWrapper>{text}</SearchItemTitleWrapper>
       <ShortcutContainer>
-        {shortcut.map((key, i) => (
-          <React.Fragment key={key.text}>
-            {key.text}
-            {key.glyph && <GlyphKbd>{key.glyph}</GlyphKbd>}
-            {i !== shortcut.length - 1 && <span>+</span>}
-          </React.Fragment>
-        ))}
+        {hotkeysDisplay && <Hotkeys value={hotkeysDisplay} />}
       </ShortcutContainer>
     </DropdownActionContainer>
   );
@@ -225,10 +220,6 @@ const ShortcutContainer = styled('span')`
   span {
     margin: 0px 2px;
   }
-`;
-
-const GlyphKbd = styled('span')`
-  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const SearchItemTitleWrapper = styled('div')`

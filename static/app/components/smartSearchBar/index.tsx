@@ -46,8 +46,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {ActionButton} from './actions';
 import SearchActionsDropdown from './searchActionsDropdown';
 import SearchDropdown from './searchDropdown';
+import SearchHotkeysListener from './searchHotkeysListener';
 import {
-  commonActions,
   ItemType,
   SearchGroup,
   SearchItem,
@@ -453,8 +453,17 @@ class SmartSearchBar extends Component<Props, State> {
     this.setState({
       selectedFilterToken,
     });
+  };
 
-    // this.searchInput.current?.blur();
+  onTokenHotkeyPress = (actionType: TokenActionType): void => {
+    const token = this.state.selectedFilterToken?.filterToken ?? this.cursorToken;
+
+    if (token && token.type === Token.Filter) {
+      this.runTokenAction({
+        type: actionType,
+        token,
+      });
+    }
   };
 
   runTokenAction = (action: TokenAction) => {
@@ -562,25 +571,6 @@ class SmartSearchBar extends Component<Props, State> {
     this.updateAutoCompleteItems();
   };
 
-  handleActionKeys = (evt: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (this.state.selectedFilterToken && evt.altKey) {
-      commonActions.forEach(action => {
-        if (
-          this.state.selectedFilterToken &&
-          action.shortcut &&
-          action.shortcut.length === 2 &&
-          evt.code === action.shortcut[1].key
-        ) {
-          evt.preventDefault();
-          this.runTokenAction({
-            type: action.actionType,
-            token: this.state.selectedFilterToken.filterToken,
-          });
-        }
-      });
-    }
-  };
-
   /**
    * Handle keyboard navigation
    */
@@ -589,7 +579,6 @@ class SmartSearchBar extends Component<Props, State> {
     const {key} = evt;
 
     callIfFunction(onKeyDown, evt);
-    this.handleActionKeys(evt);
 
     const hasSearchGroups = this.state.searchGroups.length > 0;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
@@ -1466,6 +1455,7 @@ class SmartSearchBar extends Component<Props, State> {
         className={className}
         inputHasFocus={inputHasFocus}
       >
+        <SearchHotkeysListener onTokenHotkeyPress={this.onTokenHotkeyPress} />
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
           {inlineLabel}

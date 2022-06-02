@@ -57,29 +57,17 @@ export const commonActions = [
   {
     text: 'Delete',
     actionType: TokenActionType.Delete,
-    shortcut: [
-      {
-        text: 'Option',
-        key: 'Option',
-      },
-      {
-        glyph: '⌫',
-        key: 'Backspace',
-      },
-    ],
+    hotkeys: {
+      actual: 'option+backspace',
+      display: 'option+backspace',
+    },
   },
   {
     text: 'Negate',
     actionType: TokenActionType.Negate,
-    shortcut: [
-      {
-        text: 'Option',
-        key: 'Option',
-      },
-      {
-        text: '!',
-        key: 'Digit1',
-      },
-    ],
+    hotkeys: {
+      actual: 'option+1,cmd+1',
+      display: 'option+!',
+    },
   },
 ];

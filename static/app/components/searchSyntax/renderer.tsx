@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useReducedMotion} from 'framer-motion';
@@ -175,31 +175,32 @@ const FilterToken = ({
   );
   isSelectedRef.current = isSelected;
 
+  const onKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (isActive && e.key === 'Alt') {
+        selectFilterToken?.({filterToken: filter, filterTokenRef: filterElementRef});
+      }
+    },
+    [selectFilterToken, filter, isActive]
+  );
+
   useEffect(() => {
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (isSelectedRef.current && e.key === 'Alt') {
+        selectFilterToken?.(undefined);
+      }
+    };
+
     if (isInteractive) {
-      const onKeyDown = e => {
-        if (isActive && e.key === 'Alt') {
-          selectFilterToken?.({filterToken: filter, filterTokenRef: filterElementRef});
-        }
-      };
-
-      const onKeyUp = e => {
-        if (isSelectedRef.current && e.key === 'Alt') {
-          selectFilterToken?.(undefined);
-        }
-      };
-
       document.addEventListener('keydown', onKeyDown);
       document.addEventListener('keyup', onKeyUp);
-
-      return () => {
-        document.removeEventListener('keydown', onKeyDown);
-        document.removeEventListener('keyup', onKeyUp);
-      };
     }
 
-    return () => {};
-  }, [isActive, filter, isInteractive, selectFilterToken, isSelectedRef]);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('keyup', onKeyUp);
+    };
+  }, [onKeyDown, isActive, filter, isInteractive, selectFilterToken, isSelectedRef]);
 
   return (
     <Tooltip

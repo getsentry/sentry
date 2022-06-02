@@ -7,6 +7,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getKeyCode} from 'sentry/utils/getKeyCode';
 
 import {ItemType, SearchGroup, SearchItem} from './types';
 
@@ -247,3 +248,25 @@ export function getValidOps(
 
   return [...validOps];
 }
+
+export const isKeyPressed = (key: string, evt: React.KeyboardEvent): boolean => {
+  const keyCode = getKeyCode(key);
+
+  if (keyCode === evt.keyCode) {
+    return true;
+  }
+
+  if (keyCode === 16 && evt.shiftKey) {
+    return true;
+  }
+
+  if (keyCode === 18 && evt.altKey) {
+    return true;
+  }
+
+  if (keyCode === 17 && evt.ctrlKey) {
+    return true;
+  }
+
+  return false;
+};
