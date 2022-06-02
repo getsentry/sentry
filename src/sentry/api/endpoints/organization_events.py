@@ -195,14 +195,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     )
     def get(self, request: Request, organization) -> Response:
         """
-        Retrieves discover (aka. events) data for a given organization.
+        Retrieves discover (also known as events) data for a given organization.
 
-        Note: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
+        **Note**: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
         Sentry.
 
-        Fields determine what will be returned back in the response of the endpoint both in the `data` and `meta` key.
-        - The `data` key will contain a list of results row by row for what matched the query made
-        - The `meta` key will contain information about the response, including the unit or type of the fields requested
+        The `field` query parameter determines what fields will be selected in the `data` and `meta` keys of the endpoint response.
+        - The `data` key contains a list of results row by row that match the `query` made
+        - The `meta` key contains information about the response, including the unit or type of the fields requested
         """
         if not self.has_feature(organization, request):
             return Response(status=404)

@@ -37,14 +37,14 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The start of the period of time for the query, expected in ISO-8601 format. For example 2001-12-34T12:34:56.7890",
+        description="The start of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`",
     )
     END = OpenApiParameter(
         name="end",
         location="query",
         required=False,
         type=OpenApiTypes.DATETIME,
-        description="The end of the period of time for the query, expected in ISO-8601 format. For example 2001-12-34T12:34:56.7890",
+        description="The end of the period of time for the query, expected in ISO-8601 format. For example `2001-12-14T12:34:56.7890`",
     )
     PROJECT = OpenApiParameter(
         name="project",
@@ -52,7 +52,7 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         required=False,
         many=True,
         type=int,
-        description="The ids of projects to filter by. `-1` means all available projects, if parameter omitted means 'My Projects'",
+        description="The ids of projects to filter by. `-1` means all available projects. If this parameter is omitted, the request will default to using 'My Projects'",
     )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
@@ -97,7 +97,7 @@ class VISIBILITY_PARAMS:
         location="query",
         required=False,
         type=str,
-        description="""The search query for your filter, read more about query syntax [here](https://docs.sentry.io/product/sentry-basics/search/)
+        description="""The search filter for your query, read more about query syntax [here](https://docs.sentry.io/product/sentry-basics/search/)
 
 example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 """,
@@ -108,15 +108,15 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
         required=True,
         type=str,
         many=True,
-        description="""The fields, functions or equations to request for the query. At most 20 fields can be passed per request. Each field can be one of the following types:
-- a built-in key field, see possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property
+        description="""The fields, functions, or equations to request for the query. At most 20 fields can be selected per request. Each field can be one of the following types:
+- A built-in key field. See possible fields in the [properties table](/product/sentry-basics/search/searchable-properties/#properties-table), under any field that is an event property
     - example: `field=transaction`
-- a tag, tags should use the `tag[]` formatting to avoid ambiguity with any fields
+- A tag. Tags should use the `tag[]` formatting to avoid ambiguity with any fields
     - example: `field=tag[isEnterprise]`
-- a function which will be in the format of `function_name(parameters,...)`, see possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions)
-    - when a function is included, discover will group by any tags or fields
+- A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions)
+    - when a function is included, Discover will group by any tags or fields
     - example: `field=count_if(transaction.duration,greater,300)`
-- an equation when prefixed with `equation|`, read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/)
+- An equation when prefixed with `equation|`. Read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/)
     - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
 """,
     )
@@ -125,14 +125,14 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
         location="query",
         required=False,
         type=str,
-        description="What to order the results of the query by. Must be something in the field list, excluding equations.",
+        description="What to order the results of the query by. Must be something in the `field` list, excluding equations.",
     )
     PER_PAGE = OpenApiParameter(
         name="per_page",
         location="query",
         required=False,
         type=int,
-        description="Limit the number of rows to return in the result, maximum allowed is 100",
+        description="Limit the number of rows to return in the result. Default and maximum allowed is 100.",
     )
 
 
