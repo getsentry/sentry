@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import moment from 'moment';
 
 import CommitLink from 'sentry/components/commitLink';
 import Duration from 'sentry/components/duration';
@@ -9,6 +10,7 @@ import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {
+  BaseRelease,
   GroupActivity,
   GroupActivityAssigned,
   GroupActivitySetIgnored,
@@ -140,6 +142,63 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
               author,
             });
       case GroupActivityType.SET_RESOLVED_IN_COMMIT:
+        const deployedReleases: Array<BaseRelease> = [];
+        for (const release of activity.data.commit?.releases) {
+          if (release.dateReleased !== null) {
+            deployedReleases.push(release);
+          }
+        }
+        deployedReleases.sort(
+          (a, b) => moment(a.dateReleased).valueOf() - moment(b.dateReleased).valueOf()
+        );
+        if (deployedReleases.length === 1) {
+          return tct(
+            '[author] marked this issue as resolved in [version]\n' +
+              'This commit was released in [release]',
+            {
+              author,
+              version: (
+                <CommitLink
+                  inline
+                  commitId={activity.data.commit.id}
+                  repository={activity.data.commit.repository}
+                />
+              ),
+              release: (
+                <Version
+                  version={deployedReleases[0].version}
+                  projectId={projectId}
+                  tooltipRawVersion
+                />
+              ),
+            }
+          );
+        }
+        if (deployedReleases.length > 1) {
+          return tct(
+            '[author] marked this issue as resolved in [version]\n' +
+              'This commit was released in [release] and ' +
+              (deployedReleases.length - 1) +
+              ' others',
+            {
+              author,
+              version: (
+                <CommitLink
+                  inline
+                  commitId={activity.data.commit.id}
+                  repository={activity.data.commit.repository}
+                />
+              ),
+              release: (
+                <Version
+                  version={deployedReleases[0].version}
+                  projectId={projectId}
+                  tooltipRawVersion
+                />
+              ),
+            }
+          );
+        }
         return tct('[author] marked this issue as resolved in [version]', {
           author,
           version: (
