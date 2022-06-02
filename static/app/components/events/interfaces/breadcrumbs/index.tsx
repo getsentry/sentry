@@ -217,7 +217,7 @@ function BreadcrumbsContainer({
 
     const checkedLevelOptions = new Set(
       selectedFilterOptions
-        .filter(option => option.value.split('-')[0] === 'level')
+        .filter(option => option.value.startsWith('level-'))
         .map(option => option.value.split('-')[1])
     );
 
