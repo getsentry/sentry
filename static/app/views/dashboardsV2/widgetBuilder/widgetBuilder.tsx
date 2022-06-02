@@ -405,11 +405,8 @@ function WidgetBuilder({
 
   useEffect(() => {
     const onUnload = () => {
-      const UNSAVED_MESSAGE = t(
-        'You have unsaved changes, are you sure you want to leave?'
-      );
       if (!isSubmitting && state.userHasModified) {
-        return UNSAVED_MESSAGE;
+        return t('You have unsaved changes, are you sure you want to leave?');
       }
       return undefined;
     };
