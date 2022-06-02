@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import os
 from concurrent.futures import ThreadPoolExecutor
 from os.path import abspath
 from subprocess import CalledProcessError, run
 
 from tools.lib import gitroot
+
+# This is temporary until tools/ is moved to distributable devenvs.
+GETSENTRY = os.environ.get("GETSENTRY_FREEZE_REQUIREMENTS")
 
 
 def worker(args: tuple[str, ...]) -> None:
@@ -39,37 +43,65 @@ def main() -> int:
         "-q",
     )
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = (
-            executor.submit(
-                worker,
-                (
-                    *base_cmd,
-                    f"{base_path}/requirements-base.txt",
-                    "-o",
-                    f"{base_path}/requirements-frozen.txt",
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        if GETSENTRY:
+            futures = (
+                executor.submit(
+                    worker,
+                    (
+                        *base_cmd,
+                        f"{base_path}/requirements-base.txt",
+                        f"{base_path}/../sentry/requirements-base.txt",
+                        "-o",
+                        f"{base_path}/requirements-frozen.txt",
+                    ),
                 ),
-            ),
-            executor.submit(
-                worker,
-                (
-                    *base_cmd,
-                    f"{base_path}/requirements-dev.txt",
-                    "-o",
-                    f"{base_path}/requirements-dev-only-frozen.txt",
+                executor.submit(
+                    worker,
+                    (
+                        *base_cmd,
+                        f"{base_path}/requirements-base.txt",
+                        f"{base_path}/../sentry/requirements-base.txt",
+                        f"{base_path}/requirements-dev.txt",
+                        f"{base_path}/../sentry/requirements-dev.txt",
+                        "-o",
+                        f"{base_path}/requirements-dev-frozen.txt",
+                    ),
                 ),
-            ),
-            executor.submit(
-                worker,
-                (
-                    *base_cmd,
-                    f"{base_path}/requirements-base.txt",
-                    f"{base_path}/requirements-dev.txt",
-                    "-o",
-                    f"{base_path}/requirements-dev-frozen.txt",
+            )
+        else:
+            futures = (
+                executor.submit(
+                    worker,
+                    (
+                        *base_cmd,
+                        f"{base_path}/requirements-base.txt",
+                        "-o",
+                        f"{base_path}/requirements-frozen.txt",
+                    ),
                 ),
-            ),
-        )
+                executor.submit(
+                    worker,
+                    (
+                        *base_cmd,
+                        f"{base_path}/requirements-base.txt",
+                        f"{base_path}/requirements-dev.txt",
+                        "-o",
+                        f"{base_path}/requirements-dev-frozen.txt",
+                    ),
+                ),
+                # requirements-dev-only-frozen.txt is only used in sentry as a
+                # fast path for some CI jobs.
+                executor.submit(
+                    worker,
+                    (
+                        *base_cmd,
+                        f"{base_path}/requirements-dev.txt",
+                        "-o",
+                        f"{base_path}/requirements-dev-only-frozen.txt",
+                    ),
+                ),
+            )
 
     rc = 0
     for future in futures:
