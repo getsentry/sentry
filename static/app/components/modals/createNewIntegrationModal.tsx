@@ -7,14 +7,22 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
+import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import withOrganization from 'sentry/utils/withOrganization';
 
-export type CreateNewIntegrationModalOptions = {
-  orgSlug: string;
-};
+type Props = {
+  organization: Organization;
+} & ModalRenderProps;
 
-type Props = ModalRenderProps & CreateNewIntegrationModalOptions;
-
-function CreateNewIntegrationModal({Body, Header, Footer, closeModal, orgSlug}: Props) {
+function CreateNewIntegrationModal({
+  Body,
+  Header,
+  Footer,
+  closeModal,
+  organization,
+}: Props) {
   const [option, selectOption] = useState('internal');
   const choices = [
     [
@@ -27,7 +35,15 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal, orgSlug}: 
           'Internal integrations are meant for custom integrations unique to your organization. See more info on [docsLink].',
           {
             docsLink: (
-              <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/#internal-integrations">
+              <ExternalLink
+                href="https://docs.sentry.io/product/integrations/integration-platform/internal-integrations"
+                onClick={() => {
+                  trackIntegrationAnalytics(PlatformEvents.INTERNAL_DOCS, {
+                    organization,
+                    view: 'new_integration_modal',
+                  });
+                }}
+              >
                 {t('Internal Integrations')}
               </ExternalLink>
             ),
@@ -45,7 +61,15 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal, orgSlug}: 
           'A public integration will be available for all Sentry users for installation. See more info on [docsLink].',
           {
             docsLink: (
-              <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/#public-integrations">
+              <ExternalLink
+                href="https://docs.sentry.io/product/integrations/integration-platform/#public-integrations"
+                onClick={() => {
+                  trackIntegrationAnalytics(PlatformEvents.PUBLIC_DOCS, {
+                    organization,
+                    view: 'new_integration_modal',
+                  });
+                }}
+              >
                 {t('Public Integrations')}
               </ExternalLink>
             ),
@@ -75,9 +99,20 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal, orgSlug}: 
         <Button
           priority="primary"
           size="small"
-          to={`/settings/${orgSlug}/developer-settings/${
+          to={`/settings/${organization.slug}/developer-settings/${
             option === 'public' ? 'new-public' : 'new-internal'
           }/`}
+          onClick={() => {
+            trackIntegrationAnalytics(
+              option === 'public'
+                ? PlatformEvents.CHOSE_PUBLIC
+                : PlatformEvents.CHOSE_INTERNAL,
+              {
+                organization,
+                view: 'new_integration_modal',
+              }
+            );
+          }}
         >
           {t('Next')}
         </Button>
@@ -101,4 +136,4 @@ const RadioChoiceDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.6em;
 `;
-export default CreateNewIntegrationModal;
+export default withOrganization(CreateNewIntegrationModal);

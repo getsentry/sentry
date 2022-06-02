@@ -157,11 +157,13 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             disabled={!hasAccess}
             title={!hasAccess ? permissionTooltipText : undefined}
             size="small"
-            onClick={() =>
-              openCreateNewIntegrationModal({
-                orgSlug: organization.slug,
-              })
-            }
+            onClick={() => {
+              openCreateNewIntegrationModal();
+              trackIntegrationAnalytics(PlatformEvents.OPEN_CREATE_MODAL, {
+                organization,
+                view: 'developer_settings',
+              });
+            }}
           >
             {t('Create New Integration')}
           </Button>
