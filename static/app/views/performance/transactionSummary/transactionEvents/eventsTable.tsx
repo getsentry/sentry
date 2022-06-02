@@ -313,6 +313,7 @@ class EventsTable extends Component<Props, State> {
           location={location}
           setError={error => setError(error?.message)}
           referrer="api.performance.transaction-events"
+          useEvents
         >
           {({pageLinks, isLoading, tableData}) => {
             return (
