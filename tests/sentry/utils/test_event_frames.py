@@ -1,9 +1,11 @@
 import unittest
+from typing import Any, Mapping
 
 from sentry.testutils import TestCase
 from sentry.utils.event_frames import (
     cocoa_frame_munger,
     find_stack_frames,
+    flutter_frame_munger,
     get_crashing_thread,
     get_sdk_name,
     munged_filename_and_frames,
@@ -374,6 +376,74 @@ class ReactNativeFilenameMungingTestCase(TestCase):
             "javascript", frames, "munged_filename", "sentry.javascript.react-native"
         )
         assert not munged_frames
+
+
+class FlutterFilenameMungingTestCase(TestCase):
+    def test_not_munged(self):
+        frames = [
+            {
+                "package": "my_package",
+                "filename": "service.dart",
+                "abs_path": "package:my_package/a/b/service.dart",
+                "in_app": True,
+            }
+        ]
+        munged_frames = munged_filename_and_frames("other", frames, "doesnt_matter", "sentry.sdk")
+        assert not munged_frames
+
+    def test_flutter_munger_supported(self):
+        frames = [
+            {
+                "function": "tryCatchModule",
+                "package": "sentry_flutter_example",
+                "filename": "test.dart",
+                "abs_path": "package:sentry_flutter_example/a/b/test.dart",
+                "lineno": 8,
+                "colno": 5,
+                "in_app": True,
+            }
+        ]
+        munged_frames = munged_filename_and_frames(
+            "other", frames, "munged_filename", "sentry.dart.flutter"
+        )
+        munged_first_frame: Mapping[str, Any] = munged_frames[1][0]
+        assert munged_first_frame.items() > frames[0].items()
+        assert munged_first_frame["munged_filename"] == "a/b/test.dart"
+
+    def test_dart_prefix_not_munged(self):
+        assert not flutter_frame_munger(
+            "munged_filename",
+            {
+                "abs_path": "dart:ui/a/b/test.dart",
+            },
+        )
+
+    def test_abs_path_not_present_not_munged(self):
+        assert not flutter_frame_munger(
+            "munged_filename",
+            {
+                "function": "tryCatchModule",
+                "package": "sentry_flutter_example",
+                "filename": "test.dart",
+            },
+        )
+
+    def test_different_package_not_munged(self):
+        assert not flutter_frame_munger(
+            "munged_filename",
+            {
+                "package": "sentry_flutter_example",
+                "abs_path": "package:different_package/a/b/test.dart",
+            },
+        )
+
+    def test_no_package_not_munged(self):
+        assert not flutter_frame_munger(
+            "munged_filename",
+            {
+                "abs_path": "package:different_package/a/b/test.dart",
+            },
+        )
 
 
 class CocoaWaterFallTestCase(TestCase):
