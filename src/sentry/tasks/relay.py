@@ -79,7 +79,9 @@ def schedule_update_config_cache(
 
     validate_args(organization_id, project_id, public_key)
 
-    if projectconfig_debounce_cache.is_debounced(public_key, project_id, organization_id):
+    if projectconfig_debounce_cache.is_debounced(
+        public_key=public_key, project_id=project_id, organization_id=organization_id
+    ):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": update_reason},
@@ -217,6 +219,49 @@ def invalidate_project_config(organization_id=None, project_id=None, public_key=
         compute_project_configs(keys)
 
 
-def schedule_invalidation_task(organization_id=None, project_id=None, public_key=None):
+def schedule_invalidation_task(trigger, organization_id=None, project_id=None, public_key=None):
+    """Schedules the :func:`invalidate_project_config` task.
+
+    This takes care of not scheduling a duplicate task if one is already scheduled.  The
+    parameters are passed straight to the task.
+    """
+    # TODO: so far i failed to merge this code with schedule_update_config_cache elegantly.
+    if (
+        settings.SENTRY_RELAY_PROJECTCONFIG_CACHE
+        == "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
+    ):
+        # This cache backend is a noop, don't bother creating a noop celery
+        # task.
+        metrics.incr(
+            "relay.projectconfig_cache.skipped",
+            tags={"reason": "noop_backend", "update_reason": trigger, "task": "invalidation"},
+        )
+        return
+
     validate_args(organization_id, project_id, public_key)
-    # TODO: write this!
+
+    if projectconfig_debounce_cache.invalidation.is_debounced(
+        public_key=public_key, project_id=project_id, organization_id=organization_id
+    ):
+        metrics.incr(
+            "relay.projectconfig_cache.skipped",
+            tags={"reason": "debounce", "update_reason": trigger, "task": "invalidation"},
+        )
+        # If this task is already in the queue, do not schedule another task.
+        return
+
+    metrics.incr(
+        "relay.projectconfig_cache.scheduled",
+        tags={"update_reason": trigger, "task": "invalidation"},
+    )
+    with sentry_sdk.push_scope() as scope:
+        scope.set_tag("update_reason", trigger)
+
+        invalidate_project_config.delay(
+            project_id=project_id,
+            organization_id=organization_id,
+            public_key=public_key,
+            update_reason=trigger,
+        )
+
+    projectconfig_debounce_cache.invalidation.debounce(public_key, project_id, organization_id)
