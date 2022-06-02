@@ -1317,6 +1317,24 @@ describe('WidgetBuilder', function () {
       expect(alertMock).toHaveBeenCalled();
     });
 
+    it('does not trigger alert dialog if no changes', async function () {
+      const {router} = renderTestComponent();
+
+      const alertMock = jest.fn();
+      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+        alertMock();
+      });
+
+      await screen.findAllByText('Custom Widget');
+
+      // Click Cancel
+      userEvent.click(screen.getByText('Cancel'));
+
+      // Assert an alert was triggered
+      expect(alertMock).not.toHaveBeenCalled();
+    });
+
     describe('Sort by selectors', function () {
       it('renders', async function () {
         renderTestComponent({
