@@ -35,6 +35,7 @@ from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
+from sentry import options as sentry_options
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -786,18 +787,21 @@ def get_streaming_metrics_consumer(
 
     create_topics([topic])
 
+    collection_interval: float = sentry_options.get("kafka.librdkafka-metrics-collection-interval")
+
     def stats_callback(stats_json: str) -> None:
         stats = rapidjson.loads(stats_json)
-        get_metrics().gauge("librdkafka.total_queue_size", stats.get("replyq", 0))
+        get_metrics().gauge("metrics_indexer.librdkafka.total_queue_size", stats.get("replyq", 0))
 
     consumer_configuration = get_config(topic, group_id, auto_offset_reset)
 
-    consumer_configuration.update(
-        {
-            "statistics.interval.ms": 5000,
-            "stats_cb": stats_callback,
-        }
-    )
+    if collection_interval > 0.0:
+        consumer_configuration.update(
+            {
+                "statistics.interval.ms": collection_interval,
+                "stats_cb": stats_callback,
+            }
+        )
 
     return StreamProcessor(
         KafkaConsumer(consumer_configuration),
