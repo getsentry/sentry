@@ -539,6 +539,75 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] > 1
 
+    def test_react_native_unchanged_frames(self):
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "javascript",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "unknown",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "callFunctionReturnFlushedQueue",
+                                        "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+                                        "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                                        "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                                        "lineno": 115,
+                                        "colno": 5,
+                                        "in_app": False,
+                                        "data": {"sourcemap": "app:///main.jsbundle.map"},
+                                    },
+                                    {
+                                        "function": "apply",
+                                        "filename": "native",
+                                        "abs_path": "native",
+                                        "in_app": True,
+                                    },
+                                    {
+                                        "function": "onPress",
+                                        "module": "src/screens/EndToEndTestsScreen",
+                                        "filename": "src/screens/EndToEndTestsScreen.tsx",
+                                        "abs_path": "app:///src/screens/EndToEndTestsScreen.tsx",
+                                        "lineno": 57,
+                                        "colno": 11,
+                                        "in_app": True,
+                                        "data": {"sourcemap": "app:///main.jsbundle.map"},
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/screens/EndToEndTestsScreen.tsx", "type": "M"}],
+                }
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["score"] == 3
+
     def test_matching(self):
         event = self.store_event(
             data={

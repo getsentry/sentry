@@ -5,9 +5,40 @@ from sentry.utils.event_frames import (
     cocoa_frame_munger,
     find_stack_frames,
     get_crashing_thread,
+    get_sdk_name,
     munged_filename_and_frames,
     package_relative_path,
 )
+from sentry.utils.safe import get_path
+
+
+class SdkNameTestCase(TestCase):
+    def test_sdk_data_pathing(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Foo bar",
+                "sdk": {"name": "sentry.javascript.react-native", "version": "1.2.3"},
+            },
+            project_id=self.project.id,
+        )
+
+        assert not get_sdk_name(None)
+        assert event.data["sdk"]["name"] == "sentry.javascript.react-native"
+        assert get_sdk_name(event.data) == "sentry.javascript.react-native"
+        assert str(get_path(event.data, "sdk", "version", filter=True)) == "1.2.3"
+        assert not get_path(event.data, "sdk", "does_not_exist", filter=True)
+
+    def test_sdk_data_not_exist(self):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "Foo bar",
+            },
+            project_id=self.project.id,
+        )
+
+        assert not get_sdk_name(event.data)
 
 
 class CrashingThreadTestCase(unittest.TestCase):
@@ -39,6 +70,18 @@ class FilenameMungingTestCase(unittest.TestCase):
         fake_frame = [{"filename": "should_not_change.py"}]
         assert not munged_filename_and_frames("other", fake_frame)
         assert fake_frame[0]["filename"] == "should_not_change.py"
+
+    def test_platform_sdk_name_not_supported(self):
+        assert not munged_filename_and_frames("javascript", [], "munged", "sdk.other")
+
+    def test_supported_platform_sdk_name_not_required(self):
+        frames = [
+            {
+                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                "filename": "NativeMethodAccessorImpl.java",
+            }
+        ]
+        assert munged_filename_and_frames("java", frames, "munged")
 
 
 class JavaFilenameMungingTestCase(unittest.TestCase):
@@ -299,6 +342,38 @@ class CocoaFilenameMungingTestCase(unittest.TestCase):
             package_relative_path("/one/two/three/four/three/two/one/file.txt", "one")
             == "one/two/three/four/three/two/one/file.txt"
         )
+
+
+class ReactNativeFilenameMungingTestCase(TestCase):
+    def test_not_munged(self):
+        frames = [
+            {
+                "function": "callFunctionReturnFlushedQueue",
+                "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+                "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                "lineno": 115,
+                "colno": 5,
+                "in_app": False,
+                "data": {"sourcemap": "app:///main.jsbundle.map"},
+            },
+            {"function": "apply", "filename": "native", "abs_path": "native", "in_app": True},
+            {
+                "function": "onPress",
+                "module": "src/screens/EndToEndTestsScreen",
+                "filename": "src/screens/EndToEndTestsScreen.tsx",
+                "abs_path": "app:///src/screens/EndToEndTestsScreen.tsx",
+                "lineno": 57,
+                "colno": 11,
+                "in_app": True,
+                "data": {"sourcemap": "app:///main.jsbundle.map"},
+            },
+        ]
+
+        munged_frames = munged_filename_and_frames(
+            "javascript", frames, "munged_filename", "sentry.javascript.react-native"
+        )
+        assert not munged_frames
 
 
 class CocoaWaterFallTestCase(TestCase):
