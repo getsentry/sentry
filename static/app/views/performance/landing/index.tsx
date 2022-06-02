@@ -141,6 +141,10 @@ export function PerformanceLanding(props: Props) {
     pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
   }
 
+  const SearchFilterContainer = organization.features.includes('performance-use-metrics')
+    ? SearchContainerWithFilterAndMetrics
+    : SearchContainerWithFilter;
+
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
       <PageErrorProvider>
@@ -203,7 +207,7 @@ export function PerformanceLanding(props: Props) {
               </Fragment>
             ) : (
               <Fragment>
-                <SearchContainerWithFilter>
+                <SearchFilterContainer>
                   {pageFilters}
                   <Feature
                     features={['organizations:performance-transaction-name-only-search']}
@@ -236,7 +240,7 @@ export function PerformanceLanding(props: Props) {
                     }
                   </Feature>
                   <MetricsEventsDropdown />
-                </SearchContainerWithFilter>
+                </SearchFilterContainer>
                 {initiallyLoaded ? (
                   <TeamKeyTransactionManager.Provider
                     organization={organization}
@@ -277,5 +281,17 @@ const SearchContainerWithFilter = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr;
+  }
+`;
+
+const SearchContainerWithFilterAndMetrics = styled('div')`
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-rows: auto;
+    grid-template-columns: auto 1fr auto;
   }
 `;

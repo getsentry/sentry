@@ -1057,6 +1057,7 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 2;
+  flex: 1;
 `;
 
 const ResultsContainer = styled('div')`
