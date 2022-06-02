@@ -26,7 +26,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
 from sentry.utils.compat import zip
-from sentry.utils.event_frames import find_stack_frames, munged_filename_and_frames
+from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
@@ -294,9 +294,10 @@ def get_event_file_committers(
 
 
 def get_serialized_event_file_committers(
-    project: Project, event: Event, frame_limit: int = 25, sdk_name: str | None = None
+    project: Project, event: Event, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
     event_frames = get_frame_paths(event)
+    sdk_name = get_sdk_name(event.data)
     committers = get_event_file_committers(
         project,
         event.group_id,
