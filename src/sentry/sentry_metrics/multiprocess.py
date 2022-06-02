@@ -795,7 +795,7 @@ def get_streaming_metrics_consumer(
 
     consumer_configuration = get_config(topic, group_id, auto_offset_reset)
 
-    if collection_interval > 0.0:
+    if collection_interval:
         consumer_configuration.update(
             {
                 "statistics.interval.ms": collection_interval,
