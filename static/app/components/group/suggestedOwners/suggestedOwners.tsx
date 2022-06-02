@@ -2,15 +2,13 @@ import {Fragment} from 'react';
 
 import {assignToActor, assignToUser} from 'sentry/actionCreators/group';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
-import {Client} from 'sentry/api';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Actor, CodeOwner, Committer, Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
-import withApi from 'sentry/utils/withApi';
-import withCommitters from 'sentry/utils/withCommitters';
-import withOrganization from 'sentry/utils/withOrganization';
+import useCommitters from 'sentry/utils/useCommitters';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {findMatchedRules, Rules} from './findMatchedRules';
 import {OwnershipRules} from './ownershipRules';
@@ -19,7 +17,6 @@ import {SuggestedAssignees} from './suggestedAssignees';
 type OwnerList = React.ComponentProps<typeof SuggestedAssignees>['owners'];
 
 type Props = {
-  api: Client;
   event: Event;
   group: Group;
   organization: Organization;
@@ -81,11 +78,11 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
   }
 
   async checkCodeOwnersPrompt() {
-    const {api, organization, project} = this.props;
+    const {organization, project} = this.props;
 
     this.setState({loading: true});
     // check our prompt backend
-    const promptData = await promptsCheck(api, {
+    const promptData = await promptsCheck(this.api, {
       organizationId: organization.id,
       projectId: project.id,
       feature: 'code_owners',
@@ -108,9 +105,9 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
   }
 
   handleCTAClose = () => {
-    const {api, organization, project} = this.props;
+    const {organization, project} = this.props;
 
-    promptsUpdate(api, {
+    promptsUpdate(this.api, {
       organizationId: organization.id,
       projectId: project.id,
       feature: 'code_owners',
@@ -222,4 +219,18 @@ class SuggestedOwners extends AsyncComponent<Props, State> {
     );
   }
 }
-export default withApi(withOrganization(withCommitters(SuggestedOwners)));
+
+function SuggestedOwnersWrapper(props: Omit<Props, 'committers' | 'organization'>) {
+  const organization = useOrganization();
+  const {committers} = useCommitters({
+    group: props.group,
+    eventId: props.event.id,
+    projectSlug: props.project.slug,
+  });
+
+  return (
+    <SuggestedOwners organization={organization} committers={committers} {...props} />
+  );
+}
+
+export default SuggestedOwnersWrapper;
