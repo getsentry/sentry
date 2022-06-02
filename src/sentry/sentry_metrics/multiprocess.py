@@ -3,7 +3,6 @@ import logging
 import time
 from collections import defaultdict, deque
 from concurrent.futures import Future
-from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from typing import (
@@ -35,7 +34,7 @@ from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.utils import json, kafka_config
+from sentry.utils import kafka_config, json
 from sentry.utils.batching_kafka_consumer import create_topics
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
@@ -457,18 +456,18 @@ def process_messages(
                 logger.info("process_message.offset_skipped", extra={"offset": message.offset})
                 continue
             parsed_payload_value = parsed_payloads_by_offset[message.offset]
-            new_payload_value = deepcopy(parsed_payload_value)
+            new_payload_value = dict(parsed_payload_value)
 
             metric_name = parsed_payload_value["name"]
             org_id = parsed_payload_value["org_id"]
             tags = parsed_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
-            new_tags: MutableMapping[int, int] = {}
+            new_tags: MutableMapping[str, int] = {}
             try:
                 for k, v in tags.items():
                     used_tags.update({k, v})
-                    new_tags[mapping[org_id][k]] = mapping[org_id][v]
+                    new_tags[str(mapping[org_id][k])] = mapping[org_id][v]
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
@@ -492,7 +491,7 @@ def process_messages(
 
             new_payload = KafkaPayload(
                 key=message.payload.key,
-                value=json.dumps(new_payload_value).encode(),
+                value=rapidjson.dumps(new_payload_value).encode(),
                 headers=[
                     *message.payload.headers,
                     ("mapping_sources", mapping_header_content),
