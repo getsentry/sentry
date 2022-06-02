@@ -15,7 +15,11 @@ import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {
+  EventData,
+  EventsMetaType,
+  isFieldSortable,
+} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
@@ -135,22 +139,22 @@ class Table extends Component<Props, State> {
   ): React.ReactNode {
     const {eventView, organization, projects, location, summaryConditions} = this.props;
 
-    if (!tableData || !tableData.meta) {
+    if (!tableData || !tableData.meta?.fields) {
       return dataRow[column.key];
     }
-    const tableMeta = tableData.meta;
+    const tableMeta = tableData.meta?.fields;
 
     const field = String(column.key);
 
     if (field === getVitalDetailTablePoorStatusFunction(vitalName)) {
-      if (dataRow[getAggregateAlias(field)]) {
+      if (dataRow[field]) {
         return (
           <UniqueTagCell>
             <PoorTag>{t('Poor')}</PoorTag>
           </UniqueTagCell>
         );
       }
-      if (dataRow[getAggregateAlias(getVitalDetailTableMehStatusFunction(vitalName))]) {
+      if (dataRow[getVitalDetailTableMehStatusFunction(vitalName)]) {
         return (
           <UniqueTagCell>
             <MehTag>{t('Meh')}</MehTag>
@@ -164,7 +168,7 @@ class Table extends Component<Props, State> {
       );
     }
 
-    const fieldRenderer = getFieldRenderer(field, tableMeta);
+    const fieldRenderer = getFieldRenderer(field, tableMeta, false);
     const rendered = fieldRenderer(dataRow, {organization, location});
 
     const allowActions = [
@@ -234,20 +238,32 @@ class Table extends Component<Props, State> {
   };
 
   renderHeadCell(
-    tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
-    title: React.ReactNode
+    title: React.ReactNode,
+    tableMeta?: EventsMetaType['fields']
   ): React.ReactNode {
     const {eventView, location} = this.props;
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const field = {field: column.name, width: column.width};
 
+    // TODO: Need to map table meta keys to aggregate alias since eventView sorting still expects
+    // aggregate aliases for now. We'll need to refactor event view to get rid of all aggregate
+    // alias references and then we can remove this.
+    const aggregateAliasTableMeta: EventsMetaType['fields'] | undefined = tableMeta
+      ? {}
+      : undefined;
+    if (tableMeta) {
+      Object.keys(tableMeta).forEach(key => {
+        aggregateAliasTableMeta![getAggregateAlias(key)] = tableMeta[key];
+      });
+    }
+
     function generateSortLink(): LocationDescriptorObject | undefined {
-      if (!tableMeta) {
+      if (!aggregateAliasTableMeta) {
         return undefined;
       }
 
-      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const nextEventView = eventView.sortOnField(field, aggregateAliasTableMeta);
       const queryStringObject = nextEventView.generateQueryStringObject();
 
       return {
@@ -255,8 +271,8 @@ class Table extends Component<Props, State> {
         query: {...location.query, sort: queryStringObject.sort},
       };
     }
-    const currentSort = eventView.sortForField(field, tableMeta);
-    const canSort = isFieldSortable(field, tableMeta);
+    const currentSort = eventView.sortForField(field, aggregateAliasTableMeta);
+    const canSort = isFieldSortable(field, aggregateAliasTableMeta);
 
     return (
       <SortLink
@@ -269,9 +285,12 @@ class Table extends Component<Props, State> {
     );
   }
 
-  renderHeadCellWithMeta = (tableMeta: TableData['meta'], vitalName: WebVital) => {
+  renderHeadCellWithMeta = (
+    vitalName: WebVital,
+    tableMeta?: EventsMetaType['fields']
+  ) => {
     return (column: TableColumn<keyof TableDataRow>, index: number): React.ReactNode =>
-      this.renderHeadCell(tableMeta, column, getTableColumnTitle(index, vitalName));
+      this.renderHeadCell(column, getTableColumnTitle(index, vitalName), tableMeta);
   };
 
   renderPrependCellWithData = (tableData: TableData | null, vitalName: WebVital) => {
@@ -290,7 +309,9 @@ class Table extends Component<Props, State> {
               data-test-id="key-transaction-header"
             />
           );
-          return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
+          return [
+            this.renderHeadCell(teamKeyTransactionColumn, star, tableData?.meta?.fields),
+          ];
         }
         return [
           this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow, vitalName),
@@ -393,8 +414,8 @@ class Table extends Component<Props, State> {
                 grid={{
                   onResizeColumn: this.handleResizeColumn,
                   renderHeadCell: this.renderHeadCellWithMeta(
-                    tableData?.meta,
-                    vitalName
+                    vitalName,
+                    tableData?.meta?.fields
                   ) as any,
                   renderBodyCell: this.renderBodyCellWithData(
                     tableData,
