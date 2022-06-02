@@ -48,9 +48,7 @@ describe('useCommitters hook', function () {
       {wrapper}
     );
 
-    await waitFor(() => expect(result.current.committers).toEqual(mockData.committers), {
-      timeout: 5000,
-    });
+    await waitFor(() => expect(result.current.committers).toEqual(mockData.committers));
     expect(result.current.fetching).toBe(false);
     expect(mockApiEndpoint).toHaveBeenCalledTimes(1);
   });
