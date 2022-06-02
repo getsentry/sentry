@@ -211,7 +211,7 @@ function BreadcrumbsContainer({
   function getFilteredCrumbsByFilter(selectedFilterOptions: FilterOptions) {
     const checkedTypeOptions = new Set(
       selectedFilterOptions
-        .filter(option => option.value.split('-')[0] === 'type')
+        .filter(option => option.value.startsWith('type-'))
         .map(option => option.value.split('-')[1])
     );
 
