@@ -52,5 +52,7 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
             blocks.append(self.get_image_block(self.chart_url, alt="Metric Alert Chart"))
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(data["status"], ""))
-        fallback_text = f"<{data['title_link']}|*{escape_slack_text(data['title'])}*>"
+        fallback_text = (
+            f"<{data['title_link']}&referrer=slack|*{escape_slack_text(data['title'])}*>"
+        )
         return self._build_blocks(*blocks, fallback_text=fallback_text, color=color)
