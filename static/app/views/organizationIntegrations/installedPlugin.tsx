@@ -22,7 +22,7 @@ import {
   PluginNoProject,
   PluginProjectItem,
 } from 'sentry/types';
-import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {

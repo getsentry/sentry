@@ -30,7 +30,7 @@ import {Hooks} from 'sentry/types/hooks';
 import {
   integrationEventMap,
   IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+} from 'sentry/utils/analytics/integrations';
 import makeAnalyticsFunction from 'sentry/utils/analytics/makeAnalyticsFunction';
 
 const mapIntegrationParams = analyticsParams => {
