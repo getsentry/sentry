@@ -34,7 +34,7 @@ from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.utils import kafka_config, json
+from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 
 DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
