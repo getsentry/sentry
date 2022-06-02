@@ -3,9 +3,7 @@ import logging
 import sentry_sdk
 from django.conf import settings
 
-from sentry.models import Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
-from sentry.relay.config import get_project_config
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -137,6 +135,8 @@ def project_keys_to_update(organization_id=None, project_id=None, public_key=Non
 
     Queries the database for the required project keys.
     """
+    from sentry.models import Project, ProjectKey
+
     if organization_id:
         projects = list(Project.objects.filter(organization_id=organization_id))
         keys = list(ProjectKey.objects.filter(project__in=projects))
@@ -165,6 +165,9 @@ def project_keys_to_update(organization_id=None, project_id=None, public_key=Non
 
 def compute_project_configs(project_keys):
     """Computes the project configs for all given project keys."""
+    from sentry.models import ProjectKeyStatus
+    from sentry.relay.config import get_project_config
+
     config_cache = {}
     for key in project_keys:
         if key.status != ProjectKeyStatus.ACTIVE:
