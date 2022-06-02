@@ -174,7 +174,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         if self.__batch is None:
-            self.__batch_start = time()
+            self.__batch_start = time.time()
             self.__batch = MetricsBatchBuilder(self.__max_batch_size, self.__max_batch_time)
 
         try:
@@ -198,7 +198,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
 
         new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
         if self.__batch_start is not None:
-            elapsed_time = time() - self.__batch_start
+            elapsed_time = time.time() - self.__batch_start
             self.__metrics.timing("batch_messages.build_time", elapsed_time)
             self.__batch_start = None
 
