@@ -1,5 +1,3 @@
-import {InjectedRouter} from 'react-router';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -14,31 +12,31 @@ import GlobalModal from 'sentry/components/globalModal';
 import ModalStore from 'sentry/stores/modalStore';
 import {RouteContext} from 'sentry/views/routeContext';
 
-function TestComponent({router}: {router: InjectedRouter}) {
-  return (
-    <RouteContext.Provider
-      value={{
-        router,
-        location: router.location,
-        params: {},
-        routes: [],
-      }}
-    >
-      <FeatureFeedback
-        featureName="test"
-        feedbackTypes={[
-          "I don't like this feature",
-          'I like this feature',
-          'Other reason',
-        ]}
-      />
-      <GlobalModal />
-    </RouteContext.Provider>
-  );
-}
-
 describe('FeatureFeedback', function () {
   const {router} = initializeOrg();
+
+  function TestComponent() {
+    return (
+      <RouteContext.Provider
+        value={{
+          router,
+          location: router.location,
+          params: {},
+          routes: [],
+        }}
+      >
+        <FeatureFeedback
+          featureName="test"
+          feedbackTypes={[
+            "I don't like this feature",
+            'I like this feature',
+            'Other reason',
+          ]}
+        />
+        <GlobalModal />
+      </RouteContext.Provider>
+    );
+  }
 
   beforeAll(async function () {
     // transpile the modal upfront so the test runs fast
@@ -52,7 +50,7 @@ describe('FeatureFeedback', function () {
   }
 
   it('shows the modal on click', async function () {
-    render(<TestComponent router={router} />);
+    render(<TestComponent />);
     await openModal();
 
     expect(
@@ -63,7 +61,7 @@ describe('FeatureFeedback', function () {
   it('submits modal on click', async function () {
     jest.spyOn(indicators, 'addSuccessMessage');
 
-    render(<TestComponent router={router} />);
+    render(<TestComponent />);
     await openModal();
 
     // Form fields
@@ -105,7 +103,7 @@ describe('FeatureFeedback', function () {
   });
 
   it('Close modal on click', async function () {
-    render(<TestComponent router={router} />);
+    render(<TestComponent />);
     await openModal();
 
     userEvent.click(screen.getByRole('button', {name: 'Cancel'}));

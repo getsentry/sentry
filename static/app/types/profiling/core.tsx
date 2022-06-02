@@ -67,3 +67,18 @@ export type FunctionCall = {
 export type VersionedFunctionCalls = {
   Versions: Record<string, {FunctionCalls: FunctionCall[]}>;
 };
+
+export type ProfileTransaction = {
+  duration_ms: {
+    p50: number;
+    p75: number;
+    p90: number;
+    p95: number;
+    p99: number;
+  };
+  last_profile_at: string;
+  name: string;
+  profiles_count: number;
+  project_id: string;
+  versions: string[];
+};

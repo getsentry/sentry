@@ -719,6 +719,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
             key=None,
             value=message.payload.value,
             on_delivery=partial(self.callback, partition=message.partition, position=position),
+            headers=message.payload.headers,
         )
 
     def callback(self, error: Any, message: Any, partition: Partition, position: Position) -> None:

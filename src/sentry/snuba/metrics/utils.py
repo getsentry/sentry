@@ -12,7 +12,7 @@ __all__ = (
     "AVAILABLE_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
-    "ALLOWED_GROUPBY_COLUMNS",
+    "FIELD_ALIAS_MAPPINGS",
     "Tag",
     "TagValue",
     "MetricMeta",
@@ -115,7 +115,7 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "distribution": EntityKey.MetricsDistributions,
 }
 
-ALLOWED_GROUPBY_COLUMNS = ("project_id",)
+FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
 
 
 class Tag(TypedDict):
