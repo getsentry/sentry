@@ -146,16 +146,27 @@ export default function WizardField({
       | WizardAggregateFieldValue
       | WizardAggregateFunctionValue;
 
-    return (
-      template.aggregate === aggregate ||
-      (templateFieldValue.kind === 'function' &&
-        aggregateFieldValue.kind === 'function' &&
-        (templateFieldValue.function?.[1] &&
-        aggregateFieldValue.function?.[1] &&
-        aggregateFieldValue.function?.[0] !== 'apdex'
-          ? templateFieldValue.function?.[1] === aggregateFieldValue.function?.[1]
-          : templateFieldValue.function?.[0] === aggregateFieldValue.function?.[0]))
-    );
+    if (template.aggregate === aggregate) {
+      return true;
+    }
+
+    if (
+      templateFieldValue.kind !== 'function' ||
+      aggregateFieldValue.kind !== 'function'
+    ) {
+      return false;
+    }
+
+    if (
+      templateFieldValue.function?.[0] === 'apdex' &&
+      aggregateFieldValue.function?.[0] === 'apdex'
+    ) {
+      return true;
+    }
+
+    return templateFieldValue.function?.[1] && aggregateFieldValue.function?.[1]
+      ? templateFieldValue.function?.[1] === aggregateFieldValue.function?.[1]
+      : templateFieldValue.function?.[0] === aggregateFieldValue.function?.[0];
   };
 
   const matchTemplateDataset = (
