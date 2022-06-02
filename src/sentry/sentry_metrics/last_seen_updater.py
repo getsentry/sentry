@@ -39,9 +39,13 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter[Message[KafkaPayload]]): 
     def should_drop(self, message: Message[KafkaPayload]) -> bool:
         feature_enabled: float = options.get("sentry-metrics.last-seen-updater.accept-rate")
         bypass_for_user = random.random() > feature_enabled
-        self.__metrics.incr(
-            "last_seen_updater.accept_rate", sample_rate=0.001, tags={"bypass": bypass_for_user}
-        )
+        sample_rate = 0.001
+        if random.random() < sample_rate:
+            self.__metrics.incr(
+                "last_seen_updater.accept_rate",
+                tags={"bypass": bypass_for_user},
+                amount=1.0 / sample_rate,
+            )
 
         if bypass_for_user:
             return True
