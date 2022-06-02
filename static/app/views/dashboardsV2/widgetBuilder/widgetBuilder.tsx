@@ -887,7 +887,6 @@ function WidgetBuilder({
   }
 
   async function handleSave() {
-    setIsSubmitting(true);
     const widgetData: Widget = assignTempId(currentWidget);
 
     if (widgetToBeUpdated) {
@@ -922,6 +921,7 @@ function WidgetBuilder({
       });
     }
 
+    setIsSubmitting(true);
     if (notDashboardsOrigin) {
       submitFromSelectedDashboard(widgetData);
       return;
