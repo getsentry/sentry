@@ -681,6 +681,7 @@ class PermissionTestCase(TestCase):
         self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
+        return resp
 
     def assert_cannot_access(self, user, path, method="GET", **kwargs):
         self.login_as(user, superuser=user.is_superuser)
@@ -743,7 +744,7 @@ class PermissionTestCase(TestCase):
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
 
-        self.assert_can_access(user, path, **kwargs)
+        return self.assert_can_access(user, path, **kwargs)
 
     def assert_role_cannot_access(self, path, role, **kwargs):
         user = self.create_user(is_superuser=False)
