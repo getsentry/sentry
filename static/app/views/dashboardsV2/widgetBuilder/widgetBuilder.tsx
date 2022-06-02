@@ -185,6 +185,7 @@ function WidgetBuilder({
   end,
   statsPeriod,
   onSave,
+  route,
   router,
   tags,
 }: Props) {
@@ -231,6 +232,7 @@ function WidgetBuilder({
 
   const api = useApi();
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
@@ -401,6 +403,20 @@ function WidgetBuilder({
     fetchOrgMembers(api, organization.slug, selection.projects?.map(String));
   }, [selection.projects, api, organization.slug]);
 
+  useEffect(() => {
+    const onUnload = () => {
+      const UNSAVED_MESSAGE = t(
+        'You have unsaved changes, are you sure you want to leave?'
+      );
+      if (!isSubmitting && state.userHasModified) {
+        return UNSAVED_MESSAGE;
+      }
+      return undefined;
+    };
+
+    router.setRouteLeaveHook(route, onUnload);
+  }, [isSubmitting, state.userHasModified, route, router]);
+
   const widgetType =
     state.dataSet === DataSet.EVENTS
       ? WidgetType.DISCOVER
@@ -540,6 +556,7 @@ function WidgetBuilder({
         }
       }
 
+      set(newState, 'userHasModified', true);
       return {...newState, errors: undefined};
     });
   }
@@ -577,6 +594,9 @@ function WidgetBuilder({
     setState(prevState => {
       const newState = cloneDeep(prevState);
       set(newState, field, value);
+      if (field === 'title') {
+        set(newState, 'userHasModified', true);
+      }
       return {...newState, errors: undefined};
     });
 
@@ -856,6 +876,7 @@ function WidgetBuilder({
       return;
     }
 
+    setIsSubmitting(true);
     let nextWidgetList = [...dashboard.widgets];
     const updateWidgetIndex = getUpdateWidgetIndex();
     nextWidgetList.splice(updateWidgetIndex, 1);
@@ -866,6 +887,7 @@ function WidgetBuilder({
   }
 
   async function handleSave() {
+    setIsSubmitting(true);
     const widgetData: Widget = assignTempId(currentWidget);
 
     if (widgetToBeUpdated) {
