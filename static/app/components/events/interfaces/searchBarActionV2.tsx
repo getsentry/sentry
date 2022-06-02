@@ -113,7 +113,5 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
 `;
 
 const StyledTrigger = styled(DropdownButtonV2)`
-  display: inline-block;
   border-radius: ${p => p.theme.borderRadiusLeft};
-  z-index: 0;
 `;
