@@ -93,7 +93,6 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.INIT
     | BreadcrumbType.SESSION
     | BreadcrumbType.SYSTEM
-    | BreadcrumbType.SESSION
     | BreadcrumbType.TRANSACTION;
   data?: Record<string, any>;
 } & BreadcrumbTypeBase;
