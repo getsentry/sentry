@@ -1,44 +1,35 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import flatMap from 'lodash/flatMap';
 import uniqBy from 'lodash/uniqBy';
 
-import {Client} from 'sentry/api';
 import {CommitRow} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {AvatarProject, Committer, Group, Organization} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import withApi from 'sentry/utils/withApi';
-import withCommitters from 'sentry/utils/withCommitters';
+import type {AvatarProject, Group} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import useCommitters from 'sentry/utils/useCommitters';
 
-type Props = {
-  // injected by HoC
-  api: Client;
+interface Props {
   event: Event;
-
-  // needed by HoC
-  organization: Organization;
   project: AvatarProject;
-  committers?: Committer[];
   group?: Group;
-};
+}
 
-type State = {
-  expanded: boolean;
-};
+function EventCause({group, event, project}: Props) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const {committers} = useCommitters({
+    group,
+    eventId: event.id,
+    projectSlug: project.slug,
+  });
 
-class EventCause extends Component<Props, State> {
-  state: State = {
-    expanded: false,
-  };
-
-  getUniqueCommitsWithAuthors() {
+  function getUniqueCommitsWithAuthors() {
     // Get a list of commits with author information attached
-    const commitsWithAuthors = flatMap(this.props.committers, ({commits, author}) =>
+    const commitsWithAuthors = flatMap(committers, ({commits, author}) =>
       commits.map(commit => ({
         ...commit,
         author,
@@ -49,41 +40,39 @@ class EventCause extends Component<Props, State> {
     return uniqBy(commitsWithAuthors, commit => commit.id);
   }
 
-  render() {
-    if (!this.props.committers?.length) {
-      return null;
-    }
-
-    const commits = this.getUniqueCommitsWithAuthors();
-
-    return (
-      <DataSection>
-        <CauseHeader>
-          <h3 data-test-id="event-cause">
-            {t('Suspect Commits')} ({commits.length})
-          </h3>
-          {commits.length > 1 && (
-            <ExpandButton onClick={() => this.setState({expanded: !this.state.expanded})}>
-              {this.state.expanded ? (
-                <Fragment>
-                  {t('Show less')} <IconSubtract isCircled size="md" />
-                </Fragment>
-              ) : (
-                <Fragment>
-                  {t('Show more')} <IconAdd isCircled size="md" />
-                </Fragment>
-              )}
-            </ExpandButton>
-          )}
-        </CauseHeader>
-        <Panel>
-          {commits.slice(0, this.state.expanded ? 100 : 1).map(commit => (
-            <CommitRow key={commit.id} commit={commit} />
-          ))}
-        </Panel>
-      </DataSection>
-    );
+  if (!committers.length) {
+    return null;
   }
+
+  const commits = getUniqueCommitsWithAuthors();
+
+  return (
+    <DataSection>
+      <CauseHeader>
+        <h3 data-test-id="event-cause">
+          {t('Suspect Commits')} ({commits.length})
+        </h3>
+        {commits.length > 1 && (
+          <ExpandButton onClick={() => setIsExpanded(!isExpanded)}>
+            {isExpanded ? (
+              <Fragment>
+                {t('Show less')} <IconSubtract isCircled size="md" />
+              </Fragment>
+            ) : (
+              <Fragment>
+                {t('Show more')} <IconAdd isCircled size="md" />
+              </Fragment>
+            )}
+          </ExpandButton>
+        )}
+      </CauseHeader>
+      <Panel>
+        {commits.slice(0, isExpanded ? 100 : 1).map(commit => (
+          <CommitRow key={commit.id} commit={commit} />
+        ))}
+      </Panel>
+    </DataSection>
+  );
 }
 
 const ExpandButton = styled('button')`
@@ -94,4 +83,4 @@ const ExpandButton = styled('button')`
   }
 `;
 
-export default withApi(withCommitters(EventCause));
+export default EventCause;

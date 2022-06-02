@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import EventCause from 'sentry/components/events/eventCause';
@@ -10,18 +10,13 @@ describe('EventCause', function () {
   const event = TestStubs.Event();
   const group = TestStubs.Group({firstRelease: {}});
 
-  const context = {
-    organization,
-    project,
-    group: TestStubs.Group(),
-  };
-
   afterEach(function () {
     Client.clearMockResponses();
-    CommitterStore.reset();
+    act(() => CommitterStore.reset());
   });
 
   beforeEach(function () {
+    CommitterStore.init();
     Client.addMockResponse({
       method: 'GET',
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -66,50 +61,21 @@ describe('EventCause', function () {
   });
 
   it('renders', async function () {
-    const wrapper = mountWithTheme(
-      <EventCause
-        organization={organization}
-        project={project}
-        event={event}
-        group={group}
-      />,
-      {context}
-    );
+    render(<EventCause project={project} event={event} group={group} />, {organization});
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
-
-    expect(wrapper.find('CommitRow')).toHaveLength(1);
-    expect(wrapper.find('EmailWarningIcon').exists()).toBe(false);
-    expect(wrapper.find('Hovercard').exists()).toBe(false);
+    expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
+    expect(screen.queryByTestId('email-warning')).not.toBeInTheDocument();
   });
 
   it('expands', async function () {
-    const wrapper = mountWithTheme(
-      <EventCause
-        organization={organization}
-        project={project}
-        event={event}
-        group={group}
-      />,
-      {context}
-    );
+    render(<EventCause project={project} event={event} group={group} />, {organization});
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
-
-    wrapper.find('ExpandButton').simulate('click');
-    await tick();
-    expect(wrapper.find('CommitRow')).toHaveLength(2);
+    userEvent.click(await screen.findByText('Show more'));
+    expect(screen.getAllByTestId('commit-row')).toHaveLength(2);
 
     // and hides
-    wrapper.find('ExpandButton').simulate('click');
-    await tick();
-    expect(wrapper.find('CommitRow')).toHaveLength(1);
+    userEvent.click(screen.getByText('Show less'));
+    expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
   });
 
   it('shows unassociated email warning', async function () {
@@ -134,23 +100,11 @@ describe('EventCause', function () {
       },
     });
 
-    const wrapper = mountWithTheme(
-      <EventCause
-        organization={organization}
-        project={project}
-        event={event}
-        group={group}
-      />,
-      {context}
-    );
+    render(<EventCause project={project} event={event} group={group} />, {
+      organization,
+    });
 
-    await tick();
-    await tick(); // Run Store.load and fire Action.loadSuccess
-    await tick(); // Run Store.loadSuccess
-    wrapper.update();
-
-    expect(wrapper.find('CommitRow')).toHaveLength(1);
-    expect(wrapper.find('EmailWarningIcon').exists()).toBe(true);
-    expect(wrapper.find('Hovercard').exists()).toBe(true);
+    expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
+    expect(screen.getByTestId('email-warning')).toBeInTheDocument();
   });
 });
