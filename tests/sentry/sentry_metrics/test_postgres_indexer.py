@@ -253,8 +253,8 @@ class KeyCollectionTest(TestCase):
 
         assert collection.mapping == org_strings
         assert collection.size == 5
-        assert list(collection.as_tuples()).sort() == collection_tuples.sort()
-        assert list(collection.as_strings()).sort() == collection_strings.sort()
+        assert sorted(list(collection.as_tuples())) == sorted(collection_tuples)
+        assert sorted(list(collection.as_strings())) == sorted(collection_strings)
 
 
 class KeyResultsTest(TestCase):
