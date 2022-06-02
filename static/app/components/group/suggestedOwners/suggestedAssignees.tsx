@@ -43,6 +43,7 @@ const SuggestedAssignees = ({owners, onAssign}: Props) => (
             onClick={onAssign(owner.actor)}
             hasTooltip={false}
             actor={owner.actor}
+            data-test-id="suggested-assignee"
           />
         </SuggestedOwnerHovercard>
       ))}
