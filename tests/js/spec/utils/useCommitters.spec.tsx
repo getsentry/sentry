@@ -1,11 +1,16 @@
 import {reactHooks} from 'sentry-test/reactTestingLibrary';
 
 import CommitterStore from 'sentry/stores/committerStore';
-import OrganizationStore from 'sentry/stores/organizationStore';
 import useCommitters from 'sentry/utils/useCommitters';
+import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('useCommitters hook', function () {
   const organization = TestStubs.Organization();
+  const wrapper = ({children}) => (
+    <OrganizationContext.Provider value={organization}>
+      {children}
+    </OrganizationContext.Provider>
+  );
   const project = TestStubs.Project();
   const event = TestStubs.Event();
   const group = TestStubs.Group({firstRelease: {}});
@@ -29,38 +34,42 @@ describe('useCommitters hook', function () {
     });
 
     CommitterStore.init();
-    OrganizationStore.onUpdate(organization, {replace: true});
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     CommitterStore.teardown();
-    OrganizationStore.teardown();
   });
 
   it('returns committers', async () => {
-    const {result, waitFor} = reactHooks.renderHook(() =>
-      useCommitters({group, eventId: event.id, projectSlug: project.slug})
+    const {result, waitFor} = reactHooks.renderHook(
+      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      {wrapper}
     );
 
-    await waitFor(() => expect(result.current.committers).toEqual(mockData.committers));
+    await waitFor(() => expect(result.current.committers).toEqual(mockData.committers), {
+      timeout: 5000,
+    });
     expect(result.current.fetching).toBe(false);
     expect(mockApiEndpoint).toHaveBeenCalledTimes(1);
   });
 
   it('prevents repeated calls', async () => {
-    const {result, waitFor} = reactHooks.renderHook(() =>
-      useCommitters({group, eventId: event.id, projectSlug: project.slug})
+    const {result, waitFor} = reactHooks.renderHook(
+      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      {wrapper}
     );
 
     await waitFor(() => expect(result.current.committers).toEqual(mockData.committers));
 
-    reactHooks.renderHook(() =>
-      useCommitters({group, eventId: event.id, projectSlug: project.slug})
+    reactHooks.renderHook(
+      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      {wrapper}
     );
-    reactHooks.renderHook(() =>
-      useCommitters({group, eventId: event.id, projectSlug: project.slug})
+    reactHooks.renderHook(
+      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      {wrapper}
     );
 
     expect(mockApiEndpoint).toHaveBeenCalledTimes(1);
@@ -76,11 +85,13 @@ describe('useCommitters hook', function () {
    */
   it('prevents simultaneous calls', async () => {
     // Mount and run duplicates
-    reactHooks.renderHook(() =>
-      useCommitters({group, eventId: event.id, projectSlug: project.slug})
+    reactHooks.renderHook(
+      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      {wrapper}
     );
-    const {result, waitFor} = reactHooks.renderHook(() =>
-      useCommitters({group, eventId: event.id, projectSlug: project.slug})
+    const {result, waitFor} = reactHooks.renderHook(
+      () => useCommitters({group, eventId: event.id, projectSlug: project.slug}),
+      {wrapper}
     );
 
     await waitFor(() => expect(result.current.committers).toEqual(mockData.committers));
