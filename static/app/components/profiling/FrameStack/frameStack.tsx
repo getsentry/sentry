@@ -1,6 +1,5 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {vec2} from 'gl-matrix';
 
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
@@ -11,6 +10,8 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
+import {useVerticallyResizableDrawer} from '../../../utils/profiling/hooks/useResizableDrawer';
+
 import {FrameStackTable} from './frameStackTable';
 
 interface FrameStackProps {
@@ -18,16 +19,12 @@ interface FrameStackProps {
   flamegraphRenderer: FlamegraphRenderer;
 }
 
-const MIN_DRAWER_HEIGHT_PX = 30;
-
 function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
   const {selectedNode} = useFlamegraphProfilesValue();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
-  const [drawerHeight, setDrawerHeight] = useState(
-    (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT
-  );
+  const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
   const roots = useMemo(() => {
     if (!selectedNode) {
@@ -41,52 +38,15 @@ function FrameStack(props: FrameStackProps) {
     return invertCallTree([selectedNode]);
   }, [selectedNode, tab]);
 
-  const onMouseDown = useCallback((evt: React.MouseEvent<HTMLElement>) => {
-    let startResizeVector = vec2.fromValues(evt.clientX, evt.clientY);
-    let rafId: number | undefined;
-
-    function handleMouseMove(mvEvent: MouseEvent) {
-      if (rafId !== undefined) {
-        window.cancelAnimationFrame(rafId);
-        rafId = undefined;
-      }
-
-      window.requestAnimationFrame(() => {
-        const currentPositionVector = vec2.fromValues(mvEvent.clientX, mvEvent.clientY);
-
-        const distance = vec2.subtract(
-          vec2.fromValues(0, 0),
-          startResizeVector,
-          currentPositionVector
-        );
-
-        startResizeVector = currentPositionVector;
-
-        setDrawerHeight(h => Math.max(MIN_DRAWER_HEIGHT_PX, h + distance[1]));
-        rafId = undefined;
-      });
-    }
-
-    function handleMouseUp() {
-      document.removeEventListener('mousemove', handleMouseMove);
-    }
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-
-      if (rafId !== undefined) {
-        window.cancelAnimationFrame(rafId);
-      }
-    };
-  }, []);
+  const {height, onMouseDown} = useVerticallyResizableDrawer({
+    initialHeight: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT,
+    minHeight: 30,
+  });
 
   return selectedNode ? (
     <FrameDrawer
       style={{
-        height: drawerHeight,
+        height,
       }}
     >
       <FrameTabs>
