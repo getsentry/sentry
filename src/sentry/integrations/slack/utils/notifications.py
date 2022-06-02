@@ -50,7 +50,7 @@ def send_incident_alert_notification(
         incident, new_status, metric_value, chart_url
     ).build()
     text = attachment["text"]
-    blocks = {"blocks": attachment["blocks"]}
+    blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
 
     payload = {
         "token": integration.metadata["access_token"],

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
+import {HeaderContainer} from 'sentry/components/events/interfaces/spans/header';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
@@ -94,9 +95,9 @@ function ReplayDetails() {
             <FocusTabs />
           </StickyMain>
 
-          <Layout.Main fullWidth>
+          <StyledLayoutMain fullWidth>
             <FocusArea replay={replay} />
-          </Layout.Main>
+          </StyledLayoutMain>
         </Layout.Body>
       </DetailLayout>
     </ReplayContextProvider>
@@ -113,6 +114,12 @@ const StickyMain = styled(Layout.Main)`
   padding: ${space(1.5)} ${space(4)} 0;
   max-width: none;
   background: ${p => p.theme.background};
+`;
+
+const StyledLayoutMain = styled(Layout.Main)`
+  ${HeaderContainer} {
+    position: relative;
+  }
 `;
 
 export default ReplayDetails;
