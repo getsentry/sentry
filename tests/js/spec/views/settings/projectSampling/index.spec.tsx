@@ -1,65 +1,71 @@
-import {screen} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {SamplingRuleType} from 'sentry/types/sampling';
 import {SAMPLING_DOC_LINK} from 'sentry/views/settings/project/sampling/utils';
 
 import {renderComponent} from './utils';
 
-describe('Filters and Sampling', function () {
-  MockApiClient.addMockResponse({
-    url: '/projects/org-slug/project-slug/',
-    method: 'GET',
-    body: TestStubs.Project(),
-  });
-
-  describe('renders', function () {
-    it('empty', function () {
-      const {container} = renderComponent(false);
-
-      // Title
-      expect(screen.getByText('Sampling')).toBeInTheDocument();
-
-      expect(
-        screen.getByText(
-          textWithMarkupMatcher(
-            'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
-          )
-        )
-      ).toBeInTheDocument();
-
-      expect(
-        screen.getByRole('link', {
-          name: 'update your SDK configuration',
-        })
-      ).toHaveAttribute('href', SAMPLING_DOC_LINK);
-
-      // Transaction traces and individual transactions rules container
-      expect(
-        screen.getByText(
-          'Rules for traces should precede rules for individual transactions.'
-        )
-      ).toBeInTheDocument();
-
-      expect(
-        screen.getByText('There are no transaction rules to display')
-      ).toBeInTheDocument();
-
-      expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
-
-      expect(
-        screen.getByRole('button', {
-          name: 'Read the docs',
-        })
-      ).toHaveAttribute('href', SAMPLING_DOC_LINK);
-
-      expect(screen.getByText('Operator')).toBeInTheDocument();
-      expect(screen.getByText('Conditions')).toBeInTheDocument();
-      expect(screen.getByText('Rate')).toBeInTheDocument();
-
-      expect(container).toSnapshot();
+describe('Sampling', function () {
+  it('renders empty', function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: TestStubs.Project(),
     });
 
-    it('with rules', function () {
+    const {container} = renderComponent({withModal: false});
+
+    // Title
+    expect(screen.getByText('Sampling')).toBeInTheDocument();
+
+    // SubTitle
+    expect(
+      screen.getByText(
+        /Here you can define what transactions count towards your quota without updating your SDK/
+      )
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole('link', {
+        name: 'SDK sampling configuration',
+      })
+    ).toHaveAttribute('href', SAMPLING_DOC_LINK);
+
+    // Rules tabs
+    expect(screen.getByRole('tablist')).toHaveAttribute('aria-label', 'Rules tabs');
+    expect(screen.getAllByRole('tab')).toHaveLength(2);
+    expect(screen.getByRole('tab', {name: /Distributed Traces/})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('tab', {name: /Individual Transactions/})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+
+    // Tab content
+    expect(screen.getByText('Operator')).toBeInTheDocument();
+    expect(screen.getByText('Conditions')).toBeInTheDocument();
+    expect(screen.getByText('Rate')).toBeInTheDocument();
+
+    // Empty message is displayed
+    expect(
+      screen.getByText('There are no transaction rules to display')
+    ).toBeInTheDocument();
+
+    // Actions
+    expect(screen.getByRole('button', {name: 'Add Rule'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Read Docs'})).toHaveAttribute(
+      'href',
+      SAMPLING_DOC_LINK
+    );
+
+    expect(container).toSnapshot();
+  });
+
+  describe('renders with rules', function () {
+    beforeAll(() => {
+      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
         method: 'GET',
@@ -119,55 +125,74 @@ describe('Filters and Sampling', function () {
           },
         }),
       });
+    });
 
-      const {container} = renderComponent(false);
+    it('Distributed traces tab', async function () {
+      const {container, router} = renderComponent({
+        withModal: false,
+        ruleType: SamplingRuleType.TRACE,
+      });
 
-      // Title
-      expect(screen.getByText('Sampling')).toBeInTheDocument();
+      // Tab is active
+      expect(
+        await screen.findByRole('tab', {name: /Distributed Traces/})
+      ).toHaveAttribute('aria-selected', 'true');
 
+      // Tab description
       expect(
         screen.getByText(
-          textWithMarkupMatcher(
-            'Manage the inbound data you want to store. To change the sampling rate or rate limits, update your SDK configuration. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.'
-          )
+          'Using a Trace ID, select all Transactions distributed across multiple projects/services which match your conditions.'
         )
       ).toBeInTheDocument();
 
-      expect(
-        screen.getByRole('link', {
-          name: 'update your SDK configuration',
-        })
-      ).toHaveAttribute('href', SAMPLING_DOC_LINK);
+      // Tab content
+      expect(screen.getByTestId('sampling-rule')).toHaveTextContent('If');
 
-      // Transaction traces and individual transactions rules container
-      expect(
-        screen.getByText(
-          'Rules for traces should precede rules for individual transactions.'
-        )
-      ).toBeInTheDocument();
-
+      // Empty message is not displayed
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
 
-      // Operator column
-      const samplingRules = screen.getAllByTestId('sampling-rule');
-      expect(samplingRules).toHaveLength(3);
-      expect(samplingRules[0]).toHaveTextContent('If');
-      expect(samplingRules[1]).toHaveTextContent('Else if');
-      expect(samplingRules[2]).toHaveTextContent('Else');
+      // Switch tabs
+      userEvent.click(screen.getByRole('tab', {name: /Individual Transactions/}));
 
-      expect(screen.getByText('Add transaction rule')).toBeInTheDocument();
+      // Transaction tab is pushed to the router
+      expect(router.push).toHaveBeenCalledWith(`${SamplingRuleType.TRANSACTION}/`);
 
+      expect(container).toSnapshot();
+    });
+
+    it('Individual Transactions tab', async function () {
+      const {container, router} = renderComponent({
+        withModal: false,
+        ruleType: SamplingRuleType.TRANSACTION,
+      });
+
+      // Tab is active
       expect(
-        screen.getByRole('button', {
-          name: 'Read the docs',
-        })
-      ).toHaveAttribute('href', SAMPLING_DOC_LINK);
+        await screen.findByRole('tab', {name: /Individual Transactions/})
+      ).toHaveAttribute('aria-selected', 'true');
 
-      expect(screen.getByText('Operator')).toBeInTheDocument();
-      expect(screen.getByText('Conditions')).toBeInTheDocument();
-      expect(screen.getByText('Rate')).toBeInTheDocument();
+      // Tab description
+      screen.getByText(
+        'Select Transactions only within this project which match your conditions.'
+      );
+
+      // Tab content
+      const rules = screen.getAllByTestId('sampling-rule');
+      expect(rules[0]).toHaveTextContent('If');
+      expect(rules[1]).toHaveTextContent('Else');
+
+      // Empty message is not displayed
+      expect(
+        screen.queryByText('There are no transaction rules to display')
+      ).not.toBeInTheDocument();
+
+      // Switch tabs
+      userEvent.click(screen.getByRole('tab', {name: /Distributed Traces/}));
+
+      // Distributed Traces tab is pushed to the router
+      expect(router.push).toHaveBeenCalledWith(`${SamplingRuleType.TRACE}/`);
 
       expect(container).toSnapshot();
     });

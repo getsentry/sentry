@@ -6,6 +6,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {SamplingRuleType} from 'sentry/types/sampling';
 import {
   LEGACY_BROWSER_LIST,
   SAMPLING_DOC_LINK,
@@ -13,7 +14,7 @@ import {
 
 import {commonConditionCategories, renderComponent, renderModal} from './utils';
 
-describe('Filters and Sampling - Transaction rule', function () {
+describe('Sampling - rules', function () {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/tags/',
@@ -22,7 +23,7 @@ describe('Filters and Sampling - Transaction rule', function () {
     });
   });
 
-  describe('transaction rule', function () {
+  describe('Distributed trace rule', function () {
     it('renders', async function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
@@ -152,6 +153,7 @@ describe('Filters and Sampling - Transaction rule', function () {
       );
 
       expect(screen.getByText('If')).toBeInTheDocument();
+
       expect(screen.getByText('Release')).toBeInTheDocument();
 
       // Old values
@@ -182,7 +184,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         renderComponent();
 
         // Open Modal
-        await renderModal(screen.getByText('Add transaction rule'), true);
+        await renderModal(screen.getByText('Add Rule'), true);
 
         // Modal content
         expect(screen.getByText('Add Transaction Sampling Rule')).toBeInTheDocument();
@@ -220,7 +222,7 @@ describe('Filters and Sampling - Transaction rule', function () {
         renderComponent();
 
         // Open Modal
-        await renderModal(screen.getByText('Add transaction rule'));
+        await renderModal(screen.getByText('Add Rule'));
 
         // Click on 'Add condition'
         userEvent.click(screen.getByText('Add Condition'));
@@ -293,7 +295,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           renderComponent();
 
           // Open Modal
-          await renderModal(screen.getByText('Add transaction rule'));
+          await renderModal(screen.getByText('Add Rule'));
 
           // Checked tracing checkbox
           expect(screen.getByRole('checkbox')).toBeChecked();
@@ -345,6 +347,7 @@ describe('Filters and Sampling - Transaction rule', function () {
           ).not.toBeInTheDocument();
 
           expect(screen.getByText('If')).toBeInTheDocument();
+
           expect(screen.getByText('Release')).toBeInTheDocument();
           expect(screen.getByText('1.2.3')).toBeInTheDocument();
           expect(screen.getByText('20%')).toBeInTheDocument();
@@ -385,10 +388,10 @@ describe('Filters and Sampling - Transaction rule', function () {
               body: [{value: '1.2.3'}],
             });
 
-            renderComponent();
+            renderComponent({ruleType: SamplingRuleType.TRANSACTION});
 
             // Open Modal
-            await renderModal(screen.getByText('Add transaction rule'));
+            await renderModal(screen.getByText('Add Rule'));
 
             // Unchecked tracing checkbox
             userEvent.click(screen.getByRole('checkbox'));
@@ -480,10 +483,10 @@ describe('Filters and Sampling - Transaction rule', function () {
               }),
             });
 
-            renderComponent();
+            renderComponent({ruleType: SamplingRuleType.TRANSACTION});
 
             // Open Modal
-            await renderModal(screen.getByText('Add transaction rule'));
+            await renderModal(screen.getByText('Add Rule'));
 
             // Checked tracing checkbox
             expect(screen.getByRole('checkbox')).toBeChecked();
@@ -567,7 +570,7 @@ describe('Filters and Sampling - Transaction rule', function () {
     });
   });
 
-  describe('individual transaction rule', function () {
+  describe('Individual transaction rule', function () {
     it('renders', async function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/',
@@ -629,13 +632,12 @@ describe('Filters and Sampling - Transaction rule', function () {
         body: [{value: '[0-9]'}],
       });
 
-      renderComponent();
+      renderComponent({ruleType: SamplingRuleType.TRANSACTION});
 
       // Transaction traces and individual transactions rules container
       expect(
         screen.queryByText('There are no transaction rules to display')
       ).not.toBeInTheDocument();
-
       expect(screen.getByText('If')).toBeInTheDocument();
 
       // Open rule modal - edit transaction rule

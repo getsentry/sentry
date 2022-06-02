@@ -159,7 +159,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}"
+            + f"?alert={incident.identifier}&referrer=slack"
         )
         assert SlackIncidentsMessageBuilder(incident, IncidentStatus.CLOSED).build() == {
             "blocks": [
@@ -199,7 +199,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}"
+            + f"?alert={incident.identifier}&referrer=slack"
         )
         # This should fail because it pulls status from `action` instead of `incident`
         assert SlackIncidentsMessageBuilder(
@@ -239,7 +239,7 @@ class BuildIncidentAttachmentTest(TestCase):
                     },
                 )
             )
-            + f"?alert={incident.identifier}"
+            + f"?alert={incident.identifier}&referrer=slack"
         )
         assert SlackIncidentsMessageBuilder(
             incident, IncidentStatus.CLOSED, chart_url="chart-url"

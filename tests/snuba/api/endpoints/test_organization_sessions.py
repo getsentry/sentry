@@ -775,7 +775,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                     "project": [-1],
                     "statsPeriod": "3d",
                     "interval": "1d",
-                    "field": ["sum(session)", "count_unique(user)"],
+                    # "user" is the first field, but "session" always wins:
+                    "field": ["count_unique(user)", "sum(session)"],
                     "groupBy": ["project", "release", "environment"],
                 }
             )

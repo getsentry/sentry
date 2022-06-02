@@ -2616,7 +2616,7 @@ describe('WidgetBuilder', function () {
         userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
 
         expect(metricsDataMock).toHaveBeenCalled();
-        expect(screen.getByLabelText('Releases (sessions, crash rates)')).toBeChecked();
+        expect(screen.getByLabelText(/Releases/i)).toBeChecked();
       });
 
       it('does not display "add an equation" button', async function () {
@@ -2674,13 +2674,7 @@ describe('WidgetBuilder', function () {
         userEvent.click(await screen.findByText('Table'));
         userEvent.click(screen.getByText('World Map'));
 
-        await waitFor(() =>
-          expect(
-            screen.getByRole('radio', {
-              name: 'Select Releases (sessions, crash rates)',
-            })
-          ).toBeDisabled()
-        );
+        await waitFor(() => expect(screen.getByLabelText(/Releases/)).toBeDisabled());
 
         expect(
           screen.getByRole('radio', {
