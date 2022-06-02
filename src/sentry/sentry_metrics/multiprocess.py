@@ -786,8 +786,21 @@ def get_streaming_metrics_consumer(
 
     create_topics([topic])
 
+    def stats_callback(stats_json: str) -> None:
+        stats = rapidjson.loads(stats_json)
+        get_metrics().gauge("librdkafka.total_queue_size", stats.get("replyq", 0))
+
+    consumer_configuration = get_config(topic, group_id, auto_offset_reset)
+
+    consumer_configuration.update(
+        {
+            "statistics.interval.ms": 5000,
+            "stats_cb": stats_callback,
+        }
+    )
+
     return StreamProcessor(
-        KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
+        KafkaConsumer(consumer_configuration),
         Topic(topic),
         processing_factory,
     )
