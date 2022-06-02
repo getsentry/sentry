@@ -72,16 +72,6 @@ def max_sample_rate():
 
 
 @pytest.fixture
-def never_update_cache(monkeypatch):
-    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: False)
-
-
-@pytest.fixture
-def always_update_cache(monkeypatch):
-    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: True)
-
-
-@pytest.fixture
 def projectconfig_cache_get_mock_config(monkeypatch):
     monkeypatch.setattr(
         "sentry.relay.projectconfig_cache.get", lambda *args, **kwargs: {"is_mock_config": True}
@@ -183,25 +173,9 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
 
 @patch("sentry.relay.projectconfig_cache.set_many")
 @pytest.mark.django_db
-def test_task_doesnt_run_if_not_debounced(
-    cache_set_many_mock, default_projectkey, never_update_cache
-):
-    update_config_cache(
-        generate=True,
-        organization_id=None,
-        project_id=None,
-        public_key=default_projectkey.public_key,
-        update_reason="test",
-    )
-    assert cache_set_many_mock.call_count == 0
-
-
-@patch("sentry.relay.projectconfig_cache.set_many")
-@pytest.mark.django_db
 def test_task_writes_config_into_cache(
     cache_set_many_mock,
     default_projectkey,
-    always_update_cache,
     project_config_get_mock,
 ):
     update_config_cache(
