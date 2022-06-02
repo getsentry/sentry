@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/featureBadge';
 import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -65,7 +67,12 @@ export function DataSetStep({
           hasReleaseHealthFeature
             ? [
                 ...DATASET_CHOICES,
-                [DataSet.RELEASES, t('Releases (sessions, crash rates)')],
+                [
+                  DataSet.RELEASES,
+                  <Fragment key="releases-dataset">
+                    {t('Releases (sessions, crash rates)')} <FeatureBadge type="alpha" />
+                  </Fragment>,
+                ],
               ]
             : DATASET_CHOICES
         }
