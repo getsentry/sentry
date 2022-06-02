@@ -50,7 +50,7 @@ def _process_suspect_commits(
                 "sentry.tasks.process_suspect_commits.get_serialized_event_file_committers"
             ):
                 committers = get_event_file_committers(
-                    project, group_id, event_frames, event_platform, sdk_name
+                    project, group_id, event_frames, event_platform, sdk_name=sdk_name
                 )
             owner_scores = {}
             for committer in committers:

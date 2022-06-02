@@ -294,11 +294,16 @@ def get_event_file_committers(
 
 
 def get_serialized_event_file_committers(
-    project: Project, event: Event, frame_limit: int = 25
+    project: Project, event: Event, frame_limit: int = 25, sdk_name: str | None = None
 ) -> Sequence[AuthorCommitsSerialized]:
     event_frames = get_frame_paths(event)
     committers = get_event_file_committers(
-        project, event.group_id, event_frames, event.platform, frame_limit=frame_limit
+        project,
+        event.group_id,
+        event_frames,
+        event.platform,
+        frame_limit=frame_limit,
+        sdk_name=sdk_name,
     )
     commits = [commit for committer in committers for commit in committer["commits"]]
     serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
