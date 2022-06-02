@@ -6,6 +6,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, RequestState} from 'sentry/types';
 import {Trace} from 'sentry/types/profiling/core';
+import {defined} from 'sentry/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -35,7 +36,7 @@ function useProfiles({
   });
 
   useEffect(() => {
-    if (selection === undefined) {
+    if (!defined(selection)) {
       return undefined;
     }
 

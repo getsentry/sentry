@@ -80,6 +80,7 @@ describe('TransactionsList', function () {
             ...query,
             transaction: row.transaction,
             count: row.count,
+            'count()': row['count()'],
           },
         }),
       };
@@ -106,6 +107,29 @@ describe('TransactionsList', function () {
         },
         match: [MockApiClient.matchQuery({sort: '-count'})],
       });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          meta: {fields: {transaction: 'string', 'count()': 'number'}},
+          data: [
+            {transaction: '/a', 'count()': 100},
+            {transaction: '/b', 'count()': 1000},
+          ],
+        },
+        match: [MockApiClient.matchQuery({sort: 'transaction'})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        body: {
+          meta: {fields: {transaction: 'string', 'count()': 'number'}},
+          data: [
+            {transaction: '/b', 'count()': 1000},
+            {transaction: '/a', 'count()': 100},
+          ],
+        },
+        match: [MockApiClient.matchQuery({sort: '-count'})],
+      });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-trends/`,
         body: {
@@ -127,213 +151,430 @@ describe('TransactionsList', function () {
       w.find(`DropdownItem[data-test-id="option-${selection}"] span`).simulate('click');
     };
 
-    it('renders basic UI components', async function () {
-      wrapper = mountWithTheme(
-        <WrapperComponent
-          api={api}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-        />
-      );
+    describe('with eventsv2', function () {
+      it('renders basic UI components', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+          />
+        );
 
-      await tick();
-      wrapper.update();
+        await tick();
+        wrapper.update();
 
-      expect(wrapper.find('DropdownControl')).toHaveLength(1);
-      expect(wrapper.find('DropdownItem')).toHaveLength(2);
-      expect(wrapper.find('DiscoverButton')).toHaveLength(1);
-      expect(wrapper.find('Pagination')).toHaveLength(1);
-      expect(wrapper.find('PanelTable')).toHaveLength(1);
-      // 2 for the transaction names
-      expect(wrapper.find('GridCell')).toHaveLength(2);
-      // 2 for the counts
-      expect(wrapper.find('GridCellNumber')).toHaveLength(2);
-    });
-
-    it('renders a trend view', async function () {
-      options.push({
-        sort: {kind: 'desc', field: 'trend_percentage()'},
-        value: 'regression',
-        label: t('Trending Regressions'),
-        trendType: 'regression',
+        expect(wrapper.find('DropdownControl')).toHaveLength(1);
+        expect(wrapper.find('DropdownItem')).toHaveLength(2);
+        expect(wrapper.find('DiscoverButton')).toHaveLength(1);
+        expect(wrapper.find('Pagination')).toHaveLength(1);
+        expect(wrapper.find('PanelTable')).toHaveLength(1);
+        // 2 for the transaction names
+        expect(wrapper.find('GridCell')).toHaveLength(2);
+        // 2 for the counts
+        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
       });
-      wrapper = mountWithTheme(
-        <WrapperComponent
-          api={api}
-          location={location}
-          organization={organization}
-          trendView={eventView}
-          selected={options[2]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-        />
-      );
 
-      await tick();
-      wrapper.update();
+      it('renders a trend view', async function () {
+        options.push({
+          sort: {kind: 'desc', field: 'trend_percentage()'},
+          value: 'regression',
+          label: t('Trending Regressions'),
+          trendType: 'regression',
+        });
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            trendView={eventView}
+            selected={options[2]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+          />
+        );
 
-      expect(wrapper.find('DropdownControl')).toHaveLength(1);
-      expect(wrapper.find('DropdownItem')).toHaveLength(3);
-      expect(wrapper.find('DiscoverButton')).toHaveLength(0);
-      expect(wrapper.find('Pagination')).toHaveLength(1);
-      expect(wrapper.find('PanelTable')).toHaveLength(1);
-      // trend_percentage and transaction name
-      expect(wrapper.find('GridCell')).toHaveLength(4);
-      // trend_difference
-      expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+        await tick();
+        wrapper.update();
+
+        expect(wrapper.find('DropdownControl')).toHaveLength(1);
+        expect(wrapper.find('DropdownItem')).toHaveLength(3);
+        expect(wrapper.find('DiscoverButton')).toHaveLength(0);
+        expect(wrapper.find('Pagination')).toHaveLength(1);
+        expect(wrapper.find('PanelTable')).toHaveLength(1);
+        // trend_percentage and transaction name
+        expect(wrapper.find('GridCell')).toHaveLength(4);
+        // trend_difference
+        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+      });
+
+      it('renders default titles', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+          />
+        );
+
+        await tick();
+        wrapper.update();
+
+        const headers = wrapper.find('SortLink');
+        expect(headers).toHaveLength(2);
+        expect(headers.first().text()).toEqual('transaction');
+        expect(headers.last().text()).toEqual('count()');
+      });
+
+      it('renders custom titles', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+            titles={['foo', 'bar']}
+          />
+        );
+
+        await tick();
+        wrapper.update();
+
+        const headers = wrapper.find('SortLink');
+        expect(headers).toHaveLength(2);
+        expect(headers.first().text()).toEqual('foo');
+        expect(headers.last().text()).toEqual('bar');
+      });
+
+      it('allows users to change the sort in the dropdown', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+          />
+        );
+
+        await tick();
+        wrapper.update();
+
+        // initial sort is ascending by transaction name
+        expect(wrapper.find('GridCell').first().text()).toEqual('/a');
+        expect(wrapper.find('GridCellNumber').first().text()).toEqual('100');
+        expect(wrapper.find('GridCell').last().text()).toEqual('/b');
+        expect(wrapper.find('GridCellNumber').last().text()).toEqual('1000');
+
+        selectDropdownOption(wrapper, 'count');
+        await tick();
+        wrapper.update();
+
+        // now the sort is descending by count
+        expect(wrapper.find('GridCell').first().text()).toEqual('/b');
+        expect(wrapper.find('GridCellNumber').first().text()).toEqual('1000');
+        expect(wrapper.find('GridCell').last().text()).toEqual('/a');
+        expect(wrapper.find('GridCellNumber').last().text()).toEqual('100');
+      });
+
+      it('generates link for the transaction cell', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+            generateLink={generateLink}
+          />
+        );
+
+        await tick();
+        wrapper.update();
+
+        const links = wrapper.find('Link');
+        expect(links).toHaveLength(2);
+        expect(links.first().props().to).toEqual(
+          expect.objectContaining({
+            pathname: `/${organization.slug}`,
+            query: {
+              transaction: '/a',
+              count: 100,
+            },
+          })
+        );
+        expect(links.last().props().to).toEqual(
+          expect.objectContaining({
+            pathname: `/${organization.slug}`,
+            query: {
+              transaction: '/b',
+              count: 1000,
+            },
+          })
+        );
+      });
+
+      it('handles forceLoading correctly', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={null}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+            forceLoading
+          />
+        );
+
+        expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+        wrapper.setProps({api, forceLoading: false});
+
+        await tick();
+        wrapper.update();
+
+        expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+        expect(wrapper.find('DropdownControl')).toHaveLength(1);
+        expect(wrapper.find('DropdownItem')).toHaveLength(2);
+        expect(wrapper.find('DiscoverButton')).toHaveLength(1);
+        expect(wrapper.find('Pagination')).toHaveLength(1);
+        expect(wrapper.find('PanelTable')).toHaveLength(1);
+        // 2 for the transaction names
+        expect(wrapper.find('GridCell')).toHaveLength(2);
+        // 2 for the counts
+        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+      });
     });
 
-    it('renders default titles', async function () {
-      wrapper = mountWithTheme(
-        <WrapperComponent
-          api={api}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-        />
-      );
+    describe('with events', function () {
+      beforeEach(function () {
+        organization.features.push('performance-frontend-use-events-endpoint');
+      });
 
-      await tick();
-      wrapper.update();
+      it('renders basic UI components', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+          />
+        );
 
-      const headers = wrapper.find('SortLink');
-      expect(headers).toHaveLength(2);
-      expect(headers.first().text()).toEqual('transaction');
-      expect(headers.last().text()).toEqual('count()');
-    });
+        await tick();
+        wrapper.update();
 
-    it('renders custom titles', async function () {
-      wrapper = mountWithTheme(
-        <WrapperComponent
-          api={api}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-          titles={['foo', 'bar']}
-        />
-      );
+        expect(wrapper.find('DropdownControl')).toHaveLength(1);
+        expect(wrapper.find('DropdownItem')).toHaveLength(2);
+        expect(wrapper.find('DiscoverButton')).toHaveLength(1);
+        expect(wrapper.find('Pagination')).toHaveLength(1);
+        expect(wrapper.find('PanelTable')).toHaveLength(1);
+        // 2 for the transaction names
+        expect(wrapper.find('GridCell')).toHaveLength(2);
+        // 2 for the counts
+        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+      });
 
-      await tick();
-      wrapper.update();
+      it('renders a trend view', async function () {
+        options.push({
+          sort: {kind: 'desc', field: 'trend_percentage()'},
+          value: 'regression',
+          label: t('Trending Regressions'),
+          trendType: 'regression',
+        });
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            trendView={eventView}
+            selected={options[2]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+          />
+        );
 
-      const headers = wrapper.find('SortLink');
-      expect(headers).toHaveLength(2);
-      expect(headers.first().text()).toEqual('foo');
-      expect(headers.last().text()).toEqual('bar');
-    });
+        await tick();
+        wrapper.update();
 
-    it('allows users to change the sort in the dropdown', async function () {
-      wrapper = mountWithTheme(
-        <WrapperComponent
-          api={api}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-        />
-      );
+        expect(wrapper.find('DropdownControl')).toHaveLength(1);
+        expect(wrapper.find('DropdownItem')).toHaveLength(3);
+        expect(wrapper.find('DiscoverButton')).toHaveLength(0);
+        expect(wrapper.find('Pagination')).toHaveLength(1);
+        expect(wrapper.find('PanelTable')).toHaveLength(1);
+        // trend_percentage and transaction name
+        expect(wrapper.find('GridCell')).toHaveLength(4);
+        // trend_difference
+        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+      });
 
-      await tick();
-      wrapper.update();
+      it('renders default titles', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+          />
+        );
 
-      // initial sort is ascending by transaction name
-      expect(wrapper.find('GridCell').first().text()).toEqual('/a');
-      expect(wrapper.find('GridCellNumber').first().text()).toEqual('100');
-      expect(wrapper.find('GridCell').last().text()).toEqual('/b');
-      expect(wrapper.find('GridCellNumber').last().text()).toEqual('1000');
+        await tick();
+        wrapper.update();
 
-      selectDropdownOption(wrapper, 'count');
-      await tick();
-      wrapper.update();
+        const headers = wrapper.find('SortLink');
+        expect(headers).toHaveLength(2);
+        expect(headers.first().text()).toEqual('transaction');
+        expect(headers.last().text()).toEqual('count()');
+      });
 
-      // now the sort is descending by count
-      expect(wrapper.find('GridCell').first().text()).toEqual('/b');
-      expect(wrapper.find('GridCellNumber').first().text()).toEqual('1000');
-      expect(wrapper.find('GridCell').last().text()).toEqual('/a');
-      expect(wrapper.find('GridCellNumber').last().text()).toEqual('100');
-    });
+      it('renders custom titles', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+            titles={['foo', 'bar']}
+          />
+        );
 
-    it('generates link for the transaction cell', async function () {
-      wrapper = mountWithTheme(
-        <WrapperComponent
-          api={api}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-          generateLink={generateLink}
-        />
-      );
+        await tick();
+        wrapper.update();
 
-      await tick();
-      wrapper.update();
+        const headers = wrapper.find('SortLink');
+        expect(headers).toHaveLength(2);
+        expect(headers.first().text()).toEqual('foo');
+        expect(headers.last().text()).toEqual('bar');
+      });
 
-      const links = wrapper.find('Link');
-      expect(links).toHaveLength(2);
-      expect(links.first().props().to).toEqual(
-        expect.objectContaining({
-          pathname: `/${organization.slug}`,
-          query: {
-            transaction: '/a',
-            count: 100,
-          },
-        })
-      );
-      expect(links.last().props().to).toEqual(
-        expect.objectContaining({
-          pathname: `/${organization.slug}`,
-          query: {
-            transaction: '/b',
-            count: 1000,
-          },
-        })
-      );
-    });
+      it('allows users to change the sort in the dropdown', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+          />
+        );
 
-    it('handles forceLoading correctly', async function () {
-      wrapper = mountWithTheme(
-        <WrapperComponent
-          api={null}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-          forceLoading
-        />
-      );
+        await tick();
+        wrapper.update();
 
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
-      wrapper.setProps({api, forceLoading: false});
+        // initial sort is ascending by transaction name
+        expect(wrapper.find('GridCell').first().text()).toEqual('/a');
+        expect(wrapper.find('GridCellNumber').first().text()).toEqual('100');
+        expect(wrapper.find('GridCell').last().text()).toEqual('/b');
+        expect(wrapper.find('GridCellNumber').last().text()).toEqual('1000');
 
-      await tick();
-      wrapper.update();
+        selectDropdownOption(wrapper, 'count');
+        await tick();
+        wrapper.update();
 
-      expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-      expect(wrapper.find('DropdownControl')).toHaveLength(1);
-      expect(wrapper.find('DropdownItem')).toHaveLength(2);
-      expect(wrapper.find('DiscoverButton')).toHaveLength(1);
-      expect(wrapper.find('Pagination')).toHaveLength(1);
-      expect(wrapper.find('PanelTable')).toHaveLength(1);
-      // 2 for the transaction names
-      expect(wrapper.find('GridCell')).toHaveLength(2);
-      // 2 for the counts
-      expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+        // now the sort is descending by count
+        expect(wrapper.find('GridCell').first().text()).toEqual('/b');
+        expect(wrapper.find('GridCellNumber').first().text()).toEqual('1000');
+        expect(wrapper.find('GridCell').last().text()).toEqual('/a');
+        expect(wrapper.find('GridCellNumber').last().text()).toEqual('100');
+      });
+
+      it('generates link for the transaction cell', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={api}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+            generateLink={generateLink}
+          />
+        );
+
+        await tick();
+        wrapper.update();
+
+        const links = wrapper.find('Link');
+        expect(links).toHaveLength(2);
+        expect(links.first().props().to).toEqual(
+          expect.objectContaining({
+            pathname: `/${organization.slug}`,
+            query: {
+              transaction: '/a',
+              'count()': 100,
+            },
+          })
+        );
+        expect(links.last().props().to).toEqual(
+          expect.objectContaining({
+            pathname: `/${organization.slug}`,
+            query: {
+              transaction: '/b',
+              'count()': 1000,
+            },
+          })
+        );
+      });
+
+      it('handles forceLoading correctly', async function () {
+        wrapper = mountWithTheme(
+          <WrapperComponent
+            api={null}
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            selected={options[0]}
+            options={options}
+            handleDropdownChange={handleDropdownChange}
+            forceLoading
+          />
+        );
+
+        expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
+        wrapper.setProps({api, forceLoading: false});
+
+        await tick();
+        wrapper.update();
+
+        expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
+        expect(wrapper.find('DropdownControl')).toHaveLength(1);
+        expect(wrapper.find('DropdownItem')).toHaveLength(2);
+        expect(wrapper.find('DiscoverButton')).toHaveLength(1);
+        expect(wrapper.find('Pagination')).toHaveLength(1);
+        expect(wrapper.find('PanelTable')).toHaveLength(1);
+        // 2 for the transaction names
+        expect(wrapper.find('GridCell')).toHaveLength(2);
+        // 2 for the counts
+        expect(wrapper.find('GridCellNumber')).toHaveLength(2);
+      });
     });
   });
 });

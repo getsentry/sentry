@@ -23,7 +23,7 @@ import {
 import {
   IntegrationAnalyticsKey,
   IntegrationEventParameters,
-} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+} from 'sentry/utils/analytics/integrations';
 import {
   getCategories,
   getIntegrationFeatureGate,

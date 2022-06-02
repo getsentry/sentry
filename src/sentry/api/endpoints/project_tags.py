@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry import tagstore
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.constants import PROTECTED_TAG_KEYS
+from sentry.constants import DS_DENYLIST, PROTECTED_TAG_KEYS
 from sentry.models import Environment
 
 
@@ -15,15 +15,17 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
         except Environment.DoesNotExist:
             tag_keys = []
         else:
+            kwargs = dict(
+                # We might be able to stop including these values, but this
+                # is a pretty old endpoint, so concerned about breaking
+                # existing api consumers.
+                include_values_seen=True,
+            )
+            if request.GET.get("onlySamplingTags") == "1":
+                kwargs.update(denylist=DS_DENYLIST)
+
             tag_keys = sorted(
-                tagstore.get_tag_keys(
-                    project.id,
-                    environment_id,
-                    # We might be able to stop including these values, but this
-                    # is a pretty old endpoint, so concerned about breaking
-                    # existing api consumers.
-                    include_values_seen=True,
-                ),
+                tagstore.get_tag_keys(project.id, environment_id, **kwargs),
                 key=lambda x: x.key,
             )
 
