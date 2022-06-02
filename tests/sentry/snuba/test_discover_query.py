@@ -811,6 +811,51 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == 1
             assert data[0] == expected
 
+    def test_count_if_function_with_unicode(self):
+        unicode_phrase1 = "\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86"
+        unicode_phrase2 = "\u53cd\u6b63\u611b\u60c5\u4e0d\u5c31\u90a3\u6837"
+        for i in range(3):
+            data = load_data("transaction", timestamp=before_now(minutes=5))
+            data["release"] = unicode_phrase1
+            self.store_event(data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=before_now(minutes=5))
+        data["release"] = unicode_phrase2
+        self.store_event(data, project_id=self.project.id)
+
+        columns1 = [
+            "count()",
+            f"count_if(release,equals,{unicode_phrase1})",
+            f"count_if(release,notEquals,{unicode_phrase1})",
+        ]
+
+        test_cases = [
+            (
+                columns1,
+                "",
+                {
+                    "count": 4,
+                    "count_if__release___equals____u716e_u6211_u66f4_u591a_u7684_u98df_u7269_uff0c_u6211_u9913_u4e86": 3,
+                    "count_if__release___notEquals____u716e_u6211_u66f4_u591a_u7684_u98df_u7269_uff0c_u6211_u9913_u4e86": 1,
+                },
+            ),
+        ]
+
+        for cols, query, expected in test_cases:
+            result = discover.query(
+                selected_columns=cols,
+                query=query,
+                params={
+                    "start": before_now(minutes=10),
+                    "end": before_now(minutes=2),
+                    "project_id": [self.project.id],
+                },
+            )
+
+            data = result["data"]
+            assert len(data) == 1
+            assert data[0] == expected
+
     def test_failure_count_function(self):
         project = self.create_project()
 

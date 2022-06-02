@@ -889,7 +889,7 @@ def get_function_alias(field: str) -> str:
 
 
 def get_function_alias_with_columns(function_name, columns) -> str:
-    columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in columns))
+    columns = re.sub(r"[^\w]", "_", "_".join(ascii(col) for col in columns))
     return f"{function_name}_{columns}".rstrip("_")
 
 
