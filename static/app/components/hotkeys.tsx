@@ -145,7 +145,6 @@ const keyToDisplay = (
 const Hotkeys = ({
   value,
   platform,
-  hideOnMobile,
 }: {
   /**
    * Pass key combinations in with + as the separator.
@@ -158,7 +157,6 @@ const Hotkeys = ({
    * Escape the + key with a slash |+
    */
   value: string;
-  hideOnMobile?: boolean;
   platform?: 'macos' | string;
 }) => {
   const byOs = value.split(',').map(o => o.trim().split(/(?<!\\)\+/g));
@@ -178,7 +176,7 @@ const Hotkeys = ({
     output = byOs[1].map(key => keyToDisplay(key, platform)[0]);
   }
 
-  return <HotkeysContainer hideOnMobile={hideOnMobile}>{output}</HotkeysContainer>;
+  return <HotkeysContainer>{output}</HotkeysContainer>;
 };
 
 export default Hotkeys;
@@ -187,7 +185,7 @@ const Key = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const HotkeysContainer = styled('div')<{hideOnMobile?: boolean}>`
+const HotkeysContainer = styled('div')`
   font-family: ${p => p.theme.text.family};
   display: flex;
   flex-direction: row;
@@ -195,9 +193,5 @@ const HotkeysContainer = styled('div')<{hideOnMobile?: boolean}>`
 
   > * {
     margin-right: ${space(1)};
-  }
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    display: ${p => (p.hideOnMobile ? 'none' : 'flex')};
   }
 `;
