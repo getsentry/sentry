@@ -835,8 +835,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "",
                 {
                     "count": 4,
-                    "count_if__release___equals____u716e_u6211_u66f4_u591a_u7684_u98df_u7269_uff0c_u6211_u9913_u4e86": 3,
-                    "count_if__release___notEquals____u716e_u6211_u66f4_u591a_u7684_u98df_u7269_uff0c_u6211_u9913_u4e86": 1,
+                    "count_if_release_equals__u716e_u6211_u66f4_u591a_u7684_u98df_u7269_uff0c_u6211_u9913_u4e86": 3,
+                    "count_if_release_notEquals__u716e_u6211_u66f4_u591a_u7684_u98df_u7269_uff0c_u6211_u9913_u4e86": 1,
                 },
             ),
         ]
