@@ -24,68 +24,28 @@ def update_config_cache(
 
     Either organization_id or project_id has to be provided.
 
+    :param generate: obsolete argument, do not use.
     :param organization_id: The organization for which to invalidate configs.
     :param project_id: The project for which to invalidate configs.
     :param generate: If `True`, caches will be eagerly regenerated, not only
         invalidated.
     :param update_reason: A string to set as tag in sentry.
     """
-
-    if project_id:
-        set_current_event_project(project_id)
-
-    if organization_id:
-        # Cannot use bind_organization_context here because we do not have a
-        # model and don't want to fetch one
-        sentry_sdk.set_tag("organization_id", organization_id)
-
-    if public_key:
-        sentry_sdk.set_tag("public_key", public_key)
+    validate_args(organization_id, project_id, public_key)
 
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
 
     try:
-        if organization_id:
-            projects = list(Project.objects.filter(organization_id=organization_id))
-            keys = list(ProjectKey.objects.filter(project__in=projects))
-        elif project_id:
-            projects = [Project.objects.get(id=project_id)]
-            keys = list(ProjectKey.objects.filter(project__in=projects))
-        elif public_key:
-            try:
-                keys = [ProjectKey.objects.get(public_key=public_key)]
-            except ProjectKey.DoesNotExist:
-                # In this particular case, where a project key got deleted and
-                # triggered an update, we know that key doesn't exist and we want to
-                # avoid creating more tasks for it.
-                #
-                # In other similar cases, like an org being deleted, we potentially
-                # cannot find any keys anymore, so we don't know which cache keys
-                # to delete.
-                projectconfig_cache.set_many({public_key: {"disabled": True}})
-                return
-        else:
-            assert False
+        keys = project_keys_to_update(
+            organization_id=organization_id, project_id=project_id, public_key=public_key
+        )
 
+        # TODO: remove this if statement before this PR is merged.
         if generate:
-            config_cache = {}
-            for key in keys:
-                if key.status != ProjectKeyStatus.ACTIVE:
-                    project_config = {"disabled": True}
-                else:
-                    project_config = get_project_config(
-                        key.project, project_keys=[key], full_config=True
-                    ).to_dict()
-                config_cache[key.public_key] = project_config
-
-            projectconfig_cache.set_many(config_cache)
+            compute_project_configs(keys)
         else:
-            cache_keys_to_delete = []
-            for key in keys:
-                cache_keys_to_delete.append(key.public_key)
-
-            projectconfig_cache.delete_many(cache_keys_to_delete)
+            projectconfig_cache.delete_many(key.public_key for key in keys)
 
     finally:
         # Delete the key in this `finally` block to make sure the debouncing key
@@ -151,7 +111,7 @@ def schedule_update_config_cache(
 
 
 def validate_args(organization_id=None, project_id=None, public_key=None):
-    """Validates arguments for the tasks.
+    """Validates arguments for the tasks and sets sentry scope.
 
     The tasks should be invoked for only one of these arguments, however because of Celery
     we want to use primitive types for the arguments.  This is the common validation to make
@@ -159,6 +119,15 @@ def validate_args(organization_id=None, project_id=None, public_key=None):
     """
     if [bool(organization_id), bool(project_id), bool(public_key)].count(True) != 1:
         raise TypeError("Must provide exactly one of organzation_id, project_id or public_key")
+
+    if project_id:
+        set_current_event_project(project_id)
+    if organization_id:
+        # Cannot use bind_organization_context here because we do not have a
+        # model and don't want to fetch one
+        sentry_sdk.set_tag("organization_id", organization_id)
+    if public_key:
+        sentry_sdk.set_tag("public_key", public_key)
 
 
 def project_keys_to_update(organization_id=None, project_id=None, public_key=None):
@@ -226,15 +195,6 @@ def invalidate_project_config(organization_id=None, project_id=None, public_key=
 
     These will be addressed in the future using config revisions tracked in Redis.
     """
-    if project_id:
-        set_current_event_project(project_id)
-    if organization_id:
-        # Cannot use bind_organization_context here because we do not have a
-        # model and don't want to fetch one
-        sentry_sdk.set_tag("organization_id", organization_id)
-    if public_key:
-        sentry_sdk.set_tag("public_key", public_key)
-
     validate_args(organization_id, project_id, public_key)
 
     # Make sure we start by deleting out deduplication key so that new invalidation triggers
@@ -246,8 +206,17 @@ def invalidate_project_config(organization_id=None, project_id=None, public_key=
     keys = project_keys_to_update(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
-    compute_project_configs(keys)
+
+    if organization_id:
+        # Previous incarnations of this task only delete all the affected configs in this
+        # case, relying of lazily filling them back in as they are requested.  Probably
+        # because some organizations can have thousands of projects and they may not all be
+        # active.  Do the same for now, but this could be improved.
+        projectconfig_cache.delete_many(key.public_key for key in keys)
+    else:
+        compute_project_configs(keys)
 
 
 def schedule_invalidation_task(organization_id=None, project_id=None, public_key=None):
     validate_args(organization_id, project_id, public_key)
+    # TODO: write this!
