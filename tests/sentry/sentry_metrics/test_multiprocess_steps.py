@@ -287,7 +287,7 @@ def test_process_messages(mock_indexer) -> None:
 
 
 try:
-    import pytest_benchmark  # type: ignore
+    import pytest_benchmark  # type: ignore  # noqa
 except ImportError:
     pass
 else:
