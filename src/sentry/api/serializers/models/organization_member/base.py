@@ -1,6 +1,8 @@
 from collections import defaultdict
 from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
+from django.db.models import prefetch_related_objects
+
 from sentry import roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models import ExternalActor, OrganizationMember, User
@@ -23,6 +25,8 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         TODO(dcramer): assert on relations
         """
 
+        # Preload to avoid fetching each user individually
+        prefetch_related_objects(item_list, "user")
         users_set = {
             organization_member.user
             for organization_member in item_list
