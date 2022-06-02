@@ -3,7 +3,9 @@ import logging
 import sentry_sdk
 from django.conf import settings
 
-from sentry.relay import projectconfig_debounce_cache
+from sentry.models import Project, ProjectKey, ProjectKeyStatus
+from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
+from sentry.relay.config import get_project_config
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -28,10 +30,6 @@ def update_config_cache(
         invalidated.
     :param update_reason: A string to set as tag in sentry.
     """
-
-    from sentry.models import Project, ProjectKey, ProjectKeyStatus
-    from sentry.relay import projectconfig_cache
-    from sentry.relay.config import get_project_config
 
     if project_id:
         set_current_event_project(project_id)
@@ -119,11 +117,7 @@ def schedule_update_config_cache(
         )
         return
 
-    bools = sorted((bool(organization_id), bool(project_id), bool(public_key)))
-    if bools != [False, False, True]:
-        raise TypeError(
-            "One of organization_id, project_id, public_key has to be provided, not many."
-        )
+    validate_args(organization_id, project_id, public_key)
 
     if projectconfig_debounce_cache.is_debounced(public_key, project_id, organization_id):
         metrics.incr(
@@ -154,3 +148,106 @@ def schedule_update_config_cache(
     # To avoid that, make sure we first schedule the task, and only then mark
     # the project as debounced.
     projectconfig_debounce_cache.debounce(public_key, project_id, organization_id)
+
+
+def validate_args(organization_id=None, project_id=None, public_key=None):
+    """Validates arguments for the tasks.
+
+    The tasks should be invoked for only one of these arguments, however because of Celery
+    we want to use primitive types for the arguments.  This is the common validation to make
+    sure only one is provided.
+    """
+    if [bool(organization_id), bool(project_id), bool(public_key)].count(True) != 1:
+        raise TypeError("Must provide exactly one of organzation_id, project_id or public_key")
+
+
+def project_keys_to_update(organization_id=None, project_id=None, public_key=None):
+    """Returns the project keys which need to have their config updated.
+
+    Queries the database for the required project keys.
+    """
+    if organization_id:
+        projects = list(Project.objects.filter(organization_id=organization_id))
+        keys = list(ProjectKey.objects.filter(project__in=projects))
+    elif project_id:
+        projects = [Project.objects.get(id=project_id)]
+        keys = list(ProjectKey.objects.filter(project__in=projects))
+    elif public_key:
+        try:
+            keys = [ProjectKey.objects.get(public_key=public_key)]
+        except ProjectKey.DoesNotExist:
+            # In this particular case, where a project key got deleted and
+            # triggered an update, we know that key doesn't exist and we want to
+            # avoid creating more tasks for it.
+            #
+            # In other similar cases, like an org being deleted, we potentially
+            # cannot find any keys anymore, so we don't know which cache keys
+            # to delete.
+            projectconfig_cache.set_many({public_key: {"disabled": True}})
+            return
+
+    else:
+        assert False
+
+    return keys
+
+
+def compute_project_configs(project_keys):
+    """Computes the project configs for all given project keys."""
+    config_cache = {}
+    for key in project_keys:
+        if key.status != ProjectKeyStatus.ACTIVE:
+            project_config = {"disabled": True}
+        else:
+            project_config = get_project_config(
+                key.project, project_keys=[key], full_config=True
+            ).to_dict()
+        config_cache[key.public_key] = project_config
+
+    projectconfig_cache.set_many(config_cache)
+
+
+@instrumented_task(name="sentry.tasks.relay.invalidate_project_config", queue="relay_config")
+def invalidate_project_config(organization_id=None, project_id=None, public_key=None):
+    """Task which re-computes an invalidated project config.
+
+    This task can be scheduled regardless of whether the :func:`update_config_cache` task is
+    scheduled as well.  It is designed to make sure a new project config is computed if
+    scheduled on an invalidation trigger.  Use :func:`schedule_invalidation_task` to
+    schedule this task as that will take care of the queueing semantics.
+
+    The current implementation has some limitations:
+
+    - The task does not synchronise with the :func:`update_config_cache` task so depending
+      on when tasks complete they might have race conditions on writing the config to the
+      cache and an older version might be written.
+
+    - The task does not synchronise with more recent invocations of itself.
+
+    These will be addressed in the future using config revisions tracked in Redis.
+    """
+    if project_id:
+        set_current_event_project(project_id)
+    if organization_id:
+        # Cannot use bind_organization_context here because we do not have a
+        # model and don't want to fetch one
+        sentry_sdk.set_tag("organization_id", organization_id)
+    if public_key:
+        sentry_sdk.set_tag("public_key", public_key)
+
+    validate_args(organization_id, project_id, public_key)
+
+    # Make sure we start by deleting out deduplication key so that new invalidation triggers
+    # can schedule a new message while we already started computing the project config.
+    projectconfig_debounce_cache.invalidation.mark_task_done(
+        organization_id=organization_id, project_id=project_id, public_key=public_key
+    )
+
+    keys = project_keys_to_update(
+        organization_id=organization_id, project_id=project_id, public_key=public_key
+    )
+    compute_project_configs(keys)
+
+
+def schedule_invalidation_task(organization_id=None, project_id=None, public_key=None):
+    validate_args(organization_id, project_id, public_key)

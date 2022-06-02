@@ -20,7 +20,21 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS", options
         )
+        self._key_prefix = "relayconfig-debounce"
+        if "key_prefix" in options:
+            self._key_prefix = options.get("key_prefix")
+
         super().__init__(**options)
+
+    def _get_redis_key(self, public_key, project_id, organization_id):
+        if organization_id:
+            return f"{self._key_prefix}:o:{organization_id}"
+        elif project_id:
+            return f"{self._key_prefix}:p:{project_id}"
+        elif public_key:
+            return f"{self._key_prefix}:k:{public_key}"
+        else:
+            raise ValueError()
 
     def validate(self):
         validate_dynamic_cluster(self.is_redis_cluster, self.cluster)
