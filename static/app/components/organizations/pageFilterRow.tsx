@@ -95,6 +95,7 @@ const Label = styled('div')<{multi: boolean}>`
   height: 100%;
   flex-grow: 1;
   user-select: none;
+  white-space: nowrap;
 
   &:hover {
     text-decoration: ${p => (p.multi ? 'underline' : null)};
