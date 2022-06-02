@@ -294,7 +294,7 @@ def get_event_file_committers(
 
 
 def get_serialized_event_file_committers(
-    project: Project, event: Event, frame_limit: int = 25
+    project: Project, event: Event, frame_limit: int = 25, sdk_name: str | None = None
 ) -> Sequence[AuthorCommitsSerialized]:
     event_frames = get_frame_paths(event)
     sdk_name = get_sdk_name(event.data)
