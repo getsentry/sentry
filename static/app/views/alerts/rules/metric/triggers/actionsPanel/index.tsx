@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/selectControl';
 import ListItem from 'sentry/components/list/listItem';
@@ -136,6 +137,31 @@ class ActionsPanel extends PureComponent<Props> {
     };
 
     onChange(triggerIndex, triggers, replaceAtArrayIndex(actions, index, newAction));
+  }
+
+  conditionallyRenderHelpfulBanner(triggerIndex: number, index: number) {
+    const {triggers} = this.props;
+    const {actions} = triggers[triggerIndex];
+    const newAction = {...actions[index]};
+    if (newAction.type !== 'slack') {
+      return null;
+    }
+    return (
+      <MarginlessAlert
+        type="info"
+        showIcon
+        trailingItems={
+          <Button
+            href="https://docs.sentry.io/product/integrations/notification-incidents/slack/#rate-limiting-error"
+            size="xsmall"
+          >
+            {t('Learn More')}
+          </Button>
+        }
+      >
+        {t('Having rate limiting problems? Enter a channel or user ID.')}
+      </MarginlessAlert>
+    );
   }
 
   handleAddAction = () => {
@@ -414,6 +440,7 @@ class ActionsPanel extends PureComponent<Props> {
                   />
                 </PanelItemGrid>
               </RuleRowContainer>
+              {this.conditionallyRenderHelpfulBanner(triggerIndex, actionIdx)}
             </div>
           );
         })}
@@ -469,8 +496,11 @@ const PanelItemSelects = styled('div')`
 
 const RuleRowContainer = styled('div')`
   background-color: ${p => p.theme.backgroundSecondary};
-  border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => p.theme.border} solid;
+  border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
+  &:last-child {
+    border-radius: ${p => p.theme.borderRadius};
+  }
 `;
 
 const StyledListItem = styled(ListItem)`
@@ -481,6 +511,15 @@ const StyledListItem = styled(ListItem)`
 const PerformActionsListItem = styled(StyledListItem)`
   margin-bottom: 0;
   line-height: 1.3;
+`;
+
+const MarginlessAlert = styled(Alert)`
+  border-radius: 0 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius};
+  border: 1px ${p => p.theme.border} solid;
+  border-top-width: 0;
+  margin: 0;
+  padding: ${space(1)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

@@ -92,6 +92,7 @@ const StyledStacktracePreview = styled(StackTracePreview)<{
     `
       display: inline-flex;
       overflow: hidden;
+      height: 100%;
       > span:first-child {
         ${overflowEllipsis}
       }
@@ -110,6 +111,7 @@ const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
       ${Subtitle} {
         ${overflowEllipsis};
         display: inline-block;
+        height: 100%;
       }
     `}
 `;
