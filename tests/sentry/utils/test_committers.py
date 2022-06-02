@@ -608,6 +608,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] == 3
 
+<<<<<<< HEAD
     def test_flutter_munged_frames(self):
         event = self.store_event(
             data={
@@ -661,6 +662,8 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] == 3
 
+=======
+>>>>>>> df9ec92162 (feat(rules): suspect commits and issue owner support for react-native stack frames (#35206))
     def test_matching(self):
         event = self.store_event(
             data={
