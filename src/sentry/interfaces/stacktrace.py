@@ -1,5 +1,6 @@
 __all__ = ("Stacktrace",)
 
+import math
 from typing import Optional
 
 from django.utils.translation import ugettext as _
@@ -119,8 +120,7 @@ def handle_nan(value):
             return "<inf>"
         if value == float("-inf"):
             return "<-inf>"
-        # lol checking for float('nan')
-        if value != value:
+        if math.isnan(value):
             return "<nan>"
     return value
 
