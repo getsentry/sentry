@@ -347,8 +347,7 @@ class DebugMeta extends PureComponent<Props, State> {
         label: t('Status'),
         options: [...new Set(images.map(image => image.status))].map(status => ({
           value: status,
-          label: <div style={{opacity: 0}}>{status}</div>,
-          leadingItems: <Status status={status} />,
+          label: <Status status={status} />,
         })),
       },
     ];
