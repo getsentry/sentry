@@ -146,7 +146,7 @@ def load_data(
             raise SuspiciousFileOperation("potential path traversal attack detected")
 
         if not os.path.exists(json_path):
-            raise FileNotFoundError(f"platform sample not found {json_path}")
+            raise FileNotFoundError("platform sample not found")
 
         if not os.path.isfile(json_path):
             raise IsADirectoryError("expected file but found a directory instead")

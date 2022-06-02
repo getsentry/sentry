@@ -7,25 +7,31 @@ from sentry.utils.samples import load_data
 @pytest.mark.parametrize(
     "platform",
     [
-        ("/"),
-        ("/.."),
-        ("//...."),
-        ("/%5c.."),
-        ("../"),
-        ("../../"),
-        ("../../../etc/passwd"),
+        "/",
+        "/..",
+        "//....",
+        "/%5c..",
+        "../",
+        "../../",
+        "../../../etc/passwd",
     ],
 )
 def test_path_traversal_attempt_raises_exception(platform):
-    with pytest.raises(SuspiciousFileOperation):
+    with pytest.raises(SuspiciousFileOperation) as excinfo:
         load_data(platform)
+
+    (msg,) = excinfo.value.args
+    assert msg == "potential path traversal attack detected"
 
 
 def test_missing_sample_raises_exception():
     platform = "random-platform-that-does-not-exist"
 
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(FileNotFoundError) as excinfo:
         load_data(platform)
+
+    (msg,) = excinfo.value.args
+    assert msg == "platform sample not found"
 
 
 def test_sample_as_directory_raises_exception(monkeypatch, tmp_path):
@@ -37,5 +43,8 @@ def test_sample_as_directory_raises_exception(monkeypatch, tmp_path):
     samples_root.mkdir(parents=True)
 
     platform = "a_directory"
-    with pytest.raises(IsADirectoryError):
+    with pytest.raises(IsADirectoryError) as excinfo:
         load_data(platform)
+
+    (msg,) = excinfo.value.args
+    assert msg == "expected file but found a directory instead"

@@ -21,6 +21,11 @@ DOC_FOLDER = os.environ.get("INTEGRATION_DOC_FOLDER") or os.path.abspath(
     os.path.join(os.path.dirname(sentry.__file__), "integration-docs")
 )
 
+
+class SuspiciousDocPathOperation(Exception):
+    """A suspicious operation was attempted while accessing the doc path"""
+
+
 """
 Looking to add a new framework/language to /settings/install?
 
@@ -51,7 +56,7 @@ def dump_doc(path, data):
     doc_real_path = os.path.realpath(doc_path)
 
     if expected_commonpath != os.path.commonpath([expected_commonpath, doc_real_path]):
-        raise Exception("illegal path access")
+        raise SuspiciousDocPathOperation("illegal path access")
 
     directory = os.path.dirname(doc_path)
     try:
@@ -70,7 +75,7 @@ def load_doc(path):
     doc_real_path = os.path.realpath(doc_path)
 
     if expected_commonpath != os.path.commonpath([expected_commonpath, doc_real_path]):
-        raise Exception("illegal path access")
+        raise SuspiciousDocPathOperation("illegal path access")
 
     try:
         with open(doc_path, encoding="utf-8") as f:
