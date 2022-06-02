@@ -153,7 +153,7 @@ def project_keys_to_update(organization_id=None, project_id=None, public_key=Non
             # cannot find any keys anymore, so we don't know which cache keys
             # to delete.
             projectconfig_cache.set_many({public_key: {"disabled": True}})
-            return
+            keys = []
 
     else:
         assert False
