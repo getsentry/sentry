@@ -229,7 +229,6 @@ const Label = styled('p')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
-  ${overflowEllipsis}
 `;
 
 const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
