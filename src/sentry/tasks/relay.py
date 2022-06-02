@@ -178,7 +178,13 @@ def compute_project_configs(project_keys):
     projectconfig_cache.set_many(config_cache)
 
 
-@instrumented_task(name="sentry.tasks.relay.invalidate_project_config", queue="relay_config")
+@instrumented_task(
+    name="sentry.tasks.relay.invalidate_project_config",
+    queue="relay_config",
+    acks_late=True,
+    soft_time_limit=30,
+    time_limit=32,
+)
 def invalidate_project_config(organization_id=None, project_id=None, public_key=None):
     """Task which re-computes an invalidated project config.
 
