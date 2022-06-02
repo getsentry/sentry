@@ -20,10 +20,7 @@ export type DropdownButtonProps = {
   showChevron?: boolean;
 } & Omit<ButtonProps, 'type' | 'prefix'>;
 
-const DropdownButton = forwardRef<
-  React.RefObject<HTMLElement> | null,
-  DropdownButtonProps
->(
+const DropdownButton = forwardRef<HTMLElement, DropdownButtonProps>(
   (
     {
       children,
