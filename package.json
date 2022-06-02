@@ -70,7 +70,7 @@
     "color": "^4.2.3",
     "compression-webpack-plugin": "10.0.0",
     "copy-text-to-clipboard": "3.0.1",
-    "core-js": "^3.21.1",
+    "core-js": "^3.22.7",
     "crypto-browserify": "^3.12.0",
     "crypto-js": "4.0.0",
     "css-loader": "^5.2.6",
