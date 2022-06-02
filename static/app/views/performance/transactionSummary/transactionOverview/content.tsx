@@ -343,12 +343,8 @@ function SummaryContent({
             organization={organization}
             eventView={eventView}
             totals={
-              defined(useAggregateAlias ? totalValues?.count : totalValues?.['count()'])
-                ? {
-                    count: useAggregateAlias
-                      ? totalValues!.count
-                      : totalValues!['count()'],
-                  }
+              defined(totalValues?.['count()'])
+                ? {'count()': totalValues!['count()']}
                 : null
             }
             projectId={projectId}
