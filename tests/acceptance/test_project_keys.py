@@ -3,10 +3,10 @@ from datetime import datetime
 from django.utils import timezone
 
 from sentry.models import ProjectKey
-from sentry.testutils import AcceptanceTestCase
+from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 
 
-class ProjectKeysTest(AcceptanceTestCase):
+class ProjectKeysTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
@@ -33,7 +33,7 @@ class ProjectKeysTest(AcceptanceTestCase):
         self.browser.snapshot("project keys")
 
 
-class ProjectKeyDetailsTest(AcceptanceTestCase):
+class ProjectKeyDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user("foo@example.com")
