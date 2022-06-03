@@ -49,6 +49,7 @@ type Props = WithRouterProps & {
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
+  replaysCount: number | null;
   event?: Event;
 };
 
@@ -114,8 +115,16 @@ class GroupHeader extends Component<Props, State> {
   }
 
   render() {
-    const {project, group, currentTab, baseUrl, event, organization, location} =
-      this.props;
+    const {
+      project,
+      group,
+      currentTab,
+      baseUrl,
+      event,
+      organization,
+      location,
+      replaysCount,
+    } = this.props;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
@@ -426,7 +435,7 @@ class GroupHeader extends Component<Props, State> {
                 to={`${baseUrl}replays/${location.search}`}
                 isActive={() => currentTab === Tab.REPLAYS}
               >
-                {t('Replays')}
+                {t('Replays')} <Badge text={replaysCount ?? ''} />
               </ListLink>
             </Feature>
           </NavTabs>

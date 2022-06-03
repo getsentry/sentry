@@ -156,6 +156,7 @@ function Replays() {
                   >
                     {data.tableData ? (
                       <ReplayTable
+                        idKey="id"
                         showProjectColumn
                         replayList={data.tableData.data as Replay[]}
                       />

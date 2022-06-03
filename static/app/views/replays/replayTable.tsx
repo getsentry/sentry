@@ -24,6 +24,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {Replay} from './types';
 
 type Props = {
+  idKey: string;
   replayList: Replay[];
   showProjectColumn?: boolean;
 };
@@ -37,7 +38,7 @@ type ReplayDurationAndErrors = {
   replayId: string;
 };
 
-function ReplayTable({replayList, showProjectColumn}: Props) {
+function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -93,7 +94,7 @@ function ReplayTable({replayList, showProjectColumn}: Props) {
                   <Link
                     to={`/organizations/${organization.slug}/replays/${generateEventSlug({
                       project: replay.project,
-                      id: replay.id,
+                      id: replay[idKey],
                     })}/`}
                   >
                     {replay['user.display']}

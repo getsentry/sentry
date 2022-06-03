@@ -1,16 +1,13 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import Link from 'sentry/components/links/link';
-import PageHeading from 'sentry/components/pageHeading';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PageContent, PageHeader} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
-import {NewQuery} from 'sentry/types';
+import {PageContent} from 'sentry/styles/organization';
+import {Group, NewQuery} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {getQueryParamAsString} from 'sentry/utils/replays/getQueryParamAsString';
@@ -22,10 +19,15 @@ import {Replay} from 'sentry/views/replays/types';
 
 const DEFAULT_DISCOVER_LIMIT = 50;
 
-const GroupReplays = () => {
+type Props = {
+  group: Group;
+};
+
+const GroupReplays = ({group}: Props) => {
   const location = useLocation();
   const organization = useOrganization();
   const params = useParams();
+  const {project} = group;
 
   const getEventView = () => {
     const {groupId} = params;
@@ -34,6 +36,7 @@ const GroupReplays = () => {
       name: '',
       version: 2,
       fields: [
+        'replayId',
         'eventID',
         'project',
         'timestamp',
@@ -45,7 +48,7 @@ const GroupReplays = () => {
         'user.name',
         'user.username',
       ],
-      projects: [],
+      projects: [+project.id],
       orderby: getQueryParamAsString(query.sort) || '-timestamp',
       query: `issue.id:${groupId}`,
     };
@@ -67,11 +70,6 @@ const GroupReplays = () => {
 
   return (
     <Fragment>
-      <StyledPageHeader>
-        <HeaderTitle>
-          {t('Replays')} <FeatureBadge type="alpha" />
-        </HeaderTitle>
-      </StyledPageHeader>
       <StyledPageContent>
         <DiscoverQuery
           eventView={getEventView()}
@@ -112,7 +110,10 @@ const GroupReplays = () => {
                   ]}
                 >
                   {data.tableData ? (
-                    <ReplayTable replayList={data.tableData.data as Replay[]} />
+                    <ReplayTable
+                      idKey="replayId"
+                      replayList={data.tableData.data as Replay[]}
+                    />
                   ) : null}
                 </StyledPanelTable>
                 <Pagination pageLinks={data.pageLinks} />
@@ -125,21 +126,8 @@ const GroupReplays = () => {
   );
 };
 
-const StyledPageHeader = styled(PageHeader)`
-  background-color: ${p => p.theme.background};
-  min-width: max-content;
-  padding: ${space(3)} ${space(0)} ${space(4)} ${space(4)};
-  margin-bottom: ${space(0)};
-`;
-
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
-`;
-
-const HeaderTitle = styled(PageHeading)`
-  display: flex;
-  align-items: center;
-  flex: 1;
 `;
 
 const StyledPageContent = styled(PageContent)`

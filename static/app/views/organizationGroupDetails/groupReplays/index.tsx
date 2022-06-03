@@ -2,11 +2,16 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
+import {Group} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import GroupReplays from './groupReplays';
 
-const GroupReplaysContainer = () => {
+type Props = {
+  group: Group;
+};
+
+const GroupReplaysContainer = ({group}: Props) => {
   const organization = useOrganization();
   function renderNoAccess() {
     return (
@@ -22,7 +27,7 @@ const GroupReplaysContainer = () => {
       organization={organization}
       renderDisabled={renderNoAccess}
     >
-      <GroupReplays />
+      <GroupReplays group={group} />
     </Feature>
   );
 };
