@@ -140,15 +140,16 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     @extend_schema(
         operation_id="Query Discover Events in Table Format",
         parameters=[
-            VISIBILITY_PARAMS.QUERY,
-            VISIBILITY_PARAMS.FIELD,
-            VISIBILITY_PARAMS.SORT,
-            VISIBILITY_PARAMS.PER_PAGE,
-            GLOBAL_PARAMS.STATS_PERIOD,
-            GLOBAL_PARAMS.START,
             GLOBAL_PARAMS.END,
-            GLOBAL_PARAMS.PROJECT,
             GLOBAL_PARAMS.ENVIRONMENT,
+            GLOBAL_PARAMS.ORG_SLUG,
+            GLOBAL_PARAMS.PROJECT,
+            GLOBAL_PARAMS.START,
+            GLOBAL_PARAMS.STATS_PERIOD,
+            VISIBILITY_PARAMS.FIELD,
+            VISIBILITY_PARAMS.PER_PAGE,
+            VISIBILITY_PARAMS.QUERY,
+            VISIBILITY_PARAMS.SORT,
         ],
         responses={
             200: inline_sentry_response_serializer(
