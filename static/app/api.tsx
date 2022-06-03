@@ -50,6 +50,10 @@ export type ResponseMeta<R = any> = {
    */
   getResponseHeader: (header: string) => string | null;
   /**
+   * The raw response
+   */
+  rawResponse: Response;
+  /**
    * The response body decoded from json
    */
   responseJSON: R;
@@ -455,8 +459,6 @@ export class Client {
         // The Response's body can only be resolved/used at most once.
         // So we clone the response so we can resolve the body content as text content.
         // Response objects need to be cloned before its body can be used.
-        const responseClone = response.clone();
-
         let responseJSON: any;
         let responseText: any;
 
@@ -466,7 +468,7 @@ export class Client {
 
         // Try to get text out of the response no matter the status
         try {
-          responseText = await response.text();
+          responseText = await response.clone().text();
         } catch (error) {
           ok = false;
           if (error.name === 'AbortError') {
@@ -476,13 +478,13 @@ export class Client {
           }
         }
 
-        const responseContentType = response.headers.get('content-type');
+        const responseContentType = response.clone().headers.get('content-type');
         const isResponseJSON = responseContentType?.includes('json');
 
         const isStatus3XX = status >= 300 && status < 400;
         if (status !== 204 && !isStatus3XX) {
           try {
-            responseJSON = await responseClone.json();
+            responseJSON = await response.clone().json();
           } catch (error) {
             if (error.name === 'AbortError') {
               ok = false;
@@ -502,6 +504,7 @@ export class Client {
           responseJSON,
           responseText,
           getResponseHeader: (header: string) => response.headers.get(header),
+          rawResponse: response.clone(),
         };
 
         // Respect the response content-type header
