@@ -34,7 +34,7 @@ const config: StorybookConfig = {
 
   // XXX(emotion11): Workaround because storybook still uses emotion 10
   // internally. See https://github.com/storybookjs/storybook/issues/13145
-  webpackFinal: async webpackConf => ({
+  webpackFinal: webpackConf => ({
     ...webpackConf,
     resolve: {
       ...webpackConf?.resolve,
