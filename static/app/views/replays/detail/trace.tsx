@@ -88,7 +88,7 @@ export default function Trace({event, organization}: Props) {
       try {
         const [data, , resp] = await doDiscoverQuery<TableData>(
           api,
-          `/organizations/${orgId}/eventsv2/`,
+          `/organizations/${orgId}/events/`,
           eventView.getEventsAPIPayload(location)
         );
 
