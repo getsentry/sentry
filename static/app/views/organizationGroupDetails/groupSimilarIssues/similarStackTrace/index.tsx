@@ -178,7 +178,7 @@ class SimilarStackTrace extends Component<Props, State> {
     const isLoadedSuccessfully = !isError && !isLoading;
     const hasSimilarItems =
       this.hasSimilarityFeature() &&
-      (similarItems.length >= 0 || filteredSimilarItems.length >= 0) &&
+      (similarItems.length > 0 || filteredSimilarItems.length > 0) &&
       isLoadedSuccessfully;
 
     return (
