@@ -636,8 +636,7 @@ def kafka_message_payload():
 
 
 class BatchedConsumerTest(TestCase):
-    def _get_producer(self, topic):
-        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+    def _get_producer(self, cluster_name):
         conf = {
             "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
                 "bootstrap.servers"
@@ -651,11 +650,10 @@ class BatchedConsumerTest(TestCase):
         self.events_topic = f"events-{uuid.uuid4().hex}"
         self.commit_log_topic = f"events-commit-{uuid.uuid4().hex}"
         self.override_settings_cm = override_settings(
+            KAFKA_EVENTS=self.events_topic,
+            KAFKA_TRANSACTIONS=self.events_topic,
             KAFKA_TOPICS={
-                "events": {"cluster": "default", "topic": self.events_topic},
-                # Temporarily mapped to the same topic as events
-                "transactions": {"cluster": "default", "topic": self.events_topic},
-                "snuba-commit-log": {"cluster": "default", "topic": self.commit_log_topic},
+                self.events_topic: {"cluster": "default"},
             },
         )
         self.override_settings_cm.__enter__()
@@ -676,8 +674,8 @@ class BatchedConsumerTest(TestCase):
         consumer_group = f"consumer-{uuid.uuid1().hex}"
         synchronize_commit_group = f"sync-consumer-{uuid.uuid1().hex}"
 
-        events_producer = self._get_producer("events")
-        commit_log_producer = self._get_producer("snuba-commit-log")
+        events_producer = self._get_producer("default")
+        commit_log_producer = self._get_producer("default")
         message = json.dumps(kafka_message_payload()).encode()
 
         eventstream = KafkaEventStream()

@@ -72,11 +72,12 @@ def track_outcome(
     assert isinstance(quantity, int)
 
     outcomes_config = settings.KAFKA_TOPICS[settings.KAFKA_OUTCOMES]
-    billing_config = settings.KAFKA_TOPICS.get(settings.KAFKA_OUTCOMES_BILLING) or outcomes_config
+    billing_config = settings.KAFKA_TOPICS.get(settings.KAFKA_OUTCOMES_BILLING)
+    use_billing = billing_config is not None and outcome.is_billing()
 
     # Create a second producer instance only if the cluster differs. Otherwise,
     # reuse the same producer and just send to the other topic.
-    if outcome.is_billing() and billing_config["cluster"] != outcomes_config["cluster"]:
+    if use_billing and billing_config["cluster"] != outcomes_config["cluster"]:
         if billing_publisher is None:
             cluster_name = billing_config["cluster"]
             billing_publisher = KafkaPublisher(
@@ -101,7 +102,7 @@ def track_outcome(
     # In Sentry, there is no significant difference between the classes of
     # outcome. In Sentry SaaS, they have elevated stability requirements as they
     # are used for spike protection and quota enforcement.
-    topic_name = billing_config["topic"] if outcome.is_billing() else outcomes_config["topic"]
+    topic_name = settings.KAFKA_OUTCOMES_BILLING if use_billing else settings.KAFKA_OUTCOMES
 
     # Send a snuba metrics payload.
     publisher.publish(
