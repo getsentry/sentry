@@ -20,8 +20,8 @@ READ_FEATURE = "organizations:dashboards-basic"
 class OrganizationDashboardBase(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
-    def convert_args(self, request: Request, organization_slug, dashboard_id):
-        args, kwargs = super().convert_args(request, organization_slug)
+    def convert_args(self, request: Request, organization_slug, dashboard_id, *args, **kwargs):
+        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
         try:
             kwargs["dashboard"] = self._get_dashboard(request, kwargs["organization"], dashboard_id)
