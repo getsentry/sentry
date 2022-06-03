@@ -28,9 +28,6 @@ class MetricField:
     op: Optional[MetricOperationType]
     metric_name: str
 
-    def __eq__(self, other):
-        return self.op == other.op and self.metric_name == other.metric_name
-
 
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]
