@@ -65,7 +65,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         abs_path = request.GET.get("absPath")
         module = request.GET.get("module")
         package = request.GET.get("package")
-        frame = {"filename": filepath}
+        frame = {}
         if abs_path:
             frame["abs_path"] = abs_path
         if module:
@@ -109,6 +109,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 )
 
                 if not link and frame:
+                    frame["filename"] = filepath
                     munged_frames = munged_filename_and_frames(
                         platform, [frame], "munged_filename", sdk_name=sdk_name
                     )
