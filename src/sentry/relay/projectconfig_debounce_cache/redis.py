@@ -20,9 +20,7 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS", options
         )
-        self._key_prefix = "relayconfig-debounce"
-        if "key_prefix" in options:
-            self._key_prefix = options.get("key_prefix")
+        self._key_prefix = options.get("key_prefix", "relayconfig-debounce")
 
         super().__init__(**options)
 
