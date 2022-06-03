@@ -106,7 +106,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
           style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
         >
           <FrameNameContainer>
-            <FrameColorIndicator backgroundColor={colorString} />
+            <FrameColorIndicator style={{backgroundColor: colorString}} />
             <FrameChildrenIndicator
               tabIndex={-1}
               onClick={handleExpanding}
@@ -123,7 +123,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
 );
 
 const Weight = styled((props: {isSelected: boolean; weight: number}) => {
-  const {weight, ...rest} = props;
+  const {weight, isSelected: _, ...rest} = props;
   return (
     <div {...rest}>
       {weight.toFixed(1)}%
@@ -213,14 +213,11 @@ const FrameName = styled('span')`
   margin-left: ${space(0.5)};
 `;
 
-const FrameColorIndicator = styled('div')<{
-  backgroundColor: React.CSSProperties['backgroundColor'];
-}>`
+const FrameColorIndicator = styled('div')`
   width: 12px;
   height: 12px;
   border-radius: 2px;
   display: inline-block;
   flex-shrink: 0;
-  background-color: ${p => p.backgroundColor};
   margin-right: ${space(0.5)};
 `;

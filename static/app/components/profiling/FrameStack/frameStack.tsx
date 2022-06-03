@@ -7,10 +7,9 @@ import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {useVerticallyResizableDrawer} from 'sentry/utils/profiling/hooks/useResizableDrawer';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
-
-import {useVerticallyResizableDrawer} from '../../../utils/profiling/hooks/useResizableDrawer';
 
 import {FrameStackTable} from './frameStackTable';
 
