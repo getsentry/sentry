@@ -44,11 +44,7 @@ function ReplayView({isFullscreen, toggleFullscreen}: Props) {
     const playerOffsetHeight = playerRef.current?.offsetHeight || 0;
     const calc =
       windowInnerHeight - (containerBottom - playerOffsetHeight) - BOTTOM_REVEAL_PIXELS;
-    if (!isScreenLarge) {
-      setPlayerHeight(200);
-    } else {
-      setPlayerHeight(Math.max(200, calc));
-    }
+    setPlayerHeight(Math.max(200, calc));
   }, [isScreenLarge, windowInnerHeight]);
 
   return (

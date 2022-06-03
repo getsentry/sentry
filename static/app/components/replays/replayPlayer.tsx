@@ -72,7 +72,7 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
   }, [windowDimensions, videoDimensions, height]);
 
   return (
-    <SizingWindow ref={windowEl} className="sr-block" minHeight={height}>
+    <SizingWindow ref={windowEl} className="sr-block">
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
@@ -83,10 +83,9 @@ function BasePlayerRoot({className, height = Infinity}: Props) {
 // Center the viewEl inside the windowEl.
 // This is useful when the window is inside a container that has large fixed
 // dimensions, like when in fullscreen mode.
-const SizingWindow = styled('div')<{minHeight: number}>`
+const SizingWindow = styled('div')`
   width: 100%;
   height: 100%;
-  ${p => (p.minHeight !== Infinity ? `min-height: ${p.minHeight}px !important;` : '')}
 
   display: flex;
   justify-content: center;
