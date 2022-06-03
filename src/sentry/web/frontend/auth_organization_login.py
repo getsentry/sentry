@@ -14,6 +14,7 @@ from sentry.web.frontend.auth_login import AuthLoginView
 
 class AuthOrganizationLoginView(AuthLoginView):
     def respond_login(self, request: Request, context, *args, **kwargs) -> Response:
+        self.context_add_meta_tags(request, context, **kwargs)
         return self.respond("sentry/organization-login.html", context)
 
     def handle_sso(self, request: Request, organization, auth_provider):

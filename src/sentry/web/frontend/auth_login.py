@@ -9,6 +9,7 @@ from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
@@ -24,6 +25,11 @@ from sentry.utils.auth import (
     login,
 )
 from sentry.utils.client_state import get_client_state_redirect_uri
+from sentry.utils.metatags import (
+    META_PROVIDER_TO_INTEGRATIONS,
+    META_PUBLIC_PROVIDERS,
+    get_provider_by_user_agent,
+)
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
@@ -60,6 +66,44 @@ additional_context = AdditionalContext()
 
 class AuthLoginView(BaseView):
     auth_required = False
+
+    def meta_tags(self, request: Request, **kwargs):
+        user_agent = request.META.get("HTTP_USER_AGENT")
+        provider = None
+        if user_agent:
+            provider = get_provider_by_user_agent(user_agent)
+        if provider:
+            analytics.record("metalink.scraped", provider=provider)
+        opengraph_meta = {}
+        if provider in META_PROVIDER_TO_INTEGRATIONS:
+            opengraph_meta = {
+                "og:type": "website",
+                "og:title": f"Install {META_PROVIDER_TO_INTEGRATIONS[provider]} integration to preview",
+                "og:description": f"The content requires authentication. Install our {META_PROVIDER_TO_INTEGRATIONS[provider]} integration to preview details.",
+                "og:site_name": "Sentry",
+            }
+        elif provider in META_PUBLIC_PROVIDERS:
+            if provider == "twitter":
+                opengraph_meta = {
+                    "twitter:card": "summary",
+                    "twitter:site": "@getsentry",
+                    "twitter:title": "Enable public share link to preview",
+                    "twitter:description": "This content requires authentication. Enable public share link so that people can see it.",
+                }
+            else:
+                opengraph_meta = {
+                    "og:type": "website",
+                    "og:title": "Enable public share link to preview",
+                    "og:description": "This content requires authentication. Enable public share link so that people can see it.",
+                    "og:site_name": "Sentry",
+                }
+        return opengraph_meta
+
+    def context_add_meta_tags(self, request: Request, context, **kwargs):
+        context["meta_tags"] = [
+            {"property": key, "content": value}
+            for key, value in self.meta_tags(request, **kwargs).items()
+        ]
 
     def get_auth_provider(self, organization_slug):
         try:
@@ -115,6 +159,7 @@ class AuthLoginView(BaseView):
         return add_params_to_url(base_url, params)
 
     def respond_login(self, request: Request, context, **kwargs):
+        self.context_add_meta_tags(request, context, **kwargs)
         return self.respond("sentry/login.html", context)
 
     def handle_basic_auth(self, request: Request, **kwargs):
