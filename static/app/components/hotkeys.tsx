@@ -38,19 +38,11 @@ const keyToDisplay = (
       ? platform === 'macos'
       : window?.navigator?.platform?.toLowerCase().startsWith('mac') ?? false;
 
-    if (isMac) {
-      const modifier = macModifiers[keyCode];
-      if (modifier) {
-        keyStr = modifier;
-      }
-    } else {
-      const modifier = normalModifiers[keyCode];
-      if (modifier) {
-        if (modifier === 'CMD') {
-          hasMissing = true;
-        }
-        keyStr = modifier;
-      }
+    const modifierMap = isMac ? macModifiers : normalModifiers;
+    const keyStr = modifierMap[keyCode] ?? key.toUpperCase();
+    
+    if (keyStr === 'CMD') {
+      hasMissing = true;
     }
 
     const glyph = genericGlyphs[keyCode];
