@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {tct} from 'sentry/locale';
 
 describe('locale.gettextComponentTemplate', () => {
-  it('should render two component templates inside the same parent', async () => {
+  it('should render two component templates inside the same parent', () => {
     render(
       <div data-test-id="subject">
         {tct('1st: [one]', {

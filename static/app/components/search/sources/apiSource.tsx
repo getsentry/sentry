@@ -327,7 +327,7 @@ class ApiSource extends Component<Props, State> {
   api = new Client();
 
   // Debounced method to handle querying all API endpoints (when necessary)
-  doSearch = debounce(async (query: string) => {
+  doSearch = debounce((query: string) => {
     const {params, organization} = this.props;
     const orgId = (params && params.orgId) || (organization && organization.slug);
     let searchUrls = ['/organizations/'];
