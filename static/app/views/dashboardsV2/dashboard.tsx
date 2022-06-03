@@ -139,7 +139,7 @@ class Dashboard extends Component<Props, State> {
     return null;
   }
 
-  async componentDidMount() {
+  componentDidMount() {
     const {organization, newWidget} = this.props;
     if (organization.features.includes('dashboard-grid-layout')) {
       window.addEventListener('resize', this.debouncedHandleResize);
@@ -156,7 +156,7 @@ class Dashboard extends Component<Props, State> {
     this.fetchMemberList();
   }
 
-  async componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props) {
     const {selection, newWidget} = this.props;
 
     if (newWidget && newWidget !== prevProps.newWidget) {
