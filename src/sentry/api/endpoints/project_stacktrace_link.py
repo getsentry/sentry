@@ -46,7 +46,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     `filepath`: The file path from the stack trace
     `commitId` (optional): The commit_id for the last commit of the
                            release associated to the stack trace's event
-    `frame` (optional): The entire stackframe
+    `sdk_name` (optional): The sdk.name associated with the event
+    `abs_path` (optional): The abs_path field value of the relevant stack frame
+    `module`   (optional): The module field value of the relevant stack frame
+    `package`  (optional): The package field value of the relevant stack frame
 
     """
 
