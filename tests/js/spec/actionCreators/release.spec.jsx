@@ -58,7 +58,7 @@ describe('ReleaseActionCreator', function () {
       expect(ReleaseStore.state.releaseError[releaseKey]).toEqual(undefined);
     });
 
-    it('short-circuits the JS event loop when fetching Release', async () => {
+    it('short-circuits the JS event loop when fetching Release', () => {
       expect(ReleaseStore.state.releaseLoading[releaseKey]).toEqual(undefined);
 
       getProjectRelease(api, {orgSlug, projectSlug, releaseVersion});
@@ -111,7 +111,7 @@ describe('ReleaseActionCreator', function () {
       expect(ReleaseStore.state.deploysError[releaseKey]).toEqual(undefined);
     });
 
-    it('short-circuits the JS event loop when fetching Deploys', async () => {
+    it('short-circuits the JS event loop when fetching Deploys', () => {
       expect(ReleaseStore.state.deploysLoading[releaseKey]).toEqual(undefined);
 
       getReleaseDeploys(api, {orgSlug, projectSlug, releaseVersion});

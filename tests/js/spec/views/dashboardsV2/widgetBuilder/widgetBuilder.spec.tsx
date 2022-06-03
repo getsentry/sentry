@@ -276,7 +276,7 @@ describe('WidgetBuilder', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders a widget not found message if the widget index url is not an integer', async function () {
+    it('renders a widget not found message if the widget index url is not an integer', function () {
       const widget: Widget = {
         displayType: DisplayType.AREA,
         interval: '1d',

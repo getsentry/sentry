@@ -147,7 +147,7 @@ describe('useVirtualizedTree', () => {
     expect(result.current.items.length).toBe(10);
   });
 
-  it('shows overscroll items', async () => {
+  it('shows overscroll items', () => {
     const mockScrollContainer = {
       getBoundingClientRect: () => {
         return {height: 100};
@@ -179,7 +179,7 @@ describe('useVirtualizedTree', () => {
     expect(result.current.items.length).toBe(14);
   });
 
-  it('items have a stable key', async () => {
+  it('items have a stable key', () => {
     const mockScrollContainer = {
       getBoundingClientRect: () => {
         return {height: 100};
