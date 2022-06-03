@@ -188,7 +188,7 @@ def compute_project_configs(project_keys):
     soft_time_limit=30,
     time_limit=32,
 )
-def invalidate_project_config(organization_id=None, project_id=None, public_key=None):
+def invalidate_project_config(organization_id=None, project_id=None, public_key=None, **kwargs):
     """Task which re-computes an invalidated project config.
 
     This task can be scheduled regardless of whether the :func:`update_config_cache` task is
