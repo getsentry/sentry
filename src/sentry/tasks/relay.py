@@ -107,7 +107,9 @@ def schedule_update_config_cache(
     # and dies before scheduling it, the cache will be stale for the whole TTL.
     # To avoid that, make sure we first schedule the task, and only then mark
     # the project as debounced.
-    projectconfig_debounce_cache.debounce(public_key, project_id, organization_id)
+    projectconfig_debounce_cache.debounce(
+        public_key=public_key, project_id=project_id, organization_id=organization_id
+    )
 
 
 def validate_args(organization_id=None, project_id=None, public_key=None):
@@ -189,7 +191,7 @@ def compute_project_configs(project_keys):
     time_limit=32,
 )
 def invalidate_project_config(
-    organization_id=None, project_id=None, public_key=None, update_reason="invalidated", **kwargs
+    organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs
 ):
     """Task which re-computes an invalidated project config.
 
@@ -209,7 +211,7 @@ def invalidate_project_config(
     These will be addressed in the future using config revisions tracked in Redis.
     """
     validate_args(organization_id, project_id, public_key)
-    sentry_sdk.set_tag("update_reason", update_reason)
+    sentry_sdk.set_tag("trigger", trigger)
 
     # Make sure we start by deleting out deduplication key so that new invalidation triggers
     # can schedule a new message while we already started computing the project config.
@@ -233,7 +235,7 @@ def invalidate_project_config(
         compute_project_configs(keys)
 
 
-def schedule_invalidate_config_cache(
+def schedule_invalidate_project_cache(
     *, trigger, organization_id=None, project_id=None, public_key=None
 ):
     """Schedules the :func:`invalidate_project_config` task.
@@ -263,7 +265,9 @@ def schedule_invalidate_config_cache(
         project_id=project_id,
         organization_id=organization_id,
         public_key=public_key,
-        update_reason=trigger,
+        trigger=trigger,
     )
 
-    projectconfig_debounce_cache.invalidation.debounce(public_key, project_id, organization_id)
+    projectconfig_debounce_cache.invalidation.debounce(
+        public_key=public_key, project_id=project_id, organization_id=organization_id
+    )

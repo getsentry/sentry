@@ -5,7 +5,7 @@ import pytest
 from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
-from sentry.tasks.relay import schedule_update_config_cache
+from sentry.tasks.relay import schedule_invalidate_project_cache, schedule_update_config_cache
 
 
 def _cache_keys_for_project(project):
@@ -71,11 +71,15 @@ def test_debounce(
 
     monkeypatch.setattr("sentry.tasks.relay.update_config_cache.apply_async", apply_async)
 
-    debounce_cache.mark_task_done(None, default_project.id, None)
+    debounce_cache.mark_task_done(
+        public_key=None, project_id=default_project.id, organization_id=None
+    )
     schedule_update_config_cache(generate=True, project_id=default_project.id)
     schedule_update_config_cache(generate=False, project_id=default_project.id)
 
-    debounce_cache.mark_task_done(None, None, default_organization.id)
+    debounce_cache.mark_task_done(
+        public_key=None, project_id=None, organization_id=default_organization.id
+    )
     schedule_update_config_cache(generate=True, organization_id=default_organization.id)
     schedule_update_config_cache(generate=False, organization_id=default_organization.id)
 
@@ -231,3 +235,116 @@ def test_projectkeys(default_project, task_runner, redis_cache):
 
     for key in ProjectKey.objects.filter(project_id=default_project.id):
         assert not redis_cache.get(key.public_key)
+
+
+class TestInvalidationTask:
+    @pytest.fixture
+    def debounce_cache(self, monkeypatch):
+        debounce_cache = RedisProjectConfigDebounceCache()
+        monkeypatch.setattr(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.mark_task_done",
+            debounce_cache.mark_task_done,
+        )
+        monkeypatch.setattr(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.check_is_debounced",
+            debounce_cache.check_is_debounced,
+        )
+        monkeypatch.setattr(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.debounce",
+            debounce_cache.debounce,
+        )
+        monkeypatch.setattr(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.is_debounced",
+            debounce_cache.is_debounced,
+        )
+
+        return debounce_cache
+
+    @pytest.mark.django_db
+    def test_debounce(
+        self,
+        monkeypatch,
+        default_project,
+        default_organization,
+        debounce_cache,
+    ):
+        tasks = []
+
+        def apply_async(args, kwargs):
+            assert not args
+            tasks.append(kwargs)
+
+        monkeypatch.setattr("sentry.tasks.relay.invalidate_project_config.apply_async", apply_async)
+
+        debounce_cache.mark_task_done(
+            public_key=None, project_id=default_project.id, organization_id=None
+        )
+        schedule_invalidate_project_cache(project_id=default_project.id, trigger="test")
+        schedule_invalidate_project_cache(project_id=default_project.id, trigger="test")
+
+        debounce_cache.mark_task_done(
+            public_key=None, project_id=None, organization_id=default_organization.id
+        )
+        schedule_invalidate_project_cache(organization_id=default_organization.id, trigger="test")
+        schedule_invalidate_project_cache(organization_id=default_organization.id, trigger="test")
+
+        assert tasks == [
+            {
+                "project_id": default_project.id,
+                "organization_id": None,
+                "public_key": None,
+                "trigger": "test",
+            },
+            {
+                "project_id": None,
+                "organization_id": default_organization.id,
+                "public_key": None,
+                "trigger": "test",
+            },
+        ]
+
+    @pytest.mark.django_db
+    def test_invalidate(
+        self,
+        monkeypatch,
+        default_project,
+        default_organization,
+        default_projectkey,
+        task_runner,
+        redis_cache,
+    ):
+        cfg = {"dummy-key": "val"}
+        redis_cache.set_many({default_projectkey.public_key: cfg})
+        assert redis_cache.get(default_projectkey.public_key) == cfg
+
+        with task_runner():
+            schedule_invalidate_project_cache(project_id=default_project.id, trigger="test")
+
+        for cache_key in _cache_keys_for_project(default_project):
+            cfg = redis_cache.get(cache_key)
+            assert "dummy-key" not in cfg
+            assert cfg["disabled"] is False
+            assert cfg["projectId"] == default_project.id
+
+    @pytest.mark.django_db
+    def test_invalidate_org(
+        self,
+        monkeypatch,
+        default_project,
+        default_organization,
+        default_projectkey,
+        task_runner,
+        redis_cache,
+    ):
+        # Currently for org-wide we delete the config instead of computing it.
+        cfg = {"dummy-key": "val"}
+        redis_cache.set_many({default_projectkey.public_key: cfg})
+        assert redis_cache.get(default_projectkey.public_key) == cfg
+
+        with task_runner():
+            schedule_invalidate_project_cache(
+                organization_id=default_organization.id, trigger="test"
+            )
+
+        for cache_key in _cache_keys_for_project(default_project):
+            assert redis_cache.get(cache_key) is None

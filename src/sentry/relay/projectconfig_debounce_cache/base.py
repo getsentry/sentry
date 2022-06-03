@@ -22,7 +22,7 @@ class ProjectConfigDebounceCache(Service):
     def __init__(self, **options):
         pass
 
-    def check_is_debounced(self, public_key, project_id, organization_id):
+    def check_is_debounced(self, *, public_key, project_id, organization_id):
         """
         Check if the given project/organization should be debounced, and
         debounces when it isn't.
@@ -33,16 +33,16 @@ class ProjectConfigDebounceCache(Service):
 
         return False
 
-    def is_debounced(self, public_key, project_id, organization_id):
+    def is_debounced(self, *, public_key, project_id, organization_id):
         """Checks if the given project/organization should be debounced."""
         return False
 
-    def debounce(self, public_key, project_id, organization_id):
+    def debounce(self, *, public_key, project_id, organization_id):
         """
         Debounces the given project/organization, without performing any checks.
         """
 
-    def mark_task_done(self, public_key, project_id, organization_id):
+    def mark_task_done(self, *, public_key, project_id, organization_id):
         """
         Mark a task done such that `check_is_debounced` starts emitting False
         for the given parameters.
