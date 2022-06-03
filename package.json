@@ -40,7 +40,7 @@
     "@types/enzyme": "^3.10.12",
     "@types/jest": "^28.1.0",
     "@types/js-cookie": "^3.0.2",
-    "@types/lodash": "^4.14.180",
+    "@types/lodash": "^4.14.182",
     "@types/marked": "^0.7.2",
     "@types/mini-css-extract-plugin": "^2.5.1",
     "@types/papaparse": "^5.2.6",
