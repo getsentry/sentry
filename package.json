@@ -22,7 +22,7 @@
     "@emotion/react": "^11.4.0",
     "@emotion/styled": "^11.3.0",
     "@popperjs/core": "^2.11.5",
-    "@sentry-internal/global-search": "^0.0.43",
+    "@sentry-internal/global-search": "^0.2.2",
     "@sentry/integrations": "7.0.0",
     "@sentry/node": "7.0.0",
     "@sentry/react": "7.0.0",
