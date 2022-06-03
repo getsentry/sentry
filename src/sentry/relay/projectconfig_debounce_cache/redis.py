@@ -4,17 +4,6 @@ from sentry.utils.redis import get_dynamic_cluster_from_options, validate_dynami
 REDIS_CACHE_TIMEOUT = 3600  # 1 hr
 
 
-def _get_redis_key(public_key, project_id, organization_id):
-    if organization_id:
-        return f"relayconfig-debounce:o:{organization_id}"
-    elif project_id:
-        return f"relayconfig-debounce:p:{project_id}"
-    elif public_key:
-        return f"relayconfig-debounce:k:{public_key}"
-    else:
-        raise ValueError()
-
-
 class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
     def __init__(self, **options):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
@@ -50,18 +39,18 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
         return False
 
     def is_debounced(self, *, public_key, project_id, organization_id):
-        key = _get_redis_key(public_key, project_id, organization_id)
+        key = self._get_redis_key(public_key, project_id, organization_id)
         client = self.__get_redis_client(key)
         if client.get(key):
             return True
         return False
 
     def debounce(self, *, public_key, project_id, organization_id):
-        key = _get_redis_key(public_key, project_id, organization_id)
+        key = self._get_redis_key(public_key, project_id, organization_id)
         client = self.__get_redis_client(key)
         client.setex(key, REDIS_CACHE_TIMEOUT, 1)
 
     def mark_task_done(self, *, public_key, project_id, organization_id):
-        key = _get_redis_key(public_key, project_id, organization_id)
+        key = self._get_redis_key(public_key, project_id, organization_id)
         client = self.__get_redis_client(key)
         return client.delete(key)
