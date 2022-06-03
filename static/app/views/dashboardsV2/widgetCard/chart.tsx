@@ -303,9 +303,26 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     }
 
     if (widget.displayType === 'big_number') {
-      return (
-        <TransitionChart loading={loading} reloading={loading}>
-          <LoadingScreen loading={loading} />
+      return getDynamicText({
+        value: (
+          <TransitionChart loading={loading} reloading={loading}>
+            <LoadingScreen loading={loading} />
+            <BigNumberResizeWrapper
+              ref={el => {
+                if (el !== null && !!!expandNumbers) {
+                  const {height} = el.getBoundingClientRect();
+                  if (height !== this.state.containerHeight) {
+                    this.setState({containerHeight: height});
+                  }
+                }
+              }}
+            >
+              {this.bigNumberComponent({tableResults, loading, errorMessage})}
+            </BigNumberResizeWrapper>
+          </TransitionChart>
+        ),
+        fixed: (
+          // Mock the big number widget to bypass loading state
           <BigNumberResizeWrapper
             ref={el => {
               if (el !== null && !!!expandNumbers) {
@@ -316,10 +333,19 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
               }
             }}
           >
-            {this.bigNumberComponent({tableResults, loading, errorMessage})}
+            {this.bigNumberComponent({
+              tableResults: [
+                {
+                  title: '',
+                  meta: {'count()': 'integer'},
+                  data: [{'count()': 0, id: '1'}],
+                },
+              ],
+              loading: false,
+            })}
           </BigNumberResizeWrapper>
-        </TransitionChart>
-      );
+        ),
+      });
     }
 
     if (errorMessage) {
