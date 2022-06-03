@@ -11,6 +11,11 @@ import {IconCalendar} from 'sentry/icons';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
+import {
+  getFormattedDate,
+  DEFAULT_DAY_END_TIME,
+  DEFAULT_DAY_START_TIME,
+} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = Omit<
@@ -42,11 +47,17 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
   const customDropdownButton = ({getActorProps, isOpen}) => {
     let label;
     if (start && end) {
-      const startString = start.toLocaleString('default', {
-        month: 'short',
-        day: 'numeric',
-      });
-      const endString = end.toLocaleString('default', {month: 'short', day: 'numeric'});
+      const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
+      const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
+
+      const shouldShowTimes =
+        startTimeFormatted !== DEFAULT_DAY_START_TIME ||
+        endTimeFormatted !== DEFAULT_DAY_END_TIME;
+      const format = shouldShowTimes ? 'MMM D, h:mma' : 'MMM D';
+
+      const startString = getFormattedDate(start, format, {local: true});
+      const endString = getFormattedDate(end, format, {local: true});
+
       label = `${startString} - ${endString}`;
     } else {
       label = period?.toUpperCase();
@@ -100,6 +111,7 @@ const DropdownTitle = styled('div')`
   display: flex;
   align-items: center;
   flex: 1;
+  width: 100%;
 `;
 
 export default withRouter(DatePageFilter);
