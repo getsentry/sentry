@@ -75,6 +75,9 @@ class MetricAlertDetails extends Component<Props, State> {
       organization,
       rule_id: parseInt(params.ruleId, 10),
       alert: (location.query.alert as string) ?? '',
+      has_chartcuterie: organization.features
+        .includes('metric-alert-chartcuterie')
+        .toString(),
     });
   }
 
