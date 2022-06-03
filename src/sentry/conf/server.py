@@ -2297,7 +2297,11 @@ GEOIP_PATH_MMDB = None
 JS_SDK_LOADER_CDN_URL = ""
 # Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
 JS_SDK_LOADER_SDK_VERSION = ""
-# This should be the url pointing to the JS SDK
+# This should be the url pointing to the JS SDK. It may contain one or two "%s",
+# the first one will be replaced with the SDK version, the second one is used to
+# inject a bundle modifier in the JS SDK CDN loader. e.g:
+# 'https://browser.sentry-cdn.com/%s/bundle%s.min.js' will become
+# 'https://browser.sentry-cdn.com/7.0.0/bundle.es5.min.js'
 JS_SDK_LOADER_DEFAULT_SDK_URL = ""
 
 # block domains which are generally used by spammers -- keep this configurable

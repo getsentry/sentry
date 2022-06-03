@@ -30,20 +30,28 @@ class BrowserSdkVersionTestCase(TestCase):
         "sentry.loader.browsersdkversion.load_version_from_file", return_value=MOCK_VERSIONS
     )
     def test_get_highest_browser_sdk_version_from_versions(self, load_version_from_file):
-        assert get_highest_browser_sdk_version(load_version_from_file()) == "5.10.1"
+        assert str(get_highest_browser_sdk_version(load_version_from_file())) == "5.10.1"
 
     @mock.patch(
         "sentry.loader.browsersdkversion.load_version_from_file", return_value=MOCK_VERSIONS
     )
     def test_get_highest_selected_version(self, load_version_from_file):
-        assert get_highest_selected_browser_sdk_version("4.x") == "4.6.4"
-        assert get_highest_selected_browser_sdk_version("5.x") == "5.10.1"
-        assert get_highest_selected_browser_sdk_version("latest") == "5.10.1"
+        assert str(get_highest_selected_browser_sdk_version("4.x")) == "4.6.4"
+        assert str(get_highest_selected_browser_sdk_version("5.x")) == "5.10.1"
+        assert str(get_highest_selected_browser_sdk_version("latest")) == "5.10.1"
 
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=[])
     def test_get_highest_selected_version_no_version(self, load_version_from_file):
-        assert get_highest_selected_browser_sdk_version("4.x") == settings.JS_SDK_LOADER_SDK_VERSION
-        assert get_highest_selected_browser_sdk_version("5.x") == settings.JS_SDK_LOADER_SDK_VERSION
+        settings.JS_SDK_LOADER_SDK_VERSION = "0.5.2"
         assert (
-            get_highest_selected_browser_sdk_version("latest") == settings.JS_SDK_LOADER_SDK_VERSION
+            str(get_highest_selected_browser_sdk_version("4.x"))
+            == settings.JS_SDK_LOADER_SDK_VERSION
+        )
+        assert (
+            str(get_highest_selected_browser_sdk_version("5.x"))
+            == settings.JS_SDK_LOADER_SDK_VERSION
+        )
+        assert (
+            str(get_highest_selected_browser_sdk_version("latest"))
+            == settings.JS_SDK_LOADER_SDK_VERSION
         )
