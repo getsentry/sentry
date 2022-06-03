@@ -522,7 +522,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         commit_max_batch_size: int,
         commit_max_batch_time: int,
     ):
-        logger.warning("Initializing multi process strategy")
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
 
@@ -554,7 +553,6 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
 
         strategy = BatchMessages(parallel_strategy, self.__max_batch_time, self.__max_batch_size)
 
-        logger.warning("Strategy initialized")
         return strategy
 
 
