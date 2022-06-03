@@ -6,9 +6,10 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {openModal} from 'sentry/actionCreators/modal';
 import Badge from 'sentry/components/badge';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {SamplingRule, SamplingRules, SamplingRuleType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -252,6 +253,28 @@ class Sampling extends AsyncView<Props, State> {
         {params.ruleType === SamplingRuleType.TRANSACTION ? (
           <TransactionRules
             rules={transactionRules}
+            infoAlert={
+              !!traceRules.length
+                ? tct('[link] will initiate before these rules', {
+                    link: (
+                      <Link
+                        to={recreateRoute(`${SamplingRuleType.TRACE}/`, {
+                          routes,
+                          location,
+                          params,
+                          stepBack: -1,
+                        })}
+                      >
+                        {tn(
+                          '% Distributed Trace rule',
+                          '%s Distributed Trace rules',
+                          traceRules.length
+                        )}
+                      </Link>
+                    ),
+                  })
+                : undefined
+            }
             onUpdateRules={newRules =>
               this.handleUpdateRules([...traceRules, ...newRules])
             }

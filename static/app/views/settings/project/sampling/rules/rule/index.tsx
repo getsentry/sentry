@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -9,10 +9,11 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SamplingRule, SamplingRuleOperator} from 'sentry/types/sampling';
 
+import {getInnerNameLabel} from '../../utils';
 import {layout} from '../utils';
 
 import {Actions} from './actions';
-import {Conditions} from './conditions';
+import {ConditionValue} from './conditionValue';
 
 type Props = {
   dragging: boolean;
@@ -69,6 +70,7 @@ export function Rule({
                 ? t('Rules without conditions cannot be reordered.')
                 : undefined
             }
+            containerDisplayMode="flex"
           >
             <IconGrabbableWrapper {...listeners} {...grabAttributes}>
               <IconGrabbable />
@@ -76,7 +78,6 @@ export function Rule({
           </Tooltip>
         </GrabColumn>
       )}
-
       <Column>
         <Operator>
           {operator === SamplingRuleOperator.IF
@@ -87,11 +88,19 @@ export function Rule({
         </Operator>
       </Column>
       <Column>
-        <Conditions condition={rule.condition} />
+        <Conditions>
+          {rule.condition.inner.map((condition, index) => (
+            <Fragment key={index}>
+              <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
+              {'='}
+              <ConditionValue value={condition.value} />
+            </Fragment>
+          ))}
+        </Conditions>
       </Column>
-      <CenteredColumn>
+      <RightColumn>
         <SampleRate>{`${rule.sampleRate * 100}\u0025`}</SampleRate>
-      </CenteredColumn>
+      </RightColumn>
       <Column>
         <Actions
           onEditRule={onEditRule}
@@ -109,20 +118,33 @@ export function Rule({
 
 const Operator = styled('div')`
   color: ${p => p.theme.active};
+  background: yellow;
 `;
 
 const SampleRate = styled('div')`
   white-space: pre-wrap;
   word-break: break-all;
+  background: yellow;
 `;
 
 const Column = styled('div')`
   display: flex;
-  align-items: center;
-  padding: ${space(2)};
+  padding: ${space(1)} ${space(2)};
   cursor: default;
   white-space: pre-wrap;
   word-break: break-all;
+  /* match the height of edit and delete buttons */
+  line-height: 34px;
+`;
+
+const IconGrabbableWrapper = styled('div')`
+  outline: none;
+  display: flex;
+  align-items: center;
+  /* match the height of edit and delete buttons */
+  height: 34px;
+  background: yellow;
+}
 `;
 
 const GrabColumn = styled(Column)`
@@ -133,7 +155,8 @@ const GrabColumn = styled(Column)`
 
 const Columns = styled('div')<{disabled: boolean}>`
   display: grid;
-  align-items: center;
+  align-items: flex-start;
+  line-height: 34px;
   ${p => layout(p.theme)}
   > * {
     overflow: visible;
@@ -154,11 +177,20 @@ const Columns = styled('div')<{disabled: boolean}>`
     `}
 `;
 
-const IconGrabbableWrapper = styled('div')`
-  outline: none;
+const RightColumn = styled(Column)`
+  text-align: right;
+  justify-content: flex-end;
 `;
 
-const CenteredColumn = styled(Column)`
-  text-align: center;
-  justify-content: center;
+const Conditions = styled('div')`
+  display: grid;
+  grid-template-columns: max-content max-content 1fr;
+  color: ${p => p.theme.purple300};
+  align-items: flex-start;
+  grid-column-gap: ${space(1)};
+  width: 100%;
+`;
+
+const ConditionName = styled('div')`
+  color: ${p => p.theme.gray400};
 `;
