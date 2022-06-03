@@ -1,7 +1,7 @@
 # DO NOT MODIFY. This file was generated with `make freeze-requirements`.
 
 amqp==2.6.1
-attrs==21.4.0
+attrs==19.2.0
 beautifulsoup4==4.7.1
 billiard==3.6.4.0
 black==22.3.0
@@ -79,7 +79,7 @@ mypy==0.812
 mypy-extensions==0.4.3
 natsort==8.1.0
 nodeenv==1.6.0
-oauthlib==3.2.0
+oauthlib==3.1.0
 openapi-core==0.14.2
 openapi-schema-validator==0.2.3
 openapi-spec-validator==0.4.0
@@ -98,12 +98,13 @@ pluggy==0.13.1
 pre-commit==2.18.1
 progressbar2==3.41.0
 proto-plus==1.20.4
-protobuf==3.20.1
+protobuf==3.19.0
 psycopg2-binary==2.8.6
 py==1.11.0
-pyasn1==0.4.8
-pyasn1-modules==0.2.8
+pyasn1==0.4.5
+pyasn1-modules==0.2.4
 pycodestyle==2.8.0
+pycountry==17.5.14
 pycparser==2.21
 pyflakes==2.4.0
 pyjwt==2.1.0
@@ -120,7 +121,7 @@ python-rapidjson==1.4
 python-u2flib-server==5.0.0
 python-utils==3.2.3
 python3-saml==1.14.0
-pytz==2022.1
+pytz==2018.9
 pyupgrade==2.32.0
 pyyaml==5.4
 rb==1.9.0
@@ -163,7 +164,7 @@ websocket-client==1.3.2
 werkzeug==2.1.2
 wheel==0.37.1
 wrapt==1.14.1
-xmlsec==1.3.12
+xmlsec==1.3.11
 zstandard==0.14.1
 
 # The following packages are considered to be unsafe in a requirements file:
