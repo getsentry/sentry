@@ -288,7 +288,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     this.fetchData();
   }
 
-  async fetchData() {
+  fetchData() {
     const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
       this.props;
 
