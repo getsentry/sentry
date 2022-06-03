@@ -438,6 +438,10 @@ def process_messages(
             org_strings[org_id].update(parsed_strings)
             strings.update(parsed_strings)
 
+    string_count = 0
+    for strings in org_strings:
+        string_count += len(strings)
+    metrics.gauge("process_messages.lookups_per_batch", value=string_count)
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
