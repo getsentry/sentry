@@ -144,7 +144,7 @@ def test_proj_in_cache_and_another_pending(
     }
 
 
-@patch("sentry.tasks.relay.update_config_cache.delay")
+@patch("sentry.tasks.relay.build_config_cache.delay")
 @pytest.mark.django_db
 def test_enqueue_task_if_config_not_cached_not_queued(
     schedule_mock,
