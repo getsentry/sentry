@@ -2,6 +2,7 @@ import {cloneElement, Fragment, isValidElement, useEffect} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
+import {navigateTo} from 'sentry/actionCreators/navigation';
 import Alert from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -52,6 +53,16 @@ function AlertBuilderProjectProvider(props: Props) {
 
   if (!initiallyLoaded || fetching) {
     return <LoadingIndicator />;
+  }
+
+  // If there's no project show the project selector modal
+  if (!project && !fetchError) {
+    navigateTo(
+      hasAlertWizardV3
+        ? `/organizations/${organization.slug}/alerts/wizard/?referrer=${props.location.query.referrer}&project=:projectId`
+        : `/organizations/${organization.slug}/alerts/:projectId/wizard/?referrer=${props.location.query.referrer}`,
+      props.router
+    );
   }
 
   // if loaded, but project fetching states incomplete or project can't be found, project doesn't exist
