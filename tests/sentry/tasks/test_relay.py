@@ -194,12 +194,12 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
     ProjectOption.objects._option_cache.clear()
     with task_runner():
         with patch("sentry.utils.cache.cache.get", return_value=None):
-            with patch("sentry.tasks.relay.schedule_build_config_cache") as update_config_cache:
+            with patch("sentry.tasks.relay.schedule_build_config_cache") as build_config_cache:
                 default_project.get_option(
                     "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
                 )
 
-    update_config_cache.assert_not_called()  # noqa
+    build_config_cache.assert_not_called()  # noqa
 
 
 @pytest.mark.django_db
