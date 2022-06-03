@@ -129,10 +129,7 @@ class TwoFactorAuthView(BaseView):
             )
 
         if request.method == "GET":
-            if interface.type == U2fInterface.type:
-                activation = interface.activate(request)
-            else:
-                activation = interface.activate(request)
+            activation = interface.activate(request)
 
             if activation is not None and activation.type == "challenge":
                 challenge = activation.challenge
