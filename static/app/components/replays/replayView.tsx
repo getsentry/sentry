@@ -8,8 +8,6 @@ import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import theme from 'sentry/utils/theme';
-import useMedia from 'sentry/utils/useMedia';
 
 // How much to reveal under the player, so people can see the 'pagefold' and
 // know that they can scroll the page.
@@ -23,7 +21,6 @@ type Props = {
 function ReplayView({isFullscreen, toggleFullscreen}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
-  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
 
   const [windowInnerHeight, setWindowInnerHeight] = useState(window.innerHeight);
   const [playerHeight, setPlayerHeight] = useState(0);
@@ -45,7 +42,7 @@ function ReplayView({isFullscreen, toggleFullscreen}: Props) {
     const calc =
       windowInnerHeight - (containerBottom - playerOffsetHeight) - BOTTOM_REVEAL_PIXELS;
     setPlayerHeight(Math.max(200, calc));
-  }, [isScreenLarge, windowInnerHeight]);
+  }, [windowInnerHeight]);
 
   return (
     <PanelNoMargin ref={containerRef} isFullscreen={isFullscreen}>
