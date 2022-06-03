@@ -276,7 +276,7 @@ describe('WidgetBuilder', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders a widget not found message if the widget index url is not an integer', async function () {
+    it('renders a widget not found message if the widget index url is not an integer', function () {
       const widget: Widget = {
         displayType: DisplayType.AREA,
         interval: '1d',
@@ -2616,7 +2616,7 @@ describe('WidgetBuilder', function () {
         userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
 
         expect(metricsDataMock).toHaveBeenCalled();
-        expect(screen.getByLabelText('Releases (sessions, crash rates)')).toBeChecked();
+        expect(screen.getByLabelText(/Releases/i)).toBeChecked();
       });
 
       it('does not display "add an equation" button', async function () {
@@ -2674,13 +2674,7 @@ describe('WidgetBuilder', function () {
         userEvent.click(await screen.findByText('Table'));
         userEvent.click(screen.getByText('World Map'));
 
-        await waitFor(() =>
-          expect(
-            screen.getByRole('radio', {
-              name: 'Select Releases (sessions, crash rates)',
-            })
-          ).toBeDisabled()
-        );
+        await waitFor(() => expect(screen.getByLabelText(/Releases/)).toBeDisabled());
 
         expect(
           screen.getByRole('radio', {

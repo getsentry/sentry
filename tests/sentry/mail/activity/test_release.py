@@ -41,10 +41,11 @@ class ReleaseTestCase(ActivityTestCase):
 
         repository = Repository.objects.create(organization_id=self.org.id, name=self.project.name)
 
+        # The commits are intentionally out of order to test commit `order`.
+        self.commit4 = self.another_commit(3, "e", self.user5, repository, user5_alt_email)
         self.commit1 = self.another_commit(0, "a", self.user1, repository)
         self.commit2 = self.another_commit(1, "b", self.user2, repository)
         self.commit3 = self.another_commit(2, "c", self.user4, repository)
-        self.commit4 = self.another_commit(3, "e", self.user5, repository, user5_alt_email)
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -99,10 +100,10 @@ class ReleaseTestCase(ActivityTestCase):
         context = email.get_context()
         assert context["environment"] == "production"
         assert context["repos"][0]["commits"] == [
-            (self.commit1, self.user1),
-            (self.commit2, self.user2),
-            (self.commit3, self.user4),
             (self.commit4, self.user5),
+            (self.commit3, self.user4),
+            (self.commit2, self.user2),
+            (self.commit1, self.user1),
         ]
 
         user_context = email.get_recipient_context(self.user1, {})

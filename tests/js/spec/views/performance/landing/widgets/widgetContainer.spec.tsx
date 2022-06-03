@@ -107,7 +107,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     }
   });
 
-  it('Check requests when changing widget props', async function () {
+  it('Check requests when changing widget props', function () {
     const data = initializeData();
 
     wrapper = render(
@@ -160,7 +160,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
+  it('Check requests when changing widget props for GenericDiscoverQuery based widget', function () {
     const data = initializeData();
 
     wrapper = render(
