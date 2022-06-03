@@ -33,7 +33,7 @@ class AllTeamsRow extends Component<Props, State> {
     error: false,
   };
 
-  handleRequestAccess = async () => {
+  handleRequestAccess = () => {
     const {team} = this.props;
 
     try {

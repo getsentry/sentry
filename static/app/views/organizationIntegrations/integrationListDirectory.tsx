@@ -346,7 +346,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     return displayedList;
   };
 
-  handleSearchChange = async (value: string) => {
+  handleSearchChange = (value: string) => {
     this.setState({searchInput: value}, () => {
       this.updateQueryString();
       const result = this.updateDisplayedList();
