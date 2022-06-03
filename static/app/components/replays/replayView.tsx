@@ -13,6 +13,8 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 // know that they can scroll the page.
 const BOTTOM_REVEAL_PIXELS = 70;
 
+const SCREEN_HEIGHT_DIVISOR = 2;
+
 type Props = {
   isFullscreen: boolean;
   toggleFullscreen: () => void;
@@ -41,7 +43,7 @@ function ReplayView({isFullscreen, toggleFullscreen}: Props) {
     const playerOffsetHeight = playerRef.current?.offsetHeight || 0;
     const calc =
       windowInnerHeight - (containerBottom - playerOffsetHeight) - BOTTOM_REVEAL_PIXELS;
-    setPlayerHeight(Math.max(200, calc));
+    setPlayerHeight(Math.max(200, calc / SCREEN_HEIGHT_DIVISOR));
   }, [windowInnerHeight]);
 
   return (
