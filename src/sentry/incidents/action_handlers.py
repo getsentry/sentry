@@ -8,6 +8,7 @@ from django.template.defaultfilters import pluralize
 from django.urls import reverse
 
 from sentry import features
+from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models import (
@@ -219,6 +220,7 @@ def generate_incident_trigger_email_context(
                 organization=incident.organization,
                 alert_rule=incident.alert_rule,
                 selected_incident=incident,
+                size=ChartSize({"width": 600, "height": 200}),
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)

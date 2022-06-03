@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import TypedDict
 
 
 class ChartType(Enum):
@@ -20,3 +21,8 @@ class ChartType(Enum):
     SLACK_DISCOVER_WORLDMAP = "slack:discover.worldmap"
     SLACK_METRIC_ALERT_EVENTS = "slack:metricAlert.events"
     SLACK_METRIC_ALERT_SESSIONS = "slack:metricAlert.sessions"
+
+
+class ChartSize(TypedDict):
+    width: int
+    height: int

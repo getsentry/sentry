@@ -335,3 +335,4 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         assert chart_data["selectedIncident"]["identifier"] == str(incident.identifier)
         series_data = chart_data["timeseriesData"][0]["data"]
         assert len(series_data) > 0
+        assert mock_generate_chart.call_args[1]["size"] == {"width": 600, "height": 200}

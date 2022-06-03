@@ -14,7 +14,7 @@ from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import ChartRenderer, logger
-from .types import ChartType
+from .types import ChartSize, ChartType
 
 
 class Chartcuterie(ChartRenderer):
@@ -52,14 +52,20 @@ class Chartcuterie(ChartRenderer):
         if not self.service_url:
             raise InvalidConfiguration("`chart-rendering.chartcuterie.url` is not configured")
 
-    def generate_chart(self, style: ChartType, data: Any, upload: bool = True) -> Union[str, bytes]:
+    def generate_chart(
+        self, style: ChartType, data: Any, upload: bool = True, size: Optional[ChartSize] = None
+    ) -> Union[str, bytes]:
         request_id = uuid4().hex
 
-        data = {
+        payload = {
             "requestId": request_id,
             "style": style.value,
             "data": data,
         }
+
+        # Override the default size defined by the chart style
+        if size:
+            payload.update(size)
 
         with sentry_sdk.start_span(
             op="charts.chartcuterie.generate_chart",
@@ -69,7 +75,7 @@ class Chartcuterie(ChartRenderer):
             # Using sentry json formatter to handle datetime objects
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
-                data=json.dumps(data, cls=json._default_encoder),
+                data=json.dumps(payload, cls=json._default_encoder),
                 headers={"Content-Type": "application/json"},
             )
 
