@@ -627,7 +627,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('opens widget modal when add to dashboard is clicked', async () => {
+    it('opens widget modal when add to dashboard is clicked', () => {
       mount(
         initialData.router.location,
         initialData.organization,
@@ -654,7 +654,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       );
     });
 
-    it('populates dashboard widget modal with saved query data if created from discover', async () => {
+    it('populates dashboard widget modal with saved query data if created from discover', () => {
       mount(
         initialData.router.location,
         initialData.organization,
@@ -681,7 +681,7 @@ describe('EventsV2 > SaveQueryButtonGroup', function () {
       );
     });
 
-    it('adds equation to query fields if yAxis includes comprising functions', async () => {
+    it('adds equation to query fields if yAxis includes comprising functions', () => {
       mount(
         initialData.router.location,
         initialData.organization,

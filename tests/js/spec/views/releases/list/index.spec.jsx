@@ -41,7 +41,7 @@ describe('ReleasesList', () => {
   };
   let endpointMock, sessionApiMock;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     ProjectsStore.loadInitialData(organization.projects);
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',

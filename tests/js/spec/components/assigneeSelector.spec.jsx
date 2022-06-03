@@ -112,7 +112,7 @@ describe('AssigneeSelector', function () {
   });
 
   describe('render with props', function () {
-    it('renders members from the prop when present', async function () {
+    it('renders members from the prop when present', function () {
       assigneeSelector = mountWithTheme(
         <AssigneeSelectorComponent id={GROUP_1.id} memberList={[USER_2, USER_3]} />
       );
@@ -159,7 +159,7 @@ describe('AssigneeSelector', function () {
     expect(assigneeSelector.find('LoadingIndicator')).toHaveLength(1);
   });
 
-  it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', async function () {
+  it('does not have loading state and shows member list after calling MemberListStore.loadInitialData', function () {
     openMenu();
     MemberListStore.loadInitialData([USER_1, USER_2]);
     assigneeSelector.update();
@@ -274,7 +274,7 @@ describe('AssigneeSelector', function () {
     );
   });
 
-  it('shows invite member button', async function () {
+  it('shows invite member button', function () {
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
     openMenu();
@@ -360,7 +360,7 @@ describe('AssigneeSelector', function () {
     );
   });
 
-  it('renders unassigned', async function () {
+  it('renders unassigned', function () {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
     assigneeSelector = mountWithTheme(<AssigneeSelectorComponent id={GROUP_2.id} />);
     const avatarTooltip = mountWithTheme(assigneeSelector.find('Tooltip').prop('title'));

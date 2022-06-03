@@ -687,7 +687,7 @@ describe('SmartSearchBar', function () {
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
-    it('shows errors on incorrect tokens', async function () {
+    it('shows errors on incorrect tokens', function () {
       const props = {
         query: 'tag: is: has: ',
         organization,

@@ -87,7 +87,7 @@ describe('Tooltip', function () {
     userEvent.unhover(screen.getByText('My Button'));
   });
 
-  it('displays a tooltip if the content overflows with showOnlyOnOverflow', async function () {
+  it('displays a tooltip if the content overflows with showOnlyOnOverflow', function () {
     // Mock this to return true because scrollWidth and clientWidth are 0 in JSDOM
     mockOverflow(100, 50);
 

@@ -16,7 +16,7 @@ describe('utils.teams', function () {
     renderer.mockClear();
   });
 
-  afterEach(async function () {
+  afterEach(function () {
     act(() => void TeamStore.loadInitialData([]));
   });
 

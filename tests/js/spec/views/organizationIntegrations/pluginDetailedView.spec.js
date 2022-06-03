@@ -74,22 +74,22 @@ describe('PluginDetailedView', function () {
       />
     );
   });
-  it('shows the Integration name and install status', async function () {
+  it('shows the Integration name and install status', function () {
     expect(wrapper.find('Name').props().children).toEqual('PagerDuty (Legacy)');
     expect(wrapper.find('IntegrationStatus').props().status).toEqual('Installed');
   });
-  it('shows the Add to Project button', async function () {
+  it('shows the Add to Project button', function () {
     expect(wrapper.find('AddButton').props().disabled).toEqual(false);
     expect(wrapper.find('AddButton').props().children).toEqual('Add to Project');
   });
 
-  it('onClick', async function () {
+  it('onClick', function () {
     modal.openModal = jest.fn();
     wrapper.find('AddButton').simulate('click');
     expect(modal.openModal).toHaveBeenCalled();
   });
 
-  it('view configurations', async function () {
+  it('view configurations', function () {
     wrapper = mountWithTheme(
       <PluginDetailedView
         params={{integrationSlug: 'pagerduty', orgId: org.slug}}

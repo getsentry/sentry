@@ -80,7 +80,7 @@ describe('IntegrationRepos', function () {
       expect(RepositoryActions.resetRepositories).toHaveBeenCalled();
     });
 
-    it('handles failure during save', async function () {
+    it('handles failure during save', function () {
       const addRepo = Client.addMockResponse({
         url: `/organizations/${org.slug}/repos/`,
         method: 'POST',

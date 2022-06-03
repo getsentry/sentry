@@ -131,7 +131,7 @@ describe('InviteRequestRow', function () {
     expect(mockApprove).not.toHaveBeenCalled();
   });
 
-  it('non-admin can not approve or deny invite request', async function () {
+  it('non-admin can not approve or deny invite request', function () {
     const wrapper = mountWithTheme(
       <InviteRequestRow
         orgId={orgId}

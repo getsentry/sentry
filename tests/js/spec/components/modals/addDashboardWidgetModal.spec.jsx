@@ -77,7 +77,7 @@ function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, so
   );
 }
 
-async function clickSubmit(wrapper) {
+function clickSubmit(wrapper) {
   // Click on submit.
   const button = wrapper.find('Button[data-test-id="add-widget"] button');
   button.simulate('click');
@@ -1136,7 +1136,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
-  it('renders the tab button bar from widget library', async function () {
+  it('renders the tab button bar from widget library', function () {
     const onAddLibraryWidgetMock = jest.fn();
     const wrapper = mountModal({
       initialData,

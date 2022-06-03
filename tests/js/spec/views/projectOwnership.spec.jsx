@@ -74,7 +74,7 @@ describe('Project Ownership', function () {
       expect(wrapper.find('CodeOwnerButton').exists()).toBe(true);
     });
 
-    it('clicking button opens modal', async function () {
+    it('clicking button opens modal', function () {
       org = TestStubs.Organization({
         features: ['integrations-codeowners'],
         access: ['org:integrations'],

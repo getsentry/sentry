@@ -46,7 +46,7 @@ describe('Incident Rules Duplicate', function () {
     });
   });
 
-  it('renders new alert form with values copied over', async function () {
+  it('renders new alert form with values copied over', function () {
     const rule = TestStubs.MetricRule();
     rule.triggers.push({
       label: AlertRuleTriggerType.WARNING,

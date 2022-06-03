@@ -28,7 +28,7 @@ describe('RecoveryOptionsModal', function () {
 
   afterEach(function () {});
 
-  it('can redirect to recovery codes if user skips backup phone setup', async function () {
+  it('can redirect to recovery codes if user skips backup phone setup', function () {
     const getRecoveryCodes = 'RecoveryOptionsModal Button[name="getCodes"]';
     expect(wrapper.find(getRecoveryCodes)).toHaveLength(0);
 
@@ -45,7 +45,7 @@ describe('RecoveryOptionsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('can redirect to backup phone setup', async function () {
+  it('can redirect to backup phone setup', function () {
     const backupPhone = 'RecoveryOptionsModal Button[name="addPhone"]';
 
     expect(wrapper.find(backupPhone)).toHaveLength(1);
@@ -57,7 +57,7 @@ describe('RecoveryOptionsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('skips backup phone setup if text message authenticator unavailable', async function () {
+  it('skips backup phone setup if text message authenticator unavailable', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',

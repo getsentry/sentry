@@ -126,7 +126,7 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('joins a team', async function () {
+    it('joins a team', function () {
       wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
@@ -164,7 +164,7 @@ describe('OrganizationMemberDetail', function () {
       routerContext = TestStubs.routerContext([{organization}]);
     });
 
-    it('can not change roles, teams, or save', async function () {
+    it('can not change roles, teams, or save', function () {
       wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext

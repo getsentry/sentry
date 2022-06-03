@@ -48,7 +48,7 @@ describe('Modals -> DashboardWidgetLibraryModal', function () {
     }
   });
 
-  it('opens modal and renders correctly', async function () {
+  it('opens modal and renders correctly', function () {
     // Checking initial modal states
     container = mountModal({initialData});
 

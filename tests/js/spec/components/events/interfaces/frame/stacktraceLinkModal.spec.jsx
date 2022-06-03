@@ -70,7 +70,7 @@ describe('StacktraceLinkModal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders manual setup option', async function () {
+  it('renders manual setup option', function () {
     const wrapper = createWrapper();
     expect(wrapper.find('IntegrationName').text()).toEqual('Test Integration');
   });

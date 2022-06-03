@@ -41,7 +41,7 @@ describe('OrganizationTeams', function () {
         routerContext
       );
 
-    it('opens "create team modal" when creating a new team from header', async function () {
+    it('opens "create team modal" when creating a new team from header', function () {
       const wrapper = createWrapper();
 
       // Click "Create Team" in Panel Header

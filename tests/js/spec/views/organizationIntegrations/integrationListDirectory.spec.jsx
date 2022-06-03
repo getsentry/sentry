@@ -46,7 +46,7 @@ describe('IntegrationListDirectory', function () {
       );
     });
 
-    it('shows installed integrations at the top in order of weight', async function () {
+    it('shows installed integrations at the top in order of weight', function () {
       expect(wrapper.find('SearchBar').exists()).toBeTruthy();
       expect(wrapper.find('PanelBody').exists()).toBeTruthy();
       expect(wrapper.find('IntegrationRow')).toHaveLength(7);
@@ -64,13 +64,13 @@ describe('IntegrationListDirectory', function () {
       );
     });
 
-    it('does not show legacy plugin that has a First Party Integration if not installed', async function () {
+    it('does not show legacy plugin that has a First Party Integration if not installed', function () {
       wrapper.find('IntegrationRow').forEach(node => {
         expect(node.props().displayName).not.toEqual('Github (Legacy)');
       });
     });
 
-    it('shows legacy plugin that has a First Party Integration if installed', async function () {
+    it('shows legacy plugin that has a First Party Integration if installed', function () {
       const legacyPluginRow = wrapper
         .find('IntegrationRow')
         .filterWhere(node => node.props().displayName === 'PagerDuty (Legacy)');

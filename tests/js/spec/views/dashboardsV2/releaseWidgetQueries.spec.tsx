@@ -176,7 +176,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('calls session api when session.status is a group by', async function () {
+  it('calls session api when session.status is a group by', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
       body: TestStubs.MetricsField({

@@ -39,7 +39,7 @@ describe('groupEventDetailsContainer', () => {
     OrganizationEnvironmentsStore.teardown();
   });
 
-  it('fetches environments', async function () {
+  it('fetches environments', function () {
     const environmentsCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/environments/`,
       body: TestStubs.Environments(),

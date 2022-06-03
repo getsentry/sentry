@@ -116,7 +116,7 @@ describe('PersistedStore', function () {
     expect(state2).toBe(DefaultLoadedPersistedStore.onboarding);
   });
 
-  it('returns default when state fails to load', async function () {
+  it('returns default when state fails to load', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/client-state/`,
       statusCode: 500,

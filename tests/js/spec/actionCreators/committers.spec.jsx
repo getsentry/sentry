@@ -82,7 +82,7 @@ describe('CommitterActionCreator', function () {
     });
   });
 
-  it('short-circuits the JS event loop', async () => {
+  it('short-circuits the JS event loop', () => {
     expect(CommitterStore.state.committersLoading).toEqual(undefined);
 
     getCommitters(api, {

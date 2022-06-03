@@ -989,7 +989,7 @@ describe('GlobalSelectionHeader', function () {
         initialData.router.replace.mockClear();
       });
 
-      it('appends projectId to URL when mounted with `forceProject`', async function () {
+      it('appends projectId to URL when mounted with `forceProject`', function () {
         // forceProject generally starts undefined
         createWrapper({
           shouldForceProject: true,
@@ -1052,7 +1052,7 @@ describe('GlobalSelectionHeader', function () {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('does not append projectId to URL when `loadingProjects` changes and finishes loading', async function () {
+      it('does not append projectId to URL when `loadingProjects` changes and finishes loading', function () {
         ProjectsStore.reset();
 
         createWrapper();
@@ -1067,7 +1067,7 @@ describe('GlobalSelectionHeader', function () {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
+      it('appends projectId to URL when `forceProject` becomes available (async)', function () {
         ProjectsStore.reset();
 
         // forceProject generally starts undefined

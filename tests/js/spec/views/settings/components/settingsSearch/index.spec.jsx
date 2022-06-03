@@ -64,7 +64,7 @@ describe('SettingsSearch', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     render(<SettingsSearch params={{orgId: 'org-slug'}} />);
 
     // renders input

@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import TeamStability from 'sentry/views/organizationStats/teamInsights/teamStability';
 
 describe('TeamStability', () => {
-  it('should comparse selected past crash rate with current week', async () => {
+  it('should comparse selected past crash rate with current week', () => {
     const sessionsApi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
       body: TestStubs.SessionStatusCountByProjectInPeriod(),
@@ -23,7 +23,7 @@ describe('TeamStability', () => {
     expect(sessionsApi).toHaveBeenCalledTimes(3);
   });
 
-  it('should render no sessions', async () => {
+  it('should render no sessions', () => {
     const noSessionProject = TestStubs.Project({hasSessions: false, id: 123});
     render(
       <TeamStability
@@ -36,7 +36,7 @@ describe('TeamStability', () => {
     expect(screen.getAllByText('\u2014')).toHaveLength(3);
   });
 
-  it('should render no projects', async () => {
+  it('should render no projects', () => {
     render(
       <TeamStability projects={[]} organization={TestStubs.Organization()} period="7d" />
     );

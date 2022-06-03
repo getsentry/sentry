@@ -54,7 +54,7 @@ describe('IssueListActions', function () {
         wrapper.unmount();
       });
 
-      it('after checking "Select all" checkbox, displays bulk select message', async function () {
+      it('after checking "Select all" checkbox, displays bulk select message', function () {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
         expect(wrapper.find('SelectAllNotice')).toSnapshot();
       });
@@ -122,7 +122,7 @@ describe('IssueListActions', function () {
         wrapper.unmount();
       });
 
-      it('after checking "Select all" checkbox, displays bulk select message', async function () {
+      it('after checking "Select all" checkbox, displays bulk select message', function () {
         wrapper.find('ActionsCheckbox Checkbox').simulate('change');
         expect(wrapper.find('SelectAllNotice')).toSnapshot();
       });
@@ -374,7 +374,7 @@ describe('IssueListActions', function () {
 
   describe('mark reviewed', function () {
     let issuesApiMock;
-    beforeEach(async () => {
+    beforeEach(() => {
       SelectedGroupStore.records = {};
       const organization = TestStubs.Organization();
 

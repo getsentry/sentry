@@ -8,7 +8,7 @@ describe('withTags HoC', function () {
     TagStore.reset();
   });
 
-  it('works', async function () {
+  it('works', function () {
     const MyComponent = ({other, tags}) => {
       return (
         <div>

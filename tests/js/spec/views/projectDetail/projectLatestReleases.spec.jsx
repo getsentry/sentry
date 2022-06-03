@@ -10,7 +10,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
   let endpointMock, endpointOlderReleasesMock;
   const {organization, project, router} = initializeOrg();
 
-  beforeEach(async function () {
+  beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/`,
       body: [

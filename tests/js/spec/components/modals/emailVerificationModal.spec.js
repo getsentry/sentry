@@ -10,7 +10,7 @@ describe('Email Verification Modal', function () {
     );
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     expect(wrapper.find('TextBlock').text()).toEqual(
       'Please verify your email before taking this action, or go to your email settings.'
     );
@@ -20,7 +20,7 @@ describe('Email Verification Modal', function () {
     expect(wrapper.find('EmailAddresses')).toHaveLength(1);
   });
 
-  it('renders with action param', async function () {
+  it('renders with action param', function () {
     wrapper = mountWithTheme(
       <EmailVerificationModal
         Body={p => p.children}

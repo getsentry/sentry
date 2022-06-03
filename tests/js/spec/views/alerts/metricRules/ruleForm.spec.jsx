@@ -258,7 +258,7 @@ describe('Incident Rules Form', () => {
       );
     });
 
-    it('pending status keeps loading true', async () => {
+    it('pending status keeps loading true', () => {
       const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,

@@ -93,7 +93,7 @@ describe('IntegrationDetailedView', function () {
     expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
   });
 
-  it('view configurations', async function () {
+  it('view configurations', function () {
     render(
       <IntegrationDetailedView
         params={{integrationSlug: 'bitbucket', orgId: org.slug}}

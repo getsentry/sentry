@@ -46,7 +46,7 @@ describe('EventVitals', function () {
     expect(wrapper.find('EventVital')).toHaveLength(7);
   });
 
-  it('should render some web vitals with a heading and a sdk warning', async function () {
+  it('should render some web vitals with a heading and a sdk warning', function () {
     const event = makeEvent({fp: 1}, {version: '5.26.0'});
     const wrapper = mountWithTheme(<EventVitals event={event} />);
     expect(wrapper.find('SectionHeading').text()).toEqual('Web Vitals');

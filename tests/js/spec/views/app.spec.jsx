@@ -28,7 +28,7 @@ describe('App', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     render(
       <App params={{orgId: 'org-slug'}}>
         <div>placeholder content</div>

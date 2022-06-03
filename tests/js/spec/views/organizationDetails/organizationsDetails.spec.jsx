@@ -36,7 +36,7 @@ describe('OrganizationDetails', function () {
     });
   });
 
-  it('can fetch projects and teams', async function () {
+  it('can fetch projects and teams', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       body: TestStubs.Organization({
