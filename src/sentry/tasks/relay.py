@@ -40,9 +40,9 @@ def update_config_cache(
         )
 
         # TODO: remove this if statement before this PR is merged.
-        if generate:
+        if keys and generate:
             compute_project_configs(keys)
-        else:
+        elif keys:
             projectconfig_cache.delete_many(key.public_key for key in keys)
 
     finally:
@@ -217,6 +217,8 @@ def invalidate_project_config(organization_id=None, project_id=None, public_key=
     keys = project_keys_to_update(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
+    if not keys:
+        return
 
     if organization_id:
         # Previous incarnations of this task only delete all the affected configs in this
