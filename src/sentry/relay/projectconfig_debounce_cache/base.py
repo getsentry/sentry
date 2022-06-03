@@ -2,8 +2,7 @@ from sentry.utils.services import Service
 
 
 class ProjectConfigDebounceCache(Service):
-    """
-    A cache for debouncing updates for the relay projectconfig cache.
+    """A cache for debouncing updates for the relay projectconfig cache.
 
     Whenever a project or organization option changes, we schedule a celery
     task that updates the relay configuration in the projectconfig cache.
@@ -13,6 +12,9 @@ class ProjectConfigDebounceCache(Service):
     This cache is allowed to randomly lose data but `mark_task_done` should be
     visible immediately, everywhere, consistently. Memcached is probably not
     going to cut it.
+
+    The constructor takes an optional ``key_prefix`` option, which can be used to create
+    multiple instances of this debounce cache with different keys.
     """
 
     __all__ = ("check_is_debounced", "is_debounced", "debounce", "mark_task_done")
