@@ -23,6 +23,7 @@ interface CommitterStoreDefinition extends Reflux.StoreDefinition {
     committersError?: Error;
     committersLoading?: boolean;
   };
+  getState(): State;
 
   init(): void;
 
@@ -96,6 +97,10 @@ export const storeConfig: CommitterStoreDefinition = {
   get(orgSlug: string, projectSlug: string, eventId: string) {
     const key = getCommitterStoreKey(orgSlug, projectSlug, eventId);
     return {...this.state[key]};
+  },
+
+  getState() {
+    return this.state;
   },
 };
 
