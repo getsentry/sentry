@@ -1,9 +1,9 @@
 import re
 from datetime import datetime, timedelta
-from typing import Sequence
+from typing import Optional, Sequence
 
 import pytest
-from snuba_sdk import Direction, Granularity, Limit
+from snuba_sdk import Direction, Granularity, Limit, Offset
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
@@ -24,20 +24,20 @@ class MetricsQueryBuilder:
 
     def __init__(self):
         now = datetime.now()
-        self.org_id = 1
-        self.project_ids = [1, 2]
-        self.select = [self.AVG_DURATION_METRIC]
-        self.start = now - timedelta(hours=1)
-        self.end = now
-        self.granularity = Granularity(3600)
-        self.orderby = None
-        self.where = None
-        self.groupby = None
-        self.limit = None
-        self.offset = None
+        self.org_id: int = 1
+        self.project_ids: Sequence[int] = [1, 2]
+        self.select: Sequence[MetricField] = [self.AVG_DURATION_METRIC]
+        self.start: datetime = now - timedelta(hours=1)
+        self.end: datetime = now
+        self.granularity: Granularity = Granularity(3600)
+        self.orderby: Optional[ConditionGroup] = None
+        self.where: Optional[Sequence[Groupable]] = None
+        self.groupby: Optional[Sequence[OrderBy]] = None
+        self.limit: Optional[Limit] = None
+        self.offset: Optional[Offset] = None
         self.histogram_buckets: int = 100
-        self.include_series = True
-        self.include_totals = True
+        self.include_series: bool = True
+        self.include_totals: bool = True
 
     def with_select(self, select: Sequence[MetricField]) -> "MetricsQueryBuilder":
         self.select = select
