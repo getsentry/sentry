@@ -487,12 +487,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
 
           const seriesStart = series[0]?.data[0]?.name;
           const seriesEnd = series[0]?.data[series[0].data.length - 1]?.name;
-          return (
-            <TransitionChart loading={loading} reloading={loading}>
-              <LoadingScreen loading={loading} />
-              <ChartWrapper autoHeightResize={autoHeightResize} noPadding={noPadding}>
-                {getDynamicText({
-                  value: this.chartComponent({
+          return getDynamicText({
+            value: (
+              <TransitionChart loading={loading} reloading={loading}>
+                <LoadingScreen loading={loading} />
+                <ChartWrapper autoHeightResize={autoHeightResize} noPadding={noPadding}>
+                  {this.chartComponent({
                     ...zoomRenderProps,
                     ...chartOptions,
                     // Override default datazoom behaviour for updating Global Selection Header
@@ -508,12 +508,12 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
                     legend,
                     series,
                     onLegendSelectChanged,
-                  }),
-                  fixed: <Placeholder height="200px" testId="skeleton-ui" />,
-                })}
-              </ChartWrapper>
-            </TransitionChart>
-          );
+                  })}
+                </ChartWrapper>
+              </TransitionChart>
+            ),
+            fixed: <Placeholder height="200px" testId="skeleton-ui" />,
+          });
         }}
       </ChartZoom>
     );
