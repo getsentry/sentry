@@ -64,7 +64,7 @@ describe('Sampling', function () {
     expect(container).toSnapshot();
   });
 
-  describe.only('renders with rules', function () {
+  describe('renders with rules', function () {
     beforeAll(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
@@ -163,7 +163,7 @@ describe('Sampling', function () {
       expect(container).toSnapshot();
     });
 
-    it.only('Individual Transactions tab', async function () {
+    it('Individual Transactions tab', async function () {
       const {container, router} = renderComponent({
         withModal: false,
         ruleType: SamplingRuleType.TRANSACTION,
