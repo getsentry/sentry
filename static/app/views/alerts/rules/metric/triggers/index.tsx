@@ -42,7 +42,6 @@ type Props = {
   thresholdPeriod: UnsavedMetricRule['thresholdPeriod'];
   thresholdType: UnsavedMetricRule['thresholdType'];
   triggers: Trigger[];
-  ruleId?: string;
 };
 
 /**

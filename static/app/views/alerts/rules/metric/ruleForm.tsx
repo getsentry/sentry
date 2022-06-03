@@ -750,7 +750,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         comparisonType={comparisonType}
         currentProject={project.slug}
         organization={organization}
-        ruleId={ruleId}
         availableActions={this.state.availableActions}
         hasAlertWizardV3={this.hasAlertWizardV3}
         onChange={this.handleChangeTriggers}

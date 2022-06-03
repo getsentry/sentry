@@ -245,7 +245,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     projectsLoaded={initiallyLoaded}
                     projects={projects as Project[]}
                     incident={incident}
-                    orgId={orgId}
                     organization={organization}
                   />
                 ))
