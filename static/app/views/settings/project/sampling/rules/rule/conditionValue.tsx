@@ -28,8 +28,6 @@ export function ConditionValue({value}: Props) {
 }
 
 const Value = styled('span')`
-  word-break: break-all;
-  white-space: pre-wrap;
   color: ${p => p.theme.gray300};
 `;
 

@@ -92,7 +92,7 @@ export function Rule({
           {rule.condition.inner.map((condition, index) => (
             <Fragment key={index}>
               <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
-              {'='}
+              <ConditionEqualOperator>{'='}</ConditionEqualOperator>
               <ConditionValue value={condition.value} />
             </Fragment>
           ))}
@@ -118,13 +118,11 @@ export function Rule({
 
 const Operator = styled('div')`
   color: ${p => p.theme.active};
-  background: yellow;
 `;
 
 const SampleRate = styled('div')`
   white-space: pre-wrap;
   word-break: break-all;
-  background: yellow;
 `;
 
 const Column = styled('div')`
@@ -143,7 +141,6 @@ const IconGrabbableWrapper = styled('div')`
   align-items: center;
   /* match the height of edit and delete buttons */
   height: 34px;
-  background: yellow;
 }
 `;
 
@@ -184,13 +181,23 @@ const RightColumn = styled(Column)`
 
 const Conditions = styled('div')`
   display: grid;
-  grid-template-columns: max-content max-content 1fr;
   color: ${p => p.theme.purple300};
   align-items: flex-start;
-  grid-column-gap: ${space(1)};
   width: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: max-content max-content 1fr;
+    grid-column-gap: ${space(1)};
+  }
 `;
 
 const ConditionName = styled('div')`
   color: ${p => p.theme.gray400};
+`;
+
+const ConditionEqualOperator = styled('div')`
+  display: none;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
+  }
 `;
