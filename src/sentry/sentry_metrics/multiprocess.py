@@ -544,7 +544,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
                 commit_max_batch_time=self.__commit_max_batch_time / 1000,
             ),
             self.__processes,
-            max_batch_size=self.__max_batch_size,
+            max_batch_size=int(self.__max_batch_size / 10),
             max_batch_time=self.__max_batch_time,
             input_block_size=self.__input_block_size,
             output_block_size=self.__output_block_size,
