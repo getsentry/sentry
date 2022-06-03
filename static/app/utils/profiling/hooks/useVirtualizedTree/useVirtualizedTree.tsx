@@ -93,6 +93,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     const visibleItems: {
       item: VirtualizedTreeNode<T>;
       key: number;
+      ref: HTMLElement | null;
       styles: React.CSSProperties;
     }[] = [];
 
@@ -126,6 +127,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       if (elementTop >= viewport.top && elementBottom <= viewport.bottom) {
         visibleItems[visibleItemIndex] = {
           key: indexPointer,
+          ref: null,
           styles: {position: 'absolute', top: elementTop},
           item: tree.flattened[indexPointer],
         };
@@ -225,10 +227,63 @@ export function useVirtualizedTree<T extends TreeLike>(
     return {height: tree.flattened.length * props.rowHeight};
   }, [tree.flattened.length, props.rowHeight]);
 
+  const [tabIndexKey, setTabIndexKey] = useState<number | null>(null);
+  const handleRowClick = useCallback((key: number) => {
+    setTabIndexKey(key);
+  }, []);
+
+  const handleRowKeyDown = useCallback(
+    (key: number, event: React.KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        handleExpandTreeNode(tree.flattened[key], {expandChildren: true});
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const indexInVisibleItems = items.findIndex(i => i.key === key);
+
+        if (indexInVisibleItems !== -1) {
+          const nextIndex = indexInVisibleItems + 1;
+
+          // Bound check if we are at end of list
+          if (nextIndex > tree.flattened.length - 1) {
+            return;
+          }
+
+          setTabIndexKey(items[nextIndex].key);
+          items[nextIndex].ref?.focus({preventScroll: true});
+          items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
+        }
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const indexInVisibleItems = items.findIndex(i => i.key === key);
+
+        if (indexInVisibleItems !== -1) {
+          const nextIndex = indexInVisibleItems - 1;
+
+          // Bound check if we are at start of list
+          if (nextIndex < 0) {
+            return;
+          }
+
+          setTabIndexKey(items[nextIndex].key);
+          items[nextIndex].ref?.focus({preventScroll: true});
+          items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
+        }
+      }
+    },
+    [handleExpandTreeNode, items, tree.flattened]
+  );
+
   return {
     tree,
     items,
+    tabIndexKey,
     handleScroll,
+    handleRowClick,
+    handleRowKeyDown,
     handleExpandTreeNode,
     handleSortingChange,
     scrollContainerStyles,

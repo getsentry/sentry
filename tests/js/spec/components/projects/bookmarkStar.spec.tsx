@@ -28,7 +28,7 @@ describe('BookmarkStar', function () {
     expect(container).toSnapshot();
   });
 
-  it('can star', async function () {
+  it('can star', function () {
     render(
       <BookmarkStar
         organization={TestStubs.Organization()}
@@ -45,7 +45,7 @@ describe('BookmarkStar', function () {
     );
   });
 
-  it('can unstar', async function () {
+  it('can unstar', function () {
     render(
       <BookmarkStar
         organization={TestStubs.Organization()}

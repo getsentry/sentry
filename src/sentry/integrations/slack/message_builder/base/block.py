@@ -68,8 +68,13 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return action_block
 
     @staticmethod
-    def _build_blocks(*args: SlackBlock, color: Optional[str] = None) -> SlackBody:
+    def _build_blocks(
+        *args: SlackBlock, fallback_text: Optional[str] = None, color: Optional[str] = None
+    ) -> SlackBody:
         blocks: MutableMapping[str, Any] = {"blocks": list(args)}
+
+        if fallback_text:
+            blocks["text"] = fallback_text
 
         if color:
             blocks["color"] = color

@@ -23,7 +23,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-const REQUIRE_PROJECT_COLUMNS = new Set(['id', 'project_id', 'transaction_name']);
+const REQUIRE_PROJECT_COLUMNS: Set<TableColumnKey> = new Set([
+  'id',
+  'project_id',
+  'transaction_name',
+]);
 
 interface ProfilesTableProps {
   error: string | null;
@@ -136,9 +140,6 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
         orgSlug: organization.slug,
         projectSlug: project.slug,
         transaction: dataRow.transaction_name,
-        version: dataRow.version_code
-          ? `${dataRow.version_name} (build ${dataRow.version_code})`
-          : `${dataRow.version_name}`,
       });
 
       return (
