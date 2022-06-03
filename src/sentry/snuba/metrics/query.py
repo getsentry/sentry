@@ -13,7 +13,7 @@ from sentry.snuba.metrics.fields.base import get_derived_metrics
 # TODO: Add __all__ to be consistent with sibling modules
 from ...models import ONE_DAY
 from ...release_health.base import AllowedResolution
-from .naming_layer import get_mri
+from .naming_layer.mapping import get_mri
 from .utils import (
     MAX_POINTS,
     OPERATIONS,
@@ -40,7 +40,7 @@ class OrderBy:
 
 
 class MetricsQueryValidationRunner:
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Run validation methods if declared.
         The validation method can be a simple check
         that raises ValueError or a transformation to
@@ -48,7 +48,7 @@ class MetricsQueryValidationRunner:
         The validation is performed by calling a function named:
             `validate_<field_name>(self) -> None`
         """
-        for name, _ in self.__dataclass_fields__.items():
+        for name, _ in self.__dataclass_fields__.items():  # type: ignore
             if method := getattr(self, f"validate_{name}", None):
                 method()
 
@@ -79,7 +79,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     histogram_to: Optional[float] = None
 
     @staticmethod
-    def _validate_field(field) -> None:
+    def _validate_field(field: MetricField) -> None:
         derived_metrics_mri = get_derived_metrics(exclude_private=True)
         metric_mri = get_mri(field.metric_name)
 
@@ -169,8 +169,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
             return
         raise InvalidParams("Cannot omit both series and totals")
 
-    def get_default_limit(self):
-        totals_limit = MAX_POINTS
+    def get_default_limit(self) -> int:
+        totals_limit: int = MAX_POINTS
         if self.include_series:
             intervals_len = math.ceil(
                 (self.end - self.start).total_seconds() / self.granularity.granularity
