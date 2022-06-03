@@ -237,18 +237,6 @@ def schedule_invalidate_config_cache(
     parameters are passed straight to the task.
     """
     # TODO: so far i failed to merge this code with schedule_update_config_cache elegantly.
-    if (
-        settings.SENTRY_RELAY_PROJECTCONFIG_CACHE
-        == "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
-    ):
-        # This cache backend is a noop, don't bother creating a noop celery
-        # task.
-        metrics.incr(
-            "relay.projectconfig_cache.skipped",
-            tags={"reason": "noop_backend", "update_reason": trigger, "task": "invalidation"},
-        )
-        return
-
     validate_args(organization_id, project_id, public_key)
 
     if projectconfig_debounce_cache.invalidation.is_debounced(
