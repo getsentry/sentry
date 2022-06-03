@@ -13,7 +13,11 @@ import {
   explodeFieldString,
   generateFieldAsString,
 } from 'sentry/utils/discover/fields';
-import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import {
+  Dataset,
+  EventTypes,
+  SessionsAggregate,
+} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertType,
   AlertWizardAlertNames,
@@ -26,9 +30,15 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {getFieldOptionConfig} from './metricField';
 
-type WizardAggregateFieldValue = {
+type WizardAggregateFunctionValue = {
   function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
   kind: 'function';
+  alias?: string;
+};
+
+type WizardAggregateFieldValue = {
+  field: string;
+  kind: 'field';
   alias?: string;
 };
 
@@ -129,19 +139,34 @@ export default function WizardField({
     template: WizardRuleTemplate,
     aggregate: string
   ): boolean => {
-    const templateFieldValue = explodeFieldString(
-      template.aggregate
-    ) as WizardAggregateFieldValue;
-    const aggregateFieldValue = explodeFieldString(
-      aggregate
-    ) as WizardAggregateFieldValue;
+    const templateFieldValue = explodeFieldString(template.aggregate) as
+      | WizardAggregateFieldValue
+      | WizardAggregateFunctionValue;
+    const aggregateFieldValue = explodeFieldString(aggregate) as
+      | WizardAggregateFieldValue
+      | WizardAggregateFunctionValue;
 
-    return (
-      template.aggregate === aggregate ||
-      (templateFieldValue.function?.[1] && aggregateFieldValue.function?.[1]
-        ? templateFieldValue.function?.[1] === aggregateFieldValue.function?.[1]
-        : templateFieldValue.function?.[0] === aggregateFieldValue.function?.[0])
-    );
+    if (template.aggregate === aggregate) {
+      return true;
+    }
+
+    if (
+      templateFieldValue.kind !== 'function' ||
+      aggregateFieldValue.kind !== 'function'
+    ) {
+      return false;
+    }
+
+    if (
+      templateFieldValue.function?.[0] === 'apdex' &&
+      aggregateFieldValue.function?.[0] === 'apdex'
+    ) {
+      return true;
+    }
+
+    return templateFieldValue.function?.[1] && aggregateFieldValue.function?.[1]
+      ? templateFieldValue.function?.[1] === aggregateFieldValue.function?.[1]
+      : templateFieldValue.function?.[0] === aggregateFieldValue.function?.[0];
   };
 
   const matchTemplateDataset = (
@@ -154,10 +179,20 @@ export default function WizardField({
         template.aggregate === SessionsAggregate.CRASH_FREE_USERS) &&
       dataset === Dataset.METRICS);
 
+  const matchTemplateEventTypes = (
+    template: WizardRuleTemplate,
+    eventTypes: EventTypes[],
+    aggregate: string
+  ): boolean =>
+    aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
+    aggregate === SessionsAggregate.CRASH_FREE_USERS ||
+    eventTypes.includes(template.eventTypes);
+
   return (
     <FormField {...fieldProps}>
       {({onChange, value: aggregate, model, disabled}) => {
         const dataset: Dataset = model.getValue('dataset');
+        const eventTypes = [...(model.getValue('eventTypes') ?? [])];
 
         const selectedTemplate =
           alertType === 'custom'
@@ -166,7 +201,8 @@ export default function WizardField({
                 AlertWizardRuleTemplates,
                 template =>
                   matchTemplateAggregate(template, aggregate) &&
-                  matchTemplateDataset(template, dataset)
+                  matchTemplateDataset(template, dataset) &&
+                  matchTemplateEventTypes(template, eventTypes, aggregate)
               ) || 'num_errors';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
