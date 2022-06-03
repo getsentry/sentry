@@ -35,7 +35,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
         super().setUp()
         self.override_settings_cm = override_settings(
-            KAFKA_TOPICS={self.topic: {"cluster": "default", "topic": self.topic}}
+            KAFKA_TOPICS={self.topic: {"cluster": "default"}}
         )
         self.override_settings_cm.__enter__()
         self.orig_registry = deepcopy(subscriber_registry)

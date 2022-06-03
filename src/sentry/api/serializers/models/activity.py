@@ -1,6 +1,7 @@
 import functools
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models import Activity, Commit, Group, PullRequest
 from sentry.utils.functional import apply_values
 
@@ -19,7 +20,13 @@ class ActivitySerializer(Serializer):
         }
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids))
-            commits_by_id = {c.id: d for c, d in zip(commit_list, serialize(commit_list, user))}
+            commits_by_id = {
+                c.id: d
+                for c, d in zip(
+                    commit_list,
+                    serialize(commit_list, user, serializer=CommitWithReleaseSerializer()),
+                )
+            }
             commits = {
                 i: commits_by_id.get(i.data["commit"])
                 for i in item_list

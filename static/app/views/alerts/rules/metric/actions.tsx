@@ -14,7 +14,7 @@ function isSavedRule(rule: MetricRule): rule is SavedMetricRule {
  * @param rule Saved or Unsaved Metric Rule
  * @param query Query parameters for the request eg - referrer
  */
-export async function addOrUpdateRule(
+export function addOrUpdateRule(
   api: Client,
   orgId: string,
   projectId: string,
