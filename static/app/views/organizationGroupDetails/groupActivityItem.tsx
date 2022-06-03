@@ -10,7 +10,6 @@ import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import {
-  BaseRelease,
   GroupActivity,
   GroupActivityAssigned,
   GroupActivitySetIgnored,
@@ -142,18 +141,14 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
               author,
             });
       case GroupActivityType.SET_RESOLVED_IN_COMMIT:
-        const deployedReleases: Array<BaseRelease> = [];
-        for (const release of activity.data.commit?.releases) {
-          if (release.dateReleased !== null) {
-            deployedReleases.push(release);
-          }
-        }
-        deployedReleases.sort(
-          (a, b) => moment(a.dateReleased).valueOf() - moment(b.dateReleased).valueOf()
-        );
+        const deployedReleases = (activity.data.commit?.releases || [])
+          .filter(r => r.dateReleased !== null)
+          .sort(
+            (a, b) => moment(a.dateReleased).valueOf() - moment(b.dateReleased).valueOf()
+          );
         if (deployedReleases.length === 1) {
           return tct(
-            '[author] marked this issue as resolved in [version]\n' +
+            '[author] marked this issue as resolved in [version] [break]' +
               'This commit was released in [release]',
             {
               author,
@@ -164,6 +159,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
                   repository={activity.data.commit.repository}
                 />
               ),
+              break: <br />,
               release: (
                 <Version
                   version={deployedReleases[0].version}
@@ -176,7 +172,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
         }
         if (deployedReleases.length > 1) {
           return tct(
-            '[author] marked this issue as resolved in [version]\n' +
+            '[author] marked this issue as resolved in [version] [break]' +
               'This commit was released in [release] and ' +
               (deployedReleases.length - 1) +
               ' others',
@@ -189,6 +185,7 @@ function GroupActivityItem({activity, orgSlug, projectId, author}: Props) {
                   repository={activity.data.commit.repository}
                 />
               ),
+              break: <br />,
               release: (
                 <Version
                   version={deployedReleases[0].version}

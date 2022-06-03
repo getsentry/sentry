@@ -137,8 +137,7 @@ describe('GroupActivity', function () {
       ],
     });
     expect(wrapper.find('GroupActivityItem').text()).toContain(
-      'Foo Bar marked this issue as resolved in komal-commit\n' +
-        'This commit was released in random'
+      'Foo Bar marked this issue as resolved in komal-commit This commit was released in random'
     );
   });
 
@@ -181,8 +180,7 @@ describe('GroupActivity', function () {
       ],
     });
     expect(wrapper.find('GroupActivityItem').text()).toContain(
-      'Foo Bar marked this issue as resolved in komal-commit\n' +
-        'This commit was released in oldest-release and 3 others'
+      'Foo Bar marked this issue as resolved in komal-commit This commit was released in oldest-release and 3 others'
     );
   });
 
