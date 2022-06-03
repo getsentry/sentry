@@ -68,11 +68,12 @@ class DigestNotification(ProjectNotification):
         if not context:
             return "Digest Report"
 
-        return "<!date^{:.0f}^{count} {noun} detected in {project} {date} | Digest Report".format(
+        return "<!date^{:.0f}^{count} {noun} detected {date} in| Digest Report for> <{project_link}|{project_name}>".format(
             to_timestamp(context["start"]),
             count=len(context["counts"]),
             noun="issue" if len(context["counts"]) == 1 else "issues",
-            project=context["group"].project.name,
+            project_link=f'https://sentry.io/organizations/{context["group"].project.organization.slug}/projects/{context["group"].project.slug}/',
+            project_name=context["group"].project.name,
             date="{date_pretty}",
         )
 
