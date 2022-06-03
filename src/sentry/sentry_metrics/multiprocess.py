@@ -521,6 +521,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         output_block_size: int,
         commit_max_batch_size: int,
         commit_max_batch_time: int,
+        parallel_max_batch_size: int,
+        parallel_max_batch_time_ms: int,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
@@ -531,21 +533,25 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self.__output_block_size = output_block_size
         self.__commit_max_batch_time = commit_max_batch_time
         self.__commit_max_batch_size = commit_max_batch_size
+        self.__parallel_max_batch_size = parallel_max_batch_size
+        self.__parallel_max_batch_time_ms = parallel_max_batch_time_ms
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
             process_messages,
-            SimpleProduceStep(
-                commit,
-                commit_max_batch_size=self.__commit_max_batch_size,
-                # convert to seconds
-                commit_max_batch_time=self.__commit_max_batch_time / 1000,
+            Unbatcher(
+                SimpleProduceStep(
+                    commit,
+                    commit_max_batch_size=self.__commit_max_batch_size,
+                    # convert to seconds
+                    commit_max_batch_time=self.__commit_max_batch_time / 1000,
+                ),
             ),
             self.__processes,
-            max_batch_size=int(self.__max_batch_size / 10),
-            max_batch_time=self.__max_batch_time / 1000,
+            max_batch_size=self.__parallel_max_batch_size,
+            max_batch_time=self.__parallel_max_batch_time_ms / 1000,
             input_block_size=self.__input_block_size,
             output_block_size=self.__output_block_size,
             initializer=initializer,
@@ -612,6 +618,43 @@ class TransformStep(ProcessingStep[MessageBatch]):  # type: ignore
             transformed_message_batch = self.__process_messages(message)
 
         for transformed_message in transformed_message_batch:
+            self.__next_step.submit(transformed_message)
+
+    def close(self) -> None:
+        self.__closed = True
+
+    def terminate(self) -> None:
+        self.__closed = True
+
+        logger.debug("Terminating %r...", self.__next_step)
+        self.__next_step.terminate()
+
+    def join(self, timeout: Optional[float] = None) -> None:
+        self.__next_step.close()
+        self.__next_step.join(timeout)
+
+
+class Unbatcher(ProcessingStep[MessageBatch]):  # type: ignore
+    """
+    Temporary Transform Step
+    """
+
+    def __init__(
+        self,
+        next_step: ProcessingStep[KafkaPayload],
+    ) -> None:
+        self.__process_messages = process_messages
+        self.__next_step = next_step
+        self.__closed = False
+        self.__metrics = get_metrics()
+
+    def poll(self) -> None:
+        self.__next_step.poll()
+
+    def submit(self, message: Message[MessageBatch]) -> None:
+        assert not self.__closed
+
+        for transformed_message in message.payload:
             self.__next_step.submit(transformed_message)
 
     def close(self) -> None:
@@ -768,6 +811,8 @@ def get_streaming_metrics_consumer(
     commit_max_batch_time: int,
     max_batch_size: int,
     max_batch_time: float,
+    parallel_max_batch_size: int,
+    parallel_max_batch_time_ms: int,
     processes: int,
     input_block_size: int,
     output_block_size: int,
@@ -785,6 +830,8 @@ def get_streaming_metrics_consumer(
             output_block_size=output_block_size,
             commit_max_batch_size=commit_max_batch_size,
             commit_max_batch_time=commit_max_batch_time,
+            parallel_max_batch_size=parallel_max_batch_size,
+            parallel_max_batch_time_ms=parallel_max_batch_time_ms,
         )
     else:
         assert factory_name == "default"
