@@ -26,7 +26,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
         """
 
         # Preload to avoid fetching each user individually
-        prefetch_related_objects(item_list, "user")
+        prefetch_related_objects(item_list, "user", "inviter")
         users_set = {
             organization_member.user
             for organization_member in item_list
