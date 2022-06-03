@@ -455,12 +455,11 @@ def process_messages(
             if message.offset in skipped_offsets:
                 logger.info("process_message.offset_skipped", extra={"offset": message.offset})
                 continue
-            parsed_payload_value = parsed_payloads_by_offset[message.offset]
-            new_payload_value = dict(parsed_payload_value)
+            new_payload_value = parsed_payloads_by_offset.pop(message.offset)
 
-            metric_name = parsed_payload_value["name"]
-            org_id = parsed_payload_value["org_id"]
-            tags = parsed_payload_value.get("tags", {})
+            metric_name = new_payload_value["name"]
+            org_id = new_payload_value["org_id"]
+            tags = new_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
             new_tags: MutableMapping[str, int] = {}
