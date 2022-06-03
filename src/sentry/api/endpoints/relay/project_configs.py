@@ -104,11 +104,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
             return cached_config
 
         schedule_build_config_cache(
-            generate=True,
-            organization_id=None,
-            project_id=None,
             public_key=public_key,
-            update_reason="project_config.post_v3",
+            trigger="project_config.post_v3",
         )
         return None
 

@@ -61,9 +61,7 @@ def update_config_cache(
     soft_time_limit=30,
     time_limit=32,
 )
-def build_config_cache(
-    organization_id=None, project_id=None, public_key=None, update_reason=None, **kwargs
-):
+def build_config_cache(public_key=None, trigger=None, **kwargs):
     """Build a project config and put it in the Redis cache.
 
     This task is the primary way a new project config is computed.
@@ -75,14 +73,12 @@ def build_config_cache(
 
     Do not invoke this task directly, instead use :func:`schedule_build_config_cache`.
     """
-    validate_args(organization_id, project_id, public_key)
+    validate_args(public_key=public_key)
 
-    sentry_sdk.set_tag("update_reason", update_reason)
+    sentry_sdk.set_tag("update_reason", trigger)
 
     try:
-        keys = project_keys_to_update(
-            organization_id=organization_id, project_id=project_id, public_key=public_key
-        )
+        keys = project_keys_to_update(public_key=public_key)
 
         compute_project_configs(keys)
 
@@ -91,20 +87,20 @@ def build_config_cache(
         # is always deleted. Deleting the key at the end of the task also makes
         # debouncing more effective.
         projectconfig_debounce_cache.mark_task_done(
-            organization_id=organization_id, project_id=project_id, public_key=public_key
+            organization_id=None, project_id=None, public_key=public_key
         )
 
 
-def schedule_build_config_cache(project_id=None, organization_id=None, public_key=None):
+def schedule_build_config_cache(public_key=None, trigger=None):
     """Schedule the `build_config_cache` with debouncing applied.
 
     See documentation of `build_config_cache` for documentation of parameters.
     """
 
-    validate_args(organization_id, project_id, public_key)
+    validate_args(public_key=public_key)
 
     if projectconfig_debounce_cache.is_debounced(
-        public_key=public_key, project_id=project_id, organization_id=organization_id
+        public_key=public_key, project_id=None, organization_id=None
     ):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
@@ -117,18 +113,16 @@ def schedule_build_config_cache(project_id=None, organization_id=None, public_ke
         "relay.projectconfig_cache.scheduled",
         tags={"update_reason": "build"},
     )
-    update_config_cache.delay(
-        project_id=project_id,
-        organization_id=organization_id,
-        public_key=public_key,
-    )
+    build_config_cache.delay(public_key=public_key, trigger=trigger)
 
     # Checking if the project is debounced and debouncing it are two separate
     # actions that aren't atomic. If the process marks a project as debounced
     # and dies before scheduling it, the cache will be stale for the whole TTL.
     # To avoid that, make sure we first schedule the task, and only then mark
     # the project as debounced.
-    projectconfig_debounce_cache.debounce(public_key, project_id, organization_id)
+    projectconfig_debounce_cache.debounce(
+        public_key=public_key, project_id=None, organization_id=None
+    )
 
 
 def validate_args(organization_id=None, project_id=None, public_key=None):
