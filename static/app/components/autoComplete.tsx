@@ -273,6 +273,16 @@ class AutoComplete<T extends Item> extends Component<Props<T>, State<T>> {
       const isEnter = this.props.shouldSelectWithEnter && e.key === 'Enter';
       const isTab = this.props.shouldSelectWithTab && e.key === 'Tab';
 
+      // Keyboard navigation will be broken unless registerItemCount and
+      // registerVisibleItem have been called. Give a bit of help by letting
+      // the developer know.
+      if (this.itemCount === undefined) {
+        // eslint-disable-next-line no-console
+        console.error(
+          'AutoComplete has not had registerItemCount called. Keyboard navigation may not work!'
+        );
+      }
+
       if (item !== undefined && (isEnter || isTab)) {
         if (!item.disabled) {
           this.handleSelect(item, e);

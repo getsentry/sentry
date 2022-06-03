@@ -1,6 +1,8 @@
+import {useEffect} from 'react';
+
 import AutoComplete from 'sentry/components/autoComplete';
 
-const items = [
+const exampleItems = [
   {
     name: 'Apple',
   },
@@ -12,6 +14,7 @@ const items = [
   },
 ];
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default {
   title: 'Components/Forms/Auto Complete',
   parameters: {
@@ -19,7 +22,19 @@ export default {
   },
 };
 
-export const Input = () => (
+const MenuRoot = ({registerItemCount, items, ...props}) => {
+  useEffect(() => registerItemCount(items.length), [registerItemCount, items.length]);
+
+  return <div {...props} />;
+};
+
+const Item = ({item, index, registerVisibleItem, ...props}) => {
+  useEffect(() => registerVisibleItem(index, item), [registerVisibleItem, index, item]);
+
+  return <div {...props}>{item.name}</div>;
+};
+
+export const InputSimple = () => (
   <AutoComplete itemToString={item => item.name}>
     {({
       getRootProps,
@@ -29,6 +44,8 @@ export const Input = () => (
       inputValue,
       highlightedIndex,
       isOpen,
+      registerVisibleItem,
+      registerItemCount,
     }) => {
       return (
         <div {...getRootProps({style: {position: 'relative'}})}>
@@ -46,14 +63,17 @@ export const Input = () => (
                 },
               })}
             >
-              <div>
-                {items
+              <MenuRoot items={exampleItems} registerItemCount={registerItemCount}>
+                {exampleItems
                   .filter(
                     item => item.name.toLowerCase().indexOf(inputValue.toLowerCase()) > -1
                   )
                   .map((item, index) => (
-                    <div
+                    <Item
                       key={item.name}
+                      item={item}
+                      index={index}
+                      registerVisibleItem={registerVisibleItem}
                       {...getItemProps({
                         item,
                         index,
@@ -66,11 +86,9 @@ export const Input = () => (
                               : undefined,
                         },
                       })}
-                    >
-                      {item.name}
-                    </div>
+                    />
                   ))}
-              </div>
+              </MenuRoot>
             </div>
           )}
         </div>
@@ -79,10 +97,10 @@ export const Input = () => (
   </AutoComplete>
 );
 
-Input.parameters = {
+InputSimple.parameters = {
   docs: {
     description: {
-      story: 'Autocomplete on an input',
+      story: 'Simple AutoComplete on an input',
     },
   },
 };
