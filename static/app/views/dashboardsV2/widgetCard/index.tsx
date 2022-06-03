@@ -27,6 +27,11 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
+import {getDatasetConfig} from '../datasetConfig/base';
+import {
+  getDatasetConfigConsumer,
+  getDatasetConfigProvider,
+} from '../datasetConfig/context';
 import {Widget, WidgetType} from '../types';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -212,69 +217,89 @@ class WidgetCard extends Component<Props, State> {
       noLazyLoad,
       showStoredAlert,
     } = this.props;
+
+    const DatasetConfigProvider = getDatasetConfigProvider(this.props.widget.widgetType);
+    const DatasetConfigConsumer = getDatasetConfigConsumer(this.props.widget.widgetType);
+
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         <DashboardsMEPProvider>
-          <WidgetCardPanel isDragging={false}>
-            <WidgetHeader>
-              <Tooltip
-                title={widget.title}
-                containerDisplayMode="grid"
-                showOnlyOnOverflow
-              >
-                <WidgetTitle>{widget.title}</WidgetTitle>
-              </Tooltip>
-              {this.renderContextMenu()}
-            </WidgetHeader>
-            {noLazyLoad ? (
-              <WidgetCardChartContainer
-                api={api}
-                organization={organization}
-                selection={selection}
-                widget={widget}
-                isMobile={isMobile}
-                renderErrorMessage={renderErrorMessage}
-                tableItemLimit={tableItemLimit}
-                windowWidth={windowWidth}
-                onDataFetched={this.setData}
-              />
-            ) : (
-              <LazyLoad once resize height={200}>
-                <WidgetCardChartContainer
-                  api={api}
-                  organization={organization}
-                  selection={selection}
-                  widget={widget}
-                  isMobile={isMobile}
-                  renderErrorMessage={renderErrorMessage}
-                  tableItemLimit={tableItemLimit}
-                  windowWidth={windowWidth}
-                  onDataFetched={this.setData}
-                />
-              </LazyLoad>
-            )}
-            {this.renderToolbar()}
-          </WidgetCardPanel>
-          <Feature organization={organization} features={['dashboards-mep']}>
-            <DashboardsMEPConsumer>
-              {({isMetricsData}) =>
-                showStoredAlert &&
-                widget.widgetType === WidgetType.DISCOVER &&
-                isMetricsData === false && (
-                  <StoredDataAlert showIcon>
-                    {tct(
-                      "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
-                      {
-                        storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
-                      }
-                    )}
-                  </StoredDataAlert>
-                )
-              }
-            </DashboardsMEPConsumer>
-          </Feature>
+          <DatasetConfigProvider>
+            <WidgetCardPanel isDragging={false}>
+              <WidgetHeader>
+                <Tooltip
+                  title={widget.title}
+                  containerDisplayMode="grid"
+                  showOnlyOnOverflow
+                >
+                  <WidgetTitle>{widget.title}</WidgetTitle>
+                </Tooltip>
+                {this.renderContextMenu()}
+              </WidgetHeader>
+              {noLazyLoad ? (
+                <DatasetConfigConsumer>
+                  {value => {
+                    value.setDatasetConfig(getDatasetConfig(widget.widgetType));
+                    return (
+                      <WidgetCardChartContainer
+                        api={api}
+                        organization={organization}
+                        selection={selection}
+                        widget={widget}
+                        isMobile={isMobile}
+                        renderErrorMessage={renderErrorMessage}
+                        tableItemLimit={tableItemLimit}
+                        windowWidth={windowWidth}
+                        onDataFetched={this.setData}
+                      />
+                    );
+                  }}
+                </DatasetConfigConsumer>
+              ) : (
+                <LazyLoad once resize height={200}>
+                  <DatasetConfigConsumer>
+                    {value => {
+                      value.setDatasetConfig(getDatasetConfig(widget.widgetType));
+                      return (
+                        <WidgetCardChartContainer
+                          api={api}
+                          organization={organization}
+                          selection={selection}
+                          widget={widget}
+                          isMobile={isMobile}
+                          renderErrorMessage={renderErrorMessage}
+                          tableItemLimit={tableItemLimit}
+                          windowWidth={windowWidth}
+                          onDataFetched={this.setData}
+                        />
+                      );
+                    }}
+                  </DatasetConfigConsumer>
+                </LazyLoad>
+              )}
+              {this.renderToolbar()}
+            </WidgetCardPanel>
+            <Feature organization={organization} features={['dashboards-mep']}>
+              <DashboardsMEPConsumer>
+                {({isMetricsData}) =>
+                  showStoredAlert &&
+                  widget.widgetType === WidgetType.DISCOVER &&
+                  isMetricsData === false && (
+                    <StoredDataAlert showIcon>
+                      {tct(
+                        "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                        {
+                          storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                        }
+                      )}
+                    </StoredDataAlert>
+                  )
+                }
+              </DashboardsMEPConsumer>
+            </Feature>
+          </DatasetConfigProvider>
         </DashboardsMEPProvider>
       </ErrorBoundary>
     );

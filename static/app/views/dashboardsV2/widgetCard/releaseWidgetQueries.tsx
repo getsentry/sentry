@@ -22,6 +22,7 @@ import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
+import {ReleasesDatasetConfigContext} from '../datasetConfig/context';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 import {getWidgetInterval} from '../utils';
 import {
@@ -33,7 +34,6 @@ import {
 } from '../widgetBuilder/releaseWidget/fields';
 
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
-import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
 
 type Props = {
   api: Client;
@@ -83,7 +83,7 @@ export function derivedMetricsToField(field: string): string {
  * requested but required to calculate the value of a derived
  * status field so will need to be stripped away in post processing.
  */
-function resolveDerivedStatusFields(
+export function resolveDerivedStatusFields(
   fields: string[],
   useSessionAPI: boolean
 ): {
@@ -236,6 +236,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   private _isMounted: boolean = false;
+  static contextType = ReleasesDatasetConfigContext;
+  static context: React.ContextType<typeof ReleasesDatasetConfigContext>;
 
   get limit() {
     const {limit} = this.props;
@@ -493,10 +495,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the table format
           let tableResults: TableDataWithTitle[] | undefined;
           if (includeTotals) {
-            const tableData = transformSessionsResponseToTable(
+            const tableData = this.context.datasetConfig.transformTable(
               data,
-              derivedStatusFields,
-              injectedFields
+              widget.queries[0]
             ) as TableDataWithTitle; // Cast so we can add the title.
             tableData.title = widget.queries[requestIndex]?.name ?? '';
             tableResults = [...(prevState.tableResults ?? []), tableData];
