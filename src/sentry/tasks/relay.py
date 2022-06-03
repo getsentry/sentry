@@ -1,7 +1,6 @@
 import logging
 
 import sentry_sdk
-from django.conf import settings
 
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
@@ -11,6 +10,7 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
+# DEPRECATED TASK, use build_config_cache or invalidate_config_cache instead.
 @instrumented_task(name="sentry.tasks.relay.update_config_cache", queue="relay_config")
 def update_config_cache(
     generate, organization_id=None, project_id=None, public_key=None, update_reason=None
@@ -54,26 +54,52 @@ def update_config_cache(
         )
 
 
-def schedule_update_config_cache(
-    generate, project_id=None, organization_id=None, public_key=None, update_reason=None
+@instrumented_task(
+    name="sentry.tasks.relay.build_config_cache",
+    queue="relay_config",
+    acks_late=True,
+    soft_time_limit=30,
+    time_limit=32,
+)
+def build_config_cache(
+    organization_id=None, project_id=None, public_key=None, update_reason=None, **kwargs
 ):
-    """
-    Schedule the `update_config_cache` with debouncing applied.
+    """Build a project config and put it in the Redis cache.
 
-    See documentation of `update_config_cache` for documentation of parameters.
-    """
+    This task is the primary way a new project config is computed.
 
-    if (
-        settings.SENTRY_RELAY_PROJECTCONFIG_CACHE
-        == "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
-    ):
-        # This cache backend is a noop, don't bother creating a noop celery
-        # task.
-        metrics.incr(
-            "relay.projectconfig_cache.skipped",
-            tags={"reason": "noop_backend", "update_reason": update_reason},
+    :param organization_id: The organization for which to invalidate configs.
+    :param project_id: The project for which to invalidate configs.
+    :param generate: If `True`, caches will be eagerly regenerated, not only
+        invalidated.
+
+    Do not invoke this task directly, instead use :func:`schedule_build_config_cache`.
+    """
+    validate_args(organization_id, project_id, public_key)
+
+    sentry_sdk.set_tag("update_reason", update_reason)
+
+    try:
+        keys = project_keys_to_update(
+            organization_id=organization_id, project_id=project_id, public_key=public_key
         )
-        return
+
+        compute_project_configs(keys)
+
+    finally:
+        # Delete the key in this `finally` block to make sure the debouncing key
+        # is always deleted. Deleting the key at the end of the task also makes
+        # debouncing more effective.
+        projectconfig_debounce_cache.mark_task_done(
+            organization_id=organization_id, project_id=project_id, public_key=public_key
+        )
+
+
+def schedule_build_config_cache(project_id=None, organization_id=None, public_key=None):
+    """Schedule the `build_config_cache` with debouncing applied.
+
+    See documentation of `build_config_cache` for documentation of parameters.
+    """
 
     validate_args(organization_id, project_id, public_key)
 
@@ -82,24 +108,19 @@ def schedule_update_config_cache(
     ):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
-            tags={"reason": "debounce", "update_reason": update_reason},
+            tags={"reason": "debounce", "update_reason": "build"},
         )
         # If this task is already in the queue, do not schedule another task.
         return
 
-    # XXX(markus): We could schedule this task a couple seconds into the
-    # future, this would make debouncing more effective. If we want to do this
-    # we might want to use the sleep queue.
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
-        tags={"generate": generate, "update_reason": update_reason},
+        tags={"update_reason": "build"},
     )
     update_config_cache.delay(
-        generate=generate,
         project_id=project_id,
         organization_id=organization_id,
         public_key=public_key,
-        update_reason=update_reason,
     )
 
     # Checking if the project is debounced and debouncing it are two separate

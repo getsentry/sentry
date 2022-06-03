@@ -5,7 +5,7 @@ import pytest
 from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
-from sentry.tasks.relay import schedule_update_config_cache
+from sentry.tasks.relay import schedule_build_config_cache
 
 
 def _cache_keys_for_project(project):
@@ -72,12 +72,12 @@ def test_debounce(
     monkeypatch.setattr("sentry.tasks.relay.update_config_cache.apply_async", apply_async)
 
     debounce_cache.mark_task_done(None, default_project.id, None)
-    schedule_update_config_cache(generate=True, project_id=default_project.id)
-    schedule_update_config_cache(generate=False, project_id=default_project.id)
+    schedule_build_config_cache(generate=True, project_id=default_project.id)
+    schedule_build_config_cache(generate=False, project_id=default_project.id)
 
     debounce_cache.mark_task_done(None, None, default_organization.id)
-    schedule_update_config_cache(generate=True, organization_id=default_organization.id)
-    schedule_update_config_cache(generate=False, organization_id=default_organization.id)
+    schedule_build_config_cache(generate=True, organization_id=default_organization.id)
+    schedule_build_config_cache(generate=False, organization_id=default_organization.id)
 
     assert tasks == [
         {
@@ -116,7 +116,7 @@ def test_generate(
         kwargs = {"organization_id": default_organization.id}
 
     with task_runner():
-        schedule_update_config_cache(generate=True, **kwargs)
+        schedule_build_config_cache(generate=True, **kwargs)
 
     cfg = redis_cache.get(default_projectkey.public_key)
 
@@ -154,7 +154,7 @@ def test_invalidate(
         kwargs = {"organization_id": default_organization.id}
 
     with task_runner():
-        schedule_update_config_cache(generate=False, **kwargs)
+        schedule_build_config_cache(generate=False, **kwargs)
 
     for cache_key in _cache_keys_for_project(default_project):
         assert not redis_cache.get(cache_key)
@@ -194,7 +194,7 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
     ProjectOption.objects._option_cache.clear()
     with task_runner():
         with patch("sentry.utils.cache.cache.get", return_value=None):
-            with patch("sentry.tasks.relay.schedule_update_config_cache") as update_config_cache:
+            with patch("sentry.tasks.relay.schedule_build_config_cache") as update_config_cache:
                 default_project.get_option(
                     "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
                 )
