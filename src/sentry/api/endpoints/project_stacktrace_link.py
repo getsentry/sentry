@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Any, Mapping, Optional, Tuple
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,6 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
 from sentry.models import Integration, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.utils.event_frames import munged_filename_and_frames
 
 
 def get_link(
@@ -45,6 +46,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     `filepath`: The file path from the stack trace
     `commitId` (optional): The commit_id for the last commit of the
                            release associated to the stack trace's event
+    `frame` (optional): The entire stackframe
 
     """
 
@@ -56,6 +58,17 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
 
         commit_id = request.GET.get("commitId")
         platform = request.GET.get("platform")
+        sdk_name = request.GET.get("sdkName")
+        abs_path = request.GET.get("absPath")
+        module = request.GET.get("module")
+        package = request.GET.get("package")
+        frame = {"filename": filepath}
+        if abs_path:
+            frame["abs_path"] = abs_path
+        if module:
+            frame["module"] = module
+        if package:
+            frame["package"] = package
         result = {"config": None, "sourceUrl": None}
 
         integrations = Integration.objects.filter(organizations=project.organization_id)
@@ -83,7 +96,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 scope.set_tag("integration_provider", provider)
                 scope.set_tag("stacktrace_link.platform", platform)
 
-                if not filepath.startswith(config.stack_root):
+                if not filepath.startswith(config.stack_root) and not frame:
                     scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
                     result["error"] = "stack_root_mismatch"
                     continue
@@ -91,6 +104,18 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                 link, attempted_url, error = get_link(
                     config, filepath, config.default_branch, commit_id
                 )
+
+                if not link and frame:
+                    munged_frames = munged_filename_and_frames(
+                        platform, [frame], "munged_filename", sdk_name=sdk_name
+                    )
+                    if munged_frames:
+                        munged_frame: Mapping[str, Any] = munged_frames[1][0]
+                        munged_filename = str(munged_frame.get("munged_filename"))
+                        if munged_filename:
+                            link, attempted_url, error = get_link(
+                                config, munged_filename, config.default_branch, commit_id
+                            )
 
                 # it's possible for the link to be None, and in that
                 # case it means we could not find a match for the

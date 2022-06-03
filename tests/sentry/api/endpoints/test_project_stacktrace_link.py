@@ -129,3 +129,66 @@ class ProjectStacktraceLinkTest(APITestCase):
             assert response.data["config"] == self.expected_configurations()
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
+
+    @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
+    @mock.patch.object(
+        ExampleIntegration,
+        "get_stacktrace_link",
+    )
+    def test_frame_fallback_munge_return_none(self, mock_integration, mock_munger):
+        mock_integration.return_value = None
+        mock_munger.return_value = None
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "abs_path",
+                "module": "module",
+                "package": "package",
+            },
+        )
+
+        assert response.data["config"] == self.expected_configurations()
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "file_not_found"
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
+        assert (
+            response.data["attemptedUrl"]
+            == f"https://example.com/{self.repo.name}/blob/master/src/sentry/src/sentry/utils/safe.py"
+        )
+
+    @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
+    @mock.patch.object(
+        ExampleIntegration,
+        "get_stacktrace_link",
+    )
+    def test_frame_fallback_after_file_not_found(self, mock_integration, mock_munger):
+        mock_integration.side_effect = [None, "https://github.com/repo/path/to/munged/file.py"]
+        mock_munger.return_value = (
+            "munged_filename",
+            [
+                {
+                    "absPath": "abs_path",
+                    "module": "module",
+                    "package": "package",
+                    "munged_filename": "munged",
+                }
+            ],
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": self.filepath,
+                "absPath": "any",
+                "module": "any",
+                "package": "any",
+            },
+        )
+        assert mock_integration.call_count == 2
+        assert response.data["config"] == self.expected_configurations()
+        assert response.data["sourceUrl"] == "https://github.com/repo/path/to/munged/file.py"
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
