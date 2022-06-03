@@ -608,6 +608,59 @@ class GetEventFileCommitters(CommitTestCase):
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] == 3
 
+    def test_flutter_munged_frames(self):
+        event = self.store_event(
+            data={
+                "platform": "other",
+                "sdk": {"name": "sentry.dart.flutter", "version": "1"},
+                "exception": {
+                    "values": [
+                        {
+                            "type": "StateError",
+                            "value": "Bad state: try catch",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "tryCatchModule",
+                                        "package": "sentry_flutter_example",
+                                        "filename": "test.dart",
+                                        "abs_path": "package:sentry_flutter_example/a/b/test.dart",
+                                        "lineno": 8,
+                                        "colno": 5,
+                                        "in_app": True,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "a/b/test.dart", "type": "M"}],
+                }
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["score"] == 3
+
     def test_matching(self):
         event = self.store_event(
             data={
