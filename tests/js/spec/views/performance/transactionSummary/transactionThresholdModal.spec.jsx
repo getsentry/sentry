@@ -8,14 +8,14 @@ import TransactionThresholdModal from 'sentry/views/performance/transactionSumma
 
 const stubEl = props => <div>{props.children}</div>;
 
-async function clickSubmit(wrapper) {
+function clickSubmit(wrapper) {
   // Click on submit.
   const button = wrapper.find('Button[data-test-id="apply-threshold"] button');
   button.simulate('click');
   return tick();
 }
 
-async function clickReset(wrapper) {
+function clickReset(wrapper) {
   // Click on submit.
   const button = wrapper.find('Button[data-test-id="reset-all"] button');
   button.simulate('click');
