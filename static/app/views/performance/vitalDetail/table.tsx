@@ -243,9 +243,6 @@ class Table extends Component<Props, State> {
     tableMeta?: EventsMetaType['fields']
   ): React.ReactNode {
     const {eventView, location} = this.props;
-    const align = fieldAlignment(column.name, column.type, tableMeta);
-    const field = {field: column.name, width: column.width};
-
     // TODO: Need to map table meta keys to aggregate alias since eventView sorting still expects
     // aggregate aliases for now. We'll need to refactor event view to get rid of all aggregate
     // alias references and then we can remove this.
@@ -257,6 +254,9 @@ class Table extends Component<Props, State> {
         aggregateAliasTableMeta![getAggregateAlias(key)] = tableMeta[key];
       });
     }
+
+    const align = fieldAlignment(column.name, column.type, aggregateAliasTableMeta);
+    const field = {field: column.name, width: column.width};
 
     function generateSortLink(): LocationDescriptorObject | undefined {
       if (!aggregateAliasTableMeta) {
