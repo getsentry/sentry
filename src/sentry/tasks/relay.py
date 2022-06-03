@@ -188,7 +188,9 @@ def compute_project_configs(project_keys):
     soft_time_limit=30,
     time_limit=32,
 )
-def invalidate_project_config(organization_id=None, project_id=None, public_key=None, **kwargs):
+def invalidate_project_config(
+    organization_id=None, project_id=None, public_key=None, update_reason="invalidated", **kwargs
+):
     """Task which re-computes an invalidated project config.
 
     This task can be scheduled regardless of whether the :func:`update_config_cache` task is
@@ -207,6 +209,7 @@ def invalidate_project_config(organization_id=None, project_id=None, public_key=
     These will be addressed in the future using config revisions tracked in Redis.
     """
     validate_args(organization_id, project_id, public_key)
+    sentry_sdk.set_tag("update_reason", update_reason)
 
     # Make sure we start by deleting out deduplication key so that new invalidation triggers
     # can schedule a new message while we already started computing the project config.
@@ -255,14 +258,12 @@ def schedule_invalidate_config_cache(
         "relay.projectconfig_cache.scheduled",
         tags={"update_reason": trigger, "task": "invalidation"},
     )
-    with sentry_sdk.push_scope() as scope:
-        scope.set_tag("update_reason", trigger)
 
-        invalidate_project_config.delay(
-            project_id=project_id,
-            organization_id=organization_id,
-            public_key=public_key,
-            update_reason=trigger,
-        )
+    invalidate_project_config.delay(
+        project_id=project_id,
+        organization_id=organization_id,
+        public_key=public_key,
+        update_reason=trigger,
+    )
 
     projectconfig_debounce_cache.invalidation.debounce(public_key, project_id, organization_id)
