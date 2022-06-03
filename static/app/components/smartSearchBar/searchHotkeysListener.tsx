@@ -1,6 +1,4 @@
-import React from 'react';
-
-import HotkeysListener from 'sentry/utils/hotkeyslistener';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 import {commonActions, TokenActionType} from './types';
 
@@ -9,14 +7,15 @@ const SearchHotkeysListener = ({
 }: {
   onTokenHotkeyPress: (actionType: TokenActionType) => void;
 }) => {
-  const hotkeys = React.useMemo(() => {
-    return commonActions.map(action => ({
+  useHotkeys(
+    commonActions.map(action => ({
       match: action.hotkeys.actual,
       callback: () => onTokenHotkeyPress(action.actionType),
-    }));
-  }, [onTokenHotkeyPress]);
+    })),
+    [onTokenHotkeyPress]
+  );
 
-  return <HotkeysListener hotkeys={hotkeys} />;
+  return null;
 };
 
 export default SearchHotkeysListener;
