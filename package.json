@@ -7,7 +7,7 @@
     "url": "git://github.com/getsentry/sentry.git"
   },
   "dependencies": {
-    "@babel/core": "~7.17.5",
+    "@babel/core": "~7.18.2",
     "@babel/plugin-proposal-decorators": "~7.17.12",
     "@babel/plugin-transform-react-jsx": "^7.17.12",
     "@babel/plugin-transform-runtime": "~7.17.0",
@@ -38,7 +38,7 @@
     "@types/diff": "5.0.2",
     "@types/dompurify": "^2.3.3",
     "@types/enzyme": "^3.10.12",
-    "@types/jest": "^27.5.2",
+    "@types/jest": "^28.1.0",
     "@types/js-cookie": "^3.0.2",
     "@types/lodash": "^4.14.180",
     "@types/marked": "^0.7.2",
@@ -58,7 +58,7 @@
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.2",
     "@types/webpack-dev-server": "^4.7.2",
-    "@types/webpack-env": "^1.16.3",
+    "@types/webpack-env": "^1.17.0",
     "@wojtekmaj/enzyme-adapter-react-17": "0.6.1",
     "ansicolor": "^1.1.95",
     "babel-loader": "^8.2.5",
@@ -74,7 +74,7 @@
     "crypto-browserify": "^3.12.0",
     "crypto-js": "4.0.0",
     "css-loader": "^5.2.6",
-    "css-minimizer-webpack-plugin": "^3.4.1",
+    "css-minimizer-webpack-plugin": "^4.0.0",
     "diff": "5.0.0",
     "dompurify": "^2.3.8",
     "downsample": "1.4.0",
@@ -98,7 +98,7 @@
     "marked": "0.7.0",
     "mini-css-extract-plugin": "^2.6.0",
     "mobx": "^6.6.0",
-    "mobx-react": "~7.3.0",
+    "mobx-react": "~7.5.0",
     "mockdate": "3.0.5",
     "moment": "2.29.3",
     "moment-timezone": "0.5.34",
@@ -170,7 +170,7 @@
     "babel-plugin-dynamic-import-node": "^2.2.0",
     "benchmark": "^2.1.4",
     "eslint": "8.12.0",
-    "eslint-config-sentry-app": "^1.93.0",
+    "eslint-config-sentry-app": "^1.94.0",
     "html-webpack-plugin": "^5.5.0",
     "jest": "28.1.0",
     "jest-canvas-mock": "^2.4.0",
@@ -191,7 +191,7 @@
     "tsconfig-paths": "^4.0.0",
     "typescript-styled-plugin": "^0.18.2",
     "url-loader": "^4.1.0",
-    "webpack-dev-server": "^4.9.0"
+    "webpack-dev-server": "^4.9.1"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.2"
