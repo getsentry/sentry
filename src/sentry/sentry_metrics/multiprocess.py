@@ -519,6 +519,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         processes: int,
         input_block_size: int,
         output_block_size: int,
+        commit_max_batch_size: int,
+        commit_max_batch_time: int,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
@@ -527,13 +529,20 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
 
         self.__input_block_size = input_block_size
         self.__output_block_size = output_block_size
+        self.__commit_max_batch_time = commit_max_batch_time
+        self.__commit_max_batch_size = commit_max_batch_size
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
             process_messages,
-            ProduceStep(commit),
+            SimpleProduceStep(
+                commit,
+                commit_max_batch_size=self.__commit_max_batch_size,
+                # convert to seconds
+                commit_max_batch_time=self.__commit_max_batch_time / 1000,
+            ),
             self.__processes,
             max_batch_size=self.__max_batch_size,
             max_batch_time=self.__max_batch_time,
@@ -774,6 +783,8 @@ def get_streaming_metrics_consumer(
             processes=processes,
             input_block_size=input_block_size,
             output_block_size=output_block_size,
+            commit_max_batch_size=commit_max_batch_size,
+            commit_max_batch_time=commit_max_batch_time,
         )
     else:
         assert factory_name == "default"
