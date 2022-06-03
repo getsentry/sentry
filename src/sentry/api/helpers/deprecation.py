@@ -3,7 +3,9 @@ from __future__ import annotations
 import functools
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Tuple
 
+import isodate
 from croniter import croniter
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,8 +20,6 @@ GONE_MESSAGE = {"message": "This API no longer exists."}
 DEPRECATION_HEADER = "X-Sentry-Deprecation-Date"
 SUGGESTED_API_HEADER = "X-Sentry-Replacement-Endpoint"
 
-# TODO: Make these configurable from redis
-BROWNOUT_DURATION = timedelta(minutes=1)
 
 logger = logging.getLogger(__name__)
 
@@ -31,16 +31,28 @@ def _track_deprecated_metrics(request: Request, deprecation_date: datetime):
     request.deprecation_date = deprecation_date
 
 
+def _serialize_key(key: str) -> Tuple[str, str]:
+    return f"{key}-cron", f"{key}-duration"
+
+
 def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str):
     # Will need to check redis if the hour fits into the brownout period
     if now >= deprecation_date:
 
+        cron_key, duration_key = _serialize_key(key)
         try:
-            brownout_cron = options.get(key)
+            brownout_cron = options.get(cron_key)
         except UnknownOption:
             logger.error(f"Unrecognized deprecation key {key}")
             brownout_cron = options.get("api.deprecation.brownout-cron")
 
+        try:
+            brownout_duration = options.get(duration_key)
+        except UnknownOption:
+            logger.error(f"Unrecognized deprecation duration {key}")
+            brownout_duration = options.get("api.deprecation.brownout-duration")
+
+        brownout_duration = isodate.parse_duration(brownout_duration)
         # return True if now exactly matches the crontab
         if croniter.match(brownout_cron, now):
             return True
@@ -48,7 +60,7 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str):
         # If not, check if now is within BROWNOUT_DURATION of the last brownout time
         iter = croniter(brownout_cron, now)
         brownout_start = iter.get_prev(datetime)
-        return brownout_start <= now < brownout_start + BROWNOUT_DURATION
+        return brownout_start <= now < brownout_start + brownout_duration
     return False
 
 
