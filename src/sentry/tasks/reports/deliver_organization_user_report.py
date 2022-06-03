@@ -1,8 +1,12 @@
 from sentry import features
-from sentry.models import Organization, OrganizationStatus, Project, Team, User, UserOption
+from sentry.models import Organization, Project, Team, User, UserOption
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.reports.types import Skipped
-from sentry.tasks.reports.utils.util import _to_interval, has_valid_aggregates
+from sentry.tasks.reports.utils.util import (
+    _get_organization_queryset,
+    _to_interval,
+    has_valid_aggregates,
+)
 from sentry.utils.compat import filter, zip
 
 DISABLED_ORGANIZATIONS_USER_OPTION_KEY = "reports:disabled-organizations"
@@ -31,9 +35,7 @@ def deliver_organization_user_report(
     from sentry.tasks.reports import backend, logger
 
     try:
-        organization = Organization.objects.get(
-            status=OrganizationStatus.VISIBLE, id=organization_id
-        )
+        organization = _get_organization_queryset().get(id=organization_id)
     except Organization.DoesNotExist:
         logger.warning(
             "reports.organization.missing",

@@ -6,10 +6,9 @@ from typing import Any
 from django.utils import timezone
 
 from sentry.cache import default_cache
-from sentry.models import Organization, OrganizationStatus
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.reports.utils.constants import ONE_DAY
-from sentry.tasks.reports.utils.util import prepare_reports_verify_key
+from sentry.tasks.reports.utils.util import _get_organization_queryset, prepare_reports_verify_key
 from sentry.utils.dates import floor_to_utc_day, to_timestamp
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -46,9 +45,7 @@ def prepare_reports(
 
     logger.info("reports.begin_prepare_report")
 
-    organizations = Organization.objects.filter(status=OrganizationStatus.VISIBLE).values_list(
-        "id", flat=True
-    )
+    organizations = _get_organization_queryset().values_list("id", flat=True)
 
     for i, organization_id in enumerate(
         RangeQuerySetWrapper(organizations, step=STEP_SIZE, result_value_getter=lambda item: item)

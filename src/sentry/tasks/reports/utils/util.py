@@ -3,11 +3,15 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Any, Iterable, Sequence
 
-from sentry.models import Project
+from sentry.models import Organization, OrganizationStatus, Project
 from sentry.utils.dates import to_datetime, to_timestamp
 
 if TYPE_CHECKING:
     from sentry.tasks.reports import Report
+
+
+def _get_organization_queryset():
+    return Organization.objects.filter(status=OrganizationStatus.VISIBLE)
 
 
 def _to_interval(timestamp: float, duration: float) -> tuple[datetime | None, datetime | None]:

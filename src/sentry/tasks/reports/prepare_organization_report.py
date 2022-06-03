@@ -3,9 +3,10 @@ from __future__ import annotations
 from django.db.models import F
 
 from sentry import features
-from sentry.models import Organization, OrganizationMember, OrganizationStatus
+from sentry.models import Organization, OrganizationMember
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.reports import deliver_organization_user_report
+from sentry.tasks.reports.utils.util import _get_organization_queryset
 
 
 @instrumented_task(
@@ -24,9 +25,7 @@ def prepare_organization_report(
     from sentry.tasks.reports import backend, logger
 
     try:
-        organization = Organization.objects.get(
-            status=OrganizationStatus.VISIBLE, id=organization_id
-        )
+        organization = _get_organization_queryset().get(id=organization_id)
     except Organization.DoesNotExist:
         logger.warning(
             "reports.organization.missing",
