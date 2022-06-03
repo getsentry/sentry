@@ -252,21 +252,22 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     }
   }
 
-  async function handleSearch(search: string) {
-    if (search === '') {
-      // Reset pagination state to match store if doing an empty search
-      if (state.hasMore !== store.hasMore || state.nextCursor !== store.cursor) {
-        setState({
-          ...state,
-          lastSearch: search,
-          hasMore: store.hasMore,
-          nextCursor: store.cursor,
-        });
-      }
-
-      return;
+  function handleSearch(search: string) {
+    if (search !== '') {
+      return handleFetchAdditionalTeams(search);
     }
-    handleFetchAdditionalTeams(search);
+
+    // Reset pagination state to match store if doing an empty search
+    if (state.hasMore !== store.hasMore || state.nextCursor !== store.cursor) {
+      setState({
+        ...state,
+        lastSearch: search,
+        hasMore: store.hasMore,
+        nextCursor: store.cursor,
+      });
+    }
+
+    return Promise.resolve();
   }
 
   async function handleFetchAdditionalTeams(search?: string) {
