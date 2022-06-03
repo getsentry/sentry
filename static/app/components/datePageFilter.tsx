@@ -12,9 +12,9 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {
-  getFormattedDate,
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,
+  getFormattedDate,
 } from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 
