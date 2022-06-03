@@ -209,6 +209,7 @@ export function FrameStackTable({
                 pointerEvents: 'none',
                 position: 'absolute',
                 height: '100%',
+                zIndex: -1,
               }}
             >
               <FrameCallersTableCell />
@@ -260,6 +261,7 @@ const FrameCallersTable = styled('div')`
   width: 100%;
   display: flex;
   flex-direction: column;
+  background-color: ${p => p.theme.background};
 `;
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;

@@ -170,6 +170,17 @@ export const FrameCallersTableCell = styled('div')<{
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.border};
   }
+
+  &:first-child {
+    left: 0;
+    position: sticky;
+    z-index: 1;
+  }
+  &:nth-child(2) {
+    left: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
+    position: sticky;
+    z-index: 1;
+  }
 `;
 
 export {FrameStack};

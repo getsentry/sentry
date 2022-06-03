@@ -103,7 +103,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
         </FrameCallersTableCell>
         <FrameCallersTableCell
           // We stretch this table to 100% width.
-          style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
+          style={{paddingLeft: node.depth * 14 + 8, flex: '1 1 100%'}}
         >
           <FrameNameContainer>
             <FrameColorIndicator backgroundColor={colorString} />
@@ -115,6 +115,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
               {node.node.children.length > 0 ? '\u203A' : null}
             </FrameChildrenIndicator>
             <FrameName>{node.node.frame.name}</FrameName>
+            {node.node.frame.image ? ` (${node.node.frame.image})` : null}
           </FrameNameContainer>
         </FrameCallersTableCell>
       </FrameCallersRow>
@@ -179,11 +180,16 @@ const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: 100%;
 
-  background-color: ${p => (p.isSelected ? p.theme.blue300 : 'transparent')};
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
 
+  > div {
+    background-color: ${p => (p.isSelected ? p.theme.blue300 : p.theme.background)};
+  }
+
   &:hover {
-    background-color: ${p => (p.isSelected ? p.theme.blue300 : p.theme.blue100)};
+    > div {
+      background-color: ${p => (p.isSelected ? p.theme.blue300 : '#e8edf8')};
+    }
   }
 
   &:focus {
