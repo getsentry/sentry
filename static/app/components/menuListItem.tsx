@@ -92,15 +92,15 @@ function BaseMenuListItem({
         priority={priority}
         {...innerWrapProps}
       >
+        {leadingItems && (
+          <LeadingItems
+            isDisabled={isDisabled}
+            spanFullHeight={leadingItemsSpanFullHeight}
+          >
+            {leadingItems}
+          </LeadingItems>
+        )}
         <ContentWrap isFocused={isFocused} showDivider={showDivider}>
-          {leadingItems && (
-            <LeadingItems
-              isDisabled={isDisabled}
-              spanFullHeight={leadingItemsSpanFullHeight}
-            >
-              {leadingItems}
-            </LeadingItems>
-          )}
           <LabelWrap>
             <Label aria-hidden="true" {...labelProps}>
               {label}
@@ -158,7 +158,7 @@ export const InnerWrap = styled('div', {
 }>`
   display: flex;
   position: relative;
-  padding: 0 ${space(1)};
+  padding: 0 ${space(1)} 0 ${space(1.5)};
   border-radius: ${p => p.theme.borderRadius};
   box-sizing: border-box;
 
@@ -191,7 +191,6 @@ const ContentWrap = styled('div')<{isFocused: boolean; showDivider: boolean}>`
   gap: ${space(1)};
   justify-content: space-between;
   padding: ${space(1)} 0;
-  margin-left: ${space(0.5)};
 
   ${p =>
     p.showDivider &&
@@ -214,7 +213,8 @@ const LeadingItems = styled('div')<{isDisabled: boolean; spanFullHeight: boolean
   align-items: center;
   height: 1.4em;
   gap: ${space(1)};
-  padding: ${space(1)} 0;
+  margin-top: ${space(1)};
+  margin-right: ${space(1)};
 
   ${p => p.isDisabled && `opacity: 0.5;`}
   ${p => p.spanFullHeight && `height: 100%;`}
