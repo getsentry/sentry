@@ -17,6 +17,7 @@ from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
+from sentry.utils.assets import get_asset_url
 from sentry.utils.auth import (
     get_login_redirect,
     has_user_registration,
@@ -74,6 +75,7 @@ class AuthLoginView(BaseView):
             provider = get_provider_by_user_agent(user_agent)
         if provider:
             analytics.record("metalink.scraped", provider=provider)
+        image_url = get_asset_url("sentry", "images/logos/sentry-avatar.png")
         opengraph_meta = {}
         if provider in META_PROVIDER_TO_INTEGRATIONS:
             opengraph_meta = {
@@ -81,6 +83,7 @@ class AuthLoginView(BaseView):
                 "og:title": f"Install {META_PROVIDER_TO_INTEGRATIONS[provider]} integration to preview",
                 "og:description": f"The content requires authentication. Install our {META_PROVIDER_TO_INTEGRATIONS[provider]} integration to preview details.",
                 "og:site_name": "Sentry",
+                "og:image": image_url,
             }
         elif provider in META_PUBLIC_PROVIDERS:
             if provider == "twitter":
@@ -89,6 +92,7 @@ class AuthLoginView(BaseView):
                     "twitter:site": "@getsentry",
                     "twitter:title": "Enable public share link to preview",
                     "twitter:description": "This content requires authentication. Enable public share link so that people can see it.",
+                    "twitter:image": image_url,
                 }
             else:
                 opengraph_meta = {
@@ -96,6 +100,7 @@ class AuthLoginView(BaseView):
                     "og:title": "Enable public share link to preview",
                     "og:description": "This content requires authentication. Enable public share link so that people can see it.",
                     "og:site_name": "Sentry",
+                    "og:image": image_url,
                 }
         return opengraph_meta
 
