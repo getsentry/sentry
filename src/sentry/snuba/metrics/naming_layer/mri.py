@@ -18,7 +18,10 @@ metric that is queryable by the API.
 """
 __all__ = ("SessionMRI", "TransactionMRI")
 
+import re
 from enum import Enum
+
+MRI_NAME_REGEX = re.compile(r"^(\w+)\(([\w.:/@]+)\)$")
 
 
 class SessionMRI(Enum):

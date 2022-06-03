@@ -3,7 +3,6 @@ __all__ = (
     "GRANULARITY",
     "TS_COL_QUERY",
     "TS_COL_GROUP",
-    "FIELD_REGEX",
     "TAG_REGEX",
     "MetricOperationType",
     "MetricUnit",
@@ -52,14 +51,12 @@ from typing import (
 
 from sentry.snuba.dataset import EntityKey
 
+#: Max number of data points per time series:
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
 
-#: Max number of data points per time series:
-# ToDo modify this regex to only support the operations provided
-FIELD_REGEX = re.compile(r"^(\w+)\(([\w.:/@]+)\)$")
 TAG_REGEX = re.compile(r"^([\w.]+)$")
 
 #: A function that can be applied to a metric

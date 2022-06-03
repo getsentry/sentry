@@ -17,7 +17,10 @@ __all__ = (
     "TransactionSatisfactionTagValue",
 )
 
+import re
 from enum import Enum
+
+PUBLIC_NAME_REGEX = re.compile(r"^(\w+)\(([\w.]+)\)$")
 
 
 class SessionMetricKey(Enum):
