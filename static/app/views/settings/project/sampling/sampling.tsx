@@ -266,14 +266,14 @@ class Sampling extends AsyncView<Props, State> {
                         })}
                       >
                         {tn(
-                          '% Distributed Trace rule',
+                          '%s Distributed Trace rule',
                           '%s Distributed Trace rules',
                           traceRules.length
                         )}
                       </Link>
                     ),
                   })
-                : undefined
+                : null
             }
             onUpdateRules={newRules =>
               this.handleUpdateRules([...traceRules, ...newRules])

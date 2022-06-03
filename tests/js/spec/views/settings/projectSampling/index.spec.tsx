@@ -1,4 +1,5 @@
 import {screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {SamplingRuleType} from 'sentry/types/sampling';
 import {SAMPLING_DOC_LINK} from 'sentry/views/settings/project/sampling/utils';
@@ -45,7 +46,7 @@ describe('Sampling', function () {
 
     // Tab content
     expect(screen.getByText('Operator')).toBeInTheDocument();
-    expect(screen.getByText('Conditions')).toBeInTheDocument();
+    expect(screen.getByText('Condition')).toBeInTheDocument();
     expect(screen.getByText('Rate')).toBeInTheDocument();
 
     // Empty message is displayed
@@ -63,7 +64,7 @@ describe('Sampling', function () {
     expect(container).toSnapshot();
   });
 
-  describe('renders with rules', function () {
+  describe.only('renders with rules', function () {
     beforeAll(() => {
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
@@ -162,7 +163,7 @@ describe('Sampling', function () {
       expect(container).toSnapshot();
     });
 
-    it('Individual Transactions tab', async function () {
+    it.only('Individual Transactions tab', async function () {
       const {container, router} = renderComponent({
         withModal: false,
         ruleType: SamplingRuleType.TRANSACTION,
@@ -182,6 +183,14 @@ describe('Sampling', function () {
       const rules = screen.getAllByTestId('sampling-rule');
       expect(rules[0]).toHaveTextContent('If');
       expect(rules[1]).toHaveTextContent('Else');
+
+      // Info Alert
+      screen.getByText(
+        textWithMarkupMatcher('1 Distributed Trace rule will initiate before these rules')
+      );
+      expect(
+        screen.getByRole('link', {name: '1 Distributed Trace rule'})
+      ).toHaveAttribute('href', `${SamplingRuleType.TRACE}/`);
 
       // Empty message is not displayed
       expect(
