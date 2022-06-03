@@ -58,7 +58,7 @@
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.2",
     "@types/webpack-dev-server": "^4.7.2",
-    "@types/webpack-env": "^1.16.3",
+    "@types/webpack-env": "^1.17.0",
     "@wojtekmaj/enzyme-adapter-react-17": "0.6.1",
     "ansicolor": "^1.1.95",
     "babel-loader": "^8.2.5",
