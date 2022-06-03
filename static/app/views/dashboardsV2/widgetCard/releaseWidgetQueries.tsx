@@ -345,7 +345,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     //      selected period if there are more than 50 releases in the selected
     //      period.
     //
-    //   2. If a recent release is not returned due to the 100 row limit
+    //   2. if a recent release is not returned due to the 100 row limit
     //      imposed on the metrics query the user won't see it on the
     //      table/chart/
     //
