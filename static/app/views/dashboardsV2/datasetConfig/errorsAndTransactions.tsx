@@ -2,7 +2,7 @@ import {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 
-import DatasetConfig from './base';
+import {DatasetConfig} from './base';
 
 export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,

@@ -2,7 +2,7 @@ import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 
-import DatasetConfig from './base';
+import {DatasetConfig} from './base';
 
 export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
