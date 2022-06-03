@@ -329,7 +329,6 @@ def test_matcher_test_platform_react_native():
     assert Matcher("path", "app:///src/screens/EndToEndTestsScreen.tsx").test(data)
 
 
-<<<<<<< HEAD
 def test_matcher_test_platform_other_flutter():
     data = {
         "platform": "other",
@@ -399,8 +398,6 @@ def test_matcher_test_platform_other_flutter():
     assert Matcher("path", "package:sentry_flutter_example/a/b/test.dart").test(data)
 
 
-=======
->>>>>>> df9ec92162 (feat(rules): suspect commits and issue owner support for react-native stack frames (#35206))
 def test_matcher_test_platform_none_threads():
     data = {
         "threads": {
