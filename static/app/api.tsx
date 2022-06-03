@@ -478,7 +478,7 @@ export class Client {
           }
         }
 
-        const responseContentType = response.headers.get('content-type');
+        const responseContentType = response.clone().headers.get('content-type');
         const isResponseJSON = responseContentType?.includes('json');
 
         const isStatus3XX = status >= 300 && status < 400;
@@ -504,7 +504,7 @@ export class Client {
           responseJSON,
           responseText,
           getResponseHeader: (header: string) => response.headers.get(header),
-          rawResponse: response,
+          rawResponse: response.clone(),
         };
 
         // Respect the response content-type header
