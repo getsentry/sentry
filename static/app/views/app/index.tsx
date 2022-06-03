@@ -38,21 +38,24 @@ function App({children}: Props) {
   const config = useLegacyStore(ConfigStore);
 
   // Command palette global-shortcut
-  useHotkeys([
-    {
-      match: 'command+shift+p, command+k, ctrl+shift+p, ctrl+k',
-      callback: e => {
-        openCommandPalette();
-        e.preventDefault();
+  useHotkeys(
+    [
+      {
+        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+        callback: e => {
+          openCommandPalette();
+          e.preventDefault();
+        },
       },
-    },
-  ]);
+    ],
+    []
+  );
 
   // Theme toggle global shortcut
   useHotkeys(
     [
       {
-        match: 'command+shift+l,ctrl+shift+l',
+        match: ['command+shift+l', 'ctrl+shift+l'],
         callback: e => {
           ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
           e.preventDefault();

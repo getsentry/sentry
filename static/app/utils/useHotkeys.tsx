@@ -1,4 +1,4 @@
-import {DependencyList, useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 
 import {getKeyCode} from './getKeyCode';
 
@@ -15,8 +15,8 @@ const modifierKeys = [
  * Alternate matchings with a comma: command+alt+backspace,ctrl+alt+delete
  */
 export function useHotkeys(
-  hotkeys: {callback: (e: KeyboardEvent) => void; match: string}[],
-  deps?: DependencyList
+  hotkeys: {callback: (e: KeyboardEvent) => void; match: string[] | string}[],
+  deps: React.DependencyList
 ): void {
   const keysPressedRef = useRef<number[]>([]);
 
@@ -41,7 +41,9 @@ export function useHotkeys(
       }
 
       for (const hotkey of memoizedHotkeys) {
-        const matches = hotkey.match.split(',').map(o => o.trim().split(/(?<!\\)\+/g));
+        const matches = (Array.isArray(hotkey.match) ? hotkey.match : [hotkey.match]).map(
+          o => o.trim().split(/(?<!\\)\+/g)
+        );
 
         for (const keys of matches) {
           if (
