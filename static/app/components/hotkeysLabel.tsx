@@ -44,7 +44,7 @@ const keyToDisplay = (
 
   const specificToOs = keyStr === 'CMD' ? 'macos' : 'generic';
 
-  return {label: <Key>{keyStr}</Key>, specificToOs};
+  return {label: <Key key={keyStr}>{keyStr}</Key>, specificToOs};
 };
 
 type Props = {
@@ -62,7 +62,7 @@ type Props = {
   forcePlatform?: 'macos' | 'generic';
 };
 
-const Hotkeys = ({value, forcePlatform}: Props) => {
+const HotkeysLabel = ({value, forcePlatform}: Props) => {
   // Split by commas and then split by +, but allow escaped /+
   const hotkeySets = (Array.isArray(value) ? value : [value]).map(o =>
     o.trim().split(/(?<!\\)\+/g)
@@ -88,7 +88,7 @@ const Hotkeys = ({value, forcePlatform}: Props) => {
   return <HotkeysContainer>{finalKeySet.map(key => key.label)}</HotkeysContainer>;
 };
 
-export default Hotkeys;
+export default HotkeysLabel;
 
 const Key = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
