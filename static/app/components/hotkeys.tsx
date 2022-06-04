@@ -22,44 +22,30 @@ const genericGlyphs = {
   38: '↑',
   39: '→',
   40: '↓',
-  9999: '+',
+  107: '+',
 };
 
 const keyToDisplay = (
   key: string,
-  platform?: 'macos' | string
-): [React.ReactNode, boolean] => {
+  isMac: boolean
+): {node: React.ReactNode; specificToOs: 'macos' | 'generic'} => {
   let keyStr = key.toUpperCase();
-  let hasMissing = false;
+  let specificToOs: 'macos' | 'generic' = 'generic';
 
   const keyCode = getKeyCode(key);
   if (keyCode) {
-    const isMac = platform
-      ? platform === 'macos'
-      : window?.navigator?.platform?.toLowerCase().startsWith('mac') ?? false;
-
     const modifierMap = isMac ? macModifiers : normalModifiers;
-    const keyStr = modifierMap[keyCode] ?? key.toUpperCase();
-    
+    keyStr = modifierMap[keyCode] ?? genericGlyphs[keyCode] ?? keyStr;
+
     if (keyStr === 'CMD') {
-      hasMissing = true;
-    }
-
-    const glyph = genericGlyphs[keyCode];
-
-    if (glyph) {
-      keyStr = glyph;
+      specificToOs = 'macos';
     }
   }
 
-  // eslint-disable-next-line react/jsx-key
-  return [<Key>{keyStr}</Key>, hasMissing];
+  return {node: <Key>{keyStr}</Key>, specificToOs};
 };
 
-const Hotkeys = ({
-  value,
-  platform,
-}: {
+type Props = {
   /**
    * Pass key combinations in with + as the separator.
    * For example: command+option+x
@@ -70,29 +56,34 @@ const Hotkeys = ({
    *
    * Escape the + key with a slash |+
    */
-  value: string;
-  platform?: 'macos' | string;
-}) => {
+  value: string[] | string;
+  forcePlatform?: 'macos' | 'generic';
+};
+
+const Hotkeys = ({value, forcePlatform}: Props) => {
   // Split by commas and then split by +, but allow escaped /+
-  const byPlatform = value.split(',').map(o => o.trim().split(/(?<!\\)\+/g));
+  const hotkeySets = (Array.isArray(value) ? value : [value]).map(o =>
+    o.trim().split(/(?<!\\)\+/g)
+  );
 
-  let firstSetHasMissing = false;
-  let output = byPlatform[0].map(key => {
-    const [node, hasMissing] = keyToDisplay(key, platform);
+  const isMac = forcePlatform
+    ? forcePlatform === 'macos'
+    : window?.navigator?.platform?.toLowerCase().startsWith('mac') ?? false;
 
-    if (hasMissing) {
-      firstSetHasMissing = true;
-    }
+  // If we're not using mac find the first key set that is generic.
+  // Otherwise show whatever the first hotkey is.
+  const finalKeySet = hotkeySets
+    .map(keySet => keySet.map(key => keyToDisplay(key, isMac)))
+    .find(keySet =>
+      !isMac ? keySet.every(key => key.specificToOs === 'generic') : true
+    );
 
-    return node;
-  });
-
-  // If the first set has any missing keys that don't exist on the platform (CMD), fallback to second if exists, otherwise just go forward with current.
-  if (firstSetHasMissing && byPlatform.length > 1) {
-    output = byPlatform[1].map(key => keyToDisplay(key, platform)[0]);
+  // No key available for the OS. Don't show a hotkey
+  if (finalKeySet === undefined) {
+    return null;
   }
 
-  return <HotkeysContainer>{output}</HotkeysContainer>;
+  return <HotkeysContainer>{finalKeySet.map(key => key.node)}</HotkeysContainer>;
 };
 
 export default Hotkeys;

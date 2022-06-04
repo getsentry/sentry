@@ -1,7 +1,7 @@
 /* key maps and utils retrieved from  https://github.com/jaywcjlove/hotkeys */
 
 /** Includes a lot of leftover unused codes for the future in case we want glyphs for them */
-const _keyMap = {
+const keyNameCodeMapping = {
   backspace: 8,
   tab: 9,
   clear: 12,
@@ -51,13 +51,10 @@ const _keyMap = {
   '[': 219,
   ']': 221,
   '\\': 220,
-
-  // special case for escaped +, not actually a keycode
-  '\\+': 9999,
 };
 
 // Modifier Keys
-const _modifier = {
+const modifierNameKeyCodeMapping = {
   // shiftKey
   '⇧': 16,
   shift: 16,
@@ -76,4 +73,6 @@ const _modifier = {
 };
 
 export const getKeyCode = (x: string): number =>
-  _keyMap[x.toLowerCase()] || _modifier[x.toLowerCase()] || x.toUpperCase().charCodeAt(0);
+  keyNameCodeMapping[x.toLowerCase()] ||
+  modifierNameKeyCodeMapping[x.toLowerCase()] ||
+  x.toUpperCase().charCodeAt(0);
