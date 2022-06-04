@@ -556,6 +556,18 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 @click.option("parallel_max_batch_size", "--parallel-max-batch-size", type=int, default=5)
 @click.option("parallel_max_batch_time_ms", "--parallel-max-batch-time-ms", type=int, default=1000)
+@click.option(
+    "--queued-max-messages-kbytes",
+    default=65536,
+    type=int,
+    help="Maximum number of kilobytes per topic+partition in the local consumer queue.",
+)
+@click.option(
+    "--queued-min-messages",
+    default=100000,
+    type=int,
+    help="Minimum number of messages per topic+partition librdkafka tries to maintain in the local consumer queue.",
+)
 def metrics_streaming_consumer(**options):
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
     from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer

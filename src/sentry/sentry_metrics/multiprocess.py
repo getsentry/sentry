@@ -643,7 +643,6 @@ class Unbatcher(ProcessingStep[MessageBatch]):  # type: ignore
         self,
         next_step: ProcessingStep[KafkaPayload],
     ) -> None:
-        self.__process_messages = process_messages
         self.__next_step = next_step
         self.__closed = False
         self.__metrics = get_metrics()
@@ -819,6 +818,8 @@ def get_streaming_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     factory_name: str,
+    queued_max_messages_kbytes: int,
+    queued_min_messages: int,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
     if factory_name == "multiprocess":
@@ -843,9 +844,15 @@ def get_streaming_metrics_consumer(
         )
 
     create_topics([topic])
-
+    kafka_config = get_config(topic, group_id, auto_offset_reset)
+    kafka_config.update(
+        {
+            "queued.min.messages": queued_min_messages,
+            "queued.max.messages.kbytes": queued_max_messages_kbytes,
+        }
+    )
     return StreamProcessor(
-        KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
+        KafkaConsumer(kafka_config),
         Topic(topic),
         processing_factory,
     )
