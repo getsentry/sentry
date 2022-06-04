@@ -29,6 +29,9 @@ const keyToDisplay = (
   key: string,
   isMac: boolean
 ): {node: React.ReactNode; specificToOs: 'macos' | 'generic'} => {
+  // Handle escaped + case
+  key = key === '\\+' ? '+' : key;
+
   let keyStr = key.toUpperCase();
   let specificToOs: 'macos' | 'generic' = 'generic';
 
@@ -54,7 +57,7 @@ type Props = {
    * command+option+x,ctrl+shift+x
    * (does not have to be the same combo)
    *
-   * Escape the + key with a slash |+
+   * Escape the + key with a slash \+
    */
   value: string[] | string;
   forcePlatform?: 'macos' | 'generic';
