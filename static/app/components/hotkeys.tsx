@@ -28,7 +28,7 @@ const genericGlyphs = {
 const keyToDisplay = (
   key: string,
   isMac: boolean
-): {node: React.ReactNode; specificToOs: 'macos' | 'generic'} => {
+): {label: React.ReactNode; specificToOs: 'macos' | 'generic'} => {
   // Handle escaped + case
   key = key === '\\+' ? '+' : key;
 
@@ -36,15 +36,15 @@ const keyToDisplay = (
 
   // Not a special key
   if (!keyCode) {
-    return {node: <Key>{key.toUpperCase()}</Key>, 'generic'};
+    return {label: <Key>{key.toUpperCase()}</Key>, specificToOs: 'generic'};
   }
 
   const modifierMap = isMac ? macModifiers : normalModifiers;
   const keyStr = modifierMap[keyCode] ?? genericGlyphs[keyCode] ?? key.toUpperCase();
 
-  const specificToOs = keyStr === 'cmd' ? 'macos' : 'generic';
+  const specificToOs = keyStr === 'CMD' ? 'macos' : 'generic';
 
-  return {node: <Key>{keyStr}</Key>, specificToOs};
+  return {label: <Key>{keyStr}</Key>, specificToOs};
 };
 
 type Props = {
@@ -85,7 +85,7 @@ const Hotkeys = ({value, forcePlatform}: Props) => {
     return null;
   }
 
-  return <HotkeysContainer>{finalKeySet.map(key => key.node)}</HotkeysContainer>;
+  return <HotkeysContainer>{finalKeySet.map(key => key.label)}</HotkeysContainer>;
 };
 
 export default Hotkeys;
