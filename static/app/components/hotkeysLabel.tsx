@@ -64,7 +64,7 @@ type Props = {
 const HotkeysLabel = ({value, forcePlatform}: Props) => {
   // Split by commas and then split by +, but allow escaped /+
   const hotkeySets = (Array.isArray(value) ? value : [value]).map(o =>
-    o.trim().split(/(?<!\\)\+/g)
+    o.trim().split('+')
   );
 
   const isMac = forcePlatform
