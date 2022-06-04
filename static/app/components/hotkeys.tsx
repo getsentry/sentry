@@ -32,18 +32,17 @@ const keyToDisplay = (
   // Handle escaped + case
   key = key === '\\+' ? '+' : key;
 
-  let keyStr = key.toUpperCase();
-  let specificToOs: 'macos' | 'generic' = 'generic';
-
   const keyCode = getKeyCode(key);
-  if (keyCode) {
-    const modifierMap = isMac ? macModifiers : normalModifiers;
-    keyStr = modifierMap[keyCode] ?? genericGlyphs[keyCode] ?? keyStr;
 
-    if (keyStr === 'CMD') {
-      specificToOs = 'macos';
-    }
+  // Not a special key
+  if (!keyCode) {
+    return {node: <Key>{key.toUpperCase()}</Key>, 'generic'};
   }
+
+  const modifierMap = isMac ? macModifiers : normalModifiers;
+  const keyStr = modifierMap[keyCode] ?? genericGlyphs[keyCode] ?? key.toUpperCase();
+
+  const specificToOs = keyStr === 'cmd' ? 'macos' : 'generic';
 
   return {node: <Key>{keyStr}</Key>, specificToOs};
 };
