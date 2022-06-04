@@ -1,6 +1,9 @@
-/* key maps and utils retrieved from  https://github.com/jaywcjlove/hotkeys */
+// key maps and utils retrieved from https://github.com/jaywcjlove/hotkeys
 
-/** Includes a lot of leftover unused codes for the future in case we want glyphs for them */
+/**
+ * Includes a lot of leftover unused codes for the future in case we
+ * want glyphs for them 
+ */
 const keyNameCodeMapping = {
   backspace: 8,
   tab: 9,
