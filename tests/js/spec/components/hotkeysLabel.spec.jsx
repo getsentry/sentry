@@ -19,16 +19,17 @@ describe('HotkeysLabel', function () {
 
   it('falls back when not on mac', function () {
     render(<HotkeysLabel value={['cmd', 'alt']} forcePlatform="generic" />);
-    expect(screen.queryByText('CMD')).not.toBeInTheDocument();
     expect(screen.queryByText('⌘')).not.toBeInTheDocument();
+    expect(screen.queryByText('CMD')).not.toBeInTheDocument();
 
     expect(screen.getByText('ALT')).toBeInTheDocument();
   });
 
   it('does not render at all without fallback', function () {
     render(<HotkeysLabel value={['cmd+k', 'cmd+alt+l']} forcePlatform="generic" />);
-    expect(screen.queryByText('CMD')).not.toBeInTheDocument();
     expect(screen.queryByText('⌘')).not.toBeInTheDocument();
+    expect(screen.queryByText('L')).not.toBeInTheDocument();
+    expect(screen.queryByText('ALT')).not.toBeInTheDocument();
   });
 
   it('takes just a string', function () {

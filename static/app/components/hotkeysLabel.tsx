@@ -12,7 +12,6 @@ const macModifiers = {
 const normalModifiers = {
   18: 'ALT',
   17: 'CTRL',
-  91: 'CMD',
 };
 
 const genericGlyphs = {
