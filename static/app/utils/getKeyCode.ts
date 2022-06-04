@@ -2,7 +2,7 @@
 
 /**
  * Includes a lot of leftover unused codes for the future in case we
- * want glyphs for them 
+ * want glyphs for them
  */
 const keyNameCodeMapping = {
   backspace: 8,
