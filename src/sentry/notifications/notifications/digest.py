@@ -30,6 +30,7 @@ from sentry.notifications.utils.digest import (
 )
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import to_timestamp
+from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, Team, User
@@ -72,7 +73,9 @@ class DigestNotification(ProjectNotification):
             to_timestamp(context["start"]),
             count=len(context["counts"]),
             noun="issue" if len(context["counts"]) == 1 else "issues",
-            project_link=f'https://sentry.io/organizations/{context["group"].project.organization.slug}/projects/{context["group"].project.slug}/',
+            project_link=absolute_uri(
+                f'/organizations/{context["group"].project.organization.slug}/projects/{context["group"].project.slug}/'
+            ),
             project_name=context["group"].project.name,
             date="{date_pretty}",
         )
