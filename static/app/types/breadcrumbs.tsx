@@ -93,7 +93,6 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.INIT
     | BreadcrumbType.SESSION
     | BreadcrumbType.SYSTEM
-    | BreadcrumbType.SESSION
     | BreadcrumbType.TRANSACTION;
   data?: Record<string, any>;
 } & BreadcrumbTypeBase;
@@ -108,3 +107,9 @@ export type Crumb = RawCrumb & {
   description: string;
   id: number;
 };
+
+export function isBreadcrumbTypeDefault(
+  breadcrumb: RawCrumb
+): breadcrumb is BreadcrumbTypeDefault {
+  return ![BreadcrumbType.HTTP, BreadcrumbType.NAVIGATION].includes(breadcrumb.type);
+}

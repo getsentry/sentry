@@ -1,14 +1,16 @@
 import logging
 import math
+import random
 from collections import namedtuple
 from copy import deepcopy
 from datetime import timedelta
-from typing import Dict, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 import sentry_sdk
 from dateutil.parser import parse as parse_datetime
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
+from typing_extensions import TypedDict
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.models import Group
@@ -65,6 +67,16 @@ logger = logging.getLogger(__name__)
 PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
+
+
+class EventsMeta(TypedDict):
+    fields: Dict[str, str]
+
+
+class EventsResponse(TypedDict):
+    data: List[Dict[str, Any]]
+    meta: EventsMeta
+
 
 resolve_discover_column = resolve_column(Dataset.Discover)
 
@@ -127,14 +139,16 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(results, function_alias_map, translated_columns, snuba_filter):
+def transform_results(
+    results, function_alias_map, translated_columns, snuba_filter
+) -> EventsResponse:
     results = transform_data(results, translated_columns, snuba_filter)
     results["meta"] = transform_meta(results, function_alias_map)
     return results
 
 
-def transform_meta(results, function_alias_map):
-    meta = {
+def transform_meta(results: EventsResponse, function_alias_map) -> Dict[str, str]:
+    meta: Dict[str, str] = {
         value["name"]: get_json_meta_type(
             value["name"], value.get("type"), function_alias_map.get(value["name"])
         )
@@ -148,14 +162,15 @@ def transform_meta(results, function_alias_map):
     return meta
 
 
-def transform_data(result, translated_columns, snuba_filter):
+def transform_data(result, translated_columns, snuba_filter) -> EventsResponse:
     """
     Transform internal names back to the public schema ones.
 
     When getting timeseries results via rollup, this function will
     zerofill the output results.
     """
-    for col in result["meta"]:
+    final_result: EventsResponse = {"data": result["data"], "meta": result["meta"]}
+    for col in final_result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
 
@@ -173,19 +188,30 @@ def transform_data(result, translated_columns, snuba_filter):
 
         return transformed
 
-    result["data"] = [get_row(row) for row in result["data"]]
+    final_result["data"] = [get_row(row) for row in final_result["data"]]
 
     if snuba_filter and snuba_filter.rollup and snuba_filter.rollup > 0:
         rollup = snuba_filter.rollup
         with sentry_sdk.start_span(
             op="discover.discover", description="transform_results.zerofill"
         ) as span:
-            span.set_data("result_count", len(result.get("data", [])))
-            result["data"] = zerofill(
-                result["data"], snuba_filter.start, snuba_filter.end, rollup, snuba_filter.orderby
+            span.set_data("result_count", len(final_result.get("data", [])))
+            final_result["data"] = zerofill(
+                final_result["data"],
+                snuba_filter.start,
+                snuba_filter.end,
+                rollup,
+                snuba_filter.orderby,
             )
 
-    return result
+    return final_result
+
+
+def transform_tips(tips):
+    return {
+        "query": random.choice(list(tips["query"])) if tips["query"] else None,
+        "columns": random.choice(list(tips["columns"])) if tips["columns"] else None,
+    }
 
 
 def query(
@@ -205,7 +231,7 @@ def query(
     conditions=None,
     functions_acl=None,
     transform_alias_to_input_format=False,
-):
+) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
 
@@ -280,6 +306,7 @@ def query(
             translated_columns,
             None,
         )
+        result["tips"] = transform_tips(builder.tips)
     return result
 
 
@@ -1050,7 +1077,9 @@ def find_span_histogram_min_max(span, min_value, max_value, user_query, params, 
     return min_value, max_value
 
 
-def find_histogram_min_max(fields, min_value, max_value, user_query, params, data_filter=None):
+def find_histogram_min_max(
+    fields, min_value, max_value, user_query, params, data_filter=None, query_fn=None
+):
     """
     Find the min/max value of the specified fields. If either min/max is already
     specified, it will be used and not queried for.
@@ -1080,7 +1109,9 @@ def find_histogram_min_max(fields, min_value, max_value, user_query, params, dat
             quartiles.append(f"percentile({field}, 0.25)")
             quartiles.append(f"percentile({field}, 0.75)")
 
-    results = query(
+    if query_fn is None:
+        query_fn = query
+    results = query_fn(
         selected_columns=min_columns + max_columns + quartiles,
         query=user_query,
         params=params,

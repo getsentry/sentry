@@ -64,9 +64,10 @@ requirements*.txt   @getsentry/owners-python-build
 pyproject.toml      @getsentry/owners-python-build
 tsconfig.*          @getsentry/owners-js-build
 webpack.config.*    @getsentry/owners-js-build
-package.json        @getsentry/owners-js-build
 babel.config.*      @getsentry/owners-js-build
 build-utils/        @getsentry/owners-js-build
+package.json        @getsentry/owners-js-deps
+yarn.lock           @getsentry/owners-js-deps
 
 # Design
 /static/app/icons/    @getsentry/design
@@ -111,9 +112,12 @@ build-utils/        @getsentry/owners-js-build
 
 ### Visibility ###
 /src/sentry/api/endpoints/organization_tags.py                  @getsentry/visibility
+/src/sentry/api/endpoints/organization_events_histogram.py      @getsentry/visibility
 /tests/snuba/api/endpoints/                                     @getsentry/visibility
 /src/sentry/api/serializers/snuba.py                            @getsentry/visibility
 /src/sentry/snuba/discover.py                                   @getsentry/visibility
+/src/sentry/snuba/metrics_performance.py                        @getsentry/visibility
+/src/sentry/snuba/metrics_enhanced_performance.py               @getsentry/visibility
 
 /src/sentry/search/events/                                      @getsentry/visibility
 /tests/snuba/search/test_backend.py                             @getsentry/visibility

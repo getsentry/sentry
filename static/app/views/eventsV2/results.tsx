@@ -234,7 +234,7 @@ class Results extends Component<Props, State> {
     return null;
   };
 
-  handleConfirmed = async () => {
+  handleConfirmed = () => {
     this.setState({needConfirmation: false, confirmedQuery: true}, () => {
       this.setState({confirmedQuery: false});
     });
@@ -632,12 +632,16 @@ function ResultsContainer(props: Props) {
    *
    * Also, we skip loading last used projects if you have multiple projects feature as
    * you no longer need to enforce a project if it is empty. We assume an empty project is
-   * the desired behavior because saved queries can contain a project filter.
+   * the desired behavior because saved queries can contain a project filter. The only
+   * exception is if we are showing a prebuilt saved query in which case we want to
+   * respect pinned filters.
    */
 
   return (
     <PageFiltersContainer
-      skipLoadLastUsed={props.organization.features.includes('global-views')}
+      skipLoadLastUsed={
+        props.organization.features.includes('global-views') && !!props.savedQuery
+      }
       hideGlobalHeader
     >
       <SavedQueryAPI {...props} />

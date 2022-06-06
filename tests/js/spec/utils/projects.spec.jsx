@@ -27,7 +27,7 @@ describe('utils.projects', function () {
   });
 
   describe('with predefined list of slugs', function () {
-    it('gets projects that are in the ProjectsStore', async function () {
+    it('gets projects that are in the ProjectsStore', function () {
       createWrapper({slugs: ['foo', 'bar']});
 
       // This is initial state
@@ -236,7 +236,7 @@ describe('utils.projects', function () {
   });
 
   describe('with predefined list of project ids', function () {
-    it('gets project ids that are in the ProjectsStore', async function () {
+    it('gets project ids that are in the ProjectsStore', function () {
       createWrapper({projectIds: [1, 2]});
 
       // This is initial state
@@ -560,7 +560,7 @@ describe('utils.projects', function () {
     let mockProjects;
     let request;
 
-    beforeEach(async function () {
+    beforeEach(function () {
       mockProjects = [
         TestStubs.Project({
           id: '100',

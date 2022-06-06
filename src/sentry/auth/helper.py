@@ -81,6 +81,12 @@ class AuthHelperSessionStore(PipelineSessionStore):
         super().mark_session()
         self.request.session.modified = True
 
+    def is_valid(self):
+        return super().is_valid() and self.flow in (
+            AuthHelper.FLOW_LOGIN,
+            AuthHelper.FLOW_SETUP_PROVIDER,
+        )
+
 
 @dataclass
 class AuthIdentityHandler:

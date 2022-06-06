@@ -103,6 +103,7 @@ type TestStubFixtures = {
   SentryAppToken: OverridableStub;
   SentryAppWebhookRequest: OverridableStub;
   ServiceIncident: OverridableStub;
+  SessionEmptyGroupedResponse: SimpleStub;
   SessionStatusCountByProjectInPeriod: SimpleStub;
   SessionStatusCountByReleaseInPeriod: SimpleStub;
   SessionTotalCountByProjectIn24h: SimpleStub;

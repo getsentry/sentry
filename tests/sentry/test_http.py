@@ -66,12 +66,6 @@ def test_garbage_ip():
         http.safe_urlopen("http://0177.0000.0000.0001")
 
 
-@override_blacklist("127.0.0.1")
-def test_safe_socket_connect():
-    with pytest.raises(SuspiciousOperation):
-        http.safe_socket_connect(("127.0.0.1", 80))
-
-
 @responses.activate
 def test_fetch_file():
     responses.add(

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import Button from 'sentry/components/button';
+import Clipboard from 'sentry/components/clipboard';
 import Duration from 'sentry/components/duration';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
@@ -12,20 +14,28 @@ import {KeyMetricData, KeyMetrics} from 'sentry/components/replays/keyMetrics';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
+import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {RawCrumb} from 'sentry/types/breadcrumbs';
+import space from 'sentry/styles/space';
+import {Crumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
+import createUrlToShare from 'sentry/utils/replays/createUrlToShare';
 
 type Props = {
   children: React.ReactNode;
   orgId: string;
-  crumbs?: RawCrumb[];
+  crumbs?: Crumb[];
   event?: Event;
 };
 
 function DetailLayout({children, event, orgId, crumbs}: Props) {
+  const {currentTime} = useReplayContext();
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
+
+  const urlToShare = useMemo(() => {
+    return createUrlToShare(currentTime);
+  }, [currentTime]);
 
   return (
     <SentryDocumentTitle title={title}>
@@ -49,7 +59,10 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
               ]}
             />
           </Layout.HeaderContent>
-          <FeedbackButtonWrapper>
+          <ButtonActionsWrapper>
+            <Clipboard hideUnsupported value={urlToShare}>
+              <Button icon={<IconLink />}>{t('Share')}</Button>
+            </Clipboard>
             <FeatureFeedback
               featureName="replay"
               feedbackTypes={[
@@ -59,7 +72,7 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
                 'Other reason',
               ]}
             />
-          </FeedbackButtonWrapper>
+          </ButtonActionsWrapper>
           <React.Fragment>
             <Layout.HeaderContent>
               <EventHeader event={event} />
@@ -154,8 +167,11 @@ const BigNameUserBadge = styled(UserBadge)`
 `;
 
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default
-const FeedbackButtonWrapper = styled(Layout.HeaderActions)`
-  align-items: end;
+const ButtonActionsWrapper = styled(Layout.HeaderActions)`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  justify-content: flex-end;
+  gap: ${space(1)};
 `;
 
 export default DetailLayout;

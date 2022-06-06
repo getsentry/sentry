@@ -620,6 +620,9 @@ const GroupSummary = styled('div')<{canSelect: boolean}>`
 const GroupCheckBoxWrapper = styled('div')`
   margin-left: ${space(2)};
   align-self: flex-start;
+  height: 15px;
+  display: flex;
+  align-items: center;
 
   & input[type='checkbox'] {
     margin: 0;

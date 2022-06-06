@@ -8,6 +8,7 @@ from sentry.models import (
 )
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.testutils import APITestCase
+from sentry.types.activity import ActivityType
 
 
 class GroupNoteTest(APITestCase):
@@ -17,7 +18,7 @@ class GroupNoteTest(APITestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=self.user,
             data={"text": "hello world"},
         )

@@ -1,5 +1,6 @@
 from sentry.models import Activity, GroupStatus
 from sentry.testutils import APITestCase
+from sentry.types.activity import ActivityType
 
 
 class GroupActivitiesEndpointTest(APITestCase):
@@ -24,7 +25,7 @@ class GroupActivitiesEndpointTest(APITestCase):
             Activity.objects.create(
                 group=group,
                 project=group.project,
-                type=Activity.NOTE,
+                type=ActivityType.NOTE.value,
                 data={"text": "hello world"},
             )
 

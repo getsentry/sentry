@@ -127,8 +127,8 @@ class ReleaseSeries extends Component<Props, State> {
   _isMounted: boolean = false;
 
   getOrganizationReleasesMemoized = memoize(
-    (api, conditions, organization) =>
-      getOrganizationReleases(api, conditions, organization),
+    (api: Client, organization: Organization, conditions: ReleaseConditions) =>
+      getOrganizationReleases(api, organization, conditions),
     (_, __, conditions) =>
       Object.values(conditions)
         .map(val => JSON.stringify(val))

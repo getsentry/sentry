@@ -1,15 +1,18 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import type {eventWithTime} from 'rrweb/typings/types';
 
 import {IssueAttachment} from 'sentry/types';
-import {Event, EventTransaction} from 'sentry/types/event';
-import {generateEventSlug} from 'sentry/utils/discover/urls';
+import {EventTransaction} from 'sentry/types/event';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
+import type {RecordingEvent, ReplayCrumb, ReplaySpan} from 'sentry/views/replays/types';
+
+import flattenListOfObjects from '../flattenListOfObjects';
 
 type State = {
+  breadcrumbs: undefined | ReplayCrumb[];
+
   /**
    * The root replay event
    */
@@ -27,14 +30,11 @@ type State = {
   fetching: boolean;
 
   /**
-   * The list of related `sentry-replay-event` objects that were captured during this `sentry-replay`
-   */
-  replayEvents: undefined | Event[];
-
-  /**
    * The flattened list of rrweb events. These are stored as multiple attachments on the root replay object: the `event` prop.
    */
-  rrwebEvents: undefined | eventWithTime[];
+  rrwebEvents: undefined | RecordingEvent[];
+
+  spans: undefined | ReplaySpan[];
 };
 
 type Options = {
@@ -47,6 +47,14 @@ type Options = {
    * The organization slug
    */
   orgId: string;
+};
+
+// Errors if it is an interface
+// See https://github.com/microsoft/TypeScript/issues/15300
+type ReplayAttachment = {
+  breadcrumbs: ReplayCrumb[];
+  recording: RecordingEvent[];
+  replaySpans: ReplaySpan[];
 };
 
 interface Result extends Pick<State, 'fetchError' | 'fetching'> {
@@ -64,8 +72,9 @@ const INITIAL_STATE: State = Object.freeze({
   event: undefined,
   fetchError: undefined,
   fetching: true,
-  replayEvents: undefined,
   rrwebEvents: undefined,
+  spans: undefined,
+  breadcrumbs: undefined,
 });
 
 /**
@@ -90,7 +99,6 @@ function useReplayData({eventSlug, orgId}: Options): Result {
   const [projectId, eventId] = eventSlug.split(':');
 
   const api = useApi();
-  const [retry, setRetry] = useState(true);
   const [state, setState] = useState<State>(INITIAL_STATE);
 
   const fetchEvent = useCallback(() => {
@@ -109,87 +117,55 @@ function useReplayData({eventSlug, orgId}: Options): Result {
         const response = await api.requestPromise(
           `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`
         );
-        return JSON.parse(response).events as eventWithTime;
+        return JSON.parse(response) as ReplayAttachment;
       })
     );
-    return attachments.flat();
+
+    // ReplayAttachment[] => ReplayAttachment (merge each key of ReplayAttachment)
+    return flattenListOfObjects(attachments);
   }, [api, eventId, orgId, projectId]);
 
-  const fetchReplayEvents = useCallback(async () => {
-    const replayEventList = await api.requestPromise(
-      `/organizations/${orgId}/eventsv2/`,
-      {
-        query: {
-          statsPeriod: '14d',
-          project: [],
-          environment: [],
-          field: ['timestamp', 'replayId'],
-          sort: 'timestamp',
-          per_page: 50,
-          query: ['transaction:sentry-replay-event', `replayId:${eventId}`].join(' '),
-        },
-      }
-    );
+  const loadEvents = useCallback(async () => {
+    setState(INITIAL_STATE);
 
-    return Promise.all(
-      replayEventList.data.map(
-        event =>
-          api.requestPromise(
-            `/organizations/${orgId}/events/${generateEventSlug(event)}/`
-          ) as Promise<Event>
-      )
-    );
-  }, [api, eventId, orgId]);
+    try {
+      const [event, attachments] = await Promise.all([fetchEvent(), fetchRRWebEvents()]);
 
-  const loadEvents = useCallback(
-    async function () {
-      setState(INITIAL_STATE);
-
-      try {
-        const [event, rrwebEvents, replayEvents] = await Promise.all([
-          fetchEvent(),
-          fetchRRWebEvents(),
-          fetchReplayEvents(),
-        ]);
-
-        setState({
-          event,
-          fetchError: undefined,
-          fetching: false,
-          replayEvents,
-          rrwebEvents,
-        });
-      } catch (error) {
-        Sentry.captureException(error);
-        setState({
-          ...INITIAL_STATE,
-          fetchError: error,
-          fetching: false,
-        });
-      }
-    },
-    [fetchEvent, fetchRRWebEvents, fetchReplayEvents]
-  );
+      setState({
+        event,
+        fetchError: undefined,
+        fetching: false,
+        rrwebEvents: attachments.recording,
+        spans: attachments.replaySpans,
+        breadcrumbs: attachments.breadcrumbs,
+      });
+    } catch (error) {
+      Sentry.captureException(error);
+      setState({
+        ...INITIAL_STATE,
+        fetchError: error,
+        fetching: false,
+      });
+    }
+  }, [fetchEvent, fetchRRWebEvents]);
 
   useEffect(() => {
-    if (retry) {
-      setRetry(false);
-      loadEvents();
-    }
-  }, [retry, loadEvents]);
-
-  const onRetry = useCallback(() => {
-    setRetry(true);
-  }, []);
+    loadEvents();
+  }, [loadEvents]);
 
   const replay = useMemo(() => {
-    return ReplayReader.factory(state.event, state.rrwebEvents, state.replayEvents);
-  }, [state.event, state.rrwebEvents, state.replayEvents]);
+    return ReplayReader.factory({
+      event: state.event,
+      rrwebEvents: state.rrwebEvents,
+      breadcrumbs: state.breadcrumbs,
+      spans: state.spans,
+    });
+  }, [state.event, state.rrwebEvents, state.breadcrumbs, state.spans]);
 
   return {
     fetchError: state.fetchError,
     fetching: state.fetching,
-    onRetry,
+    onRetry: loadEvents,
     replay,
   };
 }

@@ -51,11 +51,7 @@ export class PerformanceInteraction {
     return PerformanceInteraction.interactionTransaction;
   }
 
-  static async startInteraction(
-    name: string,
-    timeout = INTERACTION_TIMEOUT,
-    immediate = true
-  ) {
+  static startInteraction(name: string, timeout = INTERACTION_TIMEOUT, immediate = true) {
     try {
       const currentIdleTransaction = getCurrentSentryReactTransaction();
       if (currentIdleTransaction) {
