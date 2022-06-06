@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from sentry.models import User
 from sentry.testutils import TestCase
-from sentry.utils.auth import EmailAuthBackend, get_login_redirect, login
+from sentry.utils.auth import EmailAuthBackend, SsoSession, get_login_redirect, login
 
 
 class EmailAuthBackendTest(TestCase):
@@ -18,15 +18,17 @@ class EmailAuthBackendTest(TestCase):
         return EmailAuthBackend()
 
     def test_can_authenticate_with_username(self):
-        result = self.backend.authenticate(username="foo", password="bar")
+        result = self.backend.authenticate(HttpRequest(), username="foo", password="bar")
         self.assertEqual(result, self.user)
 
     def test_can_authenticate_with_email(self):
-        result = self.backend.authenticate(username="baz@example.com", password="bar")
+        result = self.backend.authenticate(
+            HttpRequest(), username="baz@example.com", password="bar"
+        )
         self.assertEqual(result, self.user)
 
     def test_does_not_authenticate_with_invalid_password(self):
-        result = self.backend.authenticate(username="foo", password="pizza")
+        result = self.backend.authenticate(HttpRequest(), username="foo", password="pizza")
         self.assertEqual(result, None)
 
 
@@ -75,7 +77,7 @@ class LoginTest(TestCase):
         request = self.make_request()
         assert login(request, self.user, organization_id=org.id)
         assert request.user == self.user
-        assert request.session["sso"] == str(org.id)
+        assert f"{SsoSession.SSO_SESSION_KEY}:{org.id}" in request.session
 
     def test_with_nonce(self):
         self.user.refresh_session_nonce()
