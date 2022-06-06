@@ -88,7 +88,7 @@ describe('useReplayData Hooks', () => {
   it('t', () => {
     const results = mapRRWebAttachments(testPayload);
     expect(results.breadcrumbs.length).toBe(1);
-    expect(results.recording.length).toBe(5);
+    expect(results.recording.length).toBe(2);
     expect(results.replaySpans.length).toBe(2);
   });
 });
