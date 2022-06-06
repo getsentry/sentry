@@ -3,7 +3,7 @@ from datetime import datetime
 from freezegun import freeze_time
 
 from sentry.testutils import TestCase
-from sentry.utils.snowflake import SENTRY_EPOCH_START, snowflake_id_generation
+from sentry.utils.snowflake import REGION_SEQUENCE, SENTRY_EPOCH_START, snowflake_id_generation
 
 
 class SnowflakeUtilsTest(TestCase):
@@ -24,7 +24,7 @@ class SnowflakeUtilsTest(TestCase):
         # the 17th will be at the previous timestamp
         snowflake_id = snowflake_id_generation("test_redis_key")
 
-        for _ in range(15):
+        for _ in range((1 << REGION_SEQUENCE.length) - 1):
             new_snowflake_id = snowflake_id_generation("test_redis_key")
 
             assert new_snowflake_id - snowflake_id == 1

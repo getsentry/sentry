@@ -79,6 +79,9 @@ def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> Tu
     for i in range(int(_TTL.total_seconds())):
         timestamp = starting_timestamp - i
 
+        # We are decreasing the value by 1 each time since the incr operation in redis
+        # initializes the counter at 1. For our region sequences, we want the value to
+        # be from 0-15 and not 1-16
         sequence_value = cluster.incr(timestamp)
         sequence_value -= 1
 
