@@ -8,11 +8,10 @@ import PageFilterDropdownButton from 'sentry/components/organizations/pageFilter
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import {IconWindow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 type EnvironmentSelectorProps = React.ComponentProps<typeof EnvironmentSelector>;
@@ -39,7 +38,7 @@ function EnvironmentPageFilter({
 }: Props) {
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
+  const {selection, isReady, desyncedFilters} = usePageFilters();
 
   const handleUpdateEnvironments = (environments: string[]) => {
     updateEnvironments(environments, router, {

@@ -1,10 +1,9 @@
 import styled from '@emotion/styled';
 
 import {IconLock} from 'sentry/icons';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {PinnedPageFilter} from 'sentry/types';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   children: React.ReactNode;
@@ -12,7 +11,7 @@ type Props = {
 };
 
 function PageFilterPinIndicator({children, filter}: Props) {
-  const {pinnedFilters} = useLegacyStore(PageFiltersStore);
+  const {pinnedFilters} = usePageFilters();
   const pinned = pinnedFilters.has(filter);
 
   return (
