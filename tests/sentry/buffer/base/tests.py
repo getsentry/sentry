@@ -28,16 +28,6 @@ class BufferTest(TestCase):
         self.buf.process(Group, columns, filters)
         assert Group.objects.get(id=group.id).times_seen == group.times_seen + 1
 
-    def test_process_saves_data_without_existing_row(self):
-        columns = {"times_seen": 1}
-        filters = {"message": "foo bar", "project_id": 1}
-        self.buf.process(Group, columns, filters)
-        group = Group.objects.get(message="foo bar")
-        # the default value for times_seen is 1, so we actually end up
-        # incrementing it to 2 here
-        assert group.times_seen == 2
-        assert group.project_id == 1
-
     def test_process_saves_extra(self):
         group = Group.objects.create(project=Project(id=1))
         columns = {"times_seen": 1}
