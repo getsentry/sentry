@@ -71,8 +71,10 @@ export type Team = {
   memberCount: number;
   name: string;
   slug: string;
+  teamRole: string | null;
 };
 
+// TODO: Rename to BaseRole
 export type MemberRole = {
   desc: string;
   id: string;
@@ -82,6 +84,15 @@ export type MemberRole = {
   isGlobal?: boolean;
   isRetired?: boolean;
   minimumTeamRole?: string;
+};
+export type OrgRole = MemberRole & {
+  minimumTeamRole: string;
+  isGlobal?: boolean;
+  isRetired?: boolean;
+  is_global?: boolean; // Deprecating: use isGlobal
+};
+export type TeamRole = MemberRole & {
+  isMinimumRoleFor: string;
 };
 
 /**
@@ -102,12 +113,24 @@ export type Member = {
   inviterName: string | null;
   isOnlyOwner: boolean;
   name: string;
+  orgRole: OrgRole['id'];
+  orgRoleList: OrgRole[]; // TODO: Move to global store
   pending: boolean | undefined;
   projects: string[];
-  role: string;
+
+  // Avoid using these keys
+  role: OrgRole['id']; // Deprecating: use orgRole
   roleName: string;
-  roles: MemberRole[]; // TODO(ts): This is not present from API call
-  teams: string[];
+  roles: OrgRole[]; // Deprecating: use orgRoleList
+
+  teamRoleList: TeamRole[]; // TODO: Move to global store
+  teamRoles: {
+    isActive: boolean;
+    role: TeamRole['id'];
+    team: string;
+  }[];
+  teams: string[]; // # Deprecating, use teamRoles
+
   user: User;
 };
 
