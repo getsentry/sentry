@@ -55,7 +55,7 @@ class Migration(CheckedMigration):
         migrations.AddConstraint(
             model_name="perfstringindexer",
             constraint=models.UniqueConstraint(
-                fields=("string", "organization_id"), name="unique_org_string"
+                fields=("string", "organization_id"), name="perf_unique_org_string"
             ),
         ),
         migrations.RunSQL(
