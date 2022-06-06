@@ -9,8 +9,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
-  // TODO: Needs to take in organization
-  customFieldRenderer: (field, meta) => getFieldRenderer(field, meta, true),
+  customFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   transformSeries: (_data: EventsStats | MultiSeriesEventsStats) => {
     return [] as Series[];
   },

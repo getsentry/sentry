@@ -130,9 +130,6 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
     tableResults,
   }: TableResultProps): React.ReactNode {
     const {location, widget, organization, selection} = this.props;
-    // const isAlias =
-    //   !organization.features.includes('discover-frontend-use-events-endpoint') &&
-    //   widget.widgetType !== WidgetType.RELEASE;
     if (errorMessage) {
       return (
         <StyledErrorPanel>
