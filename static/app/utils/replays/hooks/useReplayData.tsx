@@ -145,6 +145,15 @@ function useReplayData({eventSlug, orgId}: Options): Result {
             includeAllArgs: true,
           }
         );
+
+        // for non-compressed events, parse and return
+        try {
+          return JSON.parse(response[0]) as ReplayAttachment;
+        } catch (error) {
+          // swallow exception as if we can't parse it, it's going to be compressed
+        }
+
+        // for compressed events, inflate the blob and map the events
         const responseBlob = await response[2]?.rawResponse.blob();
         const responseArray = (await responseBlob?.arrayBuffer()) as Uint8Array;
         const parsedPayload = JSON.parse(inflate(responseArray, {to: 'string'}));
