@@ -7,7 +7,7 @@ from contextlib import nullcontext
 import pytest
 
 from sentry.nodestore.django.backend import DjangoNodeStorage
-from tests.sentry.nodestore.bigtable.backend.tests import (
+from tests.sentry.nodestore.bigtable.backend_test import (
     MockedBigtableNodeStorage,
     get_temporary_bigtable_nodestorage,
 )
