@@ -2,7 +2,6 @@ import unittest
 from unittest import mock
 
 from django.http import HttpRequest
-from exam import fixture
 
 from sentry import options
 from sentry.models import Project
@@ -94,15 +93,12 @@ class GetOriginsTestCase(TestCase):
 
 
 class IsValidOriginTestCase(unittest.TestCase):
-    @fixture
-    def project(self):
-        return mock.Mock()
-
     def isValidOrigin(self, origin, inputs):
         with mock.patch("sentry.utils.http.get_origins") as get_origins:
             get_origins.return_value = inputs
-            result = is_valid_origin(origin, self.project)
-            get_origins.assert_called_once_with(self.project)
+            project = mock.Mock()
+            result = is_valid_origin(origin, project)
+            get_origins.assert_called_once_with(project)
         return result
 
     def test_global_wildcard_matches_domain(self):
