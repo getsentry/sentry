@@ -1,3 +1,4 @@
+import {PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 
@@ -17,7 +18,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Transforms table API results into format that is used by
    * table and big number components
    */
-  transformTable?: (data: TableResponse, widgetQuery: WidgetQuery) => TableData;
+  transformTable?: (
+    data: TableResponse,
+    widgetQuery: WidgetQuery,
+    pageFilters?: PageFilters
+  ) => TableData;
 }
 
 export function getDatasetConfig(widgetType?: WidgetType) {

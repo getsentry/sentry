@@ -27,11 +27,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {getDatasetConfig} from '../datasetConfig/base';
-import {
-  getDatasetConfigConsumer,
-  getDatasetConfigProvider,
-} from '../datasetConfig/context';
+import {getDatasetConfigConsumer, getDatasetConfigProvider} from '../datasetConfig/utils';
 import {Widget, WidgetType} from '../types';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -240,8 +236,7 @@ class WidgetCard extends Component<Props, State> {
               </WidgetHeader>
               {noLazyLoad ? (
                 <DatasetConfigConsumer>
-                  {value => {
-                    value.setDatasetConfig(getDatasetConfig(widget.widgetType));
+                  {() => {
                     return (
                       <WidgetCardChartContainer
                         api={api}
@@ -260,8 +255,7 @@ class WidgetCard extends Component<Props, State> {
               ) : (
                 <LazyLoad once resize height={200}>
                   <DatasetConfigConsumer>
-                    {value => {
-                      value.setDatasetConfig(getDatasetConfig(widget.widgetType));
+                    {() => {
                       return (
                         <WidgetCardChartContainer
                           api={api}

@@ -13,6 +13,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {queryToObj} from 'sentry/utils/stream';
 import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
+import {IssuesDatasetConfigContext} from '../datasetConfig';
 import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
@@ -120,6 +121,9 @@ class IssueWidgetQueries extends Component<Props, State> {
       });
     }, undefined),
   ];
+
+  static contextType = IssuesDatasetConfigContext;
+  static context: React.ContextType<typeof IssuesDatasetConfigContext>;
 
   transformTableResults(tableResults: Group[]): TableDataRow[] {
     const {selection, widget} = this.props;
@@ -240,7 +244,7 @@ class IssueWidgetQueries extends Component<Props, State> {
           ...params,
         },
       });
-      const tableResults = this.transformTableResults(data);
+      const tableResults = this.context.datasetConfig.transformTable(data);
       const totalCount = resp?.getResponseHeader('X-Hits') ?? null;
       const pageLinks = resp?.getResponseHeader('Link') ?? null;
       this.setState({

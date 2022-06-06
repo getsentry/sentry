@@ -22,8 +22,8 @@ import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {ReleasesDatasetConfigContext} from '../datasetConfig/context';
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
+import {getDatasetConfigContext} from '../datasetConfig/utils';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetType} from '../types';
 import {getWidgetInterval} from '../utils';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
@@ -236,8 +236,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   private _isMounted: boolean = false;
-  static contextType = ReleasesDatasetConfigContext;
-  static context: React.ContextType<typeof ReleasesDatasetConfigContext>;
+  static contextType = getDatasetConfigContext(WidgetType.RELEASE);
 
   get limit() {
     const {limit} = this.props;
