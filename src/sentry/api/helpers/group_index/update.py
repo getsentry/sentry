@@ -53,6 +53,7 @@ from sentry.signals import (
 )
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.functional import extract_lazy_object
 
@@ -262,7 +263,7 @@ def update_groups(
                 .extra(select={"sort": "COALESCE(date_released, date_added)"})
                 .order_by("-sort")[0]
             )
-            activity_type = Activity.SET_RESOLVED_IN_RELEASE
+            activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
                 # no version yet
                 "version": ""
@@ -283,7 +284,7 @@ def update_groups(
                     {"detail": "Cannot set resolved in release for multiple projects."}, status=400
                 )
             release = statusDetails["inRelease"]
-            activity_type = Activity.SET_RESOLVED_IN_RELEASE
+            activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
             activity_data = {
                 # no version yet
                 "version": release.version
@@ -303,7 +304,7 @@ def update_groups(
                     {"detail": "Cannot set resolved in commit for multiple projects."}, status=400
                 )
             commit = statusDetails["inCommit"]
-            activity_type = Activity.SET_RESOLVED_IN_COMMIT
+            activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
             activity_data = {"commit": commit.id}
             status_details = {
                 "inCommit": serialize(commit, user),
@@ -312,7 +313,7 @@ def update_groups(
             res_type_str = "in_commit"
         else:
             res_type_str = "now"
-            activity_type = Activity.SET_RESOLVED
+            activity_type = ActivityType.SET_RESOLVED.value
             activity_data = {}
             status_details = {}
 
@@ -575,7 +576,7 @@ def update_groups(
                 result["statusDetails"] = {}
         if group_list and happened:
             if new_status == GroupStatus.UNRESOLVED:
-                activity_type = Activity.SET_UNRESOLVED
+                activity_type = ActivityType.SET_UNRESOLVED.value
                 activity_data = {}
 
                 for group in group_list:
@@ -596,7 +597,7 @@ def update_groups(
                             sender=update_groups,
                         )
             elif new_status == GroupStatus.IGNORED:
-                activity_type = Activity.SET_IGNORED
+                activity_type = ActivityType.SET_IGNORED.value
                 activity_data = {
                     "ignoreCount": ignore_count,
                     "ignoreDuration": ignore_duration,
@@ -762,7 +763,7 @@ def update_groups(
                 Activity.objects.create(
                     project=project_lookup[group.project_id],
                     group=group,
-                    type=Activity.SET_PRIVATE,
+                    type=ActivityType.SET_PRIVATE.value,
                     user=acting_user,
                 )
 
@@ -776,7 +777,7 @@ def update_groups(
                 Activity.objects.create(
                     project=project_lookup[group.project_id],
                     group=group,
-                    type=Activity.SET_PUBLIC,
+                    type=ActivityType.SET_PUBLIC.value,
                     user=acting_user,
                 )
 
@@ -808,7 +809,7 @@ def update_groups(
         Activity.objects.create(
             project=project_lookup[primary_group.project_id],
             group=primary_group,
-            type=Activity.MERGE,
+            type=ActivityType.MERGE.value,
             user=acting_user,
             data={"issues": [{"id": c.id} for c in groups_to_merge]},
         )
