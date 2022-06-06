@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {inflate} from 'pako';
 
 import {IssueAttachment} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
@@ -68,6 +69,26 @@ function isRRWebEventAttachment(attachment: IssueAttachment) {
   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
 }
 
+function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
+  const replayAttachments: ReplayAttachment = {
+    breadcrumbs: [],
+    replaySpans: [],
+    recording: [],
+  };
+
+  unsortedReplayAttachments.forEach(attachment => {
+    if (attachment.data?.payload?.op) {
+      replayAttachments.replaySpans.push(attachment.data.payload);
+    } else if (attachment?.data?.source) {
+      replayAttachments.recording.push(attachment);
+    } else if (attachment?.data?.tag === 'breadcrumb') {
+      replayAttachments.breadcrumbs.push(attachment.data.payload);
+    }
+  });
+
+  return replayAttachments;
+}
+
 const INITIAL_STATE: State = Object.freeze({
   event: undefined,
   fetchError: undefined,
@@ -115,9 +136,16 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     const attachments = await Promise.all(
       rrwebAttachmentIds.map(async attachment => {
         const response = await api.requestPromise(
-          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`
+          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`,
+          {
+            includeAllArgs: true,
+          }
         );
-        return JSON.parse(response) as ReplayAttachment;
+        const responseBlob = await response[2]?.rawResponse.blob();
+        const responseArray = (await responseBlob?.arrayBuffer()) as Uint8Array;
+        const parsedPayload = JSON.parse(inflate(responseArray, {to: 'string'}));
+        const replayAttachments = mapRRWebAttachments(parsedPayload);
+        return replayAttachments;
       })
     );
 
