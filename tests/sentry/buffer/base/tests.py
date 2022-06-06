@@ -28,6 +28,14 @@ class BufferTest(TestCase):
         self.buf.process(Group, columns, filters)
         assert Group.objects.get(id=group.id).times_seen == group.times_seen + 1
 
+    def test_process_saves_data_without_existing_row(self):
+        columns = {"new_groups": 1}
+        filters = {"project_id": self.project.id, "release_id": self.release.id}
+        self.buf.process(ReleaseProject, columns, filters)
+        assert ReleaseProject.objects.filter(
+            project_id=self.project.id, release_id=self.release.id, new_groups=1
+        ).exists()
+
     def test_process_saves_extra(self):
         group = Group.objects.create(project=Project(id=1))
         columns = {"times_seen": 1}
