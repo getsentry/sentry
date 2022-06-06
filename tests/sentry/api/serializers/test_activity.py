@@ -67,13 +67,13 @@ class GroupActivityTestCase(TestCase):
         Activity.objects.create(
             project_id=project.id,
             group=group,
-            type=Activity.SET_RESOLVED_IN_COMMIT,
+            type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
             user=user,
             data={"commit": commit.id},
         )
 
-        act = Activity.objects.get(type=Activity.SET_RESOLVED_IN_COMMIT)
+        act = Activity.objects.get(type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         serialized = serialize(act)
 
         assert len(serialized["data"]["commit"]["releases"]) == 1
@@ -90,13 +90,13 @@ class GroupActivityTestCase(TestCase):
         Activity.objects.create(
             project_id=project.id,
             group=group,
-            type=Activity.SET_RESOLVED_IN_COMMIT,
+            type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
             user=user,
             data={"commit": commit.id},
         )
 
-        act = Activity.objects.get(type=Activity.SET_RESOLVED_IN_COMMIT)
+        act = Activity.objects.get(type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         serialized = serialize(act)
 
         assert len(serialized["data"]["commit"]["releases"]) == 0
@@ -114,13 +114,13 @@ class GroupActivityTestCase(TestCase):
         Activity.objects.create(
             project_id=project.id,
             group=group,
-            type=Activity.SET_RESOLVED_IN_COMMIT,
+            type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
             user=user,
             data={"commit": commit.id},
         )
 
-        act = Activity.objects.get(type=Activity.SET_RESOLVED_IN_COMMIT)
+        act = Activity.objects.get(type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         serialized = serialize(act)
 
         assert len(serialized["data"]["commit"]["releases"]) == 1
