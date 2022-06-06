@@ -111,7 +111,26 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
-class Organization(Model):
+class SnowflakeIdMixin:
+    # TODO: Move to common base file
+
+    snowflake_redis_key = None
+
+    def save_with_snowflake_id(self, save_callback):
+        for snowflake_retry_counter in range(settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER):
+            if not self.id:
+                self.id = snowflake_id_generation(self.snowflake_redis_key)
+            try:
+                with transaction.atomic():
+                    save_callback()
+                return
+            except IntegrityError:
+                self.id = None
+
+        raise Exception("Max allowed ID retry reached. Please try again in a second")
+
+
+class Organization(Model, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -188,22 +207,13 @@ class Organization(Model):
     def __str__(self):
         return f"{self.name} ({self.slug})"
 
-    def save(self, snowflake_retry_counter=0, *args, **kwargs):
-        if not self.id:
-            self.id = snowflake_id_generation(self.snowflake_redis_key)
+    def save(self, *args, **kwargs):
         if not self.slug:
             lock = locks.get("slug:organization", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
-        try:
-            with transaction.atomic():
-                super().save(*args, **kwargs)
-        except IntegrityError:
-            if snowflake_retry_counter > settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER:
-                raise Exception("Max allowed ID retry reached. Please try again in a second")
-            snowflake_retry_counter += 1
-            self.id = None
-            self.save(snowflake_retry_counter, *args, **kwargs)
+
+        self.save_with_snowflake_id(lambda: super(Organization, self).save(*args, **kwargs))
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
