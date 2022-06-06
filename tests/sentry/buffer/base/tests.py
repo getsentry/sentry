@@ -32,9 +32,7 @@ class BufferTest(TestCase):
         columns = {"new_groups": 1}
         filters = {"project_id": self.project.id, "release_id": self.release.id}
         self.buf.process(ReleaseProject, columns, filters)
-        assert ReleaseProject.objects.filter(
-            project_id=self.project.id, release_id=self.release.id, new_groups=1
-        ).exists()
+        assert ReleaseProject.objects.filter(new_groups=1, **filters).exists()
 
     def test_process_saves_extra(self):
         group = Group.objects.create(project=Project(id=1))
