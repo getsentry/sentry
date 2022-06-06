@@ -477,16 +477,24 @@ class _InactiveEndpoint(Endpoint):
         return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
 
-def active_on(mode: ServerComponentMode) -> Callable[[type], type]:
+def active_on(mode: ServerComponentMode) -> Callable[[Any], Any]:
     """Decorate an endpoint class that should be active only in one mode."""
 
-    def decorator(decorated_class: type) -> type:
-        if not issubclass(decorated_class, Endpoint):
-            raise ValueError("`@active_on` must decorate an Endpoint class")
+    def decorator(decorated_obj: Any) -> Any:
+        if isinstance(decorated_obj, type):
+            if not issubclass(decorated_obj, Endpoint):
+                raise ValueError("`@active_on` can decorate only Endpoint subclasses")
+            if mode.is_active():
+                return decorated_obj
+            else:
+                return type(decorated_obj.__name__, (_InactiveEndpoint,), {})
 
-        if mode.is_active():
-            return decorated_class
-        else:
-            return type(decorated_class.__name__, (_InactiveEndpoint,), {})
+        if callable(decorated_obj):
+            if mode.is_active():
+                return decorated_obj
+            else:
+                return _InactiveEndpoint.dispatch
+
+        raise TypeError("`@active_on` must decorate a class or method")
 
     return decorator
