@@ -22,6 +22,7 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -226,9 +227,10 @@ class WidgetCard extends Component<Props, State> {
           startDate = start;
         }
         showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
-      } else if (period && period === '90d') {
+      } else if (period) {
+        const periodInDays = statsPeriodToDays(period);
         const current = new Date();
-        const prior = new Date(new Date().setDate(current.getDate() - 90));
+        const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
         showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
       }
     }
@@ -299,11 +301,9 @@ class WidgetCard extends Component<Props, State> {
             {showIncompleteDataAlert && (
               <StoredDataAlert showIcon>
                 {tct(
-                  'Your selection may have incomplete data. Release data available only after [date].',
+                  'Releases data is only available from [date]. Data may be incomplete as a result.',
                   {
-                    date: (
-                      <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} shortDate />
-                    ),
+                    date: <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />,
                   }
                 )}
               </StoredDataAlert>
