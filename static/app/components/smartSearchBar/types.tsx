@@ -51,6 +51,7 @@ export type TokenAction = {
 export type SelectFilterTokenParams = {
   filterToken: TokenResult<Token.Filter>;
   filterTokenRef: React.RefObject<HTMLSpanElement>;
+  isClick?: boolean;
 };
 
 export const commonActions = [
@@ -66,7 +67,7 @@ export const commonActions = [
     text: 'Negate',
     actionType: TokenActionType.Negate,
     hotkeys: {
-      actual: 'option+1,cmd+1',
+      actual: ['option+1', 'cmd+1'],
       display: 'option+!',
     },
   },

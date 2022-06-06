@@ -453,6 +453,11 @@ class SmartSearchBar extends Component<Props, State> {
     this.setState({
       selectedFilterToken,
     });
+
+    if (selectedFilterToken?.isClick) {
+      // Only blur the input if the filter token was clicked.
+      this.searchInput.current?.blur();
+    }
   };
 
   onTokenHotkeyPress = (actionType: TokenActionType): void => {
@@ -514,7 +519,10 @@ class SmartSearchBar extends Component<Props, State> {
 
   onQueryFocus = () => {
     this.setState({inputHasFocus: true});
-    this.selectFilterToken(undefined);
+
+    if (this.state.selectedFilterToken) {
+      this.selectFilterToken(undefined);
+    }
   };
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {

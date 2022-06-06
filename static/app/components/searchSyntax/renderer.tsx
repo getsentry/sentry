@@ -178,7 +178,10 @@ const FilterToken = ({
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (isActive && e.key === 'Alt') {
-        selectFilterToken?.({filterToken: filter, filterTokenRef: filterElementRef});
+        selectFilterToken?.({
+          filterToken: filter,
+          filterTokenRef: filterElementRef,
+        });
       }
     },
     [selectFilterToken, filter, isActive]
@@ -214,7 +217,11 @@ const FilterToken = ({
         onMouseDown={e => {
           e.preventDefault();
           e.stopPropagation();
-          selectFilterToken?.({filterToken: filter, filterTokenRef: filterElementRef});
+          selectFilterToken?.({
+            filterToken: filter,
+            filterTokenRef: filterElementRef,
+            isClick: true,
+          });
           // if (isInteractive) {
           //   e.preventDefault();
           //   /*
