@@ -68,8 +68,7 @@ const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
 function isRRWebEventAttachment(attachment: IssueAttachment) {
   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
 }
-
-function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
+export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
   const replayAttachments: ReplayAttachment = {
     breadcrumbs: [],
     replaySpans: [],
@@ -79,7 +78,7 @@ function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
   unsortedReplayAttachments.forEach(attachment => {
     if (attachment.data?.payload?.op) {
       replayAttachments.replaySpans.push(attachment.data.payload);
-    } else if (attachment?.data?.source) {
+    } else if (attachment?.data?.source >= 0) {
       replayAttachments.recording.push(attachment);
     } else if (attachment?.data?.tag === 'breadcrumb') {
       replayAttachments.breadcrumbs.push(attachment.data.payload);
