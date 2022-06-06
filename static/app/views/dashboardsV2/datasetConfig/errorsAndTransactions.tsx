@@ -13,7 +13,7 @@ export function getErrorsAndTransactionsConfig(
   );
 
   return {
-    customFieldRenderer: (field, meta) => getFieldRenderer(field, meta, isAlias),
+    getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, isAlias),
     transformSeries: (_data: EventsStats | MultiSeriesEventsStats) => {
       return [] as Series[];
     },

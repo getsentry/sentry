@@ -9,7 +9,7 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
-  customFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   transformSeries: (_data: SessionApiResponse | MetricsApiResponse) => {
     return [] as Series[];
   },

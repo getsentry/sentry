@@ -5,16 +5,17 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
-   * TODO: Description
+   * Used for mapping column fields to more desirable
+   * values in tables.
    */
-  customFieldRenderer?: (
+  fieldHeaderMap?: Record<string, string>;
+  /**
+   * Used to select custom renderers for field types.
+   */
+  getCustomFieldRenderer?: (
     field: string,
     meta: MetaType
   ) => ReturnType<typeof getFieldRenderer> | null;
-  /**
-   * TODO: Description
-   */
-  fieldHeaderMap?: Record<string, string>;
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.

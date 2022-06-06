@@ -214,7 +214,7 @@ class WidgetCard extends Component<Props, State> {
       showStoredAlert,
     } = this.props;
 
-    const DatasetConfigProvider = getDatasetConfigProvider(this.props.widget.widgetType);
+    const DatasetConfigProvider = getDatasetConfigProvider(widget.widgetType);
 
     return (
       <ErrorBoundary

@@ -72,7 +72,7 @@ export function IssueWidgetCard({
       metadata={ISSUE_FIELDS}
       data={transformedResults}
       organization={organization}
-      getCustomFieldRenderer={datasetConfig.customFieldRenderer}
+      getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
       fieldHeaderMap={datasetConfig.fieldHeaderMap}
       stickyHeaders
     />

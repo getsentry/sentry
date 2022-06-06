@@ -169,7 +169,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
               data={result.data}
               organization={organization}
               stickyHeaders
-              getCustomFieldRenderer={datasetConfig.customFieldRenderer}
+              getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
             />
           )}
         </DatasetConfigConsumer>
