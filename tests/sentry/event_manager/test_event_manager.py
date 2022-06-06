@@ -36,6 +36,8 @@ from sentry.models import (
     GroupTombstone,
     Integration,
     OrganizationIntegration,
+    PullRequest,
+    PullRequestCommit,
     Release,
     ReleaseCommit,
     ReleaseProjectEnvironment,
@@ -628,6 +630,96 @@ class EventManagerTest(TestCase):
             release=group.first_release,
             commit=latest_commit,
             order=0,
+        )
+
+        pending = has_pending_commit_resolution(group)
+        assert pending is False
+
+    def test_has_pending_commit_resolution_issue_regression(self):
+        project_id = 1
+        event = self.make_release_event("1.0", project_id)
+        group = event.group
+        repo = self.create_repo(project=group.project)
+
+        commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 40
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        pr = PullRequest.objects.create(
+            organization_id=group.project.organization_id,
+            repository_id=repo.id,
+            key="1",
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pr.id,
+        )
+
+        pending = has_pending_commit_resolution(group)
+        assert pending
+
+    def test_has_pending_commit_resolution_issue_regression_released_commits(self):
+        project_id = 1
+        event = self.make_release_event("1.0", project_id)
+        group = event.group
+        release = self.create_release(project=self.project, version="1.1")
+
+        repo = self.create_repo(project=group.project)
+        commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 38
+        )
+
+        GroupLink.objects.create(
+            group_id="2",
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        pr = PullRequest.objects.create(
+            organization_id=group.project.organization_id,
+            repository_id=repo.id,
+            key="19",
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=pr.id,
+        )
+
+        released_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="b" * 38
+        )
+
+        ReleaseCommit.objects.create(
+            organization_id=group.project.organization_id,
+            release=release,
+            commit=released_commit,
+            order=1,
+        )
+
+        released_commit_in_pr = PullRequestCommit.objects.create(
+            pull_request_id=pr.id, commit_id=released_commit.id
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_id=released_commit_in_pr.id,
         )
 
         pending = has_pending_commit_resolution(group)
