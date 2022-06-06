@@ -1112,7 +1112,7 @@ class SmartSearchBar extends Component<Props, State> {
     }
   };
 
-  updateAutoCompleteItems = async () => {
+  updateAutoCompleteItems = () => {
     window.clearTimeout(this.blurTimeout);
     this.blurTimeout = undefined;
 
