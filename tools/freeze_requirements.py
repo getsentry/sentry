@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import argparse
 from concurrent.futures import Future, ThreadPoolExecutor
 from os.path import abspath
 from subprocess import CalledProcessError, run
@@ -50,11 +49,8 @@ stderr:
     return rc
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("repo", type=str, default="sentry", help="Repository name.")
-    args = parser.parse_args()
-    IS_GETSENTRY = args.repo == "getsentry"
+def main(repo: str) -> int:
+    IS_GETSENTRY = repo == "getsentry"
 
     base_path = abspath(gitroot())
     base_cmd = (
@@ -141,4 +137,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("repo", type=str, default="sentry", help="Repository name.")
+    args = parser.parse_args()
+    raise SystemExit(main(args.repo))
