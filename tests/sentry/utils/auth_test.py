@@ -1,9 +1,7 @@
-import importlib
 from datetime import timedelta
 
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest
-from django.test import override_settings
 from django.urls import reverse
 
 import sentry.utils.auth
@@ -94,16 +92,12 @@ class LoginTest(TestCase):
         assert request.session["_nonce"] == self.user.session_nonce
 
 
-class TestSsoSession(TestCase):
-    def test_expiry_default(self):
-        from sentry.utils.auth import SSO_EXPIRY_TIME
+def test_sso_expiry_default():
+    value = sentry.utils.auth._sso_expiry_from_env(None)
+    # make sure no accidental changes affect sso timeout
+    assert value == timedelta(hours=20)
 
-        # make sure no accidental changes affect sso timeout
-        assert SSO_EXPIRY_TIME == timedelta(hours=20)
 
-    @override_settings(SENTRY_SSO_EXPIRY_SECONDS="20")
-    def test_expiry_from_env(self):
-        importlib.reload(sentry.utils.auth)
-        from sentry.utils.auth import SSO_EXPIRY_TIME
-
-        assert SSO_EXPIRY_TIME == timedelta(seconds=20)
+def test_sso_expiry_from_env():
+    value = sentry.utils.auth._sso_expiry_from_env("20")
+    assert value == timedelta(seconds=20)
