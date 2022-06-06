@@ -113,7 +113,8 @@ def main() -> int:
                     (
                         *base_cmd,
                         f"{base_path}/requirements-base.txt",
-                        f"{base_path}/../sentry/requirements-frozen.txt",
+                        # This is downloaded with bin/bump-sentry.
+                        f"{base_path}/sentry-requirements-frozen.txt",
                         "-o",
                         f"{base_path}/requirements-frozen.txt",
                     ),
@@ -124,7 +125,8 @@ def main() -> int:
                         *base_cmd,
                         f"{base_path}/requirements-base.txt",
                         f"{base_path}/requirements-dev.txt",
-                        f"{base_path}/../sentry/requirements-dev-frozen.txt",
+                        # This is downloaded with bin/bump-sentry.
+                        f"{base_path}/sentry-requirements-dev-frozen.txt",
                         "-o",
                         f"{base_path}/requirements-dev-frozen.txt",
                     ),
