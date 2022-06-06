@@ -19,6 +19,7 @@ import {
 import useApi from 'sentry/utils/useApi';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 import TraceView from 'sentry/views/performance/traceDetails/traceView';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 
 type State = {
   /**
@@ -133,6 +134,10 @@ export default function Trace({event, organization}: Props) {
 
   if (state.isLoading) {
     return <LoadingIndicator />;
+  }
+
+  if (state.error.status === 404) {
+    return <EmptyMessage title={`${t('No traces available for this replay.')}`} />;
   }
 
   if (state.error || !state.traceEventView) {
