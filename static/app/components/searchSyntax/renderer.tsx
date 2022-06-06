@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {Fragment, useContext, useEffect, useRef, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useReducedMotion} from 'framer-motion';
@@ -100,7 +100,11 @@ const FilterToken = ({
   // Used to trigger the shake animation when the element becomes invalid
   const filterElementRef = useRef<HTMLSpanElement>(null);
 
+  // If the element is currently selected with a actions popup.
+  // Is a ref as the latest value needs to be checked in an event listener
   const isSelectedRef = useRef<boolean>(false);
+  const isSelected = !!(selection?.filterTokenRef.current === filterElementRef.current);
+  isSelectedRef.current = isSelected;
 
   // Trigger the effect when isActive changes to updated whether the cursor has
   // left the token.
@@ -134,22 +138,16 @@ const FilterToken = ({
     );
   }, [reduceMotion, showInvalid]);
 
-  const isSelected = !!(selection?.filterTokenRef.current === filterElementRef.current);
-  isSelectedRef.current = isSelected;
-
-  const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
       if (isActive && e.key === 'Alt') {
         setSelectedToken?.({
           filterToken: filter,
           filterTokenRef: filterElementRef,
         });
       }
-    },
-    [setSelectedToken, filter, isActive]
-  );
+    };
 
-  useEffect(() => {
     const onKeyUp = (e: KeyboardEvent) => {
       if (isSelectedRef.current && e.key === 'Alt') {
         setSelectedToken?.(undefined);
@@ -165,7 +163,7 @@ const FilterToken = ({
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
     };
-  }, [onKeyDown, isActive, filter, isInteractive, setSelectedToken, isSelectedRef]);
+  }, [isActive, filter, isInteractive, setSelectedToken, isSelectedRef]);
 
   return (
     <Tooltip
@@ -184,20 +182,6 @@ const FilterToken = ({
             filterTokenRef: filterElementRef,
             isClick: true,
           });
-          // if (isInteractive) {
-          //   e.preventDefault();
-          //   /*
-          //     We calculate where to place the cursor offset from the position of the filter element and the position of the click event.
-          //   */
-          //   const filterLeft =
-          //     filterElementRef.current?.getBoundingClientRect().left ?? 0;
-          //   const filterWidth = filterElementRef.current?.offsetWidth ?? 1;
-          //   const percentage = (e.clientX - filterLeft) / filterWidth;
-          //   const offsetWidth = filter.location.end.offset - filter.location.start.offset;
-          //   const finalLocation =
-          //     filter.location.start.offset + Math.round(percentage * offsetWidth);
-          //   focusInputWithSelection?.(finalLocation, finalLocation);
-          // }
         }}
         ref={filterElementRef}
         active={isActive}

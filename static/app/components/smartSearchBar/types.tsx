@@ -22,11 +22,14 @@ export type SearchGroup = {
 
 export type SearchItem = {
   active?: boolean;
+  /**
+   * Call a callback instead of setting a value in the search query
+   */
+  callback?: () => void;
   children?: React.ReactNode[];
   desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
-  onClick?: () => void;
   title?: string;
   type?: ItemType;
   value?: string;

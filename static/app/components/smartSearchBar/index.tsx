@@ -522,6 +522,7 @@ class SmartSearchBar extends Component<Props, State> {
   onQueryFocus = () => {
     this.setState({inputHasFocus: true});
 
+    // Clear the selected filter token only if there is one, which closes the action menu
     if (this.state.filterTokenSelection) {
       this.selectFilterToken(undefined);
     }
@@ -663,8 +664,8 @@ class SmartSearchBar extends Component<Props, State> {
         searchGroups[groupIndex].children[childrenIndex];
 
       if (item) {
-        if (item.onClick) {
-          item.onClick();
+        if (item.callback) {
+          item.callback();
         } else if (typeof item.value !== 'undefined') {
           this.onAutoComplete(item.value, item);
         }

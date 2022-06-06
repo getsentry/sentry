@@ -24,7 +24,7 @@ const SearchActionsDropdown = ({
   filterElementRef: React.RefObject<HTMLSpanElement>;
   runTokenAction: (action: TokenAction) => void;
 }) => {
-  const [referenceElement, setReferenceElement] = React.useState<HTMLDivElement | null>(
+  const [referenceElement, setReferenceElement] = React.useState<HTMLSpanElement | null>(
     null
   );
   const [popperElement, setPopperElement] = React.useState<HTMLDivElement | null>(null);
@@ -33,22 +33,25 @@ const SearchActionsDropdown = ({
     modifiers: [{name: 'arrow', options: {element: arrowElement}}],
   });
 
+  // If the mouse has entered the popup
   const mouseHasEntered = React.useRef(false);
 
   React.useEffect(() => {
-    // @ts-ignore
     setReferenceElement(filterElementRef.current);
 
     const rect = filterElementRef.current?.getBoundingClientRect();
 
+    // Handler for when the mouse moves out of the filter token.
     const listener = throttle(
       e => {
         if (
+          // Only check the mouse position if the mouse has not entered the popup yet
           !mouseHasEntered.current &&
           rect &&
           (e.pageX < rect.left ||
             e.pageX > rect.right ||
             e.pageY < rect.top ||
+            // + arrow size allows the user to move the mouse down and enter the popup
             e.pageY > rect.bottom + ARROW_SIZE)
         ) {
           deselect();
