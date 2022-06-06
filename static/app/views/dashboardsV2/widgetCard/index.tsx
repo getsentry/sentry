@@ -214,11 +214,10 @@ class WidgetCard extends Component<Props, State> {
       windowWidth,
       noLazyLoad,
       showStoredAlert,
-      isEditing,
     } = this.props;
     const {start, period} = selection.datetime;
     let showIncompleteDataAlert: boolean = false;
-    if (widget.widgetType === WidgetType.RELEASE && isEditing) {
+    if (widget.widgetType === WidgetType.RELEASE && showStoredAlert) {
       if (start) {
         let startDate: Date | undefined = undefined;
         if (typeof start === 'string') {
