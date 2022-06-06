@@ -490,13 +490,13 @@ class SmartSearchBar extends Component<Props, State> {
           const newQuery =
             query.slice(0, action.token.location.start.offset) +
             query.slice(action.token.key.location.start.offset);
-          this.updateQuery(newQuery, this.cursorPosition);
+          this.updateQuery(newQuery, this.cursorPosition - 1);
         } else {
           const newQuery =
             query.slice(0, action.token.key.location.start.offset) +
             '!' +
             query.slice(action.token.key.location.start.offset);
-          this.updateQuery(newQuery, this.cursorPosition);
+          this.updateQuery(newQuery, this.cursorPosition + 1);
         }
         break;
       }
