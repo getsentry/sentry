@@ -164,7 +164,7 @@ class OutcomeDimension(Dimension):
 
 
 class KeyDimension(Dimension):
-    def resolve_filter(self, raw_filter: Sequence[str]) -> List[Outcome]:
+    def resolve_filter(self, raw_filter: Sequence[str]) -> List[int]:
         def _parse_value(key_id: str) -> Outcome:
             try:
                 return int(key_id)
