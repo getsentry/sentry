@@ -38,7 +38,7 @@ class MetricsKeyIndexer(Model):  # type: ignore
         return connection.fetchall()
 
 
-class BaseIndexer(Model):
+class BaseIndexer(Model):  # type: ignore
     string = models.CharField(max_length=200)
     organization_id = BoundedBigIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -49,7 +49,7 @@ class BaseIndexer(Model):
         abstract = True
 
 
-class StringIndexer(BaseIndexer):  # type: ignore
+class StringIndexer(BaseIndexer):
     __include_in_export__ = False
 
     objects = BaseManager(cache_fields=("pk",), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
