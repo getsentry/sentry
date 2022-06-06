@@ -1,7 +1,7 @@
 from unittest import mock
 
 from sentry.models import User
-from sentry.plugins.bases import IssueTrackingPlugin
+from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.testutils import TestCase
 from social_auth.models import UserSocialAuth
 
