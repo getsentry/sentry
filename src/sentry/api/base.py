@@ -24,7 +24,7 @@ from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.scmode import ServerComponentMode
+from sentry.servermode import ServerComponentMode
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor

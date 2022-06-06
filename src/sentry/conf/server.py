@@ -13,7 +13,7 @@ from datetime import timedelta
 from urllib.parse import urlparse
 
 import sentry
-from sentry.scmode import ServerComponentMode
+from sentry.servermode import ServerComponentMode
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 

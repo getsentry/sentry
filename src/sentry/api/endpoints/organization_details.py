@@ -35,7 +35,7 @@ from sentry.models import (
     ScheduledDeletion,
     UserEmail,
 )
-from sentry.scmode import ServerComponentMode
+from sentry.servermode import ServerComponentMode
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
