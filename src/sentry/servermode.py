@@ -19,7 +19,7 @@ class ServerComponentMode(Enum):
                 return obj
         except AttributeError:
             pass
-        raise ValueError(f"Not a ServerComponent name: {name!r}")
+        raise ValueError(f"Not a {cls.__name__} name: {name!r}")
 
     def is_active(self) -> bool:
         from django.conf import settings
