@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from os.path import abspath
 from subprocess import CalledProcessError, run
 
@@ -33,76 +33,7 @@ def worker(args: tuple[str, ...]) -> None:
         )
 
 
-def main() -> int:
-    base_path = abspath(gitroot())
-    base_cmd = (
-        "pip-compile",
-        "--no-header",
-        "--no-annotate",
-        "--allow-unsafe",
-        "-q",
-    )
-
-    with ThreadPoolExecutor(max_workers=3) as executor:
-        if GETSENTRY:
-            futures = (
-                executor.submit(
-                    worker,
-                    (
-                        *base_cmd,
-                        f"{base_path}/requirements-base.txt",
-                        f"{base_path}/../sentry/requirements-base.txt",
-                        "-o",
-                        f"{base_path}/requirements-frozen.txt",
-                    ),
-                ),
-                executor.submit(
-                    worker,
-                    (
-                        *base_cmd,
-                        f"{base_path}/requirements-base.txt",
-                        f"{base_path}/../sentry/requirements-base.txt",
-                        f"{base_path}/requirements-dev.txt",
-                        f"{base_path}/../sentry/requirements-dev.txt",
-                        "-o",
-                        f"{base_path}/requirements-dev-frozen.txt",
-                    ),
-                ),
-            )
-        else:
-            futures = (
-                executor.submit(
-                    worker,
-                    (
-                        *base_cmd,
-                        f"{base_path}/requirements-base.txt",
-                        "-o",
-                        f"{base_path}/requirements-frozen.txt",
-                    ),
-                ),
-                executor.submit(
-                    worker,
-                    (
-                        *base_cmd,
-                        f"{base_path}/requirements-base.txt",
-                        f"{base_path}/requirements-dev.txt",
-                        "-o",
-                        f"{base_path}/requirements-dev-frozen.txt",
-                    ),
-                ),
-                # requirements-dev-only-frozen.txt is only used in sentry as a
-                # fast path for some CI jobs.
-                executor.submit(
-                    worker,
-                    (
-                        *base_cmd,
-                        f"{base_path}/requirements-dev.txt",
-                        "-o",
-                        f"{base_path}/requirements-dev-only-frozen.txt",
-                    ),
-                ),
-            )
-
+def check_futures(futures: tuple[Future, ...]) -> int:
     rc = 0
     for future in futures:
         try:
@@ -119,7 +50,89 @@ stderr:
 {e.stderr.decode()}
 """
             )
+    return rc
 
+
+def main() -> int:
+    base_path = abspath(gitroot())
+    base_cmd = (
+        "pip-compile",
+        "--no-header",
+        "--no-annotate",
+        "--allow-unsafe",
+        "-q",
+    )
+
+    executor = ThreadPoolExecutor(max_workers=3)
+    futures = (
+        executor.submit(
+            worker,
+            (
+                *base_cmd,
+                f"{base_path}/requirements-base.txt",
+                "-o",
+                f"{base_path}/requirements-frozen.txt",
+            ),
+        ),
+        executor.submit(
+            worker,
+            (
+                *base_cmd,
+                f"{base_path}/requirements-base.txt",
+                f"{base_path}/requirements-dev.txt",
+                "-o",
+                f"{base_path}/requirements-dev-frozen.txt",
+            ),
+        ),
+    )
+    if not GETSENTRY:
+        # requirements-dev-only-frozen.txt is only used in sentry as a
+        # fast path for some CI jobs.
+        futures += (
+            executor.submit(
+                worker,
+                (
+                    *base_cmd,
+                    f"{base_path}/requirements-dev.txt",
+                    "-o",
+                    f"{base_path}/requirements-dev-only-frozen.txt",
+                ),
+            ),
+        )
+
+    rc = check_futures(futures)
+    if rc != 0:
+        executor.shutdown()
+        return rc
+
+    if GETSENTRY:
+        rc = check_futures(
+            (
+                executor.submit(
+                    worker,
+                    (
+                        *base_cmd,
+                        f"{base_path}/requirements-base.txt",
+                        f"{base_path}/../sentry/requirements-frozen.txt",
+                        "-o",
+                        f"{base_path}/requirements-frozen.txt",
+                    ),
+                ),
+                executor.submit(
+                    worker,
+                    (
+                        *base_cmd,
+                        f"{base_path}/requirements-base.txt",
+                        f"{base_path}/requirements-dev.txt",
+                        f"{base_path}/../sentry/requirements-dev-frozen.txt",
+                        "-o",
+                        f"{base_path}/requirements-dev-frozen.txt",
+                    ),
+                ),
+            )
+        )
+
+    executor.shutdown()
     return rc
 
 
