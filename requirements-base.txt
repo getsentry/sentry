@@ -128,6 +128,3 @@ pyasn1-modules==0.2.4
 # python3-saml
 xmlsec==1.3.11
 isodate==0.6.1
-
-# progressbar2
-python-utils==3.3.3
