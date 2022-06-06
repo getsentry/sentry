@@ -3,9 +3,10 @@ import os.path
 from sentry.models import Activity
 from sentry.services.smtp import STATUS, SentrySMTPServer
 from sentry.testutils import TestCase
-from sentry.utils.email import _CaseInsensitiveSigner, email_to_group_id, group_id_to_email
+from sentry.utils.email import email_to_group_id, group_id_to_email
 
-fixture = open(os.path.dirname(os.path.realpath(__file__)) + "/email.txt").read()
+with open(os.path.join(os.path.dirname(__file__), "email.txt")) as f:
+    fixture = f.read()
 
 
 class SentrySMTPTest(TestCase):
@@ -46,14 +47,3 @@ class SentrySMTPTest(TestCase):
                 self.server.process_message("", self.user.email, ["lol@localhost"], fixture),
                 STATUS[550],
             )
-
-
-class CaseInsensitiveSignerTests(TestCase):
-    def test_it_works(self):
-        with self.settings(SECRET_KEY="a"):
-            # the default salt is the module path
-            # the class was moved at some point so this sets a constant salt
-            signer = _CaseInsensitiveSigner(salt="sentry.utils.email._CaseInsensitiveSigner")
-            assert signer.unsign(signer.sign("foo")) == "foo"
-            assert signer.sign("foo") == "foo:wkpxg5djz3d4m0zktktfl9hdzw4"
-            assert signer.unsign("foo:WKPXG5DJZ3D4M0ZKTKTFL9HDZW4") == "foo"
