@@ -1,11 +1,13 @@
 import base64
 
 from django.http import HttpRequest
+from django.test import override_settings
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, active_on
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
+from sentry.servermode import ServerComponentMode
 from sentry.testutils import APITestCase
 
 
@@ -149,3 +151,40 @@ class EndpointJSONBodyTest(APITestCase):
         Endpoint().load_json_body(self.request)
 
         assert not self.request.json_body
+
+
+class ServerComponentModeTest(APITestCase):
+    def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
+        def decorate_class():
+            with override_settings(SERVER_COMPONENT_MODE=active_mode):
+
+                @active_on(endpoint_mode)
+                class DecoratedEndpoint(DummyEndpoint):
+                    pass
+
+            return DecoratedEndpoint
+
+        def decorate_method():
+            with override_settings(SERVER_COMPONENT_MODE=active_mode):
+
+                class EndpointWithDecoratedMethod(DummyEndpoint):
+                    @active_on(endpoint_mode)
+                    def get(self, request):
+                        return super().get(request)
+
+            return EndpointWithDecoratedMethod
+
+        for endpoint_class in (decorate_class(), decorate_method()):
+            view = endpoint_class.as_view()
+            request = self.make_request(method="GET")
+            response = view(request)
+            assert response.status_code == (200 if expect_to_be_active else 404)
+
+    def test_with_active_mode(self):
+        self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.CUSTOMER, True)
+
+    def test_with_inactive_mode(self):
+        self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.CONTROL, False)
+
+    def test_with_monolith_mode(self):
+        self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.MONOLITH, True)
