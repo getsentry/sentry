@@ -21,7 +21,7 @@ describe('ProjectDetail > ProjectApdex', function () {
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/eventsv2/`,
+      url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [],
       },
@@ -46,7 +46,7 @@ describe('ProjectDetail > ProjectApdex', function () {
 
     expect(endpointMock).toHaveBeenNthCalledWith(
       1,
-      `/organizations/${organization.slug}/eventsv2/`,
+      `/organizations/${organization.slug}/events/`,
       expect.objectContaining({
         query: {
           environment: [],
