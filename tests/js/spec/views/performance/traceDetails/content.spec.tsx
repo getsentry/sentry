@@ -26,7 +26,7 @@ describe('TraceDetailsContent', () => {
   describe('Without Transactions', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/eventsv2/',
+        url: '/organizations/org-slug/events/',
         body: SAMPLE_ERROR_DATA,
       });
     });
@@ -74,7 +74,7 @@ describe('TraceDetailsContent', () => {
 
     it('should should display an error if the error events could not be fetched', async () => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/eventsv2/',
+        url: '/organizations/org-slug/events/',
         statusCode: 404,
         body: {detail: 'This is a test error'},
       });
