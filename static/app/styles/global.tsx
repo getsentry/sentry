@@ -74,8 +74,10 @@ const styles = (theme: Theme, isDark: boolean) => css`
   /* Override css in LESS files here as we want to manually control dark mode for now */
   ${isDark
     ? css`
-        .box {
+        .box,
+        .box.box-modal {
           background: ${theme.background};
+          border-color: ${theme.border};
 
           .box-content,
           .box-header {
