@@ -477,12 +477,12 @@ class _InactiveEndpoint(Endpoint):
         return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
 
-def mode_limited(mode: ServerComponentMode) -> Callable[[type], type]:
+def active_on(mode: ServerComponentMode) -> Callable[[type], type]:
     """Decorate an endpoint class that should be active only in one mode."""
 
     def decorator(decorated_class: type) -> type:
         if not issubclass(decorated_class, Endpoint):
-            raise ValueError("`@mode_limited` must decorate an Endpoint class")
+            raise ValueError("`@active_on` must decorate an Endpoint class")
 
         if mode.is_active():
             return decorated_class
