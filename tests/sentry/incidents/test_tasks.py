@@ -51,7 +51,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         )
         send_subscriber_notifications(activity.id)
         # User shouldn't receive an email for their own activity
-        self.send_async.assert_not_called()  # NOQA
+        self.send_async.assert_not_called()
 
         self.send_async.reset_mock()
         non_member_user = self.create_user(email="non_member@test.com")
@@ -73,7 +73,7 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest, TestCase):
         activity_type = IncidentActivityType.CREATED
         activity = create_incident_activity(self.incident, activity_type)
         send_subscriber_notifications(activity.id)
-        self.send_async.assert_not_called()  # NOQA
+        self.send_async.assert_not_called()
         self.send_async.reset_mock()
 
 

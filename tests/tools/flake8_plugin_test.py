@@ -15,15 +15,15 @@ def _errors(*errors):
 def test_S001():
     S001_py = """\
 class A:
-    def assert_called_once():
+    def called_once():
         pass
 
 
-A().assert_called_once()
+A().called_once()
 """
 
     errors = _run(S001_py)
-    assert errors == _errors(S001(6, 0, vars=("assert_called_once",)))
+    assert errors == _errors(S001(6, 0, vars=("called_once",)))
 
 
 def test_S002():

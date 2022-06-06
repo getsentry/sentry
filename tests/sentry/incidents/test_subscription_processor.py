@@ -318,7 +318,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         self.metrics.incr.reset_mock()
         self.send_update(self.rule, self.trigger.alert_threshold, timedelta(hours=1))
-        self.metrics.incr.assert_not_called()  # NOQA
+        self.metrics.incr.assert_not_called()
 
     def test_no_alert(self):
         rule = self.rule
