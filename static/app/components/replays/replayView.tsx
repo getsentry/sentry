@@ -8,6 +8,7 @@ import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
+import space from 'sentry/styles/space';
 
 // How much to reveal under the player, so people can see the 'pagefold' and
 // know that they can scroll the page.
@@ -57,12 +58,16 @@ function ReplayView({isFullscreen, toggleFullscreen}: Props) {
       <HorizontalMouseTracking>
         <PlayerScrubber />
       </HorizontalMouseTracking>
-      <PanelBody withPadding>
+      <ReplayControllerWrapper>
         <ReplayController toggleFullscreen={toggleFullscreen} />
-      </PanelBody>
+      </ReplayControllerWrapper>
     </PanelNoMargin>
   );
 }
+
+const ReplayControllerWrapper = styled(PanelBody)`
+  padding: ${space(1)};
+`;
 
 const PanelNoMargin = styled(Panel)<{isFullscreen: boolean}>`
   margin-bottom: 0;
