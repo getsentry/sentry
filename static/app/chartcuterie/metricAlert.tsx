@@ -2,6 +2,7 @@ import type {LineSeriesOption} from 'echarts';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import XAxis from 'sentry/components/charts/components/xAxis';
+import YAxis from 'sentry/components/charts/components/yAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
 import type {SessionApiResponse} from 'sentry/types';
 import {lightTheme as theme} from 'sentry/utils/theme';
@@ -18,7 +19,12 @@ const metricAlertXaxis = XAxis({
   theme,
   splitNumber: 3,
   isGroupedByDate: true,
-  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
+  axisLabel: {fontSize: 10, fontFamily: DEFAULT_FONT_FAMILY},
+});
+
+const metricAlertYaxis = YAxis({
+  theme,
+  axisLabel: {fontSize: 10, fontFamily: DEFAULT_FONT_FAMILY},
 });
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
@@ -60,6 +66,14 @@ metricAlertCharts.push({
       backgroundColor: theme.background,
       series: transformAreaSeries(chartOption.series),
       xAxis: metricAlertXaxis,
+      yAxis: {
+        ...chartOption.yAxis,
+        ...metricAlertYaxis,
+        axisLabel: {
+          ...chartOption.yAxis!.axisLabel,
+          ...metricAlertYaxis.axisLabel,
+        },
+      },
       grid: slackChartDefaults.grid,
     };
   },
@@ -85,6 +99,14 @@ metricAlertCharts.push({
       backgroundColor: theme.background,
       series: transformAreaSeries(chartOption.series),
       xAxis: metricAlertXaxis,
+      yAxis: {
+        ...chartOption.yAxis,
+        ...metricAlertYaxis,
+        axisLabel: {
+          ...chartOption.yAxis!.axisLabel,
+          ...metricAlertYaxis.axisLabel,
+        },
+      },
       grid: slackChartDefaults.grid,
     };
   },
