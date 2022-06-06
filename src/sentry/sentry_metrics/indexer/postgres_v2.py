@@ -65,7 +65,9 @@ class PGStringIndexerV2(StringIndexer):
         unmapped keys the key_results objects are merged and returned:
             e.g. return cache_key_results.merge(db_read_key_results)
         """
+
         cache_keys = KeyCollection(org_strings)
+        metrics.gauge("sentry_metrics.indexer.lookups_per_batch", value=cache_keys.size)
         cache_key_strs = cache_keys.as_strings()
         cache_results = indexer_cache.get_many(cache_key_strs)
 
