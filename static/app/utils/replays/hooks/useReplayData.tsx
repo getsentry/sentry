@@ -150,7 +150,7 @@ function useReplayData({eventSlug, orgId}: Options): Result {
         try {
           return JSON.parse(response[0]) as ReplayAttachment;
         } catch (error) {
-          // swallow exception as if we can't parse it, it's going to be compressed
+          // swallow exception.. if we can't parse it, it's going to be compressed
         }
 
         // for compressed events, inflate the blob and map the events
