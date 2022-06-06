@@ -162,6 +162,21 @@ class OutcomeDimension(Dimension):
             row["outcome"] = Outcome(row["outcome"]).api_name()
 
 
+class KeyDimension(Dimension):
+    def resolve_filter(self, raw_filter: Sequence[str]) -> List[Outcome]:
+        def _parse_value(key_id: str) -> Outcome:
+            try:
+                return int(key_id)
+            except KeyError:
+                raise InvalidField(f'Invalid key: "{key_id}"')
+
+        return [_parse_value(o) for o in raw_filter]
+
+    def map_row(self, row: MutableMapping[str, Any]) -> None:
+        # No changes are required to map key_id values.
+        pass
+
+
 class ReasonDimension(Dimension):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[str]:
         return [
@@ -184,6 +199,7 @@ DIMENSION_MAP: Mapping[str, Dimension] = {
     "outcome": OutcomeDimension("outcome"),
     "category": CategoryDimension("category"),
     "reason": ReasonDimension("reason"),
+    "key": KeyDimension("key"),
 }
 
 GROUPBY_MAP = {
