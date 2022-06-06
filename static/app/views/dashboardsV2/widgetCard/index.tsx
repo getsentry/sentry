@@ -10,6 +10,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
@@ -69,6 +70,8 @@ type State = {
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };
+
+const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-04-12');
 
 class WidgetCard extends Component<Props, State> {
   state: State = {};
@@ -212,6 +215,23 @@ class WidgetCard extends Component<Props, State> {
       noLazyLoad,
       showStoredAlert,
     } = this.props;
+    const {start, period} = selection.datetime;
+    let showIncompleteDataAlert: boolean = false;
+    if (widget.widgetType === WidgetType.RELEASE) {
+      if (start) {
+        let startDate: Date | undefined = undefined;
+        if (typeof start === 'string') {
+          startDate = new Date(start);
+        } else {
+          startDate = start;
+        }
+        showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
+      } else if (period && period === '90d') {
+        const current = new Date();
+        const prior = new Date(new Date().setDate(current.getDate() - 90));
+        showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
+      }
+    }
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -274,6 +294,20 @@ class WidgetCard extends Component<Props, State> {
                 )
               }
             </DashboardsMEPConsumer>
+          </Feature>
+          <Feature organization={organization} features={['dashboards-releases']}>
+            {showIncompleteDataAlert && (
+              <StoredDataAlert showIcon>
+                {tct(
+                  'Your selection may have incomplete data. Release data available only after [date].',
+                  {
+                    date: (
+                      <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} shortDate />
+                    ),
+                  }
+                )}
+              </StoredDataAlert>
+            )}
           </Feature>
         </DashboardsMEPProvider>
       </ErrorBoundary>
