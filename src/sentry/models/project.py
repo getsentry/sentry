@@ -144,7 +144,6 @@ class Project(Model, PendingDeletionMixin):
     platform = models.CharField(max_length=64, null=True)
 
     snowflake_redis_key = "project_snowflake_key"
-    snowflake_retry_counter = 0
 
     class Meta:
         app_label = "sentry"
@@ -168,7 +167,7 @@ class Project(Model, PendingDeletionMixin):
             span.set_data("project_slug", self.slug)
             return Counter.increment(self)
 
-    def save(self, *args, **kwargs):
+    def save(self, snowflake_retry_counter=0, *args, **kwargs):
         if not self.id:
             self.id = snowflake_id_generation(self.snowflake_redis_key)
         if not self.slug:
@@ -185,11 +184,11 @@ class Project(Model, PendingDeletionMixin):
             with transaction.atomic():
                 super().save(*args, **kwargs)
         except IntegrityError:
-            if self.snowflake_retry_counter > settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER:
+            if snowflake_retry_counter > settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER:
                 raise Exception("Max allowed ID retry reached. Please try again in a second")
-            self.snowflake_retry_counter += 1
+            snowflake_retry_counter += 1
             self.id = None
-            self.save(*args, **kwargs)
+            self.save(snowflake_retry_counter, *args, **kwargs)
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):

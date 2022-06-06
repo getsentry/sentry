@@ -1,4 +1,3 @@
-import secrets
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import OrderedDict, Tuple
@@ -7,7 +6,6 @@ from django.conf import settings
 
 from sentry.utils import redis
 
-BASE_SEED = secrets.randbits(64)
 _TTL = timedelta(minutes=5)
 SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
 
@@ -88,7 +86,7 @@ def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> Tu
         if sequence_value == 0:
             cluster.expire(timestamp, int(_TTL.total_seconds()))
 
-        if sequence_value < (1 << REGION_SEQUENCE.length):
+        if sequence_value < (MAX_AVAILABLE_REGION_SEQUENCES):
             return timestamp, sequence_value
 
     raise Exception("No available ID")

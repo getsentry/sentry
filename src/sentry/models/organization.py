@@ -165,7 +165,6 @@ class Organization(Model):
     objects = OrganizationManager(cache_fields=("pk", "slug"))
 
     snowflake_redis_key = "organization_snowflake_key"
-    snowflake_retry_counter = 0
 
     class Meta:
         app_label = "sentry"
@@ -189,7 +188,7 @@ class Organization(Model):
     def __str__(self):
         return f"{self.name} ({self.slug})"
 
-    def save(self, *args, **kwargs):
+    def save(self, snowflake_retry_counter=0, *args, **kwargs):
         if not self.id:
             self.id = snowflake_id_generation(self.snowflake_redis_key)
         if not self.slug:
@@ -200,11 +199,11 @@ class Organization(Model):
             with transaction.atomic():
                 super().save(*args, **kwargs)
         except IntegrityError:
-            if self.snowflake_retry_counter > settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER:
+            if snowflake_retry_counter > settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER:
                 raise Exception("Max allowed ID retry reached. Please try again in a second")
-            self.snowflake_retry_counter += 1
+            snowflake_retry_counter += 1
             self.id = None
-            self.save(*args, **kwargs)
+            self.save(snowflake_retry_counter, *args, **kwargs)
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
