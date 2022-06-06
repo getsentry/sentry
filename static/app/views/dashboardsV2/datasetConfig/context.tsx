@@ -8,7 +8,7 @@ import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
-function createDatasetConfigContext(widgetType: WidgetType) {
+function createDatasetConfigContext(widgetType: WidgetType | undefined) {
   const config = getDatasetConfig(widgetType);
   const [_DatasetConfigProvider, useDatasetConfigContext, DatasetConfigContext] =
     createDefinedContext<{datasetConfig: typeof config}>({
@@ -107,7 +107,7 @@ export function getDatasetConfigContextHook(widgetType: WidgetType | undefined) 
   }
 }
 
-export function getDatasetConfig(widgetType: WidgetType) {
+export function getDatasetConfig(widgetType: WidgetType | undefined) {
   switch (widgetType) {
     case WidgetType.RELEASE:
       return ReleasesConfig;
