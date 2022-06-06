@@ -66,7 +66,7 @@ def test_load_plugin_group_urls():
         )
     )
 
-    assert len(patterns) == 7
+    assert len(patterns) == 6
 
 
 class Plugin2TestCase(TestCase):
