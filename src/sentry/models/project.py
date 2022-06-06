@@ -185,7 +185,7 @@ class Project(Model, PendingDeletionMixin):
             with transaction.atomic():
                 super().save(*args, **kwargs)
         except IntegrityError:
-            if self.snowflake_retry_counter == settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER:
+            if self.snowflake_retry_counter > settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER:
                 raise Exception("Max allowed ID retry reached. Please try again in a second")
             self.snowflake_retry_counter += 1
             self.id = None
