@@ -26,7 +26,7 @@ from sentry.db.models.utils import slugify_instance
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.snowflake import snowflake_id_generation
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import User
@@ -111,25 +111,6 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
-class SnowflakeIdMixin:
-    # TODO: Move to common base file
-
-    snowflake_redis_key = None
-
-    def save_with_snowflake_id(self, save_callback):
-        for snowflake_retry_counter in range(settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER):
-            if not self.id:
-                self.id = snowflake_id_generation(self.snowflake_redis_key)
-            try:
-                with transaction.atomic():
-                    save_callback()
-                return
-            except IntegrityError:
-                self.id = None
-
-        raise Exception("Max allowed ID retry reached. Please try again in a second")
-
-
 class Organization(Model, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
@@ -183,8 +164,6 @@ class Organization(Model, SnowflakeIdMixin):
 
     objects = OrganizationManager(cache_fields=("pk", "slug"))
 
-    snowflake_redis_key = "organization_snowflake_key"
-
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
@@ -213,7 +192,10 @@ class Organization(Model, SnowflakeIdMixin):
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        self.save_with_snowflake_id(lambda: super(Organization, self).save(*args, **kwargs))
+        snowflake_redis_key = "organization_snowflake_key"
+        self.save_with_snowflake_id(
+            snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+        )
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting

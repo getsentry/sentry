@@ -3,11 +3,25 @@ from datetime import datetime, timedelta
 from typing import OrderedDict, Tuple
 
 from django.conf import settings
+from django.db import IntegrityError
 
 from sentry.utils import redis
 
 _TTL = timedelta(minutes=5)
 SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
+
+
+class SnowflakeIdMixin:
+    def save_with_snowflake_id(self, snowflake_redis_key, save_callback):
+        for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETY_COUNTER):
+            if not self.id:
+                self.id = snowflake_id_generation(snowflake_redis_key)
+            try:
+                save_callback()
+                return
+            except IntegrityError:
+                self.id = None
+        raise Exception("Max allowed ID retry reached. Please try again in a second")
 
 
 @dataclass(frozen=True, eq=True)
