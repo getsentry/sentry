@@ -214,11 +214,11 @@ export function PerformanceLanding(props: Props) {
                   >
                     {({hasFeature}) =>
                       hasFeature ? (
-                        // transaction search handles onSearch within the component
+                        // transaction search handles searching within the component
                         <TxnNameSearchBar
                           organization={organization}
-                          projectIds={eventView.project}
                           location={location}
+                          eventView={eventView}
                         />
                       ) : (
                         <SearchBar
