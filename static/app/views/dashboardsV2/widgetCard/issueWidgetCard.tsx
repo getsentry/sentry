@@ -11,7 +11,7 @@ import {defined} from 'sentry/utils';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
-import {getDefinedContext} from '../datasetConfig/context';
+import {getDatasetConfigContextHook} from '../datasetConfig/context';
 import {Widget, WidgetType} from '../types';
 import {ISSUE_FIELDS} from '../widgetBuilder/issueWidget/fields';
 
@@ -34,7 +34,7 @@ export function IssueWidgetCard({
   transformedResults,
   location,
 }: Props) {
-  const {datasetConfig} = getDefinedContext(WidgetType.ISSUE)();
+  const {datasetConfig} = getDatasetConfigContextHook(WidgetType.ISSUE)();
 
   if (errorMessage) {
     return (
