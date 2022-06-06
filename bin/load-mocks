@@ -3,6 +3,7 @@
 import time
 
 from sentry.runner import configure
+from sentry.types.activity import ActivityType
 
 configure()
 
@@ -510,7 +511,7 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
             )[0]
 
             Activity.objects.create(
-                type=Activity.RELEASE,
+                type=ActivityType.RELEASE.value,
                 project=project,
                 ident=release.version,
                 user=user,
@@ -541,7 +542,7 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
             )
 
             Activity.objects.create(
-                type=Activity.DEPLOY,
+                type=ActivityType.DEPLOY.value,
                 project=project,
                 ident=release.version,
                 data={
@@ -710,7 +711,7 @@ def main(num_events=1, extra_events=False, load_trends=False, slow=False):
     create_mock_transactions(project_map, load_trends, slow)
 
     Activity.objects.create(
-        type=Activity.RELEASE,
+        type=ActivityType.RELEASE.value,
         project=project,
         ident="4f38b65c62c4565aa94bba391ff8946922a8eed4",
         user=user,

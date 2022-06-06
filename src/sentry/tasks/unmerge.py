@@ -23,6 +23,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.types.activity import ActivityType
 from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
 from sentry.utils.query import celery_run_batch_query
 from sentry.utils.safe import get_path
@@ -214,7 +215,7 @@ def migrate_events(
         Activity.objects.create(
             project_id=project.id,
             group_id=destination_id,
-            type=Activity.UNMERGE_DESTINATION,
+            type=ActivityType.UNMERGE_DESTINATION.value,
             user_id=args.actor_id,
             data={"source_id": args.source_id, **args.replacement.get_activity_args()},
         )
@@ -222,7 +223,7 @@ def migrate_events(
         Activity.objects.create(
             project_id=project.id,
             group_id=args.source_id,
-            type=Activity.UNMERGE_SOURCE,
+            type=ActivityType.UNMERGE_SOURCE.value,
             user_id=args.actor_id,
             data={"destination_id": destination_id, **args.replacement.get_activity_args()},
         )

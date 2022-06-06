@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from sentry.models import Activity, GroupMeta
 from sentry.plugins.base.v1 import Plugin
 from sentry.signals import issue_tracker_used
+from sentry.types.activity import ActivityType
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -234,7 +235,7 @@ class IssueTrackingPlugin(Plugin):
                 Activity.objects.create(
                     project=group.project,
                     group=group,
-                    type=Activity.CREATE_ISSUE,
+                    type=ActivityType.CREATE_ISSUE.value,
                     user=request.user,
                     data=issue_information,
                 )
@@ -266,7 +267,7 @@ class IssueTrackingPlugin(Plugin):
                 Activity.objects.create(
                     project=group.project,
                     group=group,
-                    type=Activity.CREATE_ISSUE,
+                    type=ActivityType.CREATE_ISSUE.value,
                     user=request.user,
                     data=issue_information,
                 )

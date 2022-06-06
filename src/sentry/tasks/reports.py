@@ -42,6 +42,7 @@ from sentry.models import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
+from sentry.types.activity import ActivityType
 from sentry.utils import json, redis
 from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -329,7 +330,7 @@ def build_project_issue_summaries(interval, project):
                 last_seen__lt=stop,
                 resolved_at__isnull=False,  # signals this has *ever* been resolved
             ),
-            type__in=(Activity.SET_REGRESSION, Activity.SET_UNRESOLVED),
+            type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_UNRESOLVED.value),
             datetime__gte=start,
             datetime__lt=stop,
         )
@@ -779,7 +780,7 @@ def fetch_personal_statistics(start__stop, organization, user):
         Activity.objects.filter(
             project__organization_id=organization.id,
             user_id=user.id,
-            type__in=(Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE),
+            type__in=(ActivityType.SET_RESOLVED.value, ActivityType.SET_RESOLVED_IN_RELEASE.value),
             datetime__gte=start,
             datetime__lt=stop,
             group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved

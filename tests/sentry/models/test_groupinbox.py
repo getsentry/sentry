@@ -9,6 +9,7 @@ from sentry.models import (
     remove_group_from_inbox,
 )
 from sentry.testutils import TestCase
+from sentry.types.activity import ActivityType
 
 
 class GroupInboxTestCase(TestCase):
@@ -39,7 +40,7 @@ class GroupInboxTestCase(TestCase):
         ).exists()
         activities = Activity.objects.all()
         assert len(activities) == 1
-        assert activities[0].type == Activity.MARK_REVIEWED
+        assert activities[0].type == ActivityType.MARK_REVIEWED.value
         assert inbox_out.called
 
     def test_invalid_reason_details(self):

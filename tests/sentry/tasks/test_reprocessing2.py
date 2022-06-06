@@ -27,6 +27,7 @@ from sentry.tasks.reprocessing2 import reprocess_group
 from sentry.tasks.store import preprocess_event
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache_key_for_event
 
 
@@ -261,7 +262,7 @@ def test_concurrent_events_go_into_new_group(
 
     assert group.short_id == original_short_id
     assert GroupAssignee.objects.get(group=group) == original_assignee
-    activity = Activity.objects.get(group=group, type=Activity.REPROCESS)
+    activity = Activity.objects.get(group=group, type=ActivityType.REPROCESS.value)
     assert activity.ident == str(original_issue_id)
 
 

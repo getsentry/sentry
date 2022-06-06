@@ -33,6 +33,7 @@ from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
@@ -589,7 +590,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == ""
         uo1.delete()
 
@@ -661,7 +664,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == release.version
 
     def test_set_resolved_in_explicit_release(self):
@@ -699,7 +704,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == release.version
 
     def test_set_resolved_in_next_release(self):
@@ -735,7 +742,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_next_release_legacy(self):
@@ -766,7 +775,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_explicit_commit_unreleased(self):
@@ -802,7 +813,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_COMMIT)
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         assert activity.data["commit"] == commit.id
 
     def test_set_resolved_in_explicit_commit_released(self):
@@ -841,7 +852,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_COMMIT)
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         assert activity.data["commit"] == commit.id
 
         resolution = GroupResolution.objects.get(group=group)
@@ -1208,7 +1219,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert not GroupAssignee.objects.filter(group=group2, user=user).exists()
 
-        assert Activity.objects.filter(group=group1, user=user, type=Activity.ASSIGNED).count() == 1
+        assert (
+            Activity.objects.filter(
+                group=group1, user=user, type=ActivityType.ASSIGNED.value
+            ).count()
+            == 1
+        )
 
         assert GroupSubscription.objects.filter(user=user, group=group1, is_active=True).exists()
 
@@ -1250,7 +1266,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["assignedTo"]["type"] == "team"
         assert GroupAssignee.objects.filter(group=group, team=team).exists()
 
-        assert Activity.objects.filter(group=group, type=Activity.ASSIGNED).count() == 1
+        assert Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value).count() == 1
 
         assert GroupSubscription.objects.filter(group=group, is_active=True).count() == 2
 

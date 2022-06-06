@@ -12,7 +12,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.models import Activity
+from sentry.types.activity import ActivityType
 
 if TYPE_CHECKING:
     from sentry.models import Group, Release, Team, User
@@ -95,11 +95,11 @@ PREVIOUS_STATUSES = {
 }
 
 ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
-    Activity.SET_IGNORED: GroupHistoryStatus.IGNORED,
-    Activity.SET_RESOLVED: GroupHistoryStatus.RESOLVED,
-    Activity.SET_RESOLVED_IN_COMMIT: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
-    Activity.SET_RESOLVED_IN_RELEASE: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
-    Activity.SET_UNRESOLVED: GroupHistoryStatus.UNRESOLVED,
+    ActivityType.SET_IGNORED.value: GroupHistoryStatus.IGNORED,
+    ActivityType.SET_RESOLVED.value: GroupHistoryStatus.RESOLVED,
+    ActivityType.SET_RESOLVED_IN_COMMIT.value: GroupHistoryStatus.SET_RESOLVED_IN_COMMIT,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value: GroupHistoryStatus.SET_RESOLVED_IN_RELEASE,
+    ActivityType.SET_UNRESOLVED.value: GroupHistoryStatus.UNRESOLVED,
 }
 
 

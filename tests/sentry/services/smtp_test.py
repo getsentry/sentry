@@ -3,6 +3,7 @@ import os.path
 from sentry.models import Activity
 from sentry.services.smtp import STATUS, SentrySMTPServer
 from sentry.testutils import TestCase
+from sentry.types.activity import ActivityType
 from sentry.utils.email import email_to_group_id, group_id_to_email
 
 with open(os.path.join(os.path.dirname(__file__), "email.txt")) as f:
@@ -25,7 +26,9 @@ class SentrySMTPTest(TestCase):
                 self.server.process_message("", self.user.email, [self.mailto], fixture),
                 STATUS[200],
             )
-        self.assertEqual(Activity.objects.filter(type=Activity.NOTE)[0].data, {"text": "sup"})
+        self.assertEqual(
+            Activity.objects.filter(type=ActivityType.NOTE.value)[0].data, {"text": "sup"}
+        )
 
     def test_process_message_no_recipients(self):
         with self.tasks():

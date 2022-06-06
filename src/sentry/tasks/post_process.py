@@ -8,6 +8,7 @@ from sentry.exceptions import PluginError
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
 from sentry.tasks.base import instrumented_task
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -488,7 +489,7 @@ def process_snoozes(group):
         Activity.objects.create(
             project=group.project,
             group=group,
-            type=Activity.SET_UNRESOLVED,
+            type=ActivityType.SET_UNRESOLVED.value,
             user=None,
         )
 

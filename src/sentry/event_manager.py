@@ -1349,7 +1349,7 @@ def _handle_regression(group, event, release):
             try:
                 activity = Activity.objects.filter(
                     group=group,
-                    type=Activity.SET_RESOLVED_IN_RELEASE,
+                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
                     ident=resolution.id,
                 ).order_by("-datetime")[0]
             except IndexError:

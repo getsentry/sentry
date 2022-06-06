@@ -26,6 +26,7 @@ from sentry.models import (
 )
 from sentry.signals import buffer_incr_complete
 from sentry.testutils import TestCase
+from sentry.types.activity import ActivityType
 
 
 class ResolveGroupResolutionsTest(TestCase):
@@ -174,7 +175,7 @@ class ResolvedInCommitTest(TestCase):
         assert GroupAssignee.objects.filter(group=group, user=user).exists()
 
         assert Activity.objects.filter(
-            project=group.project, group=group, type=Activity.ASSIGNED, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
         )[0].data == {
             "assignee": str(user.id),
             "assigneeEmail": user.email,
@@ -207,7 +208,7 @@ class ResolvedInCommitTest(TestCase):
         self.assertResolvedFromCommit(group, commit)
 
         assert not Activity.objects.filter(
-            project=group.project, group=group, type=Activity.ASSIGNED, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
         ).exists()
 
         assert GroupSubscription.objects.filter(group=group, user=user).exists()

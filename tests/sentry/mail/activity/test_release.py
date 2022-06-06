@@ -8,6 +8,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.testutils.cases import ActivityTestCase
+from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 
 
@@ -76,7 +77,7 @@ class ReleaseTestCase(ActivityTestCase):
             Activity(
                 project=self.project,
                 user=self.user1,
-                type=Activity.RELEASE,
+                type=ActivityType.RELEASE.value,
                 data={"version": self.release.version, "deploy_id": self.deploy.id},
             )
         )
@@ -125,7 +126,7 @@ class ReleaseTestCase(ActivityTestCase):
             Activity(
                 project=self.project,
                 user=self.user1,
-                type=Activity.RELEASE,
+                type=ActivityType.RELEASE.value,
                 data={"version": "a", "deploy_id": 5},
             )
         )
@@ -139,7 +140,7 @@ class ReleaseTestCase(ActivityTestCase):
             Activity(
                 project=self.project,
                 user=self.user1,
-                type=Activity.RELEASE,
+                type=ActivityType.RELEASE.value,
                 data={"version": release.version, "deploy_id": deploy.id},
             )
         )
@@ -185,7 +186,7 @@ class ReleaseTestCase(ActivityTestCase):
             Activity(
                 project=self.project,
                 user=self.user1,
-                type=Activity.RELEASE,
+                type=ActivityType.RELEASE.value,
                 data={"version": release.version, "deploy_id": deploy.id},
             )
         )

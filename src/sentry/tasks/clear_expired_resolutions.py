@@ -2,6 +2,7 @@ from django.db.models import Q
 
 from sentry.models import Activity, GroupResolution, Release
 from sentry.tasks.base import instrumented_task
+from sentry.types.activity import ActivityType
 
 
 @instrumented_task(name="sentry.tasks.clear_expired_resolutions", time_limit=15, soft_time_limit=10)
@@ -40,7 +41,7 @@ def clear_expired_resolutions(release_id):
         try:
             activity = Activity.objects.filter(
                 group=resolution.group_id,
-                type=Activity.SET_RESOLVED_IN_RELEASE,
+                type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
                 ident=resolution.id,
             ).order_by("-datetime")[0]
         except IndexError:

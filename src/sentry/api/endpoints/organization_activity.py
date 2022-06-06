@@ -8,6 +8,7 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import OrganizationActivitySerializer, serialize
 from sentry.models import Activity, OrganizationMemberTeam, Project
+from sentry.types.activity import ActivityType
 
 
 class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin):
@@ -15,7 +16,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
         # There is an activity record created for both sides of the unmerge
         # operation, so we only need to include one of them here to avoid
         # showing the same entry twice.
-        base_qs = Activity.objects.exclude(type=Activity.UNMERGE_SOURCE).values_list(
+        base_qs = Activity.objects.exclude(type=ActivityType.UNMERGE_SOURCE.value).values_list(
             "id", flat=True
         )
 

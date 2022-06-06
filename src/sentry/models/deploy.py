@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry.app import locks
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model
+from sentry.types.activity import ActivityType
 from sentry.utils.retries import TimedRetryPolicy
 
 
@@ -69,7 +70,7 @@ class Deploy(Model):
             activity = None
             for project in deploy.release.projects.all():
                 activity = Activity.objects.create(
-                    type=Activity.DEPLOY,
+                    type=ActivityType.DEPLOY.value,
                     project=project,
                     ident=Activity.get_version_ident(release.version),
                     data={

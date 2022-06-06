@@ -43,6 +43,7 @@ from sentry.models import (
 )
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils import TestCase, assert_mock_called_once_with_partial
+from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
 
@@ -406,7 +407,7 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=resolution.id,
             data={"version": ""},
         )
@@ -441,7 +442,7 @@ class EventManagerTest(TestCase):
 
         assert not GroupResolution.objects.filter(group=group).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
@@ -478,7 +479,7 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=resolution.id,
             data={"version": "foobar"},
         )
@@ -496,7 +497,9 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.get(id=activity.id)
         assert activity.data["version"] == "foobar"
 
-        regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        regressed_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
         assert regressed_activity.data["version"] == "b"
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
@@ -534,7 +537,7 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=resolution.id,
             data={"version": "", "current_release_version": "pre foobar"},
         )
@@ -553,7 +556,9 @@ class EventManagerTest(TestCase):
         assert activity.data["version"] == "b"
         assert activity.data["current_release_version"] == "pre foobar"
 
-        regressed_activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+        regressed_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
         assert regressed_activity.data["version"] == "b"
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
@@ -692,7 +697,7 @@ class EventManagerTest(TestCase):
         activity = Activity.objects.create(
             group=group,
             project=group.project,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=resolution.id,
             data={"version": ""},
         )
@@ -733,7 +738,7 @@ class EventManagerTest(TestCase):
 
                 assert not GroupResolution.objects.filter(group=group).exists()
 
-                activity = Activity.objects.get(group=group, type=Activity.SET_REGRESSION)
+                activity = Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
 
                 mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
