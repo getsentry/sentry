@@ -78,9 +78,9 @@ class PostProcessGroupTest(TestCase):
             cache_key=cache_key,
         )
 
-        mock_processor.assert_not_called()  # NOQA
-        mock_process_service_hook.assert_not_called()  # NOQA
-        mock_process_resource_change_bound.assert_not_called()  # NOQA
+        mock_processor.assert_not_called()
+        mock_process_service_hook.assert_not_called()
+        mock_process_resource_change_bound.assert_not_called()
 
         mock_signal.assert_called_once_with(
             sender=ANY, project=self.project, event=EventMatcher(event), primary_hash=None
