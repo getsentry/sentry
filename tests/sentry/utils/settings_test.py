@@ -1,5 +1,6 @@
 from unittest import mock
 
+import pytest
 from django.conf import settings
 
 from sentry.testutils import TestCase
@@ -70,7 +71,11 @@ class DependencyTest(TestCase):
                 validate_settings(settings)
 
     def test_validate_fails_on_postgres(self):
-        self.validate_dependency(*DEPENDENCY_TEST_DATA["postgresql"])
+        with pytest.warns(UserWarning) as warninfo:
+            self.validate_dependency(*DEPENDENCY_TEST_DATA["postgresql"])
+        (warn,) = warninfo
+        (msg,) = warn.message.args
+        assert msg == "Overriding setting DATABASES can lead to unexpected behavior."
 
     def test_validate_fails_on_memcache(self):
         self.validate_dependency(*DEPENDENCY_TEST_DATA["memcache"])
