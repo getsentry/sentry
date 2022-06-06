@@ -23,7 +23,6 @@ export const Default = args => (
     <HotkeysLabel value="left+right+up+down" forcePlatform={args.platform} />
     <HotkeysLabel value={['command+space', 'alt+space']} forcePlatform={args.platform} />
     <HotkeysLabel value=";+:+[+]" forcePlatform={args.platform} />
-    <HotkeysLabel value="command+\+" forcePlatform={args.platform} />
     Fallback to entirely different key combination:
     <HotkeysLabel value={['command+control', 'alt']} forcePlatform={args.platform} />
     No fallback for windows
