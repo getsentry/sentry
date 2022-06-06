@@ -28,9 +28,6 @@ const keyToDisplay = (
   key: string,
   isMac: boolean
 ): {label: React.ReactNode; specificToOs: 'macos' | 'generic'} => {
-  // Handle escaped + case
-  key = key === '\\+' ? '+' : key;
-
   const keyCode = getKeyCode(key);
 
   // Not a special key
@@ -41,7 +38,7 @@ const keyToDisplay = (
   const modifierMap = isMac ? macModifiers : normalModifiers;
   const keyStr = modifierMap[keyCode] ?? genericGlyphs[keyCode] ?? key.toUpperCase();
 
-  const specificToOs = keyStr === 'CMD' ? 'macos' : 'generic';
+  const specificToOs = keyCode === getKeyCode('command') ? 'macos' : 'generic';
 
   return {label: <Key key={keyStr}>{keyStr}</Key>, specificToOs};
 };
@@ -49,13 +46,11 @@ const keyToDisplay = (
 type Props = {
   /**
    * Pass key combinations in with + as the separator.
-   * For example: command+option+x
+   * For example: `'command+option+x'`
    *
-   * Use comma for fallback key combos when the first one contains a key that does not exist on that os (non-mac):
-   * command+option+x,ctrl+shift+x
+   * Pass an array of strings for fallback key combos when the first one contains a key that does not exist on that os (non-mac):
+   * `['command+option+x', 'ctrl+shift+x']`
    * (does not have to be the same combo)
-   *
-   * Escape the + key with a slash \+
    */
   value: string[] | string;
   forcePlatform?: 'macos' | 'generic';
