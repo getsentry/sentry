@@ -1,40 +1,27 @@
 import {ReactNode, useState} from 'react';
 
-import {
-  EventsStats,
-  Group,
-  MetricsApiResponse,
-  MultiSeriesEventsStats,
-  SessionApiResponse,
-} from 'sentry/types';
-import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 
 import {WidgetType} from '../types';
 
-import {DatasetConfig} from './base';
+import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
+import {IssuesConfig} from './issues';
+import {ReleasesConfig} from './releases';
 
-interface DatasetConfigContextInterface<SeriesResponse, TableResponse> {
-  setDatasetConfig: (value?: DatasetConfig<SeriesResponse, TableResponse>) => void;
-  datasetConfig?: DatasetConfig<SeriesResponse, TableResponse>;
-}
-
-function createDatasetConfigContext<SeriesResponse, TableResponse>() {
+function createDatasetConfigContext(widgetType: WidgetType) {
+  const config = getDatasetConfig(widgetType);
   const [_DatasetConfigProvider, useDatasetConfigContext, DatasetConfigContext] =
-    createDefinedContext<DatasetConfigContextInterface<SeriesResponse, TableResponse>>({
+    createDefinedContext<{datasetConfig: typeof config}>({
       name: 'DatasetConfigContext',
     });
 
   function DatasetConfigProvider({children}: {children: ReactNode}) {
-    const [datasetConfig, setDatasetConfig] = useState<
-      DatasetConfig<SeriesResponse, TableResponse> | undefined
-    >(undefined); // undefined means not initialized
+    const [datasetConfig] = useState<typeof config>(config);
 
     return (
       <_DatasetConfigProvider
         value={{
           datasetConfig,
-          setDatasetConfig,
         }}
       >
         {children}
@@ -56,27 +43,21 @@ export const {
   useDatasetConfigContext: useReleasesDatasetConfigContext,
   DatasetConfigContext: ReleasesDatasetConfigContext,
   DatasetConfigConsumer: ReleasesDatasetConfigConsumer,
-} = createDatasetConfigContext<
-  SessionApiResponse | MetricsApiResponse,
-  SessionApiResponse | MetricsApiResponse
->();
+} = createDatasetConfigContext(WidgetType.RELEASE);
 
 export const {
   DatasetConfigProvider: IssuesDatasetConfigProvider,
   useDatasetConfigContext: useIssuesDatasetConfigContext,
   DatasetConfigContext: IssuesDatasetConfigContext,
   DatasetConfigConsumer: IssuesDatasetConfigConsumer,
-} = createDatasetConfigContext<never, Group[]>();
+} = createDatasetConfigContext(WidgetType.ISSUE);
 
 export const {
   DatasetConfigProvider: ErrorsAndTransactionsDatasetConfigProvider,
   useDatasetConfigContext: useErrorsAndTransactionsDatasetConfigContext,
   DatasetConfigContext: ErrorsAndTransactionsDatasetConfigContext,
   DatasetConfigConsumer: ErrorsAndTransactionsDatasetConfigConsumer,
-} = createDatasetConfigContext<
-  EventsStats | MultiSeriesEventsStats,
-  TableData | EventsTableData
->();
+} = createDatasetConfigContext(WidgetType.DISCOVER);
 
 export function getDatasetConfigProvider(widgetType: WidgetType | undefined) {
   switch (widgetType) {
@@ -114,7 +95,7 @@ export function getDatasetConfigConsumer(widgetType: WidgetType | undefined) {
   }
 }
 
-export function getDefinedContext(widgetType: WidgetType | undefined) {
+export function getDatasetConfigContextHook(widgetType: WidgetType | undefined) {
   switch (widgetType) {
     case WidgetType.RELEASE:
       return useReleasesDatasetConfigContext;
@@ -123,5 +104,17 @@ export function getDefinedContext(widgetType: WidgetType | undefined) {
     case WidgetType.DISCOVER:
     default:
       return useErrorsAndTransactionsDatasetConfigContext;
+  }
+}
+
+export function getDatasetConfig(widgetType: WidgetType) {
+  switch (widgetType) {
+    case WidgetType.RELEASE:
+      return ReleasesConfig;
+    case WidgetType.ISSUE:
+      return IssuesConfig;
+    case WidgetType.DISCOVER:
+    default:
+      return ErrorsAndTransactionsConfig;
   }
 }
