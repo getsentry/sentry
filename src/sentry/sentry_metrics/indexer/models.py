@@ -38,19 +38,37 @@ class MetricsKeyIndexer(Model):  # type: ignore
         return connection.fetchall()
 
 
-class StringIndexer(Model):  # type: ignore
-    __include_in_export__ = False
-
+class BaseIndexer(Model):
     string = models.CharField(max_length=200)
     organization_id = BoundedBigIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     retention_days = models.IntegerField(default=90)
 
+    class Meta:
+        abstract = True
+
+
+class StringIndexer(BaseIndexer):  # type: ignore
+    __include_in_export__ = False
+
     objects = BaseManager(cache_fields=("pk",), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
 
     class Meta:
         db_table = "sentry_stringindexer"
+        app_label = "sentry"
+        constraints = [
+            models.UniqueConstraint(fields=["string", "organization_id"], name="unique_org_string"),
+        ]
+
+
+class PerfStringIndexer(BaseIndexer):
+    __include_in_export__ = False
+
+    objects = BaseManager(cache_fields=("pk",), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
+
+    class Meta:
+        db_table = "sentry_perfindexer"
         app_label = "sentry"
         constraints = [
             models.UniqueConstraint(fields=["string", "organization_id"], name="unique_org_string"),
