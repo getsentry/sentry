@@ -25,6 +25,7 @@ const metricAlertXaxis = XAxis({
 const metricAlertYaxis = YAxis({
   theme,
   axisLabel: {fontSize: 10, fontFamily: DEFAULT_FONT_FAMILY},
+  splitNumber: 4,
 });
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
