@@ -784,7 +784,9 @@ def get_streaming_metrics_consumer(
     cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
     create_topics(cluster_name, [topic])
 
-    collection_interval: float = sentry_options.get("kafka.librdkafka-metrics-collection-interval")
+    collection_interval: float = sentry_options.get(
+        "kafka.librdkafka-metrics-collection-interval-ms"
+    )
 
     def stats_callback(stats_json: str) -> None:
         stats = rapidjson.loads(stats_json)
