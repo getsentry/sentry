@@ -106,8 +106,9 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
     def test_lists_organization_roles(self):
         response = self.get_success_response(self.organization.slug, "me")
+        assert response.data["orgRoles"] == response.data["orgRoleList"]
 
-        role_ids = [role["id"] for role in response.data["roles"]]
+        role_ids = [role["id"] for role in response.data["orgRoleList"]]
         assert role_ids == ["member", "admin", "manager", "owner"]
 
     @with_feature("organizations:team-roles")
@@ -117,13 +118,13 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         """
         response = self.get_success_response(self.organization.slug, "me")
 
-        role_ids = [role["id"] for role in response.data["roles"]]
+        role_ids = [role["id"] for role in response.data["orgRoleList"]]
         assert role_ids == ["member", "admin", "manager", "owner"]
 
     def test_lists_team_roles(self):
         response = self.get_success_response(self.organization.slug, "me")
 
-        role_ids = [role["id"] for role in response.data["teamRoles"]]
+        role_ids = [role["id"] for role in response.data["teamRoleList"]]
         assert role_ids == ["contributor", "admin"]
 
 
