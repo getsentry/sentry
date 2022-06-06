@@ -99,7 +99,7 @@ describe('ReleaseIssues', function () {
     );
   });
 
-  it('filters the issues', async function () {
+  it('filters the issues', function () {
     const wrapper = mountWithTheme(<ReleaseIssues {...props} />);
 
     const filterOptions = wrapper.find('ButtonBar Button');

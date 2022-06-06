@@ -249,9 +249,7 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
             )
             producer = snuba_metrics_producer
         self.__producer = producer
-        self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
-            "topic", "snuba-metrics"
-        )
+        self.__producer_topic = settings.KAFKA_SNUBA_METRICS
         self.__commit_function = commit_function
 
         self.__futures: Deque[ProducerResultFuture] = deque()
@@ -647,9 +645,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         )
         producer = snuba_metrics_producer
         self.__producer = producer
-        self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
-            "topic", "snuba-metrics"
-        )
+        self.__producer_topic = settings.KAFKA_SNUBA_METRICS
         self.__commit_function = commit_function
 
         self.__closed = False
@@ -785,7 +781,8 @@ def get_streaming_metrics_consumer(
             commit_max_batch_time=commit_max_batch_time,
         )
 
-    create_topics([topic])
+    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
+    create_topics(cluster_name, [topic])
 
     collection_interval: float = sentry_options.get("kafka.librdkafka-metrics-collection-interval")
 
