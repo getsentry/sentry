@@ -75,11 +75,16 @@ export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment
     recording: [],
   };
 
+  replayAttachments.recording = unsortedReplayAttachments;
+  replayAttachments.recording.forEach(record => {
+    if (!Number.isInteger(record.timestamp)) {
+      record.timestamp = record.timestamp * 1000;
+    }
+  });
+
   unsortedReplayAttachments.forEach(attachment => {
-    if (attachment.data?.payload?.op) {
+    if (attachment.data?.tag === 'performanceSpan') {
       replayAttachments.replaySpans.push(attachment.data.payload);
-    } else if (attachment?.data?.source >= 0) {
-      replayAttachments.recording.push(attachment);
     } else if (attachment?.data?.tag === 'breadcrumb') {
       replayAttachments.breadcrumbs.push(attachment.data.payload);
     }
