@@ -1,18 +1,7 @@
 from django.conf.urls import url
 
-from sentry.plugins.base.response import JSONResponse
+from sentry.plugins.base.project_api_urls import load_plugin_urls
 from sentry.plugins.base.v2 import Plugin2
-from sentry.testutils import TestCase
-
-
-def test_json_response():
-    resp = JSONResponse({}).respond(None)
-    assert resp.status_code == 200
-
-
-def test_json_response_with_status_kwarg():
-    resp = JSONResponse({}, status=400).respond(None)
-    assert resp.status_code == 400
 
 
 def test_load_plugin_project_urls():
@@ -38,8 +27,6 @@ def test_load_plugin_project_urls():
             from django.views.generic.list import BaseListView
 
             return [url("", BaseListView.as_view())]
-
-    from sentry.plugins.base.project_api_urls import load_plugin_urls
 
     patterns = load_plugin_urls((BadPluginA(), BadPluginB(), BadPluginC(), GoodPluginA()))
 
@@ -67,18 +54,3 @@ def test_load_plugin_group_urls():
     )
 
     assert len(patterns) == 6
-
-
-class Plugin2TestCase(TestCase):
-    def test_reset_config(self):
-        class APlugin(Plugin2):
-            def get_conf_key(self):
-                return "a-plugin"
-
-        project = self.create_project()
-
-        a_plugin = APlugin()
-        a_plugin.set_option("key", "value", project=project)
-        assert a_plugin.get_option("key", project=project) == "value"
-        a_plugin.reset_options(project=project)
-        assert a_plugin.get_option("key", project=project) is None
