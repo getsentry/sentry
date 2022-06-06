@@ -48,6 +48,7 @@ by these fields
 - `outcome`
 - `reason`
 - `category`
+- `key_id`
 """
 
 ResultSet = List[Dict[str, Any]]
@@ -167,8 +168,8 @@ class KeyDimension(Dimension):
         def _parse_value(key_id: str) -> Outcome:
             try:
                 return int(key_id)
-            except KeyError:
-                raise InvalidField(f'Invalid key: "{key_id}"')
+            except ValueError:
+                raise InvalidQuery(f'Invalid key: "{key_id}"')
 
         return [_parse_value(o) for o in raw_filter]
 
@@ -199,7 +200,7 @@ DIMENSION_MAP: Mapping[str, Dimension] = {
     "outcome": OutcomeDimension("outcome"),
     "category": CategoryDimension("category"),
     "reason": ReasonDimension("reason"),
-    "key": KeyDimension("key"),
+    "key_id": KeyDimension("key_id"),
 }
 
 GROUPBY_MAP = {
