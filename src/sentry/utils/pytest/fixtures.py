@@ -20,6 +20,8 @@ import sentry
 
 # These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
+from sentry.types.activity import ActivityType
+
 UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
 
@@ -238,7 +240,11 @@ def default_activity(default_group, default_project, default_user):
     from sentry.models import Activity
 
     return Activity.objects.create(
-        group=default_group, project=default_project, type=Activity.NOTE, user=default_user, data={}
+        group=default_group,
+        project=default_project,
+        type=ActivityType.NOTE.value,
+        user=default_user,
+        data={},
     )
 
 

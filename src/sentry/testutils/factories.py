@@ -90,6 +90,7 @@ from sentry.models.integrations.integration_feature import Feature, IntegrationT
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
+from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
 
@@ -414,7 +415,7 @@ class Factories:
                 )
 
         Activity.objects.create(
-            type=Activity.RELEASE,
+            type=ActivityType.RELEASE.value,
             project=project,
             ident=Activity.get_version_ident(version),
             user=user,
@@ -1207,5 +1208,9 @@ class Factories:
     def create_comment(issue, project, user, text="hello world"):
         data = {"text": text}
         return Activity.objects.create(
-            project=project, group=issue, type=Activity.NOTE, user=user, data=data
+            project=project,
+            group=issue,
+            type=ActivityType.NOTE.value,
+            user=user,
+            data=data,
         )
