@@ -29,38 +29,40 @@ export function useHotkeys(
         keysPressedRef.current.delete(keyCode);
       };
 
-      keysPressedRef.current.add(e.keyCode);
+      if (e.type === 'keydown') {
+        keysPressedRef.current.add(e.keyCode);
 
-      if (e.metaKey && !modifierKeys.includes(e.keyCode)) {
-        /*
+        if (e.metaKey && !modifierKeys.includes(e.keyCode)) {
+          /*
           If command/metaKey is held, keyup does not get called for non-modifier keys. See:
           https://web.archive.org/web/20160304022453/http://bitspushedaround.com/on-a-few-things-you-may-not-know-about-the-hellish-command-key-and-javascript-events/
 
           So, if the metaKey is held, we just have it remove the key after a set timeout, this allows you to hold the command key down
           and press the other key again after the timeout removes the key.
         */
-        setTimeout(() => {
-          removeKey(e.keyCode);
-        }, 500);
-      }
+          setTimeout(() => {
+            removeKey(e.keyCode);
+          }, 500);
+        }
 
-      for (const hotkey of memoizedHotkeys) {
-        const matches = (Array.isArray(hotkey.match) ? hotkey.match : [hotkey.match]).map(
-          o => o.trim().split('+')
-        );
+        for (const hotkey of memoizedHotkeys) {
+          const matches = (
+            Array.isArray(hotkey.match) ? hotkey.match : [hotkey.match]
+          ).map(o => o.trim().split('+'));
 
-        for (const keys of matches) {
-          if (
-            keys.length === keysPressedRef.current.size &&
-            keys.every(key => keysPressedRef.current.has(getKeyCode(key)))
-          ) {
-            hotkey.callback(e);
-            break;
+          for (const keys of matches) {
+            if (
+              keys.length === keysPressedRef.current.size &&
+              keys.every(key => keysPressedRef.current.has(getKeyCode(key)))
+            ) {
+              hotkey.callback(e);
+              break;
+            }
           }
         }
       }
 
-      if (e.type !== 'keydown') {
+      if (e.type === 'keyup') {
         removeKey(e.keyCode);
       }
     },
