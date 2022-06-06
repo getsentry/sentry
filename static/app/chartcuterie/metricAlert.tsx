@@ -1,6 +1,7 @@
 import type {LineSeriesOption} from 'echarts';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
+import Grid from 'sentry/components/charts/components/grid';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
@@ -12,20 +13,19 @@ import {
   transformSessionResponseToSeries,
 } from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
-import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
+import {DEFAULT_FONT_FAMILY, slackChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
+const metricAlertGrid = Grid({left: 5, right: 5, bottom: 4, top: 12});
 const metricAlertXaxis = XAxis({
   theme,
   splitNumber: 3,
   isGroupedByDate: true,
-  axisLabel: {fontSize: 10, fontFamily: DEFAULT_FONT_FAMILY},
+  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
 });
-
 const metricAlertYaxis = YAxis({
   theme,
-  axisLabel: {fontSize: 10, fontFamily: DEFAULT_FONT_FAMILY},
-  splitNumber: 4,
+  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
 });
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
@@ -47,8 +47,10 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
     });
 
     // Fix incident label font family, cannot use Rubik
-    if (areaSeries.markLine?.label?.fontFamily) {
+    if (areaSeries.markLine?.label) {
       areaSeries.markLine.label.fontFamily = DEFAULT_FONT_FAMILY;
+      areaSeries.markLine.label.position = 'insideEndTop';
+      areaSeries.markLine.label.distance = 3;
     }
 
     return areaSeries;
@@ -75,7 +77,7 @@ metricAlertCharts.push({
           ...metricAlertYaxis.axisLabel,
         },
       },
-      grid: slackChartDefaults.grid,
+      grid: metricAlertGrid,
     };
   },
   ...slackChartSize,
@@ -108,7 +110,7 @@ metricAlertCharts.push({
           ...metricAlertYaxis.axisLabel,
         },
       },
-      grid: slackChartDefaults.grid,
+      grid: metricAlertGrid,
     };
   },
   ...slackChartSize,
