@@ -180,7 +180,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(onCloseMock).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the create alert button for members', async () => {
+  it('disables the create alert button for members', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
     });
@@ -195,7 +195,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(button.props()['aria-disabled']).toBe(true);
   });
 
-  it('shows a guide for members', async () => {
+  it('shows a guide for members', () => {
     const noAccessOrg = {
       ...organization,
       access: [],
@@ -209,7 +209,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(guide.props().target).toBe('alerts_write_member');
   });
 
-  it('shows a guide for owners/admins', async () => {
+  it('shows a guide for owners/admins', () => {
     const adminAccessOrg = {
       ...organization,
       access: ['org:write'],
@@ -224,7 +224,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(guide.props().onFinish).toBeDefined();
   });
 
-  it('redirects to alert wizard with no project', async () => {
+  it('redirects to alert wizard with no project', () => {
     jest.spyOn(navigation, 'navigateTo');
 
     const wrapper = generateWrappedComponentButton(organization);
@@ -235,7 +235,7 @@ describe('CreateAlertFromViewButton', () => {
     );
   });
 
-  it('redirects to alert wizard with a project', async () => {
+  it('redirects to alert wizard with a project', () => {
     const wrapper = generateWrappedComponentButton(organization, {
       projectSlug: 'proj-slug',
     });
@@ -245,7 +245,7 @@ describe('CreateAlertFromViewButton', () => {
     );
   });
 
-  it('removes a duplicate project filter', async () => {
+  it('removes a duplicate project filter', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error project:project-slug',

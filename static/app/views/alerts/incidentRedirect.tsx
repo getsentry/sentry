@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
-import {Client} from 'sentry/api';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Organization} from 'sentry/types';
@@ -12,7 +11,6 @@ import {fetchIncident} from './utils/apiCalls';
 import {alertDetailsLink} from './utils';
 
 type Props = {
-  api: Client;
   organization: Organization;
 } & RouteComponentProps<{alertId: string; orgId: string}, {}>;
 

@@ -288,7 +288,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     this.fetchData();
   }
 
-  async fetchData() {
+  fetchData() {
     const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
       this.props;
 
@@ -322,24 +322,33 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const unsupportedOrderby =
       DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
 
-    // Temporary solution to support sorting on releases
-    // when querying the Metrics API: We first request
-    // the top 50 recent releases from postgres. Note that the release request is based
-    // on the project and environment selected in the page filters.
-    // We then construct a massive OR condition and append it to any
-    // specified filter condition. We also maintain an ordered array of release
-    // versions to order the results returned from the metrics endpoint.
-    // Also note that we request a limit of 100 on the metrics endpoint,
-    // this is because in a query, the limit should be applied after the
-    // results are sorted based on the release version. The larger number
-    // of rows we request, the more accurate our results are going to be.
+    // Temporary solution to support sorting on releases when querying the
+    // Metrics API:
+    //
+    // We first request the top 50 recent releases from postgres. Note that the
+    // release request is based on the project and environment selected in the
+    // page filters.
+    //
+    // We then construct a massive OR condition and append it to any specified
+    // filter condition. We also maintain an ordered array of release versions
+    // to order the results returned from the metrics endpoint.
+    //
+    // Also note that we request a limit of 100 on the metrics endpoint, this
+    // is because in a query, the limit should be applied after the results are
+    // sorted based on the release version. The larger number of rows we
+    // request, the more accurate our results are going to be.
+    //
     // After the results are sorted, we truncate the data to the requested
     // limit. This will result in a few edge cases:
-    //    1. low to high sort may not show releases at the beginning of the
-    //        selected period if there are more than 50 releases in the selected
-    //        period.
-    //    2. If a recent release is not returned due to the 100 row limit
-    //        imposed on the metrics query the user won't see it on the table/chart/
+    //
+    //   1. low to high sort may not show releases at the beginning of the
+    //      selected period if there are more than 50 releases in the selected
+    //      period.
+    //
+    //   2. if a recent release is not returned due to the 100 row limit
+    //      imposed on the metrics query the user won't see it on the
+    //      table/chart/
+    //
     const isCustomReleaseSorting = this.requiresCustomReleaseSorting();
     const {releases} = this.state;
     const interval = getWidgetInterval(
