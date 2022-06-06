@@ -462,7 +462,7 @@ class SmartSearchBar extends Component<Props, State> {
     }
   };
 
-  onTokenHotkeyPress = (actionType: TokenActionType): void => {
+  runTokenActionOnActiveToken = (actionType: TokenActionType): void => {
     const token = this.state.filterTokenSelection?.filterToken ?? this.cursorToken;
 
     if (token && token.type === Token.Filter) {
@@ -1248,7 +1248,7 @@ class SmartSearchBar extends Component<Props, State> {
 
     const commonActionsSearchGroup = getCommonActionsSearchGroup(
       this.cursorToken?.type === Token.Filter,
-      this.onTokenHotkeyPress
+      this.runTokenActionOnActiveToken
     );
 
     const searchGroups = groups
@@ -1484,7 +1484,9 @@ class SmartSearchBar extends Component<Props, State> {
           className={className}
           inputHasFocus={inputHasFocus}
         >
-          <SearchHotkeysListener onTokenHotkeyPress={this.onTokenHotkeyPress} />
+          <SearchHotkeysListener
+            runTokenActionOnActiveToken={this.runTokenActionOnActiveToken}
+          />
           <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
             <IconSearch />
             {inlineLabel}

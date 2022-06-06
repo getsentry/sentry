@@ -3,19 +3,19 @@ import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {commonActions, TokenActionType} from './types';
 
 const SearchHotkeysListener = ({
-  onTokenHotkeyPress,
+  runTokenActionOnActiveToken,
 }: {
-  onTokenHotkeyPress: (actionType: TokenActionType) => void;
+  runTokenActionOnActiveToken: (actionType: TokenActionType) => void;
 }) => {
   useHotkeys(
     commonActions.map(action => ({
       match: action.hotkeys.actual,
       callback: e => {
         e.preventDefault();
-        onTokenHotkeyPress(action.actionType);
+        runTokenActionOnActiveToken(action.actionType);
       },
     })),
-    [onTokenHotkeyPress]
+    [runTokenActionOnActiveToken]
   );
 
   return null;
