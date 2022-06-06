@@ -47,6 +47,7 @@ import {ActionButton} from './actions';
 import SearchActionsDropdown from './searchActionsDropdown';
 import SearchDropdown from './searchDropdown';
 import SearchHotkeysListener from './searchHotkeysListener';
+import {SelectedTokenContext} from './tokenActions';
 import {
   ItemType,
   SearchGroup,
@@ -282,18 +283,18 @@ type State = {
    */
   searchTerm: string;
   tags: Record<string, string>;
+  filterTokenSelection?: SelectFilterTokenParams;
   /**
    * Indicates that we have a query that we've already determined not to have
    * any values. This is used to stop the autocompleter from querying if we
    * know we will find nothing.
    */
   noValueQuery?: string;
+
   /**
    * The query in the input since we last updated our autocomplete list.
    */
   previousQuery?: string;
-
-  selectedFilterToken?: SelectFilterTokenParams;
 };
 
 class SmartSearchBar extends Component<Props, State> {
@@ -449,19 +450,19 @@ class SmartSearchBar extends Component<Props, State> {
     }
   }
 
-  selectFilterToken = (selectedFilterToken?: SelectFilterTokenParams) => {
+  selectFilterToken = (filterTokenSelection?: SelectFilterTokenParams) => {
     this.setState({
-      selectedFilterToken,
+      filterTokenSelection,
     });
 
-    if (selectedFilterToken?.isClick) {
+    if (filterTokenSelection?.isClick) {
       // Only blur the input if the filter token was clicked.
       this.searchInput.current?.blur();
     }
   };
 
   onTokenHotkeyPress = (actionType: TokenActionType): void => {
-    const token = this.state.selectedFilterToken?.filterToken ?? this.cursorToken;
+    const token = this.state.filterTokenSelection?.filterToken ?? this.cursorToken;
 
     if (token && token.type === Token.Filter) {
       this.runTokenAction({
@@ -502,8 +503,8 @@ class SmartSearchBar extends Component<Props, State> {
         break;
     }
 
-    if (this.state.selectedFilterToken) {
-      this.setState({selectedFilterToken: undefined});
+    if (this.state.filterTokenSelection) {
+      this.setState({filterTokenSelection: undefined});
     }
   };
 
@@ -520,7 +521,7 @@ class SmartSearchBar extends Component<Props, State> {
   onQueryFocus = () => {
     this.setState({inputHasFocus: true});
 
-    if (this.state.selectedFilterToken) {
+    if (this.state.filterTokenSelection) {
       this.selectFilterToken(undefined);
     }
   };
@@ -1412,7 +1413,7 @@ class SmartSearchBar extends Component<Props, State> {
       inputHasFocus,
       numActionsVisible,
       loading,
-      selectedFilterToken,
+      filterTokenSelection,
     } = this.state;
 
     const input = (
@@ -1458,77 +1459,82 @@ class SmartSearchBar extends Component<Props, State> {
     const cursor = this.cursorPosition;
 
     return (
-      <Container
-        ref={this.containerRef}
-        className={className}
-        inputHasFocus={inputHasFocus}
+      <SelectedTokenContext.Provider
+        value={{
+          selection: filterTokenSelection,
+          setSelectedToken: this.selectFilterToken,
+        }}
       >
-        <SearchHotkeysListener onTokenHotkeyPress={this.onTokenHotkeyPress} />
-        <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
-          <IconSearch />
-          {inlineLabel}
-        </SearchLabel>
+        <Container
+          ref={this.containerRef}
+          className={className}
+          inputHasFocus={inputHasFocus}
+        >
+          <SearchHotkeysListener onTokenHotkeyPress={this.onTokenHotkeyPress} />
+          <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
+            <IconSearch />
+            {inlineLabel}
+          </SearchLabel>
 
-        <InputWrapper>
-          {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
-          <Highlight>
-            {parsedQuery !== null ? (
-              <HighlightQuery
-                parsedQuery={parsedQuery}
-                cursorPosition={cursor === -1 ? undefined : cursor}
-                selectFilterToken={this.selectFilterToken}
-                selectedFilterToken={selectedFilterToken}
+          <InputWrapper>
+            {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
+            <Highlight>
+              {parsedQuery !== null ? (
+                <HighlightQuery
+                  parsedQuery={parsedQuery}
+                  cursorPosition={cursor === -1 ? undefined : cursor}
+                />
+              ) : (
+                query
+              )}
+            </Highlight>
+          </InputWrapper>
+
+          <ActionsBar gap={0.5}>
+            {query !== '' && (
+              <ActionButton
+                onClick={this.clearSearch}
+                icon={<IconClose size="xs" />}
+                title={t('Clear search')}
+                aria-label={t('Clear search')}
               />
-            ) : (
-              query
             )}
-          </Highlight>
-        </InputWrapper>
-
-        <ActionsBar gap={0.5}>
-          {query !== '' && (
-            <ActionButton
-              onClick={this.clearSearch}
-              icon={<IconClose size="xs" />}
-              title={t('Clear search')}
-              aria-label={t('Clear search')}
+            {visibleActions}
+            {overflowedActions.length > 0 && (
+              <DropdownLink
+                anchorRight
+                caret={false}
+                title={
+                  <ActionButton
+                    aria-label={t('Show more')}
+                    icon={<VerticalEllipsisIcon size="xs" />}
+                  />
+                }
+              >
+                {overflowedActions}
+              </DropdownLink>
+            )}
+          </ActionsBar>
+          {(loading || searchGroups.length > 0) && (
+            <SearchDropdown
+              css={{display: inputHasFocus ? 'block' : 'none'}}
+              className={dropdownClassName}
+              items={searchGroups}
+              onClick={this.onAutoComplete}
+              loading={loading}
+              searchSubstring={searchTerm}
             />
           )}
-          {visibleActions}
-          {overflowedActions.length > 0 && (
-            <DropdownLink
-              anchorRight
-              caret={false}
-              title={
-                <ActionButton
-                  aria-label={t('Show more')}
-                  icon={<VerticalEllipsisIcon size="xs" />}
-                />
-              }
-            >
-              {overflowedActions}
-            </DropdownLink>
+          {filterTokenSelection && (
+            <SearchActionsDropdown
+              filterElementRef={filterTokenSelection?.filterTokenRef}
+              activeToken={filterTokenSelection?.filterToken}
+              deselect={() => this.selectFilterToken(undefined)}
+              runTokenAction={this.runTokenAction}
+            />
           )}
-        </ActionsBar>
-        {(loading || searchGroups.length > 0) && (
-          <SearchDropdown
-            css={{display: inputHasFocus ? 'block' : 'none'}}
-            className={dropdownClassName}
-            items={searchGroups}
-            onClick={this.onAutoComplete}
-            loading={loading}
-            searchSubstring={searchTerm}
-          />
-        )}
-        {selectedFilterToken && (
-          <SearchActionsDropdown
-            filterElementRef={selectedFilterToken?.filterTokenRef}
-            activeToken={selectedFilterToken?.filterToken}
-            deselect={() => this.selectFilterToken(undefined)}
-            runTokenAction={this.runTokenAction}
-          />
-        )}
-      </Container>
+        </Container>
+      </SelectedTokenContext.Provider>
     );
   }
 }

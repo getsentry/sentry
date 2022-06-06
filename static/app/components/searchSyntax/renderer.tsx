@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useReducedMotion} from 'framer-motion';
@@ -6,7 +6,7 @@ import {useReducedMotion} from 'framer-motion';
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 
-import {SelectFilterTokenParams} from '../smartSearchBar/types';
+import {SelectedTokenContext} from '../smartSearchBar/tokenActions';
 
 import {ParseResult, Token, TokenResult} from './parser';
 import {isWithinToken} from './utils';
@@ -22,60 +22,30 @@ type Props = {
    * highlight active tokens and trigger error tooltips.
    */
   cursorPosition?: number;
-
-  selectFilterToken?(p?: SelectFilterTokenParams): void;
-  selectedFilterToken?: SelectFilterTokenParams;
 };
 
 /**
  * Renders the parsed query with syntax highlighting.
  */
-export default function HighlightQuery({
-  parsedQuery,
-  cursorPosition,
-  selectFilterToken,
-  selectedFilterToken,
-}: Props) {
-  const result = renderResult(
-    parsedQuery,
-    cursorPosition ?? -1,
-    selectFilterToken,
-    selectedFilterToken
-  );
+export default function HighlightQuery({parsedQuery, cursorPosition}: Props) {
+  const result = renderResult(parsedQuery, cursorPosition ?? -1);
 
   return <Fragment>{result}</Fragment>;
 }
 
-function renderResult(
-  result: ParseResult,
-  cursor: number,
-  selectFilterToken?: (p?: SelectFilterTokenParams) => void,
-  selectedFilterToken?: SelectFilterTokenParams
-) {
+function renderResult(result: ParseResult, cursor: number) {
   return result
-    .map(t => renderToken(t, cursor, selectFilterToken, selectedFilterToken))
+    .map(t => renderToken(t, cursor))
     .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
 }
 
-function renderToken(
-  token: TokenResult<Token>,
-  cursor: number,
-  selectFilterToken?: (p?: SelectFilterTokenParams) => void,
-  selectedFilterToken?: SelectFilterTokenParams
-) {
+function renderToken(token: TokenResult<Token>, cursor: number) {
   switch (token.type) {
     case Token.Spaces:
       return token.value;
 
     case Token.Filter:
-      return (
-        <FilterToken
-          filter={token}
-          cursor={cursor}
-          selectFilterToken={selectFilterToken}
-          selectedFilterToken={selectedFilterToken}
-        />
-      );
+      return <FilterToken filter={token} cursor={cursor} />;
 
     case Token.ValueTextList:
     case Token.ValueNumberList:
@@ -91,11 +61,7 @@ function renderToken(
       return <DateTime>{token.text}</DateTime>;
 
     case Token.LogicGroup:
-      return (
-        <LogicGroup>
-          {renderResult(token.inner, cursor, selectFilterToken, selectedFilterToken)}
-        </LogicGroup>
-      );
+      return <LogicGroup>{renderResult(token.inner, cursor)}</LogicGroup>;
 
     case Token.LogicBoolean:
       return <LogicBoolean>{token.value}</LogicBoolean>;
@@ -118,15 +84,13 @@ const shakeAnimation = keyframes`
 const FilterToken = ({
   filter,
   cursor,
-  selectFilterToken,
-  selectedFilterToken,
 }: {
   cursor: number;
   filter: TokenResult<Token.Filter>;
-  selectFilterToken?: (p?: SelectFilterTokenParams) => void;
-  selectedFilterToken?: SelectFilterTokenParams;
 }) => {
   const isActive = isWithinToken(filter, cursor);
+
+  const {selection, setSelectedToken} = useContext(SelectedTokenContext);
 
   // This state tracks if the cursor has left the filter token. We initialize it
   // to !isActive in the case where the filter token is rendered without the
@@ -148,7 +112,7 @@ const FilterToken = ({
 
   const showInvalid = hasLeft && !!filter.invalid;
   const showTooltip = showInvalid && isActive;
-  const isInteractive = !!selectFilterToken;
+  const isInteractive = !!setSelectedToken;
 
   const reduceMotion = useReducedMotion();
 
@@ -170,27 +134,25 @@ const FilterToken = ({
     );
   }, [reduceMotion, showInvalid]);
 
-  const isSelected = !!(
-    selectedFilterToken?.filterTokenRef.current === filterElementRef.current
-  );
+  const isSelected = !!(selection?.filterTokenRef.current === filterElementRef.current);
   isSelectedRef.current = isSelected;
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (isActive && e.key === 'Alt') {
-        selectFilterToken?.({
+        setSelectedToken?.({
           filterToken: filter,
           filterTokenRef: filterElementRef,
         });
       }
     },
-    [selectFilterToken, filter, isActive]
+    [setSelectedToken, filter, isActive]
   );
 
   useEffect(() => {
     const onKeyUp = (e: KeyboardEvent) => {
       if (isSelectedRef.current && e.key === 'Alt') {
-        selectFilterToken?.(undefined);
+        setSelectedToken?.(undefined);
       }
     };
 
@@ -203,7 +165,7 @@ const FilterToken = ({
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
     };
-  }, [onKeyDown, isActive, filter, isInteractive, selectFilterToken, isSelectedRef]);
+  }, [onKeyDown, isActive, filter, isInteractive, setSelectedToken, isSelectedRef]);
 
   return (
     <Tooltip
@@ -217,7 +179,7 @@ const FilterToken = ({
         onMouseDown={e => {
           e.preventDefault();
           e.stopPropagation();
-          selectFilterToken?.({
+          setSelectedToken?.({
             filterToken: filter,
             filterTokenRef: filterElementRef,
             isClick: true,

@@ -52,7 +52,7 @@ const SearchActionsDropdown = ({
           deselect();
         }
       }
-    }, 200);
+    }, 500);
 
     document.addEventListener('mouseover', listener);
 
@@ -82,15 +82,13 @@ const SearchActionsDropdown = ({
           style={styles.arrow}
         />
         <DropdownContent>
-          {doc && (
-            <DocumentationText>
-              {/* <IconQuestion color="gray200" size="xs" /> */}
-              {/* <DocumentationKey>{}</DocumentationKey> */}
+          <DocumentationText>
+            {/* <IconQuestion color="gray200" size="xs" /> */}
+            {/* <DocumentationKey>{}</DocumentationKey> */}
+            <DocumentationKey>{activeToken.key.text}: </DocumentationKey>
+            {doc}
+          </DocumentationText>
 
-              <DocumentationKey>{activeToken.key.text}: </DocumentationKey>
-              {doc}
-            </DocumentationText>
-          )}
           <SearchDropdownGroup>
             <SearchDropdownGroupTitle>
               <IconStar size="xs" />
