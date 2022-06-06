@@ -10,7 +10,10 @@ const SearchHotkeysListener = ({
   useHotkeys(
     commonActions.map(action => ({
       match: action.hotkeys.actual,
-      callback: () => onTokenHotkeyPress(action.actionType),
+      callback: e => {
+        e.preventDefault();
+        onTokenHotkeyPress(action.actionType);
+      },
     })),
     [onTokenHotkeyPress]
   );
