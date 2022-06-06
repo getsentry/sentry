@@ -20,9 +20,9 @@ function ReplaysFilters({organization, handleSearchQuery, query}: Props) {
     <FilterContainer>
       <SearchContainer>
         <PageFilterBar condensed>
-          <ProjectPageFilter />
-          <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
+          <ProjectPageFilter resetParamsOnChange={['cursor']} />
+          <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+          <DatePageFilter alignDropdown="left" resetParamsOnChange={['cursor']} />
         </PageFilterBar>
         <SearchBar
           organization={organization}
