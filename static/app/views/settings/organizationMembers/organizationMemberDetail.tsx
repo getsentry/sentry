@@ -52,6 +52,8 @@ type Props = {
 
 type State = {
   member: Member | null;
+  roleList: Member['roles'];
+  selectedRole: Member['role'];
 } & AsyncView['state'];
 
 const DisabledMemberTooltip = HookOrDefault({
@@ -63,6 +65,8 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
+      roleList: [],
+      selectedRole: '',
       member: null,
     };
   }

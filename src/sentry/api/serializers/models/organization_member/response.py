@@ -59,8 +59,9 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     email: str
     name: str
     user: UserSerializerResponse
-    role: str  # TODO: literal/enum
-    roleName: str  # TODO: literal/enum
+    role: str  # Deprecating: use orgRole
+    roleName: str  # Deprecating
+    orgRole: str
     pending: bool
     expired: str
     flags: _OrganizationMemberFlags
@@ -80,5 +81,6 @@ class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
 class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
     invite_link: Optional[str]
     isOnlyOwner: bool
-    roles: List[RoleSerializerResponse]
-    teamRoles: List[RoleSerializerResponse]
+    roles: List[RoleSerializerResponse]  # Deprecating: use orgRoleList
+    orgRoleList: List[RoleSerializerResponse]
+    teamRoleList: List[RoleSerializerResponse]

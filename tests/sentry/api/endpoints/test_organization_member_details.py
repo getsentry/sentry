@@ -106,7 +106,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
     def test_lists_organization_roles(self):
         response = self.get_success_response(self.organization.slug, "me")
-        assert response.data["orgRoles"] == response.data["orgRoleList"]
+        assert response.data["roles"] == response.data["orgRoleList"]
 
         role_ids = [role["id"] for role in response.data["orgRoleList"]]
         assert role_ids == ["member", "admin", "manager", "owner"]
@@ -117,6 +117,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         Note: Admin will be hidden after team-roles EA.
         """
         response = self.get_success_response(self.organization.slug, "me")
+        assert response.data["roles"] == response.data["orgRoleList"]
 
         role_ids = [role["id"] for role in response.data["orgRoleList"]]
         assert role_ids == ["member", "admin", "manager", "owner"]
