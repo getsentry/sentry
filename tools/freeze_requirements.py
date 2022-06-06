@@ -1,14 +1,11 @@
 from __future__ import annotations
 
-import os
+import argparse
 from concurrent.futures import Future, ThreadPoolExecutor
 from os.path import abspath
 from subprocess import CalledProcessError, run
 
 from tools.lib import gitroot
-
-# This is temporary until tools/ is moved to distributable devenvs.
-GETSENTRY = os.environ.get("GETSENTRY_FREEZE_REQUIREMENTS")
 
 
 def worker(args: tuple[str, ...]) -> None:
@@ -54,6 +51,11 @@ stderr:
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("repo", type=str, default="sentry", help="Repository name.")
+    args = parser.parse_args()
+    IS_GETSENTRY = args.repo == "getsentry"
+
     base_path = abspath(gitroot())
     base_cmd = (
         "pip-compile",
@@ -85,7 +87,7 @@ def main() -> int:
             ),
         ),
     )
-    if not GETSENTRY:
+    if not IS_GETSENTRY:
         # requirements-dev-only-frozen.txt is only used in sentry as a
         # fast path for some CI jobs.
         futures += (
@@ -105,7 +107,7 @@ def main() -> int:
         executor.shutdown()
         return rc
 
-    if GETSENTRY:
+    if IS_GETSENTRY:
         rc = check_futures(
             (
                 executor.submit(
