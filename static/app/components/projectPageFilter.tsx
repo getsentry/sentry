@@ -49,6 +49,11 @@ type Props = WithRouterProps & {
   maxTitleLength?: number;
 
   /**
+   * Reset these URL params when we fire actions (custom routing only)
+   */
+  resetParamsOnChange?: string[];
+
+  /**
    * A project will be forced from parent component (selection is disabled, and if user
    * does not have multi-project support enabled, it will not try to auto select a project).
    *
@@ -77,6 +82,7 @@ function ProjectPageFilter({
   router,
   specificProjectSlugs,
   maxTitleLength = 30,
+  resetParamsOnChange = [],
   ...otherProps
 }: Props) {
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
@@ -105,7 +111,7 @@ function ProjectPageFilter({
   const handleApplyChange = (newProjects: number[]) => {
     updateProjects(newProjects, router, {
       save: true,
-      resetParams: [],
+      resetParams: resetParamsOnChange,
       environments: [], // Clear environments when switching projects
     });
   };
