@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime, timedelta, timezone
 from time import time
@@ -24,13 +26,13 @@ from typing import Any, Dict, Mapping
 MFA_SESSION_KEY = "mfa"
 
 
-def _sso_expiry_from_env(seconds):
+def _sso_expiry_from_env(seconds: str | None) -> timedelta:
     if seconds is None:
-        return None
+        return timedelta(hours=20)
     return timedelta(seconds=int(seconds))
 
 
-SSO_EXPIRY_TIME = _sso_expiry_from_env(settings.SENTRY_SSO_EXPIRY_SECONDS) or timedelta(hours=20)
+SSO_EXPIRY_TIME = _sso_expiry_from_env(settings.SENTRY_SSO_EXPIRY_SECONDS)
 
 
 class SsoSession:
@@ -50,13 +52,13 @@ class SsoSession:
         return {self.SSO_LOGIN_TIMESTAMP: self.authenticated_at_time.timestamp()}
 
     @classmethod
-    def create(cls, organization_id: int) -> "SsoSession":
+    def create(cls, organization_id: int) -> SsoSession:
         return cls(organization_id, datetime.now(tz=timezone.utc))
 
     @classmethod
     def from_django_session_value(
         cls, organization_id: int, session_value: Mapping[str, Any]
-    ) -> "SsoSession":
+    ) -> SsoSession:
 
         return cls(
             organization_id,
