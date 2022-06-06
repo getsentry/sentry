@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 
@@ -61,7 +60,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
       [
         'currentApdex',
-        `/organizations/${organization.slug}/eventsv2/`,
+        `/organizations/${organization.slug}/events/`,
         {query: {...commonQuery, ...normalizeDateTimeParams(datetime)}},
       ],
     ];
@@ -85,7 +84,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
 
       endpoints.push([
         'previousApdex',
-        `/organizations/${organization.slug}/eventsv2/`,
+        `/organizations/${organization.slug}/events/`,
         {query: {...commonQuery, start: previousStart, end: previousEnd}},
       ]);
     }
@@ -128,7 +127,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   get currentApdex() {
     const {currentApdex} = this.state;
 
-    const apdex = currentApdex?.data[0]?.[getAggregateAlias('apdex()')];
+    const apdex = currentApdex?.data[0]?.['apdex()'];
 
     return typeof apdex === 'undefined' ? undefined : Number(apdex);
   }
@@ -136,7 +135,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   get previousApdex() {
     const {previousApdex} = this.state;
 
-    const apdex = previousApdex?.data[0]?.[getAggregateAlias('apdex()')];
+    const apdex = previousApdex?.data[0]?.['apdex()'];
 
     return typeof apdex === 'undefined' ? undefined : Number(apdex);
   }
