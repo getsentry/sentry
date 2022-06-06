@@ -4,7 +4,7 @@ from enum import Enum
 
 
 class ServerComponentMode(Enum):
-    """Define which component this server instance is."""
+    """Defines the component mode of the application to be acting as."""
 
     MONOLITH = "MONOLITH"
     CONTROL = "CONTROL"
