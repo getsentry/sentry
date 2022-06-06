@@ -63,11 +63,11 @@ class SearchDropdown extends PureComponent<Props> {
       key={item.value || item.desc}
       className={item.active ? 'active' : undefined}
       data-test-id="search-autocomplete-item"
-      onClick={this.props.onClick.bind(this, item.value, item)}
+      onClick={item.onClick ?? this.props.onClick.bind(this, item.value, item)}
       ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
     >
       <SearchItemTitleWrapper>
-        {item.title && item.title + ' · '}
+        {item.title && item.title + (item.desc ? ' · ' : '')}
         <Description>{this.renderDescription(item)}</Description>
         <Documentation>{item.documentation}</Documentation>
       </SearchItemTitleWrapper>

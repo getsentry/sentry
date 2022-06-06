@@ -8,7 +8,9 @@ import {
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ItemType, SearchGroup, SearchItem} from './types';
+import Hotkeys from '../hotkeys';
+
+import {commonActions, ItemType, SearchGroup, SearchItem, TokenActionType} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -113,11 +115,13 @@ export function createSearchGroups(
 
   if (queryCharsLeft || queryCharsLeft === 0) {
     searchItems = searchItems.filter(
-      (value: SearchItem) => value.value.length <= queryCharsLeft
+      (value: SearchItem) =>
+        typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
     );
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
-        (value: SearchItem) => value.value.length <= queryCharsLeft
+        (value: SearchItem) =>
+          typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
       );
     }
   }
@@ -246,4 +250,22 @@ export function getValidOps(
   );
 
   return [...validOps];
+}
+
+export function getCommonActionsSearchGroup(
+  hasActiveToken: boolean,
+  runTokenActionOnCursorToken: (actionType: TokenActionType) => void
+): SearchGroup | undefined {
+  return hasActiveToken
+    ? {
+        title: t('Common Actions'),
+        type: 'header',
+        icon: <IconStar size="xs" />,
+        children: commonActions.map(action => ({
+          title: action.text,
+          onClick: () => runTokenActionOnCursorToken(action.actionType),
+          documentation: <Hotkeys value={action.hotkeys.display} />,
+        })),
+      }
+    : undefined;
 }

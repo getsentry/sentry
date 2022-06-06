@@ -21,14 +21,15 @@ export type SearchGroup = {
 };
 
 export type SearchItem = {
-  desc: string;
-  value: string;
   active?: boolean;
   children?: React.ReactNode[];
+  desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
+  onClick?: () => void;
   title?: string;
   type?: ItemType;
+  value?: string;
 };
 
 export type Tag = {

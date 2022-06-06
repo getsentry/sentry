@@ -61,6 +61,7 @@ import {
   createSearchGroups,
   filterSearchGroupsByIndex,
   generateOperatorEntryMap,
+  getCommonActionsSearchGroup,
   getValidOps,
   removeSpace,
 } from './utils';
@@ -489,13 +490,13 @@ class SmartSearchBar extends Component<Props, State> {
           const newQuery =
             query.slice(0, action.token.location.start.offset) +
             query.slice(action.token.key.location.start.offset);
-          this.updateQuery(newQuery);
+          this.updateQuery(newQuery, this.cursorPosition);
         } else {
           const newQuery =
             query.slice(0, action.token.key.location.start.offset) +
             '!' +
             query.slice(action.token.key.location.start.offset);
-          this.updateQuery(newQuery);
+          this.updateQuery(newQuery, this.cursorPosition);
         }
         break;
       }
@@ -662,7 +663,11 @@ class SmartSearchBar extends Component<Props, State> {
         searchGroups[groupIndex].children[childrenIndex];
 
       if (item) {
-        this.onAutoComplete(item.value, item);
+        if (item.onClick) {
+          item.onClick();
+        } else if (typeof item.value !== 'undefined') {
+          this.onAutoComplete(item.value, item);
+        }
       }
       return;
     }
@@ -1241,6 +1246,11 @@ class SmartSearchBar extends Component<Props, State> {
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
 
+    const commonActionsSearchGroup = getCommonActionsSearchGroup(
+      this.cursorToken?.type === Token.Filter,
+      this.onTokenHotkeyPress
+    );
+
     const searchGroups = groups
       .map(({searchItems, recentSearchItems, tagName, type}) =>
         createSearchGroups(
@@ -1264,6 +1274,10 @@ class SmartSearchBar extends Component<Props, State> {
           activeSearchItem: -1,
         }
       );
+
+    if (commonActionsSearchGroup) {
+      searchGroups.searchGroups.push(commonActionsSearchGroup);
+    }
 
     this.setState(searchGroups);
   };

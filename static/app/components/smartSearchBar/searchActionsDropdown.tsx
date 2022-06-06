@@ -41,25 +41,30 @@ const SearchActionsDropdown = ({
 
     const rect = filterElementRef.current?.getBoundingClientRect();
 
-    const listener = throttle(e => {
-      if (!mouseHasEntered.current && rect) {
+    const listener = throttle(
+      e => {
         if (
-          e.pageX < rect.left ||
-          e.pageX > rect.right ||
-          e.pageY < rect.top ||
-          e.pageY > rect.bottom + ARROW_SIZE
+          !mouseHasEntered.current &&
+          rect &&
+          (e.pageX < rect.left ||
+            e.pageX > rect.right ||
+            e.pageY < rect.top ||
+            e.pageY > rect.bottom + ARROW_SIZE)
         ) {
           deselect();
         }
-      }
-    }, 500);
+      },
+      500,
+      {trailing: false}
+    );
 
     document.addEventListener('mouseover', listener);
 
     return () => document.removeEventListener('mouseover', listener);
-  }, [deselect, filterElementRef]);
+  }, [deselect, activeToken, filterElementRef]);
 
   const doc = getFieldDoc?.(activeToken.key.text);
+
   return (
     <React.Fragment>
       <StyledSearchDropdown
@@ -82,13 +87,12 @@ const SearchActionsDropdown = ({
           style={styles.arrow}
         />
         <DropdownContent>
-          <DocumentationText>
-            {/* <IconQuestion color="gray200" size="xs" /> */}
-            {/* <DocumentationKey>{}</DocumentationKey> */}
-            <DocumentationKey>{activeToken.key.text}: </DocumentationKey>
-            {doc}
-          </DocumentationText>
-
+          {doc && (
+            <DocumentationText>
+              <DocumentationKey>{activeToken.key.text}: </DocumentationKey>
+              {doc}
+            </DocumentationText>
+          )}
           <SearchDropdownGroup>
             <SearchDropdownGroupTitle>
               <IconStar size="xs" />
@@ -178,7 +182,7 @@ const DropdownAction = ({
 }) => {
   return (
     <DropdownActionContainer onClick={onClick}>
-      <SearchItemTitleWrapper>{text}</SearchItemTitleWrapper>
+      <DropdownTitle>{text}</DropdownTitle>
       <ShortcutContainer>
         {hotkeysDisplay && <Hotkeys value={hotkeysDisplay} />}
       </ShortcutContainer>
@@ -220,7 +224,7 @@ const ShortcutContainer = styled('span')`
   }
 `;
 
-const SearchItemTitleWrapper = styled('div')`
+const DropdownTitle = styled('div')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
