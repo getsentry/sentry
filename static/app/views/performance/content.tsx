@@ -42,8 +42,13 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({error: undefined});
+  const transactionOnlySearch = organization.features.includes(
+    'performance-transaction-name-only-search'
+  );
 
-  const eventView = generatePerformanceEventView(location, projects);
+  const eventView = generatePerformanceEventView(location, projects, {
+    withStaticFilters: transactionOnlySearch,
+  });
 
   function getOnboardingProject(): Project | undefined {
     // XXX used by getsentry to bypass onboarding for the upsell demo state.

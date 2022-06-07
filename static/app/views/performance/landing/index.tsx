@@ -109,7 +109,11 @@ export function PerformanceLanding(props: Props) {
     hasMounted.current = true;
   }, []);
 
-  const filterString = getTransactionSearchQuery(location, eventView.query);
+  const filterString = organization.features.includes(
+    'performance-transaction-name-only-search'
+  )
+    ? 'transaction.duration:<15m'
+    : getTransactionSearchQuery(location, eventView.query);
 
   const ViewComponent = fieldToViewMap[landingDisplay.field];
 
