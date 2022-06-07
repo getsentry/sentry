@@ -13,12 +13,14 @@ describe('TeamMisery', () => {
   it('should render misery from projects and expand hidden items', async () => {
     const project = TestStubs.Project();
     const meta = {
-      transaction: 'string',
-      project: 'string',
-      tpm: 'number',
-      count_unique_user: 'number',
-      count_miserable_user: 'number',
-      user_misery: 'number',
+      fields: {
+        transaction: 'string',
+        project: 'string',
+        tpm: 'number',
+        'count_unique(user)': 'number',
+        'count_miserable(user)': 'number',
+        'user_misery()': 'number',
+      },
     };
     const extraData = {
       project: project.slug,
@@ -30,23 +32,23 @@ describe('TeamMisery', () => {
     const noChangeItems = 10;
     const noChange = range(0, noChangeItems).map(x => ({
       transaction: `/apple/${x}`,
-      user_misery: 0.1,
+      'user_misery()': 0.1,
       ...extraData,
     }));
 
     const weekMisery = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/eventsv2/`,
+      url: `/organizations/org-slug/events/`,
       body: {
         meta,
         data: [
           {
             transaction: '/apple/cart',
-            user_misery: 0.5,
+            'user_misery()': 0.5,
             ...extraData,
           },
           {
             transaction: '/apple/checkout',
-            user_misery: 0.1,
+            'user_misery()': 0.1,
             ...extraData,
           },
           ...noChange,
@@ -55,18 +57,18 @@ describe('TeamMisery', () => {
       match: [MockApiClient.matchQuery({statsPeriod: '7d'})],
     });
     const periodMisery = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/eventsv2/`,
+      url: `/organizations/org-slug/events/`,
       body: {
         meta,
         data: [
           {
             transaction: '/apple/cart',
-            user_misery: 0.25,
+            'user_misery()': 0.25,
             ...extraData,
           },
           {
             transaction: '/apple/checkout',
-            user_misery: 0.2,
+            'user_misery()': 0.2,
             ...extraData,
           },
           ...noChange,
@@ -118,7 +120,7 @@ describe('TeamMisery', () => {
 
   it('should render empty state on error', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/eventsv2/`,
+      url: `/organizations/org-slug/events/`,
       statusCode: 500,
       body: {},
     });
