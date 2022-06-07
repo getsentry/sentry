@@ -39,6 +39,7 @@ function TagKeyAutocomplete({tags, onChange, value, disabledOptions}: Props) {
   return (
     <Wrapper>
       <SelectField
+        aria-label={t('Search or add a tag')}
         name="customTagKey"
         options={options}
         isOptionDisabled={option => disabledOptions.includes(option.value)}

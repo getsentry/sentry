@@ -253,6 +253,34 @@ export function getTagKey(condition: Condition) {
   }
 }
 
+export const distributedTracesConditions = [
+  SamplingInnerName.TRACE_RELEASE,
+  SamplingInnerName.TRACE_ENVIRONMENT,
+  SamplingInnerName.TRACE_USER_ID,
+  SamplingInnerName.TRACE_USER_SEGMENT,
+  SamplingInnerName.TRACE_TRANSACTION,
+];
+
+export const individualTransactionsConditions = [
+  SamplingInnerName.EVENT_RELEASE,
+  SamplingInnerName.EVENT_ENVIRONMENT,
+  SamplingInnerName.EVENT_USER_ID,
+  SamplingInnerName.EVENT_USER_SEGMENT,
+  SamplingInnerName.EVENT_BROWSER_EXTENSIONS,
+  SamplingInnerName.EVENT_LOCALHOST,
+  SamplingInnerName.EVENT_LEGACY_BROWSER,
+  SamplingInnerName.EVENT_WEB_CRAWLERS,
+  SamplingInnerName.EVENT_IP_ADDRESSES,
+  SamplingInnerName.EVENT_CSP,
+  SamplingInnerName.EVENT_ERROR_MESSAGES,
+  SamplingInnerName.EVENT_TRANSACTION,
+  SamplingInnerName.EVENT_OS_NAME,
+  SamplingInnerName.EVENT_OS_VERSION,
+  SamplingInnerName.EVENT_DEVICE_FAMILY,
+  SamplingInnerName.EVENT_DEVICE_NAME,
+  SamplingInnerName.EVENT_CUSTOM_TAG,
+];
+
 export function generateConditionCategoriesOptions(
   conditionCategories: SamplingInnerName[]
 ): [SamplingInnerName, string][] {

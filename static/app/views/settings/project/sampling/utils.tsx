@@ -80,7 +80,7 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
     case SamplingInnerName.EVENT_DEVICE_NAME:
       return t('Device Name');
     case SamplingInnerName.EVENT_CUSTOM_TAG:
-      return t('Custom Tag');
+      return t('Add Custom Tag');
 
     default:
       return `${stripCustomTagPrefix(name)} - ${t('Custom')}`;
