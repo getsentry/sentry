@@ -30,6 +30,7 @@ const WrappedComponent = ({data}) => {
           handleSearch={() => {}}
           handleTrendsClick={() => {}}
           setError={() => {}}
+          withStaticFilters={false}
         />
       </MEPSettingProvider>
     </OrganizationContext.Provider>
