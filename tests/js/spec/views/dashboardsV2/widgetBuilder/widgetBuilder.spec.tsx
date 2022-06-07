@@ -2356,7 +2356,7 @@ describe('WidgetBuilder', function () {
 
         userEvent.paste(
           await screen.findByPlaceholderText('Search for events, users, tags, and more'),
-          'is:',
+          'bookmarks',
           {
             clipboardData: {getData: () => ''},
           } as unknown as React.ClipboardEvent<HTMLTextAreaElement>
