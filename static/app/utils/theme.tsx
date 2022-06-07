@@ -151,12 +151,12 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    * Primary text color
    */
-  textColor: colors.red200,
+  textColor: colors.gray400,
 
   /**
    * Text that should not have as much emphasis
    */
-  subText: colors.red400,
+  subText: colors.gray300,
 
   /**
    * Background for the main content area of a page?
