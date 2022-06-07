@@ -494,7 +494,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the table format
           let tableResults: TableDataWithTitle[] | undefined;
           if (includeTotals) {
-            const tableData = this.config.transformTable!(
+            const tableData = this.config.transformTable(
               data,
               widget.queries[0]
             ) as TableDataWithTitle; // Cast so we can add the title.

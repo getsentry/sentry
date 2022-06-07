@@ -362,7 +362,7 @@ class WidgetQueries extends Component<Props, State> {
         isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
 
         // Cast so we can add the title.
-        const tableData = this.config.transformTable!(data, widget.queries[0], {
+        const tableData = this.config.transformTable(data, widget.queries[0], {
           organization,
         }) as TableDataWithTitle;
         tableData.title = widget.queries[i]?.name ?? '';
