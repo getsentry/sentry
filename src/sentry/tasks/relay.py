@@ -91,7 +91,7 @@ def build_config_cache(public_key=None, trigger=None, **kwargs):
         )
 
 
-def schedule_build_config_cache(public_key=None, trigger=None):
+def schedule_build_config_cache(public_key=None, trigger="build"):
     """Schedule the `build_config_cache` with debouncing applied.
 
     See documentation of `build_config_cache` for documentation of parameters.
@@ -104,14 +104,14 @@ def schedule_build_config_cache(public_key=None, trigger=None):
     ):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
-            tags={"reason": "debounce", "update_reason": "build"},
+            tags={"reason": "debounce", "update_reason": trigger},
         )
         # If this task is already in the queue, do not schedule another task.
         return
 
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
-        tags={"update_reason": "build"},
+        tags={"update_reason": trigger},
     )
     build_config_cache.delay(public_key=public_key, trigger=trigger)
 
