@@ -153,7 +153,7 @@
     "@size-limit/preset-small-lib": "^5.0.5",
     "@storybook/addon-a11y": "6.3.13",
     "@storybook/addon-actions": "6.3.13",
-    "@storybook/addon-docs": "6.3.13",
+    "@storybook/addon-docs": "6.5.7",
     "@storybook/addon-essentials": "6.3.13",
     "@storybook/addon-links": "6.3.13",
     "@storybook/addon-storysource": "6.3.13",
