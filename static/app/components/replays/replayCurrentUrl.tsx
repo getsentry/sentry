@@ -25,6 +25,7 @@ const UrlCopyInput = styled(TextCopyInput)`
     padding: 0 ${space(0.75)};
     font-size: ${p => p.theme.fontSizeMedium};
     border-bottom-left-radius: 0;
+    height: ${space(4)};
   }
   ${StyledInput}[disabled] {
     border: none;
@@ -34,6 +35,8 @@ const UrlCopyInput = styled(TextCopyInput)`
     border-top: none;
     border-right: none;
     border-bottom: none;
+    height: ${space(4)};
+    min-height: ${space(4)};
   }
 `;
 
