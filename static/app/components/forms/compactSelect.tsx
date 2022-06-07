@@ -294,6 +294,7 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             placeholder={placeholder}
             isSearchable={isSearchable}
             menuPlacement="bottom"
+            menuIsOpen
             isCompact
             controlShouldRenderValue={false}
             hideSelectedOptions={false}
