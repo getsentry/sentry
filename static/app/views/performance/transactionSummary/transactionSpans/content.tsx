@@ -30,6 +30,8 @@ import {SpanSort, SpansTotalValues} from './types';
 import {
   getSuspectSpanSortFromEventView,
   getTotalsView,
+  SPAN_RELATIVE_PERIODS,
+  SPAN_RETENTION_DAYS,
   SPAN_SORT_OPTIONS,
   SPAN_SORT_TO_FIELDS,
 } from './utils';
@@ -106,7 +108,11 @@ function SpansContent(props: Props) {
         />
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
-          <DatePageFilter alignDropdown="left" />
+          <DatePageFilter
+            alignDropdown="left"
+            maxPickableDays={SPAN_RETENTION_DAYS}
+            relativeOptions={SPAN_RELATIVE_PERIODS}
+          />
         </PageFilterBar>
         <StyledSearchBar
           organization={organization}

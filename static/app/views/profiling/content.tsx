@@ -58,7 +58,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <PageFiltersContainer hideGlobalHeader>
+      <PageFiltersContainer>
         <NoProjectMessage organization={organization}>
           <StyledPageContent>
             <Layout.Header>

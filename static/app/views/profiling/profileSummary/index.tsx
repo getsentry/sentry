@@ -98,13 +98,9 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
       orgSlug={organization.slug}
     >
       <PageFiltersContainer
-        lockedMessageSubject={t('profile')}
         shouldForceProject={defined(project)}
         forceProject={project}
         specificProjectSlugs={defined(project) ? [project.slug] : []}
-        disableMultipleProjectSelection
-        showProjectSettingsLink
-        hideGlobalHeader
       >
         <NoProjectMessage organization={organization}>
           {project && transaction && (

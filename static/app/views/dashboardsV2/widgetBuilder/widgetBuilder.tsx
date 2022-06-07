@@ -1078,7 +1078,6 @@ function WidgetBuilder({
         defaultSelection={{
           datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
         }}
-        hideGlobalHeader
       >
         <PageContentWithoutPadding>
           <Header
