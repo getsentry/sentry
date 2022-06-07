@@ -1,5 +1,6 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
+import keyBy from 'lodash/keyBy';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
 import {
@@ -65,8 +66,9 @@ function UserActionsNavigator({event, crumbs}: Props) {
   } = useReplayContext();
 
   const startTimestamp = event?.startTimestamp || 0;
-  const userActionCrumbs =
-    crumbs?.filter(crumb => USER_ACTIONS.includes(crumb.type)) || [];
+  const userActionCrumbs = Object.values(
+    keyBy(crumbs?.filter(crumb => USER_ACTIONS.includes(crumb.type)) || [], 'timestamp')
+  );
 
   const isLoaded = Boolean(event);
 
