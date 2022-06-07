@@ -29,6 +29,7 @@ from sentry.models.grouphistory import (
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
+from sentry.types.activity import ActivityType
 
 
 def resolve_group_resolutions(instance, created, **kwargs):
@@ -51,11 +52,11 @@ def remove_resolved_link(link):
             Activity.objects.create(
                 project_id=link.project_id,
                 group_id=link.group_id,
-                type=Activity.SET_UNRESOLVED,
+                type=ActivityType.SET_UNRESOLVED.value,
                 ident=link.group_id,
             )
             record_group_history_from_activity_type(
-                Group.objects.get(id=link.group_id), Activity.SET_UNRESOLVED
+                Group.objects.get(id=link.group_id), ActivityType.SET_UNRESOLVED.value
             )
 
 
@@ -120,7 +121,7 @@ def resolved_in_commit(instance, created, **kwargs):
                 Activity.objects.create(
                     project_id=group.project_id,
                     group=group,
-                    type=Activity.SET_RESOLVED_IN_COMMIT,
+                    type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
                     ident=instance.id,
                     user=acting_user,
                     data={"commit": instance.id},
@@ -131,7 +132,7 @@ def resolved_in_commit(instance, created, **kwargs):
                 remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
                 record_group_history_from_activity_type(
                     group,
-                    Activity.SET_RESOLVED_IN_COMMIT,
+                    ActivityType.SET_RESOLVED_IN_COMMIT.value,
                     actor=acting_user if acting_user else None,
                 )
 
@@ -202,7 +203,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
                 Activity.objects.create(
                     project_id=group.project_id,
                     group=group,
-                    type=Activity.SET_RESOLVED_IN_PULL_REQUEST,
+                    type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
                     ident=instance.id,
                     user=acting_user,
                     data={"pull_request": instance.id},

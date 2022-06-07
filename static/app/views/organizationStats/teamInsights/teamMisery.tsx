@@ -50,7 +50,8 @@ function TeamMisery({
   error,
 }: TeamMiseryProps) {
   const miseryRenderer =
-    periodTableData?.meta && getFieldRenderer('user_misery', periodTableData.meta);
+    periodTableData?.meta &&
+    getFieldRenderer('user_misery()', periodTableData.meta, false);
 
   // Calculate trend, so we can sort based on it
   const sortedTableData = (periodTableData?.data ?? [])
@@ -60,7 +61,8 @@ function TeamMisery({
       );
 
       const trend = weekRow
-        ? ((dataRow.user_misery as number) - (weekRow.user_misery as number)) * 100
+        ? ((dataRow['user_misery()'] as number) - (weekRow['user_misery()'] as number)) *
+          100
         : null;
 
       return {
@@ -242,12 +244,14 @@ function TeamMiseryWrapper({
       eventView={periodEventView}
       orgSlug={organization.slug}
       location={location}
+      useEvents
     >
       {({isLoading, tableData: periodTableData, error}) => (
         <DiscoverQuery
           eventView={weekEventView}
           orgSlug={organization.slug}
           location={location}
+          useEvents
         >
           {({isLoading: isWeekLoading, tableData: weekTableData, error: weekError}) => (
             <TeamMisery
