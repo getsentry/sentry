@@ -12,7 +12,6 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {
   SamplingConditionOperator,
-  SamplingInnerName,
   SamplingRule,
   SamplingRules,
   SamplingRuleType,
@@ -22,7 +21,12 @@ import {defined} from 'sentry/utils';
 import {SAMPLING_DOC_LINK} from '../utils';
 
 import RuleModal from './ruleModal';
-import {generateConditionCategoriesOptions, getNewCondition} from './utils';
+import {
+  distributedTracesConditions,
+  generateConditionCategoriesOptions,
+  getNewCondition,
+  individualTransactionsConditions,
+} from './utils';
 
 type RuleModalProps = React.ComponentProps<typeof RuleModal>;
 
@@ -100,33 +104,7 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
       }
       emptyMessage={t('Apply sampling rate to all transactions')}
       conditionCategories={generateConditionCategoriesOptions(
-        tracing
-          ? [
-              SamplingInnerName.TRACE_RELEASE,
-              SamplingInnerName.TRACE_ENVIRONMENT,
-              SamplingInnerName.TRACE_USER_ID,
-              SamplingInnerName.TRACE_USER_SEGMENT,
-              SamplingInnerName.TRACE_TRANSACTION,
-            ]
-          : [
-              SamplingInnerName.EVENT_RELEASE,
-              SamplingInnerName.EVENT_ENVIRONMENT,
-              SamplingInnerName.EVENT_USER_ID,
-              SamplingInnerName.EVENT_USER_SEGMENT,
-              SamplingInnerName.EVENT_BROWSER_EXTENSIONS,
-              SamplingInnerName.EVENT_LOCALHOST,
-              SamplingInnerName.EVENT_LEGACY_BROWSER,
-              SamplingInnerName.EVENT_WEB_CRAWLERS,
-              SamplingInnerName.EVENT_IP_ADDRESSES,
-              SamplingInnerName.EVENT_CSP,
-              SamplingInnerName.EVENT_ERROR_MESSAGES,
-              SamplingInnerName.EVENT_TRANSACTION,
-              SamplingInnerName.EVENT_OS_NAME,
-              SamplingInnerName.EVENT_OS_VERSION,
-              SamplingInnerName.EVENT_DEVICE_FAMILY,
-              SamplingInnerName.EVENT_DEVICE_NAME,
-              SamplingInnerName.EVENT_CUSTOM_TAG,
-            ]
+        tracing ? distributedTracesConditions : individualTransactionsConditions
       )}
       rule={ruleToUpdate}
       onSubmit={handleSubmit}
