@@ -129,12 +129,7 @@ class OrganizationMetricsTagDetailsIntegrationTest(OrganizationMetricMetaIntegra
             "release",
             metric=["session.abnormal_and_crashed"],
         )
-        assert (
-            response.data["detail"]
-            == "Failed to parse 'session.abnormal_and_crashed'. Must be something like "
-            "'sum(my_metric)', or a supported aggregate derived metric like "
-            "`session.crash_free_rate"
-        )
+        assert response.data == []
 
     @freeze_time((datetime.now() - timedelta(hours=1)).replace(minute=30))
     def test_tag_values_for_composite_derived_metrics(self):
