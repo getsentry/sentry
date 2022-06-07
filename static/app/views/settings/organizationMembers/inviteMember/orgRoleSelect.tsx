@@ -25,7 +25,14 @@ type Props = {
 
 class OrganizationRoleSelect extends Component<Props> {
   render() {
-    const {disabled, enforceRetired, enforceAllowed, roleList, roleSelected} = this.props;
+    const {
+      disabled,
+      enforceRetired,
+      enforceAllowed,
+      roleList,
+      roleSelected,
+      setSelected,
+    } = this.props;
 
     return (
       <Panel>
@@ -41,7 +48,7 @@ class OrganizationRoleSelect extends Component<Props> {
             return (
               <PanelItem
                 key={id}
-                onClick={() => !isDisabled && this.props.setSelected(id)}
+                onClick={() => !isDisabled && setSelected(id)}
                 css={!isDisabled ? {} : {color: 'grey', cursor: 'default'}}
               >
                 <Label>
