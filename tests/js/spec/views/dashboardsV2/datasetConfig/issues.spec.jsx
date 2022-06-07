@@ -1,6 +1,4 @@
-const {
-  transformIssuesResponseToTable,
-} = require('sentry/views/dashboardsV2/datasetConfig/issues');
+import {transformIssuesResponseToTable} from 'sentry/views/dashboardsV2/datasetConfig/issues';
 
 describe('transformIssuesResponseToTable', function () {
   it('transforms issues response', () => {
