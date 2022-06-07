@@ -138,6 +138,46 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
 
+    def test_date_range_too_long(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            interval="10s",
+            statsPeriod="90d",
+            per_page=1,
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "Your interval and date range would create too many results. Use a larger interval, "
+            "or a smaller date range."
+        )
+
+    def test_interval_must_be_multiple_of_smallest_interval(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            interval="15s",
+            statsPeriod="1d",
+            per_page=1,
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "The interval has to be a multiple of the minimum interval of ten seconds."
+        )
+
+    def test_interval_should_divide_day_with_no_remainder(self):
+        response = self.get_response(
+            self.project.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            interval="3610s",
+            statsPeriod="2d",
+            per_page=1,
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "The interval should divide one day without a remainder."
+        )
+
     def test_filter_by_project_slug(self):
         p = self.create_project(name="sentry2")
         p2 = self.create_project(name="sentry3")
@@ -1161,9 +1201,9 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         groups = response.data["groups"]
         assert len(groups) == 3
         returned_values = {group["by"]["tag2"] for group in groups}
-        # We need to make sure that B1 and C1 are in the returned groups as they are the
-        # ones with the most overlap
-        assert {"B1", "C1"}.issubset(returned_values)
+        # We need to make sure that returned groups are a subset of the groups returned by the
+        # metrics_sets to ensure we get groups with no partial results
+        assert returned_values.issubset({"B1", "B2", "B3", "C1"})
 
     def test_groupby_project(self):
         self.store_session(self.build_session(project_id=self.project2.id))
@@ -1341,12 +1381,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
     @patch("sentry.snuba.metrics.query_builder.get_mri")
-    @patch("sentry.snuba.metrics.query_builder.get_derived_metrics")
+    @patch("sentry.snuba.metrics.query.get_mri")
     def test_derived_metric_incorrectly_defined_as_singular_entity(
-        self, mocked_derived_metrics, mocked_get_mri, mocked_reverse_mri
+        self, mocked_get_mri, mocked_get_mri_query, mocked_reverse_mri
     ):
-        mocked_derived_metrics.return_value = MOCKED_DERIVED_METRICS
         mocked_get_mri.return_value = "crash_free_fake"
+        mocked_get_mri_query.return_value = "crash_free_fake"
         mocked_reverse_mri.return_value = "crash_free_fake"
         for status in ["ok", "crashed"]:
             for minute in range(4):
@@ -1366,6 +1406,24 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert response.status_code == 400
         assert response.json()["detail"] == (
             "Derived Metric crash_free_fake cannot be calculated from a single entity"
+        )
+
+    def test_derived_metric_does_not_exist(self):
+        """
+        Test that ensures appropriate exception is raised when a request is made for a field with no
+        operation and a field that is not a valid derived metric
+        """
+        response = self.get_response(
+            self.organization.slug,
+            project=[self.project.id],
+            field=["crash_free_fake"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        assert response.status_code == 400
+        assert response.json()["detail"] == (
+            "Failed to parse 'crash_free_fake'. Must be something like 'sum(my_metric)', "
+            "or a supported aggregate derived metric like `session.crash_free_rate`"
         )
 
     def test_crash_free_percentage(self):
@@ -1461,6 +1519,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     def test_incorrect_crash_free_rate(self):
         response = self.get_response(
             self.organization.slug,
+            project=[self.project.id],
             field=[f"sum({SessionMetricKey.CRASH_FREE_RATE.value})"],
             statsPeriod="6m",
             interval="1m",
@@ -2267,6 +2326,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for field in ["transaction.all", "transaction.failure_count"]:
             response = self.get_response(
                 self.organization.slug,
+                project=[self.project.id],
                 field=[field],
                 statsPeriod="1m",
                 interval="1m",
@@ -2274,7 +2334,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
             assert response.data["detail"] == (
                 f"Failed to parse '{field}'. Must be something like 'sum(my_metric)', "
-                "or a supported aggregate derived metric like `session.crash_free_rate"
+                "or a supported aggregate derived metric like `session.crash_free_rate`"
             )
 
     def test_failure_rate_transaction(self):
@@ -2397,13 +2457,14 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         ]:
             response = self.get_response(
                 self.organization.slug,
+                project=[self.project.id],
                 field=[private_name],
                 statsPeriod="6m",
                 interval="6m",
             )
             assert response.data["detail"] == (
                 f"Failed to parse '{private_name}'. Must be something like 'sum(my_metric)', "
-                "or a supported aggregate derived metric like `session.crash_free_rate"
+                "or a supported aggregate derived metric like `session.crash_free_rate`"
             )
 
     def test_apdex_transactions(self):

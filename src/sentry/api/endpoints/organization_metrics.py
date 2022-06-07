@@ -70,7 +70,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             tags = get_tags(projects, metric_names)
-        except (InvalidField, InvalidParams, DerivedMetricParseException) as exc:
+        except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
         return Response(tags, status=200)
@@ -89,7 +89,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         projects = self.get_projects(request, organization)
         try:
             tag_values = get_tag_values(projects, tag_name, metric_names)
-        except (InvalidField, InvalidParams, DerivedMetricParseException) as exc:
+        except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)
             # TODO: Use separate error type once we have real data
             if "Unknown tag" in msg:
@@ -123,7 +123,6 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 data = get_series(projects, query.to_metrics_query())
                 data["query"] = query.query
             except (
-                InvalidField,
                 InvalidParams,
                 DerivedMetricException,
             ) as exc:

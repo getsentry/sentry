@@ -4,9 +4,9 @@ __all__ = ("create_name_mapping_layers", "get_mri", "get_public_name_from_mri")
 from enum import Enum
 from typing import Dict, Union, cast
 
+from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey, TransactionMetricKey
-from sentry.snuba.sessions_v2 import InvalidField
 
 
 def create_name_mapping_layers() -> None:
@@ -48,9 +48,9 @@ def get_mri(external_name: Union[Enum, str]) -> str:
     try:
         return cast(str, NAME_TO_MRI[external_name].value)
     except KeyError:
-        raise InvalidField(
+        raise InvalidParams(
             f"Failed to parse '{external_name}'. Must be something like 'sum(my_metric)', "
-            f"or a supported aggregate derived metric like `session.crash_free_rate"
+            f"or a supported aggregate derived metric like `session.crash_free_rate`"
         )
 
 
@@ -65,4 +65,4 @@ def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, st
     try:
         return MRI_TO_NAME[internal_name]
     except KeyError:
-        raise InvalidField(f"Unable to find a mri reverse mapping for '{internal_name}'.")
+        raise InvalidParams(f"Unable to find a mri reverse mapping for '{internal_name}'.")

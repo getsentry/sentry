@@ -73,11 +73,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
             self.organization.slug,
             metric=["foo.bar"],
         )
-        assert (
-            response.data["detail"]
-            == "Failed to parse 'foo.bar'. Must be something like 'sum(my_metric)', or a "
-            "supported aggregate derived metric like `session.crash_free_rate"
-        )
+        assert response.data == []
 
     def test_metric_tags_metric_does_not_have_data(self):
         indexer.record(self.organization.id, SessionMRI.SESSION.value)

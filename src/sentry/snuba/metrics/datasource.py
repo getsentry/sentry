@@ -42,7 +42,6 @@ from sentry.snuba.metrics.utils import (
     TagValue,
     get_intervals,
 )
-from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -132,8 +131,8 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
                         unit=None,  # snuba does not know the unit
                     )
                 )
-            except InvalidField:
-                # An instance of `InvalidField` exception is raised here when there is no reverse
+            except InvalidParams:
+                # An instance of `InvalidParams` exception is raised here when there is no reverse
                 # mapping from MRI to public name because of the naming change
                 logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
                 continue
@@ -586,8 +585,9 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
 
         # The initial query has to contain only one field which is the same as the order by
         # field
+        assert len(metrics_query.orderby) == 1
         orderby_field = [
-            field for field in metrics_query.select if field == metrics_query.orderby.field
+            field for field in metrics_query.select if field == metrics_query.orderby[0].field
         ][0]
         metrics_query = replace(metrics_query, select=[orderby_field])
 

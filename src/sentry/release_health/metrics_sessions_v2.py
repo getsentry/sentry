@@ -533,6 +533,10 @@ def run_sessions_query(
             primary_metric_field = _get_primary_field(list(fields.values()), query.raw_groupby)
             orderby = OrderBy(primary_metric_field, Direction.DESC)
 
+    orderby_sequence = None
+    if orderby is not None:
+        orderby_sequence = [orderby]
+
     metrics_query = MetricsQuery(
         org_id,
         project_ids,
@@ -542,7 +546,7 @@ def run_sessions_query(
         Granularity(query.rollup),
         where=where,
         groupby=list({column for field in fields.values() for column in field.get_groupby()}),
-        orderby=orderby,
+        orderby=orderby_sequence,
         limit=limit,
         offset=Offset(query.offset or 0),
     )

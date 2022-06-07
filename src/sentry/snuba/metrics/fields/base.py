@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -60,7 +61,6 @@ from sentry.snuba.metrics.fields.snql import (
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
-from sentry.snuba.metrics.query import MetricsQuery
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GRANULARITY,
@@ -79,6 +79,9 @@ from sentry.snuba.metrics.utils import (
     combine_dictionary_of_list_values,
 )
 from sentry.utils.snuba import raw_snql_query
+
+if typing.TYPE_CHECKING:
+    from sentry.snuba.metrics.query import MetricsQuery
 
 __all__ = (
     "metric_object_factory",
