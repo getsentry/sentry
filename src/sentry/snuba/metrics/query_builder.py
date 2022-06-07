@@ -8,7 +8,6 @@ __all__ = (
     "resolve_tags",
 )
 
-import math
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -48,7 +47,7 @@ from sentry.snuba.metrics.utils import (
     get_intervals,
 )
 from sentry.snuba.sessions_v2 import finite_or_none
-from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
+from sentry.utils.dates import parse_stats_period, to_datetime
 from sentry.utils.snuba import parse_snuba_datetime
 
 
@@ -279,10 +278,15 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
 
     start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))
     date_range = timedelta(
-        seconds=int(interval * math.ceil((end - start).total_seconds() / interval))
+        seconds=int(
+            interval
+            * MetricsQuery.calculate_intervals_len(end=end, start=start, granularity=interval)
+        )
     )
 
-    end = to_datetime(int(interval * math.ceil(to_timestamp(end) / interval)))
+    end = to_datetime(
+        int(interval * MetricsQuery.calculate_intervals_len(end=end, granularity=interval))
+    )
     start = end - date_range
     # NOTE: The sessions_v2 implementation cuts the `end` time to now + 1 minute
     # if `end` is in the future. This allows for better real time results when

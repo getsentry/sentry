@@ -9,6 +9,7 @@ from snuba_sdk.conditions import Condition, ConditionGroup
 
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics.fields.base import get_derived_metrics
+from sentry.utils.dates import to_timestamp
 
 # TODO: Add __all__ to be consistent with sibling modules
 from ...models import ONE_DAY
@@ -31,6 +32,8 @@ class MetricField:
 
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]
+
+MAX_HISTOGRAM_BUCKET = 250
 
 
 @dataclass(frozen=True)
@@ -130,11 +133,16 @@ class MetricsQuery(MetricsQueryValidationRunner):
                 return
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
+    @staticmethod
+    def calculate_intervals_len(end: datetime, granularity: int, start: Optional[datetime] = None):
+        range_in_sec = (end - start).total_seconds() if start is not None else to_timestamp(end)
+        return math.ceil(range_in_sec / granularity)
+
     def validate_limit(self) -> None:
         if self.limit is None:
             return
-        intervals_len = math.ceil(
-            (self.end - self.start).total_seconds() / self.granularity.granularity
+        intervals_len = self.calculate_intervals_len(
+            end=self.end, start=self.start, granularity=self.granularity.granularity
         )
         if self.limit.limit > MAX_POINTS:
             raise InvalidParams(
@@ -159,9 +167,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
     def validate_histogram_buckets(self) -> None:
         # Validate histogram bucket count
-        if self.histogram_buckets > 250:
+        if self.histogram_buckets > MAX_HISTOGRAM_BUCKET:
             raise InvalidParams(
-                "We don't have more than 250 buckets stored for any given metric bucket."
+                f"We don't have more than {MAX_HISTOGRAM_BUCKET} buckets stored for any "
+                f"given metric bucket."
             )
 
     def validate_include_totals(self) -> None:
@@ -172,8 +181,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def get_default_limit(self) -> int:
         totals_limit: int = MAX_POINTS
         if self.include_series:
-            intervals_len = math.ceil(
-                (self.end - self.start).total_seconds() / self.granularity.granularity
+            intervals_len = self.calculate_intervals_len(
+                start=self.start, end=self.end, granularity=self.granularity.granularity
             )
             # In a series query, we also need to factor in the len of the intervals
             # array. The number of totals should never get so large that the
