@@ -22,7 +22,7 @@ import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {getDatasetConfigContext} from '../datasetConfig/utils';
+import {getDatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetType} from '../types';
 import {getWidgetInterval} from '../utils';
 import {
@@ -236,7 +236,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   private _isMounted: boolean = false;
-  static contextType = getDatasetConfigContext(WidgetType.RELEASE);
+  config = getDatasetConfig(WidgetType.RELEASE);
 
   get limit() {
     const {limit} = this.props;
@@ -494,7 +494,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the table format
           let tableResults: TableDataWithTitle[] | undefined;
           if (includeTotals) {
-            const tableData = this.context.datasetConfig.transformTable(
+            const tableData = this.config.transformTable!(
               data,
               widget.queries[0]
             ) as TableDataWithTitle; // Cast so we can add the title.

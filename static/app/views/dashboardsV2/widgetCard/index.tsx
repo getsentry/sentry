@@ -29,7 +29,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {getDatasetConfigConsumer, getDatasetConfigProvider} from '../datasetConfig/utils';
 import {Widget, WidgetType} from '../types';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -218,9 +217,6 @@ class WidgetCard extends Component<Props, State> {
       showStoredAlert,
     } = this.props;
 
-    const DatasetConfigProvider = getDatasetConfigProvider(this.props.widget.widgetType);
-    const DatasetConfigConsumer = getDatasetConfigConsumer(this.props.widget.widgetType);
-
     const {start, period} = selection.datetime;
     let showIncompleteDataAlert: boolean = false;
     if (widget.widgetType === WidgetType.RELEASE && showStoredAlert) {
@@ -244,92 +240,76 @@ class WidgetCard extends Component<Props, State> {
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
       >
         <DashboardsMEPProvider>
-          <DatasetConfigProvider>
-            <WidgetCardPanel isDragging={false}>
-              <WidgetHeader>
-                <Tooltip
-                  title={widget.title}
-                  containerDisplayMode="grid"
-                  showOnlyOnOverflow
-                >
-                  <WidgetTitle>{widget.title}</WidgetTitle>
-                </Tooltip>
-                {this.renderContextMenu()}
-              </WidgetHeader>
-              {noLazyLoad ? (
-                <DatasetConfigConsumer>
-                  {() => {
-                    return (
-                      <WidgetCardChartContainer
-                        api={api}
-                        organization={organization}
-                        selection={selection}
-                        widget={widget}
-                        isMobile={isMobile}
-                        renderErrorMessage={renderErrorMessage}
-                        tableItemLimit={tableItemLimit}
-                        windowWidth={windowWidth}
-                        onDataFetched={this.setData}
-                      />
-                    );
-                  }}
-                </DatasetConfigConsumer>
-              ) : (
-                <LazyLoad once resize height={200}>
-                  <DatasetConfigConsumer>
-                    {() => {
-                      return (
-                        <WidgetCardChartContainer
-                          api={api}
-                          organization={organization}
-                          selection={selection}
-                          widget={widget}
-                          isMobile={isMobile}
-                          renderErrorMessage={renderErrorMessage}
-                          tableItemLimit={tableItemLimit}
-                          windowWidth={windowWidth}
-                          onDataFetched={this.setData}
-                        />
-                      );
-                    }}
-                  </DatasetConfigConsumer>
-                </LazyLoad>
-              )}
-              {this.renderToolbar()}
-            </WidgetCardPanel>
-            <Feature organization={organization} features={['dashboards-mep']}>
-              <DashboardsMEPConsumer>
-                {({isMetricsData}) =>
-                  showStoredAlert &&
-                  widget.widgetType === WidgetType.DISCOVER &&
-                  isMetricsData === false && (
-                    <StoredDataAlert showIcon>
-                      {tct(
-                        "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
-                        {
-                          storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
-                        }
-                      )}
-                    </StoredDataAlert>
-                  )
-                }
-              </DashboardsMEPConsumer>
-            </Feature>
-            <Feature organization={organization} features={['dashboards-releases']}>
-              {showIncompleteDataAlert && (
-                <StoredDataAlert showIcon>
-                  {tct(
-                    'Releases data is only available from [date]. Data may be incomplete as a result.',
-                    {
-                      date: (
-                        <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />
-                      ),
-                    }
-                  )}
-                </StoredDataAlert>
-              )}
-            </Feature>
-          </DatasetConfigProvider>
+          <WidgetCardPanel isDragging={false}>
+            <WidgetHeader>
+              <Tooltip
+                title={widget.title}
+                containerDisplayMode="grid"
+                showOnlyOnOverflow
+              >
+                <WidgetTitle>{widget.title}</WidgetTitle>
+              </Tooltip>
+              {this.renderContextMenu()}
+            </WidgetHeader>
+            {noLazyLoad ? (
+              <WidgetCardChartContainer
+                api={api}
+                organization={organization}
+                selection={selection}
+                widget={widget}
+                isMobile={isMobile}
+                renderErrorMessage={renderErrorMessage}
+                tableItemLimit={tableItemLimit}
+                windowWidth={windowWidth}
+                onDataFetched={this.setData}
+              />
+            ) : (
+              <LazyLoad once resize height={200}>
+                <WidgetCardChartContainer
+                  api={api}
+                  organization={organization}
+                  selection={selection}
+                  widget={widget}
+                  isMobile={isMobile}
+                  renderErrorMessage={renderErrorMessage}
+                  tableItemLimit={tableItemLimit}
+                  windowWidth={windowWidth}
+                  onDataFetched={this.setData}
+                />
+              </LazyLoad>
+            )}
+            {this.renderToolbar()}
+          </WidgetCardPanel>
+          <Feature organization={organization} features={['dashboards-mep']}>
+            <DashboardsMEPConsumer>
+              {({isMetricsData}) =>
+                showStoredAlert &&
+                widget.widgetType === WidgetType.DISCOVER &&
+                isMetricsData === false && (
+                  <StoredDataAlert showIcon>
+                    {tct(
+                      "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                      {
+                        storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                      }
+                    )}
+                  </StoredDataAlert>
+                )
+              }
+            </DashboardsMEPConsumer>
+          </Feature>
+          <Feature organization={organization} features={['dashboards-releases']}>
+            {showIncompleteDataAlert && (
+              <StoredDataAlert showIcon>
+                {tct(
+                  'Releases data is only available from [date]. Data may be incomplete as a result.',
+                  {
+                    date: <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />,
+                  }
+                )}
+              </StoredDataAlert>
+            )}
+          </Feature>
         </DashboardsMEPProvider>
       </ErrorBoundary>
     );

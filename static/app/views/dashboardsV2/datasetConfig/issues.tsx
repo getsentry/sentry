@@ -1,5 +1,5 @@
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, PageFilters} from 'sentry/types';
+import {Group} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {queryToObj} from 'sentry/utils/stream';
@@ -7,7 +7,7 @@ import {DISCOVER_EXCLUSION_FIELDS} from 'sentry/views/issueList/utils';
 
 import {WidgetQuery} from '../types';
 
-import {DatasetConfig} from './base';
+import {ConditionalProps, DatasetConfig} from './base';
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
   transformTable: transformIssuesResponseToTable,
@@ -16,7 +16,7 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
 function transformIssuesResponseToTable(
   data: Group[],
   widgetQuery: WidgetQuery,
-  pageFilters?: PageFilters
+  conditionalProps?: ConditionalProps
 ): TableData {
   GroupStore.add(data);
   const transformedTableResults: TableDataRow[] = [];
@@ -85,7 +85,7 @@ function transformIssuesResponseToTable(
         (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
       transformedTableResult.projectId = project.id;
 
-      const {period, start, end} = pageFilters?.datetime || {};
+      const {period, start, end} = conditionalProps?.pageFilters?.datetime || {};
       if (start && end) {
         transformedTableResult.start = getUtcDateString(start);
         transformedTableResult.end = getUtcDateString(end);

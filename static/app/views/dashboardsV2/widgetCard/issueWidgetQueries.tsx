@@ -13,8 +13,8 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {queryToObj} from 'sentry/utils/stream';
 import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {IssuesDatasetConfigContext} from '../datasetConfig';
-import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
+import {getDatasetConfig} from '../datasetConfig/base';
+import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery, WidgetType} from '../types';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];
@@ -122,8 +122,7 @@ class IssueWidgetQueries extends Component<Props, State> {
     }, undefined),
   ];
 
-  static contextType = IssuesDatasetConfigContext;
-  static context: React.ContextType<typeof IssuesDatasetConfigContext>;
+  config = getDatasetConfig(WidgetType.ISSUE);
 
   transformTableResults(tableResults: Group[]): TableDataRow[] {
     const {selection, widget} = this.props;
@@ -244,18 +243,20 @@ class IssueWidgetQueries extends Component<Props, State> {
           ...params,
         },
       });
-      const tableResults = this.context.datasetConfig.transformTable(data);
+      const tableResults = this.config.transformTable!(data, widget.queries[0], {
+        pageFilters: selection,
+      });
       const totalCount = resp?.getResponseHeader('X-Hits') ?? null;
       const pageLinks = resp?.getResponseHeader('Link') ?? null;
       this.setState({
         loading: false,
         errorMessage: undefined,
-        tableResults,
+        tableResults: tableResults.data,
         totalCount,
         pageLinks,
       });
       onDataFetched?.({
-        issuesResults: tableResults,
+        issuesResults: tableResults.data,
         totalIssuesCount: totalCount ?? undefined,
         pageLinks: pageLinks ?? undefined,
       });

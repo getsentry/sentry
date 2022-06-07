@@ -1,12 +1,10 @@
-import {ReactNode, useState} from 'react';
+import {ReactNode} from 'react';
 
 import {createDefinedContext} from 'sentry/utils/performance/contexts/utils';
 
 import {WidgetType} from '../types';
 
-import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
-import {IssuesConfig} from './issues';
-import {ReleasesConfig} from './releases';
+import {getDatasetConfig} from './base';
 
 function createDatasetConfigContext(widgetType: WidgetType | undefined) {
   const config = getDatasetConfig(widgetType);
@@ -16,12 +14,10 @@ function createDatasetConfigContext(widgetType: WidgetType | undefined) {
     });
 
   function DatasetConfigProvider({children}: {children: ReactNode}) {
-    const [datasetConfig] = useState<typeof config>(config);
-
     return (
       <_DatasetConfigProvider
         value={{
-          datasetConfig,
+          datasetConfig: config,
         }}
       >
         {children}
@@ -104,17 +100,5 @@ export function getDatasetConfigContextHook(widgetType: WidgetType | undefined) 
     case WidgetType.DISCOVER:
     default:
       return useErrorsAndTransactionsDatasetConfigContext;
-  }
-}
-
-export function getDatasetConfig(widgetType: WidgetType | undefined) {
-  switch (widgetType) {
-    case WidgetType.RELEASE:
-      return ReleasesConfig;
-    case WidgetType.ISSUE:
-      return IssuesConfig;
-    case WidgetType.DISCOVER:
-    default:
-      return ErrorsAndTransactionsConfig;
   }
 }
