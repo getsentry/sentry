@@ -18,7 +18,9 @@ from sentry.utils.functional import extract_lazy_object
 
 class GroupNotesEndpoint(GroupEndpoint):
     def get(self, request: Request, group) -> Response:
-        notes = Activity.objects.filter(group=group, type=Activity.NOTE).select_related("user")
+        notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value).select_related(
+            "user"
+        )
 
         return self.paginate(
             request=request,
@@ -47,7 +49,7 @@ class GroupNotesEndpoint(GroupEndpoint):
 
         if Activity.objects.filter(
             group=group,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=request.user,
             data=data,
             datetime__gte=timezone.now() - timedelta(hours=1),
