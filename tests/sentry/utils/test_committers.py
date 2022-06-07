@@ -111,19 +111,19 @@ class GetFramePathsTestCase(unittest.TestCase):
 
     def test_data_in_stacktrace_frames(self):
         self.event.data = {"stacktrace": {"frames": ["data"]}}
-        assert ["data"] == get_frame_paths(self.event.data)
+        assert get_frame_paths(self.event) == ["data"]
 
     def test_data_in_exception_values(self):
         self.event.data = {"exception": {"values": [{"stacktrace": {"frames": ["data"]}}]}}
-        assert ["data"] == get_frame_paths(self.event.data)
+        assert get_frame_paths(self.event) == ["data"]
 
     def test_data_does_not_match(self):
         self.event.data = {"this does not": "match"}
-        assert [] == get_frame_paths(self.event.data)
+        assert get_frame_paths(self.event) == []
 
     def test_no_stacktrace_in_exception_values(self):
         self.event.data = {"exception": {"values": [{"this does not": "match"}]}}
-        assert [] == get_frame_paths(self.event.data)
+        assert get_frame_paths(self.event) == []
 
 
 class GetCommitFileChangesTestCase(CommitTestCase):
@@ -178,6 +178,29 @@ class MatchCommitsPathTestCase(CommitTestCase):
         assert commits == sorted(
             _match_commits_path(file_changes, "hello/app.py"), key=lambda fc: fc[0].id
         )
+
+    def test_path_shorter_than_filechange(self):
+        file_changes = [
+            self.create_commitfilechange(filename="app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M"),
+        ]
+
+        assert set(map(lambda x: x[0], _match_commits_path(file_changes, "e/f/g/h/app.py"))) == {
+            file_changes[1].commit,
+            file_changes[2].commit,
+        }
+
+    def test_path_longer_than_filechange(self):
+        file_changes = [
+            self.create_commitfilechange(filename="app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="A"),
+            self.create_commitfilechange(filename="c/d/e/f/g/h/app.py", type="M"),
+        ]
+
+        assert set(
+            map(lambda x: x[0], _match_commits_path(file_changes, "/a/b/c/d/e/f/g/h/app.py"))
+        ) == {file_changes[1].commit, file_changes[2].commit}
 
 
 class GetPreviousReleasesTestCase(TestCase):
@@ -280,6 +303,363 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
+
+    def test_kotlin_java_sdk_path_mangling(self):
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "java",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "button clicked",
+                            "module": "java.lang",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "main",
+                                        "module": "com.android.internal.os.ZygoteInit",
+                                        "filename": "ZygoteInit.java",
+                                        "abs_path": "ZygoteInit.java",
+                                        "lineno": 1003,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "run",
+                                        "module": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller",
+                                        "filename": "RuntimeInit.java",
+                                        "abs_path": "RuntimeInit.java",
+                                        "lineno": 548,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "invoke",
+                                        "module": "java.lang.reflect.Method",
+                                        "filename": "Method.java",
+                                        "abs_path": "Method.java",
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "main",
+                                        "module": "android.app.ActivityThread",
+                                        "filename": "ActivityThread.java",
+                                        "abs_path": "ActivityThread.java",
+                                        "lineno": 7842,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "loop",
+                                        "module": "android.os.Looper",
+                                        "filename": "Looper.java",
+                                        "abs_path": "Looper.java",
+                                        "lineno": 288,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "loopOnce",
+                                        "module": "android.os.Looper",
+                                        "filename": "Looper.java",
+                                        "abs_path": "Looper.java",
+                                        "lineno": 201,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "dispatchMessage",
+                                        "module": "android.os.Handler",
+                                        "filename": "Handler.java",
+                                        "abs_path": "Handler.java",
+                                        "lineno": 99,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "handleCallback",
+                                        "module": "android.os.Handler",
+                                        "filename": "Handler.java",
+                                        "abs_path": "Handler.java",
+                                        "lineno": 938,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "run",
+                                        "module": "android.view.View$PerformClick",
+                                        "filename": "View.java",
+                                        "abs_path": "View.java",
+                                        "lineno": 28810,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "access$3700",
+                                        "module": "android.view.View",
+                                        "filename": "View.java",
+                                        "abs_path": "View.java",
+                                        "lineno": 835,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "performClickInternal",
+                                        "module": "android.view.View",
+                                        "filename": "View.java",
+                                        "abs_path": "View.java",
+                                        "lineno": 7432,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "performClick",
+                                        "module": "com.google.android.material.button.MaterialButton",
+                                        "filename": "MaterialButton.java",
+                                        "abs_path": "MaterialButton.java",
+                                        "lineno": 1119,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "performClick",
+                                        "module": "android.view.View",
+                                        "filename": "View.java",
+                                        "abs_path": "View.java",
+                                        "lineno": 7455,
+                                        "in_app": False,
+                                    },
+                                    {
+                                        "function": "onClick",
+                                        "module": "com.jetbrains.kmm.androidApp.MainActivity$$ExternalSyntheticLambda0",
+                                        "lineno": 2,
+                                        "in_app": True,
+                                    },
+                                    {
+                                        "function": "$r8$lambda$hGNRcN3pFcj8CSoYZBi9fT_AXd0",
+                                        "module": "com.jetbrains.kmm.androidApp.MainActivity",
+                                        "lineno": 0,
+                                        "in_app": True,
+                                    },
+                                    {
+                                        "function": "onCreate$lambda-1",
+                                        "module": "com.jetbrains.kmm.androidApp.MainActivity",
+                                        "filename": "MainActivity.kt",
+                                        "abs_path": "MainActivity.kt",
+                                        "lineno": 55,
+                                        "in_app": True,
+                                    },
+                                ]
+                            },
+                            "thread_id": 2,
+                            "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                        }
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [
+                        {
+                            "path": "App/src/main/com/jetbrains/kmm/androidApp/MainActivity.kt",
+                            "type": "M",
+                        }
+                    ],
+                }
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["score"] > 1
+
+    def test_cocoa_swift_repo_relative_path(self):
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "cocoa",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "RuntimeException",
+                            "value": "button clicked",
+                            "module": "java.lang",
+                            "thread_id": 2,
+                            "mechanism": {"type": "UncaughtExceptionHandler", "handled": False},
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "in_app": False,
+                                        "image_addr": "0x0",
+                                        "instruction_addr": "0x1028d5aa4",
+                                        "symbol_addr": "0x0",
+                                    },
+                                    {
+                                        "package": "Runner",
+                                        "filename": "AppDelegate.swift",
+                                        "abs_path": "/Users/denis/Repos/sentry/sentry-mobile/ios/Runner/AppDelegate.swift",
+                                        "lineno": 5,
+                                        "in_app": True,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "Runner/AppDelegate.swift", "type": "M"}],
+                }
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["score"] > 1
+
+    def test_react_native_unchanged_frames(self):
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "javascript",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "unknown",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "callFunctionReturnFlushedQueue",
+                                        "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+                                        "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                                        "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                                        "lineno": 115,
+                                        "colno": 5,
+                                        "in_app": False,
+                                        "data": {"sourcemap": "app:///main.jsbundle.map"},
+                                    },
+                                    {
+                                        "function": "apply",
+                                        "filename": "native",
+                                        "abs_path": "native",
+                                        "in_app": True,
+                                    },
+                                    {
+                                        "function": "onPress",
+                                        "module": "src/screens/EndToEndTestsScreen",
+                                        "filename": "src/screens/EndToEndTestsScreen.tsx",
+                                        "abs_path": "app:///src/screens/EndToEndTestsScreen.tsx",
+                                        "lineno": 57,
+                                        "colno": 11,
+                                        "in_app": True,
+                                        "data": {"sourcemap": "app:///main.jsbundle.map"},
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/screens/EndToEndTestsScreen.tsx", "type": "M"}],
+                }
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["score"] == 3
+
+    def test_flutter_munged_frames(self):
+        event = self.store_event(
+            data={
+                "platform": "other",
+                "sdk": {"name": "sentry.dart.flutter", "version": "1"},
+                "exception": {
+                    "values": [
+                        {
+                            "type": "StateError",
+                            "value": "Bad state: try catch",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "tryCatchModule",
+                                        "package": "sentry_flutter_example",
+                                        "filename": "test.dart",
+                                        "abs_path": "package:sentry_flutter_example/a/b/test.dart",
+                                        "lineno": 8,
+                                        "colno": 5,
+                                        "in_app": True,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "a/b/test.dart", "type": "M"}],
+                }
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["score"] == 3
 
     def test_matching(self):
         event = self.store_event(
