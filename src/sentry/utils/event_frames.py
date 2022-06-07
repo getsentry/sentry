@@ -14,6 +14,7 @@ from typing import (
     Tuple,
     cast,
 )
+
 from sentry.utils.safe import PathSearchable, get_path
 
 
