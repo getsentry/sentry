@@ -76,7 +76,7 @@ export function eventViewFromWidget(
   const aggregateAliasOrderBy = `${orderby.startsWith('-') ? '-' : ''}${getAggregateAlias(
     trimStart(orderby, '-')
   )}`;
-  const eventView = EventView.fromSavedQuery({
+  return EventView.fromSavedQuery({
     id: undefined,
     name: title,
     version: 2,
@@ -89,7 +89,6 @@ export function eventViewFromWidget(
     end: end ? getUtcDateString(end) : undefined,
     environment: environments,
   });
-  return eventView;
 }
 
 function coerceStringToArray(value?: string | string[] | null) {
