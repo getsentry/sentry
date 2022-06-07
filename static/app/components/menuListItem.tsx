@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 
 /**
  * Menu item priority. Currently there's only one option other than default,
@@ -100,7 +101,7 @@ function BaseMenuListItem({
             {leadingItems}
           </LeadingItems>
         )}
-        <ContentWrap isFocused={isFocused} showDivider={showDivider}>
+        <ContentWrap isFocused={isFocused} showDivider={defined(details) || showDivider}>
           <LabelWrap>
             <Label aria-hidden="true" {...labelProps}>
               {label}
