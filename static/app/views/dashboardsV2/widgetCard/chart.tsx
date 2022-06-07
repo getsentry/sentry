@@ -39,7 +39,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
-import {getDatasetConfig} from '../datasetConfig/context';
+import {getDatasetConfig} from '../datasetConfig/base';
 import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
@@ -169,7 +169,13 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           data={result.data}
           organization={organization}
           stickyHeaders
-          getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+          getCustomFieldRenderer={
+            // TODO: Make this required?
+            datasetConfig.getCustomFieldRenderer
+              ? (field, meta) =>
+                  datasetConfig.getCustomFieldRenderer!(field, meta, {organization})
+              : undefined
+          }
         />
       );
     });

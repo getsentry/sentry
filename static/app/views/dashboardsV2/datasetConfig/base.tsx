@@ -26,7 +26,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getCustomFieldRenderer?: (
     field: string,
-    meta: MetaType
+    meta: MetaType,
+    contextualProps?: ContextualProps
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
    * Transforms timeseries API results into series data that is

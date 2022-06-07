@@ -11,7 +11,7 @@ import {defined} from 'sentry/utils';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
-import {getDatasetConfig} from '../datasetConfig/context';
+import {getDatasetConfig} from '../datasetConfig/base';
 import {Widget, WidgetType} from '../types';
 import {ISSUE_FIELDS} from '../widgetBuilder/issueWidget/fields';
 

@@ -11,8 +11,12 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
-  // TODO: Contextual props
-  getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  getCustomFieldRenderer: (field, meta, contextualProps) => {
+    const isAlias = !contextualProps?.organization?.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
+    return getFieldRenderer(field, meta, isAlias);
+  },
   transformSeries: (_data: EventsStats | MultiSeriesEventsStats) => {
     return [] as Series[];
   },
