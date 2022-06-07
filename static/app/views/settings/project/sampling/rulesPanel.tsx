@@ -22,7 +22,6 @@ export function RulesPanel({
   onDeleteRule,
   onUpdateRules,
   disabled,
-  infoAlert,
 }: RulesPanelProps) {
   return (
     <Panel>
@@ -32,7 +31,7 @@ export function RulesPanel({
         onDeleteRule={onDeleteRule}
         disabled={disabled}
         onUpdateRules={onUpdateRules}
-        infoAlert={infoAlert}
+        emptyMessage={t('There are no transaction rules to display')}
       />
       <StyledPanelFooter>
         <StyledButtonBar gap={1}>
