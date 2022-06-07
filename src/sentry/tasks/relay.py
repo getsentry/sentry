@@ -40,9 +40,9 @@ def update_config_cache(
         )
 
         # TODO: remove this if statement before this PR is merged.
-        if generate:
+        if keys and generate:
             compute_project_configs(keys)
-        else:
+        elif keys:
             projectconfig_cache.delete_many(key.public_key for key in keys)
 
     finally:
@@ -203,7 +203,9 @@ def compute_project_configs(project_keys):
     soft_time_limit=30,
     time_limit=32,
 )
-def invalidate_project_config(organization_id=None, project_id=None, public_key=None, trigger=None):
+def invalidate_project_config(
+    organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs
+):
     """Task which re-computes an invalidated project config.
 
     This task can be scheduled regardless of whether the :func:`update_config_cache` task is
@@ -233,6 +235,8 @@ def invalidate_project_config(organization_id=None, project_id=None, public_key=
     keys = project_keys_to_update(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
+    if not keys:
+        return
 
     if organization_id:
         # Previous incarnations of this task only delete all the affected configs in this
@@ -244,7 +248,7 @@ def invalidate_project_config(organization_id=None, project_id=None, public_key=
         compute_project_configs(keys)
 
 
-def schedule_invalidate_config_cache(
+def schedule_invalidate_project_cache(
     *, trigger, organization_id=None, project_id=None, public_key=None
 ):
     """Schedules the :func:`invalidate_project_config` task.
@@ -269,14 +273,14 @@ def schedule_invalidate_config_cache(
         "relay.projectconfig_cache.scheduled",
         tags={"update_reason": trigger, "task": "invalidation"},
     )
-    with sentry_sdk.push_scope() as scope:
-        scope.set_tag("update_reason", trigger)
 
-        invalidate_project_config.delay(
-            project_id=project_id,
-            organization_id=organization_id,
-            public_key=public_key,
-            trigger=trigger,
-        )
+    invalidate_project_config.delay(
+        project_id=project_id,
+        organization_id=organization_id,
+        public_key=public_key,
+        trigger=trigger,
+    )
 
-    projectconfig_debounce_cache.invalidation.debounce(public_key, project_id, organization_id)
+    projectconfig_debounce_cache.invalidation.debounce(
+        public_key=public_key, project_id=project_id, organization_id=organization_id
+    )
