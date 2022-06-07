@@ -2,15 +2,28 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption
+from sentry.models import Project, ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
-from sentry.tasks.relay import schedule_build_config_cache, schedule_invalidate_project_cache
+from sentry.tasks.relay import (
+    invalidate_project_config,
+    schedule_build_config_cache,
+    schedule_invalidate_project_cache,
+)
 
 
 def _cache_keys_for_project(project):
     for key in ProjectKey.objects.filter(project_id=project.id):
         yield key.public_key
+
+
+def _cache_keys_for_org(org):
+    # The `ProjectKey` model doesn't have any attribute we can use to filter by
+    # org, and the `Project` model doesn't have a project key exposed. So using
+    # the org we fetch the project, and then the project key.
+    for proj in Project.objects.filter(organization_id=org.id):
+        for key in ProjectKey.objects.filter(project_id=proj.id):
+            yield key.public_key
 
 
 @pytest.fixture
@@ -115,31 +128,37 @@ def test_generate(
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("entire_organization", (True, False))
-def test_invalidate(
+def test_invalidate_project(
     monkeypatch,
     default_project,
     default_projectkey,
     default_organization,
     task_runner,
-    entire_organization,
     redis_cache,
 ):
-
-    cfg = {"foo": "bar"}
-    redis_cache.set_many({default_projectkey.public_key: cfg})
-    assert redis_cache.get(default_projectkey.public_key) == cfg
-
-    if not entire_organization:
-        kwargs = {"project_id": default_project.id}
-    else:
-        kwargs = {"organization_id": default_organization.id}
-
     with task_runner():
-        schedule_build_config_cache(generate=False, **kwargs)
+        invalidate_project_config(project_id=default_project.id)
 
     for cache_key in _cache_keys_for_project(default_project):
-        assert not redis_cache.get(cache_key)
+        assert redis_cache.get(cache_key)
+
+
+@pytest.mark.django_db
+def test_invalidate_org(
+    monkeypatch,
+    default_project,
+    default_projectkey,
+    default_organization,
+    task_runner,
+    redis_cache,
+):
+    with task_runner():
+        invalidate_project_config(organization_id=default_organization.id)
+
+    for cache_key in _cache_keys_for_org(default_organization):
+        # FIXME: this test fails because the code isn't correct. Configs should
+        # *not* be deleted in invalidation tasks.
+        assert redis_cache.get(cache_key)
 
 
 @pytest.mark.django_db
