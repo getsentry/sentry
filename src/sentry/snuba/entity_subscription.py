@@ -367,10 +367,10 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         """
         if self.is_crash_rate_format_v2(data):
             version = "v2"
-            result = self._aggregate_query_results_v2(data)
+            result = self._aggregate_query_results_v2(data, alias)
         else:
             version = "v1"
-            result = self._aggregate_query_results_v1(data)
+            result = self._aggregate_query_results_v1(data, alias)
 
         metrics.incr(
             "incidents.entity_subscription.aggregate_query_results",
