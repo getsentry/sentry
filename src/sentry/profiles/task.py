@@ -7,6 +7,7 @@ from django.conf import settings
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
+from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models import Project, ProjectDebugFile
@@ -37,7 +38,7 @@ def process_profile(
     elif profile["platform"] == "android":
         profile = _deobfuscate(profile=profile, project=project)
 
-    profile = _normalize(profile=profile)
+    profile = _normalize(profile=profile, project=project)
 
     global processed_profiles_publisher
 
@@ -65,7 +66,7 @@ def process_profile(
     )
 
 
-def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+def _normalize(profile: MutableMapping[str, Any], project: Project) -> MutableMapping[str, Any]:
     classification_options = {
         "model": profile["device_model"],
         "os_name": profile["device_os_name"],
@@ -84,7 +85,7 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         {
             "device_classification": str(classify_device(**classification_options)),
             "profile": json.dumps(profile["profile"]),
-            "retention_days": 30,
+            "retention_days": quotas.get_event_retention(organization=project.organization),
         }
     )
 
