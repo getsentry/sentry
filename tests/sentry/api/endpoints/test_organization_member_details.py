@@ -32,6 +32,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         response = self.get_success_response(self.organization.slug, "me")
 
         assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
         assert response.data["user"]["id"] == str(self.user.id)
         assert response.data["email"] == self.user.email
 
@@ -44,6 +45,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.get_success_response(self.organization.slug, member.id)
         assert response.data["role"] == "member"
+        assert response.data["orgRole"] == "member"
         assert response.data["id"] == str(member.id)
 
     def test_get_by_garbage(self):
