@@ -2,12 +2,7 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 
 import {getKeyCode} from './getKeyCode';
 
-const modifierKeys = [
-  getKeyCode('command'),
-  getKeyCode('shift'),
-  getKeyCode('alt'),
-  getKeyCode('ctrl'),
-];
+const modifierKeys = [getKeyCode('shift'), getKeyCode('alt'), getKeyCode('ctrl')];
 
 /**
  * Pass in the hotkey combinations under match and the corresponding callback function to be called.
