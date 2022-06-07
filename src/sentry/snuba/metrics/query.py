@@ -134,7 +134,9 @@ class MetricsQuery(MetricsQueryValidationRunner):
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
     @staticmethod
-    def calculate_intervals_len(end: datetime, granularity: int, start: Optional[datetime] = None):
+    def calculate_intervals_len(
+        end: datetime, granularity: int, start: Optional[datetime] = None
+    ) -> int:
         range_in_sec = (end - start).total_seconds() if start is not None else to_timestamp(end)
         return math.ceil(range_in_sec / granularity)
 
