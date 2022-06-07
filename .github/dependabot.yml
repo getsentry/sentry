@@ -35,6 +35,7 @@ updates:
       - dependency-name: '@storybook/addon-actions'
       - dependency-name: '@storybook/addon-essentials'
       - dependency-name: '@storybook/addon-storysource'
+      - dependency-name: '@storybook/addon-docs'
       - dependency-name: '@storybook/addons'
       - dependency-name: '@storybook/builder-webpack5'
       - dependency-name: '@storybook/manager-webpack5'
