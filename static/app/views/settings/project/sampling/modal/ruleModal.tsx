@@ -13,14 +13,15 @@ import Option from 'sentry/components/forms/selectOption';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Truncate from 'sentry/components/truncate';
 import {IconAdd} from 'sentry/icons';
-import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {t} from 'sentry/locale';
+import {IconSearch} from 'sentry/icons/iconSearch';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {SamplingInnerName, SamplingRule, SamplingRules} from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {getInnerNameLabel, isCustomTagName} from '../utils';
 
@@ -42,8 +43,8 @@ type State = {
 type Props = ModalRenderProps & {
   api: Client;
   conditionCategories: Array<[SamplingInnerName, string]>;
+  description: React.ReactNode;
   disabled: boolean;
-  emptyMessage: string;
   onSubmit: (
     props: Omit<State, 'errors'> & {
       submitRules: (newRules: SamplingRules, currentRuleIndex: number) => Promise<void>;
@@ -53,8 +54,6 @@ type Props = ModalRenderProps & {
   organization: Organization;
   project: Project;
   title: string;
-  extraFields?: React.ReactElement;
-  onChange?: (props: State) => void;
   rule?: SamplingRule;
 };
 
@@ -64,15 +63,13 @@ function RuleModal({
   Footer,
   closeModal,
   title,
-  emptyMessage,
+  description,
   conditionCategories,
   api,
   organization,
   project,
   onSubmitSuccess,
   onSubmit,
-  onChange,
-  extraFields,
   rule,
   disabled,
 }: Props) {
@@ -88,10 +85,6 @@ function RuleModal({
       return d;
     });
   }, [data.sampleRate]);
-
-  useEffect(() => {
-    onChange?.(data);
-  }, [data, onChange]);
 
   function getInitialState(): State {
     if (rule) {
@@ -317,13 +310,18 @@ function RuleModal({
       </Header>
       <Body>
         <Fields>
-          {extraFields}
+          <TextBlock>{description}</TextBlock>
           <StyledPanel>
             <StyledPanelHeader hasButtons>
               {t('Conditions')}
               <StyledCompactSelect
                 placement="bottom right"
-                triggerLabel={t('Add Condition')}
+                triggerLabel={
+                  <TriggerLabel>
+                    <IconAdd isCircled />
+                    {t('Add Condition')}
+                  </TriggerLabel>
+                }
                 placeholder={t('Filter conditions')}
                 isOptionDisabled={opt => opt.disabled}
                 options={[...customTagConditionsOptions, ...predefinedConditionsOptions]}
@@ -359,9 +357,16 @@ function RuleModal({
             </StyledPanelHeader>
             <PanelBody>
               {!conditions.length ? (
-                <EmptyMessage icon={<IconCheckmark isCircled size="xl" />}>
-                  {emptyMessage}
-                </EmptyMessage>
+                <EmptyMessage
+                  icon={<IconSearch size="xl" />}
+                  title={t('No conditions added')}
+                  description={tct(
+                    "if you don't want to add (+) a condition, [lineBreak]simply, add a sample rate below",
+                    {
+                      lineBreak: <br />,
+                    }
+                  )}
+                />
               ) : (
                 <Conditions
                   conditions={conditions}
@@ -375,7 +380,7 @@ function RuleModal({
             </PanelBody>
           </StyledPanel>
           <NumberField
-            label={`${t('Sampling Rate')} \u0025`}
+            label={`${t('Sample Rate')} \u0025`}
             name="sampleRate"
             onChange={value => {
               setData({...data, sampleRate: !!value ? Number(value) : null});
@@ -447,4 +452,11 @@ const AddCustomTag = styled('div')<{isFocused: boolean}>`
   line-height: 1.4;
   border-radius: ${p => p.theme.borderRadius};
   ${p => p.isFocused && `background: ${p.theme.hover};`};
+`;
+
+const TriggerLabel = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-items: center;
+  gap: ${space(1)};
 `;

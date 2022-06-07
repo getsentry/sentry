@@ -4,6 +4,7 @@ import {
   waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {SamplingInnerName, SamplingRuleType} from 'sentry/types/sampling';
 import {
@@ -42,32 +43,46 @@ describe('Sampling - Modal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders modal', async function () {
-    renderComponent();
+  it.only('renders modal', async function () {
+    renderComponent({ruleType: SamplingRuleType.TRANSACTION});
 
     // Open Modal
     await openSamplingRuleModal(screen.getByText('Add Rule'));
 
     // Modal content
-    expect(screen.getByText('Add Transaction Sampling Rule')).toBeInTheDocument();
-    expect(screen.getByText('Tracing')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.getByText('Add Individual Transaction Rule')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Select Transactions only within this project which match your conditions. However, If you want to select all Transactions distributed across multiple projects/services, we recommend you add a Distributed Trace rule instead.'
+        )
+      )
+    ).toBeInTheDocument();
+
     expect(
       screen.getByRole('link', {
-        name: 'Learn more about tracing',
+        name: 'Distributed Trace',
       })
-    ).toHaveAttribute('href', SAMPLING_DOC_LINK);
+    ).toHaveAttribute('href', `${SamplingRuleType.TRACE}/`);
+
+    // Empty conditions message
     expect(screen.getByText('Add Condition')).toBeInTheDocument();
+    expect(screen.getByText('No conditions added')).toBeInTheDocument();
     expect(
-      screen.getByText('Apply sampling rate to all transactions')
+      screen.getByText(
+        textWithMarkupMatcher(
+          "if you don't want to add (+) a condition, simply, add a sample rate below"
+        )
+      )
     ).toBeInTheDocument();
+
     expect(screen.getByPlaceholderText('\u0025')).toHaveValue(null);
     expect(screen.getByLabelText('Save Rule')).toBeDisabled();
 
     // Close Modal
     userEvent.click(screen.getByLabelText('Close Modal'));
     await waitForElementToBeRemoved(() =>
-      screen.queryByText('Add Transaction Sampling Rule')
+      screen.queryByText('Add Individual Transaction Rule')
     );
   });
 

@@ -1,15 +1,8 @@
-import {useState} from 'react';
-import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
-import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
-import Field from 'sentry/components/forms/field';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Tooltip from 'sentry/components/tooltip';
+import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {
   SamplingConditionOperator,
   SamplingRule,
@@ -17,8 +10,10 @@ import {
   SamplingRuleType,
 } from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
-
-import {SAMPLING_DOC_LINK} from '../utils';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
 
 import RuleModal from './ruleModal';
 import {
@@ -34,30 +29,22 @@ type Props = Omit<
   RuleModalProps,
   | 'transactionField'
   | 'title'
+  | 'description'
   | 'conditionCategories'
   | 'onSubmit'
   | 'emptyMessage'
   | 'onChage'
 > & {
   rules: SamplingRules;
+  type: SamplingRuleType;
 };
 
-function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
-  const theme = useTheme();
+export function SamplingRuleModal({rule: ruleToUpdate, type, rules, ...props}: Props) {
+  const params = useParams();
+  const location = useLocation();
+  const routes = useRoutes();
 
-  const [tracing, setTracing] = useState(
-    ruleToUpdate ? ruleToUpdate.type === SamplingRuleType.TRACE : true
-  );
-
-  const [isTracingDisabled, setIsTracingDisabled] = useState(
-    !!ruleToUpdate?.condition.inner.length
-  );
-
-  function handleChange({
-    conditions,
-  }: Parameters<NonNullable<RuleModalProps['onChange']>>[0]) {
-    setIsTracingDisabled(!!conditions.length);
-  }
+  console.log({params, location, routes});
 
   function handleSubmit({
     sampleRate,
@@ -71,7 +58,10 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
     const newRule: SamplingRule = {
       // All new/updated rules must have id equal to 0
       id: 0,
-      type: tracing ? SamplingRuleType.TRACE : SamplingRuleType.TRANSACTION,
+      type:
+        type === SamplingRuleType.TRACE
+          ? SamplingRuleType.TRACE
+          : SamplingRuleType.TRANSACTION,
       condition: {
         op: SamplingConditionOperator.AND,
         inner: !conditions.length ? [] : conditions.map(getNewCondition),
@@ -91,73 +81,71 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
     const newRules = [...transactionTraceRules, ...individualTransactionRules];
 
     const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
+
     submitRules(newRules, currentRuleIndex);
+  }
+
+  function getDescription() {
+    if (type === SamplingRuleType.TRACE) {
+      return {
+        title: ruleToUpdate
+          ? t('Edit Distributed Trace Rule')
+          : t('Add Distributed Trace Rule'),
+        description: tct(
+          'Using a Trace ID, select all Transactions distributed across multiple projects/services which match your conditions. However, if you only want to select Transactions from within this project, we recommend you add a [link] rule instead.',
+          {
+            link: (
+              <Link
+                to={recreateRoute(`${SamplingRuleType.TRANSACTION}/`, {
+                  routes,
+                  location,
+                  params,
+                  stepBack: -1,
+                })}
+              >
+                {t('Individual Transaction')}
+              </Link>
+            ),
+          }
+        ),
+      };
+    }
+
+    return {
+      title: ruleToUpdate
+        ? t('Edit Individual Transaction Rule')
+        : t('Add Individual Transaction Rule'),
+      description: tct(
+        'Select Transactions only within this project which match your conditions. However, If you want to select all Transactions distributed across multiple projects/services, we recommend you add a [link] rule instead.',
+        {
+          link: (
+            <Link
+              to={recreateRoute(`${SamplingRuleType.TRACE}/`, {
+                routes,
+                location,
+                params,
+                stepBack: -1,
+              })}
+            >
+              {t('Distributed Trace')}
+            </Link>
+          ),
+        }
+      ),
+    };
   }
 
   return (
     <RuleModal
       {...props}
-      title={
-        ruleToUpdate
-          ? t('Edit Transaction Sampling Rule')
-          : t('Add Transaction Sampling Rule')
-      }
-      emptyMessage={t('Apply sampling rate to all transactions')}
+      {...getDescription()}
       conditionCategories={generateConditionCategoriesOptions(
-        tracing ? distributedTracesConditions : individualTransactionsConditions
+        type === SamplingRuleType.TRACE
+          ? distributedTracesConditions
+          : individualTransactionsConditions
       )}
       rule={ruleToUpdate}
       onSubmit={handleSubmit}
-      onChange={handleChange}
-      extraFields={
-        <Field
-          label={t('Tracing')}
-          inline={false}
-          flexibleControlStateSize
-          stacked
-          showHelpInTooltip
-        >
-          <Tooltip
-            title={t('This field can only be edited if there are no match conditions')}
-            disabled={!isTracingDisabled}
-            overlayStyle={css`
-              @media (min-width: ${theme.breakpoints[0]}) {
-                max-width: 370px;
-              }
-            `}
-          >
-            <TracingWrapper
-              onClick={isTracingDisabled ? undefined : () => setTracing(!tracing)}
-            >
-              <StyledCheckboxFancy isChecked={tracing} isDisabled={isTracingDisabled} />
-              {tct(
-                'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. [link:Learn more about tracing].',
-                {
-                  link: (
-                    <ExternalLink
-                      href={SAMPLING_DOC_LINK}
-                      onClick={event => event.stopPropagation()}
-                    />
-                  ),
-                }
-              )}
-            </TracingWrapper>
-          </Tooltip>
-        </Field>
-      }
     />
   );
 }
-
-export default TransactionRuleModal;
-
-const TracingWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
-  cursor: ${p => (p.onClick ? 'pointer' : 'not-allowed')};
-`;
-
-const StyledCheckboxFancy = styled(CheckboxFancy)`
-  margin-top: ${space(0.5)};
-`;
