@@ -62,6 +62,7 @@ export function getProjectID(
 type Props = {
   eventView: EventView;
   location: Location;
+  noCellActions: boolean;
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
@@ -153,7 +154,7 @@ class _Table extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, projects, location} = this.props;
+    const {eventView, organization, projects, location, noCellActions} = this.props;
     const isAlias = !organization.features.includes(
       'performance-frontend-use-events-endpoint'
     );
@@ -174,6 +175,8 @@ class _Table extends Component<Props, State> {
       Actions.SHOW_LESS_THAN,
       Actions.EDIT_THRESHOLD,
     ];
+
+    const cellActions = noCellActions ? [] : allowActions;
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -196,7 +199,7 @@ class _Table extends Component<Props, State> {
           column={column}
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(column, dataRow)}
-          allowActions={allowActions}
+          allowActions={cellActions}
         >
           <Link
             to={target}
@@ -227,7 +230,7 @@ class _Table extends Component<Props, State> {
             column={column}
             dataRow={dataRow}
             handleCellAction={this.handleCellAction(column, dataRow)}
-            allowActions={allowActions}
+            allowActions={cellActions}
           >
             {rendered}
           </CellAction>
@@ -240,7 +243,7 @@ class _Table extends Component<Props, State> {
         column={column}
         dataRow={dataRow}
         handleCellAction={this.handleCellAction(column, dataRow)}
-        allowActions={allowActions}
+        allowActions={cellActions}
       >
         {rendered}
       </CellAction>
