@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {inflate} from 'pako';
 
 import {IssueAttachment} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
@@ -67,6 +68,25 @@ const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
 function isRRWebEventAttachment(attachment: IssueAttachment) {
   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
 }
+export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
+  const replayAttachments: ReplayAttachment = {
+    breadcrumbs: [],
+    replaySpans: [],
+    recording: [],
+  };
+
+  unsortedReplayAttachments.forEach(attachment => {
+    if (attachment.data?.tag === 'performanceSpan') {
+      replayAttachments.replaySpans.push(attachment.data.payload);
+    } else if (attachment?.data?.tag === 'breadcrumb') {
+      replayAttachments.breadcrumbs.push(attachment.data.payload);
+    } else {
+      replayAttachments.recording.push(attachment);
+    }
+  });
+
+  return replayAttachments;
+}
 
 const INITIAL_STATE: State = Object.freeze({
   event: undefined,
@@ -115,9 +135,30 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     const attachments = await Promise.all(
       rrwebAttachmentIds.map(async attachment => {
         const response = await api.requestPromise(
-          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`
+          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`,
+          {
+            includeAllArgs: true,
+          }
         );
-        return JSON.parse(response) as ReplayAttachment;
+
+        // for non-compressed events, parse and return
+        try {
+          return JSON.parse(response[0]) as ReplayAttachment;
+        } catch (error) {
+          // swallow exception.. if we can't parse it, it's going to be compressed
+        }
+
+        // for non-compressed events, parse and return
+        try {
+          // for compressed events, inflate the blob and map the events
+          const responseBlob = await response[2]?.rawResponse.blob();
+          const responseArray = (await responseBlob?.arrayBuffer()) as Uint8Array;
+          const parsedPayload = JSON.parse(inflate(responseArray, {to: 'string'}));
+          const replayAttachments = mapRRWebAttachments(parsedPayload);
+          return replayAttachments;
+        } catch (error) {
+          return {};
+        }
       })
     );
 
