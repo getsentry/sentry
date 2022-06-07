@@ -44,7 +44,7 @@ export function Config(params = {}) {
     dsn_requests: '',
     demoMode: false,
     sentryUrl: 'https://sentry.io',
-    organizationUrl: 'https://foobar.sentry.io',
+    organizationUrl: 'https://foobar.us.sentry.io',
     ...params,
   };
 }
