@@ -141,7 +141,6 @@ const IconGrabbableWrapper = styled('div')`
   align-items: center;
   /* match the height of edit and delete buttons */
   height: 34px;
-}
 `;
 
 const GrabColumn = styled(Column)`
