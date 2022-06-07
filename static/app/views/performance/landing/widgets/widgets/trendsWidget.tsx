@@ -32,7 +32,13 @@ type DataType = {
 const fields = [{field: 'transaction'}, {field: 'project'}];
 
 export function TrendsWidget(props: PerformanceWidgetProps) {
-  const {eventView: _eventView, ContainerActions, location, organization} = props;
+  const {
+    eventView: _eventView,
+    ContainerActions,
+    location,
+    organization,
+    noCellActions,
+  } = props;
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
       ? TrendChangeType.IMPROVED
@@ -150,10 +156,12 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                     <RightAlignedCell>
                       <CompareDurations transaction={listItem} />
                     </RightAlignedCell>
-                    <ListClose
-                      setSelectListIndex={setSelectListIndex}
-                      onClick={() => excludeTransaction(listItem.transaction, props)}
-                    />
+                    {!noCellActions && (
+                      <ListClose
+                        setSelectListIndex={setSelectListIndex}
+                        onClick={() => excludeTransaction(listItem.transaction, props)}
+                      />
+                    )}
                   </Fragment>
                 );
               })}

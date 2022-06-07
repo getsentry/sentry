@@ -116,6 +116,7 @@ const _WidgetContainer = (props: Props) => {
     'location',
     'organization',
     'chartHeight',
+    'noCellActions',
   ]);
 
   switch (widgetProps.dataType) {

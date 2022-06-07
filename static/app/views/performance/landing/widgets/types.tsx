@@ -39,6 +39,8 @@ export type PerformanceWidgetProps = {
   titleTooltip: string;
 
   chartColor?: string;
+
+  noCellActions?: boolean;
 };
 
 export interface WidgetDataResult {

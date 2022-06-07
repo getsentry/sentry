@@ -136,6 +136,10 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     });
   }
 
+  const noCellActions = organization.features.includes(
+    'performance-transaction-name-only-search'
+  );
+
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
@@ -161,6 +165,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
               location={location}
               projects={projects}
               selection={selection}
+              noCellActions={noCellActions}
             />
           </PageFiltersContainer>
         </MEPSettingProvider>

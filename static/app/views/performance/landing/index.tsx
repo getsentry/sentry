@@ -56,6 +56,7 @@ type Props = {
   handleSearch: (searchQuery: string) => void;
   handleTrendsClick: () => void;
   location: Location;
+  noCellActions: boolean;
   onboardingProject: Project | undefined;
   organization: Organization;
   projects: Project[];
@@ -80,6 +81,7 @@ export function PerformanceLanding(props: Props) {
     handleSearch,
     handleTrendsClick,
     onboardingProject,
+    noCellActions,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -109,9 +111,7 @@ export function PerformanceLanding(props: Props) {
     hasMounted.current = true;
   }, []);
 
-  const filterString = organization.features.includes(
-    'performance-transaction-name-only-search'
-  )
+  const filterString = noCellActions
     ? 'transaction.duration:<15m'
     : getTransactionSearchQuery(location, eventView.query);
 

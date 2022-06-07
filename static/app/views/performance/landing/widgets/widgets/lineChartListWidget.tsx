@@ -293,10 +293,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             </Link>
                           </Tooltip>
                         </RightAlignedCell>
-                        <ListClose
-                          setSelectListIndex={setSelectListIndex}
-                          onClick={() => excludeTransaction(listItem.transaction, props)}
-                        />
+                        {!props.noCellActions && (
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        )}
                       </Fragment>
                     );
                   case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
@@ -310,10 +314,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             count: <Count value={rightValue} />,
                           })}
                         </RightAlignedCell>
-                        <ListClose
-                          setSelectListIndex={setSelectListIndex}
-                          onClick={() => excludeTransaction(listItem.transaction, props)}
-                        />
+                        {!props.noCellActions && (
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        )}
                       </Fragment>
                     );
                   default:
@@ -326,12 +334,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <RightAlignedCell>
                             <Count value={rightValue} />
                           </RightAlignedCell>
-                          <ListClose
-                            setSelectListIndex={setSelectListIndex}
-                            onClick={() =>
-                              excludeTransaction(listItem.transaction, props)
-                            }
-                          />
+                          {!props.noCellActions && (
+                            <ListClose
+                              setSelectListIndex={setSelectListIndex}
+                              onClick={() =>
+                                excludeTransaction(listItem.transaction, props)
+                              }
+                            />
+                          )}
                         </Fragment>
                       );
                     }
@@ -341,10 +351,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>{rightValue}</RightAlignedCell>
-                        <ListClose
-                          setSelectListIndex={setSelectListIndex}
-                          onClick={() => excludeTransaction(listItem.transaction, props)}
-                        />
+                        {!props.noCellActions && (
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        )}
                       </Fragment>
                     );
                 }
