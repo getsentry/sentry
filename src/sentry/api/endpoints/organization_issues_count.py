@@ -1,7 +1,7 @@
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import start_transaction
+from sentry_sdk import Hub
 
 from sentry import features, search
 from sentry.api.bases import OrganizationEventsEndpointBase
@@ -78,9 +78,9 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
             )
 
+        transaction = Hub.current.scope.transaction
         queries = request.GET.getlist("query")
         response = {}
-        transaction = start_transaction(name="measuring issues")
         for query in queries:
             try:
                 count = self._count(
@@ -93,7 +93,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
                 )
                 response[query] = count
                 query_name = QUERY_NAMES.get(query, None)
-                if query_name and count:
+                if transaction and query_name and count:
                     transaction.set_measurement(f"issues.{query_name}", count)
 
             except (ValidationError, discover.InvalidSearchQuery) as exc:
