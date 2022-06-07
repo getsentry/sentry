@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script is an interface to any of the methods of lib.sh
 # Call this script as "do.sh method_from_lib" to execute any function from that library
-set -e
+set -eu
 HERE="$(
     cd "$(dirname "${BASH_SOURCE[0]}")"
     pwd -P
