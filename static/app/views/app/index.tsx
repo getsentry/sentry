@@ -1,5 +1,4 @@
 import {lazy, Profiler, Suspense, useCallback, useEffect, useRef} from 'react';
-import {useHotkeys} from 'react-hotkeys-hook';
 import styled from '@emotion/styled';
 
 import {
@@ -20,6 +19,7 @@ import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {onRenderCallback} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 
 import SystemAlerts from './systemAlerts';
 
@@ -38,18 +38,30 @@ function App({children}: Props) {
   const config = useLegacyStore(ConfigStore);
 
   // Command palette global-shortcut
-  useHotkeys('command+shift+p, command+k, ctrl+shift+p, ctrl+k', e => {
-    openCommandPalette();
-    e.preventDefault();
-  });
+  useHotkeys(
+    [
+      {
+        match: ['command+shift+p', 'command+k', 'ctrl+shift+p', 'ctrl+k'],
+        callback: e => {
+          openCommandPalette();
+          e.preventDefault();
+        },
+      },
+    ],
+    []
+  );
 
   // Theme toggle global shortcut
   useHotkeys(
-    'command+shift+l, ctrl+shift+l',
-    e => {
-      ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
-      e.preventDefault();
-    },
+    [
+      {
+        match: ['command+shift+l', 'ctrl+shift+l'],
+        callback: e => {
+          ConfigStore.set('theme', config.theme === 'light' ? 'dark' : 'light');
+          e.preventDefault();
+        },
+      },
+    ],
     [config.theme]
   );
 
