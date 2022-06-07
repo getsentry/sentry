@@ -265,7 +265,6 @@ export function generateReleaseWidgetFieldOptions(
 ) {
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
-  const fieldNames: string[] = [];
   const operations = new Set<SessionsOperation>();
   const knownOperations = Object.keys(SESSIONS_OPERATIONS);
 
@@ -273,7 +272,6 @@ export function generateReleaseWidgetFieldOptions(
     .sort((a, b) => a.name.localeCompare(b.name))
     .forEach(field => {
       field.operations.forEach(operation => operations.add(operation));
-      fieldNames.push(field.name);
 
       fieldOptions[`field:${field.name}`] = {
         label: field.name,

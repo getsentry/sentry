@@ -51,7 +51,7 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   // No mapping provided (e.g. Create a new mapping)
-  it('renders with no mapping provided as a form', async function () {
+  it('renders with no mapping provided as a form', function () {
     render(<IntegrationExternalMappingForm type="user" {...baseProps} />);
     expect(screen.getByPlaceholderText('@username')).toBeInTheDocument();
     expect(screen.getByText('Select Sentry User')).toBeInTheDocument();
@@ -97,7 +97,7 @@ describe('IntegrationExternalMappingForm', function () {
   });
 
   // Suggested mapping provided (e.g. Create new mapping from suggested external name)
-  it('renders with a suggested mapping provided as a form', async function () {
+  it('renders with a suggested mapping provided as a form', function () {
     render(
       <IntegrationExternalMappingForm
         type="team"
@@ -109,7 +109,7 @@ describe('IntegrationExternalMappingForm', function () {
     expect(screen.getByText('Select Sentry Team')).toBeInTheDocument();
     expect(screen.getByTestId('form-submit')).toBeInTheDocument();
   });
-  it('renders with a suggested mapping provided as an inline field', async function () {
+  it('renders with a suggested mapping provided as an inline field', function () {
     render(
       <IntegrationExternalMappingForm
         isInline

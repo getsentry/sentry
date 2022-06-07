@@ -30,7 +30,7 @@ describe('ApiApplications', function () {
     }
   });
 
-  it('renders empty', async function () {
+  it('renders empty', function () {
     requestMock = MockApiClient.addMockResponse({
       url: '/api-applications/',
       body: [],
@@ -39,7 +39,7 @@ describe('ApiApplications', function () {
     expect(wrapper.find('EmptyMessage')).toHaveLength(1);
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     createWrapper();
 
     expect(requestMock).toHaveBeenCalled();

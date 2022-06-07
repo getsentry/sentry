@@ -248,9 +248,7 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
             )
             producer = snuba_metrics_producer
         self.__producer = producer
-        self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
-            "topic", "snuba-metrics"
-        )
+        self.__producer_topic = settings.KAFKA_SNUBA_METRICS
         self.__commit_function = commit_function
 
         self.__futures: Deque[ProducerResultFuture] = deque()
@@ -438,6 +436,10 @@ def process_messages(
             org_strings[org_id].update(parsed_strings)
             strings.update(parsed_strings)
 
+    string_count = 0
+    for org_set in org_strings:
+        string_count += len(org_strings[org_set])
+    metrics.gauge("process_messages.lookups_per_batch", value=string_count)
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
@@ -646,9 +648,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         )
         producer = snuba_metrics_producer
         self.__producer = producer
-        self.__producer_topic = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS].get(
-            "topic", "snuba-metrics"
-        )
+        self.__producer_topic = settings.KAFKA_SNUBA_METRICS
         self.__commit_function = commit_function
 
         self.__closed = False
@@ -784,7 +784,8 @@ def get_streaming_metrics_consumer(
             commit_max_batch_time=commit_max_batch_time,
         )
 
-    create_topics([topic])
+    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
+    create_topics(cluster_name, [topic])
 
     return StreamProcessor(
         KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),

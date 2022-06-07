@@ -11,7 +11,7 @@ import {processInitQueue} from './processInitQueue';
 import {renderMain} from './renderMain';
 import {renderOnDomReady} from './renderOnDomReady';
 
-export async function initializeApp(config: Config) {
+export function initializeApp(config: Config) {
   commonInitialization(config);
   initializeSdk(config, {routes});
 

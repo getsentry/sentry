@@ -54,8 +54,15 @@ const USER_ACTIONS = [
 ];
 
 function UserActionsNavigator({event, crumbs}: Props) {
-  const {setCurrentTime, setCurrentHoverTime, currentHoverTime, currentTime} =
-    useReplayContext();
+  const {
+    setCurrentTime,
+    setCurrentHoverTime,
+    currentHoverTime,
+    currentTime,
+    highlight,
+    removeHighlight,
+    clearAllHighlights,
+  } = useReplayContext();
 
   const startTimestamp = event?.startTimestamp || 0;
   const userActionCrumbs =
@@ -83,13 +90,27 @@ function UserActionsNavigator({event, crumbs}: Props) {
       if (startTimestamp) {
         setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
       }
+
+      if (item.data && 'nodeId' in item.data) {
+        // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
+        // crumb to a tooltip
+        clearAllHighlights();
+        highlight({nodeId: item.data.nodeId});
+      }
     },
-    [setCurrentHoverTime, startTimestamp]
+    [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]
   );
 
-  const onMouseLeave = useCallback(() => {
-    setCurrentHoverTime(undefined);
-  }, [setCurrentHoverTime]);
+  const onMouseLeave = useCallback(
+    (item: Crumb) => {
+      setCurrentHoverTime(undefined);
+
+      if (item.data && 'nodeId' in item.data) {
+        removeHighlight({nodeId: item.data.nodeId});
+      }
+    },
+    [setCurrentHoverTime, removeHighlight]
+  );
 
   return (
     <Panel>
@@ -102,7 +123,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
             <PanelItemCenter
               key={item.id}
               onMouseEnter={() => onMouseEnter(item)}
-              onMouseLeave={() => onMouseLeave()}
+              onMouseLeave={() => onMouseLeave(item)}
             >
               <Container
                 isHovered={closestUserAction?.id === item.id}
