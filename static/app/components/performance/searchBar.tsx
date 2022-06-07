@@ -47,7 +47,7 @@ function SearchBar(props: SearchBarProps) {
         const [results] = await doDiscoverQuery<{
           data: Array<{project_id: string; transaction: string}>;
         }>(api, `/organizations/${organization.slug}/events/`, {
-          field: ['transaction', 'project', 'project_id', 'count()'],
+          field: ['transaction', 'project_id', 'count()'],
           project: projectIdStrings,
           sort: '-transaction',
           query: conditions.formatString(),
