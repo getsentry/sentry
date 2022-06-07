@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {PanelTable} from 'sentry/components/panels';
+import {PanelAlert, PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {
@@ -18,11 +18,11 @@ import {layout} from './utils';
 
 type Props = {
   disabled: boolean;
-  emptyMessage: string;
   onDeleteRule: (rule: SamplingRule) => () => void;
   onEditRule: (rule: SamplingRule) => () => void;
   onUpdateRules: (rules: Array<SamplingRule>) => void;
   rules: Array<SamplingRule>;
+  infoAlert?: React.ReactNode;
 };
 
 type State = {
@@ -103,7 +103,7 @@ export class Rules extends PureComponent<Props, State> {
   };
 
   render() {
-    const {onEditRule, onDeleteRule, disabled, emptyMessage} = this.props;
+    const {onEditRule, onDeleteRule, disabled, infoAlert} = this.props;
     const {rules} = this.state;
 
     // Rules without conditions always have to be 'pinned' to the bottom of the list
@@ -115,10 +115,11 @@ export class Rules extends PureComponent<Props, State> {
 
     return (
       <StyledPanelTable
-        headers={['', t('Operator'), t('Conditions'), t('Rate'), '']}
+        headers={['', t('Operator'), t('Condition'), t('Rate'), '']}
         isEmpty={!rules.length}
-        emptyMessage={emptyMessage}
+        emptyMessage={t('There are no transaction rules to display')}
       >
+        {infoAlert && <StyledPanelAlert type="info">{infoAlert}</StyledPanelAlert>}
         <DraggableList
           disabled={disabled}
           items={items}
@@ -210,5 +211,13 @@ const StyledPanelTable = styled(PanelTable)`
               grid-column: 1/-1;
             `}
     }
+  }
+`;
+
+const StyledPanelAlert = styled(PanelAlert)`
+  grid-column: 1/-1;
+  white-space: pre-wrap;
+  && {
+    display: flex;
   }
 `;
