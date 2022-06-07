@@ -28,7 +28,7 @@ class TraceView extends PureComponent<Props> {
   renderHeader = (dragProps: DragManagerChildrenProps) => (
     <Observer>
       {() => {
-        const {waterfallModel, organization} = this.props;
+        const {waterfallModel} = this.props;
 
         return (
           <TraceViewHeader
@@ -40,13 +40,10 @@ class TraceView extends PureComponent<Props> {
             virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
             operationNameFilters={waterfallModel.operationNameFilters}
             rootSpan={waterfallModel.rootSpan.span}
-            spans={waterfallModel.getWaterfall(
-              {
-                viewStart: 0,
-                viewEnd: 1,
-              },
-              organization.features.includes('performance-autogroup-sibling-spans')
-            )}
+            spans={waterfallModel.getWaterfall({
+              viewStart: 0,
+              viewEnd: 1,
+            })}
             generateBounds={waterfallModel.generateBounds({
               viewStart: 0,
               viewEnd: 1,
@@ -100,15 +97,10 @@ class TraceView extends PureComponent<Props> {
                                       organization={organization}
                                       waterfallModel={waterfallModel}
                                       filterSpans={waterfallModel.filterSpans}
-                                      spans={waterfallModel.getWaterfall(
-                                        {
-                                          viewStart: dragProps.viewWindowStart,
-                                          viewEnd: dragProps.viewWindowEnd,
-                                        },
-                                        organization.features.includes(
-                                          'performance-autogroup-sibling-spans'
-                                        )
-                                      )}
+                                      spans={waterfallModel.getWaterfall({
+                                        viewStart: dragProps.viewWindowStart,
+                                        viewEnd: dragProps.viewWindowEnd,
+                                      })}
                                     />
                                   </CustomerProfiler>
                                 );

@@ -273,17 +273,14 @@ class WaterfallModel {
     });
   };
 
-  getWaterfall = (
-    {
-      viewStart,
-      viewEnd,
-    }: {
-      // in [0, 1]
-      viewEnd: number;
-      viewStart: number; // in [0, 1]
-    },
-    isAutogroupSiblingFeatureEnabled: boolean
-  ) => {
+  getWaterfall = ({
+    viewStart,
+    viewEnd,
+  }: {
+    // in [0, 1]
+    viewEnd: number;
+    viewStart: number; // in [0, 1]
+  }) => {
     const generateBounds = this.generateBounds({
       viewStart,
       viewEnd,
@@ -306,7 +303,6 @@ class WaterfallModel {
       isNestedSpanGroupExpanded: false,
       addTraceBounds: this.addTraceBounds,
       removeTraceBounds: this.removeTraceBounds,
-      isAutogroupSiblingFeatureEnabled,
     });
   };
 }
