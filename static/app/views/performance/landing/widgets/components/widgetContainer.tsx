@@ -32,6 +32,7 @@ type Props = {
   organization: Organization;
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
+  withStaticFilters: boolean;
   chartColor?: string;
   forceDefaultChartSetting?: boolean;
 } & ChartRowProps;
