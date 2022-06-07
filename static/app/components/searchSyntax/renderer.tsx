@@ -163,7 +163,14 @@ const FilterToken = ({
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('keyup', onKeyUp);
     };
-  }, [isActive, filter, isInteractive, setSelectedToken, isSelectedRef]);
+  }, [
+    isActive,
+    filter,
+    isInteractive,
+    setSelectedToken,
+    isSelectedRef,
+    filterElementRef,
+  ]);
 
   return (
     <Tooltip
@@ -171,7 +178,6 @@ const FilterToken = ({
       title={filter.invalid?.reason}
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
-      skipWrapper
     >
       <Filter
         onMouseDown={e => {
