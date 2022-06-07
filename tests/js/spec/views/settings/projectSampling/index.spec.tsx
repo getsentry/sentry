@@ -146,8 +146,23 @@ describe('Sampling', function () {
               },
               id: 42,
             },
+            {
+              sampleRate: 0.2,
+              type: 'trace',
+              condition: {
+                op: 'and',
+                inner: [
+                  {
+                    op: 'glob',
+                    name: 'trace.release',
+                    value: ['1.2.3'],
+                  },
+                ],
+              },
+              id: 43,
+            },
           ],
-          next_id: 43,
+          next_id: 44,
         },
       }),
     });
@@ -171,7 +186,7 @@ describe('Sampling', function () {
     // Tab content
     const rules = screen.getAllByTestId('sampling-rule');
     expect(rules.length).toBe(2);
-    expect(rules[0]).toHaveTextContent('IfEnvironmentprod20%');
+    expect(rules[0]).toHaveTextContent('IfEnvironment=prod20%');
     expect(rules[1]).toHaveTextContent('Else50%');
 
     // Info Alert
