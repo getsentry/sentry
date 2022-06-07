@@ -160,7 +160,7 @@ class IssueWidgetQueries extends Component<Props, State> {
           ...params,
         },
       });
-      const tableResults = this.config.transformTable!(data, widget.queries[0], {
+      const tableResults = this.config.transformTable(data, widget.queries[0], {
         pageFilters: selection,
       });
       const totalCount = resp?.getResponseHeader('X-Hits') ?? null;

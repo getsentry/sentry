@@ -26,7 +26,7 @@ export const ReleasesConfig: DatasetConfig<
   transformTable: transformSessionsResponseToTable,
 };
 
-function transformSessionsResponseToTable(
+export function transformSessionsResponseToTable(
   data: SessionApiResponse | MetricsApiResponse,
   widgetQuery: WidgetQuery
 ): TableData {

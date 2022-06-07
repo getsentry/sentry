@@ -17,6 +17,15 @@ export type ContextualProps = {
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
+   * Transforms table API results into format that is used by
+   * table and big number components
+   */
+  transformTable: (
+    data: TableResponse,
+    widgetQuery: WidgetQuery,
+    contextualProps?: ContextualProps
+  ) => TableData;
+  /**
    * Used for mapping column fields to more desirable
    * values in tables.
    */
@@ -34,15 +43,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * ingestable by echarts for timeseries visualizations.
    */
   transformSeries?: (data: SeriesResponse) => Series[];
-  /**
-   * Transforms table API results into format that is used by
-   * table and big number components
-   */
-  transformTable?: (
-    data: TableResponse,
-    widgetQuery: WidgetQuery,
-    contextualProps?: ContextualProps
-  ) => TableData;
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(

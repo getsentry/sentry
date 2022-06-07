@@ -17,7 +17,7 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
   transformTable: transformIssuesResponseToTable,
 };
 
-function transformIssuesResponseToTable(
+export function transformIssuesResponseToTable(
   data: Group[],
   widgetQuery: WidgetQuery,
   contextualProps?: ContextualProps
