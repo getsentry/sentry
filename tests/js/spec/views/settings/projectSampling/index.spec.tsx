@@ -115,7 +115,8 @@ describe('Sampling', function () {
     expect(router.push).toHaveBeenCalledWith(`${SamplingRuleType.TRANSACTION}/`);
   });
 
-  it('renders individual transactions tab', function () {
+  // eslint-disable-next-line
+  it.skip('renders individual transactions tab', function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'GET',
