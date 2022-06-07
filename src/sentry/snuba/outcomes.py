@@ -207,6 +207,8 @@ GROUPBY_MAP = {
     **DIMENSION_MAP,
     "project": SimpleGroupBy("project_id", "project"),
 }
+# We don't have any scenarios where we need to group by key right now.
+GROUPBY_MAP.pop("key_id")
 
 TS_COL = "time"
 
