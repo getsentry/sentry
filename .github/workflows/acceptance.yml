@@ -101,7 +101,7 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@3c30541ebb1e4e7434fe685914495defe3d9b232
+        uses: getsentry/action-visual-snapshot@00d9299eb88cc446787d44146aba143fa8090566
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -233,7 +233,7 @@ jobs:
           USE_SNUBA: 1
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@3c30541ebb1e4e7434fe685914495defe3d9b232
+        uses: getsentry/action-visual-snapshot@00d9299eb88cc446787d44146aba143fa8090566
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -299,7 +299,7 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@3c30541ebb1e4e7434fe685914495defe3d9b232
+        uses: getsentry/action-visual-snapshot@00d9299eb88cc446787d44146aba143fa8090566
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -325,7 +325,7 @@ jobs:
 
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@3c30541ebb1e4e7434fe685914495defe3d9b232
+        uses: getsentry/action-visual-snapshot@00d9299eb88cc446787d44146aba143fa8090566
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
