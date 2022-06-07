@@ -157,6 +157,14 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     window.clearTimeout(this.pollingTimeout);
   }
 
+  componentDidUpdate(_prevProps: Props, prevState: State) {
+    if (prevState.project.id === this.state.project.id) {
+      return;
+    }
+
+    this.fetchEnvironments();
+  }
+
   getTitle() {
     const {organization} = this.props;
     const {rule, project} = this.state;
@@ -289,6 +297,22 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       this.setState({loading: false});
     }
   };
+
+  fetchEnvironments() {
+    const {
+      params: {orgId},
+    } = this.props;
+    const {project} = this.state;
+
+    this.api
+      .requestPromise(`/projects/${orgId}/${project.slug}/environments/`, {
+        query: {
+          visibility: 'visible',
+        },
+      })
+      .then(response => this.setState({environments: response}))
+      .catch(_err => addErrorMessage(t('Unable to fetch environments')));
+  }
 
   fetchStatus() {
     // pollHandler calls itself until it gets either a success
