@@ -45,14 +45,14 @@ class BaseIndexer(Model):  # type: ignore
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     retention_days = models.IntegerField(default=90)
 
+    objects = BaseManager(cache_fields=("pk",), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
+
     class Meta:
         abstract = True
 
 
 class StringIndexer(BaseIndexer):
     __include_in_export__ = False
-
-    objects = BaseManager(cache_fields=("pk",), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
 
     class Meta:
         db_table = "sentry_stringindexer"
@@ -64,8 +64,6 @@ class StringIndexer(BaseIndexer):
 
 class PerfStringIndexer(BaseIndexer):
     __include_in_export__ = False
-
-    objects = BaseManager(cache_fields=("pk",), cache_ttl=settings.SENTRY_METRICS_INDEXER_CACHE_TTL)  # type: ignore
 
     class Meta:
         db_table = "sentry_perfindexer"
