@@ -11,8 +11,8 @@ const modifierKeys = [
 
 /**
  * Pass in the hotkey combinations under match and the corresponding callback function to be called.
- * Separate key names with +. For example, command+alt+shift+x
- * Alternate matchings with a comma: command+alt+backspace,ctrl+alt+delete
+ * Separate key names with +. For example, 'command+alt+shift+x'
+ * Alternate matchings as an array: ['command+alt+backspace', 'ctrl+alt+delete']
  */
 export function useHotkeys(
   hotkeys: {callback: (e: KeyboardEvent) => void; match: string[] | string}[],
