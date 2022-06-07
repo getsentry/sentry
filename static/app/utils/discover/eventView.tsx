@@ -331,7 +331,9 @@ class EventView {
       })
       .filter((sortKey): sortKey is string => !!sortKey);
 
-    const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
+    const sort = sorts.find(currentSort => {
+      return sortKeys.includes(currentSort.field);
+    });
     sorts = sort ? [sort] : [];
 
     const id = props.id !== null && props.id !== void 0 ? String(props.id) : void 0;
