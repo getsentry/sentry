@@ -29,6 +29,7 @@ from sentry.incidents.tasks import (
     handle_trigger_action,
     send_subscriber_notifications,
 )
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils import TestCase
@@ -212,7 +213,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         )
         return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
-    def build_subscription_update_v2(self):
+    def build_subscription_update(self):
         timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
         data = {
             "count": 100,
@@ -244,3 +245,37 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
                     },
                 )
             ]
+
+
+class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger):
+    """Repeat TestHandleSubscriptionMetricsLogger with old (v1) subscription updates.
+
+    This entire test class can be removed once all subscriptions have been migrated to v2
+    """
+
+    def build_subscription_update(self):
+        timestamp = timezone.now().replace(tzinfo=pytz.utc, microsecond=0)
+        values = {
+            "data": [
+                {
+                    resolve_tag_key(self.organization.id, "session.status"): resolve(
+                        self.organization.id, "init"
+                    ),
+                    "value": 100.0,
+                },
+                {
+                    resolve_tag_key(self.organization.id, "session.status"): resolve(
+                        self.organization.id, "crashed"
+                    ),
+                    "value": 2.0,
+                },
+            ]
+        }
+        return {
+            "subscription_id": self.subscription.subscription_id,
+            "values": values,
+            "timestamp": timestamp,
+            "interval": 1,
+            "partition": 1,
+            "offset": 1,
+        }
