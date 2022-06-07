@@ -1,4 +1,5 @@
 import {screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {SamplingRuleType} from 'sentry/types/sampling';
 import {SAMPLING_DOC_LINK} from 'sentry/views/settings/project/sampling/utils';
@@ -37,7 +38,7 @@ describe('Sampling', function () {
 
     // Tab content
     expect(screen.getByText('Operator')).toBeInTheDocument();
-    expect(screen.getByText('Conditions')).toBeInTheDocument();
+    expect(screen.getByText('Condition')).toBeInTheDocument();
     expect(screen.getByText('Rate')).toBeInTheDocument();
 
     // Empty message is displayed
@@ -172,6 +173,15 @@ describe('Sampling', function () {
     expect(rules.length).toBe(2);
     expect(rules[0]).toHaveTextContent('IfEnvironmentprod20%');
     expect(rules[1]).toHaveTextContent('Else50%');
+
+    // Info Alert
+    screen.getByText(
+      textWithMarkupMatcher('1 Distributed Trace rule will initiate before these rules')
+    );
+    expect(screen.getByRole('link', {name: '1 Distributed Trace rule'})).toHaveAttribute(
+      'href',
+      `${SamplingRuleType.TRACE}/`
+    );
 
     // Empty message is not displayed
     expect(screen.queryByText(EMPTY_MESSAGE)).not.toBeInTheDocument();
