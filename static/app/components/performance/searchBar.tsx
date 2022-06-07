@@ -40,13 +40,25 @@ function SearchBar(props: SearchBarProps) {
       const projectIdStrings = (eventView.project as Readonly<number>[])?.map(String);
       try {
         setLoading(true);
-        // TODO use event view here maybe?
         const conditions = new MutableSearch('');
         conditions.addFilterValues('transaction', [`*${query}*`], false);
         conditions.addFilterValues('event.type', ['transaction']);
+
+        // clear any active requests
+        if (Object.keys(api.activeRequests).length) {
+          api.clear();
+        }
+
+        const useEvents = organization.features.includes(
+          'performance-frontend-use-events-endpoint'
+        );
+        const url = useEvents
+          ? `/organizations/${organization.slug}/events/`
+          : `/organizations/${organization.slug}/eventsv2/`;
+
         const [results] = await doDiscoverQuery<{
-          data: Array<{project_id: string; transaction: string}>;
-        }>(api, `/organizations/${organization.slug}/events/`, {
+          data: Array<{'count()': number; project_id: number; transaction: string}>;
+        }>(api, url, {
           field: ['transaction', 'project_id', 'count()'],
           project: projectIdStrings,
           sort: '-transaction',

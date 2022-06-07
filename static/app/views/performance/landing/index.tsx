@@ -15,7 +15,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageHeading from 'sentry/components/pageHeading';
-import TxnNameSearchBar from 'sentry/components/performance/searchBar';
+import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -219,7 +219,9 @@ export function PerformanceLanding(props: Props) {
                     {({hasFeature}) =>
                       hasFeature ? (
                         // transaction search handles searching within the component
-                        <TxnNameSearchBar
+                        // TODO replace `handleSearch prop` with transaction name search once
+                        // transaction name search becomes the default search bar
+                        <TransactionNameSearchBar
                           organization={organization}
                           location={location}
                           eventView={eventView}
