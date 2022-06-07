@@ -117,6 +117,13 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
                         munged_frame: Mapping[str, Any] = munged_frames[1][0]
                         munged_filename = str(munged_frame.get("munged_filename"))
                         if munged_filename:
+                            if not filepath.startswith(
+                                config.stack_root
+                            ) and not munged_filename.startswith(config.stack_root):
+                                scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
+                                result["error"] = "stack_root_mismatch"
+                                continue
+
                             link, attempted_url, error = get_link(
                                 config, munged_filename, config.default_branch, commit_id
                             )

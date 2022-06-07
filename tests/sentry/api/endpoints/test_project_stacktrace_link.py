@@ -135,7 +135,7 @@ class ProjectStacktraceLinkTest(APITestCase):
         ExampleIntegration,
         "get_stacktrace_link",
     )
-    def test_frame_fallback_munge_return_none(self, mock_integration, mock_munger):
+    def test_file_not_found_and_munge_frame_fallback_not_found(self, mock_integration, mock_munger):
         mock_integration.return_value = None
         mock_munger.return_value = None
 
@@ -164,18 +164,11 @@ class ProjectStacktraceLinkTest(APITestCase):
         ExampleIntegration,
         "get_stacktrace_link",
     )
-    def test_frame_fallback_after_file_not_found(self, mock_integration, mock_munger):
+    def test_file_not_found_munge_frame_fallback_success(self, mock_integration, mock_munger):
         mock_integration.side_effect = [None, "https://github.com/repo/path/to/munged/file.py"]
         mock_munger.return_value = (
             "munged_filename",
-            [
-                {
-                    "absPath": "abs_path",
-                    "module": "module",
-                    "package": "package",
-                    "munged_filename": "munged",
-                }
-            ],
+            [{"munged_filename": "usr/src/getsentry/file.py"}],
         )
 
         response = self.get_success_response(
@@ -191,4 +184,31 @@ class ProjectStacktraceLinkTest(APITestCase):
         assert mock_integration.call_count == 2
         assert response.data["config"] == self.expected_configurations()
         assert response.data["sourceUrl"] == "https://github.com/repo/path/to/munged/file.py"
+        assert response.data["integrations"] == [serialized_integration(self.integration)]
+
+    @mock.patch("sentry.api.endpoints.project_stacktrace_link.munged_filename_and_frames")
+    @mock.patch.object(
+        ExampleIntegration,
+        "get_stacktrace_link",
+    )
+    def test_file_stack_root_mismatch_and_munge_frame_fallback_stack_root_mismatch(
+        self, mock_integration, mock_munger
+    ):
+        mock_integration.return_value = None
+        mock_munger.return_value = ("munged_filename", [{"munged_filename": "munged"}])
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={
+                "file": "something/else/" + self.filepath,
+                "absPath": "any",
+                "module": "any",
+                "package": "any",
+            },
+        )
+        assert mock_integration.call_count == 1
+        assert response.data["config"] == self.expected_configurations()
+        assert not response.data["sourceUrl"]
+        assert response.data["error"] == "stack_root_mismatch"
         assert response.data["integrations"] == [serialized_integration(self.integration)]
