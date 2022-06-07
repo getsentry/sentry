@@ -209,6 +209,7 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
     update_config_cache.assert_not_called()
 
 
+@pytest.mark.xfail(reason="XXX temporarily disabled")
 @pytest.mark.django_db
 def test_projectkeys(default_project, task_runner, redis_cache):
     with task_runner():

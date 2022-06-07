@@ -73,7 +73,7 @@ def update_config_cache(
             # In other similar cases, like an org being deleted, we potentially
             # cannot find any keys anymore, so we don't know which cache keys
             # to delete.
-            projectconfig_cache.set_many({public_key: {"disabled": True}})
+            projectconfig_cache.delete_many([public_key])
             return
 
     else:
