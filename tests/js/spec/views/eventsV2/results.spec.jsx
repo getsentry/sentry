@@ -1639,7 +1639,7 @@ describe('Results', function () {
       wrapper.update();
 
       const projectPageFilter = wrapper
-        .find('[data-test-id="global-header-project-selector"]')
+        .find('[data-test-id="page-filter-project-selector"]')
         .first();
 
       expect(projectPageFilter.text()).toEqual('Pinned Project');
