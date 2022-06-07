@@ -5,7 +5,7 @@ from django.conf import settings
 from sentry.loader.browsersdkversion import (
     get_browser_sdk_version_versions,
     get_highest_browser_sdk_version,
-    get_highest_selected_browser_sdk_version,
+    match_selected_version_to_browser_sdk_version,
 )
 from sentry.testutils import TestCase
 
@@ -36,22 +36,22 @@ class BrowserSdkVersionTestCase(TestCase):
         "sentry.loader.browsersdkversion.load_version_from_file", return_value=MOCK_VERSIONS
     )
     def test_get_highest_selected_version(self, load_version_from_file):
-        assert str(get_highest_selected_browser_sdk_version("4.x")) == "4.6.4"
-        assert str(get_highest_selected_browser_sdk_version("5.x")) == "5.10.1"
-        assert str(get_highest_selected_browser_sdk_version("latest")) == "5.10.1"
+        assert str(match_selected_version_to_browser_sdk_version("4.x")) == "4.6.4"
+        assert str(match_selected_version_to_browser_sdk_version("5.x")) == "5.10.1"
+        assert str(match_selected_version_to_browser_sdk_version("latest")) == "5.10.1"
 
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=[])
     def test_get_highest_selected_version_no_version(self, load_version_from_file):
         settings.JS_SDK_LOADER_SDK_VERSION = "0.5.2"
         assert (
-            str(get_highest_selected_browser_sdk_version("4.x"))
+            str(match_selected_version_to_browser_sdk_version("4.x"))
             == settings.JS_SDK_LOADER_SDK_VERSION
         )
         assert (
-            str(get_highest_selected_browser_sdk_version("5.x"))
+            str(match_selected_version_to_browser_sdk_version("5.x"))
             == settings.JS_SDK_LOADER_SDK_VERSION
         )
         assert (
-            str(get_highest_selected_browser_sdk_version("latest"))
+            str(match_selected_version_to_browser_sdk_version("latest"))
             == settings.JS_SDK_LOADER_SDK_VERSION
         )
