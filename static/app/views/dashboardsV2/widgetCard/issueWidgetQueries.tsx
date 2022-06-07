@@ -4,14 +4,12 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {Group, OrganizationSummary, PageFilters} from 'sentry/types';
+import {OrganizationSummary, PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {queryToObj} from 'sentry/utils/stream';
-import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
+import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery, WidgetType} from '../types';
@@ -123,87 +121,6 @@ class IssueWidgetQueries extends Component<Props, State> {
   ];
 
   config = getDatasetConfig(WidgetType.ISSUE);
-
-  transformTableResults(tableResults: Group[]): TableDataRow[] {
-    const {selection, widget} = this.props;
-    GroupStore.add(tableResults);
-    const transformedTableResults: TableDataRow[] = [];
-    tableResults.forEach(
-      ({
-        id,
-        shortId,
-        title,
-        lifetime,
-        filtered,
-        count,
-        userCount,
-        project,
-        annotations,
-        ...resultProps
-      }) => {
-        const transformedResultProps: Omit<TableDataRow, 'id'> = {};
-        Object.keys(resultProps)
-          .filter(key => ['number', 'string'].includes(typeof resultProps[key]))
-          .forEach(key => {
-            transformedResultProps[key] = resultProps[key];
-          });
-
-        const transformedTableResult: TableDataRow = {
-          ...transformedResultProps,
-          events: count,
-          users: userCount,
-          id,
-          'issue.id': id,
-          issue: shortId,
-          title,
-          project: project.slug,
-          links: annotations?.join(', '),
-        };
-
-        // Get lifetime stats
-        if (lifetime) {
-          transformedTableResult.lifetimeEvents = lifetime?.count;
-          transformedTableResult.lifetimeUsers = lifetime?.userCount;
-        }
-        // Get filtered stats
-        if (filtered) {
-          transformedTableResult.filteredEvents = filtered?.count;
-          transformedTableResult.filteredUsers = filtered?.userCount;
-        }
-
-        // Discover Url properties
-        const query = widget.queries[0].conditions;
-        const queryTerms: string[] = [];
-        if (typeof query === 'string') {
-          const queryObj = queryToObj(query);
-          for (const queryTag in queryObj) {
-            if (!DISCOVER_EXCLUSION_FIELDS.includes(queryTag)) {
-              const queryVal = queryObj[queryTag].includes(' ')
-                ? `"${queryObj[queryTag]}"`
-                : queryObj[queryTag];
-              queryTerms.push(`${queryTag}:${queryVal}`);
-            }
-          }
-
-          if (queryObj.__text) {
-            queryTerms.push(queryObj.__text);
-          }
-        }
-        transformedTableResult.discoverSearchQuery =
-          (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
-        transformedTableResult.projectId = project.id;
-
-        const {period, start, end} = selection.datetime || {};
-        if (start && end) {
-          transformedTableResult.start = getUtcDateString(start);
-          transformedTableResult.end = getUtcDateString(end);
-        }
-        transformedTableResult.period = period ?? '';
-        transformedTableResults.push(transformedTableResult);
-      }
-    );
-    return transformedTableResults;
-  }
 
   async fetchIssuesData() {
     const {selection, api, organization, widget, limit, cursor, onDataFetched} =

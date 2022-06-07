@@ -30,11 +30,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   ) => TableData;
 }
 
-export function getDatasetConfig<B extends WidgetType | undefined>(
-  widgetType: B
-): B extends WidgetType.ISSUE
+export function getDatasetConfig<T extends WidgetType | undefined>(
+  widgetType: T
+): T extends WidgetType.ISSUE
   ? typeof IssuesConfig
-  : B extends WidgetType.RELEASE
+  : T extends WidgetType.RELEASE
   ? typeof ReleasesConfig
   : typeof ErrorsAndTransactionsConfig;
 
