@@ -216,6 +216,7 @@ class WidgetCard extends Component<Props, State> {
       noLazyLoad,
       showStoredAlert,
     } = this.props;
+
     const {start, period} = selection.datetime;
     let showIncompleteDataAlert: boolean = false;
     if (widget.widgetType === WidgetType.RELEASE && showStoredAlert) {

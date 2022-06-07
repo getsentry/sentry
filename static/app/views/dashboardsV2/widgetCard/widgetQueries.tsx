@@ -28,7 +28,14 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
+import {getDatasetConfig} from '../datasetConfig/base';
+import {
+  DEFAULT_TABLE_LIMIT,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
@@ -282,6 +289,7 @@ class WidgetQueries extends Component<Props, State> {
 
   static contextType = DashboardsMEPContext;
   context: React.ContextType<typeof DashboardsMEPContext> | undefined;
+  config = getDatasetConfig(WidgetType.DISCOVER);
 
   private _isMounted: boolean = false;
 
@@ -354,15 +362,9 @@ class WidgetQueries extends Component<Props, State> {
         isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
 
         // Cast so we can add the title.
-        let tableData = data as TableDataWithTitle;
-        // events api uses a different response format so we need to construct tableData differently
-        if (shouldUseEvents) {
-          const fieldsMeta = (data as EventsTableData).meta?.fields;
-          tableData = {
-            ...data,
-            meta: {...fieldsMeta, isMetricsData: data.meta?.isMetricsData},
-          } as TableDataWithTitle;
-        }
+        const tableData = this.config.transformTable!(data, widget.queries[0], {
+          organization,
+        }) as TableDataWithTitle;
         tableData.title = widget.queries[i]?.name ?? '';
 
         // Overwrite the local var to work around state being stale in tests.

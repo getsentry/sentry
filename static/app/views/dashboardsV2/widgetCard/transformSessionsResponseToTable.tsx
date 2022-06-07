@@ -10,7 +10,7 @@ import {
 
 import {derivedMetricsToField} from './releaseWidgetQueries';
 
-function changeObjectValuesToTypes(
+export function changeObjectValuesToTypes(
   obj: Record<string, number | string | null> | undefined
 ) {
   return Object.keys(obj ?? {}).reduce((acc, key) => {
@@ -19,7 +19,7 @@ function changeObjectValuesToTypes(
   }, {});
 }
 
-function mapDerivedMetricsToFields(results: Record<string, number | null>) {
+export function mapDerivedMetricsToFields(results: Record<string, number | null>) {
   const mappedResults: Record<string, number | null> = {};
   for (const [key, value] of Object.entries(results)) {
     mappedResults[derivedMetricsToField(key)] = value;
