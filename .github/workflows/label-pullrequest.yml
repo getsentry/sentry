@@ -15,18 +15,17 @@ jobs:
         uses: getsentry/paths-filter@master
         id: changes
         with:
-          list-files: shell
           token: ${{ github.token }}
           filters: .github/file-filters.yml
 
       - name: Add frontend label
         uses: actions-ecosystem/action-add-labels@v1
-        if: needs.files-changed.outputs.frontend == 'true'
+        if: steps.changes.outputs.frontend == 'true'
         with:
           labels: frontend
 
       - name: Add backend label
         uses: actions-ecosystem/action-add-labels@v1
-        if: needs.files-changed.outputs.backend == 'true'
+        if: steps.changes.outputs.backend == 'true'
         with:
           labels: backend
