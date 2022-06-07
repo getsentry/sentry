@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_transaction
 
 from sentry import features, search
 from sentry.api.bases import OrganizationEventPermission, OrganizationEventsEndpointBase
@@ -345,6 +346,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
         self.add_cursor_headers(request, response, cursor_result)
 
         # TODO(jess): add metrics that are similar to project endpoint here
+        transaction = start_transaction(name="measuring issues")
+        transaction.set_measurement("issues.unresolved", len(cursor_result))
+
         return response
 
     @track_slo_response("workflow")

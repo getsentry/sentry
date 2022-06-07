@@ -1,6 +1,7 @@
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import start_transaction
 
 from sentry import features, search
 from sentry.api.bases import OrganizationEventsEndpointBase
@@ -11,9 +12,13 @@ from sentry.snuba import discover
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
-
-
 ISSUES_COUNT_MAX_HITS_LIMIT = 100
+QUERY_NAMES = {
+    "is:unresolved is:for_review assigned_or_suggested:[me, none]": "for_review",
+    "is:unresolved": "unresolved",
+    "is:ignored": "ignored",
+    "is:reprocessing": "reprocessing",
+}
 
 
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
@@ -75,6 +80,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
 
         queries = request.GET.getlist("query")
         response = {}
+        transaction = start_transaction(name="measuring issues")
         for query in queries:
             try:
                 count = self._count(
@@ -86,6 +92,10 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
                     {"count_hits": True, "date_to": end, "date_from": start},
                 )
                 response[query] = count
+                query_name = QUERY_NAMES.get(query, None)
+                if query_name and count:
+                    transaction.set_measurement(f"issues.{query_name}", count)
+
             except (ValidationError, discover.InvalidSearchQuery) as exc:
                 return Response({"detail": str(exc)}, status=400)
 
