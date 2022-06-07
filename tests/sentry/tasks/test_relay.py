@@ -116,7 +116,7 @@ def test_generate(
         kwargs = {"organization_id": default_organization.id}
 
     with task_runner():
-        schedule_build_config_cache(generate=True, **kwargs)
+        schedule_build_config_cache(**kwargs)
 
     cfg = redis_cache.get(default_projectkey.public_key)
 
