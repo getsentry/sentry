@@ -1247,7 +1247,7 @@ class SmartSearchBar extends Component<Props, State> {
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
 
-    const commonActionsSearchGroup = getCommonActionsSearchGroup(
+    const commonActionsSearchResults = getCommonActionsSearchGroup(
       this.cursorToken?.type === Token.Filter,
       this.runTokenActionOnActiveToken
     );
@@ -1276,8 +1276,12 @@ class SmartSearchBar extends Component<Props, State> {
         }
       );
 
-    if (commonActionsSearchGroup) {
-      searchGroups.searchGroups.push(commonActionsSearchGroup);
+    if (commonActionsSearchResults) {
+      searchGroups.searchGroups.push(commonActionsSearchResults.searchGroup);
+      searchGroups.flatSearchItems = [
+        ...searchGroups.flatSearchItems,
+        ...commonActionsSearchResults.searchItems,
+      ];
     }
 
     this.setState(searchGroups);

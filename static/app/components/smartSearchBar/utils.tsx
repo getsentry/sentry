@@ -255,17 +255,22 @@ export function getValidOps(
 export function getCommonActionsSearchGroup(
   hasActiveToken: boolean,
   runTokenActionOnCursorToken: (actionType: TokenActionType) => void
-): SearchGroup | undefined {
+): {searchGroup: SearchGroup; searchItems: SearchItem[]} | undefined {
+  const searchItems = commonActions.map(action => ({
+    title: action.text,
+    callback: () => runTokenActionOnCursorToken(action.actionType),
+    documentation: <HotkeysLabel value={action.hotkeys.display} />,
+  }));
+
   return hasActiveToken
     ? {
-        title: t('Common Actions'),
-        type: 'header',
-        icon: <IconStar size="xs" />,
-        children: commonActions.map(action => ({
-          title: action.text,
-          callback: () => runTokenActionOnCursorToken(action.actionType),
-          documentation: <HotkeysLabel value={action.hotkeys.display} />,
-        })),
+        searchGroup: {
+          title: t('Common Actions'),
+          type: 'header',
+          icon: <IconStar size="xs" />,
+          children: searchItems,
+        },
+        searchItems,
       }
     : undefined;
 }
