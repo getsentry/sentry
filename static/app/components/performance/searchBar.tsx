@@ -97,7 +97,11 @@ function SearchBar(props: SearchBarProps) {
     <Container>
       <BaseSearchBar placeholder={t('Search Transactions')} onChange={handleSearch} />
       <SearchDropdown
-        css={{display: searchResults[0]?.children.length ? 'block' : 'none'}}
+        css={{
+          display: searchResults[0]?.children.length ? 'block' : 'none',
+          maxHeight: '300px',
+          overflowY: 'auto',
+        }}
         loading={loading}
         items={searchResults}
         onClick={navigateToTransactionSummary}
