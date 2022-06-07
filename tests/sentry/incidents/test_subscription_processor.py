@@ -38,6 +38,8 @@ from sentry.incidents.subscription_processor import (
     update_alert_rule_stats,
 )
 from sentry.models import Integration
+from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer
+from sentry.sentry_metrics.utils import resolve_tag_key, resolve_weak
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQueryEventType
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import SessionMetricsTestCase
@@ -316,7 +318,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         self.metrics.incr.reset_mock()
         self.send_update(self.rule, self.trigger.alert_threshold, timedelta(hours=1))
-        self.metrics.incr.assert_not_called()
+        assert self.metrics.incr.call_count == 0
 
     def test_no_alert(self):
         rule = self.rule
@@ -1596,6 +1598,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetricsTestCase):
     entity_subscription_metrics = patcher("sentry.snuba.entity_subscription.metrics")
+    format = "v2"  # TODO: remove once subscriptions migrated
 
     def setUp(self):
         super().setUp()
@@ -1896,7 +1899,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
             [
                 call("incidents.alert_rules.ignore_update_no_session_data"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
+            ],
+            any_order=True,
         )
 
     @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
@@ -1918,7 +1922,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
             [
                 call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
+            ],
+            any_order=True,
         )
 
     @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
@@ -1970,7 +1975,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
             [
                 call("incidents.alert_rules.ignore_update_no_session_data"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
+            ],
+            any_order=True,
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
@@ -2006,7 +2012,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
             [
                 call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
+            ],
+            any_order=True,
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
 
@@ -2055,7 +2062,8 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
             [
                 call("incidents.alert_rules.ignore_update_no_session_data"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
+            ],
+            any_order=True,
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_active_incident(rule)
@@ -2108,12 +2116,102 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, SessionMetr
             [
                 call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ]
+            ],
+            any_order=True,
         )
         self.assert_trigger_counts(processor, trigger, 0, 0)
         self.assert_active_incident(rule)
         self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
         self.assert_action_handler_called_with_actions(incident, [])
+
+    def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(self):
+        MetricsKeyIndexer.objects.all().delete()
+        rule = self.crash_rate_alert_rule
+        subscription = rule.snuba_query.subscriptions.filter(project=self.project).get()
+        processor = SubscriptionProcessor(subscription)
+        processor.process_update(
+            {
+                "subscription_id": subscription.subscription_id,
+                "values": {
+                    # 1001 is a random int that doesn't map to anything in the indexer
+                    "data": [{resolve_tag_key(self.organization.id, "session.status"): 1001}]
+                },
+                "timestamp": timezone.now(),
+                "interval": 1,
+                "partition": 1,
+                "offset": 1,
+            }
+        )
+        self.assert_no_active_incident(rule)
+        self.entity_subscription_metrics.incr.assert_has_calls(
+            [
+                call("incidents.entity_subscription.metric_index_not_found"),
+            ]
+        )
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.ignore_update_no_session_data"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ],
+            any_order=True,
+        )
+
+
+class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdateTest):
+    """Repeat MetricsCrashRateUpdateAlertTest with old (v1) subscription updates.
+
+    This entire test class can be removed once all subscriptions have been migrated to v2
+    """
+
+    def send_crash_rate_alert_update(self, rule, value, subscription, time_delta=None, count=EMPTY):
+        org_id = self.organization.id
+        self.email_action_handler.reset_mock()
+        if time_delta is None:
+            time_delta = timedelta()
+        processor = SubscriptionProcessor(subscription)
+
+        if time_delta is not None:
+            timestamp = timezone.now() + time_delta
+        else:
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(tzinfo=pytz.utc, microsecond=0)
+
+        with self.feature(
+            ["organizations:incidents", "organizations:performance-view"]
+        ), self.capture_on_commit_callbacks(execute=True):
+            if value is None:
+                numerator, denominator = 0, 0
+            else:
+                if count is EMPTY:
+                    numerator, denominator = value.as_integer_ratio()
+                else:
+                    denominator = count
+                    numerator = int(value * denominator)
+            session_status = resolve_tag_key(org_id, "session.status")
+            tag_value_init = resolve_weak(org_id, "init")
+            tag_value_crashed = resolve_weak(org_id, "crashed")
+            processor.process_update(
+                {
+                    "subscription_id": subscription.subscription_id
+                    if subscription
+                    else uuid4().hex,
+                    "values": {
+                        "data": [
+                            {"project_id": 8, session_status: tag_value_init, "value": denominator},
+                            {
+                                "project_id": 8,
+                                session_status: tag_value_crashed,
+                                "value": numerator,
+                            },
+                        ]
+                    },
+                    "timestamp": timestamp,
+                    "interval": 1,
+                    "partition": 1,
+                    "offset": 1,
+                }
+            )
+        return processor
 
 
 class TestBuildAlertRuleStatKeys(unittest.TestCase):

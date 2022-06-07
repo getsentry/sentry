@@ -2,7 +2,7 @@ import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Type, TypedDict, Union
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, TypedDict, Union
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
@@ -10,7 +10,13 @@ from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscrip
 from sentry.models import Environment
 from sentry.search.events.fields import resolve_field_list
 from sentry.search.events.filter import get_filter
-from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak
+from sentry.sentry_metrics.utils import (
+    MetricIndexNotFound,
+    resolve,
+    resolve_tag_key,
+    resolve_weak,
+    reverse_resolve,
+)
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
@@ -327,7 +333,72 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             "granularity": self.get_granularity(),
         }
 
+    @staticmethod
+    def translate_sessions_tag_keys_and_values(
+        data: List[Dict[str, Any]], org_id: int, alias: Optional[str] = None
+    ) -> Tuple[int, int]:
+        value_col_name = alias if alias else "value"
+        try:
+            translated_data: Dict[str, Any] = {}
+            session_status = resolve_tag_key(org_id, "session.status")
+            for row in data:
+                tag_value = reverse_resolve(row[session_status])
+                translated_data[tag_value] = row[value_col_name]
+
+            total_session_count = translated_data.get("init", 0)
+            crash_count = translated_data.get("crashed", 0)
+        except MetricIndexNotFound:
+            metrics.incr("incidents.entity_subscription.metric_index_not_found")
+            total_session_count = crash_count = 0
+        return total_session_count, crash_count
+
+    @staticmethod
+    def is_crash_rate_format_v2(data: List[Dict[str, Any]]):
+        """Check if this is the new update format.
+        This function can be removed once all subscriptions have been updated.
+        """
+        return data and "crashed" in data[0]
+
     def aggregate_query_results(
+        self, data: List[Dict[str, Any]], alias: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Handle both update formats. Once all subscriptions have been updated
+        to v2, we can remove v1 and replace this function with current v2.
+        """
+        if self.is_crash_rate_format_v2(data):
+            version = "v2"
+            result = self._aggregate_query_results_v2(data)
+        else:
+            version = "v1"
+            result = self._aggregate_query_results_v1(data)
+
+        metrics.incr(
+            "incidents.entity_subscription.aggregate_query_results",
+            tags={"format": version},
+            sample_rate=1.0,
+        )
+        return result
+
+    def _aggregate_query_results_v1(
+        self, data: List[Dict[str, Any]], alias: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        aggregated_results: List[Dict[str, Any]]
+        total_session_count, crash_count = self.translate_sessions_tag_keys_and_values(
+            org_id=self.org_id, data=data, alias=alias
+        )
+        if total_session_count == 0:
+            metrics.incr(
+                "incidents.entity_subscription.metrics.aggregate_query_results.no_session_data"
+            )
+            crash_free_rate = None
+        else:
+            crash_free_rate = round((1 - crash_count / total_session_count) * 100, 3)
+
+        col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
+        aggregated_results = [{col_name: crash_free_rate}]
+        return aggregated_results
+
+    def _aggregate_query_results_v2(
         self, data: List[Dict[str, Any]], alias: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         aggregated_results: List[Dict[str, Any]]
