@@ -11,7 +11,7 @@ describe('IntegrationRow', function () {
   const org = TestStubs.Organization();
 
   describe('SentryApp', function () {
-    it('is an internal SentryApp', async function () {
+    it('is an internal SentryApp', function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -37,7 +37,7 @@ describe('IntegrationRow', function () {
       expect(wrapper.find('PublishStatus').props().status).toEqual('internal');
     });
 
-    it('is a published SentryApp', async function () {
+    it('is a published SentryApp', function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -60,7 +60,7 @@ describe('IntegrationRow', function () {
     });
   });
   describe('First Party Integration', function () {
-    it('has been installed (1 configuration)', async function () {
+    it('has been installed (1 configuration)', function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -83,7 +83,7 @@ describe('IntegrationRow', function () {
       expect(wrapper.find('StyledLink').props().children).toEqual('1 Configuration');
     });
 
-    it('has been installed (3 configurations)', async function () {
+    it('has been installed (3 configurations)', function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -106,7 +106,7 @@ describe('IntegrationRow', function () {
       expect(wrapper.find('StyledLink').props().children).toEqual('3 Configurations');
     });
 
-    it('has not been installed', async function () {
+    it('has not been installed', function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -130,7 +130,7 @@ describe('IntegrationRow', function () {
     });
   });
   describe('Plugin', function () {
-    it('has been installed (1 project)', async function () {
+    it('has been installed (1 project)', function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -153,7 +153,7 @@ describe('IntegrationRow', function () {
       expect(wrapper.find('StyledLink').props().children).toEqual('1 Configuration');
     });
 
-    it('has been installed (3 projects)', async function () {
+    it('has been installed (3 projects)', function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}
@@ -176,7 +176,7 @@ describe('IntegrationRow', function () {
       expect(wrapper.find('StyledLink').props().children).toEqual('3 Configurations');
     });
 
-    it('has not been installed', async function () {
+    it('has not been installed', function () {
       const wrapper = mountWithTheme(
         <IntegrationRow
           organization={org}

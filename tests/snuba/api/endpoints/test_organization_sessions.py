@@ -6,9 +6,11 @@ import pytest
 from django.urls import reverse
 from freezegun import freeze_time
 
+from sentry.release_health.duplex import DuplexReleaseHealthBackend
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import SessionMetricsTestCase
+from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.link_header import parse_link_header
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_timestamp
@@ -773,7 +775,8 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
                     "project": [-1],
                     "statsPeriod": "3d",
                     "interval": "1d",
-                    "field": ["sum(session)", "count_unique(user)"],
+                    # "user" is the first field, but "session" always wins:
+                    "field": ["count_unique(user)", "sum(session)"],
                     "groupBy": ["project", "release", "environment"],
                 }
             )
@@ -1921,3 +1924,39 @@ class SessionsMetricsSortReleaseTimestampTest(SessionMetricsTestCase, APITestCas
                 "series": {"sum(session)": [5]},
             },
         ]
+
+
+@patch(
+    "sentry.api.endpoints.organization_sessions.release_health",
+    DuplexReleaseHealthBackend(datetime.datetime(2022, 4, 28, 16, 0, tzinfo=datetime.timezone.utc)),
+)
+class DuplexTestCase(SessionMetricsTestCase, APITestCase):
+    """Tests specific to the duplex backend"""
+
+    def do_request(self, query, user=None, org=None):
+        self.login_as(user=user or self.user)
+        url = reverse(
+            "sentry-api-0-organization-sessions",
+            kwargs={"organization_slug": (org or self.organization).slug},
+        )
+        return self.client.get(url, query, format="json")
+
+    @freeze_time(MOCK_DATETIME)
+    def test_invalid_params(self):
+        """InvalidParams in metrics backend leads to 400 response when return-metrics is enabled"""
+        self.create_project()
+        with Feature("organizations:release-health-return-metrics"):
+            response = self.do_request(
+                {
+                    "project": [-1],
+                    "statsPeriod": ["24h"],
+                    "interval": ["1h"],
+                    "field": ["crash_rate(session)"],
+                    "groupBy": ["session.status"],  # Cannot group crash rate by session status
+                }
+            )
+
+            assert response.status_code == 400
+            assert response.data == {
+                "detail": "Cannot group field crash_rate(session) by session.status"
+            }

@@ -259,13 +259,14 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def assert_slack_calls(self, trigger_labels):
         expected_result = [f"{label}: some rule 2" for label in trigger_labels]
         actual = [
-            json.loads(call_kwargs["data"]["attachments"])[0]["blocks"][0]["text"]["text"]
+            (call_kwargs["data"]["text"], json.loads(call_kwargs["data"]["attachments"]))
             for (_, call_kwargs) in self.slack_client.call_args_list
         ]
 
         assert len(expected_result) == len(actual)
-        for expected, result in zip(expected_result, actual):
-            assert expected in result
+        for expected, (text, attachments) in zip(expected_result, actual):
+            assert expected in text
+            assert len(attachments) > 0
         self.slack_client.reset_mock()
 
     def test_removed_alert_rule(self):
@@ -315,7 +316,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         self.metrics.incr.reset_mock()
         self.send_update(self.rule, self.trigger.alert_threshold, timedelta(hours=1))
-        self.metrics.incr.assert_not_called()  # NOQA
+        self.metrics.incr.assert_not_called()
 
     def test_no_alert(self):
         rule = self.rule

@@ -14,7 +14,7 @@ import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -46,8 +46,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const project = projects.length === 1 ? projects[0] : null;
 
   const transaction = decodeScalar(props.location.query.transaction);
-  // TODO: version should not be required on this page at all, it should be a search filter
-  const version = decodeScalar(props.location.query.version);
 
   const rawQuery = useMemo(
     () => decodeScalar(props.location.query.query, ''),
@@ -61,12 +59,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
       search.setFilterValues('transaction_name', [transaction]);
     }
 
-    if (defined(version)) {
-      search.setFilterValues('version', [version]);
-    }
-
     return search.formatString();
-  }, [rawQuery, transaction, version]);
+  }, [rawQuery, transaction]);
 
   const filtersQuery = useMemo(() => {
     // To avoid querying for the filters each time the query changes,
@@ -77,12 +71,8 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
       search.setFilterValues('transaction_name', [transaction]);
     }
 
-    if (defined(version)) {
-      search.setFilterValues('version', [version]);
-    }
-
     return search.formatString();
-  }, [transaction, version]);
+  }, [transaction]);
 
   const profileFilters = useProfileFilters({
     query: filtersQuery,
@@ -117,7 +107,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
         hideGlobalHeader
       >
         <NoProjectMessage organization={organization}>
-          {project && transaction && version && (
+          {project && transaction && (
             <Fragment>
               <Layout.Header>
                 <Layout.HeaderContent>
@@ -131,7 +121,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                         payload: {
                           projectSlug: project.slug,
                           transaction,
-                          version,
                         },
                       },
                     ]}
@@ -144,10 +133,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                         hideName
                         avatarProps={{hasTooltip: true, tooltip: project.slug}}
                       />
-                      {tct('[transaction] \u2014 [version]', {
-                        transaction,
-                        version,
-                      })}
+                      {transaction}
                     </Title>
                   </Layout.Title>
                 </Layout.HeaderContent>
@@ -174,7 +160,6 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
                     project={project}
                     selection={props.selection}
                     transaction={transaction}
-                    version={version}
                     query={query}
                   />
                 </Layout.Main>

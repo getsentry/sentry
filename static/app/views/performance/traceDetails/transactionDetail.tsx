@@ -92,7 +92,7 @@ class TransactionDetail extends Component<Props> {
 
     return (
       <StyledButton size="xsmall" to={target}>
-        {t('View Transaction')}
+        {t('View Event')}
       </StyledButton>
     );
   }
@@ -176,7 +176,7 @@ class TransactionDetail extends Component<Props> {
                 <TransactionIdTitle
                   onClick={this.scrollBarIntoView(transaction.event_id)}
                 >
-                  Transaction ID
+                  {t('Event ID')}
                   <StyledIconAnchor />
                 </TransactionIdTitle>
               }

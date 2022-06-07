@@ -943,16 +943,16 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enables events endpoint usage on frontend
+    # Enables events endpoint usage on discover and dashboards frontend
     "organizations:discover-frontend-use-events-endpoint": False,
+    # Enables events endpoint usage on performance frontend
+    "organizations:performance-frontend-use-events-endpoint": False,
     # Enable duplicating alert rules.
     "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
-    # Enable Dynamic Sampling errors in the org settings
-    "organizations:filters-and-sampling-error-rules": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -2319,6 +2319,15 @@ KAFKA_CLUSTERS = {
     }
 }
 
+# These constants define kafka topic names, as well as keys into `KAFKA_TOPICS`
+# which contains cluster mappings for these topics. Follow these steps to
+# override a kafka topic name:
+#
+#  1. Change the value of the `KAFKA_*` constant (e.g. KAFKA_EVENTS).
+#  2. For changes in override files, such as `sentry.conf.py` or in getsentry's
+#     `prod.py`, also override the entirety of `KAFKA_TOPICS` to ensure the keys
+#     pick up the change.
+
 KAFKA_EVENTS = "events"
 # TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
 # transactions curently share a Kafka topic. Once we are ready with the code
@@ -2331,12 +2340,6 @@ KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
-KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
-    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-}
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
@@ -2344,41 +2347,37 @@ KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
 
+KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
+    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
+}
+
+# Cluster configuration for each Kafka topic by name.
 KAFKA_TOPICS = {
-    KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
-    KAFKA_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_TRANSACTIONS},
-    KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
+    KAFKA_EVENTS: {"cluster": "default"},
+    KAFKA_TRANSACTIONS: {"cluster": "default"},
+    KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
     KAFKA_OUTCOMES_BILLING: None,
-    KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    },
-    KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    },
-    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    },
-    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-    },
+    KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
-    KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
+    KAFKA_INGEST_EVENTS: {"cluster": "default"},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
-    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default", "topic": KAFKA_INGEST_ATTACHMENTS},
+    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
     # Topic for receiving transaction events (APM events) from Relay
-    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
+    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default"},
     # Topic for receiving metrics from Relay
-    KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
+    KAFKA_INGEST_METRICS: {"cluster": "default"},
     # Topic for indexer translated metrics
-    KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
+    KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
-    KAFKA_PROFILES: {"cluster": "default", "topic": KAFKA_PROFILES},
+    KAFKA_PROFILES: {"cluster": "default"},
 }
 
 # If True, consumers will create the topics if they don't exist

@@ -57,12 +57,13 @@ class SlackActionHandlerTest(FireTest, TestCase):
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
-        assert (
-            json.loads(data["attachments"][0])[0]
-            == SlackIncidentsMessageBuilder(
-                incident, IncidentStatus(incident.status), metric_value, chart_url
-            ).build()
-        )
+        slack_body = SlackIncidentsMessageBuilder(
+            incident, IncidentStatus(incident.status), metric_value, chart_url
+        ).build()
+        attachments = json.loads(data["attachments"][0])
+        assert attachments[0]["color"] == slack_body["color"]
+        assert attachments[0]["blocks"] == slack_body["blocks"]
+        assert data["text"][0] == slack_body["text"]
 
     def test_fire_metric_alert(self):
         self.run_fire_test()
@@ -119,12 +120,13 @@ class SlackWorkspaceActionHandlerTest(FireTest, TestCase):
         data = parse_qs(responses.calls[1].request.body)
         assert data["channel"] == [channel_id]
         assert data["token"] == [token]
-        assert (
-            json.loads(data["attachments"][0])[0]
-            == SlackIncidentsMessageBuilder(
-                incident, IncidentStatus(incident.status), metric_value
-            ).build()
-        )
+        slack_body = SlackIncidentsMessageBuilder(
+            incident, IncidentStatus(incident.status), metric_value
+        ).build()
+        attachments = json.loads(data["attachments"][0])
+        assert attachments[0]["color"] == slack_body["color"]
+        assert attachments[0]["blocks"] == slack_body["blocks"]
+        assert data["text"][0] == slack_body["text"]
 
     def test_fire_metric_alert(self):
         self.run_fire_test()

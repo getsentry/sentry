@@ -19,6 +19,7 @@ import {
   RepositoryProjectPathConfigWithIntegration,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import {
   getIntegrationIcon,
@@ -165,7 +166,7 @@ class StacktraceLink extends AsyncComponent<Props, State> {
     const provider = this.config?.provider;
     if (provider) {
       trackIntegrationAnalytics(
-        'integrations.stacktrace_link_clicked',
+        StacktraceLinkEvents.OPEN_LINK,
         {
           view: 'stacktrace_issue_details',
           provider: provider.key,

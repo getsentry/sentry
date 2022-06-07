@@ -1,7 +1,6 @@
 import functools
 import ipaddress
 import socket
-from ssl import wrap_socket
 from urllib.parse import urlparse
 
 from django.conf import settings
@@ -151,14 +150,3 @@ def safe_create_connection(
         raise err
 
     raise OSError("getaddrinfo returns an empty list")
-
-
-def safe_socket_connect(address, timeout=30, ssl=False):
-    """
-    Creates a socket and connects to address, but prevents connecting to
-    our disallowed IP blocks.
-    """
-    sock = safe_create_connection(address, timeout)
-    if ssl:
-        sock = wrap_socket(sock)
-    return sock

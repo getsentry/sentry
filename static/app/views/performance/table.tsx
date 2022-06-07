@@ -154,6 +154,9 @@ class _Table extends Component<Props, State> {
     dataRow: TableDataRow
   ): React.ReactNode {
     const {eventView, organization, projects, location} = this.props;
+    const isAlias = !organization.features.includes(
+      'performance-frontend-use-events-endpoint'
+    );
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -161,7 +164,7 @@ class _Table extends Component<Props, State> {
     const tableMeta = tableData.meta;
 
     const field = String(column.key);
-    const fieldRenderer = getFieldRenderer(field, tableMeta);
+    const fieldRenderer = getFieldRenderer(field, tableMeta, isAlias);
     const rendered = fieldRenderer(dataRow, {organization, location});
 
     const allowActions = [
@@ -369,10 +372,12 @@ class _Table extends Component<Props, State> {
 
   render() {
     const {eventView, organization, location, setError} = this.props;
-
+    const useEvents = organization.features.includes(
+      'performance-frontend-use-events-endpoint'
+    );
     const {widths, transaction, transactionThreshold} = this.state;
     const columnOrder = eventView
-      .getColumns()
+      .getColumns(useEvents)
       // remove team_key_transactions from the column order as we'll be rendering it
       // via a prepended column
       .filter(
@@ -406,6 +411,7 @@ class _Table extends Component<Props, State> {
               transactionName={transaction}
               transactionThreshold={transactionThreshold}
               queryExtras={getMEPQueryParams(value)}
+              useEvents={useEvents}
             >
               {({pageLinks, isLoading, tableData}) => (
                 <Fragment>
