@@ -103,7 +103,7 @@ def fetch_metric_alert_events_timeseries(
             "data": [
                 {
                     "name": point[0] * 1000,
-                    "value": reduce(lambda a, b: a + float(b["count"]), point[1], 0.0),
+                    "value": reduce(lambda a, b: a + float(b["count"] or 0), point[1], 0.0),
                 }
                 for point in resp.data["data"]
             ],
