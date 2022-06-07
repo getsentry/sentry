@@ -8,7 +8,7 @@ import {
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import Hotkeys from '../hotkeys';
+import HotkeysLabel from '../hotkeysLabel';
 
 import {commonActions, ItemType, SearchGroup, SearchItem, TokenActionType} from './types';
 
@@ -263,8 +263,8 @@ export function getCommonActionsSearchGroup(
         icon: <IconStar size="xs" />,
         children: commonActions.map(action => ({
           title: action.text,
-          onClick: () => runTokenActionOnCursorToken(action.actionType),
-          documentation: <Hotkeys value={action.hotkeys.display} />,
+          callback: () => runTokenActionOnCursorToken(action.actionType),
+          documentation: <HotkeysLabel value={action.hotkeys.display} />,
         })),
       }
     : undefined;

@@ -8,7 +8,7 @@ import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {getFieldDoc} from 'sentry/utils/discover/fields';
 
-import Hotkeys from '../hotkeys';
+import HotkeysLabel from '../hotkeysLabel';
 import {Token, TokenResult} from '../searchSyntax/parser';
 
 import {commonActions, TokenAction} from './types';
@@ -187,7 +187,7 @@ const DropdownAction = ({
     <DropdownActionContainer onClick={onClick}>
       <DropdownTitle>{text}</DropdownTitle>
       <ShortcutContainer>
-        {hotkeysDisplay && <Hotkeys value={hotkeysDisplay} />}
+        {hotkeysDisplay && <HotkeysLabel value={hotkeysDisplay} />}
       </ShortcutContainer>
     </DropdownActionContainer>
   );
