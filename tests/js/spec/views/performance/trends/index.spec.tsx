@@ -92,13 +92,13 @@ async function waitForMockCall(mock: any) {
   });
 }
 
-async function enterSearch(el, text) {
+function enterSearch(el, text) {
   fireEvent.change(el, {target: {value: text}});
   fireEvent.submit(el);
 }
 
 // Might swap on/off the skiphover to check perf later.
-async function clickEl(el) {
+function clickEl(el) {
   userEvent.click(el, undefined, {skipHover: true, skipPointerEventsCheck: true});
 }
 
@@ -131,7 +131,14 @@ function _initializeData(
   const data = initializeData(newSettings);
 
   // Modify page filters store to stop rerendering due to the test harness.
-  (PageFiltersStore as any)._hasInitialState = true;
+  PageFiltersStore.onInitializeUrlState(
+    {
+      projects: [],
+      environments: [],
+      datetime: {start: null, end: null, period: '24h', utc: null},
+    },
+    new Set()
+  );
   PageFiltersStore.updateDateTime(defaultTrendsSelectionDate);
   if (!options?.selectedProjectId) {
     PageFiltersStore.updateProjects(
@@ -671,7 +678,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', async function () {
+  it('Visiting trends with trends feature will update filters if none are set', function () {
     const data = initializeTrendsData(undefined, {}, false);
 
     render(

@@ -23,6 +23,10 @@ inputs:
     description: 'Is chartcuterie required?'
     required: false
     default: 'false'
+  bigtable:
+    description: 'Is bigtable required?'
+    required: false
+    default: 'false'
   cache-files-hash:
     description: 'A single hash for a set of files. Used for caching.'
     required: false
@@ -68,7 +72,6 @@ runs:
     - name: Setup default environment variables
       shell: bash
       env:
-        NEED_KAFKA: ${{ inputs.kafka }}
         MATRIX_INSTANCE: ${{ matrix.instance }}
         # XXX: We should be using something like len(strategy.matrix.instance) (not possible atm)
         # If you have other things like python-version: [foo, bar, baz] then the sharding logic
@@ -113,15 +116,6 @@ runs:
         # expected that people have failing tests on their PRs
         [ "$GITHUB_REF" = "refs/heads/master" ] && echo "PYTEST_SENTRY_ALWAYS_REPORT=1" >> $GITHUB_ENV || true
 
-        ### services configuration ###
-        echo "BIGTABLE_EMULATOR_HOST=localhost:8086" >> $GITHUB_ENV
-        # Note: some backend tests (e.g. tests/sentry/eventstream/kafka/test_consumer.py) will behave
-        # differently if these are set.
-        if [ "$NEED_KAFKA" = "true" ]; then
-          echo "SENTRY_KAFKA_HOSTS=127.0.0.1:9092" >> $GITHUB_ENV
-          echo "SENTRY_ZOOKEEPER_HOSTS=127.0.0.1:2181" >> $GITHUB_ENV
-        fi
-
     - name: Setup python
       id: setup-python
       uses: ./.github/actions/setup-python
@@ -159,7 +153,6 @@ runs:
       run: |
         cd "$WORKDIR"
         python setup.py install_egg_info
-        pip install wheel # GitHub Actions does not have `wheel` installed by default
         pip install -U -e ".[dev]"
         cd -
 
@@ -169,6 +162,7 @@ runs:
         NEED_KAFKA: ${{ inputs.kafka }}
         NEED_SNUBA: ${{ inputs.snuba }}
         NEED_CLICKHOUSE: ${{ inputs.clickhouse }}
+        NEED_BIGTABLE: ${{ inputs.bigtable }}
         NEED_CHARTCUTERIE: ${{ inputs.chartcuterie }}
         WORKDIR: ${{ inputs.workdir }}
         PG_VERSION: ${{ inputs.pg-version }}
@@ -176,11 +170,26 @@ runs:
         sentry init
 
         # redis, postgres are needed for almost every code path.
-        sentry devservices up redis postgres
+        services='redis postgres'
 
-        if [ "$BIGTABLE_EMULATOR_HOST" ]; then
-          sentry devservices up --skip-only-if bigtable
+        if [ "$NEED_CLICKHOUSE" = "true" ] || [ "$NEED_SNUBA" = "true" ]; then
+          services="${services} clickhouse"
         fi
+
+        if [ "$NEED_SNUBA" = "true" ]; then
+          services="${services} snuba"
+        fi
+
+        if [ "$NEED_BIGTABLE" = "true" ]; then
+          echo "BIGTABLE_EMULATOR_HOST=127.0.0.1:8086" >> $GITHUB_ENV
+          services="${services} bigtable"
+        fi
+
+        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
+          services="${services} chartcuterie"
+        fi
+
+        sentry devservices up $services &
 
         # TODO: Use devservices kafka. See https://github.com/getsentry/sentry/pull/20986#issuecomment-704510570
         if [ "$NEED_KAFKA" = "true" ]; then
@@ -190,7 +199,8 @@ runs:
             --name sentry_zookeeper \
             -d --network host \
             -e ZOOKEEPER_CLIENT_PORT=2181 \
-            confluentinc/cp-zookeeper:4.1.0
+            confluentinc/cp-zookeeper:4.1.0 \
+            &
 
           # This is the production version; do not change w/o changing it there as well
           # https://github.com/getsentry/ops/blob/c823e62f930ecc6c97bb08898c71e49edc7232f6/cookbooks/getsentry/attributes/default.rb#L643
@@ -203,20 +213,11 @@ runs:
             -e KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT \
             -e KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL \
             -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 \
-            confluentinc/cp-kafka:5.1.2
+            confluentinc/cp-kafka:5.1.2 \
+            &
         fi
 
-        if [ "$NEED_SNUBA" = "true" ]; then
-          sentry devservices up clickhouse snuba
-        fi
-
-        if [ "$NEED_CLICKHOUSE" = "true" ]; then
-          sentry devservices up clickhouse
-        fi
-
-        if [ "$NEED_CHARTCUTERIE" = "true" ]; then
-          sentry devservices up --skip-only-if chartcuterie
-        fi
+        wait
 
         docker ps -a
 

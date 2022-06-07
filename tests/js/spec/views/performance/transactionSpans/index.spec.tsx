@@ -33,7 +33,7 @@ function initializeData({query} = {query: {}}) {
 }
 
 describe('Performance > Transaction Spans', function () {
-  let eventsV2Mock;
+  let eventsMock;
   let eventsSpanOpsMock;
   let eventsSpansPerformanceMock;
   beforeEach(function () {
@@ -53,9 +53,9 @@ describe('Performance > Transaction Spans', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
-    eventsV2Mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
-      body: [{count: 100}],
+    eventsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: [{'count()': 100}],
     });
     eventsSpanOpsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-span-ops/',
@@ -121,7 +121,7 @@ describe('Performance > Transaction Spans', function () {
       expect(await within(grid).findByText('op1')).toBeInTheDocument();
       expect(await within(grid).findByText('op2')).toBeInTheDocument();
 
-      expect(eventsV2Mock).toHaveBeenCalledTimes(1);
+      expect(eventsMock).toHaveBeenCalledTimes(1);
       expect(eventsSpanOpsMock).toHaveBeenCalledTimes(1);
       expect(eventsSpansPerformanceMock).toHaveBeenCalledTimes(1);
     });

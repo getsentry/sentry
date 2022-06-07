@@ -45,6 +45,7 @@ from sentry.testutils import (
     SnubaTestCase,
     TestCase,
 )
+from sentry.types.activity import ActivityType
 
 
 class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
@@ -1186,10 +1187,10 @@ class OrganizationReleaseCreateTest(APITestCase):
         # should be 201 because 1 project was added
         assert response.status_code == 201, response.content
         assert not Activity.objects.filter(
-            type=Activity.RELEASE, project=project, ident=release.version
+            type=ActivityType.RELEASE.value, project=project, ident=release.version
         ).exists()
         assert Activity.objects.filter(
-            type=Activity.RELEASE, project=project2, ident=release.version
+            type=ActivityType.RELEASE.value, project=project2, ident=release.version
         ).exists()
 
     def test_activity_with_long_release(self):
@@ -1222,10 +1223,10 @@ class OrganizationReleaseCreateTest(APITestCase):
         # should be 201 because 1 project was added
         assert response.status_code == 201, response.content
         assert not Activity.objects.filter(
-            type=Activity.RELEASE, project=project, ident=release.version[:64]
+            type=ActivityType.RELEASE.value, project=project, ident=release.version[:64]
         ).exists()
         assert Activity.objects.filter(
-            type=Activity.RELEASE, project=project2, ident=release.version[:64]
+            type=ActivityType.RELEASE.value, project=project2, ident=release.version[:64]
         ).exists()
 
     def test_version_whitespace(self):

@@ -275,7 +275,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
     }
   };
 
-  handleSubmitFromSelectedDashboard = async (
+  handleSubmitFromSelectedDashboard = (
     errors: FlatValidationError,
     widgetData: Widget
   ) => {
@@ -343,7 +343,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
     }
   };
 
-  handleSubmitFromLibrary = async (errors: FlatValidationError, widgetData: Widget) => {
+  handleSubmitFromLibrary = (errors: FlatValidationError, widgetData: Widget) => {
     const {closeModal, dashboard, onAddLibraryWidget, organization} = this.props;
     if (!dashboard) {
       errors.dashboard = t('This field may not be blank');
@@ -877,7 +877,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
           </DoubleFieldWrapper>
           {(showIssueDatasetSelector || showMetricsDatasetSelector) && (
             <Fragment>
-              <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
+              <StyledFieldLabel>{t('Dataset')}</StyledFieldLabel>
               <StyledRadioGroup
                 style={{flex: 1}}
                 choices={datasetChoices}

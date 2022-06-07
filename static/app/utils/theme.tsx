@@ -34,7 +34,7 @@ export const lightColors = {
   purple400: '#584AC0',
   purple300: '#6C5FC7',
   purple200: 'rgba(108, 95, 199, 0.5)',
-  purple100: 'rgba(108, 95, 199, 0.1)',
+  purple100: 'rgba(108, 95, 199, 0.08)',
 
   blue400: '#2562D4',
   blue300: '#3C74DD',

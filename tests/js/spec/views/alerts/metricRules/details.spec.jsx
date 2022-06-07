@@ -53,7 +53,7 @@ describe('Incident Rules Details', function () {
     });
   });
 
-  it('renders and edits trigger', async function () {
+  it('renders and edits trigger', function () {
     const {organization, project} = initializeOrg();
     const rule = TestStubs.MetricRule();
     const onChangeTitleMock = jest.fn();

@@ -2,7 +2,6 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {
   Panel as BasePanel,
   PanelBody as BasePanelBody,
@@ -16,9 +15,9 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {BreadcrumbType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
-import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
+import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
@@ -34,7 +33,7 @@ type Props = {
   /**
    * Raw breadcrumbs, `undefined` means it is still loading
    */
-  crumbs: RawCrumb[] | undefined;
+  crumbs: Crumb[] | undefined;
   /**
    * Root replay event, `undefined` means it is still loading
    */
@@ -55,38 +54,63 @@ const USER_ACTIONS = [
 ];
 
 function UserActionsNavigator({event, crumbs}: Props) {
-  const {setCurrentTime, setCurrentHoverTime, currentHoverTime, currentTime} =
-    useReplayContext();
+  const {
+    setCurrentTime,
+    setCurrentHoverTime,
+    currentHoverTime,
+    currentTime,
+    highlight,
+    removeHighlight,
+    clearAllHighlights,
+  } = useReplayContext();
 
-  const {startTimestamp} = event || {};
+  const startTimestamp = event?.startTimestamp || 0;
   const userActionCrumbs =
-    crumbs && transformCrumbs(crumbs).filter(crumb => USER_ACTIONS.includes(crumb.type));
-  const isLoaded = userActionCrumbs && startTimestamp;
+    crumbs?.filter(crumb => USER_ACTIONS.includes(crumb.type)) || [];
 
-  const currentUserAction = getCurrentUserAction(
-    userActionCrumbs,
-    startTimestamp,
-    currentTime
-  );
+  const isLoaded = Boolean(event);
 
-  const closestUserAction = getCurrentUserAction(
-    userActionCrumbs,
-    startTimestamp,
-    currentHoverTime
-  );
+  const currentUserAction = getPrevBreadcrumb({
+    crumbs: userActionCrumbs,
+    targetTimestampMs: startTimestamp * 1000 + currentTime,
+    allowExact: true,
+  });
+
+  const closestUserAction =
+    currentHoverTime !== undefined
+      ? getPrevBreadcrumb({
+          crumbs: userActionCrumbs,
+          targetTimestampMs: startTimestamp * 1000 + (currentHoverTime ?? 0),
+          allowExact: true,
+        })
+      : undefined;
 
   const onMouseEnter = useCallback(
     (item: Crumb) => {
       if (startTimestamp) {
         setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
       }
+
+      if (item.data && 'nodeId' in item.data) {
+        // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
+        // crumb to a tooltip
+        clearAllHighlights();
+        highlight({nodeId: item.data.nodeId});
+      }
     },
-    [setCurrentHoverTime, startTimestamp]
+    [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]
   );
 
-  const onMouseLeave = useCallback(() => {
-    setCurrentHoverTime(undefined);
-  }, [setCurrentHoverTime]);
+  const onMouseLeave = useCallback(
+    (item: Crumb) => {
+      setCurrentHoverTime(undefined);
+
+      if (item.data && 'nodeId' in item.data) {
+        removeHighlight({nodeId: item.data.nodeId});
+      }
+    },
+    [setCurrentHoverTime, removeHighlight]
+  );
 
   return (
     <Panel>
@@ -99,7 +123,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
             <PanelItemCenter
               key={item.id}
               onMouseEnter={() => onMouseEnter(item)}
-              onMouseLeave={() => onMouseLeave()}
+              onMouseLeave={() => onMouseLeave(item)}
             >
               <Container
                 isHovered={closestUserAction?.id === item.id}

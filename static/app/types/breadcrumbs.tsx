@@ -28,7 +28,6 @@ export enum BreadcrumbType {
   SYSTEM = 'system',
   SESSION = 'session',
   TRANSACTION = 'transaction',
-  CONSOLE = 'console',
   INIT = 'init',
 }
 
@@ -80,14 +79,6 @@ export type BreadcrumbTypeHTTP = {
   };
 } & BreadcrumbTypeBase;
 
-export type BreadcrumbTypeConsole = {
-  data: {
-    arguments: any[];
-    logger: string;
-  };
-  type: BreadcrumbType.CONSOLE;
-} & BreadcrumbTypeBase;
-
 export type BreadcrumbTypeDefault = {
   type:
     | BreadcrumbType.INFO
@@ -102,7 +93,6 @@ export type BreadcrumbTypeDefault = {
     | BreadcrumbType.INIT
     | BreadcrumbType.SESSION
     | BreadcrumbType.SYSTEM
-    | BreadcrumbType.SESSION
     | BreadcrumbType.TRANSACTION;
   data?: Record<string, any>;
 } & BreadcrumbTypeBase;
@@ -117,3 +107,9 @@ export type Crumb = RawCrumb & {
   description: string;
   id: number;
 };
+
+export function isBreadcrumbTypeDefault(
+  breadcrumb: RawCrumb
+): breadcrumb is BreadcrumbTypeDefault {
+  return ![BreadcrumbType.HTTP, BreadcrumbType.NAVIGATION].includes(breadcrumb.type);
+}

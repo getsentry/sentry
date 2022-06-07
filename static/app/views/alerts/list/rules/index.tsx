@@ -64,15 +64,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return [...new Set(ruleList?.map(({projects}) => projects).flat())];
   }
 
-  handleChangeFilter = (activeFilters: Set<string>) => {
+  handleChangeFilter = (activeFilters: string[]) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    const teams = [...activeFilters];
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: teams.length ? teams : '',
+        team: activeFilters.length > 0 ? activeFilters : '',
       },
     });
   };
@@ -212,27 +211,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
                   t('Project'),
                   t('Team'),
-                  <StyledSortLink
-                    key="dateAdded"
-                    role="columnheader"
-                    aria-sort={
-                      sort.field !== 'date_added'
-                        ? 'none'
-                        : sort.asc
-                        ? 'ascending'
-                        : 'descending'
-                    }
-                    to={{
-                      pathname: location.pathname,
-                      query: {
-                        ...currentQuery,
-                        asc: sort.field === 'date_added' && !sort.asc ? '1' : undefined,
-                        sort: 'date_added',
-                      },
-                    }}
-                  >
-                    {t('Created')} {sort.field === 'date_added' && sortArrow}
-                  </StyledSortLink>,
                   t('Actions'),
                 ]}
                 isLoading={loading || !loadedTeams}
@@ -355,7 +333,7 @@ const StyledPanelTable = styled(PanelTable)`
     overflow: initial;
   }
 
-  grid-template-columns: 4fr auto 140px 60px 110px auto;
+  grid-template-columns: 4fr auto 140px 60px auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
 `;

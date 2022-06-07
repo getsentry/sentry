@@ -296,11 +296,12 @@ class QueryDefinition:
         self.params = params
 
         query_columns = set()
-        for i, field in enumerate(self.fields.values()):
+        for i, (field_name, field) in enumerate(self.fields.items()):
             columns = field.get_snuba_columns(raw_groupby)
-            if i == 0 or field == "sum(session)":  # Prefer first, but sum(session) always wins
+            if i == 0 or field_name == "sum(session)":  # Prefer first, but sum(session) always wins
                 self.primary_column = columns[0]  # Will be used in order by
             query_columns.update(columns)
+
         for groupby in self.groupby:
             query_columns.update(groupby.get_snuba_columns())
         self.query_columns = list(query_columns)
@@ -354,6 +355,15 @@ SNUBA_LIMIT = 5000
 
 class InvalidParams(Exception):
     pass
+
+
+class NonPreflightOrderByException(InvalidParams):
+    """
+    An exception that is raised when parsing orderBy, to indicate that this is only an exception
+    in the case where we don't run a preflight query on an accepted pre-flight query field
+    """
+
+    ...
 
 
 def get_now():

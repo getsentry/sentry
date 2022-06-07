@@ -22,7 +22,6 @@ from snuba_sdk import (
     Query,
 )
 
-from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak
@@ -30,7 +29,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
     OP_TO_SNUBA_FUNCTION,
-    QueryDefinition,
+    MetricsQuery,
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_date_range,
@@ -51,7 +50,7 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.query import MetricField
-from sentry.snuba.metrics.query_builder import APIQueryDefinition
+from sentry.snuba.metrics.query_builder import QueryDefinition
 
 
 @dataclass
@@ -195,21 +194,8 @@ def test_parse_query(monkeypatch, query_string, expected):
         # will be values 10000, 10001 respectively
         local_indexer.record(org_id, s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
-    parsed = resolve_tags(org_id, parse_query(query_string))
+    parsed = resolve_tags(org_id, parse_query(query_string, []))
     assert parsed == expected
-
-
-@pytest.mark.parametrize(
-    "query_string",
-    [
-        "release:myapp@2.0.0 or session.status:init",
-        "release:myapp@2.0.0 and environment:production or session.status:healthy",
-        "session.status:crashed",
-    ],
-)
-def test_parse_query_invalid(query_string):
-    with pytest.raises(InvalidParams):
-        parse_query(query_string)
 
 
 @freeze_time("2018-12-11 03:21:00")
@@ -224,8 +210,11 @@ def test_round_range():
 
 
 def test_invalid_interval():
-    with pytest.raises(InvalidParams):
-        start, end, interval = get_date_range({"interval": "0d"})
+    # get_date_range is now only responsible for parsing start, end and interval,
+    # and not responsible for validation so just letting it bubble up the ZeroDivisionError if
+    # the requested interval is 0d
+    with pytest.raises(ZeroDivisionError):
+        get_date_range({"interval": "0d"})
 
 
 def test_round_exact():
@@ -244,31 +233,6 @@ def test_exclusive_end():
     assert end == datetime(2021, 2, 25, 0, tzinfo=pytz.utc)
 
 
-@freeze_time("2021-03-05T11:14:17.105Z")
-def test_interval_restrictions():
-    # making sure intervals are cleanly divisible
-    with pytest.raises(
-        InvalidParams, match="The interval should divide one day without a remainder."
-    ):
-        get_date_range({"statsPeriod": "6h", "interval": "59m"})
-
-    with pytest.raises(
-        InvalidParams, match="The interval should divide one day without a remainder."
-    ):
-        get_date_range({"statsPeriod": "4d", "interval": "5h"})
-
-    with pytest.raises(
-        InvalidParams,
-        match="The interval has to be a multiple of the minimum interval of ten seconds.",
-    ):
-        get_date_range({"statsPeriod": "1h", "interval": "9s"})
-
-    with pytest.raises(
-        InvalidParams, match="Your interval and date range would create too many results."
-    ):
-        get_date_range({"statsPeriod": "90d", "interval": "10s"})
-
-
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_timestamps():
     start, end, interval = get_date_range({"statsPeriod": "1d", "interval": "12h"})
@@ -282,7 +246,7 @@ def test_timestamps():
 def test_build_snuba_query(mock_now, mock_now2, monkeypatch):
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", MockIndexer().resolve)
     # Your typical release health query querying everything
-    query_definition = QueryDefinition(
+    query_definition = MetricsQuery(
         org_id=1,
         project_ids=[1],
         select=[
@@ -407,8 +371,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = APIQueryDefinition([PseudoProject(1, 1)], query_params)
-    query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition.to_query_definition())
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
+    query_builder = SnubaQueryBuilder([PseudoProject(1, 1)], query_definition.to_metrics_query())
     snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
     assert fields_in_entities == {
         "metrics_counters": [
@@ -537,11 +501,11 @@ def test_build_snuba_query_orderby(mock_now, mock_now2, monkeypatch):
             "per_page": [2],
         }
     )
-    query_definition = APIQueryDefinition(
+    query_definition = QueryDefinition(
         [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
     )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition.to_query_definition()
+        [PseudoProject(1, 1)], query_definition.to_metrics_query()
     ).get_snuba_queries()
 
     org_id = 1
@@ -623,11 +587,11 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
             "per_page": [2],
         }
     )
-    query_definition = APIQueryDefinition(
+    query_definition = QueryDefinition(
         [PseudoProject(1, 1)], query_params, paginator_kwargs={"limit": 3}
     )
     snuba_queries, _ = SnubaQueryBuilder(
-        [PseudoProject(1, 1)], query_definition.to_query_definition()
+        [PseudoProject(1, 1)], query_definition.to_metrics_query()
     ).get_snuba_queries()
 
     org_id = 1
@@ -707,186 +671,6 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2, monkeypatch):
 
 @mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
 @mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
-def test_translate_results(_1, _2, monkeypatch):
-    org_id = 1
-    monkeypatch.setattr(
-        "sentry.sentry_metrics.indexer.reverse_resolve", MockIndexer().reverse_resolve
-    )
-
-    query_params = MultiValueDict(
-        {
-            "groupBy": ["session.status"],
-            "field": [
-                "sum(sentry.sessions.session)",
-                "max(sentry.sessions.session.duration)",
-                "p50(sentry.sessions.session.duration)",
-                "p95(sentry.sessions.session.duration)",
-            ],
-            "interval": ["1d"],
-            "statsPeriod": ["2d"],
-        }
-    )
-    query_definition = APIQueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities = {
-        "metrics_counters": [("sum", SessionMRI.SESSION.value)],
-        "metrics_distributions": [
-            ("max", SessionMRI.RAW_DURATION.value),
-            ("p50", SessionMRI.RAW_DURATION.value),
-            ("p95", SessionMRI.RAW_DURATION.value),
-        ],
-    }
-
-    intervals = list(
-        get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
-    )
-
-    session_metric_id = resolve(org_id, SessionMRI.SESSION.value)
-    session_dur_metric_id = resolve(org_id, SessionMRI.RAW_DURATION.value)
-    session_status = resolve_tag_key(org_id, "session.status")
-    healthy = resolve(org_id, "healthy")
-    abnormal = resolve(org_id, "abnormal")
-
-    results = {
-        "metrics_counters": {
-            "totals": {
-                "data": [
-                    {
-                        "metric_id": session_metric_id,
-                        session_status: healthy,
-                        f"sum({SessionMRI.SESSION.value})": 300,
-                    },
-                    {
-                        "metric_id": session_metric_id,
-                        session_status: abnormal,
-                        f"sum({SessionMRI.SESSION.value})": 330,
-                    },
-                ],
-            },
-            "series": {
-                "data": [
-                    {
-                        "metric_id": session_metric_id,
-                        session_status: healthy,
-                        "bucketed_time": "2021-08-24T00:00Z",
-                        f"sum({SessionMRI.SESSION.value})": 100,
-                    },
-                    {
-                        "metric_id": session_metric_id,
-                        session_status: abnormal,
-                        "bucketed_time": "2021-08-24T00:00Z",
-                        f"sum({SessionMRI.SESSION.value})": 110,
-                    },
-                    {
-                        "metric_id": session_metric_id,
-                        session_status: healthy,
-                        "bucketed_time": "2021-08-25T00:00Z",
-                        f"sum({SessionMRI.SESSION.value})": 200,
-                    },
-                    {
-                        "metric_id": session_metric_id,
-                        session_status: abnormal,
-                        "bucketed_time": "2021-08-25T00:00Z",
-                        f"sum({SessionMRI.SESSION.value})": 220,
-                    },
-                ],
-            },
-        },
-        "metrics_distributions": {
-            "totals": {
-                "data": [
-                    {
-                        "metric_id": session_dur_metric_id,
-                        session_status: healthy,
-                        f"max({SessionMRI.RAW_DURATION.value})": 123.4,
-                        f"p50({SessionMRI.RAW_DURATION.value})": [1],
-                        f"p95({SessionMRI.RAW_DURATION.value})": [4],
-                    },
-                    {
-                        "metric_id": session_dur_metric_id,
-                        session_status: abnormal,
-                        f"max({SessionMRI.RAW_DURATION.value})": 456.7,
-                        f"p50({SessionMRI.RAW_DURATION.value})": [1.5],
-                        f"p95({SessionMRI.RAW_DURATION.value})": [4.5],
-                    },
-                ],
-            },
-            "series": {
-                "data": [
-                    {
-                        "metric_id": session_dur_metric_id,
-                        session_status: healthy,
-                        "bucketed_time": "2021-08-24T00:00Z",
-                        f"max({SessionMRI.RAW_DURATION.value})": 10.1,
-                        f"p50({SessionMRI.RAW_DURATION.value})": [1.1],
-                        f"p95({SessionMRI.RAW_DURATION.value})": [4.1],
-                    },
-                    {
-                        "metric_id": session_dur_metric_id,
-                        session_status: abnormal,
-                        "bucketed_time": "2021-08-24T00:00Z",
-                        f"max({SessionMRI.RAW_DURATION.value})": 20.2,
-                        f"p50({SessionMRI.RAW_DURATION.value})": [1.2],
-                        f"p95({SessionMRI.RAW_DURATION.value})": [4.2],
-                    },
-                    {
-                        "metric_id": session_dur_metric_id,
-                        session_status: healthy,
-                        "bucketed_time": "2021-08-25T00:00Z",
-                        f"max({SessionMRI.RAW_DURATION.value})": 30.3,
-                        f"p50({SessionMRI.RAW_DURATION.value})": [1.3],
-                        f"p95({SessionMRI.RAW_DURATION.value})": [4.3],
-                    },
-                    {
-                        "metric_id": session_dur_metric_id,
-                        session_status: abnormal,
-                        "bucketed_time": "2021-08-25T00:00Z",
-                        f"max({SessionMRI.RAW_DURATION.value})": 40.4,
-                        f"p50({SessionMRI.RAW_DURATION.value})": [1.4],
-                        f"p95({SessionMRI.RAW_DURATION.value})": [4.4],
-                    },
-                ],
-            },
-        },
-    }
-
-    assert SnubaResultConverter(
-        org_id, query_definition.to_query_definition(), fields_in_entities, intervals, results
-    ).translate_results() == [
-        {
-            "by": {"session.status": "healthy"},
-            "totals": {
-                "sum(sentry.sessions.session)": 300,
-                "max(sentry.sessions.session.duration)": 123.4,
-                "p50(sentry.sessions.session.duration)": 1,
-                "p95(sentry.sessions.session.duration)": 4,
-            },
-            "series": {
-                "sum(sentry.sessions.session)": [100, 200],
-                "max(sentry.sessions.session.duration)": [10.1, 30.3],
-                "p50(sentry.sessions.session.duration)": [1.1, 1.3],
-                "p95(sentry.sessions.session.duration)": [4.1, 4.3],
-            },
-        },
-        {
-            "by": {"session.status": "abnormal"},
-            "totals": {
-                "sum(sentry.sessions.session)": 330,
-                "max(sentry.sessions.session.duration)": 456.7,
-                "p50(sentry.sessions.session.duration)": 1.5,
-                "p95(sentry.sessions.session.duration)": 4.5,
-            },
-            "series": {
-                "sum(sentry.sessions.session)": [110, 220],
-                "max(sentry.sessions.session.duration)": [20.2, 40.4],
-                "p50(sentry.sessions.session.duration)": [1.2, 1.4],
-                "p95(sentry.sessions.session.duration)": [4.2, 4.4],
-            },
-        },
-    ]
-
-
-@mock.patch("sentry.snuba.sessions_v2.get_now", return_value=MOCK_NOW)
-@mock.patch("sentry.api.utils.timezone.now", return_value=MOCK_NOW)
 def test_translate_results_derived_metrics(_1, _2, monkeypatch):
     monkeypatch.setattr(
         "sentry.sentry_metrics.indexer.reverse_resolve", MockIndexer().reverse_resolve
@@ -904,7 +688,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             "statsPeriod": ["2d"],
         }
     )
-    query_definition = APIQueryDefinition([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
             (None, SessionMRI.ERRORED_PREAGGREGATED.value),
@@ -969,7 +753,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
     }
 
     assert SnubaResultConverter(
-        1, query_definition.to_query_definition(), fields_in_entities, intervals, results
+        1, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {},
@@ -1003,7 +787,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
             "statsPeriod": ["3d"],
         }
     )
-    query_definition = APIQueryDefinition([PseudoProject(1, 1)], query_params)
+    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     fields_in_entities = {
         "metrics_counters": [
             ("sum", SessionMRI.SESSION.value),
@@ -1042,7 +826,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
         get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
     )
     assert SnubaResultConverter(
-        org_id, query_definition.to_query_definition(), fields_in_entities, intervals, results
+        org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_results() == [
         {
             "by": {},

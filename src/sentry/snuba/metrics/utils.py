@@ -12,7 +12,7 @@ __all__ = (
     "AVAILABLE_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
-    "ALLOWED_GROUPBY_COLUMNS",
+    "FIELD_ALIAS_MAPPINGS",
     "Tag",
     "TagValue",
     "MetricMeta",
@@ -59,8 +59,8 @@ TS_COL_GROUP = "bucketed_time"
 
 #: Max number of data points per time series:
 # ToDo modify this regex to only support the operations provided
-FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_|\:|\/|\@)+)\)$")
-TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
+FIELD_REGEX = re.compile(r"^(\w+)\(([\w.:/@]+)\)$")
+TAG_REGEX = re.compile(r"^([\w.]+)$")
 
 #: A function that can be applied to a metric
 MetricOperationType = Literal[
@@ -115,7 +115,7 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "distribution": EntityKey.MetricsDistributions,
 }
 
-ALLOWED_GROUPBY_COLUMNS = ("project_id",)
+FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
 
 
 class Tag(TypedDict):

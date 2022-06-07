@@ -43,6 +43,7 @@ tests/fixtures/integrations/*/data/**
 /test_cli/
 Gemfile.lock
 .idea/
+.vim/
 *.iml
 .pytest_cache/
 .vscode/tags

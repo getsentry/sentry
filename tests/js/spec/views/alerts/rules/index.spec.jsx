@@ -195,34 +195,6 @@ describe('AlertRulesList', () => {
     });
   });
 
-  it('sorts by date created', async () => {
-    const {rerender} = createWrapper();
-
-    // The created column is not used for sorting
-    expect(await screen.findByText('Created')).toHaveAttribute('aria-sort', 'none');
-
-    // Sort by created (date_added)
-    rerender(
-      getComponent({
-        location: {
-          query: {asc: '1', sort: 'date_added'},
-          search: '?asc=1&sort=date_added`',
-        },
-      })
-    );
-
-    expect(await screen.findByText('Created')).toHaveAttribute('aria-sort', 'ascending');
-
-    expect(rulesMock).toHaveBeenCalledTimes(2);
-
-    expect(rulesMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/combined-rules/',
-      expect.objectContaining({
-        query: expect.objectContaining({asc: '1'}),
-      })
-    );
-  });
-
   it('sorts by name', async () => {
     const {rerender} = createWrapper();
 
@@ -299,7 +271,7 @@ describe('AlertRulesList', () => {
       getComponent({location: {query: {team: 'myteams'}, search: '?team=myteams`'}})
     );
 
-    userEvent.click(await screen.findByTestId('filter-button'));
+    userEvent.click(await screen.findByRole('button', {name: 'My Teams'}));
 
     // Uncheck myteams
     const myTeams = await screen.findAllByText('My Teams');

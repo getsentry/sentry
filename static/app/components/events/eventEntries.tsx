@@ -369,12 +369,7 @@ const EventEntries = memo(
               project={project}
             />
           ) : (
-            <EventCause
-              organization={organization}
-              project={project}
-              event={event}
-              group={group}
-            />
+            <EventCause project={project} event={event} group={group} />
           ))}
         {event.userReport && group && (
           <StyledEventUserFeedback
