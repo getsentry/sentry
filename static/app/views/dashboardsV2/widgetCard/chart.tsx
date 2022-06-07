@@ -39,7 +39,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {Theme} from 'sentry/utils/theme';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
-import {getDatasetConfigConsumer} from '../datasetConfig/context';
+import {getDatasetConfig} from '../datasetConfig/context';
 import {DisplayType, Widget, WidgetType} from '../types';
 
 import WidgetQueries from './widgetQueries';
@@ -143,7 +143,8 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       return <LoadingPlaceholder />;
     }
 
-    const DatasetConfigConsumer = getDatasetConfigConsumer(widget.widgetType);
+    const datasetConfig = getDatasetConfig(widget.widgetType);
+
     return tableResults.map((result, i) => {
       const fields = widget.queries[i]?.fields?.map(stripDerivedMetricsPrefix) ?? [];
       const fieldAliases = widget.queries[i]?.fieldAliases ?? [];
@@ -155,24 +156,21 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
       );
 
       return (
-        <DatasetConfigConsumer key={`table:${result.title}`}>
-          {({datasetConfig}) => (
-            <StyledSimpleTableChart
-              eventView={eventView}
-              fieldAliases={fieldAliases}
-              location={location}
-              fields={fields}
-              title={tableResults.length > 1 ? result.title : ''}
-              loading={loading}
-              loader={<LoadingPlaceholder />}
-              metadata={result.meta}
-              data={result.data}
-              organization={organization}
-              stickyHeaders
-              getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
-            />
-          )}
-        </DatasetConfigConsumer>
+        <StyledSimpleTableChart
+          key={`table:${result.title}`}
+          eventView={eventView}
+          fieldAliases={fieldAliases}
+          location={location}
+          fields={fields}
+          title={tableResults.length > 1 ? result.title : ''}
+          loading={loading}
+          loader={<LoadingPlaceholder />}
+          metadata={result.meta}
+          data={result.data}
+          organization={organization}
+          stickyHeaders
+          getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+        />
       );
     });
   }
