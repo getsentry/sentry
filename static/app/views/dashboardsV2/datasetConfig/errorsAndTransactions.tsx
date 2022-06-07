@@ -4,7 +4,7 @@ import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 
 import {WidgetQuery} from '../types';
 
-import {ConditionalProps, DatasetConfig} from './base';
+import {ContextualProps, DatasetConfig} from './base';
 
 export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
@@ -19,11 +19,11 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
 function transformEventsResponseToTable(
   data: TableData | EventsTableData,
   _widgetQuery: WidgetQuery,
-  conditionalProps?: ConditionalProps
+  contextualProps?: ContextualProps
 ): TableData {
   let tableData = data;
   const shouldUseEvents =
-    conditionalProps?.organization?.features.includes(
+    contextualProps?.organization?.features.includes(
       'discover-frontend-use-events-endpoint'
     ) || false;
   // events api uses a different response format so we need to construct tableData differently

@@ -8,7 +8,7 @@ import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
-export type ConditionalProps = {
+export type ContextualProps = {
   organization?: OrganizationSummary;
   pageFilters?: PageFilters;
 };
@@ -26,7 +26,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   transformTable?: (
     data: TableResponse,
     widgetQuery: WidgetQuery,
-    conditionalProps?: ConditionalProps
+    contextualProps?: ContextualProps
   ) => TableData;
 }
 

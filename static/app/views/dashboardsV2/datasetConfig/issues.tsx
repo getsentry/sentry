@@ -7,7 +7,7 @@ import {DISCOVER_EXCLUSION_FIELDS} from 'sentry/views/issueList/utils';
 
 import {WidgetQuery} from '../types';
 
-import {ConditionalProps, DatasetConfig} from './base';
+import {ContextualProps, DatasetConfig} from './base';
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
   transformTable: transformIssuesResponseToTable,
@@ -16,7 +16,7 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
 function transformIssuesResponseToTable(
   data: Group[],
   widgetQuery: WidgetQuery,
-  conditionalProps?: ConditionalProps
+  contextualProps?: ContextualProps
 ): TableData {
   GroupStore.add(data);
   const transformedTableResults: TableDataRow[] = [];
@@ -85,7 +85,7 @@ function transformIssuesResponseToTable(
         (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
       transformedTableResult.projectId = project.id;
 
-      const {period, start, end} = conditionalProps?.pageFilters?.datetime || {};
+      const {period, start, end} = contextualProps?.pageFilters?.datetime || {};
       if (start && end) {
         transformedTableResult.start = getUtcDateString(start);
         transformedTableResult.end = getUtcDateString(end);
