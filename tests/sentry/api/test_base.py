@@ -155,26 +155,18 @@ class EndpointJSONBodyTest(APITestCase):
 
 class ServerComponentModeTest(APITestCase):
     def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
-        def decorate_class():
-            with override_settings(SERVER_COMPONENT_MODE=active_mode):
+        with override_settings(SERVER_COMPONENT_MODE=active_mode):
 
+            @active_on(endpoint_mode)
+            class DecoratedEndpoint(DummyEndpoint):
+                pass
+
+            class EndpointWithDecoratedMethod(DummyEndpoint):
                 @active_on(endpoint_mode)
-                class DecoratedEndpoint(DummyEndpoint):
-                    pass
+                def get(self, request):
+                    return super().get(request)
 
-            return DecoratedEndpoint
-
-        def decorate_method():
-            with override_settings(SERVER_COMPONENT_MODE=active_mode):
-
-                class EndpointWithDecoratedMethod(DummyEndpoint):
-                    @active_on(endpoint_mode)
-                    def get(self, request):
-                        return super().get(request)
-
-            return EndpointWithDecoratedMethod
-
-        for endpoint_class in (decorate_class(), decorate_method()):
+        for endpoint_class in (DecoratedEndpoint, EndpointWithDecoratedMethod):
             view = endpoint_class.as_view()
             request = self.make_request(method="GET")
             response = view(request)
