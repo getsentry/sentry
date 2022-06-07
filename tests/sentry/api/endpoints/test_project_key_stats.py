@@ -15,11 +15,28 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/keys/{self.key.public_key}/stats/"
 
     def test_simple(self):
+        # This outcome should not be included.
+        other_key = ProjectKey.objects.create(project=self.project)
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": other_key.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 100,
+            },
+            1,
+        )
+        # These outcomes should be included.
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": before_now(hours=1),
+                "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -32,6 +49,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.FILTERED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -43,6 +61,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
             {
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
+                "key_id": self.key.id,
                 "project_id": self.project.id,
                 "outcome": Outcome.RATE_LIMITED,
                 "reason": "none",
@@ -69,6 +88,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -81,6 +101,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.CLIENT_DISCARD,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -106,6 +127,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -118,6 +140,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(days=10),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
                 "category": DataCategory.ERROR,

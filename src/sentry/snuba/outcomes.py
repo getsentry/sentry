@@ -48,6 +48,7 @@ by these fields
 - `outcome`
 - `reason`
 - `category`
+- `key_id`
 """
 
 ResultSet = List[Dict[str, Any]]
@@ -162,6 +163,21 @@ class OutcomeDimension(Dimension):
             row["outcome"] = Outcome(row["outcome"]).api_name()
 
 
+class KeyDimension(Dimension):
+    def resolve_filter(self, raw_filter: Sequence[str]) -> List[int]:
+        def _parse_value(key_id: str) -> int:
+            try:
+                return int(key_id)
+            except ValueError:
+                raise InvalidQuery(f'Invalid key: "{key_id}"')
+
+        return [_parse_value(o) for o in raw_filter]
+
+    def map_row(self, row: MutableMapping[str, Any]) -> None:
+        # No changes are required to map key_id values.
+        pass
+
+
 class ReasonDimension(Dimension):
     def resolve_filter(self, raw_filter: Sequence[str]) -> List[str]:
         return [
@@ -184,12 +200,15 @@ DIMENSION_MAP: Mapping[str, Dimension] = {
     "outcome": OutcomeDimension("outcome"),
     "category": CategoryDimension("category"),
     "reason": ReasonDimension("reason"),
+    "key_id": KeyDimension("key_id"),
 }
 
 GROUPBY_MAP = {
     **DIMENSION_MAP,
     "project": SimpleGroupBy("project_id", "project"),
 }
+# We don't have any scenarios where we need to group by key right now.
+GROUPBY_MAP.pop("key_id")
 
 TS_COL = "time"
 
