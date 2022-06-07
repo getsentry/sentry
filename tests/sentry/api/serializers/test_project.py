@@ -473,7 +473,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert results[0]["sessionStats"]["currentCrashFreeRate"] == 75.63453
         assert results[0]["sessionStats"]["hasHealthData"]
 
-        check_has_health_data.assert_not_called()  # NOQA
+        check_has_health_data.assert_not_called()
 
     @mock.patch("sentry.api.serializers.models.project.release_health.check_has_health_data")
     @mock.patch(
@@ -502,7 +502,7 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         assert results[0]["sessionStats"]["currentCrashFreeRate"] is None
         assert results[0]["sessionStats"]["hasHealthData"]
 
-        check_has_health_data.assert_called()  # NOQA
+        check_has_health_data.assert_called()
 
 
 class ProjectWithOrganizationSerializerTest(TestCase):

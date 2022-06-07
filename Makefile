@@ -179,7 +179,7 @@ test-relay-integration:
 
 test-api-docs: build-api-docs
 	yarn run validate-api-examples
-	pytest tests/apidocs/endpoints
+	pytest tests/apidocs
 	@echo ""
 
 review-python-snapshots:

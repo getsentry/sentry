@@ -34,13 +34,13 @@ describe('SidebarDropdown', function () {
     const {container} = renderDropdown({hideOrgLinks: true});
     expect(container).toSnapshot();
   });
-  it('renders open sidebar', async function () {
+  it('renders open sidebar', function () {
     const config = {...ConfigStore.get('config'), singleOrganization: false};
     renderDropdown({collapsed: false, config});
     userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(screen.getByText('Switch organization')).toBeInTheDocument();
   });
-  it('sandbox/demo mode render open sidebar', async function () {
+  it('sandbox/demo mode render open sidebar', function () {
     ConfigStore.set('demoMode', true);
     const config = {...ConfigStore.get('config'), singleOrganization: false};
     renderDropdown({collapsed: false, config});

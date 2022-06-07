@@ -113,7 +113,7 @@ describe('GuideAnchor', function () {
     expect(screen.getByTestId('child-div')).toBeInTheDocument();
   });
 
-  it('renders children when disabled', async function () {
+  it('renders children when disabled', function () {
     render(
       <GuideAnchor disabled target="exception">
         <div data-test-id="child-div" />
