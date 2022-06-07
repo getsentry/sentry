@@ -353,11 +353,11 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         return total_session_count, crash_count
 
     @staticmethod
-    def is_crash_rate_format_v2(data: List[Dict[str, Any]]):
+    def is_crash_rate_format_v2(data: List[Dict[str, Any]]) -> bool:
         """Check if this is the new update format.
         This function can be removed once all subscriptions have been updated.
         """
-        return data and "crashed" in data[0]
+        return bool(data) and "crashed" in data[0]
 
     def aggregate_query_results(
         self, data: List[Dict[str, Any]], alias: Optional[str] = None
