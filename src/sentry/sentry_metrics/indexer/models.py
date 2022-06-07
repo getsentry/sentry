@@ -66,7 +66,7 @@ class PerfStringIndexer(BaseIndexer):
     __include_in_export__ = False
 
     class Meta:
-        db_table = "sentry_perfindexer"
+        db_table = "sentry_perfstringindexer"
         app_label = "sentry"
         constraints = [
             models.UniqueConstraint(

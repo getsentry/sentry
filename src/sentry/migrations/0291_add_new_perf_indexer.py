@@ -49,7 +49,7 @@ class Migration(CheckedMigration):
                 ("retention_days", models.IntegerField(default=90)),
             ],
             options={
-                "db_table": "sentry_perfindexer",
+                "db_table": "sentry_perfstringindexer",
             },
         ),
         migrations.AddConstraint(
