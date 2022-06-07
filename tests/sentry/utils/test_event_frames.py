@@ -1,8 +1,6 @@
 import unittest
 from typing import Any, Mapping
 
-from typing import Any, Mapping
-
 from sentry.testutils import TestCase
 from sentry.utils.event_frames import (
     cocoa_frame_munger,
