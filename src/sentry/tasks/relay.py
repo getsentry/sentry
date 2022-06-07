@@ -66,6 +66,13 @@ def update_config_cache(
         try:
             keys = [ProjectKey.objects.get(public_key=public_key)]
         except ProjectKey.DoesNotExist:
+            if update_reason == "projectkey.post_save":
+                # Hotfix for case where projectkey is being created as part of
+                # project creation. In such a case, it may be that the task is
+                # triggered before the projectkey is actually saved. A proper
+                # fix would be to implement INGEST-1348
+                raise
+
             # In this particular case, where a project key got deleted and
             # triggered an update, we know that key doesn't exist and we want to
             # avoid creating more tasks for it.
