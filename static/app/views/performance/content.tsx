@@ -42,12 +42,12 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({error: undefined});
-  const transactionOnlySearch = organization.features.includes(
+  const withStaticFilters = organization.features.includes(
     'performance-transaction-name-only-search'
   );
 
   const eventView = generatePerformanceEventView(location, projects, {
-    withStaticFilters: transactionOnlySearch,
+    withStaticFilters,
   });
 
   function getOnboardingProject(): Project | undefined {
@@ -136,10 +136,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
     });
   }
 
-  const noCellActions = organization.features.includes(
-    'performance-transaction-name-only-search'
-  );
-
   return (
     <SentryDocumentTitle title={t('Performance')} orgSlug={organization.slug}>
       <PerformanceEventViewProvider value={{eventView}}>
@@ -165,7 +161,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
               location={location}
               projects={projects}
               selection={selection}
-              noCellActions={noCellActions}
+              withStaticFilters={withStaticFilters}
             />
           </PageFiltersContainer>
         </MEPSettingProvider>

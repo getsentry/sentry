@@ -40,7 +40,7 @@ export type PerformanceWidgetProps = {
 
   chartColor?: string;
 
-  noCellActions?: boolean;
+  withStaticFilters?: boolean;
 };
 
 export interface WidgetDataResult {

@@ -293,7 +293,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             </Link>
                           </Tooltip>
                         </RightAlignedCell>
-                        {!props.noCellActions && (
+                        {!props.withStaticFilters && (
                           <ListClose
                             setSelectListIndex={setSelectListIndex}
                             onClick={() =>
@@ -314,7 +314,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             count: <Count value={rightValue} />,
                           })}
                         </RightAlignedCell>
-                        {!props.noCellActions && (
+                        {!props.withStaticFilters && (
                           <ListClose
                             setSelectListIndex={setSelectListIndex}
                             onClick={() =>
@@ -334,7 +334,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <RightAlignedCell>
                             <Count value={rightValue} />
                           </RightAlignedCell>
-                          {!props.noCellActions && (
+                          {!props.withStaticFilters && (
                             <ListClose
                               setSelectListIndex={setSelectListIndex}
                               onClick={() =>
@@ -351,7 +351,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>{rightValue}</RightAlignedCell>
-                        {!props.noCellActions && (
+                        {!props.withStaticFilters && (
                           <ListClose
                             setSelectListIndex={setSelectListIndex}
                             onClick={() =>

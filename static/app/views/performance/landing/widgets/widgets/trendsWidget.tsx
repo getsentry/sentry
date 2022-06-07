@@ -37,7 +37,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     ContainerActions,
     location,
     organization,
-    noCellActions,
+    withStaticFilters,
   } = props;
   const trendChangeType =
     props.chartSetting === PerformanceWidgetSetting.MOST_IMPROVED
@@ -156,7 +156,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
                     <RightAlignedCell>
                       <CompareDurations transaction={listItem} />
                     </RightAlignedCell>
-                    {!noCellActions && (
+                    {!withStaticFilters && (
                       <ListClose
                         setSelectListIndex={setSelectListIndex}
                         onClick={() => excludeTransaction(listItem.transaction, props)}

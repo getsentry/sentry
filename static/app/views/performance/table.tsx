@@ -62,10 +62,10 @@ export function getProjectID(
 type Props = {
   eventView: EventView;
   location: Location;
-  noCellActions: boolean;
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
+  withStaticFilters: boolean;
   columnTitles?: string[];
   summaryConditions?: string;
 };
@@ -154,7 +154,7 @@ class _Table extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, projects, location, noCellActions} = this.props;
+    const {eventView, organization, projects, location, withStaticFilters} = this.props;
     const isAlias = !organization.features.includes(
       'performance-frontend-use-events-endpoint'
     );
@@ -176,7 +176,7 @@ class _Table extends Component<Props, State> {
       Actions.EDIT_THRESHOLD,
     ];
 
-    const cellActions = noCellActions ? [] : allowActions;
+    const cellActions = withStaticFilters ? [] : allowActions;
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
