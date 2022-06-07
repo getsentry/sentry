@@ -294,14 +294,13 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             placeholder={placeholder}
             isSearchable={isSearchable}
             menuPlacement="bottom"
-            menuIsOpen
             isCompact
-            autoFocus
             controlShouldRenderValue={false}
             hideSelectedOptions={false}
             blurInputOnSelect={false}
             closeMenuOnSelect={false}
             closeMenuOnScroll={false}
+            openMenuOnFocus
           />
         </Overlay>
       </FocusScope>
