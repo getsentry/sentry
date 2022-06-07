@@ -75,7 +75,7 @@ def _add_deprecation_headers(
 def deprecated(
     deprecation_date: datetime,
     suggested_api: str | None = None,
-    key: str = "api.deprecation.brownout-cron",
+    key: str = "",
 ):
     """
     Deprecation decorator that handles all the overhead related to deprecated endpoints
