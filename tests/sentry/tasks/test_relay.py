@@ -71,13 +71,9 @@ def test_debounce(
 
     monkeypatch.setattr("sentry.tasks.relay.build_config_cache.apply_async", apply_async)
 
-    debounce_cache.mark_task_done(
-        public_key=default_projectkey.public_key, project_id=None, organization_id=None
-    )
     schedule_build_config_cache(public_key=default_projectkey.public_key, trigger="first_schedule")
     schedule_build_config_cache(public_key=default_projectkey.public_key, trigger="second_schedule")
 
-    print(tasks)
     assert tasks == [
         {"public_key": default_projectkey.public_key, "trigger": "first_schedule"},
     ]
