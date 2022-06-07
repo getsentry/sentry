@@ -43,7 +43,6 @@ from sentry.utils.snuba import (
     is_span_op_breakdown,
     naiveify_datetime,
     resolve_column,
-    resolve_snuba_aliases,
     to_naive_timestamp,
 )
 
@@ -96,19 +95,6 @@ def is_real_column(col):
         return False
 
     return True
-
-
-def resolve_discover_aliases(snuba_filter, function_translations=None):
-    """
-    Resolve the public schema aliases to the discover dataset.
-
-    Returns a copy of the input structure, and includes a
-    `translated_columns` key containing the selected fields that need to
-    be renamed in the result set.
-    """
-    return resolve_snuba_aliases(
-        snuba_filter, resolve_discover_column, function_translations=function_translations
-    )
 
 
 def zerofill(data, start, end, rollup, orderby):
