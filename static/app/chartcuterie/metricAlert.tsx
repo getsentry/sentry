@@ -1,9 +1,8 @@
-import type {LineSeriesOption} from 'echarts';
+import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import Grid from 'sentry/components/charts/components/grid';
 import XAxis from 'sentry/components/charts/components/xAxis';
-import YAxis from 'sentry/components/charts/components/yAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
 import type {SessionApiResponse} from 'sentry/types';
 import {lightTheme as theme} from 'sentry/utils/theme';
@@ -16,17 +15,22 @@ import {
 import {DEFAULT_FONT_FAMILY, slackChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
-const metricAlertGrid = Grid({left: 5, right: 5, bottom: 4, top: 12});
+const metricAlertGrid = Grid({left: 5, right: 5, bottom: 4, top: 16});
 const metricAlertXaxis = XAxis({
   theme,
   splitNumber: 3,
   isGroupedByDate: true,
   axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
 });
-const metricAlertYaxis = YAxis({
-  theme,
+const metricAlertYaxis: YAXisComponentOption = {
   axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
-});
+  splitLine: {
+    lineStyle: {
+      color: theme.chartLineColor,
+      opacity: 0.3,
+    },
+  },
+};
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
   return series.map(({seriesName, data, ...otherSeriesProps}) => {
