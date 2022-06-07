@@ -42,37 +42,60 @@ export type Tag = {
   values: string[];
 };
 
-export enum TokenActionType {
+export enum QuickActionType {
   Delete = 'delete',
   Negate = 'negate',
+  Next = 'next',
+  Previous = 'previous',
 }
 
-export type TokenAction = {
-  token: TokenResult<Token.Filter>;
-  type: TokenActionType;
+export type QuickAction = {
+  actionType: QuickActionType;
+  text: string;
+  canRunAction?: (token?: TokenResult<any>) => boolean;
+  hotkeys?: {
+    actual: string[] | string;
+    display: string[] | string;
+  };
 };
 
-export type SelectFilterTokenParams = {
-  filterToken: TokenResult<Token.Filter>;
-  filterTokenRef: React.RefObject<HTMLSpanElement>;
-  isClick?: boolean;
-};
-
-export const commonActions = [
+export const commonActions: QuickAction[] = [
   {
     text: 'Delete',
-    actionType: TokenActionType.Delete,
+    actionType: QuickActionType.Delete,
     hotkeys: {
       actual: 'option+backspace',
       display: 'option+backspace',
     },
+    canRunAction: t => {
+      return t?.type === Token.Filter;
+    },
   },
   {
     text: 'Negate',
-    actionType: TokenActionType.Negate,
+    actionType: QuickActionType.Negate,
     hotkeys: {
       actual: ['option+1', 'cmd+1'],
       display: 'option+!',
+    },
+    canRunAction: t => {
+      return t?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Previous Token',
+    actionType: QuickActionType.Previous,
+    hotkeys: {
+      actual: ['option+left'],
+      display: 'option+left',
+    },
+  },
+  {
+    text: 'Next Token',
+    actionType: QuickActionType.Next,
+    hotkeys: {
+      actual: ['option+right'],
+      display: 'option+right',
     },
   },
 ];

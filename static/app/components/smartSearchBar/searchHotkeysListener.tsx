@@ -1,21 +1,23 @@
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
-import {commonActions, TokenActionType} from './types';
+import {commonActions, QuickAction} from './types';
 
 const SearchHotkeysListener = ({
-  runTokenActionOnActiveToken,
+  runQuickAction,
 }: {
-  runTokenActionOnActiveToken: (actionType: TokenActionType) => void;
+  runQuickAction: (action: QuickAction) => void;
 }) => {
   useHotkeys(
-    commonActions.map(action => ({
-      match: action.hotkeys.actual,
-      callback: e => {
-        e.preventDefault();
-        runTokenActionOnActiveToken(action.actionType);
-      },
-    })),
-    [runTokenActionOnActiveToken]
+    commonActions
+      .filter(action => typeof action.hotkeys !== 'undefined')
+      .map(action => ({
+        match: action.hotkeys?.actual ?? [],
+        callback: e => {
+          e.preventDefault();
+          runQuickAction(action);
+        },
+      })),
+    [runQuickAction]
   );
 
   return null;

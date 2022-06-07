@@ -1,12 +1,10 @@
-import {Fragment, useContext, useEffect, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {css, keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useReducedMotion} from 'framer-motion';
 
 import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
-
-import {SelectedTokenContext} from '../smartSearchBar/tokenActions';
 
 import {ParseResult, Token, TokenResult} from './parser';
 import {isWithinToken} from './utils';
@@ -90,8 +88,6 @@ const FilterToken = ({
 }) => {
   const isActive = isWithinToken(filter, cursor);
 
-  const {selection, setSelectedToken} = useContext(SelectedTokenContext);
-
   // This state tracks if the cursor has left the filter token. We initialize it
   // to !isActive in the case where the filter token is rendered without the
   // cursor initally being in it.
@@ -99,12 +95,6 @@ const FilterToken = ({
 
   // Used to trigger the shake animation when the element becomes invalid
   const filterElementRef = useRef<HTMLSpanElement>(null);
-
-  // If the element is currently selected with a actions popup.
-  // Is a ref as the latest value needs to be checked in an event listener
-  const isSelectedRef = useRef<boolean>(false);
-  const isSelected = !!(selection?.filterTokenRef.current === filterElementRef.current);
-  isSelectedRef.current = isSelected;
 
   // Trigger the effect when isActive changes to updated whether the cursor has
   // left the token.
@@ -116,7 +106,6 @@ const FilterToken = ({
 
   const showInvalid = hasLeft && !!filter.invalid;
   const showTooltip = showInvalid && isActive;
-  const isInteractive = !!setSelectedToken;
 
   const reduceMotion = useReducedMotion();
 
@@ -138,40 +127,6 @@ const FilterToken = ({
     );
   }, [reduceMotion, showInvalid]);
 
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (isActive && e.key === 'Alt') {
-        setSelectedToken?.({
-          filterToken: filter,
-          filterTokenRef: filterElementRef,
-        });
-      }
-    };
-
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (isSelectedRef.current && e.key === 'Alt') {
-        setSelectedToken?.(undefined);
-      }
-    };
-
-    if (isInteractive) {
-      document.addEventListener('keydown', onKeyDown);
-      document.addEventListener('keyup', onKeyUp);
-    }
-
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('keyup', onKeyUp);
-    };
-  }, [
-    isActive,
-    filter,
-    isInteractive,
-    setSelectedToken,
-    isSelectedRef,
-    filterElementRef,
-  ]);
-
   return (
     <Tooltip
       disabled={!showTooltip}
@@ -179,22 +134,7 @@ const FilterToken = ({
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
     >
-      <Filter
-        onMouseDown={e => {
-          e.preventDefault();
-          e.stopPropagation();
-          setSelectedToken?.({
-            filterToken: filter,
-            filterTokenRef: filterElementRef,
-            isClick: true,
-          });
-        }}
-        ref={filterElementRef}
-        active={isActive}
-        selected={isSelected}
-        invalid={showInvalid}
-        isInteractive={isInteractive}
-      >
+      <Filter ref={filterElementRef} active={isActive} invalid={showInvalid}>
         {filter.negated && <Negation>!</Negation>}
         <KeyToken token={filter.key} negated={filter.negated} />
         {filter.operator && <Operator>{filter.operator}</Operator>}
@@ -249,39 +189,23 @@ const NumberToken = ({token}: {token: TokenResult<Token.ValueNumber>}) => (
 type FilterProps = {
   active: boolean;
   invalid: boolean;
-  isInteractive: boolean;
-  selected: boolean;
 };
 
 const colorType = (p: FilterProps) =>
-  `${p.invalid ? 'invalid' : 'valid'}${
-    p.selected ? 'Selected' : p.active ? 'Active' : ''
-  }` as const;
+  `${p.invalid ? 'invalid' : 'valid'}${p.active ? 'Active' : ''}` as const;
 
 const Filter = styled('span')<FilterProps>`
   --token-bg: ${p => p.theme.searchTokenBackground[colorType(p)]};
-  --token-border-color: ${p => p.theme.searchTokenBorder[colorType(p)]};
+  --token-border: ${p => p.theme.searchTokenBorder[colorType(p)]};
   --token-value-color: ${p => (p.invalid ? p.theme.red300 : p.theme.blue300)};
 
   position: relative;
   animation-name: ${shakeAnimation};
-  cursor: ${p => {
-    if (p.isInteractive) {
-      return p.active ? 'text' : 'pointer';
-    }
-
-    return 'auto';
-  }};
-  pointer-events: ${p => (p.active || p.selected ? 'none' : 'auto')};
-
-  &:hover {
-    opacity: ${p => (p.isInteractive ? '0.7' : 'inherit')};
-  }
 `;
 
 const filterCss = css`
   background: var(--token-bg);
-  border: 0.5px solid var(--token-border-color);
+  border: 0.5px solid var(--token-border);
   padding: ${space(0.25)} 0;
 `;
 

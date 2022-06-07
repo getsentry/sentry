@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 
 import HotkeysLabel from '../hotkeysLabel';
 
-import {commonActions, ItemType, SearchGroup, SearchItem, TokenActionType} from './types';
+import {commonActions, ItemType, QuickAction, SearchGroup, SearchItem} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -253,16 +253,18 @@ export function getValidOps(
 }
 
 export function getCommonActionsSearchGroup(
-  hasActiveToken: boolean,
-  runTokenActionOnCursorToken: (actionType: TokenActionType) => void
+  runTokenActionOnCursorToken: (action: QuickAction) => void,
+  activeToken?: TokenResult<any>
 ): {searchGroup: SearchGroup; searchItems: SearchItem[]} | undefined {
-  const searchItems = commonActions.map(action => ({
-    title: action.text,
-    callback: () => runTokenActionOnCursorToken(action.actionType),
-    documentation: <HotkeysLabel value={action.hotkeys.display} />,
-  }));
+  const searchItems = commonActions
+    .filter(action => !action.canRunAction || action.canRunAction(activeToken))
+    .map(action => ({
+      title: action.text,
+      callback: () => runTokenActionOnCursorToken(action),
+      documentation: action.hotkeys && <HotkeysLabel value={action.hotkeys.display} />,
+    }));
 
-  return hasActiveToken
+  return searchItems.length > 0
     ? {
         searchGroup: {
           title: t('Common Actions'),

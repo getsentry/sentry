@@ -44,18 +44,9 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import {ActionButton} from './actions';
-import SearchActionsDropdown from './searchActionsDropdown';
 import SearchDropdown from './searchDropdown';
 import SearchHotkeysListener from './searchHotkeysListener';
-import {SelectedTokenContext} from './tokenActions';
-import {
-  ItemType,
-  SearchGroup,
-  SearchItem,
-  SelectFilterTokenParams,
-  TokenAction,
-  TokenActionType,
-} from './types';
+import {ItemType, QuickAction, QuickActionType, SearchGroup, SearchItem} from './types';
 import {
   addSpace,
   createSearchGroups,
@@ -284,7 +275,6 @@ type State = {
    */
   searchTerm: string;
   tags: Record<string, string>;
-  filterTokenSelection?: SelectFilterTokenParams;
   /**
    * Indicates that we have a query that we've already determined not to have
    * any values. This is used to stop the autocompleter from querying if we
@@ -451,61 +441,96 @@ class SmartSearchBar extends Component<Props, State> {
     }
   }
 
-  selectFilterToken = (filterTokenSelection?: SelectFilterTokenParams) => {
-    this.setState({
-      filterTokenSelection,
-    });
-
-    if (filterTokenSelection?.isClick) {
-      // Only blur the input if the filter token was clicked.
-      this.searchInput.current?.blur();
-    }
-  };
-
-  runTokenActionOnActiveToken = (actionType: TokenActionType): void => {
-    const token = this.state.filterTokenSelection?.filterToken ?? this.cursorToken;
-
-    if (token && token.type === Token.Filter) {
-      this.runTokenAction({
-        type: actionType,
-        token,
-      });
-    }
-  };
-
-  runTokenAction = (action: TokenAction) => {
+  runQuickAction = (action: QuickAction) => {
     const {query} = this.state;
+    const token = this.cursorToken ?? undefined;
 
-    switch (action.type) {
-      case TokenActionType.Delete: {
-        const newQuery =
-          // We trim to remove any remaining spaces
-          query.slice(0, action.token.location.start.offset).trim() +
-          query.slice(action.token.location.end.offset).trim();
-        this.updateQuery(newQuery);
-        break;
-      }
-      case TokenActionType.Negate: {
-        if (action.token.negated) {
-          const newQuery =
-            query.slice(0, action.token.location.start.offset) +
-            query.slice(action.token.key.location.start.offset);
-          this.updateQuery(newQuery, this.cursorPosition - 1);
-        } else {
-          const newQuery =
-            query.slice(0, action.token.key.location.start.offset) +
-            '!' +
-            query.slice(action.token.key.location.start.offset);
-          this.updateQuery(newQuery, this.cursorPosition + 1);
+    if (!action.canRunAction || action.canRunAction(token)) {
+      switch (action.actionType) {
+        case QuickActionType.Delete: {
+          if (token) {
+            const newQuery =
+              // We trim to remove any remaining spaces
+              query.slice(0, token.location.start.offset).trim() +
+              query.slice(token.location.end.offset).trim();
+            this.updateQuery(newQuery);
+          }
+
+          break;
         }
-        break;
-      }
-      default:
-        break;
-    }
+        case QuickActionType.Negate: {
+          if (token && token.type === Token.Filter) {
+            if (token.negated) {
+              const newQuery =
+                query.slice(0, token.location.start.offset) +
+                query.slice(token.key.location.start.offset);
+              this.updateQuery(newQuery, this.cursorPosition - 1);
+            } else {
+              const newQuery =
+                query.slice(0, token.key.location.start.offset) +
+                '!' +
+                query.slice(token.key.location.start.offset);
+              this.updateQuery(newQuery, this.cursorPosition + 1);
+            }
+          }
+          break;
+        }
+        case QuickActionType.Next: {
+          let offset = this.state.query.length;
+          const filterTokens = this.state.parsedQuery?.filter(
+            tok => tok.type === Token.Filter
+          );
 
-    if (this.state.filterTokenSelection) {
-      this.setState({filterTokenSelection: undefined});
+          if (this.searchInput.current && filterTokens) {
+            this.searchInput.current.focus();
+
+            if (token) {
+              const tokenIndex = filterTokens.findIndex(tok => tok === token);
+              if (typeof tokenIndex !== 'undefined') {
+                if (tokenIndex + 1 < filterTokens.length) {
+                  offset = filterTokens[tokenIndex + 1].location.end.offset;
+                }
+              }
+            }
+
+            if (this.cursorPosition === this.state.query.length) {
+              offset = filterTokens[0].location.end.offset;
+            }
+
+            this.searchInput.current.selectionStart = offset;
+            this.searchInput.current.selectionEnd = offset;
+            this.updateAutoCompleteItems();
+          }
+
+          break;
+        }
+        case QuickActionType.Previous: {
+          if (this.searchInput.current) {
+            this.searchInput.current.focus();
+
+            if (token) {
+              this.searchInput.current.selectionStart = token.location.start.offset - 1;
+              this.searchInput.current.selectionEnd = token.location.start.offset - 1;
+            } else {
+              const lastToken = this.state.parsedQuery
+                ?.slice(0)
+                .reverse()
+                .find(tok => tok.type === Token.Filter);
+              if (lastToken) {
+                const offset = lastToken.location.end.offset;
+
+                this.searchInput.current.selectionStart = offset;
+                this.searchInput.current.selectionEnd = offset;
+              }
+            }
+
+            this.updateAutoCompleteItems();
+          }
+          break;
+        }
+        default:
+          break;
+      }
     }
   };
 
@@ -521,11 +546,6 @@ class SmartSearchBar extends Component<Props, State> {
 
   onQueryFocus = () => {
     this.setState({inputHasFocus: true});
-
-    // Clear the selected filter token only if there is one, which closes the action menu
-    if (this.state.filterTokenSelection) {
-      this.selectFilterToken(undefined);
-    }
   };
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
@@ -1224,16 +1244,28 @@ class SmartSearchBar extends Component<Props, State> {
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
 
-    this.setState(
-      createSearchGroups(
-        searchItems,
-        hasRecentSearches ? recentSearchItems : undefined,
-        tagName,
-        type,
-        maxSearchItems,
-        queryCharsLeft
-      )
+    const searchGroups = createSearchGroups(
+      searchItems,
+      hasRecentSearches ? recentSearchItems : undefined,
+      tagName,
+      type,
+      maxSearchItems,
+      queryCharsLeft
     );
+
+    const commonActionsSearchResults = getCommonActionsSearchGroup(
+      this.runQuickAction,
+      this.cursorToken ?? undefined
+    );
+    if (commonActionsSearchResults) {
+      searchGroups.searchGroups.push(commonActionsSearchResults.searchGroup);
+      searchGroups.flatSearchItems = [
+        ...searchGroups.flatSearchItems,
+        ...commonActionsSearchResults.searchItems,
+      ];
+    }
+
+    this.setState(searchGroups);
   }
 
   /**
@@ -1248,8 +1280,8 @@ class SmartSearchBar extends Component<Props, State> {
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
 
     const commonActionsSearchResults = getCommonActionsSearchGroup(
-      this.cursorToken?.type === Token.Filter,
-      this.runTokenActionOnActiveToken
+      this.runQuickAction,
+      this.cursorToken ?? undefined
     );
 
     const searchGroups = groups
@@ -1432,7 +1464,6 @@ class SmartSearchBar extends Component<Props, State> {
       inputHasFocus,
       numActionsVisible,
       loading,
-      filterTokenSelection,
     } = this.state;
 
     const input = (
@@ -1478,84 +1509,65 @@ class SmartSearchBar extends Component<Props, State> {
     const cursor = this.cursorPosition;
 
     return (
-      <SelectedTokenContext.Provider
-        value={{
-          selection: filterTokenSelection,
-          setSelectedToken: this.selectFilterToken,
-        }}
+      <Container
+        ref={this.containerRef}
+        className={className}
+        inputHasFocus={inputHasFocus}
       >
-        <Container
-          ref={this.containerRef}
-          className={className}
-          inputHasFocus={inputHasFocus}
-        >
-          <SearchHotkeysListener
-            runTokenActionOnActiveToken={this.runTokenActionOnActiveToken}
-          />
-          <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
-            <IconSearch />
-            {inlineLabel}
-          </SearchLabel>
-
-          <InputWrapper>
-            {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
-            <Highlight>
-              {parsedQuery !== null ? (
-                <HighlightQuery
-                  parsedQuery={parsedQuery}
-                  cursorPosition={cursor === -1 ? undefined : cursor}
-                />
-              ) : (
-                query
-              )}
-            </Highlight>
-          </InputWrapper>
-
-          <ActionsBar gap={0.5}>
-            {query !== '' && (
-              <ActionButton
-                onClick={this.clearSearch}
-                icon={<IconClose size="xs" />}
-                title={t('Clear search')}
-                aria-label={t('Clear search')}
+        <SearchHotkeysListener runQuickAction={this.runQuickAction} />
+        <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
+          <IconSearch />
+          {inlineLabel}
+        </SearchLabel>
+        <InputWrapper>
+          <Highlight>
+            {parsedQuery !== null ? (
+              <HighlightQuery
+                parsedQuery={parsedQuery}
+                cursorPosition={cursor === -1 ? undefined : cursor}
               />
+            ) : (
+              query
             )}
-            {visibleActions}
-            {overflowedActions.length > 0 && (
-              <DropdownLink
-                anchorRight
-                caret={false}
-                title={
-                  <ActionButton
-                    aria-label={t('Show more')}
-                    icon={<VerticalEllipsisIcon size="xs" />}
-                  />
-                }
-              >
-                {overflowedActions}
-              </DropdownLink>
-            )}
-          </ActionsBar>
-          {(loading || searchGroups.length > 0) && (
-            <SearchDropdown
-              css={{display: inputHasFocus ? 'block' : 'none'}}
-              className={dropdownClassName}
-              items={searchGroups}
-              onClick={this.onAutoComplete}
-              loading={loading}
-              searchSubstring={searchTerm}
+          </Highlight>
+          {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
+        </InputWrapper>
+        <ActionsBar gap={0.5}>
+          {query !== '' && (
+            <ActionButton
+              onClick={this.clearSearch}
+              icon={<IconClose size="xs" />}
+              title={t('Clear search')}
+              aria-label={t('Clear search')}
             />
           )}
-          {filterTokenSelection && (
-            <SearchActionsDropdown
-              filterElementRef={filterTokenSelection?.filterTokenRef}
-              activeToken={filterTokenSelection?.filterToken}
-              deselect={() => this.selectFilterToken(undefined)}
-              runTokenAction={this.runTokenAction}
-            />
+          {visibleActions}
+          {overflowedActions.length > 0 && (
+            <DropdownLink
+              anchorRight
+              caret={false}
+              title={
+                <ActionButton
+                  aria-label={t('Show more')}
+                  icon={<VerticalEllipsisIcon size="xs" />}
+                />
+              }
+            >
+              {overflowedActions}
+            </DropdownLink>
           )}
-        </Container>
-      </SelectedTokenContext.Provider>
+        </ActionsBar>
+        {(loading || searchGroups.length > 0) && (
+          <SearchDropdown
+            css={{display: inputHasFocus ? 'block' : 'none'}}
+            className={dropdownClassName}
+            items={searchGroups}
+            onClick={this.onAutoComplete}
+            loading={loading}
+            searchSubstring={searchTerm}
+          />
+        )}
+      </Container>
     );
   }
 }
