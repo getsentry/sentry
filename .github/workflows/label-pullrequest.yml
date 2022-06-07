@@ -1,0 +1,32 @@
+# Adds labels to pull requests for the type of change the PR makes
+name: meta(labels)
+
+on:
+  pull_request:
+
+jobs:
+  label-pullrequest:
+    name: labels pull requests (frontend / backend)
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for file changes
+        uses: getsentry/paths-filter@master
+        id: changes
+        with:
+          list-files: shell
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
+      - name: Add frontend label
+        uses: actions-ecosystem/action-add-labels@v1
+        if: needs.files-changed.outputs.frontend == 'true'
+        with:
+          labels: frontend
+
+      - name: Add backend label
+        uses: actions-ecosystem/action-add-labels@v1
+        if: needs.files-changed.outputs.backend == 'true'
+        with:
+          labels: backend
