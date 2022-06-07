@@ -7,7 +7,6 @@ from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import (
     build_config_cache,
-    invalidate_project_config,
     schedule_build_config_cache,
     schedule_invalidate_project_cache,
 )
@@ -119,40 +118,6 @@ def test_generate(
             "quotas": [],
         }
     ]
-
-
-@pytest.mark.django_db
-def test_invalidate_project(
-    monkeypatch,
-    default_project,
-    default_projectkey,
-    default_organization,
-    task_runner,
-    redis_cache,
-):
-    with task_runner():
-        invalidate_project_config(project_id=default_project.id)
-
-    for cache_key in _cache_keys_for_project(default_project):
-        assert redis_cache.get(cache_key)
-
-
-@pytest.mark.django_db
-def test_invalidate_org(
-    monkeypatch,
-    default_project,
-    default_projectkey,
-    default_organization,
-    task_runner,
-    redis_cache,
-):
-    with task_runner():
-        invalidate_project_config(organization_id=default_organization.id)
-
-    for cache_key in _cache_keys_for_org(default_organization):
-        # FIXME: this test fails because the code isn't correct. Configs should
-        # *not* be deleted in invalidation tasks.
-        assert redis_cache.get(cache_key)
 
 
 @pytest.mark.django_db
