@@ -6,6 +6,7 @@ from sentry.models import Project, ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import (
+    build_config_cache,
     invalidate_project_config,
     schedule_build_config_cache,
     schedule_invalidate_project_cache,
@@ -93,25 +94,18 @@ def test_debounce(
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("entire_organization", (True, False))
 def test_generate(
     monkeypatch,
     default_project,
     default_organization,
     default_projectkey,
     task_runner,
-    entire_organization,
     redis_cache,
 ):
     assert not redis_cache.get(default_projectkey.public_key)
 
-    if not entire_organization:
-        kwargs = {"project_id": default_project.id}
-    else:
-        kwargs = {"organization_id": default_organization.id}
-
     with task_runner():
-        schedule_build_config_cache(**kwargs)
+        build_config_cache(default_projectkey.public_key)
 
     cfg = redis_cache.get(default_projectkey.public_key)
 
