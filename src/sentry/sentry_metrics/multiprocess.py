@@ -358,6 +358,11 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     return invalid_strs
 
 
+class PartitionIdxOffset(NamedTuple):
+    partition_idx: int
+    offset: int
+
+
 def process_messages(
     outer_message: Message[MessageBatch],
 ) -> MessageBatch:
@@ -384,18 +389,16 @@ def process_messages(
 
     org_strings = defaultdict(set)
     strings = set()
-    skipped_offsets: Mapping[int, Set[int]] = defaultdict(set)
+    skipped_offsets: Set[PartitionIdxOffset] = set()
     with metrics.timer("process_messages.parse_outer_message"):
-        parsed_payloads_by_offset: MutableMapping[
-            int, MutableMapping[int, json.JSONData]
-        ] = defaultdict(dict)
-
+        parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, json.JSONData] = {}
         for msg in outer_message.payload:
+            partition_offset = PartitionIdxOffset(msg.partition.index, msg.offset)
             try:
                 parsed_payload = json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
-                parsed_payloads_by_offset[msg.partition.index][msg.offset] = parsed_payload
+                parsed_payloads_by_offset[partition_offset] = parsed_payload
             except rapidjson.JSONDecodeError:
-                skipped_offsets[msg.partition.index].add(msg.offset)
+                skipped_offsets.add(partition_offset)
                 logger.error(
                     "process_messages.invalid_json",
                     extra={"payload_value": str(msg.payload.value)},
@@ -403,50 +406,50 @@ def process_messages(
                 )
                 continue
 
-        for partition_idx in parsed_payloads_by_offset:
-            for offset, message in parsed_payloads_by_offset[partition_idx].items():
-                metric_name = message["name"]
-                org_id = message["org_id"]
-                tags = message.get("tags", {})
+        for partition_offset, message in parsed_payloads_by_offset.items():
+            partition_idx, offset = partition_offset
+            metric_name = message["name"]
+            org_id = message["org_id"]
+            tags = message.get("tags", {})
 
-                if not valid_metric_name(metric_name):
-                    logger.error(
-                        "process_messages.invalid_metric_name",
-                        extra={
-                            "org_id": org_id,
-                            "metric_name": metric_name,
-                            "partition": partition_idx,
-                            "offset": offset,
-                        },
-                    )
-                    skipped_offsets[partition_idx].add(offset)
-                    continue
+            if not valid_metric_name(metric_name):
+                logger.error(
+                    "process_messages.invalid_metric_name",
+                    extra={
+                        "org_id": org_id,
+                        "metric_name": metric_name,
+                        "partition": partition_idx,
+                        "offset": offset,
+                    },
+                )
+                skipped_offsets.add(partition_offset)
+                continue
 
-                invalid_strs = invalid_metric_tags(tags)
+            invalid_strs = invalid_metric_tags(tags)
 
-                if invalid_strs:
-                    # sentry doesn't seem to actually capture nested logger.error extra args
-                    sentry_sdk.set_extra("all_metric_tags", tags)
-                    logger.error(
-                        "process_messages.invalid_tags",
-                        extra={
-                            "org_id": org_id,
-                            "metric_name": metric_name,
-                            "invalid_tags": invalid_strs,
-                            "partition": partition_idx,
-                            "offset": offset,
-                        },
-                    )
-                    skipped_offsets[partition_idx].add(offset)
-                    continue
+            if invalid_strs:
+                # sentry doesn't seem to actually capture nested logger.error extra args
+                sentry_sdk.set_extra("all_metric_tags", tags)
+                logger.error(
+                    "process_messages.invalid_tags",
+                    extra={
+                        "org_id": org_id,
+                        "metric_name": metric_name,
+                        "invalid_tags": invalid_strs,
+                        "partition": partition_idx,
+                        "offset": offset,
+                    },
+                )
+                skipped_offsets.add(partition_offset)
+                continue
 
-                parsed_strings = {
-                    metric_name,
-                    *tags.keys(),
-                    *tags.values(),
-                }
-                org_strings[org_id].update(parsed_strings)
-                strings.update(parsed_strings)
+            parsed_strings = {
+                metric_name,
+                *tags.keys(),
+                *tags.values(),
+            }
+            org_strings[org_id].update(parsed_strings)
+            strings.update(parsed_strings)
 
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
@@ -462,19 +465,14 @@ def process_messages(
         for message in outer_message.payload:
             used_tags: Set[str] = set()
             output_message_meta: Mapping[str, MutableMapping[int, str]] = defaultdict(dict)
-
-            if (
-                skipped_offsets.get(message.partition.index)
-                and message.offset in skipped_offsets[message.partition.index]
-            ):
+            partition_offset = PartitionIdxOffset(message.partition.index, message.offset)
+            if partition_offset in skipped_offsets:
                 logger.info(
                     "process_message.offset_skipped",
                     extra={"offset": message.offset, "partition": message.partition.index},
                 )
                 continue
-            parsed_payload_value = parsed_payloads_by_offset[message.partition.index][
-                message.offset
-            ]
+            parsed_payload_value = parsed_payloads_by_offset[partition_offset]
             new_payload_value = deepcopy(parsed_payload_value)
 
             metric_name = parsed_payload_value["name"]
