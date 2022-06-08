@@ -73,9 +73,9 @@ export function eventViewFromWidget(
 
   const {orderby} = query;
   // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
-  const aggregateAliasOrderBy = `${orderby.startsWith('-') ? '-' : ''}${getAggregateAlias(
-    trimStart(orderby, '-')
-  )}`;
+  const aggregateAliasOrderBy = orderby
+    ? `${orderby.startsWith('-') ? '-' : ''}${getAggregateAlias(trimStart(orderby, '-'))}`
+    : orderby;
   return EventView.fromSavedQuery({
     id: undefined,
     name: title,
