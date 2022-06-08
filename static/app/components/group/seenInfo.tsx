@@ -121,6 +121,7 @@ const dateTimeCss = p => css`
 
 const HovercardWrapper = styled('div')`
   display: flex;
+  align-items: baseline;
 `;
 
 const DateWrapper = styled('div')`
@@ -157,6 +158,7 @@ const TimeSinceWrapper = styled('div')`
 
 const StyledTimeSince = styled(TimeSince)`
   font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1.2;
 `;
 
 const StyledHovercard = styled(Hovercard)`

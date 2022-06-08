@@ -248,7 +248,7 @@ function ProjectSelector({
 
     return (
       <StyledHeaderItem
-        data-test-id="global-header-project-selector"
+        data-test-id="page-filter-project-selector"
         icon={
           forceProject && (
             <PlatformList
@@ -275,7 +275,7 @@ function ProjectSelector({
     return (
       <Fragment>{customLoadingIndicator}</Fragment> ?? (
         <StyledHeaderItem
-          data-test-id="global-header-project-selector-loading"
+          data-test-id="page-filter-project-selector-loading"
           icon={<IconProject />}
           loading
         >
@@ -436,7 +436,7 @@ function ProjectSelector({
 
             return (
               <StyledHeaderItem
-                data-test-id="global-header-project-selector"
+                data-test-id="page-filter-project-selector"
                 icon={icon}
                 hasSelected={hasSelected}
                 hasChanges={hasChanges}

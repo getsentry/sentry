@@ -2,7 +2,8 @@ import pickle
 
 import pytest
 
-from sentry.db.models.fields.node import NodeData
+from sentry import eventstore, nodestore
+from sentry.db.models.fields.node import NodeData, NodeIntegrityFailure
 from sentry.eventstore.models import Event
 from sentry.grouping.enhancer import Enhancements
 from sentry.models import Environment
@@ -321,3 +322,68 @@ def test_renormalization(monkeypatch, factories, task_runner, default_project):
     # that you will encounter severe performance issues during event processing
     # or postprocessing.
     assert len(normalize_mock_calls) == 1
+
+
+class EventNodeStoreTest(TestCase):
+    def test_event_node_id(self):
+        # Create an event without specifying node_id. A node_id should be generated
+        e1 = Event(project_id=1, event_id="abc", data={"foo": "bar"})
+        assert e1.data.id is not None, "We should have generated a node_id for this event"
+        e1_node_id = e1.data.id
+        e1.data.save()
+        e1_body = nodestore.get(e1_node_id)
+        assert e1_body == {"foo": "bar"}, "The event body should be in nodestore"
+
+        e1 = Event(project_id=1, event_id="abc")
+
+        assert e1.data.data == {"foo": "bar"}, "The event body should be loaded from nodestore"
+        assert e1.data.id == e1_node_id, "The event's node_id should be the same after load"
+
+        # Event with no data should not be saved to nodestore
+        e2 = Event(project_id=1, event_id="mno", data=None)
+        e2_node_id = e2.data.id
+        assert e2.data.data == {}  # NodeData returns {} by default
+        eventstore.bind_nodes([e2], "data")
+        assert e2.data.data == {}
+        e2_body = nodestore.get(e2_node_id)
+        assert e2_body is None
+
+    def test_screams_bloody_murder_when_ref_fails(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+        invalid_event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
+            },
+            project_id=project1.id,
+        )
+        event = self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-2"],
+            },
+            project_id=project2.id,
+        )
+        event.data.bind_ref(invalid_event)
+        event.data.save()
+
+        assert event.data.get_ref(event) != event.data.get_ref(invalid_event)
+
+        # Unload node data to force reloading from nodestore
+        event.data._node_data = None
+
+        with pytest.raises(NodeIntegrityFailure):
+            eventstore.bind_nodes([event])
+
+    def test_accepts_valid_ref(self):
+        self.store_event(data={"event_id": "a" * 32}, project_id=self.project.id)
+        event = Event(project_id=self.project.id, event_id="a" * 32)
+        event.data.bind_ref(event)
+        assert event.data.ref == event.project.id
+
+    def test_basic_ref_binding(self):
+        event = self.store_event(data={}, project_id=self.project.id)
+        assert event.data.get_ref(event) == event.project.id

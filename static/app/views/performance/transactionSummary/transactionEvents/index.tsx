@@ -152,6 +152,7 @@ function EventsContentWrapper(props: ChildProps) {
       orgSlug={organization.slug}
       location={location}
       referrer="api.performance.transaction-events"
+      useEvents
     >
       {({isLoading, tableData}) => {
         if (isLoading) {

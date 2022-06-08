@@ -27,20 +27,21 @@ function SearchBarAction({
   onFilterChange,
   className,
 }: Props) {
-  function trigger({props, ref}) {
-    return (
-      <StyledTrigger
-        size="small"
-        priority={filterSelections && filterSelections.length > 0 ? 'primary' : 'default'}
-        ref={ref}
-        {...props}
-      >
-        {filterSelections?.length
-          ? tn('%s Active Filter', '%s Active Filters', filterSelections.length)
-          : t('Filter By')}
-      </StyledTrigger>
-    );
-  }
+  const trigger: React.ComponentProps<typeof CompactSelect>['trigger'] = ({
+    props,
+    ref,
+  }) => (
+    <StyledTrigger
+      size="small"
+      priority={filterSelections && filterSelections.length > 0 ? 'primary' : 'default'}
+      ref={ref}
+      {...props}
+    >
+      {filterSelections?.length
+        ? tn('%s Active Filter', '%s Active Filters', filterSelections.length)
+        : t('Filter By')}
+    </StyledTrigger>
+  );
 
   return (
     <Wrapper className={className}>
@@ -71,15 +72,16 @@ const Wrapper = styled('div')`
   width: 100%;
   justify-content: flex-end;
 
-  @media (max-width: ${props => props.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
     margin-top: ${space(1)};
+    flex-direction: column;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
     width: 400px;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
     width: 600px;
   }
 `;
@@ -105,15 +107,25 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     `
       .search-input,
       .search-input:focus {
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-        border-left: 0;
+        border-radius: ${p.theme.borderRadiusRight};
+        border-left-width: 0;
       }
     `}
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    .search-input,
+    .search-input:focus {
+      border-radius: ${p => p.theme.borderRadius};
+      border-left-width: 1px;
+    }
+  }
 `;
 
 const StyledTrigger = styled(DropdownButtonV2)`
-  display: inline-block;
   border-radius: ${p => p.theme.borderRadiusLeft};
-  z-index: 0;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    border-radius: ${p => p.theme.borderRadius};
+    margin-bottom: ${space(1)};
+  }
 `;

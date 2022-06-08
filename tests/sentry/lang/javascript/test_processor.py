@@ -641,6 +641,7 @@ class FetchFileTest(TestCase):
         # No we have one, call set again
         result = fetch_release_archive_for_url(release2, dist=None, url="foo")
         assert result is not None
+        result.close()
         assert len(relevant_calls(cache_get, "artifact-index")) == 1
         assert len(relevant_calls(cache_set, "artifact-index")) == 1
         assert len(relevant_calls(cache_get, "releasefile")) == 1
@@ -651,6 +652,7 @@ class FetchFileTest(TestCase):
         # Second time, get it from cache
         result = fetch_release_archive_for_url(release2, dist=None, url="foo")
         assert result is not None
+        result.close()
         assert len(relevant_calls(cache_get, "artifact-index")) == 1
         assert len(relevant_calls(cache_set, "artifact-index")) == 0
         assert len(relevant_calls(cache_get, "releasefile")) == 1
@@ -687,6 +689,7 @@ class FetchFileTest(TestCase):
 
         result = fetch_release_archive_for_url(release, dist=None, url="foo")
         assert result is not None
+        result.close()
         assert len(relevant_calls(cache_set, "releasefile")) == 0
 
     @patch(
@@ -703,6 +706,7 @@ class FetchFileTest(TestCase):
         with override_options({"releasefile.cache-max-archive-size": 9}):
             result = fetch_release_archive_for_url(release, dist=None, url="foo")
         assert result is not None
+        result.close()
         assert len(cache_getfile.mock_calls) == 1
 
     @patch(
@@ -718,6 +722,7 @@ class FetchFileTest(TestCase):
         # cache.getfile is called once for the index, and once for the archive:
         result = fetch_release_archive_for_url(release, dist=None, url="foo")
         assert result is not None
+        result.close()
         assert len(cache_getfile.mock_calls) == 2
 
     @responses.activate

@@ -234,7 +234,7 @@ class Results extends Component<Props, State> {
     return null;
   };
 
-  handleConfirmed = async () => {
+  handleConfirmed = () => {
     this.setState({needConfirmation: false, confirmedQuery: true}, () => {
       this.setState({confirmedQuery: false});
     });

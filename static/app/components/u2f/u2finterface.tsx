@@ -54,7 +54,7 @@ class U2fInterface extends Component<Props, State> {
     failCount: 0,
   };
 
-  async componentDidMount() {
+  componentDidMount() {
     const supported = !!window.PublicKeyCredential;
 
     // eslint-disable-next-line react/no-did-mount-set-state
