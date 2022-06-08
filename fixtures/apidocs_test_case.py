@@ -15,7 +15,7 @@ class APIDocsTestCase(APITestCase):
 
     def create_schema(self):
         if not APIDocsTestCase.cached_schema:
-            path = os.path.join(os.path.dirname(__file__), "openapi-derefed.json")
+            path = os.path.join(os.path.dirname(__file__), "../tests/apidocs/openapi-derefed.json")
             with open(path) as json_file:
                 data = json.load(json_file)
                 data["servers"][0]["url"] = settings.SENTRY_OPTIONS["system.url-prefix"]

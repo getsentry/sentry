@@ -1,8 +1,8 @@
 from django.test.client import RequestFactory
 from django.urls import reverse
 
+from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.models import SentryAppInstallation
-from tests.apidocs.util import APIDocsTestCase
 
 
 class SentryAppInstallationDocs(APIDocsTestCase):
