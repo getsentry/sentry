@@ -66,7 +66,7 @@ function FieldFromConfig(props: FieldFromConfigProps): React.ReactElement | null
       if (componentProps.multiline) {
         return <TextareaField {...(componentProps as TextareaFieldProps)} />;
       }
-      return <TextField {...componentProps} />;
+      return <TextField {...(componentProps as InputFieldProps)} />;
     case 'number':
       return <NumberField {...componentProps} />;
     case 'textarea':
