@@ -1118,7 +1118,6 @@ function WidgetBuilder({
   return (
     <SentryDocumentTitle title={dashboard.title} orgSlug={orgSlug}>
       <PageFiltersContainer
-        skipLoadLastUsed={organization.features.includes('global-views')}
         defaultSelection={{
           datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
         }}
