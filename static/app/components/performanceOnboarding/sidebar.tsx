@@ -34,8 +34,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
   const {currentPanel, collapsed, hidePanel, orientation} = props;
   const isActive = currentPanel === SidebarPanelKey.PerformanceOnboarding;
   const organization = useOrganization();
-  const access = new Set(organization.access);
-  const hasProjectAccess = access.has('project:read');
+  const hasProjectAccess = organization.access.includes('project:read');
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 
