@@ -24,14 +24,11 @@ def test_path_traversal_attempt_raises_exception(platform):
     assert msg == "potential path traversal attack detected"
 
 
-def test_missing_sample_raises_exception():
+def test_missing_sample_returns_none():
     platform = "random-platform-that-does-not-exist"
+    data = load_data(platform)
 
-    with pytest.raises(FileNotFoundError) as excinfo:
-        load_data(platform)
-
-    (msg,) = excinfo.value.args
-    assert msg == "platform sample not found"
+    assert data is None
 
 
 def test_sample_as_directory_raises_exception(monkeypatch, tmp_path):
