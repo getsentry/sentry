@@ -498,6 +498,7 @@ def process_messages(
                 headers=[
                     *message.payload.headers,
                     ("mapping_sources", mapping_header_content),
+                    ("metric_type", parsed_payload_value["type"]),
                 ],
             )
             new_message = Message(
