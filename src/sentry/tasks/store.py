@@ -18,6 +18,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models import Activity, Organization, Project, ProjectOption
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.dates import to_datetime
@@ -538,7 +539,7 @@ def create_failed_event(
     if not sent_notification:
         project = Project.objects.get_from_cache(id=project_id)
         Activity.objects.create(
-            type=Activity.NEW_PROCESSING_ISSUES,
+            type=ActivityType.NEW_PROCESSING_ISSUES.value,
             project=project,
             datetime=to_datetime(start_time),
             data={"reprocessing_active": reprocessing_active, "issues": issues},

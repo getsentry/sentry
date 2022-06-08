@@ -11,7 +11,9 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
-@instrumented_task(name="sentry.tasks.relay.update_config_cache", queue="relay_config")
+@instrumented_task(
+    name="sentry.tasks.relay.update_config_cache", queue="relay_config", acks_late=True
+)
 def update_config_cache(
     generate, organization_id=None, project_id=None, public_key=None, update_reason=None
 ):

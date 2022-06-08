@@ -1,35 +1,37 @@
 import {Fragment} from 'react';
+import {RouteComponentProps} from 'react-router';
 import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
+import Badge from 'sentry/components/badge';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {t, tct} from 'sentry/locale';
+import Link from 'sentry/components/links/link';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
+import {t, tct, tn} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
-import {
-  SamplingConditionOperator,
-  SamplingRule,
-  SamplingRules,
-  SamplingRuleType,
-} from 'sentry/types/sampling';
+import {SamplingRule, SamplingRules, SamplingRuleType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import withProject from 'sentry/utils/withProject';
+import recreateRoute from 'sentry/utils/recreateRoute';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
+
+import TextBlock from '../../components/text/textBlock';
 
 import {modalCss} from './modal/utils';
 import Modal from './modal';
-import {RulesPanel} from './rulesPanel';
+import {TraceRules} from './traceRules';
+import {TransactionRules} from './transactionRules';
 import {SAMPLING_DOC_LINK} from './utils';
 
-type Props = AsyncView['props'] & {
-  hasAccess: boolean;
-  organization: Organization;
-  project: Project;
-};
+type Props = AsyncView['props'] &
+  RouteComponentProps<{ruleType: SamplingRuleType}, {}> & {
+    hasAccess: boolean;
+    organization: Organization;
+    project: Project;
+  };
 
 type State = AsyncView['state'] & {
   projectDetails: Project | null;
@@ -180,49 +182,116 @@ class Sampling extends AsyncView<Props, State> {
 
   renderBody() {
     const {rules} = this.state;
-    const {hasAccess} = this.props;
+    const {hasAccess, location, params, routes} = this.props;
     const disabled = !hasAccess;
 
-    const hasNotSupportedConditionOperator = rules.some(
-      rule => rule.condition.op !== SamplingConditionOperator.AND
-    );
+    const commonRuleProps = {
+      disabled,
+      onAddRule: this.handleOpenRule(),
+      onEditRule: this.handleOpenRule,
+      onDeleteRule: this.handleDeleteRule,
+    };
 
-    if (hasNotSupportedConditionOperator) {
-      return (
-        <Alert type="error">
-          {t('A condition operator has been found that is not yet supported.')}
-        </Alert>
-      );
-    }
+    const [traceRules, transactionRules] = partition(
+      rules,
+      rule => rule.type === SamplingRuleType.TRACE
+    );
 
     return (
       <Fragment>
-        <SettingsPageHeader title={this.getTitle()} />
-        <PermissionAlert />
-        <TextBlock>
-          {tct(
-            'Manage the inbound data you want to store. To change the sampling rate or rate limits, [link:update your SDK configuration]. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propagate.',
-            {
-              link: <ExternalLink href={SAMPLING_DOC_LINK} />,
-            }
-          )}
-        </TextBlock>
-        <TextBlock>
-          {t('Rules for traces should precede rules for individual transactions.')}
-        </TextBlock>
-        <RulesPanel
-          rules={rules}
-          disabled={disabled}
-          onAddRule={this.handleOpenRule()}
-          onEditRule={this.handleOpenRule}
-          onDeleteRule={this.handleDeleteRule}
-          onUpdateRules={this.handleUpdateRules}
+        <SettingsPageHeader
+          title={this.getTitle()}
+          subtitle={
+            <Fragment>
+              <TextBlock>
+                {tct(
+                  'Here you can define what transactions count towards your quota without updating your SDK. Any rules specified here are applied after your [link:SDK sampling configuration]. New rules will propagate within a few minutes.',
+                  {
+                    link: <ExternalLink href={SAMPLING_DOC_LINK} />,
+                  }
+                )}
+              </TextBlock>
+              <PermissionAlert />
+            </Fragment>
+          }
+          tabs={
+            <NavTabs role="tablist" aria-label={t('Rules tabs')} underlined>
+              <ListLink
+                to={recreateRoute(`${SamplingRuleType.TRACE}/`, {
+                  routes,
+                  location,
+                  params,
+                  stepBack: -1,
+                })}
+                role="tab"
+                aria-selected={params.ruleType === SamplingRuleType.TRACE}
+                tabIndex={params.ruleType === SamplingRuleType.TRACE ? 0 : -1}
+                isActive={() => params.ruleType === SamplingRuleType.TRACE}
+                index
+              >
+                {t('Distributed Traces')}
+                <Badge>{traceRules.length}</Badge>
+              </ListLink>
+              <ListLink
+                to={recreateRoute(`${SamplingRuleType.TRANSACTION}/`, {
+                  routes,
+                  location,
+                  params,
+                  stepBack: -1,
+                })}
+                role="tab"
+                aria-selected={params.ruleType === SamplingRuleType.TRANSACTION}
+                tabIndex={params.ruleType === SamplingRuleType.TRANSACTION ? 0 : -1}
+                isActive={() => params.ruleType === SamplingRuleType.TRANSACTION}
+              >
+                {t('Individual Transactions')}
+                <Badge>{transactionRules.length}</Badge>
+              </ListLink>
+            </NavTabs>
+          }
         />
+        {params.ruleType === SamplingRuleType.TRANSACTION ? (
+          <TransactionRules
+            rules={transactionRules}
+            infoAlert={
+              !!traceRules.length
+                ? tct('[link] will initiate before these rules', {
+                    link: (
+                      <Link
+                        to={recreateRoute(`${SamplingRuleType.TRACE}/`, {
+                          routes,
+                          location,
+                          params,
+                          stepBack: -1,
+                        })}
+                      >
+                        {tn(
+                          '%s Distributed Trace rule',
+                          '%s Distributed Trace rules',
+                          traceRules.length
+                        )}
+                      </Link>
+                    ),
+                  })
+                : null
+            }
+            onUpdateRules={newRules =>
+              this.handleUpdateRules([...traceRules, ...newRules])
+            }
+            {...commonRuleProps}
+          />
+        ) : (
+          <TraceRules
+            rules={traceRules}
+            onUpdateRules={newRules =>
+              this.handleUpdateRules([...transactionRules, ...newRules])
+            }
+            {...commonRuleProps}
+          />
+        )}
       </Fragment>
     );
   }
 }
 
-const SamplingWithProject = withProject(Sampling);
-
-export {SamplingWithProject as Sampling};
+export {Sampling};
