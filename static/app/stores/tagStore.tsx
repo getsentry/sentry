@@ -47,6 +47,7 @@ const BUILTIN_TAGS = [
   'stack.module',
   'stack.function',
   'stack.stack_level',
+  'project',
 ].reduce<TagCollection>((acc, tag) => {
   acc[tag] = {key: tag, name: tag};
   return acc;
