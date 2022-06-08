@@ -1,10 +1,9 @@
-from django.utils.encoding import force_text, python_2_unicode_compatible
+from django.utils.encoding import force_text
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import warnings
 
 
-@python_2_unicode_compatible
 class Version(tuple):
     def __str__(self):
         return ".".join(map(force_text, self))

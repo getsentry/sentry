@@ -59,6 +59,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 from exam import Exam, before, fixture
 from pkg_resources import iter_entry_points
+from rest_framework import status
 from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
@@ -515,11 +516,23 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         if status_code and status_code >= 400:
             raise Exception("status_code must be < 400")
 
-        response = self.get_response(*args, **params)
+        method = params.pop("method", self.method).lower()
+
+        response = self.get_response(*args, method=method, **params)
 
         if status_code:
             assert_status_code(response, status_code)
+        elif method == "get":
+            assert_status_code(response, status.HTTP_200_OK)
+        # TODO(mgaeta): Add the other methods.
+        # elif method == "post":
+        #     assert_status_code(response, status.HTTP_201_CREATED)
+        elif method == "put":
+            assert_status_code(response, status.HTTP_200_OK)
+        elif method == "delete":
+            assert_status_code(response, status.HTTP_204_NO_CONTENT)
         else:
+            # TODO(mgaeta): Add other methods.
             assert_status_code(response, 200, 300)
 
         return response
@@ -668,6 +681,7 @@ class PermissionTestCase(TestCase):
         self.login_as(user, superuser=user.is_superuser)
         resp = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
+        return resp
 
     def assert_cannot_access(self, user, path, method="GET", **kwargs):
         self.login_as(user, superuser=user.is_superuser)
@@ -730,7 +744,7 @@ class PermissionTestCase(TestCase):
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.organization, role=role, teams=[self.team])
 
-        self.assert_can_access(user, path, **kwargs)
+        return self.assert_can_access(user, path, **kwargs)
 
     def assert_role_cannot_access(self, path, role, **kwargs):
         user = self.create_user(is_superuser=False)

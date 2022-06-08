@@ -7,18 +7,40 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AggregationKey,
+  AggregationRefinement,
+  explodeFieldString,
+  generateFieldAsString,
+} from 'sentry/utils/discover/fields';
+import {
+  Dataset,
+  EventTypes,
+  SessionsAggregate,
+} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertType,
   AlertWizardAlertNames,
   AlertWizardRuleTemplates,
+  WizardRuleTemplate,
 } from 'sentry/views/alerts/wizard/options';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 
 import {getFieldOptionConfig} from './metricField';
+
+type WizardAggregateFunctionValue = {
+  function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
+  kind: 'function';
+  alias?: string;
+};
+
+type WizardAggregateFieldValue = {
+  field: string;
+  kind: 'field';
+  alias?: string;
+};
 
 type MenuOption = {label: string; value: AlertType};
 
@@ -113,25 +135,75 @@ export default function WizardField({
   alertType,
   ...fieldProps
 }: Props) {
+  const matchTemplateAggregate = (
+    template: WizardRuleTemplate,
+    aggregate: string
+  ): boolean => {
+    const templateFieldValue = explodeFieldString(template.aggregate) as
+      | WizardAggregateFieldValue
+      | WizardAggregateFunctionValue;
+    const aggregateFieldValue = explodeFieldString(aggregate) as
+      | WizardAggregateFieldValue
+      | WizardAggregateFunctionValue;
+
+    if (template.aggregate === aggregate) {
+      return true;
+    }
+
+    if (
+      templateFieldValue.kind !== 'function' ||
+      aggregateFieldValue.kind !== 'function'
+    ) {
+      return false;
+    }
+
+    if (
+      templateFieldValue.function?.[0] === 'apdex' &&
+      aggregateFieldValue.function?.[0] === 'apdex'
+    ) {
+      return true;
+    }
+
+    return templateFieldValue.function?.[1] && aggregateFieldValue.function?.[1]
+      ? templateFieldValue.function?.[1] === aggregateFieldValue.function?.[1]
+      : templateFieldValue.function?.[0] === aggregateFieldValue.function?.[0];
+  };
+
+  const matchTemplateDataset = (
+    template: WizardRuleTemplate,
+    dataset: Dataset
+  ): boolean =>
+    template.dataset === dataset ||
+    (organization.features.includes('alert-crash-free-metrics') &&
+      (template.aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
+        template.aggregate === SessionsAggregate.CRASH_FREE_USERS) &&
+      dataset === Dataset.METRICS);
+
+  const matchTemplateEventTypes = (
+    template: WizardRuleTemplate,
+    eventTypes: EventTypes[],
+    aggregate: string
+  ): boolean =>
+    aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
+    aggregate === SessionsAggregate.CRASH_FREE_USERS ||
+    eventTypes.includes(template.eventTypes);
+
   return (
     <FormField {...fieldProps}>
-      {({onChange, value, model, disabled}) => {
-        const aggregate = model.getValue('aggregate');
-        const dataset = model.getValue('dataset');
+      {({onChange, value: aggregate, model, disabled}) => {
+        const dataset: Dataset = model.getValue('dataset');
         const eventTypes = [...(model.getValue('eventTypes') ?? [])];
 
         const selectedTemplate =
-          findKey(
-            AlertWizardRuleTemplates,
-            template =>
-              template.aggregate === aggregate &&
-              (template.dataset === dataset ||
-                (organization.features.includes('alert-crash-free-metrics') &&
-                  (template.aggregate === SessionsAggregate.CRASH_FREE_SESSIONS ||
-                    template.aggregate === SessionsAggregate.CRASH_FREE_USERS) &&
-                  dataset === Dataset.METRICS)) &&
-              eventTypes.includes(template.eventTypes)
-          ) || 'num_errors';
+          alertType === 'custom'
+            ? alertType
+            : findKey(
+                AlertWizardRuleTemplates,
+                template =>
+                  matchTemplateAggregate(template, aggregate) &&
+                  matchTemplateDataset(template, dataset) &&
+                  matchTemplateEventTypes(template, eventTypes, aggregate)
+              ) || 'num_errors';
 
         const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
           getFieldOptionConfig({
@@ -139,7 +211,7 @@ export default function WizardField({
             alertType,
           });
         const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
-        const fieldValue = explodeFieldString(value ?? '');
+        const fieldValue = explodeFieldString(aggregate ?? '');
 
         const fieldKey =
           fieldValue?.kind === FieldValueKind.FUNCTION

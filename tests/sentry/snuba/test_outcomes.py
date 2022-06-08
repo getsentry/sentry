@@ -117,3 +117,18 @@ class OutcomesQueryDefinitionTests(TestCase):
         )
         assert Condition(Column("org_id"), Op.EQ, 1) in query.conditions
         assert Condition(Column("project_id"), Op.IN, [1, 2, 3, 4, 5]) in query.conditions
+
+    def test_key_id_filter(self):
+        query = _make_query(
+            "statsPeriod=4d&interval=1d&groupBy=category&key_id=12345&field=sum(quantity)",
+            {"organization_id": 1},
+        )
+
+        assert Condition(Column("key_id"), Op.IN, [12345]) in query.conditions
+
+    def test_key_id_filter_invalid(self):
+        with pytest.raises(InvalidQuery):
+            _make_query(
+                "statsPeriod=4d&interval=1d&groupBy=category&key_id=INVALID&field=sum(quantity)",
+                {"organization_id": 1},
+            )

@@ -31,6 +31,7 @@ type Props = {
   location: Location;
   organization: Organization;
   tableData: TableData | TrendsDataEvents | null;
+  useAggregateAlias: boolean;
   generateLink?: Record<
     string,
     (
@@ -113,8 +114,15 @@ class TransactionsTable extends PureComponent<Props> {
     columnOrder: TableColumn<React.ReactText>[],
     tableMeta: MetaType
   ): React.ReactNode[] {
-    const {eventView, organization, location, generateLink, handleCellAction, titles} =
-      this.props;
+    const {
+      eventView,
+      organization,
+      location,
+      generateLink,
+      handleCellAction,
+      titles,
+      useAggregateAlias,
+    } = this.props;
     const fields = eventView.getFields();
 
     if (titles && titles.length) {
@@ -125,10 +133,10 @@ class TransactionsTable extends PureComponent<Props> {
     const resultsRow = columnOrder.map((column, index) => {
       const field = String(column.key);
       // TODO add a better abstraction for this in fieldRenderers.
-      const fieldName = getAggregateAlias(field);
+      const fieldName = useAggregateAlias ? getAggregateAlias(field) : field;
       const fieldType = tableMeta[fieldName];
 
-      const fieldRenderer = getFieldRenderer(field, tableMeta);
+      const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
       let rendered = fieldRenderer(row, {organization, location});
 
       const target = generateLink?.[field]?.(organization, row, location.query);

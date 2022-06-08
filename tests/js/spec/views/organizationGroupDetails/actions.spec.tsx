@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ModalActions from 'sentry/actions/modalActions';
 import ConfigStore from 'sentry/stores/configStore';
+import ModalStore from 'sentry/stores/modalStore';
 import {Event} from 'sentry/types/event';
 import GroupActions from 'sentry/views/organizationGroupDetails/actions';
 
@@ -149,7 +149,7 @@ describe('GroupActions', function () {
         />
       );
 
-      const onReprocessEventFunc = jest.spyOn(ModalActions, 'openModal');
+      const onReprocessEventFunc = jest.spyOn(ModalStore, 'openModal');
 
       userEvent.click(screen.getByLabelText('More Actions'));
 

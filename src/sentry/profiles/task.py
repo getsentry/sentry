@@ -2,13 +2,15 @@ from datetime import datetime
 from time import sleep, time
 from typing import Any, MutableMapping, Optional
 
+import sentry_sdk
 from django.conf import settings
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
+from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import Project, ProjectDebugFile
+from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
@@ -27,7 +29,9 @@ processed_profiles_publisher = None
     acks_late=True,
 )
 def process_profile(
-    profile: MutableMapping[str, Any], key_id: Optional[int], **kwargs: Any
+    profile: MutableMapping[str, Any],
+    key_id: Optional[int],
+    **kwargs: Any,
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
 
@@ -36,7 +40,8 @@ def process_profile(
     elif profile["platform"] == "android":
         profile = _deobfuscate(profile=profile, project=project)
 
-    profile = _normalize(profile=profile)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    profile = _normalize(profile=profile, organization=organization)
 
     global processed_profiles_publisher
 
@@ -64,7 +69,10 @@ def process_profile(
     )
 
 
-def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+def _normalize(
+    profile: MutableMapping[str, Any],
+    organization: Organization,
+) -> MutableMapping[str, Any]:
     classification_options = {
         "model": profile["device_model"],
         "os_name": profile["device_os_name"],
@@ -83,7 +91,7 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         {
             "device_classification": str(classify_device(**classification_options)),
             "profile": json.dumps(profile["profile"]),
-            "retention_days": 30,
+            "retention_days": quotas.get_event_retention(organization=organization),
         }
     )
 
@@ -106,13 +114,14 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
     while True:
         try:
             response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+
+            assert len(profile["sampled_profile"]["samples"]) == len(response["stacktraces"])
+
             for original, symbolicated in zip(
                 profile["sampled_profile"]["samples"], response["stacktraces"]
             ):
-                for original_frame, symbolicated_frame in zip(
-                    original["frames"], symbolicated["frames"]
-                ):
-                    original_frame.update(symbolicated_frame)
+                original["original_frames"] = original["frames"]
+                original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:
             if (
@@ -127,7 +136,8 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
                 )
                 sleep(sleep_time)
                 continue
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             break
 
     # remove debug information we don't need anymore

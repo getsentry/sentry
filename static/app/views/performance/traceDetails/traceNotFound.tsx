@@ -51,6 +51,7 @@ function TraceNotFound({
         orgSlug={organization.slug}
         location={location}
         referrer="api.trace-view.errors-view"
+        useEvents
       >
         {({isLoading, tableData, error}) => {
           if (isLoading) {

@@ -13,7 +13,7 @@ describe('MultiPlatformPicker', function () {
     expect(screen.getByText('Android')).toBeInTheDocument();
     expect(screen.queryByText('Electron')).not.toBeInTheDocument();
   });
-  it('should render renderPlatformList with Python when filtered with py', async function () {
+  it('should render renderPlatformList with Python when filtered with py', function () {
     const props = {
       ...baseProps,
     };

@@ -7,7 +7,6 @@ import AlertBadge from 'sentry/components/alertBadge';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DateTime from 'sentry/components/dateTime';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
@@ -24,7 +23,6 @@ import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import type {Color} from 'sentry/utils/theme';
 import {
   AlertRuleThresholdType,
@@ -383,16 +381,6 @@ function RuleListRow({
           </AssigneeWrapper>
         )}
       </FlexCenter>
-
-      <FlexCenter>
-        <StyledDateTime
-          date={getDynamicText({
-            value: rule.dateCreated,
-            fixed: new Date('2021-04-20'),
-          })}
-          format="ll"
-        />
-      </FlexCenter>
       <ActionsRow>
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
@@ -460,11 +448,6 @@ const ProjectBadgeContainer = styled('div')`
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-`;
-
-const StyledDateTime = styled(DateTime)`
-  font-variant-numeric: tabular-nums;
-  color: ${p => p.theme.gray300};
 `;
 
 const TriggerText = styled('div')`

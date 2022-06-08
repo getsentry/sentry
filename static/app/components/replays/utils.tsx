@@ -1,7 +1,7 @@
 import moment from 'moment';
 
-import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
+import type {ReplaySpan} from 'sentry/views/replays/types';
 
 function padZero(num: number, len = 2): string {
   let str = String(num);
@@ -25,9 +25,7 @@ const TIME_FORMAT = 'HH:mm:ss';
  * @returns Unix timestamp of the adjusted timestamp, in milliseconds
  */
 export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number): number {
-  return moment(timestamp)
-    .diff(diffMs * 1000)
-    .valueOf();
+  return moment(timestamp).diff(moment.unix(diffMs)).valueOf();
 }
 
 export function showPlayerTime(timestamp: string, relativeTime: number): string {
@@ -171,19 +169,19 @@ function doesOverlap(a: FlattenedSpanRange, b: FlattenedSpanRange) {
   return bStartsWithinA || bEndsWithinA;
 }
 
-export function flattenSpans(rawSpans: RawSpanType[]): FlattenedSpanRange[] {
+export function flattenSpans(rawSpans: ReplaySpan[]): FlattenedSpanRange[] {
   if (!rawSpans.length) {
     return [];
   }
 
   const spans = rawSpans.map(span => {
-    const startTimestamp = span.start_timestamp * 1000;
+    const startTimestamp = span.startTimestamp * 1000;
 
     // `endTimestamp` is at least msPerPixel wide, otherwise it disappears
-    const endTimestamp = span.timestamp * 1000;
+    const endTimestamp = span.endTimestamp * 1000;
     return {
       spanCount: 1,
-      spanId: span.span_id,
+      // spanId: span.span_id,
       startTimestamp,
       endTimestamp,
       duration: endTimestamp - startTimestamp,

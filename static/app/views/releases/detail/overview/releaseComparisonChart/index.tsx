@@ -169,7 +169,7 @@ function ReleaseComparisonChart({
   }, [location.query.chart]);
 
   const fetchEventsTotals = useCallback(async () => {
-    const url = `/organizations/${organization.slug}/eventsv2/`;
+    const url = `/organizations/${organization.slug}/events/`;
     const commonQuery = {
       environment: decodeList(location.query.environment),
       project: decodeList(location.query.project),
@@ -224,12 +224,12 @@ function ReleaseComparisonChart({
       ]);
 
       setEventsTotals({
-        allErrorCount: allErrorTotals.data[0].count,
-        releaseErrorCount: releaseErrorTotals.data[0].count,
-        allTransactionCount: allTransactionTotals.data[0].count,
-        releaseTransactionCount: releaseTransactionTotals.data[0].count,
-        releaseFailureRate: releaseTransactionTotals.data[0].failure_rate,
-        allFailureRate: allTransactionTotals.data[0].failure_rate,
+        allErrorCount: allErrorTotals.data[0]['count()'],
+        releaseErrorCount: releaseErrorTotals.data[0]['count()'],
+        allTransactionCount: allTransactionTotals.data[0]['count()'],
+        releaseTransactionCount: releaseTransactionTotals.data[0]['count()'],
+        releaseFailureRate: releaseTransactionTotals.data[0]['failure_rate()'],
+        allFailureRate: allTransactionTotals.data[0]['failure_rate()'],
       });
       setEventsLoading(false);
     } catch (err) {

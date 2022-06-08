@@ -113,6 +113,6 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         attachments = json.loads(data["attachments"][0])
         assert (
             data["text"][0]
-            == "<!date^1652977338^2 issues detected in Bar {date_pretty} | Digest Report"
+            == f"<!date^1652977338^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"
         )
         assert len(attachments) == 2

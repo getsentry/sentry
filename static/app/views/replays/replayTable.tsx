@@ -9,7 +9,7 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {NewQuery, PageFilters} from 'sentry/types';
+import {NewQuery} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -18,14 +18,15 @@ import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {Replay} from './types';
 
 type Props = {
+  idKey: string;
   replayList: Replay[];
-  selection: PageFilters;
+  showProjectColumn?: boolean;
 };
 
 type ReplayDurationAndErrors = {
@@ -37,10 +38,11 @@ type ReplayDurationAndErrors = {
   replayId: string;
 };
 
-function ReplayTable({replayList, selection}: Props) {
+function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
 
   const getEventView = () => {
@@ -59,7 +61,7 @@ function ReplayTable({replayList, selection}: Props) {
       orderby: '-min_timestamp',
       environment: selection.environments,
       projects: selection.projects,
-      query: `(title:sentry-replay-event OR event.type:error) AND (${query})`,
+      query: `(title:"sentry-replay-event-*" OR event.type:error) AND (${query})`,
     };
 
     if (selection.datetime.period) {
@@ -92,7 +94,7 @@ function ReplayTable({replayList, selection}: Props) {
                   <Link
                     to={`/organizations/${organization.slug}/replays/${generateEventSlug({
                       project: replay.project,
-                      id: replay.id,
+                      id: replay[idKey],
                     })}/`}
                   >
                     {replay['user.display']}
@@ -108,7 +110,7 @@ function ReplayTable({replayList, selection}: Props) {
                 // this is the subheading for the avatar, so displayEmail in this case is a misnomer
                 displayEmail={getUrlPathname(replay.url) ?? ''}
               />
-              {isScreenLarge && (
+              {isScreenLarge && showProjectColumn && (
                 <Item>
                   <ProjectBadge
                     project={
@@ -184,4 +186,4 @@ const StyledIconCalendarWrapper = styled(IconCalendar)`
   top: -1px;
 `;
 
-export default withPageFilters(ReplayTable);
+export default ReplayTable;

@@ -53,6 +53,9 @@ import {getSortField} from './fieldRenderers';
 
 // Metadata mapping for discover results.
 export type MetaType = Record<string, ColumnType> & {isMetricsData?: boolean};
+export type EventsMetaType = {fields: Record<string, ColumnType>} & {
+  isMetricsData?: boolean;
+};
 
 // Data in discover results.
 export type EventData = Record<string, any>;
@@ -720,8 +723,8 @@ class EventView {
     return this.fields.length;
   }
 
-  getColumns(): TableColumn<React.ReactText>[] {
-    return decodeColumnOrder(this.fields);
+  getColumns(useFullEquationAsKey?: boolean): TableColumn<React.ReactText>[] {
+    return decodeColumnOrder(this.fields, useFullEquationAsKey);
   }
 
   getDays(): number {

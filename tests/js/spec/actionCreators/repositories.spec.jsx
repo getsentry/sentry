@@ -54,7 +54,7 @@ describe('RepositoryActionCreator', function () {
     expect(RepositoryStore.state.repositoriesLoading).toEqual(false);
   });
 
-  it('short-circuits the JS event loop', async () => {
+  it('short-circuits the JS event loop', () => {
     expect(RepositoryStore.state.repositoriesLoading).toEqual(undefined);
 
     getRepositories(api, {orgSlug}); // Fire Action.loadRepositories

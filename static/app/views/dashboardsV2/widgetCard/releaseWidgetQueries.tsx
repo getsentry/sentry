@@ -14,6 +14,7 @@ import {
   MetricsApiResponse,
   OrganizationSummary,
   PageFilters,
+  Release,
   SessionApiResponse,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -21,7 +22,8 @@ import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
+import {getDatasetConfig} from '../datasetConfig/base';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetType} from '../types';
 import {getWidgetInterval} from '../utils';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
@@ -32,7 +34,6 @@ import {
 } from '../widgetBuilder/releaseWidget/fields';
 
 import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
-import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
 
 type Props = {
   api: Client;
@@ -60,6 +61,7 @@ type State = {
   pageLinks?: string;
   queryFetchID?: symbol;
   rawResults?: SessionApiResponse[] | MetricsApiResponse[];
+  releases?: Release[];
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
 };
@@ -81,7 +83,7 @@ export function derivedMetricsToField(field: string): string {
  * requested but required to calculate the value of a derived
  * status field so will need to be stripped away in post processing.
  */
-function resolveDerivedStatusFields(
+export function resolveDerivedStatusFields(
   fields: string[],
   useSessionAPI: boolean
 ): {
@@ -125,10 +127,16 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     timeseriesResults: undefined,
     rawResults: undefined,
     tableResults: undefined,
+    releases: undefined,
   };
 
   componentDidMount() {
     this._isMounted = true;
+
+    if (this.requiresCustomReleaseSorting()) {
+      this.fetchReleasesAndData();
+      return;
+    }
     this.fetchData();
   }
 
@@ -146,6 +154,19 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const ignoredQueryProps = ['name', 'fields', 'aggregates', 'columns'];
     const widgetQueryNames = widget.queries.map(q => q.name);
     const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
+
+    if (
+      this.requiresCustomReleaseSorting() &&
+      (!isEqual(
+        widget.queries.map(q => q.orderby),
+        prevProps.widget.queries.map(q => q.orderby)
+      ) ||
+        !isSelectionEqual(selection, prevProps.selection) ||
+        !isEqual(organization, prevProps.organization))
+    ) {
+      this.fetchReleasesAndData();
+      return;
+    }
 
     if (
       limit !== prevProps.limit ||
@@ -215,6 +236,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   private _isMounted: boolean = false;
+  config = getDatasetConfig(WidgetType.RELEASE);
 
   get limit() {
     const {limit} = this.props;
@@ -231,7 +253,43 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     }
   }
 
-  async fetchData() {
+  requiresCustomReleaseSorting() {
+    const {widget} = this.props;
+    const useMetricsAPI = !!!widget.queries[0].columns.includes('session.status');
+    const rawOrderby = trimStart(widget.queries[0].orderby, '-');
+    return useMetricsAPI && rawOrderby === 'release';
+  }
+
+  async fetchReleasesAndData() {
+    const {selection, api, organization} = this.props;
+    const {environments, projects} = selection;
+
+    try {
+      const releases = await api.requestPromise(
+        `/organizations/${organization.slug}/releases/`,
+        {
+          method: 'GET',
+          data: {
+            sort: 'date',
+            project: projects,
+            per_page: 50,
+            environments,
+          },
+        }
+      );
+      if (!this._isMounted) {
+        return;
+      }
+      this.setState({releases});
+    } catch (error) {
+      addErrorMessage(
+        error.responseJSON ? error.responseJSON.error : t('Error sorting by releases')
+      );
+    }
+    this.fetchData();
+  }
+
+  fetchData() {
     const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
       this.props;
 
@@ -265,26 +323,35 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const unsupportedOrderby =
       DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
 
-    // Temporary solution to support sorting on releases
-    // when querying the Metrics API: We first request
-    // the top 50 recent releases from postgres. Note that the release request is based
-    // on the project and environment selected in the page filters.
-    // We then construct a massive OR condition and append it to any
-    // specified filter condition. We also maintain an ordered array of release
-    // versions to order the results returned from the metrics endpoint.
-    // Also note that we request a limit of 100 on the metrics endpoint,
-    // this is because in a query, the limit should be applied after the
-    // results are sorted based on the release version. The larger number
-    // of rows we request, the more accurate our results are going to be.
+    // Temporary solution to support sorting on releases when querying the
+    // Metrics API:
+    //
+    // We first request the top 50 recent releases from postgres. Note that the
+    // release request is based on the project and environment selected in the
+    // page filters.
+    //
+    // We then construct a massive OR condition and append it to any specified
+    // filter condition. We also maintain an ordered array of release versions
+    // to order the results returned from the metrics endpoint.
+    //
+    // Also note that we request a limit of 100 on the metrics endpoint, this
+    // is because in a query, the limit should be applied after the results are
+    // sorted based on the release version. The larger number of rows we
+    // request, the more accurate our results are going to be.
+    //
     // After the results are sorted, we truncate the data to the requested
     // limit. This will result in a few edge cases:
-    //    1. low to high sort may not show releases at the beginning of the
-    //        selected period if there are more than 50 releases in the selected
-    //        period.
-    //    2. If a recent release is not returned due to the 100 row limit
-    //        imposed on the metrics query the user won't see it on the table/chart/
-    const isCustomReleaseSorting = !!!useSessionAPI && rawOrderby === 'release';
-
+    //
+    //   1. low to high sort may not show releases at the beginning of the
+    //      selected period if there are more than 50 releases in the selected
+    //      period.
+    //
+    //   2. if a recent release is not returned due to the 100 row limit
+    //      imposed on the metrics query the user won't see it on the
+    //      table/chart/
+    //
+    const isCustomReleaseSorting = this.requiresCustomReleaseSorting();
+    const {releases} = this.state;
     const interval = getWidgetInterval(
       widget,
       {start, end, period},
@@ -294,38 +361,22 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
-      try {
-        const releases = await api.requestPromise(
-          `/organizations/${organization.slug}/releases/`,
-          {
-            method: 'GET',
-            data: {
-              sort: 'date',
-              project: projects,
-              per_page: 50,
-              environments,
-              summaryStatsPeriod: period,
-            },
-          }
-        );
-
-        if (releases.length) {
-          releaseCondition += '(release:' + releases[0].version;
-          releasesArray.push(releases[0].version);
-          for (let i = 1; i < releases.length; i++) {
-            releaseCondition += ' OR release:' + releases[i].version;
-            releasesArray.push(releases[i].version);
-          }
-          releaseCondition += ')';
-
-          if (!!!isDescending) {
-            releasesArray.reverse();
-          }
+      if (releases && releases.length === 1) {
+        releaseCondition += `release:${releases[0].version}`;
+        releasesArray.push(releases[0].version);
+      }
+      if (releases && releases.length > 1) {
+        releaseCondition += 'release:[' + releases[0].version;
+        releasesArray.push(releases[0].version);
+        for (let i = 1; i < releases.length; i++) {
+          releaseCondition += ',' + releases[i].version;
+          releasesArray.push(releases[i].version);
         }
-      } catch (error) {
-        addErrorMessage(
-          error.responseJSON ? error.responseJSON.error : t('Error sorting by releases')
-        );
+        releaseCondition += ']';
+
+        if (!!!isDescending) {
+          releasesArray.reverse();
+        }
       }
     }
 
@@ -443,10 +494,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the table format
           let tableResults: TableDataWithTitle[] | undefined;
           if (includeTotals) {
-            const tableData = transformSessionsResponseToTable(
+            const tableData = this.config.transformTable(
               data,
-              derivedStatusFields,
-              injectedFields
+              widget.queries[0]
             ) as TableDataWithTitle; // Cast so we can add the title.
             tableData.title = widget.queries[requestIndex]?.name ?? '';
             tableResults = [...(prevState.tableResults ?? []), tableData];
