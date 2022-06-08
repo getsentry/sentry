@@ -23,7 +23,7 @@ def get_team_slugs_by_organization_member_id(
     teams = Team.objects.filter(id__in=team_ids)
     teams_by_id = {team.id: team for team in teams}
 
-    results = defaultdict(lambda: ([], []))
+    results: Mapping[int, Tuple[List[str], List[object]]] = defaultdict(lambda: ([], []))
     for member_id, team_id, role in organization_member_tuples:
         teamSlug = teams_by_id[team_id].slug
         results[member_id][0].append(teamSlug)  # Deprecated
