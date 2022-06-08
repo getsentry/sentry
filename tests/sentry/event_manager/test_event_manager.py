@@ -641,8 +641,14 @@ class EventManagerTest(TestCase):
         group = event.group
         repo = self.create_repo(project=group.project)
 
+        # commit that resolved the issue is part of a PR, but all commits within the PR are unreleased
+
         commit = Commit.objects.create(
             organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 40
+        )
+
+        second_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="b" * 40
         )
 
         GroupLink.objects.create(
@@ -659,12 +665,18 @@ class EventManagerTest(TestCase):
             key="1",
         )
 
-        GroupLink.objects.create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_type=GroupLink.LinkedType.pull_request,
-            linked_id=pr.id,
-        )
+        PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=commit.id)
+        PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=second_commit.id)
+
+        assert PullRequestCommit.objects.filter(pull_request_id=pr.id, commit_id=commit.id).exists()
+        assert PullRequestCommit.objects.filter(
+            pull_request_id=pr.id, commit_id=second_commit.id
+        ).exists()
+
+        assert not ReleaseCommit.objects.filter(commit__pullrequestcommit__id=commit.id).exists()
+        assert not ReleaseCommit.objects.filter(
+            commit__pullrequestcommit__id=second_commit.id
+        ).exists()
 
         pending = has_pending_commit_resolution(group)
         assert pending
@@ -676,17 +688,31 @@ class EventManagerTest(TestCase):
         release = self.create_release(project=self.project, version="1.1")
 
         repo = self.create_repo(project=group.project)
+
+        # commit 1 is part of the PR, it resolves the issue in the commit message, and is unreleased
         commit = Commit.objects.create(
             organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 38
         )
 
         GroupLink.objects.create(
-            group_id="2",
+            group_id=group.id,
             project_id=group.project_id,
             linked_type=GroupLink.LinkedType.commit,
             linked_id=commit.id,
             relationship=GroupLink.Relationship.resolves,
         )
+
+        # commit 2 is part of the PR, but does not resolve the issue, and is released
+        released_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="b" * 38
+        )
+
+        # commit 3 is part of the PR, but does not resolve the issue, and is unreleased
+        unreleased_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="c" * 38
+        )
+
+        assert Commit.objects.all().count() == 3
 
         pr = PullRequest.objects.create(
             organization_id=group.project.organization_id,
@@ -694,16 +720,22 @@ class EventManagerTest(TestCase):
             key="19",
         )
 
-        GroupLink.objects.create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_type=GroupLink.LinkedType.pull_request,
-            linked_id=pr.id,
-        )
+        PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=commit.id)
+        assert PullRequestCommit.objects.filter(pull_request_id=pr.id, commit_id=commit.id).exists()
 
-        released_commit = Commit.objects.create(
-            organization_id=group.project.organization_id, repository_id=repo.id, key="b" * 38
+        released_pr_commit = PullRequestCommit.objects.create(
+            pull_request_id=pr.id, commit_id=released_commit.id
         )
+        assert PullRequestCommit.objects.filter(
+            pull_request_id=pr.id, commit_id=released_commit.id
+        ).exists()
+
+        unreleased_pr_commit = PullRequestCommit.objects.create(
+            pull_request_id=pr.id, commit_id=unreleased_commit.id
+        )
+        assert PullRequestCommit.objects.filter(
+            pull_request_id=pr.id, commit_id=unreleased_pr_commit.id
+        ).exists()
 
         ReleaseCommit.objects.create(
             organization_id=group.project.organization_id,
@@ -711,16 +743,9 @@ class EventManagerTest(TestCase):
             commit=released_commit,
             order=1,
         )
-
-        released_commit_in_pr = PullRequestCommit.objects.create(
-            pull_request_id=pr.id, commit_id=released_commit.id
-        )
-
-        GroupLink.objects.create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_id=released_commit_in_pr.id,
-        )
+        assert ReleaseCommit.objects.filter(
+            commit__pullrequestcommit__id=released_pr_commit.id
+        ).exists()
 
         pending = has_pending_commit_resolution(group)
         assert pending is False

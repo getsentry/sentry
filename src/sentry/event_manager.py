@@ -67,7 +67,7 @@ from sentry.models import (
     Organization,
     Project,
     ProjectKey,
-    PullRequestCommit,
+    PullRequest,
     Release,
     ReleaseCommit,
     ReleaseEnvironment,
@@ -148,10 +148,15 @@ def has_pending_commit_resolution(group):
         return False
     else:
         # check if this commit is a part of a PR
-        if PullRequestCommit.objects.filter(commit__id=recent_group_link.linked_id).exists():
-            # check if any commits in the PR have been released
+        pr_ids = list(
+            PullRequest.objects.filter(
+                pullrequestcommit__commit=recent_group_link.linked_id
+            ).values_list("id", flat=True)
+        )
+        if pr_ids:
+            # assume that this commit has been released if any commits in this PR have been released
             if ReleaseCommit.objects.filter(
-                commit__pullrequest_commit__commit_id=recent_group_link.linked_id
+                commit__pullrequestcommit__pull_request__in=pr_ids
             ).exists():
                 return False
         return True
