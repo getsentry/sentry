@@ -114,8 +114,14 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
     while True:
         try:
             response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
-            profile["sampled_profile"]["original_samples"] = profile["sampled_profile"]["samples"]
-            profile["sampled_profile"]["samples"] = response["stacktraces"]
+
+            assert len(profile["sampled_profile"]["samples"]) == len(response["stacktraces"])
+
+            for original, symbolicated in zip(
+                profile["sampled_profile"]["samples"], response["stacktraces"]
+            ):
+                original["original_frames"] = original["frames"]
+                original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:
             if (
