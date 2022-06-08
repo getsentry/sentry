@@ -24,28 +24,71 @@ def update_config_cache(
 
     Either organization_id or project_id has to be provided.
 
-    :param generate: obsolete argument, do not use.
     :param organization_id: The organization for which to invalidate configs.
     :param project_id: The project for which to invalidate configs.
     :param generate: If `True`, caches will be eagerly regenerated, not only
         invalidated.
     :param update_reason: A string to set as tag in sentry.
     """
-    validate_args(organization_id, project_id, public_key)
+    from sentry.models import Project, ProjectKey, ProjectKeyStatus
+    from sentry.relay import projectconfig_cache
+    from sentry.relay.config import get_project_config
+
+    if project_id:
+        set_current_event_project(project_id)
+
+    if organization_id:
+        # Cannot use bind_organization_context here because we do not have a
+        # model and don't want to fetch one
+        sentry_sdk.set_tag("organization_id", organization_id)
+
+    if public_key:
+        sentry_sdk.set_tag("public_key", public_key)
 
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
 
     try:
-        keys = project_keys_to_update(
-            organization_id=organization_id, project_id=project_id, public_key=public_key
-        )
+        if organization_id:
+            projects = list(Project.objects.filter(organization_id=organization_id))
+            keys = list(ProjectKey.objects.filter(project__in=projects))
+        elif project_id:
+            projects = [Project.objects.get(id=project_id)]
+            keys = list(ProjectKey.objects.filter(project__in=projects))
+        elif public_key:
+            try:
+                keys = [ProjectKey.objects.get(public_key=public_key)]
+            except ProjectKey.DoesNotExist:
+                # In this particular case, where a project key got deleted and
+                # triggered an update, we know that key doesn't exist and we want to
+                # avoid creating more tasks for it.
+                #
+                # In other similar cases, like an org being deleted, we potentially
+                # cannot find any keys anymore, so we don't know which cache keys
+                # to delete.
+                projectconfig_cache.delete_many([public_key])
+                return
+        else:
+            assert False
 
-        # TODO: remove this if statement before this PR is merged.
-        if keys and generate:
-            compute_project_configs(keys)
-        elif keys:
-            projectconfig_cache.delete_many(key.public_key for key in keys)
+        if generate:
+            config_cache = {}
+            for key in keys:
+                if key.status != ProjectKeyStatus.ACTIVE:
+                    project_config = {"disabled": True}
+                else:
+                    project_config = get_project_config(
+                        key.project, project_keys=[key], full_config=True
+                    ).to_dict()
+                config_cache[key.public_key] = project_config
+
+            projectconfig_cache.set_many(config_cache)
+        else:
+            cache_keys_to_delete = []
+            for key in keys:
+                cache_keys_to_delete.append(key.public_key)
+
+            projectconfig_cache.delete_many(cache_keys_to_delete)
 
     finally:
         # Delete the key in this `finally` block to make sure the debouncing key
@@ -77,7 +120,12 @@ def schedule_update_config_cache(
         )
         return
 
-    validate_args(organization_id, project_id, public_key)
+    # validate_args(organization_id, project_id, public_key)
+    bools = sorted((bool(organization_id), bool(project_id), bool(public_key)))
+    if bools != [False, False, True]:
+        raise TypeError(
+            "One of organization_id, project_id, public_key has to be provided, not many."
+        )
 
     if projectconfig_debounce_cache.is_debounced(
         public_key=public_key, project_id=project_id, organization_id=organization_id
@@ -124,65 +172,55 @@ def validate_args(organization_id=None, project_id=None, public_key=None):
     if [bool(organization_id), bool(project_id), bool(public_key)].count(True) != 1:
         raise TypeError("Must provide exactly one of organzation_id, project_id or public_key")
 
-    if project_id:
-        set_current_event_project(project_id)
-    if organization_id:
-        # Cannot use bind_organization_context here because we do not have a
-        # model and don't want to fetch one
-        sentry_sdk.set_tag("organization_id", organization_id)
-    if public_key:
-        sentry_sdk.set_tag("public_key", public_key)
 
+def compute_configs(organization_id=None, project_id=None, public_key=None):
+    """Computes all configs for the org, project or single public key.
 
-def project_keys_to_update(organization_id=None, project_id=None, public_key=None):
-    """Returns the project keys which need to have their config updated.
+    You must only provide one single argument, not all.
 
-    Queries the database for the required project keys.
+    :returns: A dict mapping all affected public keys to their config.
     """
     from sentry.models import Project, ProjectKey
 
-    if organization_id:
-        projects = list(Project.objects.filter(organization_id=organization_id))
-        keys = list(ProjectKey.objects.filter(project__in=projects))
-    elif project_id:
-        projects = [Project.objects.get(id=project_id)]
-        keys = list(ProjectKey.objects.filter(project__in=projects))
-    elif public_key:
+    validate_args(organization_id, project_id, public_key)
+    configs = {}
+
+    if public_key:
         try:
-            keys = [ProjectKey.objects.get(public_key=public_key)]
+            key = ProjectKey.objects.get(public_key=public_key)
         except ProjectKey.DoesNotExist:
-            # In this particular case, where a project key got deleted and
-            # triggered an update, we know that key doesn't exist and we want to
-            # avoid creating more tasks for it.
-            #
-            # In other similar cases, like an org being deleted, we potentially
-            # cannot find any keys anymore, so we don't know which cache keys
-            # to delete.
-            projectconfig_cache.set_many({public_key: {"disabled": True}})
-            keys = []
+            # Someone asks for a non-existing config, to avoid hitting this code path too
+            # often we disable the project in the cache which will live for 1h.
+            configs[public_key] = {"disabled": True}
+        else:
+            configs[public_key] = compute_projectkey_config(key)
 
     else:
-        assert False
+        if organization_id:
+            projects = list(Project.objects.filter(organization_id=organization_id))
+        elif project_id:
+            projects = [Project.objects.get(id=project_id)]
+        else:
+            raise TypeError("One of the arguments must not be None")
 
-    return keys
+        for key in ProjectKey.objects.filter(project__in=projects):
+            configs[key.public_key] = compute_projectkey_config(key)
+
+    return configs
 
 
-def compute_project_configs(project_keys):
-    """Computes the project configs for all given project keys."""
+def compute_projectkey_config(key):
+    """Computes a single config for the given :class:`ProjectKey`.
+
+    :returns: A dict with the project config.
+    """
     from sentry.models import ProjectKeyStatus
     from sentry.relay.config import get_project_config
 
-    config_cache = {}
-    for key in project_keys:
-        if key.status != ProjectKeyStatus.ACTIVE:
-            project_config = {"disabled": True}
-        else:
-            project_config = get_project_config(
-                key.project, project_keys=[key], full_config=True
-            ).to_dict()
-        config_cache[key.public_key] = project_config
-
-    projectconfig_cache.set_many(config_cache)
+    if key.status != ProjectKeyStatus.ACTIVE:
+        return {"disabled": True}
+    else:
+        return get_project_config(key.project, project_keys=[key], full_config=True).to_dict()
 
 
 @instrumented_task(
@@ -202,17 +240,28 @@ def invalidate_project_config(
     scheduled on an invalidation trigger.  Use :func:`schedule_invalidation_task` to
     schedule this task as that will take care of the queueing semantics.
 
+    Note that this can also be invoked for a config which does not yet exist.  E.g. this
+    task will also trigger for newly created projects when they are saved to the database.
+    There is also no guarantee the project was in the cache if the task is triggered if it
+    already existed.
+
     The current implementation has some limitations:
-
-    - The task does not synchronise with the :func:`update_config_cache` task so depending
-      on when tasks complete they might have race conditions on writing the config to the
-      cache and an older version might be written.
-
+    - The task does not synchronise with the :func:`update_config_cache`.
     - The task does not synchronise with more recent invocations of itself.
 
-    These will be addressed in the future using config revisions tracked in Redis.
+    Both these mean that an outdated version of the project config could still end up in the
+    cache.  These will be addressed in the future using config revisions tracked in Redis.
     """
     validate_args(organization_id, project_id, public_key)
+
+    if project_id:
+        set_current_event_project(project_id)
+    if organization_id:
+        # Cannot use bind_organization_context here because we do not have a
+        # model and don't want to fetch one
+        sentry_sdk.set_tag("organization_id", organization_id)
+    if public_key:
+        sentry_sdk.set_tag("public_key", public_key)
     sentry_sdk.set_tag("trigger", trigger)
 
     # Make sure we start by deleting out deduplication key so that new invalidation triggers
@@ -221,20 +270,10 @@ def invalidate_project_config(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
 
-    keys = project_keys_to_update(
+    configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
-    if not keys:
-        return
-
-    if organization_id:
-        # Previous incarnations of this task only delete all the affected configs in this
-        # case, relying of lazily filling them back in as they are requested.  Probably
-        # because some organizations can have thousands of projects and they may not all be
-        # active.  Do the same for now, but this could be improved.
-        projectconfig_cache.delete_many(key.public_key for key in keys)
-    else:
-        compute_project_configs(keys)
+    projectconfig_cache.set_many(configs)
 
 
 def schedule_invalidate_project_cache(
@@ -245,17 +284,16 @@ def schedule_invalidate_project_cache(
     This takes care of not scheduling a duplicate task if one is already scheduled.  The
     parameters are passed straight to the task.
     """
-    # TODO: so far i failed to merge this code with schedule_update_config_cache elegantly.
     validate_args(organization_id, project_id, public_key)
 
     if projectconfig_debounce_cache.invalidation.is_debounced(
         public_key=public_key, project_id=project_id, organization_id=organization_id
     ):
+        # If this task is already in the queue, do not schedule another task.
         metrics.incr(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": trigger, "task": "invalidation"},
         )
-        # If this task is already in the queue, do not schedule another task.
         return
 
     metrics.incr(

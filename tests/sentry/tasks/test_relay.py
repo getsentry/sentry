@@ -209,6 +209,8 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
 @pytest.mark.xfail(reason="XXX temporarily disabled")
 @pytest.mark.django_db
 def test_projectkeys(default_project, task_runner, redis_cache):
+    # When a projectkey is deleted the invalidation task should be triggered and the project
+    # should be cached as disabled.
     with task_runner():
         deleted_pks = list(ProjectKey.objects.filter(project=default_project))
         for key in deleted_pks:
