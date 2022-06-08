@@ -131,22 +131,29 @@ def load_data(
 
     samples_root = os.path.join(DATA_ROOT, "samples")
 
-    for platform in (platform, language, default):
-        if not platform:
-            raise ValueError("platform cannot be an empty value")
+    # this loop will try to load the specified platform first, but if we do not
+    # have a specific sample for it, we then move on to the `language`, then the `default`.
+    # The `default` is set to `javascript` in ./src/sentry/api/endpoints/project_create_sample.py
+    # on the `ProjectCreateSampleEndpoint`
+    for sample in (platform, language, default):
+        if not sample:
+            continue
 
-        # Verify by checking if the file is within our folder explicitly
-        # avoids being able to have a name that invokes traversing directories.
-        json_file = f"{platform}.json"
+        # Verify the requested path is valid and disallow path traversal attempts
+        json_file = f"{sample}.json"
 
-        expected_commonpath = os.path.realpath(samples_root)
+        expected_commonpath = os.path.realpath(
+            samples_root
+        )  # .realpath() ensures symlinks are handled
         json_path = os.path.join(samples_root, json_file)
         json_real_path = os.path.realpath(json_path)
+
         if expected_commonpath != os.path.commonpath([expected_commonpath, json_real_path]):
             raise SuspiciousFileOperation("potential path traversal attack detected")
 
+        # the requested `sample` does not exist, so continue through to the next iteration
         if not os.path.exists(json_path):
-            raise FileNotFoundError("platform sample not found")
+            continue
 
         if not os.path.isfile(json_path):
             raise IsADirectoryError("expected file but found a directory instead")

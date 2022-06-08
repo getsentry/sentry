@@ -126,5 +126,11 @@ class ConflictError(APIException):
     status_code = status.HTTP_409_CONFLICT
 
 
+class SuspiciousClientOperation(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "suspicious-client-operation"
+    message = "A suspicious client request was denied"
+
+
 class InvalidRepository(Exception):
     pass
