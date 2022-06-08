@@ -106,13 +106,8 @@ function Sidebar({location, organization}: Props) {
   useEffect(() => {
     if (location?.hash === '#welcome') {
       activatePanel(SidebarPanelKey.OnboardingWizard);
-    } else if (
-      location?.hash === '#performance-sidequest' &&
-      organization?.features?.includes('performance-onboarding-checklist')
-    ) {
-      activatePanel(SidebarPanelKey.PerformanceOnboarding);
     }
-  }, [location?.hash, organization]);
+  }, [location?.hash]);
 
   const hasPanel = !!activePanel;
   const hasOrganization = !!organization;
