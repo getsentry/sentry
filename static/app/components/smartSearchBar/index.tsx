@@ -505,27 +505,31 @@ class SmartSearchBar extends Component<Props, State> {
           break;
         }
         case QuickActionType.Previous: {
-          if (this.searchInput.current) {
+          let offset = this.state.query.length;
+
+          const filterTokens = this.state.parsedQuery
+            ?.filter(tok => tok.type === Token.Filter)
+            .reverse();
+
+          if (this.searchInput.current && filterTokens) {
             this.searchInput.current.focus();
 
             if (token) {
-              this.searchInput.current.selectionStart = token.location.start.offset - 1;
-              this.searchInput.current.selectionEnd = token.location.start.offset - 1;
-            } else {
-              const lastToken = this.state.parsedQuery
-                ?.slice(0)
-                .reverse()
-                .find(tok => tok.type === Token.Filter);
-              if (lastToken) {
-                const offset = lastToken.location.end.offset;
+              const tokenIndex = filterTokens.findIndex(tok => tok === token);
 
-                this.searchInput.current.selectionStart = offset;
-                this.searchInput.current.selectionEnd = offset;
+              if (tokenIndex + 1 < filterTokens.length) {
+                offset = filterTokens[tokenIndex + 1].location.end.offset;
               }
+            } else if (this.cursorPosition === this.state.query.length) {
+              offset = filterTokens[0].location.end.offset;
             }
+
+            this.searchInput.current.selectionStart = offset;
+            this.searchInput.current.selectionEnd = offset;
 
             this.updateAutoCompleteItems();
           }
+
           break;
         }
         default:
