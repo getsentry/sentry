@@ -38,7 +38,7 @@ describe('add to dashboard modal', () => {
     dateCreated: '2020-01-01T00:00:00.000Z',
     widgets: [],
   };
-  const widget = {
+  let widget = {
     title: 'Test title',
     description: 'Test description',
     displayType: DisplayType.LINE,
@@ -49,7 +49,7 @@ describe('add to dashboard modal', () => {
         fields: ['count()'],
         aggregates: ['count()'],
         fieldAliases: [],
-        columns: [],
+        columns: [] as string[],
         orderby: '',
         name: '',
       },
@@ -265,6 +265,165 @@ describe('add to dashboard modal', () => {
       expect(dashboardDetailPutMock).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({data: expect.objectContaining({widgets: [widget]})})
+      );
+    });
+  });
+
+  it('clears sort when clicking Add + Stay in Discover with line chart', async () => {
+    const dashboardDetailGetMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      body: {id: '1', widgets: []},
+    });
+    const dashboardDetailPutMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: {},
+    });
+    widget = {
+      ...widget,
+      queries: [
+        {
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          fieldAliases: [],
+          columns: [],
+          orderby: '-project',
+          name: '',
+        },
+      ],
+    };
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    userEvent.click(screen.getByText('Add + Stay in Discover'));
+    expect(dashboardDetailGetMock).toHaveBeenCalled();
+
+    // mocked widgets response is an empty array, assert this new widget
+    // is sent as an update to the dashboard
+    await waitFor(() => {
+      expect(dashboardDetailPutMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            widgets: [
+              {
+                description: 'Test description',
+                displayType: 'line',
+                interval: '5m',
+                queries: [
+                  {
+                    aggregates: ['count()'],
+                    columns: [],
+                    conditions: '',
+                    fieldAliases: [],
+                    fields: ['count()'],
+                    name: '',
+                    orderby: '',
+                  },
+                ],
+                title: 'Test title',
+              },
+            ],
+          }),
+        })
+      );
+    });
+  });
+
+  it('saves sort when clicking Add + Stay in Discover with top period chart', async () => {
+    const dashboardDetailGetMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      body: {id: '1', widgets: []},
+    });
+    const dashboardDetailPutMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: {},
+    });
+    widget = {
+      ...widget,
+      displayType: DisplayType.TOP_N,
+      queries: [
+        {
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          fieldAliases: [],
+          columns: ['project'],
+          orderby: '-project',
+          name: '',
+        },
+      ],
+    };
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => undefined}
+        organization={initialData.organization}
+        widget={widget}
+        selection={defaultSelection}
+        router={initialData.router}
+        widgetAsQueryParams={mockWidgetAsQueryParams}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    userEvent.click(screen.getByText('Add + Stay in Discover'));
+    expect(dashboardDetailGetMock).toHaveBeenCalled();
+
+    // mocked widgets response is an empty array, assert this new widget
+    // is sent as an update to the dashboard
+    await waitFor(() => {
+      expect(dashboardDetailPutMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            widgets: [
+              {
+                description: 'Test description',
+                displayType: 'top_n',
+                interval: '5m',
+                queries: [
+                  {
+                    aggregates: ['count()'],
+                    columns: ['project'],
+                    conditions: '',
+                    fieldAliases: [],
+                    fields: ['count()'],
+                    name: '',
+                    orderby: '-project',
+                  },
+                ],
+                title: 'Test title',
+              },
+            ],
+          }),
+        })
       );
     });
   });
