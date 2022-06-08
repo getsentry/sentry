@@ -145,7 +145,8 @@ export function normalizeQueries({
         // Raw Equation from Top N only applies to timeseries
         (isTabularChart && isEquation(rawOrderBy)) ||
         // Not contained as tag, field, or function
-        (!isEquationAlias(rawOrderBy) &&
+        (!isEquation(rawOrderBy) &&
+          !isEquationAlias(rawOrderBy) &&
           ![...query.columns, ...query.aggregates].includes(rawOrderBy)) ||
         // Equation alias and not contained
         (isEquationAlias(rawOrderBy) &&
