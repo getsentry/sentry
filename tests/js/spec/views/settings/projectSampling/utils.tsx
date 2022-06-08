@@ -28,16 +28,18 @@ export function renderComponent({
   const {container} = render(
     <Fragment>
       {withModal && (
-        <RouteContext.Provider
-          value={{
-            router,
-            location: router.location,
-            params: {},
-            routes: [],
-          }}
-        >
-          <GlobalModal />
-        </RouteContext.Provider>
+        <OrganizationContext.Provider value={organization}>
+          <RouteContext.Provider
+            value={{
+              router,
+              location: router.location,
+              params: {},
+              routes: [],
+            }}
+          >
+            <GlobalModal />
+          </RouteContext.Provider>
+        </OrganizationContext.Provider>
       )}
       <OrganizationContext.Provider value={organization}>
         <Sampling
