@@ -27,7 +27,7 @@ def get_team_slugs_by_organization_member_id(
     for member_id, team_id, role in organization_member_tuples:
         teamSlug = teams_by_id[team_id].slug
         results[member_id][0].append(teamSlug)  # Deprecated
-        results[member_id][1].append({"team": teamSlug, "role": role})
+        results[member_id][1].append({"teamSlug": teamSlug, "role": role})
     return results
 
 

@@ -123,7 +123,7 @@ export type Member = {
   teamRoles: {
     isActive: boolean;
     role: TeamRole['id'];
-    team: string;
+    teamSlug: string;
   }[];
   teams: string[]; // # Deprecated, use teamRoles
 
