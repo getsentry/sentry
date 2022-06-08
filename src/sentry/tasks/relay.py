@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.relay.update_config_cache",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=30,
-    time_limit=32,
+    soft_time_limit=1500,  # 25 minutes; 25 * 60 = 1500
+    time_limit=1800,  # Extra 5 minutes to remove the debounce key; 5 * 60 = 300
 )
 def update_config_cache(
     generate, organization_id=None, project_id=None, public_key=None, update_reason=None
