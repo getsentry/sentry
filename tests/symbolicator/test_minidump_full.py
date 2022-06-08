@@ -10,8 +10,9 @@ from sentry import eventstore
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models import EventAttachment, File
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
-from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
+from tests.symbolicator import insta_snapshot_stacktrace_data
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -45,7 +46,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
         out = BytesIO()
         f = zipfile.ZipFile(out, "w")
-        f.write(get_fixture_path("windows.sym"), "crash.sym")
+        f.write(get_fixture_path("native", "windows.sym"), "crash.sym")
         f.close()
 
         response = self.client.post(
@@ -72,7 +73,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         self.upload_symbols()
 
         with self.feature(self._FEATURES):
-            with open(get_fixture_path("windows.dmp"), "rb") as f:
+            with open(get_fixture_path("native", "windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
                     {
                         "upload_file_minidump": f,
@@ -105,7 +106,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         self.upload_symbols()
 
         with self.feature("organizations:event-attachments"):
-            with open(get_fixture_path("windows.dmp"), "rb") as f:
+            with open(get_fixture_path("native", "windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
                     {"upload_file_minidump": f},
                     {"sentry": '{"logger":"test-logger"}', "foo": "bar"},
@@ -120,7 +121,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         self.upload_symbols()
 
         with self.feature("organizations:event-attachments"):
-            with open(get_fixture_path("windows.dmp"), "rb") as f:
+            with open(get_fixture_path("native", "windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
                     {"upload_file_minidump": f},
                     {"sentry": "{{{{", "foo": "bar"},  # invalid sentry JSON
@@ -132,7 +133,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
     def test_missing_dsym(self):
         with self.feature(self._FEATURES):
-            with open(get_fixture_path("windows.dmp"), "rb") as f:
+            with open(get_fixture_path("native", "windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
                     {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}
                 )
@@ -152,7 +153,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
         features = dict(self._FEATURES)
         features["organizations:reprocessing-v2"] = True
         with self.feature(features):
-            with open(get_fixture_path("windows.dmp"), "rb") as f:
+            with open(get_fixture_path("native", "windows.dmp"), "rb") as f:
                 event = self.post_and_retrieve_minidump(
                     {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}
                 )

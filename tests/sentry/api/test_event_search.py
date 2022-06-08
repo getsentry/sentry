@@ -21,7 +21,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.utils import parse_datetime_string, parse_duration, parse_numeric_value
 from sentry.utils import json
 
-fixture_path = "tests/fixtures/search-syntax"
+fixture_path = "fixtures/search-syntax"
 abs_fixtures_path = os.path.join(MODULE_ROOT, os.pardir, os.pardir, fixture_path)
 
 

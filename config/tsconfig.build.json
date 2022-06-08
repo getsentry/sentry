@@ -45,13 +45,13 @@
       // Use the stub file for typechecking. Webpack resolver will use the real files
       // based on configuration.
       "integration-docs-platforms": [
-        "tests/fixtures/integration-docs/_platforms.json",
+        "fixtures/integration-docs/_platforms.json",
         "src/sentry/integration-docs/_platforms.json"
       ]
     },
     "plugins": [{"name": "typescript-styled-plugin"}]
   },
-  "include": ["../static", "../tests/js", "../tests/fixtures/js-stubs"],
+  "include": ["../static", "../tests/js", "../fixtures/js-stubs"],
   "exclude": ["../node_modules", "../**/*.benchmark.ts"],
   "ts-node": {
     "transpileOnly": true

@@ -8,6 +8,8 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from exam import fixture
 
+from fixtures.integrations import StubService
+from fixtures.integrations.jira import StubJiraApiClient
 from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.models import (
     ExternalIssue,
@@ -22,8 +24,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
-from tests.fixtures.integrations import StubService
-from tests.fixtures.integrations.jira import StubJiraApiClient
 
 
 def get_client():

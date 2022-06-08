@@ -4,9 +4,9 @@ import responses
 from django.urls import reverse
 from exam import fixture
 
+from fixtures.integrations.mock_service import StubService
 from sentry.models import Integration
 from sentry.testutils import APITestCase
-from tests.fixtures.integrations.mock_service import StubService
 
 
 class JiraSearchEndpointTest(APITestCase):
