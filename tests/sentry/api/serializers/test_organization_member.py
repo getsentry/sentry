@@ -56,8 +56,13 @@ class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest
             self.user_2,
             OrganizationMemberWithTeamsSerializer(),
         )
-        expected_teams = [{self.team.slug, self.team_2.slug}, {self.team.slug}]
-        assert [set(r["teams"]) for r in result] == expected_teams
+        expected_teams = [[self.team.slug, self.team_2.slug], [self.team.slug]]
+        expected_team_roles = [
+            [{"team": self.team.slug, "role": None}, {"team": self.team_2.slug, "role": None}],
+            [{"team": self.team.slug, "role": None}],
+        ]
+        assert [r["teams"] for r in result] == expected_teams
+        assert [r["teamRoles"] for r in result] == expected_team_roles
 
 
 class OrganizationMemberSCIMSerializerTest(OrganizationMemberSerializerTest):
