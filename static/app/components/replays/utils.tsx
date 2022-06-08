@@ -25,9 +25,7 @@ const TIME_FORMAT = 'HH:mm:ss';
  * @returns Unix timestamp of the adjusted timestamp, in milliseconds
  */
 export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number): number {
-  return moment(timestamp)
-    .diff(diffMs * 1000)
-    .valueOf();
+  return moment(timestamp).diff(moment.unix(diffMs)).valueOf();
 }
 
 export function showPlayerTime(timestamp: string, relativeTime: number): string {
