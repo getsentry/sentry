@@ -116,7 +116,7 @@ class Sampling extends AsyncView<Props, State> {
           organization={organization}
           project={project}
           rule={ruleToUpdate}
-          rules={rules.filter(rule => rule.type === type)}
+          rules={rules}
           onSubmitSuccess={this.successfullySubmitted}
           disabled={!hasAccess}
           type={type}

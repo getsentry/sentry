@@ -351,13 +351,13 @@ export function SamplingRuleModal({
   }
 
   // Distributed Trace and Individual Transaction Rule can only have one 'sample all' rule at a time
-  const ruleWithoutConditionExists = rules.some(
-    ({condition}) => condition.inner.length === 0
-  );
+  const ruleWithoutConditionExists = rules
+    .filter(r => r.type === type && !isEqual(r, rule))
+    .some(r => !r.condition.inner.length);
 
   const submitDisabled =
     !defined(sampleRate) ||
-    ruleWithoutConditionExists ||
+    (ruleWithoutConditionExists && !conditions.length) ||
     !!conditions?.find(condition => {
       if (condition.category === SamplingInnerName.EVENT_LEGACY_BROWSER) {
         return !(condition.legacyBrowsers ?? []).length;
