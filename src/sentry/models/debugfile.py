@@ -192,6 +192,8 @@ class ProjectDebugFile(Model):  # type: ignore
             return ".bcsymbolmap"
         if self.file_format == "uuidmap":
             return ".plist"
+        if self.file_format == "il2cpp":
+            return ".json"
 
         return ""
 
@@ -269,6 +271,7 @@ def create_dif_from_id(
         "sourcebundle",
         "bcsymbolmap",
         "uuidmap",
+        "il2cpp",
     ):
         object_name = meta.name
     elif meta.file_format == "breakpad":
@@ -514,7 +517,8 @@ def detect_dif_from_path(
         if debug_id is None:
             raise BadDif("Missing debug_id for il2cpp")
         try:
-            json.load(path)
+            with open(path, "rb") as fp:
+                json.load(fp)
         except json.JSONDecodeError as e:
             logger.debug("File failed to load as il2cpp: %s", path)
             raise BadDif("Invalid il2cpp: %s" % e)
