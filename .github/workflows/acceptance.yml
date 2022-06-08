@@ -309,7 +309,7 @@ jobs:
         if: needs.files-changed.outputs.backend == 'true'
 
   visual-diff:
-    if: needs.files-changed.outputs.acceptance == 'true'
+    if: ${{ always() }}
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [acceptance, frontend, chartcuterie]
@@ -336,6 +336,7 @@ jobs:
   # Since Visual Snapshot is a required check we need to pretend to have run
   fake-visual-snapshot:
     name: Visual Snapshot
+    needs: [files-changed]
     # Opposite condition to "triggers visual snapshot" required check
     if: needs.files-changed.outputs.acceptance != 'true'
     runs-on: ubuntu-20.04
