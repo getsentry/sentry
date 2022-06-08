@@ -450,7 +450,7 @@ def process_messages(
     with metrics.timer("process_messages.reconstruct_messages"):
         for message in outer_message.payload:
             used_tags: Set[str] = set()
-            output_message_meta: Mapping[str, MutableMapping[int, str]] = defaultdict(dict)
+            output_message_meta: Mapping[str, MutableMapping[str, str]] = defaultdict(dict)
 
             if message.offset in skipped_offsets:
                 logger.info("process_message.offset_skipped", extra={"offset": message.offset})
