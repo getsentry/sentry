@@ -4,7 +4,6 @@ import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Query} from 'history';
-import trimStart from 'lodash/trimStart';
 
 import {
   fetchDashboard,
@@ -21,7 +20,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
-import {isAggregateFieldOrEquation} from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
 import {
@@ -96,12 +94,8 @@ function AddToDashboardModal({
     }
 
     let orderby = widget.queries[0].orderby;
-    const rawOrderBy = trimStart(orderby, '-');
-    if (!!!isAggregateFieldOrEquation(rawOrderBy)) {
-      const columns = widget.queries[0].columns;
-      if (!!!columns.includes(rawOrderBy)) {
-        orderby = '';
-      }
+    if (!!!(DisplayType.AREA && widget.queries[0].columns.length)) {
+      orderby = ''; // Clear orderby if its not a top n visualization.
     }
     const query = widget.queries[0];
 
