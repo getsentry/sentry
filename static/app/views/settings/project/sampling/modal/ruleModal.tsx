@@ -318,7 +318,7 @@ function RuleModal({
       </Header>
       <Body>
         <Fields>
-          <TextBlock>{description}</TextBlock>
+          <Description>{description}</Description>
           <StyledPanel>
             <StyledPanelHeader hasButtons>
               {t('Conditions')}
@@ -476,4 +476,8 @@ const TriggerLabel = styled('div')`
   grid-template-columns: repeat(2, max-content);
   align-items: center;
   gap: ${space(1)};
+`;
+
+const Description = styled(TextBlock)`
+  margin: 0;
 `;
