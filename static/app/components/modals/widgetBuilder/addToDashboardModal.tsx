@@ -94,16 +94,8 @@ function AddToDashboardModal({
     }
 
     let orderby = widget.queries[0].orderby;
-    if (
-      [
-        DisplayType.LINE,
-        DisplayType.AREA,
-        DisplayType.BAR,
-        DisplayType.WORLD_MAP,
-        DisplayType.BIG_NUMBER,
-      ].includes(widget.displayType)
-    ) {
-      orderby = '';
+    if (!!!(DisplayType.AREA && widget.queries[0].columns.length)) {
+      orderby = ''; // Clear orderby if its not a top n visualizaiton.
     }
     const query = widget.queries[0];
 
