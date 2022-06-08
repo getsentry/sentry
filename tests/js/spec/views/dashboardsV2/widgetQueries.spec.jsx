@@ -24,6 +24,7 @@ describe('Dashboards > WidgetQueries', function () {
         aggregates: ['count()'],
         columns: [],
         name: 'errors',
+        orderby: '',
       },
       {
         conditions: 'event.type:default',
@@ -31,6 +32,7 @@ describe('Dashboards > WidgetQueries', function () {
         aggregates: ['count()'],
         columns: [],
         name: 'default',
+        orderby: '',
       },
     ],
   };
@@ -45,6 +47,7 @@ describe('Dashboards > WidgetQueries', function () {
         aggregates: ['count()'],
         columns: [],
         name: 'errors',
+        orderby: '',
       },
     ],
   };
@@ -59,6 +62,7 @@ describe('Dashboards > WidgetQueries', function () {
         aggregates: [],
         columns: ['sdk.name'],
         name: 'sdk',
+        orderby: '',
       },
     ],
   };
@@ -67,6 +71,7 @@ describe('Dashboards > WidgetQueries', function () {
     environments: ['prod'],
     datetime: {
       period: '14d',
+      orderby: '',
     },
   };
 
@@ -296,6 +301,7 @@ describe('Dashboards > WidgetQueries', function () {
           aggregates: [],
           columns: ['sdk.name'],
           name: 'sdk',
+          orderby: '',
         },
         {
           conditions: 'title:ValueError',
@@ -303,6 +309,7 @@ describe('Dashboards > WidgetQueries', function () {
           aggregates: [],
           columns: ['sdk.name'],
           name: 'title',
+          orderby: '',
         },
       ],
     };
@@ -359,6 +366,7 @@ describe('Dashboards > WidgetQueries', function () {
               aggregates: [],
               columns: ['sdk.name'],
               name: 'sdk',
+              orderby: '',
             },
           ],
         }}
@@ -421,6 +429,7 @@ describe('Dashboards > WidgetQueries', function () {
               aggregates: [],
               columns: ['count()'],
               name: 'sdk',
+              orderby: '',
             },
           ],
         }}
@@ -486,6 +495,7 @@ describe('Dashboards > WidgetQueries', function () {
           aggregates: [],
           columns: ['sdk.name'],
           name: 'sdk',
+          orderby: '',
         },
         {
           conditions: 'title:ValueError',
@@ -493,6 +503,7 @@ describe('Dashboards > WidgetQueries', function () {
           aggregates: [],
           columns: ['sdk.name'],
           name: 'title',
+          orderby: '',
         },
       ],
     };
