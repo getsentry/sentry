@@ -445,12 +445,12 @@ class SmartSearchBar extends Component<Props, State> {
     const {query} = this.state;
     const token = this.cursorToken ?? undefined;
 
-    const filterTokens = this.state.parsedQuery?.filter(tok => tok.type === Token.Filter);
+    const filterTokens = this.filterTokens;
 
-    if (!action.canRunAction || action.canRunAction(token)) {
+    if (!action.canRunAction || action.canRunAction(token, this.filterTokens.length)) {
       switch (action.actionType) {
         case QuickActionType.Delete: {
-          if (token && filterTokens) {
+          if (token && filterTokens.length > 0) {
             const index = filterTokens.findIndex(tok => tok === token) ?? -1;
 
             const newQuery =
@@ -483,7 +483,7 @@ class SmartSearchBar extends Component<Props, State> {
         case QuickActionType.Next: {
           let offset = this.state.query.length;
 
-          if (this.searchInput.current && filterTokens) {
+          if (this.searchInput.current && filterTokens.length > 0) {
             this.searchInput.current.focus();
 
             if (token) {
@@ -509,9 +509,9 @@ class SmartSearchBar extends Component<Props, State> {
         case QuickActionType.Previous: {
           let offset = this.state.query.length;
 
-          const reversedFilterTokens = filterTokens?.reverse();
+          const reversedFilterTokens = filterTokens.reverse();
 
-          if (this.searchInput.current && reversedFilterTokens) {
+          if (this.searchInput.current && reversedFilterTokens.length > 0) {
             this.searchInput.current.focus();
 
             if (token) {
@@ -820,6 +820,10 @@ class SmartSearchBar extends Component<Props, State> {
     }
 
     return this.searchInput.current.selectionStart ?? -1;
+  }
+
+  get filterTokens() {
+    return this.state.parsedQuery?.filter(tok => tok.type === Token.Filter) ?? [];
   }
 
   /**
@@ -1259,6 +1263,7 @@ class SmartSearchBar extends Component<Props, State> {
 
     const commonActionsSearchResults = getCommonActionsSearchGroup(
       this.runQuickAction,
+      this.filterTokens.length,
       this.cursorToken ?? undefined
     );
     if (commonActionsSearchResults) {
@@ -1285,6 +1290,7 @@ class SmartSearchBar extends Component<Props, State> {
 
     const commonActionsSearchResults = getCommonActionsSearchGroup(
       this.runQuickAction,
+      this.filterTokens.length,
       this.cursorToken ?? undefined
     );
 

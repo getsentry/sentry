@@ -52,7 +52,10 @@ export enum QuickActionType {
 export type QuickAction = {
   actionType: QuickActionType;
   text: string;
-  canRunAction?: (token?: TokenResult<any>) => boolean;
+  canRunAction?: (
+    token: TokenResult<any> | undefined,
+    filterTokenCount: number
+  ) => boolean;
   hotkeys?: {
     actual: string[] | string;
     display: string[] | string;
@@ -89,6 +92,9 @@ export const commonActions: QuickAction[] = [
       actual: ['option+left'],
       display: 'option+left',
     },
+    canRunAction: (t, count) => {
+      return count > 1 || t?.type !== Token.Filter;
+    },
   },
   {
     text: 'Next Token',
@@ -96,6 +102,9 @@ export const commonActions: QuickAction[] = [
     hotkeys: {
       actual: ['option+right'],
       display: 'option+right',
+    },
+    canRunAction: (t, count) => {
+      return count > 1 || t?.type !== Token.Filter;
     },
   },
 ];

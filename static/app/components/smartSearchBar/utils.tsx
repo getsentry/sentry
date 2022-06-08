@@ -254,17 +254,20 @@ export function getValidOps(
 
 export function getCommonActionsSearchGroup(
   runTokenActionOnCursorToken: (action: QuickAction) => void,
+  filterTokenCount: number,
   activeToken?: TokenResult<any>
 ): {searchGroup: SearchGroup; searchItems: SearchItem[]} | undefined {
   const searchItems = commonActions
-    .filter(action => !action.canRunAction || action.canRunAction(activeToken))
+    .filter(
+      action => !action.canRunAction || action.canRunAction(activeToken, filterTokenCount)
+    )
     .map(action => ({
       title: action.text,
       callback: () => runTokenActionOnCursorToken(action),
       documentation: action.hotkeys && <HotkeysLabel value={action.hotkeys.display} />,
     }));
 
-  return searchItems.length > 0
+  return searchItems.length > 0 && filterTokenCount > 0
     ? {
         searchGroup: {
           title: t('Common Actions'),
