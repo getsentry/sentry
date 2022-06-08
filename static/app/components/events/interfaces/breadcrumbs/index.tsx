@@ -168,8 +168,11 @@ function BreadcrumbsContainer({
 
         filterLevels.push({
           value: `level-${level}`,
-          label: <div style={{opacity: 0}}>{level}</div>,
-          leadingItems: <Level level={level} />,
+          label: (
+            <LevelWrap>
+              <Level level={level} />
+            </LevelWrap>
+          ),
         });
       }
     }
@@ -356,4 +359,10 @@ export default BreadcrumbsContainer;
 
 const StyledSearchBarAction = styled(SearchBarAction)`
   z-index: 2;
+`;
+
+const LevelWrap = styled('span')`
+  height: ${p => p.theme.text.lineHeightBody}em;
+  display: flex;
+  align-items: center;
 `;
