@@ -5,6 +5,13 @@ from typing import Optional
 import responses
 from rest_framework.response import Response
 
+from fixtures.vercel import (
+    DEPLOYMENT_WEBHOOK_NO_COMMITS,
+    EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
+    MINIMAL_WEBHOOK,
+    SECRET,
+    SIGNATURE,
+)
 from sentry import VERSION
 from sentry.models import (
     Integration,
@@ -17,14 +24,6 @@ from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-
-from .testutils import (
-    DEPLOYMENT_WEBHOOK_NO_COMMITS,
-    EXAMPLE_DEPLOYMENT_WEBHOOK_RESPONSE,
-    MINIMAL_WEBHOOK,
-    SECRET,
-    SIGNATURE,
-)
 
 
 class SignatureVercelTest(APITestCase):

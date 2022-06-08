@@ -2,13 +2,12 @@ import copy
 
 import responses
 
+from fixtures.gitlab import GitLabTestCase
 from sentry.models import ExternalIssue
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.http import absolute_uri
-
-from .testutils import GitLabTestCase
 
 
 class GitlabIssuesTest(GitLabTestCase):

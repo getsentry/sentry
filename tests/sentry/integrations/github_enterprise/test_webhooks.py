@@ -4,15 +4,14 @@ from uuid import uuid4
 
 from django.utils import timezone
 
-from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
-from sentry.testutils import APITestCase
-
-from .testutils import (
+from fixtures.github_enterprise import (
     PULL_REQUEST_CLOSED_EVENT_EXAMPLE,
     PULL_REQUEST_EDITED_EVENT_EXAMPLE,
     PULL_REQUEST_OPENED_EVENT_EXAMPLE,
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
+from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
+from sentry.testutils import APITestCase
 
 
 class WebhookTest(APITestCase):

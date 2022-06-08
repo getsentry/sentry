@@ -5,11 +5,10 @@ import responses
 from django.utils import timezone
 from exam import fixture
 
+from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
 from sentry.models import Identity, IdentityProvider, Integration, Repository
 from sentry.testutils import IntegrationRepositoryTestCase, TestCase
-
-from .testutils import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 
 
 class VisualStudioRepositoryProviderTest(TestCase):

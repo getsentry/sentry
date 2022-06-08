@@ -5,12 +5,11 @@ import responses
 from django.utils import timezone
 from exam import fixture
 
+from fixtures.bitbucket import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 from sentry.integrations.bitbucket.repository import BitbucketRepositoryProvider
 from sentry.models import Integration, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import IntegrationRepositoryTestCase, TestCase
-
-from .testutils import COMMIT_DIFF_PATCH, COMPARE_COMMITS_EXAMPLE, REPO
 
 
 class BitbucketRepositoryProviderTest(TestCase):

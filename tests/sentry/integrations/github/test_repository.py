@@ -5,14 +5,13 @@ import pytest
 import responses
 from exam import fixture
 
+from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import Integration, PullRequest, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import PluginTestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
-
-from .testutils import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAST_COMMITS_EXAMPLE
 
 
 def stub_installation_token():

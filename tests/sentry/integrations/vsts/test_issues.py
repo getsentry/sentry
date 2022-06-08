@@ -5,6 +5,12 @@ import responses
 from django.test import RequestFactory
 from exam import fixture
 
+from fixtures.vsts import (
+    GET_PROJECTS_RESPONSE,
+    GET_USERS_RESPONSE,
+    WORK_ITEM_RESPONSE,
+    WORK_ITEM_STATES,
+)
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import (
@@ -18,13 +24,6 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
-
-from .testutils import (
-    GET_PROJECTS_RESPONSE,
-    GET_USERS_RESPONSE,
-    WORK_ITEM_RESPONSE,
-    WORK_ITEM_STATES,
-)
 
 
 class VstsIssueBase(TestCase):
