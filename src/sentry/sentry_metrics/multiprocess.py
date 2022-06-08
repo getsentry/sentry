@@ -476,7 +476,7 @@ def process_messages(
                 if tag in bulk_record_meta:
                     int_id, fetch_type = bulk_record_meta.get(tag)
                     fetch_types_encountered.add(fetch_type)
-                    output_message_meta[fetch_type.value][int_id] = tag
+                    output_message_meta[fetch_type.value][str(int_id)] = tag
 
             mapping_header_content = bytes(
                 "".join([t.value for t in fetch_types_encountered]), "utf-8"
