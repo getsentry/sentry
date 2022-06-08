@@ -50,6 +50,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         )
         query_data["groupBy"] = "outcome"
         query_data["category"] = "error"
+        query_data["key_id"] = key.id
 
         try:
             stats_params = self._parse_args(request)

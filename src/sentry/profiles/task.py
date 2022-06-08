@@ -7,9 +7,10 @@ from django.conf import settings
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
+from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import Project, ProjectDebugFile
+from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
@@ -28,7 +29,9 @@ processed_profiles_publisher = None
     acks_late=True,
 )
 def process_profile(
-    profile: MutableMapping[str, Any], key_id: Optional[int], **kwargs: Any
+    profile: MutableMapping[str, Any],
+    key_id: Optional[int],
+    **kwargs: Any,
 ) -> None:
     project = Project.objects.get_from_cache(id=profile["project_id"])
 
@@ -37,7 +40,8 @@ def process_profile(
     elif profile["platform"] == "android":
         profile = _deobfuscate(profile=profile, project=project)
 
-    profile = _normalize(profile=profile)
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    profile = _normalize(profile=profile, organization=organization)
 
     global processed_profiles_publisher
 
@@ -65,7 +69,10 @@ def process_profile(
     )
 
 
-def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+def _normalize(
+    profile: MutableMapping[str, Any],
+    organization: Organization,
+) -> MutableMapping[str, Any]:
     classification_options = {
         "model": profile["device_model"],
         "os_name": profile["device_os_name"],
@@ -84,7 +91,7 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         {
             "device_classification": str(classify_device(**classification_options)),
             "profile": json.dumps(profile["profile"]),
-            "retention_days": 30,
+            "retention_days": quotas.get_event_retention(organization=organization),
         }
     )
 
@@ -108,25 +115,13 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
         try:
             response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
 
-            # make sure we're getting the same number of stacktraces back
             assert len(profile["sampled_profile"]["samples"]) == len(response["stacktraces"])
 
-            for i, (original, symbolicated) in enumerate(
-                zip(profile["sampled_profile"]["samples"], response["stacktraces"])
+            for original, symbolicated in zip(
+                profile["sampled_profile"]["samples"], response["stacktraces"]
             ):
-                # make sure we're getting the same number of frames back
-                assert len(original["frames"]) == len(symbolicated["frames"])
-
-                for symbolicated_frame in symbolicated["frames"]:
-                    original_frame = original["frames"][symbolicated_frame["original_index"]]
-
-                    # preserve original values
-                    new_frame = {}
-                    for k, v in original_frame.items():
-                        new_frame[f"_{k}"] = v
-
-                    new_frame.update(symbolicated_frame)
-                    original["frames"][symbolicated_frame["original_index"]] = new_frame
+                original["original_frames"] = original["frames"]
+                original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:
             if (
