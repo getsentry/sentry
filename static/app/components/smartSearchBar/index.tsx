@@ -445,13 +445,18 @@ class SmartSearchBar extends Component<Props, State> {
     const {query} = this.state;
     const token = this.cursorToken ?? undefined;
 
+    const filterTokens = this.state.parsedQuery?.filter(tok => tok.type === Token.Filter);
+
     if (!action.canRunAction || action.canRunAction(token)) {
       switch (action.actionType) {
         case QuickActionType.Delete: {
-          if (token) {
+          if (token && filterTokens) {
+            const index = filterTokens.findIndex(tok => tok === token) ?? -1;
+
             const newQuery =
               // We trim to remove any remaining spaces
               query.slice(0, token.location.start.offset).trim() +
+              (index > 0 && index < filterTokens.length - 1 ? ' ' : '') +
               query.slice(token.location.end.offset).trim();
             this.updateQuery(newQuery);
           }
@@ -477,9 +482,6 @@ class SmartSearchBar extends Component<Props, State> {
         }
         case QuickActionType.Next: {
           let offset = this.state.query.length;
-          const filterTokens = this.state.parsedQuery?.filter(
-            tok => tok.type === Token.Filter
-          );
 
           if (this.searchInput.current && filterTokens) {
             this.searchInput.current.focus();
@@ -507,21 +509,19 @@ class SmartSearchBar extends Component<Props, State> {
         case QuickActionType.Previous: {
           let offset = this.state.query.length;
 
-          const filterTokens = this.state.parsedQuery
-            ?.filter(tok => tok.type === Token.Filter)
-            .reverse();
+          const reversedFilterTokens = filterTokens?.reverse();
 
-          if (this.searchInput.current && filterTokens) {
+          if (this.searchInput.current && reversedFilterTokens) {
             this.searchInput.current.focus();
 
             if (token) {
-              const tokenIndex = filterTokens.findIndex(tok => tok === token);
+              const tokenIndex = reversedFilterTokens.findIndex(tok => tok === token);
 
-              if (tokenIndex + 1 < filterTokens.length) {
-                offset = filterTokens[tokenIndex + 1].location.end.offset;
+              if (tokenIndex + 1 < reversedFilterTokens.length) {
+                offset = reversedFilterTokens[tokenIndex + 1].location.end.offset;
               }
             } else if (this.cursorPosition === this.state.query.length) {
-              offset = filterTokens[0].location.end.offset;
+              offset = reversedFilterTokens[0].location.end.offset;
             }
 
             this.searchInput.current.selectionStart = offset;
