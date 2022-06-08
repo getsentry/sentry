@@ -2001,7 +2001,7 @@ describe('WidgetBuilder', function () {
         await selectEvent.select(screen.getAllByText('count()')[1], 'count() * 100');
       });
 
-      it.only('does not reset the orderby when ordered by an equation in table', async function () {
+      it('does not reset the orderby when ordered by an equation in table', async function () {
         const widget: Widget = {
           id: '1',
           title: 'Errors over time',
@@ -2042,7 +2042,10 @@ describe('WidgetBuilder', function () {
           },
         });
 
-        expect(await screen.findAllByText('count() + count_unique(id)')).toHaveLength(2);
+        await screen.findByText('Sort by a column');
+
+        // 1 in the column selector, 1 in the sort by field
+        expect(screen.getAllByText('count() + count_unique(id)')).toHaveLength(2);
       });
     });
 
