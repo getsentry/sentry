@@ -1884,7 +1884,6 @@ SENTRY_DEVSERVICES = {
             "environment": {"ZOOKEEPER_CLIENT_PORT": "2181"},
             "volumes": {"zookeeper_6": {"bind": "/var/lib/zookeeper/data"}},
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM or settings.SENTRY_USE_RELAY,
-            "with_devserver": True,
         }
     ),
     "kafka": lambda settings, options: (
@@ -1908,7 +1907,6 @@ SENTRY_DEVSERVICES = {
             "only_if": "kafka" in settings.SENTRY_EVENTSTREAM
             or settings.SENTRY_USE_RELAY
             or settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS,
-            "with_devserver": True,
         }
     ),
     "clickhouse": lambda settings, options: (

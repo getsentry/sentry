@@ -100,7 +100,7 @@ def attach(ctx, project, fast, service):
 
     configure()
 
-    containers = _prepare_containers(project, silent=True, skip_only_if=True)
+    containers = _prepare_containers(project, silent=True)
     if service not in containers:
         raise click.ClickException(f"Service `{service}` is not known or not enabled.")
 
