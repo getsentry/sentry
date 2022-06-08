@@ -18,6 +18,17 @@ import {darkTheme, lightTheme, Theme} from 'sentry/utils/theme';
 
 import {DocsGlobalStyles, StoryGlobalStyles} from './globalStyles';
 
+type ExtendedTheme = Theme & {
+  /**
+   * [For Storybook only, do not use inside the app.]
+   *
+   * Substitute for the "background" property in Storybook components
+   * (anything inside docs-ui), since Storybook overrides "background" with
+   * its own object value.
+   */
+  docsBackground?: string;
+};
+
 // Theme decorator for stories
 const WithThemeStory: DecoratorFn = (Story, context) => {
   const isDark = useDarkMode();
@@ -42,8 +53,8 @@ addDecorator(WithThemeStory);
 // Theme decorator for MDX Docs
 const WithThemeDocs: DecoratorFn = ({children, context}) => {
   const isDark = useDarkMode();
-  const currentTheme = isDark ? darkTheme : lightTheme;
-  currentTheme.bg = currentTheme.background;
+  const currentTheme: ExtendedTheme = isDark ? darkTheme : lightTheme;
+  currentTheme.docsBackground = currentTheme.background;
 
   // Set @storybook/addon-backgrounds current color based on theme
   if (context.globals.theme) {
@@ -195,7 +206,7 @@ const commonTheme = {
   fontBase: '"Rubik", sans-serif',
 };
 
-const getThemeColors = (theme: Theme) => ({
+const getThemeColors = (theme: ExtendedTheme) => ({
   appBg: theme.bodyBackground,
   appContentBg: theme.background,
   appBorderColor: theme.innerBorder,
@@ -223,3 +234,8 @@ export const parameters: Parameters = {
     },
   },
 };
+
+// Configure Emotion to use our theme
+declare module '@emotion/react' {
+  export interface Theme extends ExtendedTheme {}
+}

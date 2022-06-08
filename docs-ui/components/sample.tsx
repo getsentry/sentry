@@ -87,7 +87,7 @@ const InnerWrap = styled('div')<{addTopMargin: boolean; noBorder: boolean}>`
     !p.noBorder &&
     `
     border: solid 1px ${p.theme.border};
-    background: ${p.theme.bg};
+    background: ${p.theme.docsBackground};
     padding: ${space(2)} ${space(2)};
     `}
 

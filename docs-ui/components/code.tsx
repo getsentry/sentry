@@ -123,7 +123,7 @@ const LabelWrap = styled('div')`
   left: calc(${space(2)} - ${space(1)});
   transform: translateY(-50%);
   padding: ${space(0.25)} ${space(1)};
-  background: ${p => p.theme.bg};
+  background: ${p => p.theme.docsBackground};
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
