@@ -1097,8 +1097,6 @@ SENTRY_FEATURES = {
     "organizations:relay": True,
     # Enable experimental session replay features
     "organizations:session-replay": False,
-    # Enable logging for weekly reports
-    "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee

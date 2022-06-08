@@ -25,8 +25,9 @@ from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
 from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.utils import metrics
+from sentry.utils.compat import zip
+from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import PathSearchable, get_path
 
 PATH_SEPARATORS = frozenset(["/", "\\"])
 
@@ -50,12 +51,8 @@ def score_path_match_length(path_a: str, path_b: str) -> int:
     return score
 
 
-def get_frame_paths(data: PathSearchable) -> Union[Any, Sequence[Any]]:
-    frames = get_path(data, "stacktrace", "frames", filter=True)
-    if frames:
-        return frames
-
-    return get_path(data, "exception", "values", 0, "stacktrace", "frames", filter=True) or []
+def get_frame_paths(event: Event) -> Union[Any, Sequence[Any]]:
+    return find_stack_frames(event.data)
 
 
 def release_cache_key(release: Release) -> str:
@@ -231,9 +228,10 @@ def get_previous_releases(
 def get_event_file_committers(
     project: Project,
     group_id: int,
-    event_frames: Sequence[MutableMapping[str, Any]],
+    event_frames: Sequence[Mapping[str, Any]],
     event_platform: str,
     frame_limit: int = 25,
+    sdk_name: str | None = None,
 ) -> Sequence[AuthorCommits]:
     group = Group.objects.get_from_cache(id=group_id)
 
@@ -249,33 +247,23 @@ def get_event_file_committers(
     if not commits:
         raise Commit.DoesNotExist
 
-    frames = event_frames or ()
-    app_frames = [frame for frame in frames if frame["in_app"]][-frame_limit:]
+    frames = event_frames or []
+    munged = munged_filename_and_frames(event_platform, frames, "munged_filename", sdk_name)
+    if munged:
+        frames = munged[1]
+    app_frames = [frame for frame in frames if frame.get("in_app")][-frame_limit:]
     if not app_frames:
         app_frames = [frame for frame in frames][-frame_limit:]
-
-    # Java stackframes don't have an absolute path in the filename key.
-    # That property is usually just the basename of the file. In the future
-    # the Java SDK might generate better file paths, but for now we use the module
-    # path to approximate the file path so that we can intersect it with commit
-    # file paths.
-    if event_platform == "java":
-        for frame in frames:
-            if frame.get("filename") is None:
-                continue
-            if "/" not in str(frame.get("filename")) and frame.get("module"):
-                # Replace the last module segment with the filename, as the
-                # terminal element in a module path is the class
-                module = frame["module"].split(".")
-                module[-1] = frame["filename"]
-                frame["filename"] = "/".join(module)
 
     # TODO(maxbittker) return this set instead of annotated frames
     # XXX(dcramer): frames may not define a filepath. For example, in Java its common
     # to only have a module name/path
     path_set = {
         str(f)
-        for f in (frame.get("filename") or frame.get("abs_path") for frame in app_frames)
+        for f in (
+            frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")
+            for frame in app_frames
+        )
         if f
     }
 
@@ -291,7 +279,8 @@ def get_event_file_committers(
         {
             "frame": str(frame),
             "commits": commit_path_matches.get(
-                str(frame.get("filename") or frame.get("abs_path")), []
+                str(frame.get("munged_filename") or frame.get("filename") or frame.get("abs_path")),
+                [],
             ),
         }
         for frame in app_frames
@@ -307,9 +296,15 @@ def get_event_file_committers(
 def get_serialized_event_file_committers(
     project: Project, event: Event, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
-    event_frames = get_frame_paths(event.data)
+    event_frames = get_frame_paths(event)
+    sdk_name = get_sdk_name(event.data)
     committers = get_event_file_committers(
-        project, event.group_id, event_frames, event.platform, frame_limit=frame_limit
+        project,
+        event.group_id,
+        event_frames,
+        event.platform,
+        frame_limit=frame_limit,
+        sdk_name=sdk_name,
     )
     commits = [commit for committer in committers for commit in committer["commits"]]
     serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
