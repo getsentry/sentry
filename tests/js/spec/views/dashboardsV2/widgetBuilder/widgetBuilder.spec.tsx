@@ -2000,6 +2000,50 @@ describe('WidgetBuilder', function () {
         expect(screen.getAllByText('count()')).toHaveLength(2);
         await selectEvent.select(screen.getAllByText('count()')[1], 'count() * 100');
       });
+
+      it.only('does not reset the orderby when ordered by an equation in table', async function () {
+        const widget: Widget = {
+          id: '1',
+          title: 'Errors over time',
+          interval: '5m',
+          displayType: DisplayType.TABLE,
+          queries: [
+            {
+              name: '',
+              conditions: '',
+              fields: [
+                'count()',
+                'count_unique(id)',
+                'equation|count() + count_unique(id)',
+              ],
+              aggregates: [
+                'count()',
+                'count_unique(id)',
+                'equation|count() + count_unique(id)',
+              ],
+              columns: [],
+              orderby: '-equation[0]',
+            },
+          ],
+        };
+
+        const dashboard: DashboardDetails = {
+          id: '1',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [widget],
+        };
+
+        renderTestComponent({
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        expect(await screen.findAllByText('count() + count_unique(id)')).toHaveLength(2);
+      });
     });
 
     describe('Widget creation coming from other verticals', function () {
