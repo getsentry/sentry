@@ -9,6 +9,7 @@ from sentry.db.models import FlexibleForeignKey, JSONField, Model
 from sentry.models import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.signals import inbox_in, inbox_out
+from sentry.types.activity import ActivityType
 
 INBOX_REASON_DETAILS = {
     "type": ["object", "null"],
@@ -100,7 +101,7 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
             Activity.objects.create(
                 project_id=group_inbox.group.project_id,
                 group_id=group_inbox.group_id,
-                type=Activity.MARK_REVIEWED,
+                type=ActivityType.MARK_REVIEWED.value,
                 user=user,
             )
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)

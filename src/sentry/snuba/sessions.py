@@ -1,3 +1,4 @@
+import math
 from datetime import datetime, timedelta
 from typing import List, Optional, Sequence, Set, Tuple
 
@@ -19,7 +20,7 @@ DATASET_BUCKET = 3600
 
 
 def _convert_duration(val):
-    if val != val:
+    if math.isnan(val):
         return None
     return val / 1000.0
 

@@ -1,15 +1,22 @@
-from collections import OrderedDict
-
 from django.db.models import F
+from django.http import QueryDict
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk.api import capture_exception
 
-from sentry import tsdb
 from sentry.api.base import StatsMixin
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models import ProjectKey
+from sentry.snuba.outcomes import (
+    QueryDefinition,
+    massage_outcomes_result,
+    run_outcomes_query_timeseries,
+)
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.dates import parse_timestamp
+from sentry.utils.outcomes import Outcome
 
 
 class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
@@ -30,35 +37,73 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            stat_args = self._parse_args(request)
-        except ValueError:
-            return Response({"detail": "Invalid request data"}, status=400)
-
-        stats = OrderedDict()
-        for model, name in (
-            (tsdb.models.key_total_received, "total"),
-            (tsdb.models.key_total_blacklisted, "filtered"),
-            (tsdb.models.key_total_rejected, "dropped"),
-        ):
-            # XXX (alex, 08/05/19) key stats were being stored under either key_id or str(key_id)
-            # so merge both of those back into one stats result.
-            result = tsdb.get_range(model=model, keys=[key.id, str(key.id)], **stat_args)
-            for key_id, points in result.items():
-                for ts, count in points:
-                    bucket = stats.setdefault(int(ts), {})
-                    bucket.setdefault(name, 0)
-                    bucket[name] += count
-
-        return Response(
+        # Outcomes queries are coupled to Django's QueryDict :(
+        query_data = QueryDict(mutable=True)
+        query_data.setlist("field", ["sum(quantity)"])
+        query_data.setlist(
+            "outcome",
             [
-                {
-                    "ts": ts,
-                    "total": data["total"],
-                    "dropped": data["dropped"],
-                    "filtered": data["filtered"],
-                    "accepted": data["total"] - data["dropped"] - data["filtered"],
-                }
-                for ts, data in stats.items()
-            ]
+                Outcome.ACCEPTED.api_name(),
+                Outcome.FILTERED.api_name(),
+                Outcome.RATE_LIMITED.api_name(),
+            ],
         )
+        query_data["groupBy"] = "outcome"
+        query_data["category"] = "error"
+        query_data["key_id"] = key.id
+
+        try:
+            stats_params = self._parse_args(request)
+        except Exception:
+            raise ParseError(detail="Invalid request data")
+
+        query_data["end"] = stats_params["end"].isoformat()
+        query_data["start"] = stats_params["start"].isoformat()
+        query_data["interval"] = request.GET.get("resolution", "1d")
+
+        try:
+            query_definition = QueryDefinition(
+                query_data,
+                {"organization_id": project.organization_id},
+            )
+            results = massage_outcomes_result(
+                query_definition, [], run_outcomes_query_timeseries(query_definition)
+            )
+        except Exception:
+            raise ParseError(detail="Invalid request data")
+
+        # Initialize the response results.
+        response = []
+        for time_string in results["intervals"]:
+            response.append(
+                {
+                    "ts": int(parse_timestamp(time_string).timestamp()),
+                    "total": 0,
+                    "dropped": 0,
+                    "accepted": 0,
+                    "filtered": 0,
+                }
+            )
+
+        # We rely on groups and intervals being index aligned
+        for group_result in results["groups"]:
+            key = None
+            grouping = group_result["by"]["outcome"]
+            if grouping == Outcome.RATE_LIMITED.api_name():
+                key = "dropped"
+            elif grouping == Outcome.FILTERED.api_name():
+                key = "filtered"
+            elif grouping == Outcome.ACCEPTED.api_name():
+                key = "accepted"
+            else:
+                capture_exception(
+                    ValueError(f"Unexpected outcome result in project key stats {grouping}")
+                )
+
+            if key:
+                # We rely on series being index aligned with intervals.
+                for i, value in enumerate(group_result["series"]["sum(quantity)"]):
+                    response[i][key] += value
+                    response[i]["total"] += value
+
+        return Response(response)

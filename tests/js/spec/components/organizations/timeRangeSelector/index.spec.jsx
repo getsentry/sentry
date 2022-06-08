@@ -238,7 +238,7 @@ describe('TimeRangeSelector', function () {
     });
   });
 
-  it('maintains time when switching UTC to local time', async function () {
+  it('maintains time when switching UTC to local time', function () {
     // Times should never change when changing UTC option
     // Instead, the utc flagged is used when querying to create proper date
 

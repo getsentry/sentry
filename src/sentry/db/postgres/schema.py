@@ -18,10 +18,6 @@ unsafe_mapping = {
         "Adding {}.{} as a not null column is unsafe.\n"
         "More info: https://develop.sentry.dev/database-migrations/#adding-not-null-to-columns"
     ),
-    Unsafe.ADD_COLUMN_DEFAULT: (
-        "Adding {}.{} as column with a default is unsafe.\n"
-        "More info: https://develop.sentry.dev/database-migrations/#adding-columns-with-a-default"
-    ),
     Unsafe.ALTER_COLUMN_TYPE: (
         "Altering the type of column {}.{} in this way is unsafe\n"
         "More info here: https://develop.sentry.dev/database-migrations/#altering-column-types"
