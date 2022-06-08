@@ -106,13 +106,14 @@ class Sampling extends AsyncView<Props, State> {
   };
 
   handleOpenRule = (type: SamplingRuleType) => (ruleToUpdate?: SamplingRule) => () => {
-    const {project, hasAccess} = this.props;
+    const {project, organization, hasAccess} = this.props;
     const {rules} = this.state;
 
     return openModal(
       modalProps => (
         <SamplingRuleModal
           {...modalProps}
+          organization={organization}
           project={project}
           rule={ruleToUpdate}
           rules={rules.filter(rule => rule.type === type)}

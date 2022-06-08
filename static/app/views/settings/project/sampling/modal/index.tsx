@@ -18,7 +18,7 @@ import {IconAdd} from 'sentry/icons';
 import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project, SelectValue} from 'sentry/types';
+import {Organization, Project, SelectValue} from 'sentry/types';
 import {
   SamplingConditionOperator,
   SamplingInnerName,
@@ -31,7 +31,6 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
@@ -64,6 +63,7 @@ type State = {
 type Props = ModalRenderProps & {
   disabled: boolean;
   onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
+  organization: Organization;
   project: Project;
   rules: SamplingRules;
   type: SamplingRuleType;
@@ -81,9 +81,9 @@ export function SamplingRuleModal({
   rules,
   disabled,
   type,
+  organization,
 }: Props) {
   const api = useApi();
-  const organization = useOrganization();
   const params = useParams();
   const location = useLocation();
   const routes = useRoutes();
