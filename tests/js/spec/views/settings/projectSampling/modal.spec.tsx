@@ -573,4 +573,120 @@ describe('Sampling - Modal', function () {
       screen.queryByText('Add Distributed Trace Rule')
     );
   });
+
+  it('does not let you save a distributed trace rule without a condition, if a trace rule without a condition already exists', async function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: TestStubs.Project({
+        dynamicSampling: {
+          rules: [
+            {
+              sampleRate: 0.2,
+              type: 'trace',
+              condition: {
+                op: 'and',
+                inner: [
+                  {
+                    op: 'glob',
+                    name: 'trace.release',
+                    value: ['1.2.2'],
+                  },
+                ],
+              },
+              id: 40,
+            },
+            {
+              sampleRate: 0.5,
+              type: 'trace',
+              condition: {
+                op: 'and',
+                inner: [],
+              },
+              id: 41,
+            },
+          ],
+          next_id: 42,
+        },
+      }),
+    });
+
+    renderComponent();
+
+    // Open Modal
+    await openSamplingRuleModal(screen.getByText('Add Rule'));
+
+    // Empty conditions message
+    expect(screen.getByText('No conditions added')).toBeInTheDocument();
+
+    // A hint about an existing 'sample all' rule is displayed
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'A rule without conditions already exists. Add (+) a condition for creating a new rule'
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Adds a sample rate
+    userEvent.paste(screen.getByPlaceholderText('\u0025'), '5');
+
+    // Button is still disabled
+    expect(screen.getByLabelText('Save Rule')).toBeDisabled();
+  });
+
+  it('does not let you save a individual transaction rule without a condition, if a transaction rule without a condition already exists', async function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: TestStubs.Project({
+        dynamicSampling: {
+          rules: [
+            {
+              condition: {
+                inner: [{name: 'event.release', op: 'glob', value: ['1.2.3']}],
+                op: 'and',
+              },
+              id: 0,
+              sampleRate: 0.3,
+              type: 'transaction',
+            },
+            {
+              condition: {
+                inner: [],
+                op: 'and',
+              },
+              id: 1,
+              sampleRate: 0.2,
+              type: 'transaction',
+            },
+          ],
+          next_id: 2,
+        },
+      }),
+    });
+
+    renderComponent({ruleType: SamplingRuleType.TRANSACTION});
+
+    // Open Modal
+    await openSamplingRuleModal(screen.getByText('Add Rule'));
+
+    // Empty conditions message
+    expect(screen.getByText('No conditions added')).toBeInTheDocument();
+
+    // A hint about an existing 'sample all' rule is displayed
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'A rule without conditions already exists. Add (+) a condition for creating a new rule'
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Adds a sample rate
+    userEvent.paste(screen.getByPlaceholderText('\u0025'), '5');
+
+    // Button is still disabled
+    expect(screen.getByLabelText('Save Rule')).toBeDisabled();
+  });
 });

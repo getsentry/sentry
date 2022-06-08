@@ -6,7 +6,6 @@ import {t, tct} from 'sentry/locale';
 import {
   SamplingConditionOperator,
   SamplingRule,
-  SamplingRules,
   SamplingRuleType,
 } from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
@@ -27,15 +26,8 @@ type RuleModalProps = React.ComponentProps<typeof RuleModal>;
 
 type Props = Omit<
   RuleModalProps,
-  | 'transactionField'
-  | 'title'
-  | 'description'
-  | 'conditionCategories'
-  | 'onSubmit'
-  | 'emptyMessage'
-  | 'onChage'
+  'title' | 'description' | 'conditionCategories' | 'onSubmit'
 > & {
-  rules: SamplingRules;
   type: SamplingRuleType;
 };
 
@@ -137,6 +129,7 @@ export function SamplingRuleModal({rule: ruleToUpdate, type, rules, ...props}: P
     <RuleModal
       {...props}
       {...getDescription()}
+      rules={rules.filter(rule => rule.type === type)}
       conditionCategories={generateConditionCategoriesOptions(
         type === SamplingRuleType.TRACE
           ? distributedTracesConditions

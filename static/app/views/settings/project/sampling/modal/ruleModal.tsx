@@ -53,6 +53,7 @@ type Props = ModalRenderProps & {
   onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
   organization: Organization;
   project: Project;
+  rules: SamplingRules;
   title: string;
   rule?: SamplingRule;
 };
@@ -71,6 +72,7 @@ function RuleModal({
   onSubmitSuccess,
   onSubmit,
   rule,
+  rules,
   disabled,
 }: Props) {
   const [data, setData] = useState<State>(getInitialState());
@@ -248,8 +250,14 @@ function RuleModal({
     setData({...data, conditions: newConditions});
   }
 
+  // Distributed Trace and Individual Transaction Rule can only have one 'sample all' rule at a time
+  const ruleWithoutConditionExists = rules.some(
+    ({condition}) => condition.inner.length === 0
+  );
+
   const submitDisabled =
     !defined(sampleRate) ||
+    ruleWithoutConditionExists ||
     !!conditions?.find(condition => {
       if (condition.category === SamplingInnerName.EVENT_LEGACY_BROWSER) {
         return !(condition.legacyBrowsers ?? []).length;
@@ -360,12 +368,21 @@ function RuleModal({
                 <EmptyMessage
                   icon={<IconSearch size="xl" />}
                   title={t('No conditions added')}
-                  description={tct(
-                    "if you don't want to add (+) a condition, [lineBreak]simply, add a sample rate below",
-                    {
-                      lineBreak: <br />,
-                    }
-                  )}
+                  description={
+                    ruleWithoutConditionExists
+                      ? tct(
+                          'A rule without conditions already exists. [lineBreak]Add (+) a condition for creating a new rule',
+                          {
+                            lineBreak: <br />,
+                          }
+                        )
+                      : tct(
+                          "if you don't want to add (+) a condition, [lineBreak]simply, add a sample rate below",
+                          {
+                            lineBreak: <br />,
+                          }
+                        )
+                  }
                 />
               ) : (
                 <Conditions
