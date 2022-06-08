@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import {HeaderContainer} from 'sentry/components/events/interfaces/spans/header';
@@ -84,19 +85,25 @@ function ReplayDetails() {
           </Layout.Main>
 
           <Layout.Side>
-            <UserActionsNavigator
-              crumbs={replay?.getRawCrumbs()}
-              event={replay?.getEvent()}
-            />
+            <ErrorBoundary>
+              <UserActionsNavigator
+                crumbs={replay?.getRawCrumbs()}
+                event={replay?.getEvent()}
+              />
+            </ErrorBoundary>
           </Layout.Side>
 
           <StickyMain fullWidth>
-            <ReplayTimeline />
+            <ErrorBoundary>
+              <ReplayTimeline />
+            </ErrorBoundary>
             <FocusTabs />
           </StickyMain>
 
           <StyledLayoutMain fullWidth>
-            <FocusArea replay={replay} />
+            <ErrorBoundary>
+              <FocusArea replay={replay} />
+            </ErrorBoundary>
           </StyledLayoutMain>
         </Layout.Body>
       </DetailLayout>
