@@ -1,4 +1,5 @@
 import logging
+from sys import getsizeof
 
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -133,12 +134,32 @@ class SentryAppWebhookRequestsBuffer:
             "response_code": response_code,
             "webhook_url": url,
         }
+        MAX_SIZE = 1024
         if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
             if headers:
                 request_data["request_headers"] = headers
+
             if response:
-                request_data["request_body"] = response.get("request", {}).get("body")
-                request_data["response_body"] = response.get("content")
+                if response.content:
+                    request_data["response_body"] = response.content[:MAX_SIZE]
+
+                if response.request:
+                    request_body = None
+                    request = response.request
+                    if request:
+                        request_body = request.body
+                    if request_body:
+                        request_body_size = getsizeof(request_body)
+                        if request_body_size > MAX_SIZE:
+                            logger.warning(
+                                f"Request body exceeds max size of {MAX_SIZE}. Size is {request_body_size}."
+                            )
+                        else:
+                            # request_data["request_body"] = json.loads(request_body[:MAX_SIZE])
+                            # the above breaks if it's not valid json because it was chopped off
+                            # not sure how to reduce the size in a clean way
+                            # adding logging to see if this ever even happens
+                            request_data["request_body"] = request_body
 
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway
         if not self.sentry_app.is_internal:
