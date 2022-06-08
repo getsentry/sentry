@@ -127,7 +127,7 @@
     "react-mentions": "4.4.2",
     "react-popper": "^2.3.0",
     "react-router": "3.2.0",
-    "react-select": "^3.0.8",
+    "react-select": "3.1.0",
     "react-select-event": "5.5.0",
     "react-sparklines": "1.7.0",
     "react-virtualized": "^9.22.3",
