@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlparse
 
 from django.urls import reverse
 
+from fixtures.vsts import VstsIntegrationTestCase
 from sentry.integrations.vsts import VstsIntegrationProvider
 from sentry.integrations.vsts_extension import (
     VstsExtensionFinishedView,
@@ -10,7 +11,6 @@ from sentry.integrations.vsts_extension import (
 )
 from sentry.models import Integration
 from tests.sentry.integrations.vsts.test_integration import FULL_SCOPES
-from tests.sentry.integrations.vsts.testutils import VstsIntegrationTestCase
 
 
 class VstsExtensionIntegrationProviderTest(VstsIntegrationTestCase):
