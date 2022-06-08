@@ -17,33 +17,44 @@ const Label = styled('label')`
 type Props = {
   disabled: boolean;
   enforceAllowed: boolean;
+  enforceRetired: boolean;
   roleList: MemberRole[];
-  selectedRole: string;
-  setRole: (id: string) => void;
+  roleSelected: string;
+  setSelected: (id: string) => void;
 };
 
-class RoleSelect extends Component<Props> {
+class OrganizationRoleSelect extends Component<Props> {
   render() {
-    const {disabled, enforceAllowed, roleList, selectedRole} = this.props;
+    const {
+      disabled,
+      enforceRetired,
+      enforceAllowed,
+      roleList,
+      roleSelected,
+      setSelected,
+    } = this.props;
 
     return (
       <Panel>
-        <PanelHeader>{t('Role')}</PanelHeader>
+        <PanelHeader>{t('Organization Role')}</PanelHeader>
 
         <PanelBody>
           {roleList.map(role => {
-            const {desc, name, id, allowed} = role;
-            const isDisabled = disabled || (enforceAllowed && !allowed);
+            const {desc, name, id, allowed, isRetired: roleRetired} = role;
+
+            const isRetired = enforceRetired && roleRetired;
+            const isDisabled = disabled || isRetired || (enforceAllowed && !allowed);
+
             return (
               <PanelItem
                 key={id}
-                onClick={() => !isDisabled && this.props.setRole(id)}
+                onClick={() => !isDisabled && setSelected(id)}
                 css={!isDisabled ? {} : {color: 'grey', cursor: 'default'}}
               >
                 <Label>
-                  <Radio id={id} value={name} checked={id === selectedRole} readOnly />
+                  <Radio id={id} value={name} checked={id === roleSelected} readOnly />
                   <div style={{flex: 1, padding: '0 16px'}}>
-                    {name}
+                    {name} {isRetired && t('(Deprecated)')}
                     <TextBlock noMargin>
                       <div className="help-block">{desc}</div>
                     </TextBlock>
@@ -58,4 +69,4 @@ class RoleSelect extends Component<Props> {
   }
 }
 
-export default RoleSelect;
+export default OrganizationRoleSelect;
