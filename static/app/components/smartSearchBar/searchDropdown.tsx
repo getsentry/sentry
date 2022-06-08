@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 import {ItemType, SearchGroup, SearchItem} from './types';
@@ -189,7 +188,7 @@ const SearchItemTitleWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Description = styled('span')`

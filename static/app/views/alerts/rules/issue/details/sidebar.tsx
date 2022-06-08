@@ -8,7 +8,6 @@ import {PanelBody} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor, Member, Team} from 'sentry/types';
 import {IssueAlertRule} from 'sentry/types/alerts';
@@ -277,5 +276,5 @@ const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
 `;
 
 const OverflowTableValue = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;

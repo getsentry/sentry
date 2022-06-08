@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import NavTabs from 'sentry/components/navTabs';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 /**
@@ -70,7 +69,7 @@ export const Title = styled('h1')`
   margin-bottom: 0 !important;
   min-height: 30px;
   align-self: center;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     margin-top: ${space(1)};

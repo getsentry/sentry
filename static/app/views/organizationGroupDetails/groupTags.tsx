@@ -15,7 +15,6 @@ import {extractSelectionParameters} from 'sentry/components/organizations/pageFi
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Version from 'sentry/components/version';
 import {tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Organization, TagWithTopValues} from 'sentry/types';
 import {percent} from 'sentry/utils';
@@ -210,7 +209,7 @@ const TagBarLabel = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   position: relative;
   flex-grow: 1;
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TagBarCount = styled('div')`

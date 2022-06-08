@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 type Item = {
@@ -55,7 +54,7 @@ const ArrayItem = styled('span')`
   flex-shrink: 1;
   display: block;
 
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: unset;
 `;
 

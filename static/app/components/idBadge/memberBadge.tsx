@@ -3,7 +3,6 @@ import omit from 'lodash/omit';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import Link, {LinkProps} from 'sentry/components/links/link';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {AvatarUser, Member} from 'sentry/types';
 
@@ -85,7 +84,7 @@ const StyledEmail = styled('div')`
   font-size: 0.875em;
   margin-top: ${space(0.25)};
   color: ${p => p.theme.gray300};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 interface NameProps {
@@ -100,7 +99,7 @@ const StyledName = styled(({useLink, to, ...props}: NameProps) => {
 })`
   font-weight: ${(p: NameProps) => (p.hideEmail ? 'inherit' : 'bold')};
   line-height: 1.15em;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledAvatar = styled(UserAvatar)`

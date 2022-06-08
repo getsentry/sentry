@@ -18,7 +18,6 @@ import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -371,7 +370,7 @@ const GrabbableButton = styled(Button)`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   font-weight: normal;
 `;
 

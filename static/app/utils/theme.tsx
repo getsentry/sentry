@@ -1,5 +1,4 @@
-import '@emotion/react';
-
+import {css} from '@emotion/react';
 import color from 'color';
 
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -562,6 +561,13 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     }`,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
+  }),
+  overflowEllipsis: css({
+    display: 'block',
+    width: '100%',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   }),
 });
 

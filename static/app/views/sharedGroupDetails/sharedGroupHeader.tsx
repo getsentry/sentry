@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import EventMessage from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 
@@ -64,7 +63,7 @@ const Title = styled('h3')`
   line-height: ${p => p.theme.text.lineHeightHeading};
   margin-right: ${space(2)};
   margin-bottom: 0;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
     font-size: ${p => p.theme.headerFontSize};

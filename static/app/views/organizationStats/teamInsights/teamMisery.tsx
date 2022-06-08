@@ -12,7 +12,6 @@ import LoadingError from 'sentry/components/loadingError';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Project, SavedQueryVersions} from 'sentry/types';
 import DiscoverQuery, {
@@ -300,7 +299,7 @@ const FlexCenter = styled('div')`
 `;
 
 const KeyTransactionTitleWrapper = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   display: flex;
   align-items: center;
 `;
@@ -312,7 +311,7 @@ const StyledIconStar = styled(IconStar)`
 `;
 
 const TransactionWrapper = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const RightAligned = styled('span')`

@@ -5,7 +5,6 @@ import isEqual from 'lodash/isEqual';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {PanelAlert, PanelTable} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {
   SamplingRule,
   SamplingRuleOperator,
@@ -194,7 +193,7 @@ const StyledPanelTable = styled(PanelTable)`
   border-bottom-left-radius: 0;
   ${p => layout(p.theme)}
   > * {
-    ${overflowEllipsis};
+    ${p => p.theme.overflowEllipsis};
     :not(:last-child) {
       border-bottom: 1px solid ${p => p.theme.border};
     }

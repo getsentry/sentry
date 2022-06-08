@@ -5,7 +5,6 @@ import {Location} from 'history';
 
 import DropdownControl, {DropdownItem} from 'sentry/components/dropdownControl';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Repository} from 'sentry/types';
 
@@ -101,5 +100,5 @@ const FilterText = styled('em')`
 `;
 
 const RepoLabel = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;

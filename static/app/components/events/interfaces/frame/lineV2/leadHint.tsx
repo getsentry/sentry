@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {Frame} from 'sentry/types';
 
 type Props = {
@@ -26,6 +25,6 @@ function LeadHint({leadsToApp, isExpanded, nextFrame}: Props) {
 export default LeadHint;
 
 const Wrapper = styled('div')<{width?: string}>`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   max-width: ${p => (p.width ? p.width : '67px')}
 `;

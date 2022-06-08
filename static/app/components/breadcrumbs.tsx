@@ -5,7 +5,6 @@ import {LocationDescriptor} from 'history';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link, {LinkProps} from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Theme} from 'sentry/utils/theme';
 import BreadcrumbDropdown, {
@@ -138,8 +137,8 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
 };
 
 const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
+  ${p.theme.overflowEllipsis};
   color: ${p.theme.gray300};
-  ${overflowEllipsis};
   width: auto;
 
   &:last-child {
