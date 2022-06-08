@@ -59,8 +59,8 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     email: str
     name: str
     user: UserSerializerResponse
-    role: str  # Deprecating: use orgRole
-    roleName: str  # Deprecating
+    role: str  # Deprecated: use orgRole
+    roleName: str  # Deprecated
     orgRole: str
     pending: bool
     expired: str
@@ -81,6 +81,6 @@ class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
 class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
     invite_link: Optional[str]
     isOnlyOwner: bool
-    roles: List[RoleSerializerResponse]  # Deprecating: use orgRoleList
+    roles: List[RoleSerializerResponse]  # Deprecated: use orgRoleList
     orgRoleList: List[RoleSerializerResponse]
     teamRoleList: List[RoleSerializerResponse]

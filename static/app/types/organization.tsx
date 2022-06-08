@@ -85,7 +85,7 @@ export type OrgRole = MemberRole & {
   minimumTeamRole: string;
   isGlobal?: boolean;
   isRetired?: boolean;
-  is_global?: boolean; // Deprecating: use isGlobal
+  is_global?: boolean; // Deprecated: use isGlobal
 };
 export type TeamRole = MemberRole & {
   isMinimumRoleFor: string;
@@ -115,9 +115,9 @@ export type Member = {
   projects: string[];
 
   // Avoid using these keys
-  role: OrgRole['id']; // Deprecating: use orgRole
+  role: OrgRole['id']; // Deprecated: use orgRole
   roleName: string;
-  roles: OrgRole[]; // Deprecating: use orgRoleList
+  roles: OrgRole[]; // Deprecated: use orgRoleList
 
   teamRoleList: TeamRole[]; // TODO: Move to global store
   teamRoles: {
@@ -125,7 +125,7 @@ export type Member = {
     role: TeamRole['id'];
     team: string;
   }[];
-  teams: string[]; // # Deprecating, use teamRoles
+  teams: string[]; // # Deprecated, use teamRoles
 
   user: User;
 };
