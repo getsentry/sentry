@@ -117,7 +117,16 @@ export function FrameStackTable({
   }, [canvasPoolManager, clickedContextMenuNode]);
 
   const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
-    (r, {handleRowClick, handleExpandTreeNode, handleRowKeyDown, tabIndexKey}) => {
+    (
+      r,
+      {
+        handleRowClick,
+        handleRowMouseEnter,
+        handleExpandTreeNode,
+        handleRowKeyDown,
+        tabIndexKey,
+      }
+    ) => {
       return (
         <FrameStackTableRow
           ref={n => {
@@ -131,6 +140,7 @@ export function FrameStackTable({
           onClick={handleRowClick}
           onExpandClick={handleExpandTreeNode}
           onKeyDown={handleRowKeyDown}
+          onMouseEnter={handleRowMouseEnter}
           onContextMenu={evt => {
             setClickedContextMenuClose(r.item);
             contextMenu.handleContextMenu(evt);
@@ -141,15 +151,21 @@ export function FrameStackTable({
     [contextMenu, flamegraphRenderer, referenceNode]
   );
 
-  const {renderedItems, scrollContainerStyles, containerStyles, handleSortingChange} =
-    useVirtualizedTree({
-      skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
-      sortFunction,
-      renderRow,
-      scrollContainer: scrollContainerRef,
-      rowHeight: 24,
-      roots,
-    });
+  const {
+    renderedItems,
+    scrollContainerStyles,
+    containerStyles,
+    handleSortingChange,
+    clickedGhostRowRef,
+    hoveredGhostRowRef,
+  } = useVirtualizedTree({
+    skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
+    sortFunction,
+    renderRow,
+    scrollContainer: scrollContainerRef,
+    rowHeight: 24,
+    roots,
+  });
 
   const onSortChange = useCallback(
     (newSort: 'total weight' | 'self weight' | 'name') => {
@@ -198,30 +214,34 @@ export function FrameStackTable({
           onZoomIntoNodeClick={handleZoomIntoNodeClick}
           contextMenu={contextMenu}
         />
-        <div
-          ref={ref => setScrollContainerRef(ref)}
-          style={scrollContainerStyles}
-          onContextMenu={contextMenu.handleContextMenu}
-        >
-          <div style={containerStyles}>
-            {renderedItems}
-            {/*
+        <div style={{position: 'relative', height: '100%'}}>
+          <div ref={clickedGhostRowRef} />
+          <div ref={hoveredGhostRowRef} />
+          <div
+            ref={ref => setScrollContainerRef(ref)}
+            style={scrollContainerStyles}
+            onContextMenu={contextMenu.handleContextMenu}
+          >
+            <div style={containerStyles}>
+              {renderedItems}
+              {/*
               This is a ghost row, we stretch its width and height to fit the entire table
               so that borders on columns are shown across the entire table and not just the rows.
               This is useful when number of rows does not fill up the entire table height.
              */}
-            <div
-              style={{
-                display: 'flex',
-                width: '100%',
-                pointerEvents: 'none',
-                position: 'absolute',
-                height: '100%',
-              }}
-            >
-              <FrameCallersTableCell />
-              <FrameCallersTableCell />
-              <FrameCallersTableCell />
+              <div
+                style={{
+                  display: 'flex',
+                  width: '100%',
+                  pointerEvents: 'none',
+                  position: 'absolute',
+                  height: '100%',
+                }}
+              >
+                <FrameCallersTableCell />
+                <FrameCallersTableCell />
+                <FrameCallersTableCell />
+              </div>
             </div>
           </div>
         </div>
