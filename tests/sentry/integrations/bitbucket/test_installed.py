@@ -4,8 +4,14 @@ from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider, scopes
 from sentry.models import Integration, Project, Repository
 from sentry.plugins.base import plugins
+from sentry.plugins.bases import IssueTrackingPlugin2
 from sentry.testutils import APITestCase
-from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
+
+
+class BitbucketPlugin(IssueTrackingPlugin2):
+    slug = "bitbucket"
+    name = "Bitbucket Mock Plugin"
+    conf_key = slug
 
 
 class BitbucketInstalledEndpointTest(APITestCase):
@@ -75,10 +81,10 @@ class BitbucketInstalledEndpointTest(APITestCase):
 
         self.data_without_public_key = {"identity": {"bitbucket_client_id": self.client_key}}
 
-        register_mock_plugins()
+        plugins.register(BitbucketPlugin)
 
     def tearDown(self):
-        unregister_mock_plugins()
+        plugins.unregister(BitbucketPlugin)
         super().tearDown()
 
     def test_default_permissions(self):
