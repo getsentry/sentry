@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import List, Mapping, Sequence, Set
+from typing import List, Mapping, Sequence, Set, Tuple
 
 from sentry.api.serializers import serialize
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus, User
@@ -12,7 +12,7 @@ def get_serialized_users_by_id(users_set: Set[User], user: User) -> Mapping[str,
 
 def get_team_slugs_by_organization_member_id(
     organization_members: Sequence[OrganizationMember],
-) -> Mapping[int, List[str]]:
+) -> Mapping[int, Tuple[List[str], List[object]]]:
     """@returns a map of member id -> team_slug[]"""
     organization_member_tuples = list(
         OrganizationMemberTeam.objects.filter(

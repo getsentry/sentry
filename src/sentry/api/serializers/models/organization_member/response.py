@@ -36,6 +36,11 @@ _OrganizationMemberFlags = TypedDict(
 )
 
 
+class _TeamRole(TypedDict):
+    team: str
+    role: str
+
+
 class OrganizationMemberResponseOptional(TypedDict, total=False):
     externalUsers: List[ExternalActorResponse]
 
@@ -72,6 +77,7 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
 
 class OrganizationMemberWithTeamsResponse(OrganizationMemberResponse):
     teams: List[str]
+    teamRoles: List[_TeamRole]
 
 
 class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
