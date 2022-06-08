@@ -44,8 +44,6 @@ export function SamplingRuleModal({rule: ruleToUpdate, type, rules, ...props}: P
   const location = useLocation();
   const routes = useRoutes();
 
-  console.log({params, location, routes});
-
   function handleSubmit({
     sampleRate,
     conditions,
