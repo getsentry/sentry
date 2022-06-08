@@ -218,16 +218,17 @@ class RedisQuotaTest(TestCase):
             ),
         )
 
+        org_id = self.project.organization.pk
         self.quota.refund(self.project, timestamp=timestamp)
         client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
 
-        error_keys = client.keys("r:quota:p:?:*")
+        error_keys = client.keys(f"r:quota:p{{{org_id}}}*:*")
         assert len(error_keys) == 2
 
         for key in error_keys:
             assert client.get(key) == b"1"
 
-        attachment_keys = client.keys("r:quota:a:*")
+        attachment_keys = client.keys(f"r:quota:a{{{org_id}}}*:*")
         assert len(attachment_keys) == 0
 
     @mock.patch.object(RedisQuota, "get_quotas")
@@ -265,15 +266,16 @@ class RedisQuotaTest(TestCase):
             ),
         )
 
+        org_id = self.project.organization.pk
         self.quota.refund(
             self.project, timestamp=timestamp, category=DataCategory.ATTACHMENT, quantity=100
         )
         client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
 
-        error_keys = client.keys("r:quota:p:?:*")
+        error_keys = client.keys(f"r:quota:p{{{org_id}}}*:*")
         assert len(error_keys) == 0
 
-        attachment_keys = client.keys("r:quota:a:*")
+        attachment_keys = client.keys(f"r:quota:a{{{org_id}}}1:*")
         assert len(attachment_keys) == 1
 
         for key in attachment_keys:

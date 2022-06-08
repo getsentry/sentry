@@ -88,6 +88,7 @@ class ReleaseFileDetailsTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.get(url + "?download=1")
         assert response.get("Content-Type") == "application/octet-stream"
+        assert b"File contents here" == b"".join(response.streaming_content)
 
         # # Download as a user without sufficient role
         self.organization.update_option("sentry:debug_files_role", "owner")

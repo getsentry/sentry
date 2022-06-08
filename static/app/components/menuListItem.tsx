@@ -4,12 +4,13 @@ import styled from '@emotion/styled';
 
 import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
+import {Theme} from 'sentry/utils/theme';
 
 /**
- * Menu item priority. Currently there's only one option other than default,
- * but we may choose to add more in the future.
+ * Menu item priority. Determines the text and background color.
  */
-type Priority = 'danger' | 'default';
+type Priority = 'primary' | 'danger' | 'default';
 
 export type MenuListItemProps = {
   /**
@@ -100,7 +101,7 @@ function BaseMenuListItem({
             {leadingItems}
           </LeadingItems>
         )}
-        <ContentWrap isFocused={isFocused} showDivider={showDivider}>
+        <ContentWrap isFocused={isFocused} showDivider={defined(details) || showDivider}>
           <LabelWrap>
             <Label aria-hidden="true" {...labelProps}>
               {label}
@@ -146,6 +147,41 @@ const MenuItemWrap = styled('li')`
   }
 `;
 
+function getTextColor({
+  theme,
+  priority,
+  isDisabled,
+}: {
+  isDisabled: boolean;
+  priority: Priority;
+  theme: Theme;
+}) {
+  if (isDisabled) {
+    return theme.subText;
+  }
+  switch (priority) {
+    case 'primary':
+      return theme.activeText;
+    case 'danger':
+      return theme.errorText;
+    case 'default':
+    default:
+      return theme.textColor;
+  }
+}
+
+function getFocusBackground({theme, priority}: {priority: Priority; theme: Theme}) {
+  switch (priority) {
+    case 'primary':
+      return theme.purple100;
+    case 'danger':
+      return theme.red100;
+    case 'default':
+    default:
+      return theme.hover;
+  }
+}
+
 export const InnerWrap = styled('div', {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
@@ -164,22 +200,14 @@ export const InnerWrap = styled('div', {
 
   &,
   &:hover {
-    color: ${p => p.theme.textColor};
+    color: ${getTextColor};
   }
-  ${p => p.priority === 'danger' && `&,&:hover {color: ${p.theme.errorText}}`}
-  ${p =>
-    p.isDisabled &&
-    `
-    &, &:hover {
-      color: ${p.theme.subText};
-      cursor: initial;
-    }
-  `}
+  ${p => p.isDisabled && `cursor: initial;`}
 
   ${p =>
     p.isFocused &&
     `
-      background: ${p.priority === 'danger' ? p.theme.red100 : p.theme.hover};
+      background: ${getFocusBackground(p)};
       z-index: 1;
     `}
 `;
@@ -239,8 +267,7 @@ const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`
   margin-bottom: 0;
   ${overflowEllipsis}
 
-  ${p => p.priority === 'danger' && `color: ${p.theme.errorText};`}
-  ${p => p.isDisabled && `color: ${p.theme.subText};`}
+  ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;
 
 const TrailingItems = styled('div')<{isDisabled: boolean; spanFullHeight: boolean}>`
