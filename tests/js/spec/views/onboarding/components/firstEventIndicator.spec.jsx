@@ -3,7 +3,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {Indicator} from 'sentry/views/onboarding/components/firstEventIndicator';
 
 describe('FirstEventIndicator', function () {
-  it('renders waiting status', async function () {
+  it('renders waiting status', function () {
     const org = TestStubs.Organization();
 
     const wrapper = mountWithTheme(<Indicator organization={org} firstIssue={null} />);
@@ -22,7 +22,7 @@ describe('FirstEventIndicator', function () {
       expect(wrapper.find('ReceivedIndicator').exists()).toBe(true);
     });
 
-    it('renders without a known issue ID', async function () {
+    it('renders without a known issue ID', function () {
       const org = TestStubs.Organization();
       const project = TestStubs.ProjectDetails({});
 

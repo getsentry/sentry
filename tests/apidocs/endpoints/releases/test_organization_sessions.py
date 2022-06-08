@@ -1,8 +1,8 @@
 from django.test.client import RequestFactory
 from django.urls import reverse
 
+from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils import SnubaTestCase
-from tests.apidocs.util import APIDocsTestCase
 
 
 class OrganizationSessionsDocsTest(APIDocsTestCase, SnubaTestCase):

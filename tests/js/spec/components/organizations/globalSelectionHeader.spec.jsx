@@ -516,7 +516,7 @@ describe('GlobalSelectionHeader', function () {
     expect(initializationObj.router.replace).not.toHaveBeenCalled();
   });
 
-  it('updates store with default values when there are no query params in URL', async function () {
+  it('updates store with default values when there are no query params in URL', function () {
     const initializationObj = initializeOrg({
       organization: {
         features: ['global-views'],
@@ -615,7 +615,7 @@ describe('GlobalSelectionHeader', function () {
    * in URL).
    */
   describe('Single project selection mode', function () {
-    it('does not do anything while organization is switching in single project', async function () {
+    it('does not do anything while organization is switching in single project', function () {
       const initialData = initializeOrg({
         organization: {slug: 'old-org-slug'},
         router: {
@@ -697,7 +697,7 @@ describe('GlobalSelectionHeader', function () {
       );
     });
 
-    it('selects first project if none (i.e. all) is requested', async function () {
+    it('selects first project if none (i.e. all) is requested', function () {
       const project = TestStubs.Project({id: '3'});
       const org = TestStubs.Organization({projects: [project]});
 
@@ -884,7 +884,7 @@ describe('GlobalSelectionHeader', function () {
         initialData.router.replace.mockClear();
       });
 
-      it('uses first project in org projects when mounting', async function () {
+      it('uses first project in org projects when mounting', function () {
         createWrapper();
 
         // Projects are returned in sorted slug order, so `prod-project` would
@@ -895,7 +895,7 @@ describe('GlobalSelectionHeader', function () {
         });
       });
 
-      it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
+      it('appends projectId to URL when `forceProject` becomes available (async)', function () {
         ProjectsStore.reset();
 
         // forceProject generally starts undefined
@@ -918,7 +918,7 @@ describe('GlobalSelectionHeader', function () {
         expect(initialData.router.replace).toHaveBeenCalledTimes(1);
       });
 
-      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', async function () {
+      it('does not append projectId to URL when `forceProject` becomes available but project id already exists in URL', function () {
         // forceProject generally starts undefined
         createWrapper({shouldForceProject: true});
 
@@ -942,7 +942,7 @@ describe('GlobalSelectionHeader', function () {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('appends projectId to URL when mounted with `forceProject`', async function () {
+      it('appends projectId to URL when mounted with `forceProject`', function () {
         // forceProject generally starts undefined
         createWrapper({
           shouldForceProject: true,
@@ -989,7 +989,7 @@ describe('GlobalSelectionHeader', function () {
         initialData.router.replace.mockClear();
       });
 
-      it('appends projectId to URL when mounted with `forceProject`', async function () {
+      it('appends projectId to URL when mounted with `forceProject`', function () {
         // forceProject generally starts undefined
         createWrapper({
           shouldForceProject: true,
@@ -1052,7 +1052,7 @@ describe('GlobalSelectionHeader', function () {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('does not append projectId to URL when `loadingProjects` changes and finishes loading', async function () {
+      it('does not append projectId to URL when `loadingProjects` changes and finishes loading', function () {
         ProjectsStore.reset();
 
         createWrapper();
@@ -1067,7 +1067,7 @@ describe('GlobalSelectionHeader', function () {
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
 
-      it('appends projectId to URL when `forceProject` becomes available (async)', async function () {
+      it('appends projectId to URL when `forceProject` becomes available (async)', function () {
         ProjectsStore.reset();
 
         // forceProject generally starts undefined

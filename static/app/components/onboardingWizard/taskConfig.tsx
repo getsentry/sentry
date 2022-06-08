@@ -124,6 +124,18 @@ export function getOnboardingTasks({
       display: true,
     },
     {
+      task: OnboardingTaskKey.FIRST_INTEGRATION,
+      title: t('Install any of our 40+ integrations'),
+      description: t(
+        'Get alerted in Slack. Two-way sync issues between Sentry and Jira. Notify Sentry of releases from GitHub, Vercel, or Netlify.'
+      ),
+      skippable: true,
+      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
+      actionType: 'app',
+      location: `/settings/${organization.slug}/integrations/`,
+      display: (onboardingState?.selectedIntegrations.length ?? 0) === 0,
+    },
+    {
       task: OnboardingTaskKey.SECOND_PLATFORM,
       title: t('Create another project'),
       description: t(
@@ -267,18 +279,6 @@ export function getOnboardingTasks({
       display: !!organization.experiments?.TargetedOnboardingIntegrationSelectExperiment,
       serverTask: OnboardingTaskKey.FIRST_INTEGRATION,
       renderCard: IntegrationCard,
-    },
-    {
-      task: OnboardingTaskKey.FIRST_INTEGRATION,
-      title: t('Install any of our 40+ integrations'),
-      description: t(
-        'Get alerted in Slack. Two-way sync issues between Sentry and Jira. Notify Sentry of releases from GitHub, Vercel, or Netlify.'
-      ),
-      skippable: true,
-      requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
-      actionType: 'app',
-      location: `/settings/${organization.slug}/integrations/`,
-      display: (onboardingState?.selectedIntegrations.length ?? 0) === 0,
     },
   ];
 }

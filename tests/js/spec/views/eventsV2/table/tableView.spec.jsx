@@ -114,7 +114,7 @@ describe('TableView > CellActions', function () {
     ProjectsStore.reset();
   });
 
-  it('updates sort order on equation fields', async function () {
+  it('updates sort order on equation fields', function () {
     const view = eventView.clone();
     const wrapper = makeWrapper(initialData, rows, view);
     const equationSort = wrapper.find('SortLink').last();
@@ -125,7 +125,7 @@ describe('TableView > CellActions', function () {
     );
   });
 
-  it('updates sort order on non-equation fields', async function () {
+  it('updates sort order on non-equation fields', function () {
     const view = eventView.clone();
     const wrapper = makeWrapper(initialData, rows, view);
     const equationSort = wrapper.find('SortLink').at(1);

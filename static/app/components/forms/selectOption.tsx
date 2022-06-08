@@ -17,10 +17,15 @@ function SelectOption(props: Props) {
     tooltip,
     tooltipOptions = {delay: 500},
     selectionMode,
+    priority,
     ...itemProps
   } = data;
 
   const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
+
+  // Unless the priority prop is explicitly defined, use 'primary' for
+  // selected items in single-selection menus and 'default' for the rest.
+  const itemPriority = priority ?? (isSelected && !isMultiple ? 'primary' : 'default');
 
   return (
     <selectComponents.Option className="select-option" {...props}>
@@ -32,6 +37,7 @@ function SelectOption(props: Props) {
           isDisabled={isDisabled}
           isFocused={isFocused}
           showDivider={showDividers}
+          priority={itemPriority}
           innerWrapProps={{'data-test-id': value}}
           labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
           leadingItems={

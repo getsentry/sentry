@@ -129,12 +129,15 @@ export function createSearchGroups(
     children: [...searchItems],
   };
 
-  const recentSearchGroup: SearchGroup | undefined = recentSearchItems && {
-    title: t('Recent Searches'),
-    type: 'header',
-    icon: <IconClock size="xs" />,
-    children: [...recentSearchItems],
-  };
+  const recentSearchGroup: SearchGroup | undefined =
+    recentSearchItems && recentSearchItems.length > 0
+      ? {
+          title: t('Recent Searches'),
+          type: 'header',
+          icon: <IconClock size="xs" />,
+          children: [...recentSearchItems],
+        }
+      : undefined;
 
   if (searchGroup.children && !!searchGroup.children.length) {
     searchGroup.children[activeSearchItem] = {

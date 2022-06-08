@@ -3,7 +3,7 @@ from datetime import datetime
 from django.test.client import RequestFactory
 from django.urls import reverse
 
-from tests.apidocs.util import APIDocsTestCase
+from fixtures.apidocs_test_case import APIDocsTestCase
 
 
 class OrganizationReleaseDetailsDocsTest(APIDocsTestCase):

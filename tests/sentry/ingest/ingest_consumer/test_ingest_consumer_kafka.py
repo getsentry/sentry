@@ -158,7 +158,6 @@ def test_ingest_consumer_fails_when_not_autocreating_topics(kafka_admin, random_
     assert kafka_error.code() == KafkaError.UNKNOWN_TOPIC_OR_PART
 
 
-@pytest.mark.xfail(reason="fixme")
 @pytest.mark.django_db(transaction=True)
 def test_ingest_topic_can_be_overridden(
     task_runner,
