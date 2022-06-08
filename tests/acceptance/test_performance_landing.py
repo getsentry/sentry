@@ -3,12 +3,11 @@ from unittest.mock import patch
 import pytz
 from django.db.models import F
 
+from fixtures.page_objects.base import BasePage
 from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
-
-from .page_objects.base import BasePage
 
 FEATURE_NAMES = (
     "organizations:discover-basic",
