@@ -1,4 +1,4 @@
-import {Token, TokenResult} from '../searchSyntax/parser';
+import {TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
   DEFAULT = 'default',
@@ -61,50 +61,3 @@ export type QuickAction = {
     display: string[] | string;
   };
 };
-
-export const commonActions: QuickAction[] = [
-  {
-    text: 'Delete',
-    actionType: QuickActionType.Delete,
-    hotkeys: {
-      actual: 'option+backspace',
-      display: 'option+backspace',
-    },
-    canRunAction: t => {
-      return t?.type === Token.Filter;
-    },
-  },
-  {
-    text: 'Negate',
-    actionType: QuickActionType.Negate,
-    hotkeys: {
-      actual: ['option+1', 'cmd+1'],
-      display: 'option+!',
-    },
-    canRunAction: t => {
-      return t?.type === Token.Filter;
-    },
-  },
-  {
-    text: 'Previous Token',
-    actionType: QuickActionType.Previous,
-    hotkeys: {
-      actual: ['option+left'],
-      display: 'option+left',
-    },
-    canRunAction: (t, count) => {
-      return count > 1 || t?.type !== Token.Filter;
-    },
-  },
-  {
-    text: 'Next Token',
-    actionType: QuickActionType.Next,
-    hotkeys: {
-      actual: ['option+right'],
-      display: 'option+right',
-    },
-    canRunAction: (t, count) => {
-      return count > 1 || t?.type !== Token.Filter;
-    },
-  },
-];

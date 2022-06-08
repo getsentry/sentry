@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 
 import HotkeysLabel from '../hotkeysLabel';
 
-import {commonActions, ItemType, QuickAction, SearchGroup, SearchItem} from './types';
+import {ItemType, QuickAction, QuickActionType, SearchGroup, SearchItem} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -252,12 +252,59 @@ export function getValidOps(
   return [...validOps];
 }
 
-export function getCommonActionsSearchGroup(
+export const quickActions: QuickAction[] = [
+  {
+    text: 'Delete',
+    actionType: QuickActionType.Delete,
+    hotkeys: {
+      actual: 'option+backspace',
+      display: 'option+backspace',
+    },
+    canRunAction: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Negate',
+    actionType: QuickActionType.Negate,
+    hotkeys: {
+      actual: ['option+1', 'cmd+1'],
+      display: 'option+!',
+    },
+    canRunAction: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Previous Token',
+    actionType: QuickActionType.Previous,
+    hotkeys: {
+      actual: ['option+left'],
+      display: 'option+left',
+    },
+    canRunAction: (tok, count) => {
+      return count > 1 || tok?.type !== Token.Filter;
+    },
+  },
+  {
+    text: 'Next Token',
+    actionType: QuickActionType.Next,
+    hotkeys: {
+      actual: ['option+right'],
+      display: 'option+right',
+    },
+    canRunAction: (tok, count) => {
+      return count > 1 || tok?.type !== Token.Filter;
+    },
+  },
+];
+
+export function getQuickActionsSearchGroup(
   runTokenActionOnCursorToken: (action: QuickAction) => void,
   filterTokenCount: number,
   activeToken?: TokenResult<any>
 ): {searchGroup: SearchGroup; searchItems: SearchItem[]} | undefined {
-  const searchItems = commonActions
+  const searchItems = quickActions
     .filter(
       action => !action.canRunAction || action.canRunAction(activeToken, filterTokenCount)
     )
@@ -270,7 +317,7 @@ export function getCommonActionsSearchGroup(
   return searchItems.length > 0 && filterTokenCount > 0
     ? {
         searchGroup: {
-          title: t('Common Actions'),
+          title: t('Quick Actions'),
           type: 'header',
           icon: <IconStar size="xs" />,
           children: searchItems,

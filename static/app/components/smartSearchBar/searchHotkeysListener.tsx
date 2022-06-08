@@ -1,6 +1,7 @@
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
-import {commonActions, QuickAction} from './types';
+import {QuickAction} from './types';
+import {quickActions} from './utils';
 
 const SearchHotkeysListener = ({
   runQuickAction,
@@ -8,7 +9,7 @@ const SearchHotkeysListener = ({
   runQuickAction: (action: QuickAction) => void;
 }) => {
   useHotkeys(
-    commonActions
+    quickActions
       .filter(action => typeof action.hotkeys !== 'undefined')
       .map(action => ({
         match: action.hotkeys?.actual ?? [],

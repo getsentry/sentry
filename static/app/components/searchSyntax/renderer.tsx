@@ -14,7 +14,6 @@ type Props = {
    * The result from parsing the search query string
    */
   parsedQuery: ParseResult;
-
   /**
    * The current location of the cursror within the query. This is used to
    * highlight active tokens and trigger error tooltips.
@@ -133,6 +132,7 @@ const FilterToken = ({
       title={filter.invalid?.reason}
       overlayStyle={{maxWidth: '350px'}}
       forceVisible
+      skipWrapper
     >
       <Filter ref={filterElementRef} active={isActive} invalid={showInvalid}>
         {filter.negated && <Negation>!</Negation>}

@@ -52,7 +52,7 @@ import {
   createSearchGroups,
   filterSearchGroupsByIndex,
   generateOperatorEntryMap,
-  getCommonActionsSearchGroup,
+  getQuickActionsSearchGroup,
   getValidOps,
   removeSpace,
 } from './utils';
@@ -281,7 +281,6 @@ type State = {
    * know we will find nothing.
    */
   noValueQuery?: string;
-
   /**
    * The query in the input since we last updated our autocomplete list.
    */
@@ -548,9 +547,7 @@ class SmartSearchBar extends Component<Props, State> {
       callIfFunction(this.props.onSearch, this.state.query)
     );
 
-  onQueryFocus = () => {
-    this.setState({inputHasFocus: true});
-  };
+  onQueryFocus = () => this.setState({inputHasFocus: true});
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     // wait before closing dropdown in case blur was a result of clicking a
@@ -558,7 +555,6 @@ class SmartSearchBar extends Component<Props, State> {
     const blurHandler = () => {
       this.blurTimeout = undefined;
       this.setState({inputHasFocus: false});
-
       callIfFunction(this.props.onBlur, e.target.value);
     };
 
@@ -602,9 +598,7 @@ class SmartSearchBar extends Component<Props, State> {
     callIfFunction(this.props.onChange, mergedText, evt);
   };
 
-  onInputClick = () => {
-    this.updateAutoCompleteItems();
-  };
+  onInputClick = () => this.updateAutoCompleteItems();
 
   /**
    * Handle keyboard navigation
@@ -1261,7 +1255,7 @@ class SmartSearchBar extends Component<Props, State> {
       queryCharsLeft
     );
 
-    const commonActionsSearchResults = getCommonActionsSearchGroup(
+    const commonActionsSearchResults = getQuickActionsSearchGroup(
       this.runQuickAction,
       this.filterTokens.length,
       this.cursorToken ?? undefined
@@ -1288,7 +1282,7 @@ class SmartSearchBar extends Component<Props, State> {
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
 
-    const commonActionsSearchResults = getCommonActionsSearchGroup(
+    const commonActionsSearchResults = getQuickActionsSearchGroup(
       this.runQuickAction,
       this.filterTokens.length,
       this.cursorToken ?? undefined
@@ -1529,6 +1523,7 @@ class SmartSearchBar extends Component<Props, State> {
           <IconSearch />
           {inlineLabel}
         </SearchLabel>
+
         <InputWrapper>
           <Highlight>
             {parsedQuery !== null ? (
@@ -1542,6 +1537,7 @@ class SmartSearchBar extends Component<Props, State> {
           </Highlight>
           {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
         </InputWrapper>
+
         <ActionsBar gap={0.5}>
           {query !== '' && (
             <ActionButton
@@ -1567,6 +1563,7 @@ class SmartSearchBar extends Component<Props, State> {
             </DropdownLink>
           )}
         </ActionsBar>
+
         {(loading || searchGroups.length > 0) && (
           <SearchDropdown
             css={{display: inputHasFocus ? 'block' : 'none'}}
@@ -1658,7 +1655,6 @@ const Highlight = styled('div')`
   line-height: 25px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
-  pointer-events: none;
 `;
 
 const SearchInput = styled(
