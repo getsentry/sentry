@@ -22,8 +22,10 @@ from sentry.constants import (
     RESERVED_PROJECT_SLUGS,
 )
 from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
+from sentry.db.models.base import available_on
 from sentry.db.models.utils import slugify_instance
 from sentry.roles.manager import Role
+from sentry.servermode import ServerComponentMode
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -110,6 +112,7 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
+@available_on(ServerComponentMode.CUSTOMER)
 class Organization(Model):
     """
     An organization represents a group of individuals which maintain ownership of projects.
