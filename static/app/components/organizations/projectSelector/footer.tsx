@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import Feature from 'sentry/components/acl/feature';
 import Button from 'sentry/components/button';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {growIn} from 'sentry/styles/animations';
 import space from 'sentry/styles/space';
@@ -56,25 +55,10 @@ const ProjectSelectorFooter = ({
     ? t('Select All Projects')
     : t('Select My Projects');
 
-  const hasProjectWrite = organization.access.includes('project:write');
-  const newProjectUrl = `/organizations/${organization.slug}/projects/new/`;
-
   return (
     <FooterContainer hasMessage={!!message}>
       {message && <FooterMessage>{message}</FooterMessage>}
       <FooterActions>
-        <Button
-          aria-label={t('Add Project')}
-          disabled={!hasProjectWrite}
-          to={newProjectUrl}
-          size="xsmall"
-          icon={<IconAdd size="xs" isCircled />}
-          title={
-            !hasProjectWrite ? t("You don't have permission to add a project") : undefined
-          }
-        >
-          {t('Project')}
-        </Button>
         {!disableMultipleProjectSelection && (
           <Feature
             features={['organizations:global-views']}
@@ -103,6 +87,7 @@ const ProjectSelectorFooter = ({
             }}
           </Feature>
         )}
+
         {hasChanges && (
           <SubmitButton onClick={onApply} size="xsmall" priority="primary">
             {t('Apply Filter')}
@@ -121,12 +106,9 @@ const FooterContainer = styled('div')<{hasMessage: boolean}>`
 `;
 
 const FooterActions = styled('div')`
-  display: grid;
-  grid-auto-flow: column dense;
-  justify-items: end;
   padding: ${space(1)} 0;
-  gap: ${space(1)};
-
+  display: flex;
+  justify-content: flex-end;
   & > * {
     margin-left: ${space(0.5)};
   }
@@ -134,7 +116,6 @@ const FooterActions = styled('div')`
     display: none;
   }
 `;
-
 const SubmitButton = styled(Button)`
   animation: 0.1s ${growIn} ease-in;
 `;

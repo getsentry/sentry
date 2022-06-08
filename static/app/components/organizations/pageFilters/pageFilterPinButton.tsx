@@ -39,22 +39,20 @@ function PageFilterPinButton({filter, size, className}: Props) {
       pinned={pinned}
       borderless={size === 'zero'}
       icon={<IconLock isSolid={pinned} size="xs" />}
-      title={t("Once locked, Sentry will remember this filter's value across pages.")}
-      tooltipProps={{delay: 500}}
-    >
-      {pinned ? t('Locked') : t('Lock')}
-    </PinButton>
+      title={t('Apply filter across pages')}
+    />
   );
 }
 
 const PinButton = styled(Button)<{pinned: boolean; size: 'xsmall' | 'zero'}>`
   display: block;
-  color: ${p => p.theme.textColor};
+  color: ${p => p.theme.subText};
 
   :hover {
-    color: ${p => p.theme.headingColor};
+    color: ${p => p.theme.textColor};
   }
   ${p => p.size === 'zero' && 'background: transparent'};
+  ${p => p.pinned && `&& {color: ${p.theme.active}}`};
 `;
 
 export default PageFilterPinButton;
