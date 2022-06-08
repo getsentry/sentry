@@ -8,4 +8,5 @@ export enum Tab {
   MERGED = 'merged',
   GROUPING = 'grouping',
   SIMILAR_ISSUES = 'similar-issues',
+  REPLAYS = 'Replays',
 }

@@ -108,6 +108,17 @@ describe('groupDetails', () => {
       url: `/issues/${group.id}/first-last-release/`,
       body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      statusCode: 200,
+      body: {
+        data: [
+          {
+            'count()': 1,
+          },
+        ],
+      },
+    });
   });
 
   afterEach(() => {
