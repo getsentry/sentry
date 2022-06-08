@@ -556,13 +556,11 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         max_batch_time: float,
         commit_max_batch_size: int,
         commit_max_batch_time: int,
-        output_topic: Optional[str] = None,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
         self.__commit_max_batch_time = commit_max_batch_time
         self.__commit_max_batch_size = commit_max_batch_size
-        self.__output_topic
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
@@ -573,7 +571,6 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
                 commit_max_batch_size=self.__commit_max_batch_size,
                 # convert to seconds
                 commit_max_batch_time=self.__commit_max_batch_time / 1000,
-                output_topic=self.__output_topic,
             )
         )
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
@@ -640,7 +637,6 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         commit_function: Callable[[Mapping[Partition, Position]], None],
         commit_max_batch_size: int,
         commit_max_batch_time: float,
-        output_topic: Optional[str] = None,
     ) -> None:
         snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
         snuba_metrics_producer = Producer(
@@ -648,7 +644,7 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
         )
         producer = snuba_metrics_producer
         self.__producer = producer
-        self.__producer_topic = output_topic or settings.KAFKA_SNUBA_METRICS
+        self.__producer_topic = settings.KAFKA_SNUBA_METRICS
         self.__commit_function = commit_function
 
         self.__closed = False
@@ -765,7 +761,6 @@ def get_streaming_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     factory_name: str,
-    output_topic: Optional[str] = None,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
     if factory_name == "multiprocess":
@@ -783,7 +778,6 @@ def get_streaming_metrics_consumer(
             max_batch_time=max_batch_time,
             commit_max_batch_size=commit_max_batch_size,
             commit_max_batch_time=commit_max_batch_time,
-            output_topic=output_topic,
         )
 
     cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
