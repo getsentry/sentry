@@ -480,7 +480,7 @@ def active_on(mode: ServerComponentMode) -> Callable[[Any], Any]:
             def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
                 logger.info(
                     f"Received {request.method} request to {request.path!r}, "
-                    f"which is inactive in {mode.value} mode."
+                    f"which is active only in {mode.value} mode."
                 )
                 return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
