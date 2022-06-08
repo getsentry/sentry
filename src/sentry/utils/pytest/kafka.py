@@ -209,7 +209,7 @@ def wait_for_ingest_consumer(session_ingest_consumer, task_runner):
             _log.warning(
                 "Ingest consumer waiter timed-out after %d seconds", time.time() - start_wait
             )
-            return None  # timout without any success
+            return None  # timeout without any success
 
         return waiter
 

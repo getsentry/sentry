@@ -12,7 +12,7 @@ distlib==0.3.4
 docker==3.7.0
 docker-pycreds==0.4.0
 exam==0.5.1
-filelock==3.7.0
+filelock==3.7.1
 flake8==4.0.1
 flake8-bugbear==22.4.25
 freezegun==1.1.0
