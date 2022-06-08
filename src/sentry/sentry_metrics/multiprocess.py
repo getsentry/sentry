@@ -377,6 +377,7 @@ def process_messages(
     The value of the message is what we need to parse and then translate
     using the indexer.
     """
+    return outer_message
     indexer = get_indexer()
     metrics = get_metrics()
 
