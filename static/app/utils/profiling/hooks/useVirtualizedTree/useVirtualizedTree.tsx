@@ -62,6 +62,7 @@ interface VirtualizedState<T> {
   roots: T[];
   scrollHeight: number;
   scrollTop: number;
+  tabIndexKey: number | null;
 }
 
 interface SetScrollTop {
@@ -69,18 +70,25 @@ interface SetScrollTop {
   type: 'set scroll top';
 }
 
+interface SetTabIndexKey {
+  payload: number | null;
+  type: 'set tab index key';
+}
 interface SetContainerHeight {
   payload: number;
   type: 'set scroll height';
 }
 
-type VirtualizedStateAction = SetScrollTop | SetContainerHeight;
+type VirtualizedStateAction = SetScrollTop | SetContainerHeight | SetTabIndexKey;
 
 export function VirtualizedTreeStateReducer<T>(
   state: VirtualizedState<T>,
   action: VirtualizedStateAction
 ): VirtualizedState<T> {
   switch (action.type) {
+    case 'set tab index key': {
+      return {...state, tabIndexKey: action.payload};
+    }
     case 'set scroll top': {
       return {...state, scrollTop: action.payload};
     }
@@ -115,7 +123,6 @@ function updateGhostRow({
   if (!ref.current) {
     return;
   }
-
   ref.current.style.left = '0';
   ref.current.style.right = '0';
   ref.current.style.height = `${rowHeight}px`;
@@ -178,7 +185,18 @@ export function useVirtualizedTree<T extends TreeLike>(
   const clickedGhostRowRef = useRef<HTMLDivElement | null>(null);
   const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
 
-  const [tabIndexKey, setTabIndexKey] = useState<number | null>(null);
+  const [state, dispatch] = useReducer(VirtualizedTreeStateReducer, {
+    scrollTop: 0,
+    roots: props.roots,
+    tabIndexKey: null,
+    overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
+    scrollHeight: props.scrollContainer?.getBoundingClientRect()?.height ?? 0,
+  });
+
+  // Keep a ref to latest state to avoid re-rendering
+  const latestStateRef = useRef<typeof state>(state);
+  latestStateRef.current = state;
+
   const [tree, setTree] = useState(() => {
     const initialTree = VirtualizedTree.fromRoots(props.roots, props.skipFunction);
 
@@ -205,7 +223,9 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     const tabIndex = findCarryOverIndex(
-      tabIndexKey ? tree.flattened[tabIndexKey] : null,
+      latestStateRef.current.tabIndexKey
+        ? tree.flattened[latestStateRef.current.tabIndexKey]
+        : null,
       newTree
     );
 
@@ -214,7 +234,7 @@ export function useVirtualizedTree<T extends TreeLike>(
         ref: clickedGhostRowRef,
         tabIndexKey: tabIndex,
         rowHeight: props.rowHeight,
-        scrollTop: state.scrollTop,
+        scrollTop: latestStateRef.current.scrollTop,
         backgroundColor: theme.blue300,
       });
     } else {
@@ -222,16 +242,9 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
     hideGhostRow({ref: hoveredGhostRowRef});
 
-    setTabIndexKey(tabIndex);
+    dispatch({type: 'set tab index key', payload: tabIndex});
     setTree(newTree);
   }, [props.roots, props.skipFunction]);
-
-  const [state, dispatch] = useReducer(VirtualizedTreeStateReducer, {
-    scrollTop: 0,
-    roots: props.roots,
-    overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
-    scrollHeight: props.scrollContainer?.getBoundingClientRect()?.height ?? 0,
-  });
 
   const {rowHeight, renderRow} = props;
   const items = useMemo(() => {
@@ -281,9 +294,11 @@ export function useVirtualizedTree<T extends TreeLike>(
       }
       indexPointer++;
     }
-
     return visibleItems;
   }, [tree, state.overscroll, state.scrollHeight, state.scrollTop, rowHeight]);
+
+  const latestItemsRef = useRef(items);
+  latestItemsRef.current = items;
 
   // On scroll, we update scrollTop position.
   // Keep a rafId reference in the unlikely event where component unmounts before raf is executed.
@@ -312,10 +327,10 @@ export function useVirtualizedTree<T extends TreeLike>(
       });
 
       // On scroll, we need to update the selected ghost row and clear the hovered ghost row
-      if (tabIndexKey !== null) {
+      if (latestStateRef.current.tabIndexKey !== null) {
         updateGhostRow({
           ref: clickedGhostRowRef,
-          tabIndexKey,
+          tabIndexKey: latestStateRef.current.tabIndexKey,
           scrollTop: Math.max(evt.target.scrollTop, 0),
           backgroundColor: theme.blue300,
           rowHeight: props.rowHeight,
@@ -333,7 +348,78 @@ export function useVirtualizedTree<T extends TreeLike>(
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll);
     };
-  }, [props.scrollContainer, tabIndexKey, props.rowHeight]);
+  }, [props.scrollContainer, props.rowHeight]);
+
+  useEffect(() => {
+    const scrollContainer = props.scrollContainer;
+
+    if (!scrollContainer) {
+      return undefined;
+    }
+
+    // Because nodes dont span the full width, it's possible for users to
+    // click on a node at the far right end which is outside of the row width.
+    // In that case, check if the top position where the user clicked overlaps
+    // with a row and select that row.
+    const handleClick = (evt: MouseEvent) => {
+      if (evt.target !== scrollContainer) {
+        // user clicked on an element inside the container, defer to onClick
+        return;
+      }
+
+      const rect = (evt.target as HTMLDivElement).getBoundingClientRect();
+      const index = Math.floor(
+        (latestStateRef.current.scrollTop + evt.clientY - rect.top) / props.rowHeight
+      );
+
+      // If a node exists at the index, select it
+      if (tree.flattened[index]) {
+        dispatch({type: 'set tab index key', payload: index});
+        updateGhostRow({
+          ref: clickedGhostRowRef,
+          tabIndexKey: index,
+          scrollTop: latestStateRef.current.scrollTop,
+          rowHeight: props.rowHeight,
+          backgroundColor: theme.blue300,
+        });
+      }
+    };
+
+    // Because nodes dont span the full width, it's possible for users to
+    // click on a node at the far right end which is outside of the row width.
+    // In that case, check if the top position where the user clicked overlaps
+    // with a row and select that row.
+    const handleMouseMove = (evt: MouseEvent) => {
+      if (evt.target !== scrollContainer) {
+        // user clicked on an element inside the container, defer to onClick
+        return;
+      }
+
+      const rect = (evt.target as HTMLDivElement).getBoundingClientRect();
+      const index = Math.floor(
+        (latestStateRef.current.scrollTop + evt.clientY - rect.top) / props.rowHeight
+      );
+
+      // If a node exists at the index, select it
+      if (tree.flattened[index] && index !== latestStateRef.current.tabIndexKey) {
+        updateGhostRow({
+          ref: hoveredGhostRowRef,
+          tabIndexKey: index,
+          scrollTop: latestStateRef.current.scrollTop,
+          rowHeight: props.rowHeight,
+          backgroundColor: theme.blue100,
+        });
+      }
+    };
+
+    scrollContainer.addEventListener('click', handleClick);
+    scrollContainer.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      scrollContainer.removeEventListener('click', handleClick);
+      scrollContainer.removeEventListener('mousemove', handleMouseMove);
+    };
+  }, [props.rowHeight, props.scrollContainer, tree.flattened]);
 
   // When mouseleave is triggered on the contianer,
   // we need to hide the ghost row to avoid an orphaned row
@@ -365,7 +451,9 @@ export function useVirtualizedTree<T extends TreeLike>(
       // When we expand nodes, tree.expand will mutate the underlying tree which then
       // gets copied to the new tree instance. To get the right index, we need to read
       // it before any mutations are made
-      const previousNode = tabIndexKey ? tree.flattened[tabIndexKey] ?? null : null;
+      const previousNode = latestStateRef.current.tabIndexKey
+        ? tree.flattened[latestStateRef.current.tabIndexKey] ?? null
+        : null;
 
       tree.expandNode(node, !node.expanded, opts);
       const newTree = new VirtualizedTree(tree.roots, tree.flattened);
@@ -379,16 +467,16 @@ export function useVirtualizedTree<T extends TreeLike>(
         updateGhostRow({
           ref: clickedGhostRowRef,
           tabIndexKey: tabIndex,
-          scrollTop: Math.max(state.scrollTop, 0),
+          scrollTop: Math.max(latestStateRef.current.scrollTop, 0),
           backgroundColor: theme.blue300,
           rowHeight: props.rowHeight,
         });
       }
 
-      setTabIndexKey(tabIndex);
+      dispatch({type: 'set tab index key', payload: tabIndex});
       setTree(newTree);
     },
-    [tree, tabIndexKey, state.scrollTop, props.rowHeight]
+    [tree, props.rowHeight]
   );
 
   // When a tree is sorted, we sort all of the nodes in the tree and not just the visible ones
@@ -399,7 +487,9 @@ export function useVirtualizedTree<T extends TreeLike>(
       // When we sort nodes, tree.sort will mutate the underlying tree which then
       // gets copied to the new tree instance. To get the right index, we need to read
       // it before any mutations are made
-      const previousNode = tabIndexKey ? tree.flattened[tabIndexKey] ?? null : null;
+      const previousNode = latestStateRef.current.tabIndexKey
+        ? tree.flattened[latestStateRef.current.tabIndexKey] ?? null
+        : null;
 
       tree.sort(sortFn);
       const newTree = new VirtualizedTree(tree.roots, tree.flattened);
@@ -412,26 +502,26 @@ export function useVirtualizedTree<T extends TreeLike>(
         updateGhostRow({
           ref: clickedGhostRowRef,
           tabIndexKey: tabIndex,
-          scrollTop: Math.max(state.scrollTop, 0),
+          scrollTop: Math.max(latestStateRef.current.scrollTop, 0),
           backgroundColor: theme.blue300,
           rowHeight: props.rowHeight,
         });
       }
 
-      setTabIndexKey(tabIndex);
+      dispatch({type: 'set tab index key', payload: tabIndex});
       setTree(newTree);
     },
-    [tree, tabIndexKey, state.scrollTop, props.rowHeight]
+    [tree, props.rowHeight]
   );
 
   // When a row is clicked, we update the selected node
   const handleRowClick = useCallback(
-    (key: number) => {
+    (tabIndexKey: number) => {
       return (_evt: React.MouseEvent<HTMLElement>) => {
-        setTabIndexKey(key);
+        dispatch({type: 'set tab index key', payload: tabIndexKey});
         updateGhostRow({
           ref: clickedGhostRowRef,
-          tabIndexKey: key,
+          tabIndexKey,
           scrollTop: state.scrollTop,
           rowHeight: props.rowHeight,
           backgroundColor: theme.blue300,
@@ -439,6 +529,76 @@ export function useVirtualizedTree<T extends TreeLike>(
       };
     },
     [state.scrollTop, props.rowHeight]
+  );
+
+  // Keyboard navigation for row
+  const handleRowKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (latestStateRef.current.tabIndexKey === null) {
+        return;
+      }
+
+      if (event.key === 'Enter') {
+        handleExpandTreeNode(tree.flattened[latestStateRef.current.tabIndexKey], {
+          expandChildren: true,
+        });
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const indexInVisibleItems = items.findIndex(
+          i => i.key === latestStateRef.current.tabIndexKey
+        );
+
+        if (indexInVisibleItems !== -1) {
+          const nextIndex = indexInVisibleItems + 1;
+
+          // Bounds check if we are at end of list
+          if (nextIndex > tree.flattened.length - 1) {
+            return;
+          }
+
+          dispatch({type: 'set tab index key', payload: items[nextIndex].key});
+          updateGhostRow({
+            ref: clickedGhostRowRef,
+            tabIndexKey: items[nextIndex].key,
+            scrollTop: latestStateRef.current.scrollTop,
+            rowHeight: props.rowHeight,
+            backgroundColor: theme.blue300,
+          });
+          items[nextIndex].ref?.focus({preventScroll: true});
+          items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
+        }
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const indexInVisibleItems = items.findIndex(
+          i => i.key === latestStateRef.current.tabIndexKey
+        );
+
+        if (indexInVisibleItems !== -1) {
+          const nextIndex = indexInVisibleItems - 1;
+
+          // Bound check if we are at start of list
+          if (nextIndex < 0) {
+            return;
+          }
+
+          dispatch({type: 'set tab index key', payload: items[nextIndex].key});
+          updateGhostRow({
+            ref: clickedGhostRowRef,
+            tabIndexKey: items[nextIndex].key,
+            scrollTop: latestStateRef.current.scrollTop,
+            rowHeight: props.rowHeight,
+            backgroundColor: theme.blue300,
+          });
+          items[nextIndex].ref?.focus({preventScroll: true});
+          items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
+        }
+      }
+    },
+    [handleExpandTreeNode, items, tree.flattened, props.rowHeight]
   );
 
   // When a row is hovered, we update the ghost row
@@ -455,77 +615,6 @@ export function useVirtualizedTree<T extends TreeLike>(
       };
     },
     [state.scrollTop, props.rowHeight]
-  );
-
-  // Keyboard navigation for row
-  const handleRowKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (tabIndexKey === null) {
-        return;
-      }
-
-      if (event.key === 'Enter') {
-        handleExpandTreeNode(tree.flattened[tabIndexKey], {expandChildren: true});
-      }
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        const indexInVisibleItems = items.findIndex(i => i.key === tabIndexKey);
-
-        if (indexInVisibleItems !== -1) {
-          const nextIndex = indexInVisibleItems + 1;
-
-          // Bounds check if we are at end of list
-          if (nextIndex > tree.flattened.length - 1) {
-            return;
-          }
-
-          setTabIndexKey(items[nextIndex].key);
-          updateGhostRow({
-            ref: clickedGhostRowRef,
-            tabIndexKey: items[nextIndex].key,
-            scrollTop: state.scrollTop,
-            rowHeight: props.rowHeight,
-            backgroundColor: theme.blue300,
-          });
-          items[nextIndex].ref?.focus({preventScroll: true});
-          items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
-        }
-      }
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        const indexInVisibleItems = items.findIndex(i => i.key === tabIndexKey);
-
-        if (indexInVisibleItems !== -1) {
-          const nextIndex = indexInVisibleItems - 1;
-
-          // Bound check if we are at start of list
-          if (nextIndex < 0) {
-            return;
-          }
-
-          setTabIndexKey(items[nextIndex].key);
-          updateGhostRow({
-            ref: clickedGhostRowRef,
-            tabIndexKey: items[nextIndex].key,
-            scrollTop: state.scrollTop,
-            rowHeight: props.rowHeight,
-            backgroundColor: theme.blue300,
-          });
-          items[nextIndex].ref?.focus({preventScroll: true});
-          items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
-        }
-      }
-    },
-    [
-      handleExpandTreeNode,
-      items,
-      tree.flattened,
-      tabIndexKey,
-      state.scrollTop,
-      props.rowHeight,
-    ]
   );
 
   // Register a resize observer for when the scroll container is resized.
@@ -586,7 +675,7 @@ export function useVirtualizedTree<T extends TreeLike>(
         handleExpandTreeNode,
         handleRowKeyDown,
         handleRowMouseEnter: handleRowMouseEnter(item.key),
-        tabIndexKey,
+        tabIndexKey: state.tabIndexKey,
       })
     );
   }
@@ -595,10 +684,11 @@ export function useVirtualizedTree<T extends TreeLike>(
     tree,
     items,
     renderedItems,
+    tabIndexKey: state.tabIndexKey,
     dispatch,
-    tabIndexKey,
     handleRowClick,
     handleRowKeyDown,
+    handleRowMouseEnter,
     handleExpandTreeNode,
     handleSortingChange,
     scrollContainerStyles,
