@@ -2,10 +2,10 @@ from datetime import datetime
 
 from django.utils import timezone
 
+from fixtures.page_objects.issue_details import IssueDetailsPage
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.testutils import AcceptanceTestCase, SnubaTestCase
 from sentry.utils.samples import load_data
-from tests.acceptance.page_objects.issue_details import IssueDetailsPage
 
 
 class IssueDetailsWorkflowTest(AcceptanceTestCase, SnubaTestCase):

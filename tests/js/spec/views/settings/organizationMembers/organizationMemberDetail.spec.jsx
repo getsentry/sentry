@@ -81,11 +81,13 @@ describe('OrganizationMemberDetail', function () {
       );
 
       // Should have 4 roles
-      expect(wrapper.find('RoleSelect Radio')).toHaveLength(4);
+      expect(wrapper.find('OrganizationRoleSelect Radio')).toHaveLength(4);
 
-      wrapper.find('RoleSelect Radio').last().simulate('click');
+      wrapper.find('OrganizationRoleSelect Radio').last().simulate('click');
 
-      expect(wrapper.find('RoleSelect Radio').last().prop('checked')).toBe(true);
+      expect(wrapper.find('OrganizationRoleSelect Radio').last().prop('checked')).toBe(
+        true
+      );
 
       // Save Member
       wrapper.find('Button[priority="primary"]').simulate('click');
@@ -172,7 +174,7 @@ describe('OrganizationMemberDetail', function () {
       wrapper.update();
 
       // Should have 4 roles
-      expect(wrapper.find('RoleSelect').prop('disabled')).toBe(true);
+      expect(wrapper.find('OrganizationRoleSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('TeamSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('TeamRow Button').first().prop('disabled')).toBe(true);
 

@@ -24,7 +24,9 @@ import useProjects from 'sentry/utils/useProjects';
 import {Replay} from './types';
 
 type Props = {
+  idKey: string;
   replayList: Replay[];
+  showProjectColumn?: boolean;
 };
 
 type ReplayDurationAndErrors = {
@@ -36,7 +38,7 @@ type ReplayDurationAndErrors = {
   replayId: string;
 };
 
-function ReplayTable({replayList}: Props) {
+function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -92,7 +94,7 @@ function ReplayTable({replayList}: Props) {
                   <Link
                     to={`/organizations/${organization.slug}/replays/${generateEventSlug({
                       project: replay.project,
-                      id: replay.id,
+                      id: replay[idKey],
                     })}/`}
                   >
                     {replay['user.display']}
@@ -108,7 +110,7 @@ function ReplayTable({replayList}: Props) {
                 // this is the subheading for the avatar, so displayEmail in this case is a misnomer
                 displayEmail={getUrlPathname(replay.url) ?? ''}
               />
-              {isScreenLarge && (
+              {isScreenLarge && showProjectColumn && (
                 <Item>
                   <ProjectBadge
                     project={
