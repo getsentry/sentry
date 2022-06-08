@@ -81,11 +81,13 @@ describe('OrganizationMemberDetail', function () {
       );
 
       // Should have 4 roles
-      expect(wrapper.find('RoleSelect Radio')).toHaveLength(4);
+      expect(wrapper.find('OrganizationRoleSelect Radio')).toHaveLength(4);
 
-      wrapper.find('RoleSelect Radio').last().simulate('click');
+      wrapper.find('OrganizationRoleSelect Radio').last().simulate('click');
 
-      expect(wrapper.find('RoleSelect Radio').last().prop('checked')).toBe(true);
+      expect(wrapper.find('OrganizationRoleSelect Radio').last().prop('checked')).toBe(
+        true
+      );
 
       // Save Member
       wrapper.find('Button[priority="primary"]').simulate('click');
@@ -126,7 +128,7 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('joins a team', async function () {
+    it('joins a team', function () {
       wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
@@ -164,7 +166,7 @@ describe('OrganizationMemberDetail', function () {
       routerContext = TestStubs.routerContext([{organization}]);
     });
 
-    it('can not change roles, teams, or save', async function () {
+    it('can not change roles, teams, or save', function () {
       wrapper = mountWithTheme(
         <OrganizationMemberDetail params={{memberId: member.id}} />,
         routerContext
@@ -172,7 +174,7 @@ describe('OrganizationMemberDetail', function () {
       wrapper.update();
 
       // Should have 4 roles
-      expect(wrapper.find('RoleSelect').prop('disabled')).toBe(true);
+      expect(wrapper.find('OrganizationRoleSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('TeamSelect').prop('disabled')).toBe(true);
       expect(wrapper.find('TeamRow Button').first().prop('disabled')).toBe(true);
 

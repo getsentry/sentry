@@ -276,7 +276,7 @@ describe('WidgetBuilder', function () {
       ).toBeInTheDocument();
     });
 
-    it('renders a widget not found message if the widget index url is not an integer', async function () {
+    it('renders a widget not found message if the widget index url is not an integer', function () {
       const widget: Widget = {
         displayType: DisplayType.AREA,
         interval: '1d',
@@ -1286,6 +1286,53 @@ describe('WidgetBuilder', function () {
       userEvent.click(screen.getByText('Add Overlay'));
 
       await screen.findByText('Limit to 2 results');
+    });
+
+    it('alerts the user if there are unsaved changes', async function () {
+      const {router} = renderTestComponent();
+
+      const alertMock = jest.fn();
+      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+        alertMock();
+      });
+
+      const customWidgetLabels = await screen.findAllByText('Custom Widget');
+      // EditableText and chart title
+      expect(customWidgetLabels).toHaveLength(2);
+
+      // Change title text
+      userEvent.click(customWidgetLabels[0]);
+      userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+      userEvent.paste(
+        screen.getByRole('textbox', {name: 'Widget title'}),
+        'Unique Users'
+      );
+      userEvent.keyboard('{enter}');
+
+      // Click Cancel
+      userEvent.click(screen.getByText('Cancel'));
+
+      // Assert an alert was triggered
+      expect(alertMock).toHaveBeenCalled();
+    });
+
+    it('does not trigger alert dialog if no changes', async function () {
+      const {router} = renderTestComponent();
+
+      const alertMock = jest.fn();
+      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+        alertMock();
+      });
+
+      await screen.findAllByText('Custom Widget');
+
+      // Click Cancel
+      userEvent.click(screen.getByText('Cancel'));
+
+      // Assert an alert was triggered
+      expect(alertMock).not.toHaveBeenCalled();
     });
 
     describe('Sort by selectors', function () {
@@ -2309,7 +2356,7 @@ describe('WidgetBuilder', function () {
 
         userEvent.paste(
           await screen.findByPlaceholderText('Search for events, users, tags, and more'),
-          'is:',
+          'bookmarks',
           {
             clipboardData: {getData: () => ''},
           } as unknown as React.ClipboardEvent<HTMLTextAreaElement>
@@ -2616,7 +2663,7 @@ describe('WidgetBuilder', function () {
         userEvent.click(await screen.findByText('Releases (sessions, crash rates)'));
 
         expect(metricsDataMock).toHaveBeenCalled();
-        expect(screen.getByLabelText('Releases (sessions, crash rates)')).toBeChecked();
+        expect(screen.getByLabelText(/Releases/i)).toBeChecked();
       });
 
       it('does not display "add an equation" button', async function () {
@@ -2674,13 +2721,7 @@ describe('WidgetBuilder', function () {
         userEvent.click(await screen.findByText('Table'));
         userEvent.click(screen.getByText('World Map'));
 
-        await waitFor(() =>
-          expect(
-            screen.getByRole('radio', {
-              name: 'Select Releases (sessions, crash rates)',
-            })
-          ).toBeDisabled()
-        );
+        await waitFor(() => expect(screen.getByLabelText(/Releases/)).toBeDisabled());
 
         expect(
           screen.getByRole('radio', {

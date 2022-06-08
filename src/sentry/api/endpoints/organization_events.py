@@ -1,6 +1,7 @@
 import logging
 
 import sentry_sdk
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +10,9 @@ from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
+from sentry.apidocs import constants as api_constants
+from sentry.apidocs.parameters import GLOBAL_PARAMS, VISIBILITY_PARAMS
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.search.events.fields import is_function
 from sentry.snuba import discover, metrics_enhanced_performance
 
@@ -47,6 +51,8 @@ API_TOKEN_REFERRER = "api.auth-token.events"
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
+    """Deprecated in favour of OrganizationEventsEndpoint"""
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -127,10 +133,78 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 )
 
 
+@extend_schema(tags=["Discover"])
 class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
-    private = True
+    public = {"GET"}
 
+    @extend_schema(
+        operation_id="Query Discover Events in Table Format",
+        parameters=[
+            GLOBAL_PARAMS.END,
+            GLOBAL_PARAMS.ENVIRONMENT,
+            GLOBAL_PARAMS.ORG_SLUG,
+            GLOBAL_PARAMS.PROJECT,
+            GLOBAL_PARAMS.START,
+            GLOBAL_PARAMS.STATS_PERIOD,
+            VISIBILITY_PARAMS.FIELD,
+            VISIBILITY_PARAMS.PER_PAGE,
+            VISIBILITY_PARAMS.QUERY,
+            VISIBILITY_PARAMS.SORT,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationEventsResponseDict", discover.EventsResponse
+            ),
+            400: OpenApiResponse(description="Invalid Query"),
+            404: api_constants.RESPONSE_NOTFOUND,
+        },
+        examples=[
+            OpenApiExample(
+                "Success",
+                value={
+                    "data": [
+                        {
+                            "count_if(transaction.duration,greater,300)": 5,
+                            "count()": 10,
+                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 50,
+                            "transaction": "foo",
+                        },
+                        {
+                            "count_if(transaction.duration,greater,300)": 3,
+                            "count()": 20,
+                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 15,
+                            "transaction": "bar",
+                        },
+                        {
+                            "count_if(transaction.duration,greater,300)": 8,
+                            "count()": 40,
+                            "equation|count_if(transaction.duration,greater,300) / count() * 100": 20,
+                            "transaction": "baz",
+                        },
+                    ],
+                    "meta": {
+                        "fields": {
+                            "count_if(transaction.duration,greater,300)": "integer",
+                            "count()": "integer",
+                            "equation|count_if(transaction.duration,greater,300) / count() * 100": "number",
+                            "transaction": "string",
+                        },
+                    },
+                },
+            )
+        ],
+    )
     def get(self, request: Request, organization) -> Response:
+        """
+        Retrieves discover (also known as events) data for a given organization.
+
+        **Note**: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
+        Sentry.
+
+        The `field` query parameter determines what fields will be selected in the `data` and `meta` keys of the endpoint response.
+        - The `data` key contains a list of results row by row that match the `query` made
+        - The `meta` key contains information about the response, including the unit or type of the fields requested
+        """
         if not self.has_feature(organization, request):
             return Response(status=404)
 

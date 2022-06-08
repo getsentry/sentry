@@ -5,10 +5,10 @@ from urllib.parse import urlencode
 import pytest
 import pytz
 
+from fixtures.page_objects.base import BasePage
 from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
-from tests.acceptance.page_objects.base import BasePage
 
 FEATURES = {
     "organizations:performance-span-histogram-view": True,

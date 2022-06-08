@@ -14,6 +14,7 @@ import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import {HookName} from 'sentry/types/hooks';
+import {SamplingRuleType} from 'sentry/types/sampling';
 import errorHandler from 'sentry/utils/errorHandler';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
@@ -464,7 +465,10 @@ function buildRoutes() {
         path="sampling/"
         name={t('Sampling')}
         component={make(() => import('sentry/views/settings/project/sampling'))}
-      />
+      >
+        <IndexRedirect to={`${SamplingRuleType.TRACE}/`} />
+        <Route path=":ruleType/" />
+      </Route>
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}
@@ -1224,6 +1228,16 @@ function buildRoutes() {
         )}
         props={{
           currentTab: Tab.DETAILS,
+          isEventRoute: false,
+        }}
+      />
+      <Route
+        path="replays/"
+        component={make(
+          () => import('sentry/views/organizationGroupDetails/groupReplays')
+        )}
+        props={{
+          currentTab: Tab.REPLAYS,
           isEventRoute: false,
         }}
       />

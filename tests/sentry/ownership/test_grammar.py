@@ -174,6 +174,266 @@ def test_matcher_test_stacktrace():
     assert not Matcher("path", "*.py").test({})
 
 
+def test_matcher_test_threads():
+    data = {
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {"filename": "foo/file.py"},
+                            {"abs_path": "/usr/local/src/other/app.py"},
+                        ]
+                    }
+                }
+            ]
+        }
+    }
+
+    assert Matcher("path", "*.py").test(data)
+    assert Matcher("path", "foo/*.py").test(data)
+    assert Matcher("path", "/usr/local/src/*/app.py").test(data)
+    assert Matcher("codeowners", "*.py").test(data)
+    assert Matcher("codeowners", "foo/*.py").test(data)
+    assert Matcher("codeowners", "/usr/local/src/*/app.py").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
+def test_matcher_test_platform_java_threads():
+    data = {
+        "platform": "java",
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                "filename": "NativeMethodAccessorImpl.java",
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+    }
+
+    assert Matcher("path", "*.java").test(data)
+    assert Matcher("path", "jdk/internal/reflect/*.java").test(data)
+    assert Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert Matcher("codeowners", "*.java").test(data)
+    assert Matcher("codeowners", "jdk/internal/reflect/*.java").test(data)
+    assert Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
+def test_matcher_test_platform_cocoa_threads():
+    data = {
+        "platform": "cocoa",
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "package": "SampleProject",
+                                "abs_path": "/Users/gszeto/code/SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift",
+                                # munged_filename: "SampleProject/Classes/App Delegate/AppDelegate.swift"
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+    }
+
+    assert Matcher("path", "*.swift").test(data)
+    assert Matcher("path", "SampleProject/Classes/App Delegate/AppDelegate.swift").test(data)
+    assert not Matcher(
+        "path", "SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift"
+    ).test(data)
+    assert Matcher("path", "**/App Delegate/AppDelegate.swift").test(data)
+    assert Matcher("codeowners", "*.swift").test(data)
+    assert Matcher("codeowners", "SampleProject/Classes/App Delegate/*.swift").test(data)
+    assert Matcher("codeowners", "SampleProject/Classes/App Delegate/AppDelegate.swift").test(data)
+    assert not Matcher(
+        "codeowners", "SwiftySampleProject/SampleProject/Classes/App Delegate/AppDelegate.swift"
+    ).test(data)
+    assert Matcher("codeowners", "**/App Delegate/AppDelegate.swift").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
+def test_matcher_test_platform_react_native():
+    data = {
+        "platform": "javascript",
+        "exception": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "callFunctionReturnFlushedQueue",
+                                "module": "react-native/Libraries/BatchedBridge/MessageQueue",
+                                "filename": "node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                                "abs_path": "app:///node_modules/react-native/Libraries/BatchedBridge/MessageQueue.js",
+                                "lineno": 115,
+                                "colno": 5,
+                                "in_app": False,
+                                "data": {"sourcemap": "app:///main.jsbundle.map"},
+                            },
+                            {
+                                "function": "apply",
+                                "filename": "native",
+                                "abs_path": "native",
+                                "in_app": True,
+                            },
+                            {
+                                "function": "onPress",
+                                "module": "src/screens/EndToEndTestsScreen",
+                                "filename": "src/screens/EndToEndTestsScreen.tsx",
+                                "abs_path": "app:///src/screens/EndToEndTestsScreen.tsx",
+                                "lineno": 57,
+                                "colno": 11,
+                                "in_app": True,
+                                "data": {"sourcemap": "app:///main.jsbundle.map"},
+                            },
+                        ]
+                    }
+                }
+            ],
+        },
+    }
+
+    assert Matcher("path", "src/screens/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("path", "src/*/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("path", "*/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("path", "**/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("path", "*.tsx").test(data)
+    assert Matcher("codeowners", "src/screens/EndToEndTestsScreen.tsx").test(data)
+    assert Matcher("codeowners", "*.tsx").test(data)
+    assert not Matcher("url", "*.tsx").test(data)
+
+    # external lib matching still works
+    assert Matcher("path", "**/Libraries/BatchedBridge/MessageQueue.js").test(data)
+
+    # we search on filename and abs_path, if a user explicitly tests on the abs_path, we let them
+    assert Matcher("path", "app:///src/screens/EndToEndTestsScreen.tsx").test(data)
+
+
+def test_matcher_test_platform_other_flutter():
+    data = {
+        "platform": "other",
+        "sdk": {"name": "sentry.dart.flutter"},
+        "exception": {
+            "values": [
+                {
+                    "type": "StateError",
+                    "value": "Bad state: try catch",
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "function": "_dispatchPointerDataPacket",
+                                "filename": "hooks.dart",
+                                "abs_path": "dart:ui/hooks.dart",
+                                "lineno": 94,
+                                "colno": 31,
+                                "in_app": False,
+                            },
+                            {
+                                "function": "_InkResponseState._handleTap",
+                                "package": "flutter",
+                                "filename": "ink_well.dart",
+                                "abs_path": "package:flutter/src/material/ink_well.dart",
+                                "lineno": 1005,
+                                "colno": 21,
+                                "in_app": False,
+                            },
+                            {
+                                "function": "MainScaffold.build.<fn>",
+                                "package": "sentry_flutter_example",
+                                "filename": "main.dart",
+                                "abs_path": "package:sentry_flutter_example/main.dart",
+                                "lineno": 117,
+                                "colno": 32,
+                                "in_app": True,
+                            },
+                            {
+                                "function": "tryCatchModule",
+                                "package": "sentry_flutter_example",
+                                "filename": "test.dart",
+                                "abs_path": "package:sentry_flutter_example/a/b/test.dart",
+                                "lineno": 8,
+                                "colno": 5,
+                                "in_app": True,
+                            },
+                        ]
+                    },
+                }
+            ]
+        },
+    }
+
+    assert Matcher("path", "a/b/test.dart").test(data)
+    assert Matcher("path", "a/*/test.dart").test(data)
+    assert Matcher("path", "*/test.dart").test(data)
+    assert Matcher("path", "**/test.dart").test(data)
+    assert Matcher("path", "*.dart").test(data)
+    assert Matcher("codeowners", "a/b/test.dart").test(data)
+    assert Matcher("codeowners", "*.dart").test(data)
+    assert not Matcher("url", "*.dart").test(data)
+
+    # non in-app/user code still works here,
+    assert Matcher("path", "src/material/ink_well.dart").test(data)
+
+    # we search on filename and abs_path, if a user explicitly tests on the abs_path, we let them
+    assert Matcher("path", "package:sentry_flutter_example/a/b/test.dart").test(data)
+
+
+def test_matcher_test_platform_none_threads():
+    data = {
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {
+                                "module": "jdk.internal.reflect.NativeMethodAccessorImpl",
+                                "filename": "NativeMethodAccessorImpl.java",
+                            }
+                        ]
+                    }
+                }
+            ]
+        },
+    }
+
+    # since no platform, we won't be able to fully-qualify(filename munge) based off module and filename
+    # matching will still work based on just the filename, but we won't be able to match on the src path
+    assert Matcher("path", "NativeMethodAccessorImpl.java").test(data)
+    assert Matcher("path", "*.java").test(data)
+    assert Matcher("codeowners", "NativeMethodAccessorImpl.java").test(data)
+    assert Matcher("codeowners", "*.java").test(data)
+    assert not Matcher("path", "jdk/internal/reflect/*.java").test(data)
+    assert not Matcher("path", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert not Matcher("path", "*.js").test(data)
+    assert not Matcher("path", "*.jsx").test(data)
+    assert not Matcher("codeowners", "jdk/internal/reflect/*.java").test(data)
+    assert not Matcher("codeowners", "jdk/internal/*/NativeMethodAccessorImpl.java").test(data)
+    assert not Matcher("codeowners", "*.js").test(data)
+    assert not Matcher("codeowners", "*.jsx").test(data)
+    assert not Matcher("url", "*.py").test(data)
+    assert not Matcher("path", "*.py").test({})
+
+
 def test_matcher_test_tags():
     data = {
         "tags": [["foo", "foo_value"], ["bar", "barval"]],
@@ -568,8 +828,32 @@ def test_codeowners_match_backslash(path_details, expected):
         ),
     ],
 )
-def test_codeowners_match_fowardslash(path_details, expected):
+def test_codeowners_match_forwardslash(path_details, expected):
     _assert_matcher(Matcher("codeowners", "/"), path_details, expected)
+
+
+def test_codeowners_match_threads():
+    data = {
+        "threads": {
+            "values": [
+                {
+                    "stacktrace": {
+                        "frames": [
+                            {"filename": "foo/file.py"},
+                            {"abs_path": "/usr/local/src/other/app.py"},
+                        ]
+                    },
+                    "crashed": False,
+                    "current": False,
+                }
+            ]
+        }
+    }
+
+    assert Matcher("codeowners", "*.py").test(data)
+    assert Matcher("codeowners", "foo/file.py").test(data)
+    assert Matcher("codeowners", "/**/app.py").test(data)
+    assert Matcher("codeowners", "/usr/*/src/*/app.py").test(data)
 
 
 def test_parse_code_owners():
