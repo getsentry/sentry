@@ -7,7 +7,7 @@ from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import (
     build_project_config,
-    schedule_build_config_cache,
+    schedule_build_project_config,
     schedule_invalidate_project_cache,
 )
 
@@ -84,8 +84,12 @@ def test_debounce(
 
     monkeypatch.setattr("sentry.tasks.relay.build_project_config.apply_async", apply_async)
 
-    schedule_build_config_cache(public_key=default_projectkey.public_key, trigger="first_schedule")
-    schedule_build_config_cache(public_key=default_projectkey.public_key, trigger="second_schedule")
+    schedule_build_project_config(
+        public_key=default_projectkey.public_key, trigger="first_schedule"
+    )
+    schedule_build_project_config(
+        public_key=default_projectkey.public_key, trigger="second_schedule"
+    )
 
     assert tasks == [
         {"public_key": default_projectkey.public_key, "trigger": "first_schedule"},
@@ -154,7 +158,7 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
     ProjectOption.objects._option_cache.clear()
     with task_runner():
         with patch("sentry.utils.cache.cache.get", return_value=None):
-            with patch("sentry.tasks.relay.schedule_build_config_cache") as build_project_config:
+            with patch("sentry.tasks.relay.schedule_build_project_config") as build_project_config:
                 default_project.get_option(
                     "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
                 )

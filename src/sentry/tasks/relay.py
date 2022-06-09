@@ -113,7 +113,7 @@ def build_project_config(public_key=None, trigger=None, **kwargs):
     deduplication it is not suitable for re-computing a project config when
     an option changed, use :func:`schedule_invalidate_project_config` for this.
 
-    Do not invoke this task directly, instead use :func:`schedule_build_config_cache`.
+    Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
     validate_args(public_key=public_key)
 
@@ -133,7 +133,7 @@ def build_project_config(public_key=None, trigger=None, **kwargs):
         )
 
 
-def schedule_build_config_cache(public_key=None, trigger="build"):
+def schedule_build_project_config(public_key=None, trigger="build"):
     """Schedule the `build_project_config` with debouncing applied.
 
     See documentation of `build_project_config` for documentation of parameters.
