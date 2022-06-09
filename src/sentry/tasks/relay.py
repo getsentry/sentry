@@ -131,7 +131,9 @@ def schedule_update_config_cache(
 
     validate_args(organization_id, project_id, public_key)
 
-    if projectconfig_debounce_cache.is_debounced(public_key, project_id, organization_id):
+    if projectconfig_debounce_cache.is_debounced(
+        public_key=public_key, project_id=project_id, organization_id=organization_id
+    ):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
             tags={"reason": "debounce", "update_reason": update_reason},
@@ -159,7 +161,9 @@ def schedule_update_config_cache(
     # and dies before scheduling it, the cache will be stale for the whole TTL.
     # To avoid that, make sure we first schedule the task, and only then mark
     # the project as debounced.
-    projectconfig_debounce_cache.debounce(public_key, project_id, organization_id)
+    projectconfig_debounce_cache.debounce(
+        public_key=public_key, project_id=project_id, organization_id=organization_id
+    )
 
 
 @instrumented_task(
