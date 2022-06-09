@@ -152,6 +152,7 @@ def available_on(mode: ServerComponentMode) -> Callable[[type], type]:
         assert isinstance(decorated_class.objects, BaseManager)
 
         if not mode.is_active():
+            decorated_class.objects = type(decorated_class.objects)()
             decorated_class.objects.get_queryset = queryset_override  # type: ignore
 
         return decorated_class
