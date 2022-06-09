@@ -20,7 +20,6 @@ import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
 type Props = {
   incident: Incident;
-  orgId: string;
   organization: Organization;
   projects: Project[];
   projectsLoaded: boolean;

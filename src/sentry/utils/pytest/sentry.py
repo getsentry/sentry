@@ -95,8 +95,10 @@ def pytest_configure(config):
     settings.SENTRY_TSDB = "sentry.tsdb.inmemory.InMemoryTSDB"
     settings.SENTRY_TSDB_OPTIONS = {}
 
-    settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
-    settings.SENTRY_NEWSLETTER_OPTIONS = {}
+    # override it only if it's not the default
+    if settings.SENTRY_NEWSLETTER == "sentry.newsletter.base.Newsletter":
+        settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
+        settings.SENTRY_NEWSLETTER_OPTIONS = {}
 
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"

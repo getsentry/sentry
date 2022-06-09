@@ -27,6 +27,15 @@ OUTCOMES_CATEGORY_CONDITION = [
     DataCategory.error_categories(),
 ]
 
+# We include a subset of outcome results as to not show client-discards
+# and invalid results as those are not shown in org-stats and we want
+# data to line up.
+TOTAL_RECEIVED_OUTCOMES = [
+    outcomes.Outcome.ACCEPTED,
+    outcomes.Outcome.FILTERED,
+    outcomes.Outcome.RATE_LIMITED,
+]
+
 
 class SnubaTSDB(BaseTSDB):
     """
@@ -80,7 +89,11 @@ class SnubaTSDB(BaseTSDB):
             snuba.Dataset.Outcomes,
             "project_id",
             "quantity",
-            [["reason", "=", reason], OUTCOMES_CATEGORY_CONDITION],
+            [
+                ["reason", "=", reason],
+                ["outcome", "IN", TOTAL_RECEIVED_OUTCOMES],
+                OUTCOMES_CATEGORY_CONDITION,
+            ],
         )
         for reason, model in FILTER_STAT_KEYS_TO_VALUES.items()
     }
@@ -90,7 +103,10 @@ class SnubaTSDB(BaseTSDB):
             snuba.Dataset.Outcomes,
             "org_id",
             "quantity",
-            [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
+            [
+                ["outcome", "IN", TOTAL_RECEIVED_OUTCOMES],
+                OUTCOMES_CATEGORY_CONDITION,
+            ],
         ),
         TSDBModel.organization_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
@@ -108,7 +124,7 @@ class SnubaTSDB(BaseTSDB):
             snuba.Dataset.Outcomes,
             "project_id",
             "quantity",
-            [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
+            [["outcome", "IN", TOTAL_RECEIVED_OUTCOMES], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.project_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,
@@ -126,7 +142,7 @@ class SnubaTSDB(BaseTSDB):
             snuba.Dataset.Outcomes,
             "key_id",
             "quantity",
-            [["outcome", "!=", outcomes.Outcome.INVALID], OUTCOMES_CATEGORY_CONDITION],
+            [["outcome", "IN", TOTAL_RECEIVED_OUTCOMES], OUTCOMES_CATEGORY_CONDITION],
         ),
         TSDBModel.key_total_rejected: SnubaModelQuerySettings(
             snuba.Dataset.Outcomes,

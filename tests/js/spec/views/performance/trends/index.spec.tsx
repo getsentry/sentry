@@ -92,13 +92,13 @@ async function waitForMockCall(mock: any) {
   });
 }
 
-async function enterSearch(el, text) {
+function enterSearch(el, text) {
   fireEvent.change(el, {target: {value: text}});
   fireEvent.submit(el);
 }
 
 // Might swap on/off the skiphover to check perf later.
-async function clickEl(el) {
+function clickEl(el) {
   userEvent.click(el, undefined, {skipHover: true, skipPointerEventsCheck: true});
 }
 
@@ -678,7 +678,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', async function () {
+  it('Visiting trends with trends feature will update filters if none are set', function () {
     const data = initializeTrendsData(undefined, {}, false);
 
     render(

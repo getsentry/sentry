@@ -8,6 +8,7 @@ from sentry.api.endpoints.project_release_details import ReleaseSerializer
 from sentry.constants import MAX_VERSION_LENGTH
 from sentry.models import Activity, File, Release, ReleaseCommit, ReleaseFile, ReleaseProject
 from sentry.testutils import APITestCase
+from sentry.types.activity import ActivityType
 
 
 class ReleaseDetailsTest(APITestCase):
@@ -122,7 +123,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert release.date_released
 
         activity = Activity.objects.filter(
-            type=Activity.RELEASE, project=project, ident=release.version
+            type=ActivityType.RELEASE.value, project=project, ident=release.version
         )
         assert activity.exists()
 
@@ -152,7 +153,7 @@ class UpdateReleaseDetailsTest(APITestCase):
         assert release.date_released
 
         activity = Activity.objects.filter(
-            type=Activity.RELEASE, project=project, ident=release.version[:64]
+            type=ActivityType.RELEASE.value, project=project, ident=release.version[:64]
         )
         assert activity.exists()
 
