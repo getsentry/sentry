@@ -11,7 +11,13 @@ logger = logging.getLogger(__name__)
 
 
 # DEPRECATED TASK, use build_project_config or invalidate_config_cache instead.
-@instrumented_task(name="sentry.tasks.relay.update_config_cache", queue="relay_config")
+@instrumented_task(
+    name="sentry.tasks.relay.update_config_cache",
+    queue="relay_config",
+    acks_late=True,
+    soft_time_limit=1500,  # 25 minutes; 25 * 60 = 1500
+    time_limit=1800,  # Extra 5 minutes to remove the debounce key; 5 * 60 = 300
+)
 def update_config_cache(
     generate, organization_id=None, project_id=None, public_key=None, update_reason=None
 ):
@@ -322,10 +328,7 @@ def invalidate_project_config(
     Both these mean that an outdated version of the project config could still end up in the
     cache.  These will be addressed in the future using config revisions tracked in Redis.
     """
-    validate_args(organization_id, project_id, public_key)
-    sentry_sdk.set_tag("update_reason", trigger)
-
-    # Make sure we start by deleting out deduplication key so that new invalidation triggers
+    # Make sure we start by deleting the deduplication key so that new invalidation triggers
     # can schedule a new message while we already started computing the project config.
     projectconfig_debounce_cache.invalidation.mark_task_done(
         organization_id=organization_id, project_id=project_id, public_key=public_key
