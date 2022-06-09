@@ -440,14 +440,44 @@ class SmartSearchBar extends Component<Props, State> {
     }
   }
 
+  moveToNextToken = (
+    token: TokenResult<any> | undefined,
+    filterTokens: TokenResult<Token.Filter>[]
+  ) => {
+    let offset = this.state.query.length;
+
+    if (this.searchInput.current && filterTokens.length > 0) {
+      this.searchInput.current.focus();
+
+      if (token) {
+        const tokenIndex = filterTokens.findIndex(tok => tok === token);
+        if (typeof tokenIndex !== 'undefined') {
+          if (tokenIndex + 1 < filterTokens.length) {
+            offset = filterTokens[tokenIndex + 1].location.end.offset;
+          }
+        }
+      }
+
+      if (this.cursorPosition === this.state.query.length) {
+        offset = filterTokens[0].location.end.offset;
+      }
+
+      this.searchInput.current.selectionStart = offset;
+      this.searchInput.current.selectionEnd = offset;
+      this.updateAutoCompleteItems();
+    }
+  };
+
   runQuickAction = (action: QuickAction) => {
     const {query} = this.state;
     const token = this.cursorToken ?? undefined;
 
     const filterTokens = this.filterTokens;
 
-    if (!action.canRunAction || action.canRunAction(token, this.filterTokens.length)) {
-      switch (action.actionType) {
+    const {actionType, canRunAction} = action;
+
+    if (!canRunAction || canRunAction(token, this.filterTokens.length)) {
+      switch (actionType) {
         case QuickActionType.Delete: {
           if (token && filterTokens.length > 0) {
             const index = filterTokens.findIndex(tok => tok === token) ?? -1;
@@ -480,54 +510,12 @@ class SmartSearchBar extends Component<Props, State> {
           break;
         }
         case QuickActionType.Next: {
-          let offset = this.state.query.length;
-
-          if (this.searchInput.current && filterTokens.length > 0) {
-            this.searchInput.current.focus();
-
-            if (token) {
-              const tokenIndex = filterTokens.findIndex(tok => tok === token);
-              if (typeof tokenIndex !== 'undefined') {
-                if (tokenIndex + 1 < filterTokens.length) {
-                  offset = filterTokens[tokenIndex + 1].location.end.offset;
-                }
-              }
-            }
-
-            if (this.cursorPosition === this.state.query.length) {
-              offset = filterTokens[0].location.end.offset;
-            }
-
-            this.searchInput.current.selectionStart = offset;
-            this.searchInput.current.selectionEnd = offset;
-            this.updateAutoCompleteItems();
-          }
+          this.moveToNextToken(token, filterTokens);
 
           break;
         }
         case QuickActionType.Previous: {
-          let offset = this.state.query.length;
-
-          const reversedFilterTokens = filterTokens.reverse();
-
-          if (this.searchInput.current && reversedFilterTokens.length > 0) {
-            this.searchInput.current.focus();
-
-            if (token) {
-              const tokenIndex = reversedFilterTokens.findIndex(tok => tok === token);
-
-              if (tokenIndex + 1 < reversedFilterTokens.length) {
-                offset = reversedFilterTokens[tokenIndex + 1].location.end.offset;
-              }
-            } else if (this.cursorPosition === this.state.query.length) {
-              offset = reversedFilterTokens[0].location.end.offset;
-            }
-
-            this.searchInput.current.selectionStart = offset;
-            this.searchInput.current.selectionEnd = offset;
-
-            this.updateAutoCompleteItems();
-          }
+          this.moveToNextToken(token, filterTokens.reverse());
 
           break;
         }
@@ -684,8 +672,8 @@ class SmartSearchBar extends Component<Props, State> {
       if (item) {
         if (item.callback) {
           item.callback();
-        } else if (typeof item.value !== 'undefined') {
-          this.onAutoComplete(item.value, item);
+        } else {
+          this.onAutoComplete(item.value ?? '', item);
         }
       }
       return;
@@ -816,8 +804,9 @@ class SmartSearchBar extends Component<Props, State> {
     return this.searchInput.current.selectionStart ?? -1;
   }
 
-  get filterTokens() {
-    return this.state.parsedQuery?.filter(tok => tok.type === Token.Filter) ?? [];
+  get filterTokens(): TokenResult<Token.Filter>[] {
+    return (this.state.parsedQuery?.filter(tok => tok.type === Token.Filter) ??
+      []) as TokenResult<Token.Filter>[];
   }
 
   /**
@@ -1255,16 +1244,16 @@ class SmartSearchBar extends Component<Props, State> {
       queryCharsLeft
     );
 
-    const commonActionsSearchResults = getQuickActionsSearchGroup(
+    const quickActionsSearchResults = getQuickActionsSearchGroup(
       this.runQuickAction,
       this.filterTokens.length,
       this.cursorToken ?? undefined
     );
-    if (commonActionsSearchResults) {
-      searchGroups.searchGroups.push(commonActionsSearchResults.searchGroup);
+    if (quickActionsSearchResults) {
+      searchGroups.searchGroups.push(quickActionsSearchResults.searchGroup);
       searchGroups.flatSearchItems = [
         ...searchGroups.flatSearchItems,
-        ...commonActionsSearchResults.searchItems,
+        ...quickActionsSearchResults.searchItems,
       ];
     }
 
@@ -1282,7 +1271,7 @@ class SmartSearchBar extends Component<Props, State> {
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
 
-    const commonActionsSearchResults = getQuickActionsSearchGroup(
+    const quickActionsSearchResults = getQuickActionsSearchGroup(
       this.runQuickAction,
       this.filterTokens.length,
       this.cursorToken ?? undefined
@@ -1312,11 +1301,11 @@ class SmartSearchBar extends Component<Props, State> {
         }
       );
 
-    if (commonActionsSearchResults) {
-      searchGroups.searchGroups.push(commonActionsSearchResults.searchGroup);
+    if (quickActionsSearchResults) {
+      searchGroups.searchGroups.push(quickActionsSearchResults.searchGroup);
       searchGroups.flatSearchItems = [
         ...searchGroups.flatSearchItems,
-        ...commonActionsSearchResults.searchItems,
+        ...quickActionsSearchResults.searchItems,
       ];
     }
 
