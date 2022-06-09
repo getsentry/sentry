@@ -140,7 +140,7 @@ def get_project_config(project, full_config=True, project_keys=None):
     with sentry_sdk.push_scope() as scope:
         scope.set_tag("project", project.id)
         with metrics.timer("relay.config.get_project_config.duration"):
-            return _get_project_config(project, full_config=True, project_keys=None)
+            return _get_project_config(project, full_config=full_config, project_keys=project_keys)
 
 
 def _get_project_config(project, full_config=True, project_keys=None):
