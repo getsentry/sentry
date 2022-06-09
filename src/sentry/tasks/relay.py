@@ -201,9 +201,18 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         try:
             key = ProjectKey.objects.get(public_key=public_key)
         except ProjectKey.DoesNotExist:
-            # Someone asks for a non-existing config, to avoid hitting this code path too
-            # often we disable the project in the cache which will live for 1h.
-            configs[public_key] = {"disabled": True}
+            # There are two main reasons this might happen:
+            #
+            # - The invalidation task was triggered for a deletion and the ProjectKey should
+            #   be deleted from the cache.
+            # - Django fired the `after_save` event before a transaction creating the
+            #   ProjectKey was committed.
+            #
+            # Thus we want to make sure we delete the project, but we do not care about
+            # disabling it here, because doing so would cause it to be wrongly disabled for
+            # an hour in the second case (which will be fixed at some point).  If the v3
+            # task finds a non-existing ProjectKey it can disable this project.
+            configs[public_key] = None
         else:
             configs[public_key] = compute_projectkey_config(key)
 
