@@ -57,6 +57,9 @@ export type PerformanceEventParameters = {
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
   'performance_views.trace_view.view': {};
+  'performance_views.trends.select_transaction': {
+    chartTitle: string;
+  };
   'performance_views.vital_detail.view': {};
 };
 
@@ -89,4 +92,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.trace_view.view': 'Performance Views: Trace View viewed',
   'performance_views.team_key_transaction.set':
     'Performance Views: Set Team Key Transaction',
+  'performance_views.trends.select_transaction':
+    'Performance Views: Transaction in Trends Widget Selected',
 };

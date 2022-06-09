@@ -24,6 +24,7 @@ import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {AvatarProject, Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -127,7 +128,11 @@ function getSelectedTransaction(
   return transactions.length > 0 ? transactions[0] : undefined;
 }
 
-function handleChangeSelected(location: Location, trendChangeType: TrendChangeType) {
+function handleChangeSelected(
+  location: Location,
+  organization: Organization,
+  trendChangeType: TrendChangeType
+) {
   return function updateSelected(transaction?: NormalizedTrendsTransaction) {
     const selectedQueryKey = getSelectedQueryKey(trendChangeType);
     const query = {
@@ -143,6 +148,11 @@ function handleChangeSelected(location: Location, trendChangeType: TrendChangeTy
     browserHistory.push({
       pathname: location.pathname,
       query,
+    });
+
+    trackAdvancedAnalyticsEvent('performance_views.trends.select_transaction', {
+      organization,
+      chartTitle: getChartTitle(trendChangeType),
     });
   };
 }
@@ -313,6 +323,7 @@ function ChangedTransactions(props: Props) {
                           statsData={statsData}
                           handleSelectTransaction={handleChangeSelected(
                             location,
+                            organization,
                             trendChangeType
                           )}
                         />
