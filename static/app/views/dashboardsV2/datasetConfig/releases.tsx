@@ -3,6 +3,7 @@ import omit from 'lodash/omit';
 import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
 import {WidgetQuery} from '../types';
 import {resolveDerivedStatusFields} from '../widgetCard/releaseWidgetQueries';
@@ -18,6 +19,7 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
+  getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   transformSeries: (_data: SessionApiResponse | MetricsApiResponse) => {
     return [] as Series[];
   },
