@@ -8,15 +8,12 @@ import {IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
 
-import {Widget} from '../types';
-import {
-  ISSUE_FIELD_TO_HEADER_MAP,
-  ISSUE_FIELDS,
-} from '../widgetBuilder/issueWidget/fields';
+import {getDatasetConfig} from '../datasetConfig/base';
+import {Widget, WidgetType} from '../types';
+import {ISSUE_FIELDS} from '../widgetBuilder/issueWidget/fields';
 
 type Props = {
   loading: boolean;
@@ -37,6 +34,8 @@ export function IssueWidgetCard({
   transformedResults,
   location,
 }: Props) {
+  const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
+
   if (errorMessage) {
     return (
       <ErrorPanel>
@@ -73,8 +72,8 @@ export function IssueWidgetCard({
       metadata={ISSUE_FIELDS}
       data={transformedResults}
       organization={organization}
-      getCustomFieldRenderer={getIssueFieldRenderer}
-      fieldHeaderMap={ISSUE_FIELD_TO_HEADER_MAP}
+      getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
+      fieldHeaderMap={datasetConfig.fieldHeaderMap}
       stickyHeaders
     />
   );
