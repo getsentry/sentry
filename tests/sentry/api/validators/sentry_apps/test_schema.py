@@ -1,8 +1,7 @@
 import unittest
 
+from fixtures.schema_validation import invalid_schema_with_error_message
 from sentry.api.validators.sentry_apps.schema import validate_ui_element_schema
-
-from .util import invalid_schema_with_error_message
 
 
 class TestSchemaValidation(unittest.TestCase):

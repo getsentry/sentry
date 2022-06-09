@@ -1,8 +1,7 @@
 import unittest
 
+from fixtures.schema_validation import invalid_schema
 from sentry.api.validators.sentry_apps.schema import validate_component
-
-from .util import invalid_schema
 
 
 class TestMarkdownSchemaValidation(unittest.TestCase):
