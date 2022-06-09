@@ -106,7 +106,7 @@ function SearchBar(props: SearchBarProps) {
   };
 
   return (
-    <Container>
+    <Container data-test-id="transaction-search-bar">
       <BaseSearchBar placeholder={t('Search Transactions')} onChange={handleSearch} />
       <SearchDropdown
         css={{

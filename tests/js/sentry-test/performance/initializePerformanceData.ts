@@ -14,6 +14,7 @@ export interface initializeDataSettings {
   project?: Project;
   projects?: Project[];
   query?: {};
+  withStaticFilters?: boolean;
 }
 
 export function initializeData(settings?: initializeDataSettings) {

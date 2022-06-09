@@ -30,7 +30,7 @@ const WrappedComponent = ({data}) => {
           handleSearch={() => {}}
           handleTrendsClick={() => {}}
           setError={() => {}}
-          withStaticFilters={false}
+          withStaticFilters={data.withStaticFilters}
         />
       </MEPSettingProvider>
     </OrganizationContext.Provider>
@@ -314,5 +314,19 @@ describe('Performance > Landing > Index', function () {
     expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
       true
     );
+  });
+
+  describe('with transaction search feature', function () {
+    it('renders the search bar', async function () {
+      const data = initializeData({withStaticFilters: true});
+
+      wrapper = mountWithTheme(<WrappedComponent data={data} />, data.routerContext);
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('div[data-test-id="transaction-search-bar"]').exists()).toBe(
+        true
+      );
+    });
   });
 });
