@@ -733,9 +733,7 @@ class EventManagerTest(TestCase):
         unreleased_pr_commit = PullRequestCommit.objects.create(
             pull_request_id=pr.id, commit_id=unreleased_commit.id
         )
-        assert PullRequestCommit.objects.filter(
-            pull_request_id=pr.id, commit_id=unreleased_pr_commit.id
-        ).exists()
+        assert PullRequestCommit.objects.filter(commit__id=unreleased_pr_commit.commit.id).exists()
 
         ReleaseCommit.objects.create(
             organization_id=group.project.organization_id,
