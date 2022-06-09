@@ -137,8 +137,7 @@ const Common = styled('div')<{isLast: boolean; level: string}>`
 `;
 
 const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
-  padding: ${space(1)};
-  border-left: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(0.25)} ${space(1)};
   cursor: pointer;
 `;
 
