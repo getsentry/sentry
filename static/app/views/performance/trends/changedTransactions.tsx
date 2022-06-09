@@ -232,6 +232,13 @@ function ChangedTransactions(props: Props) {
 
   const onCursor = makeTrendsCursorHandler(trendChangeType);
   const cursor = decodeScalar(location.query[trendCursorNames[trendChangeType]]);
+  const paginationAnalyticsEvent = (direction: string) => {
+    trackAdvancedAnalyticsEvent('performance_views.trends.widget_pagination', {
+      organization,
+      direction,
+      widget_type: getChartTitle(trendChangeType),
+    });
+  };
 
   return (
     <TrendsDiscoverQuery
@@ -337,7 +344,11 @@ function ChangedTransactions(props: Props) {
                 </Fragment>
               )}
             </TrendsTransactionPanel>
-            <Pagination pageLinks={pageLinks} onCursor={onCursor} />
+            <Pagination
+              pageLinks={pageLinks}
+              onCursor={onCursor}
+              paginationAnalyticsEvent={paginationAnalyticsEvent}
+            />
           </TransactionsListContainer>
         );
       }}

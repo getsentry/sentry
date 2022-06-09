@@ -60,6 +60,10 @@ export type PerformanceEventParameters = {
   'performance_views.trends.widget_interaction': {
     widget_type: string;
   };
+  'performance_views.trends.widget_pagination': {
+    direction: string;
+    widget_type: string;
+  };
   'performance_views.vital_detail.view': {};
 };
 
@@ -94,4 +98,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Set Team Key Transaction',
   'performance_views.trends.widget_interaction':
     'Performance Views: Trends Widget Interaction',
+  'performance_views.trends.widget_pagination':
+    'Performance Views: Trends Widget Page Changed',
 };
