@@ -29,7 +29,7 @@ export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number):
 }
 
 export function showPlayerTime(timestamp: string, relativeTime: number): string {
-  return moment(relativeTimeInMs(timestamp, relativeTime)).format(TIME_FORMAT);
+  return moment.utc(relativeTimeInMs(timestamp, relativeTime)).format(TIME_FORMAT);
 }
 
 // TODO: move into 'sentry/utils/formatters'
