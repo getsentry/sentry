@@ -28,10 +28,10 @@ function CreateIntegrationButton({
     <Access organization={organization} access={['org:write']}>
       {({hasAccess}) => (
         <Button
+          size="small"
           priority="primary"
           disabled={!hasAccess}
           title={!hasAccess ? permissionTooltipText : undefined}
-          size="small"
           onClick={() => {
             openCreateNewIntegrationModal({organization});
             trackIntegrationAnalytics(PlatformEvents.OPEN_CREATE_MODAL, {

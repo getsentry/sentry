@@ -14,9 +14,12 @@ import {
 } from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
+import ExampleIntegrationButton from 'sentry/views/organizationIntegrations/exampleIntegrationButton';
 
 export type CreateNewIntegrationModalOptions = {organization: Organization};
 type CreateNewIntegrationModalProps = CreateNewIntegrationModalOptions & ModalRenderProps;
+
+const analyticsView = 'new_integration_modal' as const;
 
 function CreateNewIntegrationModal({
   Body,
@@ -42,7 +45,7 @@ function CreateNewIntegrationModal({
                 onClick={() => {
                   trackIntegrationAnalytics(PlatformEvents.INTERNAL_DOCS, {
                     organization,
-                    view: 'new_integration_modal',
+                    view: analyticsView,
                   });
                 }}
               >
@@ -68,7 +71,7 @@ function CreateNewIntegrationModal({
                 onClick={() => {
                   trackIntegrationAnalytics(PlatformEvents.PUBLIC_DOCS, {
                     organization,
-                    view: 'new_integration_modal',
+                    view: analyticsView,
                   });
                 }}
               >
@@ -95,29 +98,38 @@ function CreateNewIntegrationModal({
         />
       </Body>
       <Footer>
-        <Button size="small" onClick={() => closeModal()} style={{marginRight: space(1)}}>
-          {t('Cancel')}
-        </Button>
-        <Button
-          priority="primary"
-          size="small"
-          to={`/settings/${organization.slug}/developer-settings/${
-            option === 'public' ? 'new-public' : 'new-internal'
-          }/`}
-          onClick={() => {
-            trackIntegrationAnalytics(
-              option === 'public'
-                ? PlatformEvents.CHOSE_PUBLIC
-                : PlatformEvents.CHOSE_INTERNAL,
-              {
-                organization,
-                view: 'new_integration_modal',
-              }
-            );
-          }}
-        >
-          {t('Next')}
-        </Button>
+        <FooterWrapper>
+          <ExampleIntegrationButton analyticsView={analyticsView} />
+          <div>
+            <Button
+              size="small"
+              onClick={() => closeModal()}
+              style={{marginRight: space(1)}}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              priority="primary"
+              size="small"
+              to={`/settings/${organization.slug}/developer-settings/${
+                option === 'public' ? 'new-public' : 'new-internal'
+              }/`}
+              onClick={() => {
+                trackIntegrationAnalytics(
+                  option === 'public'
+                    ? PlatformEvents.CHOSE_PUBLIC
+                    : PlatformEvents.CHOSE_INTERNAL,
+                  {
+                    organization,
+                    view: analyticsView,
+                  }
+                );
+              }}
+            >
+              {t('Next')}
+            </Button>
+          </div>
+        </FooterWrapper>
       </Footer>
     </Fragment>
   );
@@ -138,4 +150,11 @@ const RadioChoiceDescription = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1.6em;
 `;
+
+const FooterWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+`;
+
 export default withOrganization(CreateNewIntegrationModal);
