@@ -49,6 +49,10 @@ export type PerformanceEventParameters = {
   'performance_views.spans.change_sort': {
     sort_column?: string;
   };
+  'performance_views.team_key_transaction.set': {
+    action: string;
+    teamIds: string[];
+  };
   'performance_views.tour.advance': PerformanceTourParams;
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
@@ -83,4 +87,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
   'performance_views.trace_view.view': 'Performance Views: Trace View viewed',
+  'performance_views.team_key_transaction.set':
+    'Performance Views: Set Team Key Transaction',
 };
