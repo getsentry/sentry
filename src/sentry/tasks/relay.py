@@ -10,7 +10,7 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
-# DEPRECATED TASK, use build_config_cache or invalidate_config_cache instead.
+# DEPRECATED TASK, use build_project_config or invalidate_config_cache instead.
 @instrumented_task(name="sentry.tasks.relay.update_config_cache", queue="relay_config")
 def update_config_cache(
     generate, organization_id=None, project_id=None, public_key=None, update_reason=None
@@ -98,21 +98,20 @@ def update_config_cache(
 
 
 @instrumented_task(
-    name="sentry.tasks.relay.build_config_cache",
+    name="sentry.tasks.relay.build_project_config",
     queue="relay_config",
     acks_late=True,
     soft_time_limit=30,
     time_limit=32,
 )
-def build_config_cache(public_key=None, trigger=None, **kwargs):
+def build_project_config(public_key=None, trigger=None, **kwargs):
     """Build a project config and put it in the Redis cache.
 
-    This task is the primary way a new project config is computed.
-
-    :param organization_id: The organization for which to invalidate configs.
-    :param project_id: The project for which to invalidate configs.
-    :param generate: If `True`, caches will be eagerly regenerated, not only
-        invalidated.
+    This task is used to compute missing project configs, it is aggressively
+    deduplicated to avoid running duplicate computations and thus should only
+    be invoked using :func:`schedule_build_project_config`. Because of this
+    deduplication it is not suitable for re-computing a project config when
+    an option changed, use :func:`schedule_invalidate_project_config` for this.
 
     Do not invoke this task directly, instead use :func:`schedule_build_config_cache`.
     """
@@ -135,9 +134,9 @@ def build_config_cache(public_key=None, trigger=None, **kwargs):
 
 
 def schedule_build_config_cache(public_key=None, trigger="build"):
-    """Schedule the `build_config_cache` with debouncing applied.
+    """Schedule the `build_project_config` with debouncing applied.
 
-    See documentation of `build_config_cache` for documentation of parameters.
+    See documentation of `build_project_config` for documentation of parameters.
     """
 
     validate_args(public_key=public_key)
@@ -156,7 +155,7 @@ def schedule_build_config_cache(public_key=None, trigger="build"):
         "relay.projectconfig_cache.scheduled",
         tags={"update_reason": trigger},
     )
-    build_config_cache.delay(public_key=public_key, trigger=trigger)
+    build_project_config.delay(public_key=public_key, trigger=trigger)
 
     # Checking if the project is debounced and debouncing it are two separate
     # actions that aren't atomic. If the process marks a project as debounced
