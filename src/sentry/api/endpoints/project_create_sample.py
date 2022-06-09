@@ -1,9 +1,9 @@
 from django.core.exceptions import SuspiciousFileOperation
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
-from sentry.api.exceptions import SuspiciousClientOperation
 from sentry.api.serializers import serialize
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.utils.samples import create_sample_event
@@ -25,4 +25,4 @@ class ProjectCreateSampleEndpoint(ProjectEndpoint):
 
             return Response(data)
         except (SuspiciousFileOperation, IsADirectoryError):
-            raise SuspiciousClientOperation
+            return Response(status=status.HTTP_400_BAD_REQUEST)
