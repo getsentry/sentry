@@ -169,12 +169,7 @@ class WidgetCardChart extends Component<WidgetCardChartProps, State> {
           data={result.data}
           organization={organization}
           stickyHeaders
-          getCustomFieldRenderer={
-            datasetConfig.getCustomFieldRenderer
-              ? (field, meta) =>
-                  datasetConfig.getCustomFieldRenderer!(field, meta, {organization})
-              : undefined
-          }
+          getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
         />
       );
     });
