@@ -120,7 +120,6 @@ def schedule_update_config_cache(
         )
         return
 
-    # validate_args(organization_id, project_id, public_key)
     bools = sorted((bool(organization_id), bool(project_id), bool(public_key)))
     if bools != [False, False, True]:
         raise TypeError(
