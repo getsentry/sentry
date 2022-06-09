@@ -78,6 +78,10 @@ export type MemberRole = {
   id: string;
   name: string;
   allowed?: boolean;
+
+  isGlobal?: boolean;
+  isRetired?: boolean;
+  minimumTeamRole?: string;
 };
 
 /**

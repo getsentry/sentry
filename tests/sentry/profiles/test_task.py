@@ -89,12 +89,12 @@ class ProfilesProcessTaskTest(TestCase):
             return json.loads(f.read())
 
     def test_normalize_ios_profile(self):
-        profile = _normalize(self.ios_profile)
+        profile = _normalize(profile=self.ios_profile, organization=self.organization)
         for k in ["device_os_build_number", "device_classification"]:
             assert k in profile
 
     def test_normalize_android_profile(self):
-        profile = _normalize(self.android_profile)
+        profile = _normalize(profile=self.android_profile, organization=self.organization)
         for k in ["android_api_level", "device_classification"]:
             assert k in profile
 

@@ -96,7 +96,7 @@ describe('EventsV2 > Landing', function () {
     expect(content.text()).toContain("You don't have access to this feature");
   });
 
-  it('has the right sorts', async function () {
+  it('has the right sorts', function () {
     const org = TestStubs.Organization({features});
 
     const wrapper = mountWithTheme(

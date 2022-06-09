@@ -11,7 +11,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Switch from 'sentry/components/switchButton';
 import {IconChevron, IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 type ContainerProps = {
@@ -202,7 +201,7 @@ const IndicatorDot = styled('span')<{isShared?: boolean}>`
 const StyledAutoSelectText = styled(AutoSelectText)`
   flex: 1;
   padding: ${space(0.5)} 0 ${space(0.5)} ${space(0.75)};
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TextContainer = styled('div')`

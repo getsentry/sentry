@@ -42,6 +42,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.filter import handle_operator_negation, parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import STATS_PERIODS
+from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -483,7 +484,7 @@ class OrganizationReleasesEndpoint(
                 if release.date_released:
                     for project in new_projects:
                         Activity.objects.create(
-                            type=Activity.RELEASE,
+                            type=ActivityType.RELEASE.value,
                             project=project,
                             ident=Activity.get_version_ident(result["version"]),
                             data={"version": result["version"]},
