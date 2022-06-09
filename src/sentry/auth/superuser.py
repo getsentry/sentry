@@ -177,6 +177,7 @@ class Superuser:
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
             return
+
         if not cookie_token:
             if data:
                 logger.warning(
