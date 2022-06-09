@@ -107,7 +107,7 @@ def update_config_cache(
         )
 
 
-# DEPRECATED SCHEDULER, use schedule_build_project_config or schedule_invalidate_project_cache instead.
+# DEPRECATED SCHEDULER, use schedule_build_project_config or schedule_invalidate_project_config instead.
 def schedule_update_config_cache(
     generate, project_id=None, organization_id=None, public_key=None, update_reason=None
 ):
@@ -414,7 +414,7 @@ def invalidate_project_config(
     projectconfig_cache.set_many(configs)
 
 
-def schedule_invalidate_project_cache(
+def schedule_invalidate_project_config(
     *, trigger, organization_id=None, project_id=None, public_key=None
 ):
     """Schedules the :func:`invalidate_project_config` task.

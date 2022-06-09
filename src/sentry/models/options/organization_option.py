@@ -7,7 +7,7 @@ from django.db import models
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.fields import EncryptedPickledObjectField
 from sentry.db.models.manager import OptionManager, Value
-from sentry.tasks.relay import schedule_invalidate_project_cache
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
@@ -63,7 +63,7 @@ class OrganizationOptionManager(OptionManager["Organization"]):
 
     def reload_cache(self, organization_id: int, update_reason: str) -> Mapping[str, Value]:
         if update_reason != "organizationoption.get_all_values":
-            schedule_invalidate_project_cache(
+            schedule_invalidate_project_config(
                 organization_id=organization_id, trigger=update_reason
             )
 

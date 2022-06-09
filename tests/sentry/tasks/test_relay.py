@@ -8,7 +8,7 @@ from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDe
 from sentry.tasks.relay import (
     build_project_config,
     schedule_build_project_config,
-    schedule_invalidate_project_cache,
+    schedule_invalidate_project_config,
 )
 
 
@@ -241,14 +241,14 @@ class TestInvalidationTask:
         debounce_cache.mark_task_done(
             public_key=None, project_id=default_project.id, organization_id=None
         )
-        schedule_invalidate_project_cache(project_id=default_project.id, trigger="test")
-        schedule_invalidate_project_cache(project_id=default_project.id, trigger="test")
+        schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
+        schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
 
         debounce_cache.mark_task_done(
             public_key=None, project_id=None, organization_id=default_organization.id
         )
-        schedule_invalidate_project_cache(organization_id=default_organization.id, trigger="test")
-        schedule_invalidate_project_cache(organization_id=default_organization.id, trigger="test")
+        schedule_invalidate_project_config(organization_id=default_organization.id, trigger="test")
+        schedule_invalidate_project_config(organization_id=default_organization.id, trigger="test")
 
         assert tasks == [
             {
@@ -280,7 +280,7 @@ class TestInvalidationTask:
         assert redis_cache.get(default_projectkey.public_key) == cfg
 
         with task_runner():
-            schedule_invalidate_project_cache(project_id=default_project.id, trigger="test")
+            schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
 
         for cache_key in _cache_keys_for_project(default_project):
             cfg = redis_cache.get(cache_key)
@@ -304,7 +304,7 @@ class TestInvalidationTask:
         assert redis_cache.get(default_projectkey.public_key) == cfg
 
         with task_runner():
-            schedule_invalidate_project_cache(
+            schedule_invalidate_project_config(
                 organization_id=default_organization.id, trigger="test"
             )
 
