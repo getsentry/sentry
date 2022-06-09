@@ -12,7 +12,7 @@ from bitfield.compat import bitand, bitor
 
 class BitFieldTestModel(models.Model):
     class Meta:
-        app_label = "tests"
+        app_label = "fixtures"
 
     flags = BitField(
         flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=3, db_column="another_name"
@@ -331,6 +331,9 @@ class BitFieldTest(TestCase):
 
     def test_defaults_as_key_names(self):
         class TestModel(models.Model):
+            class Meta:
+                app_label = "fixtures"
+
             flags = BitField(
                 flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=("FLAG_1", "FLAG_2")
             )

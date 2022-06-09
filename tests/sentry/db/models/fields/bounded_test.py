@@ -19,6 +19,9 @@ class DummyModel(Model):
     bigint = BoundedBigIntegerField(null=True)
     posint = BoundedPositiveIntegerField(null=True)
 
+    class Meta:
+        app_label = "fixtures"
+
 
 class ModelTest(TestCase):
     def test_large_int(self):

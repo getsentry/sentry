@@ -65,7 +65,7 @@ def pytest_configure(config):
     settings.STATIC_BUNDLES = {}
 
     # override a few things with our test specifics
-    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("tests",)
+    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("fixtures",)
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
 
