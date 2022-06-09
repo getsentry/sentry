@@ -7,6 +7,7 @@ from typing import Tuple
 
 import isodate
 from croniter import croniter
+from isodate.isoerror import ISO8601Error
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_410_GONE as GONE
@@ -36,9 +37,18 @@ def _serialize_key(key: str) -> Tuple[str, str]:
 
 
 def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str):
+    """
+    Determines if a request should be blocked given the current date time and a schedule
+
+    For example if the schedule blocks requests at noon for 1 minute, then a request coming in at
+    11:59:59 would be allowed while one at 12:00:01 would not
+    """
     # Will need to check redis if the hour fits into the brownout period
     if now >= deprecation_date:
+        key = "api.deprecation.brownout" if not key else key
 
+        # Retrieve any custom schedule saved
+        # Fall back on the default schedule if there's any issue getting a custom one
         cron_key, duration_key = _serialize_key(key)
         try:
             brownout_cron = options.get(cron_key)
@@ -52,7 +62,17 @@ def _should_be_blocked(deprecation_date: datetime, now: datetime, key: str):
             logger.error(f"Unrecognized deprecation duration {key}")
             brownout_duration = options.get("api.deprecation.brownout-duration")
 
-        brownout_duration = isodate.parse_duration(brownout_duration)
+        # Validate the formats, allow requests to pass through if validation failed
+        try:
+            brownout_duration = isodate.parse_duration(brownout_duration)
+        except ISO8601Error:
+            logger.error("Invalid ISO8601 format for blackout duration")
+            return False
+
+        if not croniter.is_valid(brownout_cron):
+            logger.error("Invalid crontab for blackout schedule")
+            return False
+
         # return True if now exactly matches the crontab
         if croniter.match(brownout_cron, now):
             return True

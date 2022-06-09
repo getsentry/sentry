@@ -142,3 +142,17 @@ class TestDeprecationDecorator(APITestCase):
         new_brownout_end = new_brownout_start + custom_duration_timedelta
         with freeze_time(new_brownout_end):
             self.assert_allowed_request("POST")
+
+    def test_bad_schedule_format(self):
+        settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-duration": "bad duration"})
+
+        brownout_start = timeiter.get_next(datetime)
+        with freeze_time(brownout_start):
+            self.assert_allowed_request("GET")
+            settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-duration": "PT1M"})
+            self.assert_denied_request("GET")
+
+            settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-cron": "bad schedule"})
+            self.assert_allowed_request("GET")
+            settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-cron": "0 12 * * *"})
+            self.assert_denied_request("GET")
