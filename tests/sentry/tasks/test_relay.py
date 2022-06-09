@@ -219,7 +219,7 @@ def test_projectkeys(default_project, task_runner, redis_cache):
         pk.save()
 
     for key in deleted_pks:
-        assert redis_cache.get(key.public_key) == {"disabled": True}
+        assert redis_cache.get(key.public_key) is None
 
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
@@ -233,7 +233,7 @@ def test_projectkeys(default_project, task_runner, redis_cache):
     with task_runner():
         pk.delete()
 
-    assert redis_cache.get(pk.public_key) == {"disabled": True}
+    assert redis_cache.get(pk.public_key) is None
 
     for key in ProjectKey.objects.filter(project_id=default_project.id):
         assert not redis_cache.get(key.public_key)
