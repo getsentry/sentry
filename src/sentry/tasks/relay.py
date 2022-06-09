@@ -256,7 +256,11 @@ def invalidate_project_config(
     Both these mean that an outdated version of the project config could still end up in the
     cache.  These will be addressed in the future using config revisions tracked in Redis.
     """
-    validate_args(organization_id, project_id, public_key)
+    # Make sure we start by deleting the deduplication key so that new invalidation triggers
+    # can schedule a new message while we already started computing the project config.
+    projectconfig_debounce_cache.invalidation.mark_task_done(
+        organization_id=organization_id, project_id=project_id, public_key=public_key
+    )
 
     if project_id:
         set_current_event_project(project_id)
@@ -267,12 +271,6 @@ def invalidate_project_config(
     if public_key:
         sentry_sdk.set_tag("public_key", public_key)
     sentry_sdk.set_tag("trigger", trigger)
-
-    # Make sure we start by deleting out deduplication key so that new invalidation triggers
-    # can schedule a new message while we already started computing the project config.
-    projectconfig_debounce_cache.invalidation.mark_task_done(
-        organization_id=organization_id, project_id=project_id, public_key=public_key
-    )
 
     configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
