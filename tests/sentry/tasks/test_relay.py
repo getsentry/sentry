@@ -30,8 +30,7 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
 
                 # Assert there are no jobs in the queue yet, as we should have
                 # some on_commit callbacks instead. If we don't, then the model
-                # hook has scheduled the update_config_cache task
-                # prematurely.
+                # hook has scheduled the update_config_cache task prematurely.
                 burst(max_jobs=0)
 
             # for some reason, the callbacks array is only populated by
