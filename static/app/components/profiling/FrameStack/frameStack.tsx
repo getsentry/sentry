@@ -6,8 +6,10 @@ import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
@@ -24,22 +26,28 @@ function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
   const {selectedNode} = useFlamegraphProfilesValue();
 
+  const [filter, setFilter] = useState(false);
+
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
   const [drawerHeight, setDrawerHeight] = useState(
     (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT
   );
 
-  const roots = useMemo(() => {
+  const roots: FlamegraphFrame[] | null = useMemo(() => {
     if (!selectedNode) {
       return null;
     }
 
+    const maybeFilteredRoots = filter
+      ? filterFlamegraphTree([selectedNode], f => !f.frame.is_application)
+      : [selectedNode];
+
     if (tab === 'call order') {
-      return [selectedNode];
+      return maybeFilteredRoots;
     }
 
-    return invertCallTree([selectedNode]);
-  }, [selectedNode, tab]);
+    return invertCallTree(maybeFilteredRoots);
+  }, [selectedNode, tab, filter]);
 
   const onMouseDown = useCallback((evt: React.MouseEvent<HTMLElement>) => {
     let startResizeVector = vec2.fromValues(evt.clientX, evt.clientY);
@@ -102,6 +110,16 @@ function FrameStack(props: FrameStackProps) {
           <Button priority="link" size="zero">
             {t('Call Order')}
           </Button>
+        </li>
+        <li>
+          <label>
+            Filter{' '}
+            <input
+              checked={filter}
+              type="checkbox"
+              onChange={e => setFilter(e.target.checked)}
+            />
+          </label>
         </li>
         <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />
       </FrameTabs>
