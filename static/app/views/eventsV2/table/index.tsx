@@ -136,11 +136,12 @@ class Table extends PureComponent<TableProps, TableState> {
           return;
         }
 
+        const {fields, ...nonFieldsMeta} = data.meta ?? {};
         // events api uses a different response format so we need to construct tableData differently
         const tableData = shouldUseEvents
           ? {
               ...data,
-              meta: {...data.meta?.fields, isMetricsData: data.meta?.isMetricsData},
+              meta: {...fields, nonFieldsMeta},
             }
           : data;
 

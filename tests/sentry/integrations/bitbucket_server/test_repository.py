@@ -5,12 +5,7 @@ import responses
 from django.utils import timezone
 from exam import fixture
 
-from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
-from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Repository
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import APITestCase
-
-from .testutils import (
+from fixtures.bitbucket_server import (
     COMMIT_CHANGELIST_EXAMPLE,
     COMMIT_CHANGELIST_WITH_PAGES_FIRST_COMMIT_EXAMPLE,
     COMMIT_CHANGELIST_WITH_PAGES_SECOND_COMMIT_EXAMPLE_1_2,
@@ -21,6 +16,10 @@ from .testutils import (
     EXAMPLE_PRIVATE_KEY,
     REPO,
 )
+from sentry.integrations.bitbucket_server.repository import BitbucketServerRepositoryProvider
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Repository
+from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.testutils import APITestCase
 
 
 class BitbucketServerRepositoryProviderTest(APITestCase):

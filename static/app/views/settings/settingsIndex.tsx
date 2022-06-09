@@ -15,7 +15,6 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDocs, IconLock, IconStack, IconSupport} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {Theme} from 'sentry/utils/theme';
@@ -356,5 +355,5 @@ function SupportLink({
 const OrganizationName = styled('div')`
   line-height: 1.1em;
 
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;

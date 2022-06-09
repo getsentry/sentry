@@ -157,8 +157,7 @@ const config: Config.InitialOptions = {
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
-    'integration-docs-platforms':
-      '<rootDir>/tests/fixtures/integration-docs/_platforms.json',
+    'integration-docs-platforms': '<rootDir>/fixtures/integration-docs/_platforms.json',
 
     // Disable echarts in test, since they're very slow and take time to
     // transform

@@ -9,8 +9,9 @@ from django.urls import reverse
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models import EventAttachment, File
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.factories import get_fixture_path
 from sentry.utils.safe import get_path
-from tests.symbolicator import get_fixture_path, normalize_exception
+from tests.symbolicator import normalize_exception
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -18,11 +19,11 @@ from tests.symbolicator import get_fixture_path, normalize_exception
 
 
 def get_unreal_crash_file():
-    return get_fixture_path("unreal_crash")
+    return get_fixture_path("native", "unreal_crash")
 
 
 def get_unreal_crash_apple_file():
-    return get_fixture_path("unreal_crash_apple")
+    return get_fixture_path("native", "unreal_crash_apple")
 
 
 class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
@@ -56,7 +57,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         out = BytesIO()
         f = zipfile.ZipFile(out, "w")
-        f.write(get_fixture_path("unreal_crash.sym"), "crash.sym")
+        f.write(get_fixture_path("native", "unreal_crash.sym"), "crash.sym")
         f.close()
 
         response = self.client.post(
@@ -80,33 +81,21 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
             with open(filename, "rb") as f:
                 event = self.post_and_retrieve_unreal(f.read())
 
-        def make_snapshot(subname=None):
-            self.insta_snapshot(
-                {
-                    "contexts": event.data.get("contexts"),
-                    "exception": {
-                        "values": [
-                            normalize_exception(x)
-                            for x in get_path(event.data, "exception", "values") or ()
-                        ]
-                    },
-                    "stacktrace": event.data.get("stacktrace"),
-                    "threads": event.data.get("threads"),
-                    "extra": event.data.get("extra"),
-                    "sdk": event.data.get("sdk"),
+        self.insta_snapshot(
+            {
+                "contexts": event.data.get("contexts"),
+                "exception": {
+                    "values": [
+                        normalize_exception(x)
+                        for x in get_path(event.data, "exception", "values") or ()
+                    ]
                 },
-                subname=subname,
-            )
-
-        # We do snapshot tests against two different snapshots here, to be
-        # forward compatible with the upcoming changes from
-        # https://github.com/getsentry/symbolicator/pull/794
-        # This is temporary and will go away once symbolicator is merged and
-        # the docker image used in sentrys own tests is updated.
-        try:
-            make_snapshot()
-        except BaseException:
-            make_snapshot(subname="new")
+                "stacktrace": event.data.get("stacktrace"),
+                "threads": event.data.get("threads"),
+                "extra": event.data.get("extra"),
+                "sdk": event.data.get("sdk"),
+            }
+        )
 
         return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)
 

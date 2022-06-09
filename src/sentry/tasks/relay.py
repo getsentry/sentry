@@ -26,6 +26,7 @@ def update_config_cache(
     :param project_id: The project for which to invalidate configs.
     :param generate: If `True`, caches will be eagerly regenerated, not only
         invalidated.
+    :param update_reason: A string to set as tag in sentry.
     """
 
     from sentry.models import Project, ProjectKey, ProjectKeyStatus
@@ -46,8 +47,6 @@ def update_config_cache(
     sentry_sdk.set_tag("update_reason", update_reason)
     sentry_sdk.set_tag("generate", generate)
 
-    # Not running this at the beginning of the task to add tags in case there's
-    # something wrong going on.
     if not should_update_cache(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     ):
@@ -74,7 +73,7 @@ def update_config_cache(
             # In other similar cases, like an org being deleted, we potentially
             # cannot find any keys anymore, so we don't know which cache keys
             # to delete.
-            projectconfig_cache.set_many({public_key: {"disabled": True}})
+            projectconfig_cache.delete_many([public_key])
             return
 
     else:

@@ -1,17 +1,30 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {inflate} from 'pako';
 
 import {IssueAttachment} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
-import type {RecordingEvent, ReplayCrumb, ReplaySpan} from 'sentry/views/replays/types';
+import type {
+  RecordingEvent,
+  ReplayCrumb,
+  ReplayError,
+  ReplaySpan,
+} from 'sentry/views/replays/types';
 
 import flattenListOfObjects from '../flattenListOfObjects';
 
+import useReplayErrors from './useReplayErrors';
+
 type State = {
   breadcrumbs: undefined | ReplayCrumb[];
+
+  /**
+   * List of errors that occurred during replay
+   */
+  errors: undefined | ReplayError[];
 
   /**
    * The root replay event
@@ -28,6 +41,11 @@ type State = {
    * This includes fetched all the sub-resources like attachments and `sentry-replay-event`
    */
   fetching: boolean;
+
+  /**
+   * Are errors currently being fetched
+   */
+  isErrorsFetching: boolean;
 
   /**
    * The flattened list of rrweb events. These are stored as multiple attachments on the root replay object: the `event` prop.
@@ -67,11 +85,32 @@ const IS_RRWEB_ATTACHMENT_FILENAME = /rrweb-[0-9]{13}.json/;
 function isRRWebEventAttachment(attachment: IssueAttachment) {
   return IS_RRWEB_ATTACHMENT_FILENAME.test(attachment.name);
 }
+export function mapRRWebAttachments(unsortedReplayAttachments): ReplayAttachment {
+  const replayAttachments: ReplayAttachment = {
+    breadcrumbs: [],
+    replaySpans: [],
+    recording: [],
+  };
+
+  unsortedReplayAttachments.forEach(attachment => {
+    if (attachment.data?.tag === 'performanceSpan') {
+      replayAttachments.replaySpans.push(attachment.data.payload);
+    } else if (attachment?.data?.tag === 'breadcrumb') {
+      replayAttachments.breadcrumbs.push(attachment.data.payload);
+    } else {
+      replayAttachments.recording.push(attachment);
+    }
+  });
+
+  return replayAttachments;
+}
 
 const INITIAL_STATE: State = Object.freeze({
+  errors: undefined,
   event: undefined,
   fetchError: undefined,
   fetching: true,
+  isErrorsFetching: true,
   rrwebEvents: undefined,
   spans: undefined,
   breadcrumbs: undefined,
@@ -115,9 +154,30 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     const attachments = await Promise.all(
       rrwebAttachmentIds.map(async attachment => {
         const response = await api.requestPromise(
-          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`
+          `/api/0/projects/${orgId}/${projectId}/events/${eventId}/attachments/${attachment.id}/?download`,
+          {
+            includeAllArgs: true,
+          }
         );
-        return JSON.parse(response) as ReplayAttachment;
+
+        // for non-compressed events, parse and return
+        try {
+          return JSON.parse(response[0]) as ReplayAttachment;
+        } catch (error) {
+          // swallow exception.. if we can't parse it, it's going to be compressed
+        }
+
+        // for non-compressed events, parse and return
+        try {
+          // for compressed events, inflate the blob and map the events
+          const responseBlob = await response[2]?.rawResponse.blob();
+          const responseArray = (await responseBlob?.arrayBuffer()) as Uint8Array;
+          const parsedPayload = JSON.parse(inflate(responseArray, {to: 'string'}));
+          const replayAttachments = mapRRWebAttachments(parsedPayload);
+          return replayAttachments;
+        } catch (error) {
+          return {};
+        }
       })
     );
 
@@ -125,20 +185,36 @@ function useReplayData({eventSlug, orgId}: Options): Result {
     return flattenListOfObjects(attachments);
   }, [api, eventId, orgId, projectId]);
 
+  const {isLoading: isErrorsFetching, data: errors} = useReplayErrors({
+    replayId: eventId,
+  });
+
+  useEffect(() => {
+    if (!isErrorsFetching) {
+      setState(prevState => ({
+        ...prevState,
+        fetching: prevState.fetching || isErrorsFetching,
+        isErrorsFetching,
+        errors,
+      }));
+    }
+  }, [isErrorsFetching, errors]);
+
   const loadEvents = useCallback(async () => {
     setState(INITIAL_STATE);
 
     try {
       const [event, attachments] = await Promise.all([fetchEvent(), fetchRRWebEvents()]);
 
-      setState({
+      setState(prev => ({
+        ...prev,
         event,
         fetchError: undefined,
-        fetching: false,
+        fetching: prev.isErrorsFetching || false,
         rrwebEvents: attachments.recording,
         spans: attachments.replaySpans,
         breadcrumbs: attachments.breadcrumbs,
-      });
+      }));
     } catch (error) {
       Sentry.captureException(error);
       setState({
@@ -156,11 +232,12 @@ function useReplayData({eventSlug, orgId}: Options): Result {
   const replay = useMemo(() => {
     return ReplayReader.factory({
       event: state.event,
+      errors: state.errors,
       rrwebEvents: state.rrwebEvents,
       breadcrumbs: state.breadcrumbs,
       spans: state.spans,
     });
-  }, [state.event, state.rrwebEvents, state.breadcrumbs, state.spans]);
+  }, [state.event, state.rrwebEvents, state.breadcrumbs, state.spans, state.errors]);
 
   return {
     fetchError: state.fetchError,

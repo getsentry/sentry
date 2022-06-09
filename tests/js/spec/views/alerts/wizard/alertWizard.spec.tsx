@@ -22,7 +22,6 @@ describe('AlertWizard', () => {
     render(
       <AlertWizard
         organization={organization}
-        project={project}
         route={{}}
         router={router}
         routes={router.routes}

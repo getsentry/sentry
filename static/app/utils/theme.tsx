@@ -1,5 +1,4 @@
-import '@emotion/react';
-
+import {css} from '@emotion/react';
 import color from 'color';
 
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -34,7 +33,7 @@ export const lightColors = {
   purple400: '#584AC0',
   purple300: '#6C5FC7',
   purple200: 'rgba(108, 95, 199, 0.5)',
-  purple100: 'rgba(108, 95, 199, 0.1)',
+  purple100: 'rgba(108, 95, 199, 0.08)',
 
   blue400: '#2562D4',
   blue300: '#3C74DD',
@@ -562,6 +561,13 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     }`,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
+  }),
+  overflowEllipsis: css({
+    display: 'block',
+    width: '100%',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   }),
 });
 

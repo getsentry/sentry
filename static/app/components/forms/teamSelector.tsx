@@ -257,7 +257,6 @@ function TeamSelector(props: Props) {
         ...(multiple ? {} : placeholderSelectStyles),
         ...(styles ?? {}),
       }}
-      verticallyCenterCheckWrap
       isLoading={fetching}
       {...extraProps}
     />
