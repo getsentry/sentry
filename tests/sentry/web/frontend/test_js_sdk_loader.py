@@ -1,19 +1,23 @@
+from unittest import mock
 from unittest.mock import patch
 
 from django.conf import settings
 from django.urls import reverse
-from exam import fixture
+from exam import before, fixture
 
 from sentry.testutils import TestCase
 
 
 class JavaScriptSdkLoaderTest(TestCase):
-    @fixture
-    def path(self):
+    @before
+    def set_settings(self):
         settings.JS_SDK_LOADER_SDK_VERSION = "0.5.2"
         settings.JS_SDK_LOADER_DEFAULT_SDK_URL = (
             "https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/%s/bundle.min.js"
         )
+
+    @fixture
+    def path(self):
         return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key])
 
     def test_noop_no_pub_key(self):
@@ -55,6 +59,50 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert self.projectkey.public_key.encode("utf-8") in min_resp.content
         assert b"bundle.min.js" in min_resp.content
         assert len(resp.content) > len(min_resp.content)
+
+    @mock.patch(
+        "sentry.loader.browsersdkversion.load_version_from_file", return_value=["6.19.7", "7.0.0"]
+    )
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="6.x"
+    )
+    def test_less_than_v7_returns_es6(
+        self, load_version_from_file, get_selected_browser_sdk_version
+    ):
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+        assert b"/6.19.7/bundle.min.js" in resp.content
+
+    @mock.patch(
+        "sentry.loader.browsersdkversion.load_version_from_file", return_value=["6.19.7", "7.0.0"]
+    )
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="7.x"
+    )
+    def test_equal_to_v7_returns_es5(
+        self, load_version_from_file, get_selected_browser_sdk_version
+    ):
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+        assert b"/7.0.0/bundle.es5.min.js" in resp.content
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["8.3.15"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="latest"
+    )
+    def test_greater_than_v7_returns_es5(
+        self, load_version_from_file, get_selected_browser_sdk_version
+    ):
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        resp = self.client.get(self.path)
+        print(resp.content)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+        assert b"/8.3.15/bundle.es5.min.js" in resp.content
 
     @patch("sentry.loader.browsersdkversion.load_version_from_file")
     def test_headers(self, mock_load_version_from_file):
