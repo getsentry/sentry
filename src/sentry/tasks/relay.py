@@ -1,6 +1,7 @@
 import logging
 
 import sentry_sdk
+from django.conf import settings
 
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
@@ -104,6 +105,61 @@ def update_config_cache(
         projectconfig_debounce_cache.mark_task_done(
             organization_id=organization_id, project_id=project_id, public_key=public_key
         )
+
+
+# DEPRECATED SCHEDULER, use schedule_build_project_config or schedule_invalidate_project_cache instead.
+def schedule_update_config_cache(
+    generate, project_id=None, organization_id=None, public_key=None, update_reason=None
+):
+    """
+    Schedule the `update_config_cache` with debouncing applied.
+
+    See documentation of `update_config_cache` for documentation of parameters.
+    """
+
+    if (
+        settings.SENTRY_RELAY_PROJECTCONFIG_CACHE
+        == "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
+    ):
+        # This cache backend is a noop, don't bother creating a noop celery
+        # task.
+        metrics.incr(
+            "relay.projectconfig_cache.skipped",
+            tags={"reason": "noop_backend", "update_reason": update_reason},
+        )
+        return
+
+    validate_args(organization_id, project_id, public_key)
+
+    if projectconfig_debounce_cache.is_debounced(public_key, project_id, organization_id):
+        metrics.incr(
+            "relay.projectconfig_cache.skipped",
+            tags={"reason": "debounce", "update_reason": update_reason},
+        )
+        # If this task is already in the queue, do not schedule another task.
+        return
+
+    # XXX(markus): We could schedule this task a couple seconds into the
+    # future, this would make debouncing more effective. If we want to do this
+    # we might want to use the sleep queue.
+    metrics.incr(
+        "relay.projectconfig_cache.scheduled",
+        tags={"generate": generate, "update_reason": update_reason},
+    )
+    update_config_cache.delay(
+        generate=generate,
+        project_id=project_id,
+        organization_id=organization_id,
+        public_key=public_key,
+        update_reason=update_reason,
+    )
+
+    # Checking if the project is debounced and debouncing it are two separate
+    # actions that aren't atomic. If the process marks a project as debounced
+    # and dies before scheduling it, the cache will be stale for the whole TTL.
+    # To avoid that, make sure we first schedule the task, and only then mark
+    # the project as debounced.
+    projectconfig_debounce_cache.debounce(public_key, project_id, organization_id)
 
 
 @instrumented_task(
