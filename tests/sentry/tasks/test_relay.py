@@ -159,11 +159,13 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
                     "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
                 )
 
-    build_config_cache.assert_not_called()  # noqa
+    assert not build_config_cache.called
 
 
 @pytest.mark.django_db
 def test_projectkeys(default_project, task_runner, redis_cache):
+    # When a projectkey is deleted the invalidation task should be triggered and the project
+    # should be cached as disabled.
     with task_runner():
         deleted_pks = list(ProjectKey.objects.filter(project=default_project))
         for key in deleted_pks:

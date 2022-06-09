@@ -46,7 +46,7 @@ describe('Performance GridEditable Table', function () {
   let data;
   let transactionName;
   const query =
-    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
+    'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
     transactionName = 'transactionName';
     transactionsListTitles = [
@@ -112,19 +112,21 @@ describe('Performance GridEditable Table', function () {
     ];
     // Transaction list response
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/eventsv2/',
+      url: '/organizations/org-slug/events/',
       headers: {
         Link:
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
-          '<http://localhost/api/0/organizations/org-slug/eventsv2/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
       },
       body: {
         meta: {
-          id: 'string',
-          'user.display': 'string',
-          'transaction.duration': 'duration',
-          'project.id': 'integer',
-          timestamp: 'date',
+          fields: {
+            id: 'string',
+            'user.display': 'string',
+            'transaction.duration': 'duration',
+            'project.id': 'integer',
+            timestamp: 'date',
+          },
         },
         data,
       },
