@@ -9,7 +9,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {
   EventGroupComponent,
@@ -301,7 +300,7 @@ const TextWithQuestionTooltip = styled('div')`
 
 const Hash = styled('span')`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    ${overflowEllipsis};
+    ${p => p.theme.overflowEllipsis};
     width: 210px;
   }
 `;

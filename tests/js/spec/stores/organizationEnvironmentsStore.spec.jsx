@@ -35,7 +35,7 @@ describe('OrganizationEnvironmentsStore', function () {
     ]);
   });
 
-  it('has the correct loading state', async function () {
+  it('has the correct loading state', function () {
     OrganizationEnvironmentsStore.onFetchEnvironments();
 
     const {environments, error} = OrganizationEnvironmentsStore.getState();
@@ -44,7 +44,7 @@ describe('OrganizationEnvironmentsStore', function () {
     expect(error).toBeNull();
   });
 
-  it('has the correct error state', async function () {
+  it('has the correct error state', function () {
     OrganizationEnvironmentsStore.onFetchEnvironmentsError(Error('bad'));
 
     const {environments, error} = OrganizationEnvironmentsStore.getState();

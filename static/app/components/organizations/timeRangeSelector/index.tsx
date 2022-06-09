@@ -476,7 +476,7 @@ class TimeRangeSelector extends PureComponent<Props, State> {
                     customDropdownButton({getActorProps, isOpen})
                   ) : (
                     <StyledHeaderItem
-                      data-test-id="global-header-timerange-selector"
+                      data-test-id="page-filter-timerange-selector"
                       icon={label ?? <IconCalendar />}
                       isOpen={isOpen}
                       hasSelected={

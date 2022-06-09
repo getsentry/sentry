@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {sprintf, vsprintf} from 'sprintf-js';
 
 import DateTime from 'sentry/components/dateTime';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -40,19 +41,29 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 
   const isMessageString = typeof message === 'string';
 
-  // Assumption here is that Array types are == placeholders, which means that's the number of arguments we need
   const placeholders = isMessageString
     ? sprintf.parse(message).filter(parsed => Array.isArray(parsed))
     : [];
 
+  // TODO `%c` is console specific, it applies colors to messages
+  // for now we are stripping it as this is potentially risky to implement due to xss
+  const consoleColorPlaceholderIndexes = placeholders
+    .filter(([placeholder]) => placeholder === '%c')
+    .map((_, i) => i);
+
   // Retrieve message formatting args
   const messageArgs = args.slice(0, placeholders.length);
+
+  // Filter out args that were for %c
+  for (const colorIndex of consoleColorPlaceholderIndexes) {
+    messageArgs.splice(colorIndex, 1);
+  }
 
   // Attempt to stringify the rest of the args
   const restArgs = args.slice(placeholders.length).map(renderString);
 
   const formattedMessage = isMessageString
-    ? vsprintf(message, messageArgs)
+    ? vsprintf(message.replaceAll('%c', ''), messageArgs)
     : renderString(message);
 
   // TODO(replays): Add better support for AnnotatedText (e.g. we use message
@@ -94,7 +105,9 @@ function ConsoleMessage({
         {ICONS[breadcrumb.level]}
       </Icon>
       <Message isLast={isLast} level={breadcrumb.level}>
-        <MessageFormatter breadcrumb={breadcrumb} />
+        <ErrorBoundary mini>
+          <MessageFormatter breadcrumb={breadcrumb} />
+        </ErrorBoundary>
       </Message>
       <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
@@ -124,8 +137,7 @@ const Common = styled('div')<{isLast: boolean; level: string}>`
 `;
 
 const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
-  padding: ${space(1)};
-  border-left: 1px solid ${p => p.theme.innerBorder};
+  padding: ${space(0.25)} ${space(1)};
   cursor: pointer;
 `;
 

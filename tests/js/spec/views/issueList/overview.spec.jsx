@@ -1291,7 +1291,7 @@ describe('IssueList', function () {
       }
     });
 
-    it('uses correct statsPeriod when fetching issues list and no datetime given', async function () {
+    it('uses correct statsPeriod when fetching issues list and no datetime given', function () {
       const selection = {projects: [99], environments: [], datetime: {}};
       wrapper.setProps({selection, foo: 'bar'});
 
@@ -1352,7 +1352,7 @@ describe('IssueList', function () {
       wrapper = mountWithThemeAndOrg(<IssueListOverview {...props} />);
     });
 
-    it('fetches and displays processing issues', async function () {
+    it('fetches and displays processing issues', function () {
       const instance = wrapper.instance();
       instance.componentDidMount();
       wrapper.update();

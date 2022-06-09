@@ -68,7 +68,7 @@ class Table extends Component<TableProps, TableState> {
     const tableMeta = tableData.meta;
 
     const field = String(column.key);
-    const fieldRenderer = getFieldRenderer(field, tableMeta);
+    const fieldRenderer = getFieldRenderer(field, tableMeta, false);
     const rendered = fieldRenderer(dataRow, {organization, location});
 
     if (field === 'transaction') {
@@ -149,6 +149,7 @@ class Table extends Component<TableProps, TableState> {
           eventView={sortedEventView}
           orgSlug={organization.slug}
           location={location}
+          useEvents
         >
           {({isLoading, tableData}) => (
             <GridEditable

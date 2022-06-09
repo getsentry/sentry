@@ -13,9 +13,8 @@ import {
 import DesyncedFilterAlert from 'sentry/components/organizations/pageFilters/desyncedFiltersAlert';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {PageContent} from 'sentry/styles/organization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -75,7 +74,7 @@ function Container({skipLoadLastUsed, children, ...props}: Props) {
     skipInitializeUrlParams,
   } = props;
 
-  const {isReady} = useLegacyStore(PageFiltersStore);
+  const {isReady} = usePageFilters();
 
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
 

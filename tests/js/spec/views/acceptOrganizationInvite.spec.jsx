@@ -180,7 +180,7 @@ describe('AcceptOrganizationInvite', function () {
     window.location.replace = replace;
   });
 
-  it('shows right options for logged in user and optional SSO', async function () {
+  it('shows right options for logged in user and optional SSO', function () {
     addMock({
       orgSlug: 'test-org',
       needsAuthentication: false,
