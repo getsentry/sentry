@@ -4,7 +4,6 @@ import {RouteComponentProps} from 'react-router';
 import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
 import Access from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
@@ -12,7 +11,10 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
-import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
+import {
+  platformEventLinkMap,
+  PlatformEvents,
+} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -180,22 +182,20 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
               {t(
                 'Create integrations that interact with Sentry using the REST API and webhooks. '
               )}
-              {tct(
-                'Looking for code snippets? Check out the [link: quick start] for Python and TypeScript examples.',
-                {
-                  link: (
-                    <ExternalLink
-                      href="https://docs.sentry.io/product/integrations/integration-platform/#example-app"
-                      onClick={() => {
-                        trackIntegrationAnalytics(PlatformEvents.EXAMPLE_DOCS, {
-                          organization,
-                          view: 'developer_settings',
-                        });
-                      }}
-                    />
-                  ),
-                }
-              )}
+              <br />
+              {tct('For more information [link: see our docs].', {
+                link: (
+                  <ExternalLink
+                    href={platformEventLinkMap[PlatformEvents.DOCS]}
+                    onClick={() => {
+                      trackIntegrationAnalytics(PlatformEvents.DOCS, {
+                        organization,
+                        view: 'developer_settings',
+                      });
+                    }}
+                  />
+                ),
+              })}
             </React.Fragment>
           }
           action={
@@ -203,15 +203,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
               <Button
                 size="small"
                 external
-                href="https://docs.sentry.io/product/integrations/integration-platform/"
-                style={{marginRight: space(1)}}
-              >
-                {t('View Docs')}
-              </Button>
-              <Button
-                size="small"
-                external
-                href="https://github.com/getsentry/integration-platform-example/"
+                href={platformEventLinkMap[PlatformEvents.EXAMPLE_SOURCE]}
                 style={{marginRight: space(1)}}
                 onClick={() => {
                   trackIntegrationAnalytics(PlatformEvents.EXAMPLE_SOURCE, {
@@ -226,17 +218,6 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
             </Fragment>
           }
         />
-        <Alert type="info">
-          {tct(
-            'Integrations can now detect when a comment on an issue is added or changes.  [link:Learn more].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/comments" />
-              ),
-            }
-          )}
-        </Alert>
-
         <NavTabs underlined>
           {tabs.map(([type, label]) => (
             <li

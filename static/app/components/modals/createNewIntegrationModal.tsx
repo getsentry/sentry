@@ -8,7 +8,10 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {PlatformEvents} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
+import {
+  platformEventLinkMap,
+  PlatformEvents,
+} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -36,7 +39,7 @@ function CreateNewIntegrationModal({
           {
             docsLink: (
               <ExternalLink
-                href="https://docs.sentry.io/product/integrations/integration-platform/internal-integrations"
+                href={platformEventLinkMap[PlatformEvents.INTERNAL_DOCS]}
                 onClick={() => {
                   trackIntegrationAnalytics(PlatformEvents.INTERNAL_DOCS, {
                     organization,
@@ -62,7 +65,7 @@ function CreateNewIntegrationModal({
           {
             docsLink: (
               <ExternalLink
-                href="https://docs.sentry.io/product/integrations/integration-platform/#public-integrations"
+                href={platformEventLinkMap[PlatformEvents.PUBLIC_DOCS]}
                 onClick={() => {
                   trackIntegrationAnalytics(PlatformEvents.PUBLIC_DOCS, {
                     organization,

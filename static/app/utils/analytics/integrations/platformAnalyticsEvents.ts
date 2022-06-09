@@ -1,7 +1,7 @@
 import {IntegrationView} from './index';
 
 export enum PlatformEvents {
-  EXAMPLE_DOCS = 'integrations.platform_example_docs_clicked',
+  DOCS = 'integrations.platform_docs_clicked',
   EXAMPLE_SOURCE = 'integrations.platform_example_source_clicked',
   OPEN_CREATE_MODAL = 'integrations.platform_open_create_modal',
   CHOSE_INTERNAL = 'integrations.platform_create_modal_internal_clicked',
@@ -15,7 +15,7 @@ export type PlatformEventParameters = {
 };
 
 export const platformEventMap: Record<PlatformEvents, string> = {
-  [PlatformEvents.EXAMPLE_DOCS]: 'Integrations: Platform Example App Docs Clicked',
+  [PlatformEvents.DOCS]: 'Integrations: Platform Example App Docs Clicked',
   [PlatformEvents.EXAMPLE_SOURCE]:
     'Integrations: Platform Example App Source Code Clicked',
   [PlatformEvents.OPEN_CREATE_MODAL]:
@@ -25,4 +25,15 @@ export const platformEventMap: Record<PlatformEvents, string> = {
     'Integrations: Platform Internal Integration Docs Clicked',
   [PlatformEvents.CHOSE_PUBLIC]: 'Integrations: Platform Chose Public Integration',
   [PlatformEvents.PUBLIC_DOCS]: 'Integrations: Platform Public Integration Docs Clicked',
+};
+
+export const platformEventLinkMap: Partial<Record<PlatformEvents, string>> = {
+  [PlatformEvents.DOCS]:
+    'https://docs.sentry.io/product/integrations/integration-platform/',
+  [PlatformEvents.EXAMPLE_SOURCE]:
+    'https://github.com/getsentry/integration-platform-example/',
+  [PlatformEvents.INTERNAL_DOCS]:
+    'https://docs.sentry.io/product/integrations/integration-platform/internal-integration/',
+  [PlatformEvents.PUBLIC_DOCS]:
+    'https://docs.sentry.io/product/integrations/integration-platform/public-integration/',
 };
