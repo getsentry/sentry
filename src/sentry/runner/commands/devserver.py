@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import click
 
+from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
 _DEFAULT_DAEMONS = {
@@ -101,6 +102,20 @@ def devserver(
     bind,
 ):
     "Starts a lightweight web server for development."
+
+    if ingest:
+        # Ingest requires kakfa+zookeeper to be running.
+        # They're too heavyweight to startup on-demand with devserver.
+        docker = get_docker_client()
+        containers = {c.name for c in docker.containers.list(filters={"status": "running"})}
+        if "sentry_zookeeper" not in containers or "sentry_kafka" not in containers:
+            raise SystemExit(
+                """
+Kafka + Zookeeper don't seem to be running.
+Make sure you have settings.SENTRY_USE_RELAY = True,
+and run `sentry devservices up kafka zookeeper`.
+"""
+            )
 
     if bind is None:
         bind = "127.0.0.1:8000"
