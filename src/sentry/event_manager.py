@@ -131,7 +131,7 @@ def has_pending_commit_resolution(group):
     """
     Checks that the most recent commit that fixes a group has had a chance to release
     """
-    recent_group_link = (
+    latest_issue_commit_resolution = (
         GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
@@ -140,17 +140,17 @@ def has_pending_commit_resolution(group):
         .order_by("-datetime")
         .first()
     )
-    if recent_group_link is None:
+    if latest_issue_commit_resolution is None:
         return False
 
     # commit has been released and is not in pending commit state
-    if ReleaseCommit.objects.filter(commit__id=recent_group_link.linked_id).exists():
+    if ReleaseCommit.objects.filter(commit__id=latest_issue_commit_resolution.linked_id).exists():
         return False
     else:
         # check if this commit is a part of a PR
         pr_ids = list(
             PullRequest.objects.filter(
-                pullrequestcommit__commit=recent_group_link.linked_id
+                pullrequestcommit__commit=latest_issue_commit_resolution.linked_id
             ).values_list("id", flat=True)
         )
         if pr_ids:

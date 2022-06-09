@@ -642,7 +642,6 @@ class EventManagerTest(TestCase):
         repo = self.create_repo(project=group.project)
 
         # commit that resolved the issue is part of a PR, but all commits within the PR are unreleased
-
         commit = Commit.objects.create(
             organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 40
         )
@@ -712,8 +711,6 @@ class EventManagerTest(TestCase):
             organization_id=group.project.organization_id, repository_id=repo.id, key="c" * 38
         )
 
-        assert Commit.objects.all().count() == 3
-
         pr = PullRequest.objects.create(
             organization_id=group.project.organization_id,
             repository_id=repo.id,
@@ -721,19 +718,14 @@ class EventManagerTest(TestCase):
         )
 
         PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=commit.id)
-        assert PullRequestCommit.objects.filter(pull_request_id=pr.id, commit_id=commit.id).exists()
 
         released_pr_commit = PullRequestCommit.objects.create(
             pull_request_id=pr.id, commit_id=released_commit.id
         )
-        assert PullRequestCommit.objects.filter(
-            pull_request_id=pr.id, commit_id=released_commit.id
-        ).exists()
 
         unreleased_pr_commit = PullRequestCommit.objects.create(
             pull_request_id=pr.id, commit_id=unreleased_commit.id
         )
-        assert PullRequestCommit.objects.filter(commit__id=unreleased_pr_commit.commit.id).exists()
 
         ReleaseCommit.objects.create(
             organization_id=group.project.organization_id,
@@ -741,6 +733,13 @@ class EventManagerTest(TestCase):
             commit=released_commit,
             order=1,
         )
+
+        assert Commit.objects.all().count() == 3
+        assert PullRequestCommit.objects.filter(pull_request_id=pr.id, commit_id=commit.id).exists()
+        assert PullRequestCommit.objects.filter(
+            pull_request_id=pr.id, commit_id=released_commit.id
+        ).exists()
+        assert PullRequestCommit.objects.filter(commit__id=unreleased_pr_commit.commit.id).exists()
         assert ReleaseCommit.objects.filter(
             commit__pullrequestcommit__id=released_pr_commit.id
         ).exists()
