@@ -4,6 +4,7 @@ import {t} from 'sentry/locale';
 import {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import {MetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
   RenderFunctionBaggage,
@@ -24,21 +25,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
-  getCustomFieldRenderer: (field, meta, contextualProps) => {
-    const isAlias = !contextualProps?.organization?.features.includes(
-      'discover-frontend-use-events-endpoint'
-    );
-
-    if (field === 'id') {
-      return renderEventIdAsLinkable;
-    }
-
-    if (field === 'trace') {
-      return renderTraceAsLinkable;
-    }
-
-    return getFieldRenderer(field, meta, isAlias);
-  },
+  getCustomFieldRenderer: getCustomEventsFieldRenderer,
   transformSeries: (_data: EventsStats | MultiSeriesEventsStats) => {
     return [] as Series[];
   },
@@ -83,7 +70,7 @@ function renderEventIdAsLinkable(data, {eventView, organization}: RenderFunction
   return (
     <Tooltip title={t('View Event')}>
       <Link data-test-id="view-event" to={target}>
-        <Container>{getShortEventId(id)}</Container>;
+        <Container>{getShortEventId(id)}</Container>
       </Link>
     </Tooltip>
   );
@@ -103,8 +90,28 @@ function renderTraceAsLinkable(
   return (
     <Tooltip title={t('View Trace')}>
       <Link data-test-id="view-trace" to={target}>
-        <Container>{getShortEventId(data.trace)}</Container>;
+        <Container>{getShortEventId(id)}</Container>
       </Link>
     </Tooltip>
   );
+}
+
+export function getCustomEventsFieldRenderer(
+  field: string,
+  meta: MetaType,
+  contextualProps?: ContextualProps
+) {
+  const isAlias = !contextualProps?.organization?.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
+
+  if (field === 'id') {
+    return renderEventIdAsLinkable;
+  }
+
+  if (field === 'trace') {
+    return renderTraceAsLinkable;
+  }
+
+  return getFieldRenderer(field, meta, isAlias);
 }

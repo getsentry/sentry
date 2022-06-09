@@ -1,26 +1,25 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import SimpleTableChart from 'sentry/components/charts/simpleTableChart';
 import EventView from 'sentry/utils/discover/eventView';
+import {getCustomEventsFieldRenderer} from 'sentry/views/dashboardsV2/datasetConfig/errorsAndTransactions';
 
-describe('simpleTableChart', function () {
-  const {router, routerContext} = initializeOrg();
+describe('getCustomFieldRenderer', function () {
+  const {organization, router, routerContext} = initializeOrg();
 
   it('links trace ids to performance', async function () {
+    const customFieldRenderer = getCustomEventsFieldRenderer('trace', {});
     render(
-      <SimpleTableChart
-        data={[{trace: 'abcd'}]}
-        eventView={
-          new EventView({
+      customFieldRenderer(
+        {trace: 'abcd'},
+        {
+          organization,
+          location: router.location,
+          eventView: new EventView({
             fields: [{field: 'trace'}],
-          })
+          }),
         }
-        fields={['trace']}
-        fieldAliases={['']}
-        loading={false}
-        location={{query: {}}}
-      />,
+      ),
       {context: routerContext}
     );
     userEvent.click(await screen.findByText('abcd'));
@@ -36,22 +35,22 @@ describe('simpleTableChart', function () {
 
   it('links event ids to event details', async function () {
     const project = TestStubs.Project();
+    const customFieldRenderer = getCustomEventsFieldRenderer('id', {});
     render(
-      <SimpleTableChart
-        data={[{id: 'defg', 'project.name': project.slug}]}
-        eventView={
-          new EventView({
+      customFieldRenderer(
+        {id: 'defg', 'project.name': project.slug},
+        {
+          organization,
+          location: router.location,
+          eventView: new EventView({
             fields: [{field: 'id'}],
             project: [project.id],
-          })
+          }),
         }
-        fields={['id']}
-        fieldAliases={['']}
-        loading={false}
-        location={{query: {}}}
-      />,
+      ),
       {context: routerContext}
     );
+
     userEvent.click(await screen.findByText('defg'));
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/org-slug/discover/${project.slug}:defg/`,
