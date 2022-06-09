@@ -178,14 +178,27 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
 
     You must only provide one single argument, not all.
 
-    :returns: A dict mapping all affected public keys to their config.
+    :returns: A dict mapping all affected public keys to their config.  The dict could
+       contain `None` as value which indicates the config should not exist.
     """
     from sentry.models import Project, ProjectKey
 
     validate_args(organization_id, project_id, public_key)
     configs = {}
 
-    if public_key:
+    if organization_id:
+        # Currently we do not re-compute all projects in an organization, instead simply
+        # remove the configs and rely on relay requests to lazily re-compute them.  This
+        # because some organisations have too many projects which may not be active.  At
+        # some point this should be handled better.
+        projects = list(Project.objects.filter(organization_id=organization_id))
+        for key in ProjectKey.objects.filter(project__in=projects):
+            configs[key.public_key] = None
+    elif project_id:
+        projects = [Project.objects.get(id=project_id)]
+        for key in ProjectKey.objects.filter(project__in=projects):
+            configs[key.public_key] = compute_projectkey_config(key)
+    elif public_key:
         try:
             key = ProjectKey.objects.get(public_key=public_key)
         except ProjectKey.DoesNotExist:
@@ -196,15 +209,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
             configs[public_key] = compute_projectkey_config(key)
 
     else:
-        if organization_id:
-            projects = list(Project.objects.filter(organization_id=organization_id))
-        elif project_id:
-            projects = [Project.objects.get(id=project_id)]
-        else:
-            raise TypeError("One of the arguments must not be None")
-
-        for key in ProjectKey.objects.filter(project__in=projects):
-            configs[key.public_key] = compute_projectkey_config(key)
+        raise TypeError("One of the arguments must not be None")
 
     return configs
 
@@ -228,7 +233,7 @@ def compute_projectkey_config(key):
     queue="relay_config",
     acks_late=True,
     soft_time_limit=30,
-    time_limit=32,
+    time_limit=35,
 )
 def invalidate_project_config(
     organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs
@@ -273,6 +278,11 @@ def invalidate_project_config(
     configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
     )
+
+    deleted_keys = [key for key, cfg in configs.items() if cfg is None]
+    projectconfig_cache.delete_many(deleted_keys)
+
+    configs = {key: cfg for key, cfg in configs.items() if cfg is not None}
     projectconfig_cache.set_many(configs)
 
 
