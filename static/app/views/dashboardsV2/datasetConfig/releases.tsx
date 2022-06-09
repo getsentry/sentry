@@ -5,7 +5,6 @@ import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {transformSessionResponseToSeries} from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
 import {WidgetQuery} from '../types';
 import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
@@ -63,15 +62,17 @@ export function transformSessionsResponseToTable(
 
 export function transformSessionsResponseToSeries(
   data: SessionApiResponse | MetricsApiResponse,
-  widgetQuery: WidgetQuery,
-  queryAlias?: string
+  widgetQuery: WidgetQuery
 ) {
-  const useSessionAPI = widgetQuery.columns.includes('session.status');
-  const {derivedStatusFields: requestedStatusMetrics, injectedFields} =
-    resolveDerivedStatusFields(widgetQuery.aggregates, useSessionAPI);
   if (data === null) {
     return [];
   }
+
+  const queryAlias = widgetQuery.name;
+
+  const useSessionAPI = widgetQuery.columns.includes('session.status');
+  const {derivedStatusFields: requestedStatusMetrics, injectedFields} =
+    resolveDerivedStatusFields(widgetQuery.aggregates, useSessionAPI);
 
   const results: Series[] = [];
 

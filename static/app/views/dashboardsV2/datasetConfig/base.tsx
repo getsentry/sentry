@@ -30,7 +30,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   transformSeries?: (
     data: SeriesResponse,
     widgetQuery: WidgetQuery,
-    queryAlias?: string
+    contextualProps?: ContextualProps
   ) => Series[];
 }
 
