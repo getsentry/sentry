@@ -1,15 +1,19 @@
 import GroupStore from 'sentry/stores/groupStore';
 import {Group} from 'sentry/types';
+import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {queryToObj} from 'sentry/utils/stream';
 import {DISCOVER_EXCLUSION_FIELDS} from 'sentry/views/issueList/utils';
 
 import {WidgetQuery} from '../types';
+import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 
 import {ContextualProps, DatasetConfig} from './base';
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
+  getCustomFieldRenderer: getIssueFieldRenderer,
+  fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
   transformTable: transformIssuesResponseToTable,
 };
 

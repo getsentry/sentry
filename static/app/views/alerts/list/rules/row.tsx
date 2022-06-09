@@ -21,7 +21,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
 import type {Color} from 'sentry/utils/theme';
@@ -405,7 +404,7 @@ function RuleListRow({
 }
 
 const TitleLink = styled(Link)`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const FlexCenter = styled('div')`
@@ -419,13 +418,13 @@ const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
 `;
 
 const AlertNameAndStatus = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   margin-left: ${space(2)};
   line-height: 1.35;
 `;
 
 const AlertName = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   font-size: ${p => p.theme.fontSizeLarge};
 
   @media (max-width: ${p => p.theme.breakpoints[3]}) {
