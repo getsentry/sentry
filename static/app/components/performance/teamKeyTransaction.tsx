@@ -83,7 +83,7 @@ class TeamKeyTransaction extends Component<Props, State> {
     trackAdvancedAnalyticsEvent('performance_views.team_key_transaction.set', {
       organization,
       action,
-      teamIds,
+      team_ids: teamIds,
     });
 
     return enabled ? handleToggleKeyTransaction(selection) : undefined;

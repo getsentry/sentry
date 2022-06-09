@@ -150,9 +150,9 @@ function handleChangeSelected(
       query,
     });
 
-    trackAdvancedAnalyticsEvent('performance_views.trends.select_transaction', {
+    trackAdvancedAnalyticsEvent('performance_views.trends.widget_interaction', {
       organization,
-      chartTitle: getChartTitle(trendChangeType),
+      widget_type: trendChangeType,
     });
   };
 }
