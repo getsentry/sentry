@@ -152,7 +152,16 @@ def available_on(mode: ServerComponentMode) -> Callable[[type], type]:
         assert isinstance(decorated_class.objects, BaseManager)
 
         if not mode.is_active():
+            # Dark magic warning! First, we grab the Manager object (which is a class
+            # variable of the Model type) and replace it with a new instance. Some
+            # classes have their own Manager object but others inherit a shared one
+            # from BaseModel, so we have to do this to be safe. This depends on the
+            # assumption that all BaseManager subclasses can be init'd with no args.
             decorated_class.objects = type(decorated_class.objects)()
+
+            # Next, we monkey-patch its get_queryset method to replace it with the
+            # error-raising function. We expect all database operations to call
+            # get_queryset at some point, so this effectively blocks all of them.
             decorated_class.objects.get_queryset = queryset_override  # type: ignore
 
         return decorated_class
