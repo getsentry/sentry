@@ -8,7 +8,7 @@ click==8.0.4
 confluent-kafka==1.7.0
 croniter==0.3.37
 datadog==0.29.3
-django-crispy-forms==1.8.1
+django-crispy-forms==1.14.0
 django-picklefield==2.1.0
 django-pg-zero-downtime-migrations==0.10
 Django==2.2.28
