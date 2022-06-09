@@ -115,11 +115,11 @@ def build_project_config(public_key=None, trigger=None, **kwargs):
 
     Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
-    validate_args(public_key=public_key)
-
-    sentry_sdk.set_tag("update_reason", trigger)
 
     try:
+        validate_args(public_key=public_key)
+        sentry_sdk.set_tag("update_reason", trigger)
+
         keys = project_keys_to_update(public_key=public_key)
 
         compute_project_configs(keys)
