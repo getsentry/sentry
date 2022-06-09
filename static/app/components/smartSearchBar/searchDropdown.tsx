@@ -266,14 +266,15 @@ const Documentation = styled('span')`
 
 const DropdownFooter = styled(`div`)`
   width: 100%;
-  height: 45px;
+  min-height: 45px;
   background-color: ${p => p.theme.backgroundSecondary};
   border-top: 1px solid ${p => p.theme.innerBorder};
   flex-direction: row;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0px ${space(1)};
+  padding: ${space(1)};
+  flex-wrap: wrap;
 `;
 
 const ActionsRow = styled('div')`
