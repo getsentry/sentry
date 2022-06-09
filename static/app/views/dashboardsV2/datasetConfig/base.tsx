@@ -26,7 +26,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     contextualProps?: ContextualProps
   ) => TableData;
   /**
-   * Used for mapping column fields to more desirable
+   * Used for mapping column names to more desirable
    * values in tables.
    */
   fieldHeaderMap?: Record<string, string>;
