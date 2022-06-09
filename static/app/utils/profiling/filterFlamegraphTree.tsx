@@ -1,5 +1,16 @@
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
+// Utility fn to filter a tree.
+// The filtering is done in two steps - the first step marks nodes
+// that should be kept in the tree. The second step iterates over all of the
+// nodes that should be kept in the tree and finds their new parent nodes
+// by walkign up the node.parent reference chain and checking if the parent
+// is in the set of nodes that should be kept.
+
+// A tiny but important implementation details is that we only need to find every node's
+// first new parent and not all of the parents. That is because we rely on insertion order
+// of nodesToKeep (dfs). This effectively means that when a node is marked as kept, all of
+// it's parent nodes have already been considered and exist in our new tree.
 export function filterFlamegraphTree(
   roots: FlamegraphFrame[],
   skipFn: (frame: FlamegraphFrame) => boolean
@@ -34,10 +45,6 @@ export function filterFlamegraphTree(
 
   // Rebuild the tree by iterating over the nodes we want to keep and
   // finding a new parent for each node.
-
-  // A small disclaimer about the implementation:
-  // Since we dont want to mutate the original tree, we need to create copies of the
-  // nodes we want to keep and make sure we push new nodes to the copies instead of the original nodes.
   const tree: FlamegraphFrame[] = [];
   const nodes = new Map<FlamegraphFrame['frame']['key'], FlamegraphFrame>();
   for (const node of nodesToKeep.values()) {
@@ -60,12 +67,11 @@ export function filterFlamegraphTree(
     // Reassign parent. We can guarantee that parent is not null because
     // we are iterating over values in insertion order (maps guarantee this)
     cpy.parent = (parent ? nodes.get(parent.key) : null) || null;
-
-    // console.log('Parent of', node.key, 'is', cpy.parent ? cpy.parent.key : null);
     if (cpy.parent) {
       cpy.parent.children.push(cpy);
     } else {
-      // console.log('Pushing to all nodes');
+      // If the frame's root does not exist or it may have
+      // been filtered out, push the node to the roots
       tree.push(cpy);
     }
 

@@ -26,9 +26,9 @@ function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
   const {selectedNode} = useFlamegraphProfilesValue();
 
-  const [filter, setFilter] = useState(false);
-
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
+  const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
+
   const [drawerHeight, setDrawerHeight] = useState(
     (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT
   );
@@ -38,16 +38,24 @@ function FrameStack(props: FrameStackProps) {
       return null;
     }
 
-    const maybeFilteredRoots = filter
-      ? filterFlamegraphTree([selectedNode], f => !f.frame.is_application)
-      : [selectedNode];
+    const skipFunction =
+      treeType === 'application'
+        ? (f: FlamegraphFrame): boolean => !f.frame.is_application
+        : treeType === 'system'
+        ? (f: FlamegraphFrame): boolean => f.frame.is_application
+        : () => false;
+
+    const maybeFilteredRoots =
+      treeType !== 'all'
+        ? filterFlamegraphTree([selectedNode], skipFunction)
+        : [selectedNode];
 
     if (tab === 'call order') {
       return maybeFilteredRoots;
     }
 
     return invertCallTree(maybeFilteredRoots);
-  }, [selectedNode, tab, filter]);
+  }, [selectedNode, tab, treeType]);
 
   const onMouseDown = useCallback((evt: React.MouseEvent<HTMLElement>) => {
     let startResizeVector = vec2.fromValues(evt.clientX, evt.clientY);
@@ -103,23 +111,25 @@ function FrameStack(props: FrameStackProps) {
             {t('Bottom Up')}
           </Button>
         </li>
-        <li
-          onClick={() => setTab('call order')}
-          className={tab === 'call order' ? 'active' : undefined}
-        >
-          <Button priority="link" size="zero">
+        <li className={tab === 'call order' ? 'active' : undefined}>
+          <Button priority="link" size="zero" onClick={() => setTab('call order')}>
             {t('Call Order')}
           </Button>
         </li>
-        <li>
-          <label>
-            Filter{' '}
-            <input
-              checked={filter}
-              type="checkbox"
-              onChange={e => setFilter(e.target.checked)}
-            />
-          </label>
+        <li className={treeType === 'all' ? 'active' : undefined}>
+          <Button priority="link" size="zero" onClick={() => setTreeType('all')}>
+            {t('All Frames')}
+          </Button>
+        </li>
+        <li className={treeType === 'application' ? 'active' : undefined}>
+          <Button priority="link" size="zero" onClick={() => setTreeType('application')}>
+            {t('Application Frames')}
+          </Button>
+        </li>
+        <li className={treeType === 'system' ? 'active' : undefined}>
+          <Button priority="link" size="zero" onClick={() => setTreeType('system')}>
+            {t('System Frames')}
+          </Button>
         </li>
         <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />
       </FrameTabs>
