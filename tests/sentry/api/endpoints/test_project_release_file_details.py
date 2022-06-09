@@ -1,12 +1,22 @@
+import io
 from base64 import urlsafe_b64decode, urlsafe_b64encode
 from hashlib import sha1
 
 from django.urls import reverse
 
-from sentry.api.endpoints.project_release_file_details import INVALID_UPDATE_MESSAGE
+from sentry.api.endpoints.project_release_file_details import (
+    INVALID_UPDATE_MESSAGE,
+    ClosesDependentFiles,
+)
 from sentry.models import File, Release, ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.testutils import APITestCase
+
+
+def test_closes_depnedent_files_is_iterable():
+    # django (but not django.test) requires a file response to be iterable
+    f = ClosesDependentFiles(io.BytesIO(b"hello\nworld\n"))
+    assert list(f) == [b"hello\n", b"world\n"]
 
 
 class ReleaseFileDetailsTest(APITestCase):
