@@ -70,3 +70,18 @@ class ProjectCreateSampleTransactionTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["title"] == "/productstore"
+
+    def test_path_traversal_attempt(self):
+
+        project = self.create_project(teams=[self.team], name="foo", platform="../../../etc/passwd")
+
+        url = reverse(
+            "sentry-api-0-project-create-sample-transaction",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.post(url, format="json")
+
+        # Why a 200 and not something like a 400? The current implementation will default to a
+        # `react-transaction` if no matching platform is found.
+        assert response.status_code == 200
+        assert response.data["title"] == "/productstore"

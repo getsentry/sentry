@@ -128,7 +128,4 @@ class ProjectCreateSampleTest(APITestCase):
         )
 
         response = self.client.post(url, format="json")
-        assert response.status_code == 400, response.content
-
-        response_json = json.loads(response.content)
-        assert response_json["detail"]["code"] == "suspicious-client-operation", response_json
+        assert response.status_code == 400
