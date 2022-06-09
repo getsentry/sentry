@@ -9,14 +9,17 @@ from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
 
+TASK_SOFT_LIMIT = 150  # 25 minutes; 25 * 60 = 15000
+TASK_HARD_LIMIT = 180  # Extra 5 minutes to remove the debounce key; 5 * 60 = 3000
+
 
 # DEPRECATED TASK, use build_project_config or invalidate_config_cache instead.
 @instrumented_task(
     name="sentry.tasks.relay.update_config_cache",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=1500,  # 25 minutes; 25 * 60 = 1500
-    time_limit=1800,  # Extra 5 minutes to remove the debounce key; 5 * 60 = 300
+    soft_time_limit=TASK_SOFT_LIMIT,
+    time_limit=TASK_HARD_LIMIT,
 )
 def update_config_cache(
     generate, organization_id=None, project_id=None, public_key=None, update_reason=None
@@ -107,8 +110,8 @@ def update_config_cache(
     name="sentry.tasks.relay.build_project_config",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=30,
-    time_limit=32,
+    soft_time_limit=TASK_SOFT_LIMIT,
+    time_limit=TASK_HARD_LIMIT,
 )
 def build_project_config(public_key=None, trigger=None, **kwargs):
     """Build a project config and put it in the Redis cache.
@@ -303,8 +306,8 @@ def compute_project_configs(project_keys):
     name="sentry.tasks.relay.invalidate_project_config",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=30,
-    time_limit=35,
+    soft_time_limit=TASK_SOFT_LIMIT,
+    time_limit=TASK_HARD_LIMIT,
 )
 def invalidate_project_config(
     organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs
