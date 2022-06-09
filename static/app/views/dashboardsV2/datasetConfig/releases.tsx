@@ -1,11 +1,19 @@
 import omit from 'lodash/omit';
 
+import {t} from 'sentry/locale';
 import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {transformSessionResponseToSeries} from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
 import {WidgetQuery} from '../types';
-import {resolveDerivedStatusFields} from '../widgetCard/releaseWidgetQueries';
+import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
+import {
+  derivedMetricsToField,
+  resolveDerivedStatusFields,
+} from '../widgetCard/releaseWidgetQueries';
+import {getSeriesName} from '../widgetCard/transformSessionsResponseToSeries';
 import {
   changeObjectValuesToTypes,
   getDerivedMetrics,
@@ -18,9 +26,7 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
-  transformSeries: (_data: SessionApiResponse | MetricsApiResponse) => {
-    return [] as Series[];
-  },
+  transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
 
@@ -53,4 +59,77 @@ export function transformSessionsResponseToTable(
     ...changeObjectValuesToTypes(omit(singleRow, 'id')),
   };
   return {meta, data: rows};
+}
+
+export function transformSessionsResponseToSeries(
+  data: SessionApiResponse | MetricsApiResponse,
+  widgetQuery: WidgetQuery,
+  queryAlias?: string
+) {
+  const useSessionAPI = widgetQuery.columns.includes('session.status');
+  const {derivedStatusFields: requestedStatusMetrics, injectedFields} =
+    resolveDerivedStatusFields(widgetQuery.aggregates, useSessionAPI);
+  if (data === null) {
+    return [];
+  }
+
+  const results: Series[] = [];
+
+  if (!data.groups.length) {
+    return [
+      {
+        seriesName: `(${t('no results')})`,
+        data: data.intervals.map(interval => ({
+          name: interval,
+          value: 0,
+        })),
+      },
+    ];
+  }
+
+  data.groups.forEach(group => {
+    Object.keys(group.series).forEach(field => {
+      // if `sum(session)` or `count_unique(user)` are not
+      // requested as a part of the payload for
+      // derived status metrics through the Sessions API,
+      // they are injected into the payload and need to be
+      // stripped.
+      if (!!!injectedFields.includes(derivedMetricsToField(field))) {
+        results.push({
+          seriesName: getSeriesName(field, group, queryAlias),
+          data: data.intervals.map((interval, index) => ({
+            name: interval,
+            value: group.series[field][index] ?? 0,
+          })),
+        });
+      }
+    });
+    // if session.status is a groupby, some post processing
+    // is needed to calculate the status derived metrics
+    // from grouped results of `sum(session)` or `count_unique(user)`
+    if (requestedStatusMetrics.length && defined(group.by['session.status'])) {
+      requestedStatusMetrics.forEach(status => {
+        const result = status.match(DERIVED_STATUS_METRICS_PATTERN);
+        if (result) {
+          let metricField: string | undefined = undefined;
+          if (group.by['session.status'] === result[1]) {
+            if (result[2] === 'session') {
+              metricField = 'sum(session)';
+            } else if (result[2] === 'user') {
+              metricField = 'count_unique(user)';
+            }
+          }
+          results.push({
+            seriesName: getSeriesName(status, group, queryAlias),
+            data: data.intervals.map((interval, index) => ({
+              name: interval,
+              value: metricField ? group.series[metricField][index] ?? 0 : 0,
+            })),
+          });
+        }
+      });
+    }
+  });
+
+  return results;
 }
