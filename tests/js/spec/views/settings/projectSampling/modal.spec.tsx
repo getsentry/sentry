@@ -4,6 +4,7 @@ import {
   waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {SamplingInnerName, SamplingRuleType} from 'sentry/types/sampling';
 import {
@@ -13,7 +14,6 @@ import {
 import {
   getInnerNameLabel,
   LEGACY_BROWSER_LIST,
-  SAMPLING_DOC_LINK,
 } from 'sentry/views/settings/project/sampling/utils';
 
 import {openSamplingRuleModal, renderComponent} from './utils';
@@ -42,70 +42,6 @@ describe('Sampling - Modal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders modal', async function () {
-    renderComponent();
-
-    // Open Modal
-    await openSamplingRuleModal(screen.getByText('Add Rule'));
-
-    // Modal content
-    expect(screen.getByText('Add Transaction Sampling Rule')).toBeInTheDocument();
-    expect(screen.getByText('Tracing')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).toBeChecked();
-    expect(
-      screen.getByRole('link', {
-        name: 'Learn more about tracing',
-      })
-    ).toHaveAttribute('href', SAMPLING_DOC_LINK);
-    expect(screen.getByText('Add Condition')).toBeInTheDocument();
-    expect(
-      screen.getByText('Apply sampling rate to all transactions')
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('\u0025')).toHaveValue(null);
-    expect(screen.getByLabelText('Save Rule')).toBeDisabled();
-
-    // Close Modal
-    userEvent.click(screen.getByLabelText('Close Modal'));
-    await waitForElementToBeRemoved(() =>
-      screen.queryByText('Add Transaction Sampling Rule')
-    );
-  });
-
-  it('displays correct condition options', async function () {
-    renderComponent();
-
-    // Open Modal
-    await openSamplingRuleModal(screen.getByText('Add Rule'));
-    const dialog = screen.getByRole('dialog');
-
-    // Click on 'Add condition'
-    userEvent.click(screen.getByText('Add Condition'));
-
-    // Autocomplete
-    expect(screen.getByText(/filter conditions/i)).toBeInTheDocument();
-
-    // Distributed Traces Options
-    distributedTracesConditions.forEach(condition => {
-      expect(within(dialog).getByText(getInnerNameLabel(condition))).toBeInTheDocument();
-    });
-    expect(
-      within(dialog).queryByText(
-        getInnerNameLabel(SamplingInnerName.EVENT_LEGACY_BROWSER)
-      )
-    ).not.toBeInTheDocument();
-
-    // Unchecked tracing checkbox
-    userEvent.click(screen.getByRole('checkbox'));
-
-    // Click on 'Add condition'
-    userEvent.click(screen.getByText('Add Condition'));
-
-    // Individual Transactions Options
-    individualTransactionsConditions.forEach(condition => {
-      expect(within(dialog).getByText(getInnerNameLabel(condition))).toBeInTheDocument();
-    });
-  });
-
   it('saves distributed traces rule', async function () {
     const rule = {
       condition: {
@@ -128,13 +64,50 @@ describe('Sampling - Modal', function () {
       }),
     });
 
-    renderComponent();
+    renderComponent({ruleType: SamplingRuleType.TRACE});
 
     // Open Modal
     await openSamplingRuleModal(screen.getByText('Add Rule'));
+    const dialog = screen.getByRole('dialog');
+
+    // Modal description
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Using a Trace ID, select all Transactions distributed across multiple projects/services which match your conditions. However, if you only want to select Transactions from within this project, we recommend you add a Individual Transaction rule instead.'
+        )
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Individual Transaction'})).toHaveAttribute(
+      'href',
+      `${SamplingRuleType.TRANSACTION}/`
+    );
+
+    // Empty conditions message
+    expect(screen.getByText('No conditions added')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          "if you don't want to add (+) a condition, simply, add a sample rate below"
+        )
+      )
+    ).toBeInTheDocument();
 
     // Click on 'Add condition'
     userEvent.click(screen.getByText('Add Condition'));
+
+    // Autocomplete
+    expect(screen.getByText(/filter conditions/i)).toBeInTheDocument();
+
+    // Distributed Traces Options
+    distributedTracesConditions.forEach(condition => {
+      expect(within(dialog).getByText(getInnerNameLabel(condition))).toBeInTheDocument();
+    });
+    expect(
+      within(dialog).queryByText(
+        getInnerNameLabel(SamplingInnerName.EVENT_LEGACY_BROWSER)
+      )
+    ).not.toBeInTheDocument();
 
     // Click on the condition option
     userEvent.click(screen.getAllByText('Release')[0]);
@@ -166,7 +139,7 @@ describe('Sampling - Modal', function () {
     // Close Modal
     userEvent.click(screen.getByLabelText('Close Modal'));
     await waitForElementToBeRemoved(() =>
-      screen.queryByText('Add Transaction Sampling Rule')
+      screen.queryByText('Add Distributed Trace Rule')
     );
 
     expect(saveMock).toHaveBeenLastCalledWith(
@@ -211,12 +184,38 @@ describe('Sampling - Modal', function () {
 
     // Open Modal
     await openSamplingRuleModal(screen.getByText('Add Rule'));
+    const dialog = screen.getByRole('dialog');
 
-    // Unchecked tracing checkbox
-    userEvent.click(screen.getByRole('checkbox'));
+    // Modal description
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'Select Transactions only within this project which match your conditions. However, If you want to select all Transactions distributed across multiple projects/services, we recommend you add a Distributed Trace rule instead.'
+        )
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Distributed Trace'})).toHaveAttribute(
+      'href',
+      `${SamplingRuleType.TRACE}/`
+    );
+
+    // Empty conditions message
+    expect(screen.getByText('No conditions added')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          "if you don't want to add (+) a condition, simply, add a sample rate below"
+        )
+      )
+    ).toBeInTheDocument();
 
     // Click on 'Add condition'
     userEvent.click(screen.getByText('Add Condition'));
+
+    // Individual Transactions Options
+    individualTransactionsConditions.forEach(condition => {
+      expect(within(dialog).getByText(getInnerNameLabel(condition))).toBeInTheDocument();
+    });
 
     // Click on the first condition option
     userEvent.click(screen.getAllByText('Release')[0]);
@@ -236,7 +235,7 @@ describe('Sampling - Modal', function () {
     // Close Modal
     userEvent.click(screen.getByLabelText('Close Modal'));
     await waitForElementToBeRemoved(() =>
-      screen.queryByText('Add Transaction Sampling Rule')
+      screen.queryByText('Add Individual Transaction Rule')
     );
 
     expect(saveMock).toHaveBeenLastCalledWith(
@@ -307,6 +306,9 @@ describe('Sampling - Modal', function () {
 
     await openSamplingRuleModal(screen.getByLabelText('Edit Rule'));
 
+    // Empty conditions message is not displayed
+    expect(screen.queryByText('No conditions added')).not.toBeInTheDocument();
+
     // Type into realease field
     userEvent.clear(screen.getByLabelText('Search or add a release'));
     userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
@@ -323,7 +325,7 @@ describe('Sampling - Modal', function () {
 
     // Modal will close
     await waitForElementToBeRemoved(() =>
-      screen.queryByText('Edit Transaction Sampling Rule')
+      screen.queryByText('Edit Distributed Trace Rule')
     );
 
     expect(saveMock).toHaveBeenLastCalledWith(
@@ -388,9 +390,6 @@ describe('Sampling - Modal', function () {
     // Open Modal
     await openSamplingRuleModal(screen.getByText('Add Rule'));
 
-    // Uncheck tracing checkbox
-    userEvent.click(screen.getByRole('checkbox'));
-
     // Click on 'Add condition'
     userEvent.click(screen.getByText('Add Condition'));
 
@@ -437,7 +436,7 @@ describe('Sampling - Modal', function () {
     // Close Modal
     userEvent.click(screen.getByLabelText('Close Modal'));
     await waitForElementToBeRemoved(() =>
-      screen.queryByText('Add Transaction Sampling Rule')
+      screen.queryByText('Add Individual Transaction Rule')
     );
 
     expect(saveMock).toHaveBeenLastCalledWith(
@@ -491,9 +490,6 @@ describe('Sampling - Modal', function () {
     // Open Modal
     await openSamplingRuleModal(screen.getByText('Add Rule'));
 
-    // Uncheck tracing checkbox
-    userEvent.click(screen.getByRole('checkbox'));
-
     // Click on 'Add condition'
     userEvent.click(screen.getByText('Add Condition'));
 
@@ -527,7 +523,7 @@ describe('Sampling - Modal', function () {
     // Close Modal
     userEvent.click(screen.getByLabelText('Close Modal'));
     await waitForElementToBeRemoved(() =>
-      screen.queryByText('Add Transaction Sampling Rule')
+      screen.queryByText('Add Individual Transaction Rule')
     );
 
     expect(saveMock).toHaveBeenLastCalledWith(
@@ -574,7 +570,123 @@ describe('Sampling - Modal', function () {
     // Close Modal
     userEvent.click(screen.getByLabelText('Close Modal'));
     await waitForElementToBeRemoved(() =>
-      screen.queryByText('Add Transaction Sampling Rule')
+      screen.queryByText('Add Distributed Trace Rule')
     );
+  });
+
+  it('does not let you save a distributed trace rule without a condition, if a trace rule without a condition already exists', async function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: TestStubs.Project({
+        dynamicSampling: {
+          rules: [
+            {
+              sampleRate: 0.2,
+              type: 'trace',
+              condition: {
+                op: 'and',
+                inner: [
+                  {
+                    op: 'glob',
+                    name: 'trace.release',
+                    value: ['1.2.2'],
+                  },
+                ],
+              },
+              id: 40,
+            },
+            {
+              sampleRate: 0.5,
+              type: 'trace',
+              condition: {
+                op: 'and',
+                inner: [],
+              },
+              id: 41,
+            },
+          ],
+          next_id: 42,
+        },
+      }),
+    });
+
+    renderComponent();
+
+    // Open Modal
+    await openSamplingRuleModal(screen.getByText('Add Rule'));
+
+    // Empty conditions message
+    expect(screen.getByText('No conditions added')).toBeInTheDocument();
+
+    // A hint about an existing 'sample all' rule is displayed
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'A rule without conditions already exists. Add (+) a condition for creating a new rule'
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Adds a sample rate
+    userEvent.paste(screen.getByPlaceholderText('\u0025'), '5');
+
+    // Button is still disabled
+    expect(screen.getByLabelText('Save Rule')).toBeDisabled();
+  });
+
+  it('does not let you save a individual transaction rule without a condition, if a transaction rule without a condition already exists', async function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: TestStubs.Project({
+        dynamicSampling: {
+          rules: [
+            {
+              condition: {
+                inner: [{name: 'event.release', op: 'glob', value: ['1.2.3']}],
+                op: 'and',
+              },
+              id: 0,
+              sampleRate: 0.3,
+              type: 'transaction',
+            },
+            {
+              condition: {
+                inner: [],
+                op: 'and',
+              },
+              id: 1,
+              sampleRate: 0.2,
+              type: 'transaction',
+            },
+          ],
+          next_id: 2,
+        },
+      }),
+    });
+
+    renderComponent({ruleType: SamplingRuleType.TRANSACTION});
+
+    // Open Modal
+    await openSamplingRuleModal(screen.getByText('Add Rule'));
+
+    // Empty conditions message
+    expect(screen.getByText('No conditions added')).toBeInTheDocument();
+
+    // A hint about an existing 'sample all' rule is displayed
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          'A rule without conditions already exists. Add (+) a condition for creating a new rule'
+        )
+      )
+    ).toBeInTheDocument();
+
+    // Adds a sample rate
+    userEvent.paste(screen.getByPlaceholderText('\u0025'), '5');
+
+    // Button is still disabled
+    expect(screen.getByLabelText('Save Rule')).toBeDisabled();
   });
 });
