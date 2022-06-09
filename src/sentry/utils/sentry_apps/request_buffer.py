@@ -1,5 +1,4 @@
 import logging
-from sys import getsizeof
 
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -139,27 +138,16 @@ class SentryAppWebhookRequestsBuffer:
             if headers:
                 request_data["request_headers"] = headers
 
-            if response:
-                if response.content:
+            if response is not None:
+                if response.content is not None:
                     request_data["response_body"] = response.content[:MAX_SIZE]
-
-                if response.request:
-                    request_body = None
-                    request = response.request
-                    if request:
-                        request_body = request.body
-                    if request_body:
-                        request_body_size = getsizeof(request_body)
-                        if request_body_size > MAX_SIZE:
-                            logger.warning(
-                                f"Request body exceeds max size of {MAX_SIZE}. Size is {request_body_size}."
-                            )
-                        else:
-                            # request_data["request_body"] = json.loads(request_body[:MAX_SIZE])
-                            # the above breaks if it's not valid json because it was chopped off
-                            # not sure how to reduce the size in a clean way
-                            # adding logging to see if this ever even happens
-                            request_data["request_body"] = request_body
+                if response.request is not None:
+                    request_body = response.request.body
+                    if request_body is not None:
+                        prettified_request_body = json.dumps(
+                            request_body, indent=2, separators=(",", ": ")
+                        )
+                        request_data["request_body"] = prettified_request_body[:MAX_SIZE]
 
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway
         if not self.sentry_app.is_internal:
