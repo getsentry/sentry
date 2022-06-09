@@ -87,7 +87,10 @@ function CreateNewIntegrationModal({
   return (
     <Fragment>
       <Header>
-        <h3>{t('Choose Integration Type')}</h3>
+        <HeaderWrapper>
+          <h3>{t('Choose Integration Type')}</h3>
+          <ExampleIntegrationButton analyticsView={analyticsView} />
+        </HeaderWrapper>
       </Header>
       <Body>
         <StyledRadioGroup
@@ -98,38 +101,29 @@ function CreateNewIntegrationModal({
         />
       </Body>
       <Footer>
-        <FooterWrapper>
-          <ExampleIntegrationButton analyticsView={analyticsView} />
-          <div>
-            <Button
-              size="small"
-              onClick={() => closeModal()}
-              style={{marginRight: space(1)}}
-            >
-              {t('Cancel')}
-            </Button>
-            <Button
-              priority="primary"
-              size="small"
-              to={`/settings/${organization.slug}/developer-settings/${
-                option === 'public' ? 'new-public' : 'new-internal'
-              }/`}
-              onClick={() => {
-                trackIntegrationAnalytics(
-                  option === 'public'
-                    ? PlatformEvents.CHOSE_PUBLIC
-                    : PlatformEvents.CHOSE_INTERNAL,
-                  {
-                    organization,
-                    view: analyticsView,
-                  }
-                );
-              }}
-            >
-              {t('Next')}
-            </Button>
-          </div>
-        </FooterWrapper>
+        <Button size="small" onClick={() => closeModal()} style={{marginRight: space(1)}}>
+          {t('Cancel')}
+        </Button>
+        <Button
+          priority="primary"
+          size="small"
+          to={`/settings/${organization.slug}/developer-settings/${
+            option === 'public' ? 'new-public' : 'new-internal'
+          }/`}
+          onClick={() => {
+            trackIntegrationAnalytics(
+              option === 'public'
+                ? PlatformEvents.CHOSE_PUBLIC
+                : PlatformEvents.CHOSE_INTERNAL,
+              {
+                organization,
+                view: analyticsView,
+              }
+            );
+          }}
+        >
+          {t('Next')}
+        </Button>
       </Footer>
     </Fragment>
   );
@@ -151,8 +145,9 @@ const RadioChoiceDescription = styled('div')`
   line-height: 1.6em;
 `;
 
-const FooterWrapper = styled('div')`
+const HeaderWrapper = styled('div')`
   display: flex;
+  align-items: center;
   justify-content: space-between;
   width: 100%;
 `;

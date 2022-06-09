@@ -37,7 +37,7 @@ function ExampleIntegrationButton({
       icon={<IconGithub />}
       {...buttonProps}
     >
-      {t('View Example')}
+      {t('View Example App')}
     </Button>
   );
 }
