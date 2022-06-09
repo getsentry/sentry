@@ -32,10 +32,11 @@ class TestMediator(TestCase):
         self.mediator = MockMediator(user={"name": "Example"}, age=30, logger=self.logger)
 
     def test_must_implement_call(self):
-        del MockMediator.call
+        with patch.object(MockMediator, "call"):
+            del MockMediator.call
 
-        with self.assertRaises(NotImplementedError):
-            MockMediator.run(user={"name": "Example"})
+            with self.assertRaises(NotImplementedError):
+                MockMediator.run(user={"name": "Example"})
 
     def test_validate_params(self):
         with self.assertRaises(TypeError):
