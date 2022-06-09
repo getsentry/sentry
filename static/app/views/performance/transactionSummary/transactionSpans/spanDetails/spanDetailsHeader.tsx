@@ -4,7 +4,6 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -117,7 +116,7 @@ const ContentHeader = styled('div')`
 `;
 
 const HeaderInfo = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   height: 78px;
 `;
 
@@ -143,7 +142,7 @@ const PercentileHeaderBodyWrapper = styled('div')`
 `;
 
 export const SpanLabelContainer = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const EmptyValueContainer = styled('span')`

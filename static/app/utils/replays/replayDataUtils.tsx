@@ -1,14 +1,16 @@
 import first from 'lodash/first';
 
-import {
-  getVirtualCrumb,
-  transformCrumbs,
-} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {t} from 'sentry/locale';
 import type {BreadcrumbTypeDefault, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
-import type {RecordingEvent, ReplayCrumb, ReplaySpan} from 'sentry/views/replays/types';
+import type {
+  RecordingEvent,
+  ReplayCrumb,
+  ReplayError,
+  ReplaySpan,
+} from 'sentry/views/replays/types';
 
 export function rrwebEventListFactory(
   startTimestampMS: number,
@@ -49,10 +51,11 @@ export function rrwebEventListFactory(
 
 export function breadcrumbFactory(
   startTimestamp: number,
-  events: Event[],
+  rootEvent: Event,
+  errors: ReplayError[],
   rawCrumbs: ReplayCrumb[]
 ): Crumb[] {
-  const {tags} = events[0];
+  const {tags} = rootEvent;
   const initBreadcrumb = {
     type: BreadcrumbType.INIT,
     timestamp: new Date(startTimestamp).toISOString(),
@@ -64,9 +67,16 @@ export function breadcrumbFactory(
     },
   } as BreadcrumbTypeDefault;
 
-  const errorCrumbs = events
-    .map(getVirtualCrumb)
-    .filter((crumb: RawCrumb | undefined): crumb is RawCrumb => crumb !== undefined);
+  const errorCrumbs: RawCrumb[] = errors.map(error => ({
+    type: BreadcrumbType.ERROR,
+    level: BreadcrumbLevelType.ERROR,
+    category: 'exception',
+    data: {
+      type: error['error.type'],
+      value: error['error.value'],
+    },
+    timestamp: error.timestamp,
+  }));
 
   const result = transformCrumbs([
     initBreadcrumb,

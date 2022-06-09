@@ -8,7 +8,6 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PanelTable from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -230,7 +229,7 @@ const HeadCellContainer = styled('div')`
 
 const BodyCellContainer = styled('div')`
   padding: ${space(1)} ${space(2)};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledIconQuestion = styled(QuestionTooltip)`
