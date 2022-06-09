@@ -1,9 +1,7 @@
 import React, {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
-import Access from 'sentry/components/acl/access';
 import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
@@ -19,6 +17,7 @@ import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
+import CreateIntegrationButton from 'sentry/views/organizationIntegrations/createIntegrationButton';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
@@ -141,37 +140,10 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   }
   renderBody() {
     const {organization} = this.props;
-
-    const permissionTooltipText = t(
-      'Manager or Owner permissions are required to create a new integration'
-    );
-
     const tabs = [
       ['internal', t('Internal Integration')],
       ['public', t('Public Integration')],
     ] as [id: Tab, label: string][];
-
-    const action = (
-      <Access organization={organization} access={['org:write']}>
-        {({hasAccess}) => (
-          <Button
-            priority="primary"
-            disabled={!hasAccess}
-            title={!hasAccess ? permissionTooltipText : undefined}
-            size="small"
-            onClick={() => {
-              openCreateNewIntegrationModal();
-              trackIntegrationAnalytics(PlatformEvents.OPEN_CREATE_MODAL, {
-                organization,
-                view: 'developer_settings',
-              });
-            }}
-          >
-            {t('Create New Integration')}
-          </Button>
-        )}
-      </Access>
-    );
 
     return (
       <div>
@@ -214,7 +186,7 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
               >
                 {t('View Example')}
               </Button>
-              {action}
+              {<CreateIntegrationButton analyticsView="developer_settings" />}
             </Fragment>
           }
         />

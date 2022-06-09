@@ -15,9 +15,8 @@ import {
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = {
-  organization: Organization;
-} & ModalRenderProps;
+export type CreateNewIntegrationModalOptions = {organization: Organization};
+type CreateNewIntegrationModalProps = CreateNewIntegrationModalOptions & ModalRenderProps;
 
 function CreateNewIntegrationModal({
   Body,
@@ -25,7 +24,7 @@ function CreateNewIntegrationModal({
   Footer,
   closeModal,
   organization,
-}: Props) {
+}: CreateNewIntegrationModalProps) {
   const [option, selectOption] = useState('internal');
   const choices = [
     [
