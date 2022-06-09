@@ -109,7 +109,7 @@ export function SamplingRuleModal({
 
   function getInitialState(): State {
     if (rule) {
-      const {condition: conditions, sampleRate} = rule as SamplingRule;
+      const {condition: conditions, sampleRate} = rule;
 
       const {inner} = conditions;
 
@@ -216,10 +216,7 @@ export function SamplingRuleModal({
     const newRule: SamplingRule = {
       // All new/updated rules must have id equal to 0
       id: 0,
-      type:
-        type === SamplingRuleType.TRACE
-          ? SamplingRuleType.TRACE
-          : SamplingRuleType.TRANSACTION,
+      type,
       condition: {
         op: SamplingConditionOperator.AND,
         inner: !conditions.length ? [] : conditions.map(getNewCondition),
