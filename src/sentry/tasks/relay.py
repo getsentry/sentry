@@ -187,7 +187,9 @@ def build_project_config(public_key=None, trigger=None, **kwargs):
 
     try:
         validate_args(public_key=public_key)
+        sentry_sdk.set_tag("public_key", public_key)
         sentry_sdk.set_tag("update_reason", trigger)
+        sentry_sdk.set_context("kwargs", kwargs)
 
         keys = project_keys_to_update(public_key=public_key)
 
@@ -406,6 +408,7 @@ def invalidate_project_config(
     if public_key:
         sentry_sdk.set_tag("public_key", public_key)
     sentry_sdk.set_tag("trigger", trigger)
+    sentry_sdk.set_context("kwargs", kwargs)
 
     configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
