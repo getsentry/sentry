@@ -1,10 +1,9 @@
 from django.core.signing import BadSignature
 from django.utils.http import is_safe_url
 
+from fixtures.sudo_testutils import BaseTestCase
 from sudo.settings import COOKIE_AGE, COOKIE_NAME
 from sudo.utils import grant_sudo_privileges, has_sudo_privileges, revoke_sudo_privileges
-
-from .base import BaseTestCase
 
 
 class GrantSudoPrivilegesTestCase(BaseTestCase):

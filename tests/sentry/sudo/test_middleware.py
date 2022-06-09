@@ -1,10 +1,9 @@
 from django.http import HttpResponse
 
+from fixtures.sudo_testutils import BaseTestCase
 from sudo.middleware import SudoMiddleware
 from sudo.settings import COOKIE_NAME
 from sudo.utils import grant_sudo_privileges, revoke_sudo_privileges
-
-from .base import BaseTestCase
 
 
 class SudoMiddlewareTestCase(BaseTestCase):

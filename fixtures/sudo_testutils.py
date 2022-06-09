@@ -1,3 +1,5 @@
+from django.contrib.auth.models import AbstractBaseUser
+from django.db import models
 from django.contrib.auth.models import AnonymousUser, User
 from django.test import RequestFactory, TestCase
 
@@ -38,3 +40,15 @@ class BaseTestCase(TestCase):
     def login(self, user_class=User):
         user = user_class()
         self.setUser(user)
+
+
+class EmailUser(AbstractBaseUser):
+    email = models.CharField(max_length=254, unique=True)
+
+    USERNAME_FIELD = "email"
+
+    def get_username(self):
+        return self.email
+
+    class Meta:
+        app_label = "sudo_tests"
