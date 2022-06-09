@@ -2,6 +2,7 @@ import logging
 
 import sentry_sdk
 from django.conf import settings
+from django.db import transaction
 
 from sentry.relay import projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
@@ -114,14 +115,25 @@ def should_update_cache(organization_id=None, project_id=None, public_key=None) 
     )
 
 
-def schedule_update_config_cache(
-    generate, project_id=None, organization_id=None, public_key=None, update_reason=None
-):
+def schedule_update_config_cache(*args, **kwargs):
     """
     Schedule the `update_config_cache` with debouncing applied.
 
     See documentation of `update_config_cache` for documentation of parameters.
     """
+
+    # schedule_update_config_cache may be called from model hooks during an
+    # open transaction. In that case, wait until the current transaction has
+    # been committed or rolled back to ensure we don't read stale data in the
+    # task.
+    #
+    # If there is no transaction open, on_commit should run immediately.
+    transaction.on_commit(lambda: _schedule_update_config_cache_impl(*args, **kwargs))
+
+
+def _schedule_update_config_cache_impl(
+    generate, project_id=None, organization_id=None, public_key=None, update_reason=None
+):
 
     if (
         settings.SENTRY_RELAY_PROJECTCONFIG_CACHE

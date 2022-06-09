@@ -1,6 +1,8 @@
+import contextlib
 from unittest.mock import patch
 
 import pytest
+from django.db import transaction
 
 from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
@@ -11,6 +13,43 @@ from sentry.tasks.relay import schedule_update_config_cache
 def _cache_keys_for_project(project):
     for key in ProjectKey.objects.filter(project_id=project.id):
         yield key.public_key
+
+
+@pytest.fixture
+def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
+    # This contraption helps in testing the usage of `transaction.on_commit` in
+    # schedule_update_config_cache. Normally tests involving transactions would
+    # require us to use the transactional testcase (or
+    # `pytest.mark.django_db(transaction=True)`), but that incurs a 2x slowdown
+    # in test speed and we're trying to keep our testcases fast.
+    @contextlib.contextmanager
+    def inner(assert_num_callbacks=1):
+        with burst_task_runner() as burst:
+            with django_capture_on_commit_callbacks(execute=True) as callbacks:
+                yield
+
+                # Assert there are no jobs in the queue yet, as we should have
+                # some on_commit callbacks instead. If we don't, then the model
+                # hook has scheduled the schedule_update_config_cache task
+                # prematurely.
+                burst(max_jobs=0)
+
+            # for some reason, the callbacks array is only populated by
+            # pytest-django's implementation after the context manager has
+            # exited, not while they are being registered
+            assert len(callbacks) == assert_num_callbacks
+
+        # Callbacks have been executed, job(s) should've been scheduled now, so
+        # let's execute them.
+        #
+        # Note: We can't directly assert that the data race has not occured, as
+        # there are no real DB transactions available in this testcase. The
+        # entire test runs in one transaction because that's how pytest-django
+        # sets up things unless one uses
+        # pytest.mark.django_db(transaction=True).
+        burst(max_jobs=10)
+
+    return inner
 
 
 @pytest.fixture
@@ -67,6 +106,7 @@ def test_debounce(
     default_project,
     default_organization,
     debounce_cache,
+    emulate_transactions,
 ):
     tasks = []
 
@@ -77,12 +117,17 @@ def test_debounce(
     monkeypatch.setattr("sentry.tasks.relay.update_config_cache.apply_async", apply_async)
 
     debounce_cache.mark_task_done(None, default_project.id, None)
-    schedule_update_config_cache(generate=True, project_id=default_project.id)
-    schedule_update_config_cache(generate=False, project_id=default_project.id)
+
+    with emulate_transactions():
+        schedule_update_config_cache(generate=True, project_id=default_project.id)
+    with emulate_transactions():
+        schedule_update_config_cache(generate=False, project_id=default_project.id)
 
     debounce_cache.mark_task_done(None, None, default_organization.id)
-    schedule_update_config_cache(generate=True, organization_id=default_organization.id)
-    schedule_update_config_cache(generate=False, organization_id=default_organization.id)
+    with emulate_transactions():
+        schedule_update_config_cache(generate=True, organization_id=default_organization.id)
+    with emulate_transactions():
+        schedule_update_config_cache(generate=False, organization_id=default_organization.id)
 
     assert tasks == [
         {
@@ -109,10 +154,10 @@ def test_generate(
     default_project,
     default_organization,
     default_projectkey,
-    task_runner,
     entire_organization,
     redis_cache,
     always_update_cache,
+    emulate_transactions,
 ):
     assert not redis_cache.get(default_projectkey.public_key)
 
@@ -121,7 +166,7 @@ def test_generate(
     else:
         kwargs = {"organization_id": default_organization.id}
 
-    with task_runner():
+    with emulate_transactions():
         schedule_update_config_cache(generate=True, **kwargs)
 
     cfg = redis_cache.get(default_projectkey.public_key)
@@ -145,7 +190,7 @@ def test_invalidate(
     default_project,
     default_projectkey,
     default_organization,
-    task_runner,
+    emulate_transactions,
     entire_organization,
     redis_cache,
     always_update_cache,
@@ -160,7 +205,7 @@ def test_invalidate(
     else:
         kwargs = {"organization_id": default_organization.id}
 
-    with task_runner():
+    with emulate_transactions():
         schedule_update_config_cache(generate=False, **kwargs)
 
     for cache_key in _cache_keys_for_project(default_project):
@@ -168,8 +213,11 @@ def test_invalidate(
 
 
 @pytest.mark.django_db
-def test_project_update_option(default_projectkey, default_project, task_runner, redis_cache):
-    with task_runner():
+def test_project_update_option(
+    default_projectkey, default_project, emulate_transactions, redis_cache
+):
+    # XXX: there should only be one hook triggered, regardless of debouncing
+    with emulate_transactions(assert_num_callbacks=4):
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
@@ -178,7 +226,8 @@ def test_project_update_option(default_projectkey, default_project, task_runner,
         "applications": {"$string": ["@creditcard:mask"]}
     }
 
-    with task_runner():
+    # XXX: there should only be one hook triggered, regardless of debouncing
+    with emulate_transactions(assert_num_callbacks=2):
         default_project.organization.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
@@ -188,8 +237,9 @@ def test_project_update_option(default_projectkey, default_project, task_runner,
 
 
 @pytest.mark.django_db
-def test_project_delete_option(default_project, task_runner, redis_cache):
-    with task_runner():
+def test_project_delete_option(default_project, emulate_transactions, redis_cache):
+    # XXX: there should only be one hook triggered, regardless of debouncing
+    with emulate_transactions(assert_num_callbacks=3):
         default_project.delete_option("sentry:relay_pii_config")
 
     for cache_key in _cache_keys_for_project(default_project):
@@ -197,9 +247,9 @@ def test_project_delete_option(default_project, task_runner, redis_cache):
 
 
 @pytest.mark.django_db
-def test_project_get_option_does_not_reload(default_project, task_runner, monkeypatch):
+def test_project_get_option_does_not_reload(default_project, emulate_transactions, monkeypatch):
     ProjectOption.objects._option_cache.clear()
-    with task_runner():
+    with emulate_transactions(assert_num_callbacks=0):
         with patch("sentry.utils.cache.cache.get", return_value=None):
             with patch("sentry.tasks.relay.schedule_update_config_cache") as update_config_cache:
                 default_project.get_option(
@@ -211,8 +261,8 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
 
 @pytest.mark.xfail(reason="XXX temporarily disabled")
 @pytest.mark.django_db
-def test_projectkeys(default_project, task_runner, redis_cache):
-    with task_runner():
+def test_projectkeys(default_project, emulate_transactions, redis_cache):
+    with emulate_transactions():
         deleted_pks = list(ProjectKey.objects.filter(project=default_project))
         for key in deleted_pks:
             key.delete()
@@ -226,16 +276,48 @@ def test_projectkeys(default_project, task_runner, redis_cache):
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
 
-    with task_runner():
+    with emulate_transactions():
         pk.status = ProjectKeyStatus.INACTIVE
         pk.save()
 
     assert redis_cache.get(pk.public_key)["disabled"]
 
-    with task_runner():
+    with emulate_transactions():
         pk.delete()
 
     assert redis_cache.get(pk.public_key) == {"disabled": True}
 
     for key in ProjectKey.objects.filter(project_id=default_project.id):
         assert not redis_cache.get(key.public_key)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_db_transaction(default_project, default_projectkey, redis_cache, task_runner):
+    with task_runner(), transaction.atomic():
+        default_project.update_option(
+            "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
+        )
+
+        # Assert that cache entry hasn't been created yet, only after the
+        # transaction has committed.
+        assert not redis_cache.get(default_projectkey.public_key)
+
+    assert redis_cache.get(default_projectkey.public_key)["config"]["piiConfig"] == {
+        "applications": {"$string": ["@creditcard:mask"]}
+    }
+
+    try:
+        with task_runner(), transaction.atomic():
+            default_project.update_option(
+                "sentry:relay_pii_config", '{"applications": {"$string": ["@password:mask"]}}'
+            )
+
+            raise Exception("rollback!")
+
+    except Exception:
+        pass
+
+    # Assert that database rollback is honored
+    assert redis_cache.get(default_projectkey.public_key)["config"]["piiConfig"] == {
+        "applications": {"$string": ["@creditcard:mask"]}
+    }
