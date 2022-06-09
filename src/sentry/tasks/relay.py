@@ -10,8 +10,8 @@ from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
 
-TASK_SOFT_LIMIT = 150  # 25 minutes; 25 * 60 = 15000
-TASK_HARD_LIMIT = 180  # Extra 5 minutes to remove the debounce key; 5 * 60 = 3000
+TASK_SOFT_LIMIT = 25
+TASK_HARD_LIMIT = 30  # Extra 5 seconds to remove the debounce key
 
 
 # DEPRECATED TASK, use build_project_config or invalidate_config_cache instead.
