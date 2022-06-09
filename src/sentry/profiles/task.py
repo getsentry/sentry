@@ -137,6 +137,11 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
             for original, symbolicated in zip(
                 profile["sampled_profile"]["samples"], response["stacktraces"]
             ):
+                for frame in symbolicated["frames"]:
+                    frame.pop("pre_context", None)
+                    frame.pop("context_line", None)
+                    frame.pop("post_context", None)
+
                 original["original_frames"] = original["frames"]
                 original["frames"] = symbolicated["frames"]
             break
