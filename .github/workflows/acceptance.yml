@@ -10,8 +10,8 @@ on:
   push:
     branches:
       - master
-      - releases/**
-  pull_request:
+  #     - releases/**
+  # pull_request:
 
 jobs:
   files-changed:
