@@ -25,6 +25,7 @@ google-cloud-storage==1.35.0
 # Only necessary to prevent installing the latest version
 # https://github.com/googleapis/python-crc32c/issues/83
 google-crc32c==1.1.2
+isodate==0.6.1
 jsonschema==3.2.0
 lxml==4.6.5
 maxminddb==2.0.3
