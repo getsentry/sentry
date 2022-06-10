@@ -218,7 +218,7 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
   list-style: none;
   margin-bottom: 0;
   ${p => {
-    if (typeof p.maxMenuHeight !== 'undefined') {
+    if (p.maxMenuHeight !== undefined) {
       return `
         max-height: ${p.maxMenuHeight}px;
         overflow-y: scroll;
