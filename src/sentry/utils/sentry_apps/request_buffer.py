@@ -140,7 +140,14 @@ class SentryAppWebhookRequestsBuffer:
 
             if response is not None:
                 if response.content is not None:
-                    request_data["response_body"] = response.content[:MAX_SIZE]
+                    if json.loads(response.content) is not None:
+                        # if the type is jsonifiable, treat it as such
+                        prettified_response_body = json.dumps(
+                            response.content, indent=2, separators=(",", ": ")
+                        )
+                        request_data["response_body"] = prettified_response_body[:MAX_SIZE]
+                    else:
+                        request_data["response_body"] = response.content[:MAX_SIZE]
                 if response.request is not None:
                     request_body = response.request.body
                     if request_body is not None:
