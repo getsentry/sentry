@@ -1,20 +1,24 @@
-import {Fragment} from 'react';
+import React from 'react';
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 
-import {openCreateNewIntegrationModal} from 'sentry/actionCreators/modal';
 import {removeSentryApp} from 'sentry/actionCreators/sentryApps';
-import Access from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SentryApp} from 'sentry/types';
+import {
+  platformEventLinkMap,
+  PlatformEvents,
+} from 'sentry/utils/analytics/integrations/platformAnalyticsEvents';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
+import CreateIntegrationButton from 'sentry/views/organizationIntegrations/createIntegrationButton';
+import ExampleIntegrationButton from 'sentry/views/organizationIntegrations/exampleIntegrationButton';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import SentryApplicationRow from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationRow';
@@ -30,6 +34,8 @@ type State = AsyncView['state'] & {
 };
 
 class OrganizationDeveloperSettings extends AsyncView<Props, State> {
+  analyticsView = 'developer_settings' as const;
+
   getDefaultState(): State {
     const {location} = this.props;
     const value =
@@ -137,68 +143,46 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
   }
   renderBody() {
     const {organization} = this.props;
-
-    const permissionTooltipText = t(
-      'Manager or Owner permissions are required to create a new integration'
-    );
-
     const tabs = [
       ['internal', t('Internal Integration')],
       ['public', t('Public Integration')],
     ] as [id: Tab, label: string][];
 
-    const action = (
-      <Access organization={organization} access={['org:write']}>
-        {({hasAccess}) => (
-          <Button
-            priority="primary"
-            disabled={!hasAccess}
-            title={!hasAccess ? permissionTooltipText : undefined}
-            size="small"
-            onClick={() =>
-              openCreateNewIntegrationModal({
-                orgSlug: organization.slug,
-              })
-            }
-          >
-            {t('Create New Integration')}
-          </Button>
-        )}
-      </Access>
-    );
-
     return (
       <div>
         <SettingsPageHeader
           title={t('Developer Settings')}
-          body={t(
-            `Create integrations that interact with Sentry using the REST API and webhooks.`
-          )}
+          body={
+            <React.Fragment>
+              {t(
+                'Create integrations that interact with Sentry using the REST API and webhooks. '
+              )}
+              <br />
+              {tct('For more information [link: see our docs].', {
+                link: (
+                  <ExternalLink
+                    href={platformEventLinkMap[PlatformEvents.DOCS]}
+                    onClick={() => {
+                      trackIntegrationAnalytics(PlatformEvents.DOCS, {
+                        organization,
+                        view: this.analyticsView,
+                      });
+                    }}
+                  />
+                ),
+              })}
+            </React.Fragment>
+          }
           action={
-            <Fragment>
-              <Button
-                size="small"
-                external
-                href="https://docs.sentry.io/product/integrations/integration-platform/"
+            <ActionContainer>
+              <ExampleIntegrationButton
+                analyticsView={this.analyticsView}
                 style={{marginRight: space(1)}}
-              >
-                {t('View Docs')}
-              </Button>
-              {action}
-            </Fragment>
+              />
+              <CreateIntegrationButton analyticsView={this.analyticsView} />
+            </ActionContainer>
           }
         />
-        <Alert type="info">
-          {tct(
-            'Integrations can now detect when a comment on an issue is added or changes.  [link:Learn more].',
-            {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/#comments" />
-              ),
-            }
-          )}
-        </Alert>
-
         <NavTabs underlined>
           {tabs.map(([type, label]) => (
             <li
@@ -215,5 +199,9 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
     );
   }
 }
+
+const ActionContainer = styled('div')`
+  display: flex;
+`;
 
 export default withOrganization(OrganizationDeveloperSettings);
