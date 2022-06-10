@@ -1,8 +1,22 @@
-import {useCallback, useEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 
 import {getKeyCode} from './getKeyCode';
 
-const modifierKeys = [getKeyCode('shift'), getKeyCode('alt'), getKeyCode('ctrl')];
+const isKeyPressed = (key: string, evt: KeyboardEvent): boolean => {
+  const keyCode = getKeyCode(key);
+  switch (keyCode) {
+    case getKeyCode('command'):
+      return evt.metaKey;
+    case getKeyCode('shift'):
+      return evt.shiftKey;
+    case getKeyCode('ctrl'):
+      return evt.ctrlKey;
+    case getKeyCode('alt'):
+      return evt.altKey;
+    default:
+      return keyCode === evt.keyCode;
+  }
+};
 
 /**
  * Pass in the hotkey combinations under match and the corresponding callback function to be called.
@@ -13,52 +27,21 @@ export function useHotkeys(
   hotkeys: {callback: (e: KeyboardEvent) => void; match: string[] | string}[],
   deps: React.DependencyList
 ): void {
-  const keysPressedRef = useRef<Set<number>>(new Set());
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoizedHotkeys = useMemo(() => hotkeys, deps);
 
   const onKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      const removeKey = keyCode => {
-        keysPressedRef.current.delete(keyCode);
-      };
+    (evt: KeyboardEvent) => {
+      for (const set of memoizedHotkeys) {
+        const keysets = Array.isArray(set.match) ? set.match : [set.match];
+        for (const keyset of keysets) {
+          const keys = keyset.split('+');
 
-      if (e.type === 'keydown') {
-        keysPressedRef.current.add(e.keyCode);
-
-        if (e.metaKey && !modifierKeys.includes(e.keyCode)) {
-          /*
-          If command/metaKey is held, keyup does not get called for non-modifier keys. See:
-          https://web.archive.org/web/20160304022453/http://bitspushedaround.com/on-a-few-things-you-may-not-know-about-the-hellish-command-key-and-javascript-events/
-
-          So, if the metaKey is held, we just have it remove the key after a set timeout, this allows you to hold the command key down
-          and press the other key again after the timeout removes the key.
-        */
-          setTimeout(() => {
-            removeKey(e.keyCode);
-          }, 500);
-        }
-
-        for (const hotkey of memoizedHotkeys) {
-          const matches = (
-            Array.isArray(hotkey.match) ? hotkey.match : [hotkey.match]
-          ).map(o => o.trim().split('+'));
-
-          for (const keys of matches) {
-            if (
-              keys.length === keysPressedRef.current.size &&
-              keys.every(key => keysPressedRef.current.has(getKeyCode(key)))
-            ) {
-              hotkey.callback(e);
-              break;
-            }
+          if (keys.every(key => isKeyPressed(key, evt))) {
+            set.callback(evt);
+            return;
           }
         }
-      }
-
-      if (e.type === 'keyup') {
-        removeKey(e.keyCode);
       }
     },
     [memoizedHotkeys]
@@ -66,11 +49,9 @@ export function useHotkeys(
 
   useEffect(() => {
     document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('keyup', onKeyDown);
 
     return () => {
       document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('keyup', onKeyDown);
     };
   }, [onKeyDown]);
 }
