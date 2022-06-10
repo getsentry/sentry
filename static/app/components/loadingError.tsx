@@ -23,6 +23,7 @@ function LoadingError({
   return (
     <StyledAlert
       type="error"
+      data-test-id="loading-error"
       showIcon
       className={className}
       trailingItems={
