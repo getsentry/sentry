@@ -155,7 +155,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__next_step = next_step
         self.__batch: Optional[MetricsBatchBuilder] = None
         self.__closed = False
-        self.__batch_start = None
+        self.__batch_start: Optional[float] = None
         self.__metrics = get_metrics()
 
     def poll(self) -> None:
