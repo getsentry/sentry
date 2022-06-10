@@ -147,7 +147,7 @@ class SentryAppWebhookRequestsBuffer:
                             response.content, indent=2, separators=(",", ": ")
                         )
                         request_data["response_body"] = prettified_response_body[:MAX_SIZE]
-                    except json.JSONDecodeError:
+                    except (json.JSONDecodeError, TypeError):
                         request_data["response_body"] = response.content[:MAX_SIZE]
                 if response.request is not None:
                     request_body = response.request.body
