@@ -59,6 +59,10 @@ export type PerformanceEventParameters = {
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
   'performance_views.trace_view.view': {};
+  'performance_views.transaction_summary.change_chart_display': {
+    from_chart: string;
+    to_chart: string;
+  };
   'performance_views.trends.change_duration': {
     value: string;
     widget_type: string;
@@ -103,11 +107,13 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
   'performance_views.trace_view.view': 'Performance Views: Trace View viewed',
   'performance_views.team_key_transaction.set':
-    'Performance Views: Set Team Key Transaction',
+    'Performance Views: Set team key transaction',
   'performance_views.trends.widget_interaction':
-    'Performance Views: Trends Widget Interaction',
+    'Performance Views: Trends widget interaction',
   'performance_views.trends.widget_pagination':
-    'Performance Views: Trends Widget Page Changed',
+    'Performance Views: Trends widget page changed',
   'performance_views.trends.change_duration':
-    'Performance Views: Trends Widget Duration Changed',
+    'Performance Views: Trends widget duration changed',
+  'performance_views.transaction_summary.change_chart_display':
+    'Performance Views: Transaction Summary chart display changed',
 };
