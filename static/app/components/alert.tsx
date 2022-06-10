@@ -202,6 +202,10 @@ const MessageContainer = styled('div')<{
   padding-bottom: ${space(1.5)};
   padding-left: ${p => (p.showIcon ? '0' : space(2))};
   padding-right: ${p => (p.showTrailingItems ? space(1.5) : space(2))};
+  flex-direction: column;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    flex-direction: row;
+  }
 `;
 
 const Message = styled('span')`
@@ -221,6 +225,11 @@ const TrailingItems = styled('div')`
 
 const TrailingItemsWrap = styled(TrailingItems)`
   margin-left: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    margin-left: 0;
+    margin-top: ${space(2)};
+  }
 `;
 
 const ExpandIconWrap = styled('div')`
