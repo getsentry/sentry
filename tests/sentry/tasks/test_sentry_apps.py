@@ -1,4 +1,5 @@
 from collections import namedtuple
+from copy import deepcopy
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -43,6 +44,11 @@ def raiseException():
     raise Exception
 
 
+class RequestMock:
+    def __init__(self):
+        self.body = "blah blah"
+
+
 class ResponseMock:
     def __init__(self, headers, content, text, ok, status_code, request):
         self.headers = headers
@@ -60,14 +66,39 @@ class ResponseMock:
         return None
 
 
+headers = {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"}
+
 mock_fail_resp = ResponseMock(
-    headers={"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
+    headers=headers,
     content={},
     text="",
     ok=False,
     status_code=400,
-    request={"body": "blah blah"},
+    request=RequestMock(),
 )
+
+mock_fail_html_resp = deepcopy(mock_fail_resp)
+mock_fail_html_resp.content = "a bunch of garbage HTML"
+
+MockFailureHTMLContentResponseInstance = MagicMock(
+    status_code=mock_fail_html_resp.status_code,
+    headers=mock_fail_html_resp.headers,
+    content=mock_fail_html_resp.content,
+    request=mock_fail_html_resp.request,
+)
+MockFailureHTMLContentResponseInstance.__iter__.return_value = []
+
+mock_fail_json_resp = deepcopy(mock_fail_resp)
+mock_fail_json_resp.content = '{"error": "bad request"}'
+
+MockFailureJSONContentResponseInstance = MagicMock(
+    status_code=mock_fail_json_resp.status_code,
+    headers=mock_fail_html_resp.headers,
+    content=mock_fail_json_resp.content,
+    request=mock_fail_json_resp.request,
+)
+MockFailureJSONContentResponseInstance.__iter__.return_value = []
+
 MockResponseWithHeadersInstance = MagicMock(
     status_code=mock_fail_resp.status_code, headers=mock_fail_resp.headers
 )
@@ -77,6 +108,7 @@ MockFailureResponseInstance = MagicMock(
     status_code=mock_fail_resp.status_code, headers=mock_fail_resp.headers
 )
 MockFailureResponseInstance.__iter__.return_value = []
+
 
 MockResponse = namedtuple(
     "MockResponse", ["headers", "content", "text", "ok", "status_code", "raise_for_status"]
@@ -582,6 +614,52 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization.id
+
+    @patch(
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
+        return_value=MockFailureHTMLContentResponseInstance,
+    )
+    def test_saves_error_if_webhook_request_with_html_content_fails(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+
+        with self.assertRaises(ClientError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 400
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["response_body"] == mock_fail_html_resp.content
+
+    @patch(
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
+        return_value=MockFailureJSONContentResponseInstance,
+    )
+    def test_saves_error_if_webhook_request_with_json_content_fails(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+
+        with self.assertRaises(ClientError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 400
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
+        assert json.loads(first_request["response_body"]) == mock_fail_json_resp.content
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_saves_request_if_webhook_request_succeeds(self, safe_urlopen):
