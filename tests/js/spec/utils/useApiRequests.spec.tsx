@@ -86,7 +86,7 @@ describe('useApiRequests', () => {
         url: '/first/path/',
         method: 'GET',
         body: {
-          detail: 'oops there was a problem',
+          detail: 'oops there was a problem 1',
         },
         statusCode: 400,
       });
@@ -94,7 +94,7 @@ describe('useApiRequests', () => {
         url: '/second/path/',
         method: 'GET',
         body: {
-          detail: 'oops there was a problem',
+          detail: 'oops there was a problem 2',
         },
         statusCode: 400,
       });
@@ -111,12 +111,17 @@ describe('useApiRequests', () => {
 
       render(<App />);
       await waitFor(() => {
-        expect(screen.getByTestId('loading-error-message')).toHaveTextContent(
-          'oops there was a problem'
+        expect(screen.getByTestId('loading-error')).toHaveTextContent(
+          'oops there was a problem 1'
         );
       });
       await waitFor(() => {
-        expect(screen.getByTestId('loading-error-message')).toHaveTextContent(
+        expect(screen.getByTestId('loading-error')).toHaveTextContent(
+          'oops there was a problem 2'
+        );
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('loading-error')).toHaveTextContent(
           'oops there was a different problem'
         );
       });
