@@ -571,8 +571,7 @@ class EventManagerTest(TestCase):
 
         group = event.group
         assert group.first_release.version == "1.0"
-        pending = has_pending_commit_resolution(group)
-        assert pending is False
+        assert not has_pending_commit_resolution(group)
 
         # Add a commit with no associated release
         repo = self.create_repo(project=group.project)
@@ -587,8 +586,7 @@ class EventManagerTest(TestCase):
             relationship=GroupLink.Relationship.resolves,
         )
 
-        pending = has_pending_commit_resolution(group)
-        assert pending
+        assert has_pending_commit_resolution(group)
 
     def test_multiple_pending_commit_resolution(self):
         project_id = 1
