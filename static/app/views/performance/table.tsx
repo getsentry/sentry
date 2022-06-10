@@ -263,6 +263,14 @@ class _Table extends Component<Props, State> {
     });
   }
 
+  paginationAnalyticsEvent = (direction: string) => {
+    const {organization} = this.props;
+    trackAdvancedAnalyticsEvent('performance_views.landingv3.table_pagination', {
+      organization,
+      direction,
+    });
+  };
+
   renderHeadCell(
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
@@ -431,7 +439,10 @@ class _Table extends Component<Props, State> {
                     }}
                     location={location}
                   />
-                  <Pagination pageLinks={pageLinks} />
+                  <Pagination
+                    pageLinks={pageLinks}
+                    paginationAnalyticsEvent={this.paginationAnalyticsEvent}
+                  />
                 </Fragment>
               )}
             </DiscoverQuery>

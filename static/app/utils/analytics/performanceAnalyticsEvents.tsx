@@ -26,6 +26,9 @@ export type PerformanceEventParameters = {
     default_display: string;
     is_default: boolean;
   };
+  'performance_views.landingv3.table_pagination': {
+    direction: string;
+  };
   'performance_views.landingv3.widget.interaction': {
     widget_type?: string;
   };
@@ -90,6 +93,8 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.landingv3.batch_queries':
     'Performance Views: Landing Query Batching',
   'performance_views.landingv3.display_change': 'Performance Views: Switch Landing Tabs',
+  'performance_views.landingv3.table_pagination':
+    'Performance Views: Landing Page Transactions Table Page Changed',
   'performance_views.span_summary.change_chart':
     'Performance Views: Span Summary displayed chart changed',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',
