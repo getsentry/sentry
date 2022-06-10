@@ -36,7 +36,9 @@ APPLECRASHREPORT_ATTACHMENT_TYPE = "event.applecrashreport"
 
 
 def _merge_frame(new_frame, symbolicated, platform="native"):
-    if symbolicated.get("function"):
+    # il2cpp events which have the "csharp" platform have good (C#) names
+    # coming from the SDK, we do not want to override those with bad (mangled) C++ names.
+    if platform != "csharp" and symbolicated.get("function"):
         raw_func = trim(symbolicated["function"], 256)
         func = trim(trim_function_name(symbolicated["function"], platform), 256)
 
