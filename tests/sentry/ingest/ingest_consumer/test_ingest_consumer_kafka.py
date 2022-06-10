@@ -111,6 +111,7 @@ def test_ingest_consumer_reads_from_topic_and_calls_celery_task(
             group_id=random_group_id,
             consumer_types={ConsumerType.Events},
             auto_offset_reset="earliest",
+            executor=executor,
         )
 
     with task_runner():
