@@ -57,6 +57,10 @@ export type PerformanceEventParameters = {
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
   'performance_views.trace_view.view': {};
+  'performance_views.trends.change_duration': {
+    value: string;
+    widget_type: string;
+  };
   'performance_views.trends.widget_interaction': {
     widget_type: string;
   };
@@ -100,4 +104,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Trends Widget Interaction',
   'performance_views.trends.widget_pagination':
     'Performance Views: Trends Widget Page Changed',
+  'performance_views.trends.change_duration':
+    'Performance Views: Trends Widget Duration Changed',
 };

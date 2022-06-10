@@ -181,8 +181,10 @@ function handleFilterTransaction(location: Location, transaction: string) {
 
 function handleFilterDuration(
   location: Location,
+  organization: Organization,
   value: number,
   symbol: FilterSymbols,
+  trendChangeType: TrendChangeType,
   projects: Project[],
   projectIds: Readonly<number[]>
 ) {
@@ -211,6 +213,12 @@ function handleFilterDuration(
       ...location.query,
       query: String(query).trim(),
     },
+  });
+
+  trackAdvancedAnalyticsEvent('performance_views.trends.change_duration', {
+    organization,
+    widget_type: getChartTitle(trendChangeType),
+    value: `${symbol}${value}`,
   });
 }
 
@@ -381,6 +389,7 @@ function TrendsListItem(props: TrendsListItemProps) {
     currentTrendColumn,
     index,
     location,
+    organization,
     projects,
     handleSelectTransaction,
     trendView,
@@ -480,8 +489,10 @@ function TrendsListItem(props: TrendsListItemProps) {
           onClick={() =>
             handleFilterDuration(
               location,
+              organization,
               longestPeriodValue,
               FilterSymbols.LESS_THAN_EQUALS,
+              trendChangeType,
               projects,
               trendView.project
             )
@@ -493,8 +504,10 @@ function TrendsListItem(props: TrendsListItemProps) {
           onClick={() =>
             handleFilterDuration(
               location,
+              organization,
               longestPeriodValue,
               FilterSymbols.GREATER_THAN_EQUALS,
+              trendChangeType,
               projects,
               trendView.project
             )
