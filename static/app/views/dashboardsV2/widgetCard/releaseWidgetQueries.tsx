@@ -83,6 +83,7 @@ export function derivedMetricsToField(field: string): string {
  */
 export function resolveDerivedStatusFields(
   fields: string[],
+  orderby: string,
   useSessionAPI: boolean
 ): {
   aggregates: string[];
@@ -95,6 +96,16 @@ export function resolveDerivedStatusFields(
   );
 
   const injectedFields: string[] = [];
+
+  const rawOrderby = trimStart(orderby, '-');
+  const unsupportedOrderby =
+    DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
+
+  if (rawOrderby && !!!unsupportedOrderby && !!!fields.includes(rawOrderby)) {
+    if (!!!injectedFields.includes(rawOrderby)) {
+      injectedFields.push(rawOrderby);
+    }
+  }
 
   if (!!!useSessionAPI) {
     return {aggregates, derivedStatusFields, injectedFields};
@@ -368,6 +379,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
 
     const {aggregates, injectedFields} = resolveDerivedStatusFields(
       widget.queries[0].aggregates,
+      widget.queries[0].orderby,
       useSessionAPI
     );
     const columns = widget.queries[0].columns;

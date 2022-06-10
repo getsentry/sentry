@@ -29,7 +29,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DisplayType, Widget, WidgetType} from '../types';
-import {DEFAULT_RESULTS_LIMIT, normalizeQueries} from '../widgetBuilder/utils';
+import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
@@ -236,16 +236,7 @@ class WidgetCard extends Component<Props, State> {
       }
     }
     if (widget.displayType === DisplayType.TOP_N) {
-      const newDisplayType = DisplayType.AREA;
-
-      const queries = normalizeQueries({
-        displayType: newDisplayType,
-        queries: widget.queries,
-        widgetType: widget.widgetType ?? WidgetType.DISCOVER,
-        widgetBuilderNewDesign: organization.features.includes(
-          'new-widget-builder-experience-design'
-        ),
-      }).map(query => ({
+      const queries = widget.queries.map(query => ({
         ...query,
         // Use the last aggregate because that's where the y-axis is stored
         aggregates: query.aggregates.length

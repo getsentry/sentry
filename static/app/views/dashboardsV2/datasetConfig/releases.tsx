@@ -38,6 +38,7 @@ export function transformSessionsResponseToTable(
   const useSessionAPI = widgetQuery.columns.includes('session.status');
   const {derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
     widgetQuery.aggregates,
+    widgetQuery.orderby,
     useSessionAPI
   );
   const rows = data.groups.map((group, index) => ({
@@ -74,7 +75,11 @@ export function transformSessionsResponseToSeries(
 
   const useSessionAPI = widgetQuery.columns.includes('session.status');
   const {derivedStatusFields: requestedStatusMetrics, injectedFields} =
-    resolveDerivedStatusFields(widgetQuery.aggregates, useSessionAPI);
+    resolveDerivedStatusFields(
+      widgetQuery.aggregates,
+      widgetQuery.orderby,
+      useSessionAPI
+    );
 
   const results: Series[] = [];
 
