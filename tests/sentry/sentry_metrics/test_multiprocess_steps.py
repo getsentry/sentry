@@ -401,7 +401,9 @@ def test_produce_step() -> None:
 
     commit = Mock()
 
-    produce_step = ProduceStep(commit_function=commit, producer=producer)
+    produce_step = ProduceStep(
+        output_topic="snuba-metrics", commit_function=commit, producer=producer
+    )
 
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
