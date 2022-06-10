@@ -4,8 +4,8 @@ import shutil
 from collections import defaultdict
 
 from sentry.utils.numbers import base32_encode
-from tests.fixtures.integrations import FIXTURE_DIRECTORY
-from tests.fixtures.integrations.stub_service import StubService
+from fixtures.integrations import FIXTURE_DIRECTORY
+from fixtures.integrations.stub_service import StubService
 
 
 class MockService(StubService):

@@ -5,6 +5,7 @@ import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
 import {WidgetQuery} from '../types';
 import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
@@ -25,6 +26,7 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
+  getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };

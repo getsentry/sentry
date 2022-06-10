@@ -70,7 +70,7 @@ export function DataSetStep({
                 [
                   DataSet.RELEASES,
                   <Fragment key="releases-dataset">
-                    {t('Releases (sessions, crash rates)')} <FeatureBadge type="alpha" />
+                    {t('Releases (sessions, crash rates)')} <FeatureBadge type="beta" />
                   </Fragment>,
                 ],
               ]

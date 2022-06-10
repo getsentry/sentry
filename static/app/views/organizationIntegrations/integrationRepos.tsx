@@ -14,7 +14,6 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import RepositoryRow from 'sentry/components/repositoryRow';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Integration, Organization, Repository} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -284,5 +283,5 @@ const StyledListElement = styled('div')`
 const StyledName = styled('div')`
   flex-shrink: 1;
   min-width: 0;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;

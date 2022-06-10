@@ -54,7 +54,7 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
 /**
  * Types, functions and definitions for rendering fields in discover results.
  */
-type RenderFunctionBaggage = {
+export type RenderFunctionBaggage = {
   location: Location;
   organization: Organization;
   eventView?: EventView;

@@ -1,11 +1,6 @@
-import os
 import re
 
 from sentry.utils.safe import get_path
-
-
-def get_fixture_path(name):
-    return os.path.join(os.path.dirname(__file__), os.pardir, "fixtures", "native", name)
 
 
 def strip_frame(frame):

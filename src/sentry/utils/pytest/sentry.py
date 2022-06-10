@@ -65,7 +65,7 @@ def pytest_configure(config):
     settings.STATIC_BUNDLES = {}
 
     # override a few things with our test specifics
-    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("tests",)
+    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("fixtures",)
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
 
@@ -95,10 +95,8 @@ def pytest_configure(config):
     settings.SENTRY_TSDB = "sentry.tsdb.inmemory.InMemoryTSDB"
     settings.SENTRY_TSDB_OPTIONS = {}
 
-    # override it only if it's not the default
-    if settings.SENTRY_NEWSLETTER == "sentry.newsletter.base.Newsletter":
-        settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
-        settings.SENTRY_NEWSLETTER_OPTIONS = {}
+    settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
+    settings.SENTRY_NEWSLETTER_OPTIONS = {}
 
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"

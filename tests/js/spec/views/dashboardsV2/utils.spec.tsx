@@ -140,6 +140,19 @@ describe('Dashboards util', () => {
       expect(eventView.fields[1].field).toEqual('count()');
       expect(eventView.query).toEqual('has:geo.country_code');
     });
+    it('handles sorts in function format', () => {
+      const query = {...widget.queries[0], orderby: '-count()'};
+      const eventView = eventViewFromWidget(
+        widget.title,
+        query,
+        selection,
+        widget.displayType
+      );
+      expect(eventView.fields[0].field).toEqual('geo.country_code');
+      expect(eventView.fields[1].field).toEqual('count()');
+      expect(eventView.query).toEqual('has:geo.country_code');
+      expect(eventView.sorts).toEqual([{field: 'count', kind: 'desc'}]);
+    });
   });
 
   describe('getFieldsFromEquations', function () {

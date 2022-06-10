@@ -78,7 +78,7 @@ def fetch_metric_alert_sessions_data(
             f"Failed to load sessions for chart: {exc}",
             exc_info=True,
         )
-        return None
+        raise exc
 
 
 def fetch_metric_alert_events_timeseries(
@@ -114,7 +114,7 @@ def fetch_metric_alert_events_timeseries(
             f"Failed to load events-stats for chart: {exc}",
             exc_info=True,
         )
-        return []
+        raise exc
 
 
 def fetch_metric_alert_incidents(
