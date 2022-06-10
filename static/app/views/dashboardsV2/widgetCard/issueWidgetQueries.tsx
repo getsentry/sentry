@@ -122,7 +122,7 @@ class IssueWidgetQueries extends Component<Props, State> {
 
   config = getDatasetConfig(WidgetType.ISSUE);
 
-  async fetchIssuesData() {
+  async fetchTableData() {
     const {selection, api, organization, widget, limit, cursor, onDataFetched} =
       this.props;
     this.setState({tableResults: []});
@@ -189,7 +189,7 @@ class IssueWidgetQueries extends Component<Props, State> {
 
   fetchData() {
     this.setState({loading: true, errorMessage: undefined});
-    this.fetchIssuesData();
+    this.fetchTableData();
   }
 
   render() {
