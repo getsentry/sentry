@@ -2,6 +2,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {SmartSearchBar} from 'sentry/components/smartSearchBar';
+import {QuickActionType} from 'sentry/components/smartSearchBar/types';
+import {quickActions} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
 
 describe('SmartSearchBar', function () {
@@ -567,8 +569,8 @@ describe('SmartSearchBar', function () {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      // 1 items because of headers ("Tags")
-      expect(searchBar.state.searchGroups).toHaveLength(1);
+      // 2 items because of headers ("Tags", "Quick Actions")
+      expect(searchBar.state.searchGroups).toHaveLength(2);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
@@ -655,8 +657,8 @@ describe('SmartSearchBar', function () {
       searchBar.updateAutoCompleteItems();
       await tick();
       wrapper.update();
-      // two search groups because of operator suggestions
-      expect(searchBar.state.searchGroups).toHaveLength(2);
+      // three search groups because of operator suggestions
+      expect(searchBar.state.searchGroups).toHaveLength(3);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
@@ -675,15 +677,15 @@ describe('SmartSearchBar', function () {
       searchBar.updateAutoCompleteItems();
       await tick();
       wrapper.update();
-      // two search groups tags and values
-      expect(searchBar.state.searchGroups).toHaveLength(2);
+      // three search groups tags, values and quick actions
+      expect(searchBar.state.searchGroups).toHaveLength(3);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
       mockCursorPosition(searchBar, 1);
       searchBar.updateAutoCompleteItems();
       await tick();
       wrapper.update();
-      // one search group because only showing tags now
-      expect(searchBar.state.searchGroups).toHaveLength(1);
+      // two search group because showing tags and quick actions now
+      expect(searchBar.state.searchGroups).toHaveLength(2);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
@@ -873,5 +875,141 @@ describe('SmartSearchBar', function () {
     expect(searchBar.find('textarea').props().value).toEqual(
       'predefined:"\\"predefined\\" \\"tag\\" \\"with\\" \\"quotes\\"" '
     );
+  });
+
+  describe('quick actions', () => {
+    it('displays correct quick actions', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 17);
+
+      await tick();
+      expect(searchBar.state.searchGroups).toHaveLength(2);
+      expect(searchBar.state.searchGroups[1].title).toEqual('Quick Actions');
+      expect(searchBar.state.searchGroups[1].children).toHaveLength(4);
+    });
+
+    it('delete first token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 1);
+
+      await tick();
+
+      const deleteAction = quickActions.find(
+        a => a.actionType === QuickActionType.Delete
+      );
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runQuickAction(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual('sdk.name:sentry-cocoa has:key');
+      }
+    });
+
+    it('delete middle token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = quickActions.find(
+        a => a.actionType === QuickActionType.Delete
+      );
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runQuickAction(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual('is:unresolved has:key');
+      }
+    });
+
+    it('negate token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = quickActions.find(
+        a => a.actionType === QuickActionType.Negate
+      );
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runQuickAction(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual(
+          'is:unresolved !sdk.name:sentry-cocoa has:key '
+        );
+      }
+    });
+
+    it('un-negate token', async () => {
+      const props = {
+        query: 'is:unresolved !sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = quickActions.find(
+        a => a.actionType === QuickActionType.Negate
+      );
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runQuickAction(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual(
+          'is:unresolved sdk.name:sentry-cocoa has:key '
+        );
+      }
+    });
   });
 });
