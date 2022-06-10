@@ -70,9 +70,14 @@ function makeSortFunction(
   throw new Error(`Unknown sort property ${property}`);
 }
 
+function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
+  return n.node.node.isDirectRecursive();
+}
+
 interface FrameStackTableProps {
   canvasPoolManager: CanvasPoolManager;
   flamegraphRenderer: FlamegraphRenderer;
+  recursion: 'collapsed' | null;
   referenceNode: FlamegraphFrame;
   roots: FlamegraphFrame[];
 }
@@ -82,13 +87,13 @@ export function FrameStackTable({
   flamegraphRenderer,
   canvasPoolManager,
   referenceNode,
+  recursion,
 }: FrameStackTableProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
-
   const sortFunction = useMemo(() => {
     return makeSortFunction(sort, direction);
   }, [sort, direction]);
@@ -104,6 +109,7 @@ export function FrameStackTable({
     handleSortingChange,
     handleScroll,
   } = useVirtualizedTree({
+    skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
     scrollContainerRef,
     rowHeight: 24,

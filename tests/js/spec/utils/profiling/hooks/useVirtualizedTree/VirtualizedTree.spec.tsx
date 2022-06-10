@@ -24,6 +24,37 @@ function toFlattenedList(tree: VirtualizedTree<any>): VirtualizedTreeNode<any>[]
 }
 
 describe('VirtualizedTree', () => {
+  describe('fromRoots', () => {
+    it('build tree from roots', () => {
+      const root = n({id: 'root'});
+      const child1 = n({id: 'child1'});
+      root.children = [child1];
+
+      const tree = VirtualizedTree.fromRoots([root]);
+      tree.expandNode(tree.roots[0], true, {expandChildren: true});
+
+      expect(tree.flattened).toHaveLength(2);
+    });
+
+    it('skips certain nodes roots', () => {
+      const root = n({id: 'root'});
+      const child1 = n({id: 'child1'});
+      const child2 = n({id: 'child2'});
+
+      root.children = [child1];
+      child1.children = [child2];
+
+      const tree = VirtualizedTree.fromRoots([root], node => {
+        return node.node.id === 'child1';
+      });
+
+      tree.expandNode(tree.roots[0], true, {expandChildren: true});
+      expect(tree.flattened).toHaveLength(2);
+
+      expect(tree.flattened[1].depth).toBe(1);
+      expect(tree.flattened[1].node.id).toBe('child2');
+    });
+  });
   describe('expandNode', () => {
     it('expands a closed node', () => {
       const root = n({id: 'root'});
