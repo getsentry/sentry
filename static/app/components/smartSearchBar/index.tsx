@@ -482,12 +482,23 @@ class SmartSearchBar extends Component<Props, State> {
           if (token && filterTokens.length > 0) {
             const index = filterTokens.findIndex(tok => tok === token) ?? -1;
 
-            const newQuery =
-              // We trim to remove any remaining spaces
-              query.slice(0, token.location.start.offset).trim() +
-              (index > 0 && index < filterTokens.length - 1 ? ' ' : '') +
-              query.slice(token.location.end.offset).trim();
-            this.updateQuery(newQuery);
+            if (typeof document.execCommand === 'function' && this.searchInput.current) {
+              // Only use exec command if exists
+              this.searchInput.current.focus();
+
+              this.searchInput.current.selectionStart = token.location.start.offset;
+              this.searchInput.current.selectionEnd = token.location.end.offset + 1;
+
+              document.execCommand('insertText', false, '');
+            } else {
+              // Otherwise we fall back to the non-undo-able version
+              const newQuery =
+                // We trim to remove any remaining spaces
+                query.slice(0, token.location.start.offset).trim() +
+                (index > 0 && index < filterTokens.length - 1 ? ' ' : '') +
+                query.slice(token.location.end.offset).trim();
+              this.updateQuery(newQuery);
+            }
           }
 
           break;
@@ -495,16 +506,40 @@ class SmartSearchBar extends Component<Props, State> {
         case QuickActionType.Negate: {
           if (token && token.type === Token.Filter) {
             if (token.negated) {
-              const newQuery =
-                query.slice(0, token.location.start.offset) +
-                query.slice(token.key.location.start.offset);
-              this.updateQuery(newQuery, this.cursorPosition - 1);
+              if (
+                typeof document.execCommand === 'function' &&
+                this.searchInput.current
+              ) {
+                this.searchInput.current.focus();
+
+                this.searchInput.current.selectionStart = token.location.start.offset;
+                this.searchInput.current.selectionEnd = token.key.location.start.offset;
+
+                document.execCommand('insertText', false, '');
+              } else {
+                const newQuery =
+                  query.slice(0, token.location.start.offset) +
+                  query.slice(token.key.location.start.offset);
+                this.updateQuery(newQuery, this.cursorPosition - 1);
+              }
             } else {
-              const newQuery =
-                query.slice(0, token.key.location.start.offset) +
-                '!' +
-                query.slice(token.key.location.start.offset);
-              this.updateQuery(newQuery, this.cursorPosition + 1);
+              if (
+                typeof document.execCommand === 'function' &&
+                this.searchInput.current
+              ) {
+                this.searchInput.current.focus();
+
+                this.searchInput.current.selectionStart = token.location.start.offset;
+                this.searchInput.current.selectionEnd = token.location.start.offset;
+
+                document.execCommand('insertText', false, '!');
+              } else {
+                const newQuery =
+                  query.slice(0, token.key.location.start.offset) +
+                  '!' +
+                  query.slice(token.key.location.start.offset);
+                this.updateQuery(newQuery, this.cursorPosition + 1);
+              }
             }
           }
           break;
