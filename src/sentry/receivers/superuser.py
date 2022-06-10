@@ -14,7 +14,7 @@ def enable_superuser(request, user, **kwargs):
 
     prefilled_su_modal = request.session.pop(PREFILLED_SU_MODAL_KEY, None)
 
-    if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV:
+    if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV or prefilled_su_modal:
         su = getattr(request, "superuser", None)
         if su:
             if user.is_superuser:
