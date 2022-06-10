@@ -2389,19 +2389,6 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
 }
 
-METRICS_INDEXER_CONFIG = {
-    "release_health": {
-        "input_topic": KAFKA_INGEST_METRICS,
-        "output_topic": KAFKA_SNUBA_METRICS,
-        "internal_metrics_prefix": "release_health",
-    },
-    "performance": {
-        "input_topic": KAFKA_INGEST_PERFORMANCE_METRICS,
-        "output_topic": KAFKA_SNUBA_GENERIC_METRICS,
-        "use_case": "performance",
-        "internal_metrics_prefix": "perf",
-    },
-}
 
 # If True, consumers will create the topics if they don't exist
 KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True

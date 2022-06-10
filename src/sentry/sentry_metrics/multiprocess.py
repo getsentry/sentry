@@ -58,6 +58,25 @@ class IndexerConfiguration:
     internal_metrics_prefix: Optional[str]
 
 
+METRICS_INDEXER_CONFIG: Mapping[str, IndexerConfiguration] = {
+    "release-health": IndexerConfiguration(
+        input_topic=settings.KAFKA_INGEST_METRICS,
+        output_topic=settings.KAFKA_SNUBA_METRICS,
+        # For non-SaaS deploys one may want different values here
+        # This keeps our internal metrics consistent on release of (newer)
+        # performance helath metrics.
+        use_case_id=None,
+        internal_metrics_prefix=None,
+    ),
+    "performance": IndexerConfiguration(
+        input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
+        output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,
+        use_case_id="performance",
+        internal_metrics_prefix="perf",
+    ),
+}
+
+
 def initializer() -> None:
     from sentry.runner import configure
 
@@ -600,10 +619,11 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
     ) -> ProcessingStrategy[KafkaPayload]:
         transform_step = TransformStep(
             next_step=SimpleProduceStep(
-                commit,
+                commit_function=commit,
                 commit_max_batch_size=self.__commit_max_batch_size,
                 # convert to seconds
                 commit_max_batch_time=self.__commit_max_batch_time / 1000,
+                output_topic=self.__config.output_topic,
             )
         )
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
@@ -795,12 +815,9 @@ def get_streaming_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     factory_name: str,
-    profile_name: str,
+    indexer_profile: IndexerConfiguration,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
-    indexer_profile = IndexerConfiguration(settings.METRICS_INDEXER_CONFIG[profile_name])
-    assert indexer_profile
-
     if factory_name == "multiprocess":
         processing_factory = MetricsConsumerStrategyFactory(
             max_batch_size=max_batch_size,

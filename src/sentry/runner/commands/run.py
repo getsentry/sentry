@@ -557,13 +557,18 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 def metrics_streaming_consumer(**options):
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
-    from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
+    from sentry.sentry_metrics.multiprocess import (
+        METRICS_INDEXER_CONFIG,
+        get_streaming_metrics_consumer,
+    )
     from sentry.utils.metrics import backend
+
+    indexer_profile = METRICS_INDEXER_CONFIG[options["profile"]]
 
     metrics = MetricsWrapper(backend, "sentry_metrics.indexer")
     configure_metrics(metrics)
 
-    streamer = get_streaming_metrics_consumer(**options)
+    streamer = get_streaming_metrics_consumer(indexer_profile=indexer_profile, **options)
 
     def handler(signum, frame):
         streamer.signal_shutdown()
