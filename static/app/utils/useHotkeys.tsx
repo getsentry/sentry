@@ -2,8 +2,6 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 
 import {getKeyCode} from './getKeyCode';
 
-const modifierKeys = [getKeyCode('shift'), getKeyCode('alt'), getKeyCode('ctrl')];
-
 /**
  * Pass in the hotkey combinations under match and the corresponding callback function to be called.
  * Separate key names with +. For example, 'command+alt+shift+x'
@@ -27,13 +25,12 @@ export function useHotkeys(
       if (e.type === 'keydown') {
         keysPressedRef.current.add(e.keyCode);
 
-        if (e.metaKey && !modifierKeys.includes(e.keyCode)) {
+        if (e.metaKey) {
           /*
-          If command/metaKey is held, keyup does not get called for non-modifier keys. See:
+          If command/metaKey is held, keyup does not get called for all keys. See:
           https://web.archive.org/web/20160304022453/http://bitspushedaround.com/on-a-few-things-you-may-not-know-about-the-hellish-command-key-and-javascript-events/
 
-          So, if the metaKey is held, we just have it remove the key after a set timeout, this allows you to hold the command key down
-          and press the other key again after the timeout removes the key.
+          So, if the metaKey is held, we just have it remove the key after a set timeout, this is so the key isn't kept held.
         */
           setTimeout(() => {
             removeKey(e.keyCode);
