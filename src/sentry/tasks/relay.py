@@ -187,14 +187,13 @@ def build_project_config(public_key=None, trigger=None, **kwargs):
 
     try:
         validate_args(public_key=public_key)
+
         sentry_sdk.set_tag("public_key", public_key)
         sentry_sdk.set_tag("update_reason", trigger)
         sentry_sdk.set_context("kwargs", kwargs)
 
         keys = project_keys_to_update(public_key=public_key)
-
         compute_project_configs(keys)
-
     finally:
         # Delete the key in this `finally` block to make sure the debouncing key
         # is always deleted. Deleting the key at the end of the task also makes
@@ -313,37 +312,24 @@ def compute_projectkey_config(key):
         return get_project_config(key.project, project_keys=[key], full_config=True).to_dict()
 
 
-def project_keys_to_update(organization_id=None, project_id=None, public_key=None):
+def project_keys_to_update(public_key=None):
     """Returns the project keys which need to have their config updated.
 
     Queries the database for the required project keys.
     """
-    from sentry.models import Project, ProjectKey
+    from sentry.models import ProjectKey
 
-    if organization_id:
-        projects = list(Project.objects.filter(organization_id=organization_id))
-        keys = list(ProjectKey.objects.filter(project__in=projects))
-    elif project_id:
-        projects = [Project.objects.get(id=project_id)]
-        keys = list(ProjectKey.objects.filter(project__in=projects))
-    elif public_key:
-        try:
-            keys = [ProjectKey.objects.get(public_key=public_key)]
-        except ProjectKey.DoesNotExist:
-            # In this particular case, where a project key got deleted and
-            # triggered an update, we know that key doesn't exist and we want to
-            # avoid creating more tasks for it.
-            #
-            # In other similar cases, like an org being deleted, we potentially
-            # cannot find any keys anymore, so we don't know which cache keys
-            # to delete.
-            projectconfig_cache.set_many({public_key: {"disabled": True}})
-            keys = []
+    if public_key is None:
+        return []
 
-    else:
-        assert False
-
-    return keys
+    try:
+        return [ProjectKey.objects.get(public_key=public_key)]
+    except ProjectKey.DoesNotExist:
+        # In this particular case, where a project key got deleted and
+        # triggered an update, we know that key doesn't exist and we want to
+        # avoid creating more tasks for it.
+        projectconfig_cache.set_many({public_key: {"disabled": True}})
+        return []
 
 
 def compute_project_configs(project_keys):
@@ -361,7 +347,8 @@ def compute_project_configs(project_keys):
             ).to_dict()
         config_cache[key.public_key] = project_config
 
-    projectconfig_cache.set_many(config_cache)
+    if len(config_cache) > 0:
+        projectconfig_cache.set_many(config_cache)
 
 
 @instrumented_task(
