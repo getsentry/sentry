@@ -192,8 +192,25 @@ def build_project_config(public_key=None, trigger=None, **kwargs):
         sentry_sdk.set_tag("update_reason", trigger)
         sentry_sdk.set_context("kwargs", kwargs)
 
-        keys = project_keys_to_update(public_key=public_key)
-        compute_project_configs(keys)
+        from sentry.models import ProjectKey
+
+        try:
+            key = ProjectKey.objects.get(public_key=public_key)
+        except ProjectKey.DoesNotExist:
+            # In this particular case, where a project key got deleted and
+            # triggered an update, we know that key doesn't exist and we want to
+            # avoid creating more tasks for it.
+            projectconfig_cache.set_many({public_key: {"disabled": True}})
+        else:
+            from sentry.models import ProjectKeyStatus
+            from sentry.relay.config import get_project_config
+
+            if key.status != ProjectKeyStatus.ACTIVE:
+                projectconfig_cache.set_many({public_key: {"disabled": True}})
+            else:
+                config = get_project_config(key.project, project_keys=[key], full_config=True)
+                projectconfig_cache.set_many({public_key: config.to_dict()})
+
     finally:
         # Delete the key in this `finally` block to make sure the debouncing key
         # is always deleted. Deleting the key at the end of the task also makes
@@ -310,45 +327,6 @@ def compute_projectkey_config(key):
         return {"disabled": True}
     else:
         return get_project_config(key.project, project_keys=[key], full_config=True).to_dict()
-
-
-def project_keys_to_update(public_key=None):
-    """Returns the project keys which need to have their config updated.
-
-    Queries the database for the required project keys.
-    """
-    from sentry.models import ProjectKey
-
-    if public_key is None:
-        return []
-
-    try:
-        return [ProjectKey.objects.get(public_key=public_key)]
-    except ProjectKey.DoesNotExist:
-        # In this particular case, where a project key got deleted and
-        # triggered an update, we know that key doesn't exist and we want to
-        # avoid creating more tasks for it.
-        projectconfig_cache.set_many({public_key: {"disabled": True}})
-        return []
-
-
-def compute_project_configs(project_keys):
-    """Computes the project configs for all given project keys."""
-    from sentry.models import ProjectKeyStatus
-    from sentry.relay.config import get_project_config
-
-    config_cache = {}
-    for key in project_keys:
-        if key.status != ProjectKeyStatus.ACTIVE:
-            project_config = {"disabled": True}
-        else:
-            project_config = get_project_config(
-                key.project, project_keys=[key], full_config=True
-            ).to_dict()
-        config_cache[key.public_key] = project_config
-
-    if len(config_cache) > 0:
-        projectconfig_cache.set_many(config_cache)
 
 
 @instrumented_task(
