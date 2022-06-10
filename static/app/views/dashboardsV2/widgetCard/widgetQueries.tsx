@@ -355,6 +355,7 @@ class WidgetQueries extends Component<Props, State> {
 
     let completed = 0;
     let isMetricsData: boolean | undefined;
+    // Promises.all().then(values => )dd
     promises.forEach(async (promise, i) => {
       try {
         const [data, _textstatus, resp] = await promise;

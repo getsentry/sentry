@@ -1,5 +1,5 @@
 import GroupStore from 'sentry/stores/groupStore';
-import {Group} from 'sentry/types';
+import {Group, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -8,26 +8,41 @@ import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueLis
 
 import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
-import {EndpointParams} from '../widgetCard/issueWidgetQueries';
 
 import {ContextualProps, DatasetConfig} from './base';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];
 
+type EndpointParams = Partial<PageFilters['datetime']> & {
+  environment: string[];
+  project: number[];
+  collapse?: string[];
+  cursor?: string;
+  expand?: string[];
+  groupStatsPeriod?: string | null;
+  limit?: number;
+  page?: number | string;
+  query?: string;
+  sort?: string;
+  statsPeriod?: string | null;
+};
+
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
-  getTableRequestParams,
+  getTableRequests,
   getCustomFieldRenderer: getIssueFieldRenderer,
   fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
   transformTable: transformIssuesResponseToTable,
 };
 
-export function getTableRequestParams(
+export function getTableRequests(
   widget: Widget,
   limit?: number,
   cursor?: string,
   contextualProps?: ContextualProps
 ) {
+  const groupListUrl = `/organizations/${contextualProps?.organization?.slug}/issues/`;
+
   // Issue Widgets only support single queries
   const query = widget.queries[0];
   const params: EndpointParams = {
@@ -53,7 +68,16 @@ export function getTableRequestParams(
     params.utc = contextualProps?.pageFilters.datetime.utc;
   }
 
-  return params;
+  return [
+    // TODO: These should be considered required if there's a dependency here
+    contextualProps!.api!.requestPromise(groupListUrl, {
+      includeAllArgs: true,
+      method: 'GET',
+      data: {
+        ...params,
+      },
+    }),
+  ];
 }
 
 export function transformIssuesResponseToTable(

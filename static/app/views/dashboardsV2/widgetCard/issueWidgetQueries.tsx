@@ -12,20 +12,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {getDatasetConfig} from '../datasetConfig/base';
 import {Widget, WidgetQuery, WidgetType} from '../types';
 
-export type EndpointParams = Partial<PageFilters['datetime']> & {
-  environment: string[];
-  project: number[];
-  collapse?: string[];
-  cursor?: string;
-  expand?: string[];
-  groupStatsPeriod?: string | null;
-  limit?: number;
-  page?: number | string;
-  query?: string;
-  sort?: string;
-  statsPeriod?: string | null;
-};
-
 type Props = {
   api: Client;
   children: (props: {
@@ -117,37 +103,40 @@ class IssueWidgetQueries extends Component<Props, State> {
 
   config = getDatasetConfig(WidgetType.ISSUE);
 
-  async fetchTableData() {
-    const {selection, api, organization, widget, limit, cursor, onDataFetched} =
-      this.props;
-    this.setState({tableResults: []});
+  fetchData() {
+    const {api, selection, widget, limit, cursor, onDataFetched} = this.props;
 
-    const groupListUrl = `/organizations/${organization.slug}/issues/`;
-    const params = this.config.getTableRequestParams!(widget, limit, cursor, {
+    let totalCount, pageLinks, transformedResults;
+
+    const apiPromises = this.config.getTableRequests!(widget, limit, cursor, {
       pageFilters: selection,
+      api,
     });
+
     try {
-      const [data, _, resp] = await api.requestPromise(groupListUrl, {
-        includeAllArgs: true,
-        method: 'GET',
-        data: {
-          ...params,
-        },
+      this.setState({tableResults: [], loading: true, errorMessage: undefined});
+
+      // TODO: Issues only has one promise, the transformed results
+      // need to build in a sane way
+      Promise.all(apiPromises).then(responses => {
+        responses.forEach(([data, _, resp]) => {
+          transformedResults = this.config.transformTable(data, widget.queries[0]);
+          pageLinks = resp?.getResponseHeader('Link') ?? null; // <-- this is common
+
+          // TODO: How to handle this unique stuff after making the request
+          totalCount = resp?.getResponseHeader('X-Hits') ?? null; // <-- not in widgetQueries.tsx
+        });
       });
-      const tableResults = this.config.transformTable(data, widget.queries[0], {
-        pageFilters: selection,
-      });
-      const totalCount = resp?.getResponseHeader('X-Hits') ?? null;
-      const pageLinks = resp?.getResponseHeader('Link') ?? null;
+
       this.setState({
         loading: false,
         errorMessage: undefined,
-        tableResults: tableResults.data,
+        tableResults: transformedResults.data,
         totalCount,
         pageLinks,
       });
       onDataFetched?.({
-        issuesResults: tableResults.data,
+        issuesResults: transformedResults.data,
         totalIssuesCount: totalCount ?? undefined,
         pageLinks: pageLinks ?? undefined,
       });
@@ -159,11 +148,6 @@ class IssueWidgetQueries extends Component<Props, State> {
         tableResults: [],
       });
     }
-  }
-
-  fetchData() {
-    this.setState({loading: true, errorMessage: undefined});
-    this.fetchTableData();
   }
 
   render() {

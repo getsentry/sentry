@@ -1,3 +1,4 @@
+import {Client} from 'sentry/api';
 import {OrganizationSummary, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -5,13 +6,13 @@ import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
 import {Widget, WidgetQuery, WidgetType} from '../types';
-import {EndpointParams} from '../widgetCard/issueWidgetQueries';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type ContextualProps = {
+  api?: Client;
   organization?: OrganizationSummary;
   pageFilters?: PageFilters;
 };
@@ -42,12 +43,12 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
    * TODO: Promote to required when other configs implement this
    */
-  getTableRequestParams?: (
+  getTableRequests?: (
     widget: Widget,
     limit?: number,
     cursor?: string,
     contextualProps?: ContextualProps
-  ) => EndpointParams;
+  ) => Promise<any>[]; // TODO: Properly type
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
