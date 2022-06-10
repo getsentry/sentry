@@ -22,6 +22,8 @@ const isKeyPressed = (key: string, evt: KeyboardEvent): boolean => {
  * Pass in the hotkey combinations under match and the corresponding callback function to be called.
  * Separate key names with +. For example, 'command+alt+shift+x'
  * Alternate matchings as an array: ['command+alt+backspace', 'ctrl+alt+delete']
+ *
+ * Note: you can only use one non-modifier (keys other than shift, ctrl, alt, command) key at a time.
  */
 export function useHotkeys(
   hotkeys: {callback: (e: KeyboardEvent) => void; match: string[] | string}[],
