@@ -58,6 +58,9 @@ export type PerformanceEventParameters = {
     from_chart: string;
     to_chart: string;
   };
+  'performance_views.transaction_summary.status_breakdown_click': {
+    status: string;
+  };
 };
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
@@ -89,4 +92,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.trace_view.view': 'Performance Views: Trace View viewed',
   'performance_views.transaction_summary.change_chart_display':
     'Performance Views: Transaction Summary chart display changed',
+  'performance_views.transaction_summary.status_breakdown_click':
+    'Performance Views: Transaction Summary status breakdown option clicked',
 };
