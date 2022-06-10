@@ -205,6 +205,7 @@ const MessageContainer = styled('div')<{
   flex-direction: column;
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: row;
+    align-items: start;
   }
 `;
 
