@@ -139,8 +139,8 @@ describe('makeColorMap', () => {
     // Reverse order to ensure we actually sort
     const frames = [f(0, 'aaa'), f(1, 'aaa'), f(2, 'aaa'), f(3, 'c')];
 
-    frames[1].node.setRecursive(frames[0].node);
-    frames[2].node.setRecursive(frames[1].node);
+    frames[1].node.setRecursiveThroughNode(frames[0].node);
+    frames[2].node.setRecursiveThroughNode(frames[1].node);
 
     const map = makeColorMapByRecursion(frames, makeColorBucketTheme(LCH_LIGHT));
 
