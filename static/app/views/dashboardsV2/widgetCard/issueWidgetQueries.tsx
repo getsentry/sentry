@@ -104,11 +104,13 @@ class IssueWidgetQueries extends Component<Props, State> {
   config = getDatasetConfig(WidgetType.ISSUE);
 
   fetchData() {
-    const {api, selection, widget, limit, cursor, onDataFetched} = this.props;
+    const {api, selection, widget, limit, cursor, organization, onDataFetched} =
+      this.props;
 
     let totalCount, pageLinks, transformedResults;
 
     const apiPromises = this.config.getTableRequests!(widget, limit, cursor, {
+      organization,
       pageFilters: selection,
       api,
     });
