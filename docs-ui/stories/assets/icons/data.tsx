@@ -69,6 +69,7 @@ export const iconProps: IconProps = {
       ['line', 'Line'],
       ['circle', 'Circle'],
       ['bar', 'Bar'],
+      ['area', 'Area'],
     ],
     default: 'line',
     enumerate: true,
@@ -622,5 +623,40 @@ export const icons: IconData[] = [
     id: 'expand',
     groups: ['action'],
     keywords: ['open'],
+  },
+  {
+    id: 'asana',
+    groups: ['logo'],
+    keywords: [''],
+  },
+  {
+    id: 'dashboard',
+    groups: ['product'],
+    keywords: ['widgets'],
+  },
+  {
+    id: 'globe',
+    groups: ['action'],
+    keywords: ['international', 'global'],
+  },
+  {
+    id: 'group',
+    groups: ['action'],
+    keywords: ['users'],
+  },
+  {
+    id: 'input',
+    groups: ['action'],
+    keywords: ['text'],
+  },
+  {
+    id: 'number',
+    groups: ['action'],
+    keywords: ['value'],
+  },
+  {
+    id: 'vercel',
+    groups: ['logo'],
+    keywords: [''],
   },
 ];
