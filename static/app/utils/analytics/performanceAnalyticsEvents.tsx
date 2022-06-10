@@ -54,6 +54,10 @@ export type PerformanceEventParameters = {
   'performance_views.tour.start': {};
   'performance_views.trace_view.view': {};
   'performance_views.vital_detail.view': {};
+  'performance_views.transaction_summary.change_chart_display': {
+    from_chart: string;
+    to_chart: string;
+  };
 };
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
@@ -83,4 +87,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
   'performance_views.trace_view.view': 'Performance Views: Trace View viewed',
+  'performance_views.transaction_summary.change_chart_display':
+    'Performance Views: Transaction Summary chart display changed',
 };
