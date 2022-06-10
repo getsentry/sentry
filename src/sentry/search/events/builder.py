@@ -152,6 +152,8 @@ class QueryBuilder:
         self.limitby = self.resolve_limitby(limitby)
         self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
+        self.start: Optional[datetime] = None
+        self.end: Optional[datetime] = None
         self.resolve_query(
             query=query,
             use_aggregate_conditions=use_aggregate_conditions,
@@ -159,8 +161,6 @@ class QueryBuilder:
             equations=equations,
             orderby=orderby,
         )
-        self.start: Optional[datetime] = None
-        self.end: Optional[datetime] = None
 
     def resolve_time_conditions(self) -> None:
         if self.skip_time_conditions:
