@@ -1126,7 +1126,16 @@ class SmartSearchBar extends Component<Props, State> {
 
     if (!tag) {
       return {
-        searchItems: [],
+        searchItems: [
+          {
+            type: ItemType.INVALID_TAG,
+            desc: tagName,
+            callback: () =>
+              window.open(
+                'https://docs.sentry.io/product/sentry-basics/search/searchable-properties/'
+              ),
+          },
+        ],
         recentSearchItems: [],
         tagName,
         type: ItemType.INVALID_TAG,
@@ -1212,7 +1221,9 @@ class SmartSearchBar extends Component<Props, State> {
         // show operator group if at beginning of value
         if (cursor === node.location.start.offset) {
           const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
-          autocompleteGroups.unshift(opGroup);
+          if (valueGroup?.type !== ItemType.INVALID_TAG) {
+            autocompleteGroups.unshift(opGroup);
+          }
         }
         this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
         return;

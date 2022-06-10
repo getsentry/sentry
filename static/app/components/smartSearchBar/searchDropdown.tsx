@@ -31,6 +31,15 @@ class SearchDropdown extends PureComponent<Props> {
   renderDescription = (item: SearchItem) => {
     const searchSubstring = this.props.searchSubstring;
     if (!searchSubstring) {
+      if (item.type === ItemType.INVALID_TAG) {
+        return (
+          <Invalid>
+            The field <strong>{item.desc}</strong> isn't supported here.{' '}
+            <Highlight>See all searchable properties in the docs.</Highlight>
+          </Invalid>
+        );
+      }
+
       return item.desc;
     }
 
@@ -65,21 +74,23 @@ class SearchDropdown extends PureComponent<Props> {
     </SearchDropdownGroup>
   );
 
-  renderItem = (item: SearchItem) => (
-    <SearchListItem
-      key={item.value || item.desc || item.title}
-      className={item.active ? 'active' : undefined}
-      data-test-id="search-autocomplete-item"
-      onClick={item.callback ?? this.props.onClick.bind(this, item.value, item)}
-      ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
-    >
-      <SearchItemTitleWrapper>
-        {item.title && item.title + (item.desc ? ' · ' : '')}
-        <Description>{this.renderDescription(item)}</Description>
-        <Documentation>{item.documentation}</Documentation>
-      </SearchItemTitleWrapper>
-    </SearchListItem>
-  );
+  renderItem = (item: SearchItem) => {
+    return (
+      <SearchListItem
+        key={item.value || item.desc || item.title}
+        className={item.active ? 'active' : undefined}
+        data-test-id="search-autocomplete-item"
+        onClick={item.callback ?? this.props.onClick.bind(this, item.value, item)}
+        ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
+      >
+        <SearchItemTitleWrapper>
+          {item.title && item.title + (item.desc ? ' · ' : '')}
+          <Description>{this.renderDescription(item)}</Description>
+          <Documentation>{item.documentation}</Documentation>
+        </SearchItemTitleWrapper>
+      </SearchListItem>
+    );
+  };
 
   render() {
     const {className, loading, items, runQuickAction, visibleActions, maxMenuHeight} =
@@ -94,15 +105,13 @@ class SearchDropdown extends PureComponent<Props> {
           <SearchItemsList maxMenuHeight={maxMenuHeight}>
             {items.map(item => {
               const isEmpty = item.children && !item.children.length;
-              const invalidTag = item.type === ItemType.INVALID_TAG;
 
               // Hide header if `item.children` is defined, an array, and is empty
               return (
                 <Fragment key={item.title}>
-                  {invalidTag && <Info>{t('Invalid tag')}</Info>}
                   {item.type === 'header' && this.renderHeaderItem(item)}
                   {item.children && item.children.map(this.renderItem)}
-                  {isEmpty && !invalidTag && <Info>{t('No items found')}</Info>}
+                  {isEmpty && <Info>{t('No items found')}</Info>}
                 </Fragment>
               );
             })}
@@ -288,4 +297,14 @@ const HotkeyGlyphWrapper = styled('span')`
 
 const HotkeyTitle = styled(`span`)`
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Invalid = styled(`span`)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.gray400};
+`;
+
+const Highlight = styled(`strong`)`
+  color: ${p => p.theme.linkColor};
 `;
