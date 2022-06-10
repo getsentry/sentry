@@ -54,7 +54,6 @@ export type PerformanceEventParameters = {
   };
   'performance_views.team_key_transaction.set': {
     action: string;
-    team_ids: string[];
   };
   'performance_views.tour.advance': PerformanceTourParams;
   'performance_views.tour.close': PerformanceTourParams;

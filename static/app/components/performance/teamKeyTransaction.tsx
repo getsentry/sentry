@@ -79,11 +79,10 @@ class TeamKeyTransaction extends Component<Props, State> {
 
   toggleSelection = (enabled: boolean, selection: TeamSelection) => () => {
     const {handleToggleKeyTransaction, organization} = this.props;
-    const {action, teamIds} = selection;
+    const {action} = selection;
     trackAdvancedAnalyticsEvent('performance_views.team_key_transaction.set', {
       organization,
       action,
-      team_ids: teamIds,
     });
 
     return enabled ? handleToggleKeyTransaction(selection) : undefined;
