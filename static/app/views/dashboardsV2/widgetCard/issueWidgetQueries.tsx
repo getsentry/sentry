@@ -122,13 +122,10 @@ class IssueWidgetQueries extends Component<Props, State> {
 
   config = getDatasetConfig(WidgetType.ISSUE);
 
-  async fetchTableData() {
-    const {selection, api, organization, widget, limit, cursor, onDataFetched} =
-      this.props;
-    this.setState({tableResults: []});
+  getTableRequestParams() {
+    const {selection, widget, limit, cursor} = this.props;
     // Issue Widgets only support single queries
     const query = widget.queries[0];
-    const groupListUrl = `/organizations/${organization.slug}/issues/`;
     const params: EndpointParams = {
       project: selection.projects,
       environment: selection.environments,
@@ -152,6 +149,15 @@ class IssueWidgetQueries extends Component<Props, State> {
       params.utc = selection.datetime.utc;
     }
 
+    return params;
+  }
+
+  async fetchTableData() {
+    const {selection, api, organization, widget, onDataFetched} = this.props;
+    this.setState({tableResults: []});
+
+    const groupListUrl = `/organizations/${organization.slug}/issues/`;
+    const params = this.getTableRequestParams();
     try {
       const [data, _, resp] = await api.requestPromise(groupListUrl, {
         includeAllArgs: true,
