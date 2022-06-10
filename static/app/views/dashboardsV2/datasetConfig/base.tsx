@@ -4,7 +4,8 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
-import {WidgetQuery, WidgetType} from '../types';
+import {Widget, WidgetQuery, WidgetType} from '../types';
+import {EndpointParams} from '../widgetCard/issueWidgetQueries';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
@@ -38,6 +39,15 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     contextualProps?: ContextualProps
   ) => ReturnType<typeof getFieldRenderer> | null;
+  /**
+   * TODO: Promote to required when other configs implement this
+   */
+  getTableRequestParams?: (
+    widget: Widget,
+    limit?: number,
+    cursor?: string,
+    contextualProps?: ContextualProps
+  ) => EndpointParams;
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
