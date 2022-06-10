@@ -1,6 +1,7 @@
 from sentry.models import Activity
 from sentry.tasks.email import process_inbound_email
 from sentry.testutils import TestCase
+from sentry.types.activity import ActivityType
 
 
 class ProcessInboundEmailTest(TestCase):
@@ -12,7 +13,7 @@ class ProcessInboundEmailTest(TestCase):
 
         process_inbound_email(mailfrom=self.user.email, group_id=group.id, payload="hello world!")
 
-        activity = Activity.objects.get(group=group, type=Activity.NOTE)
+        activity = Activity.objects.get(group=group, type=ActivityType.NOTE.value)
         assert activity.user == self.user
         assert activity.data["text"] == "hello world!"
 
@@ -23,4 +24,4 @@ class ProcessInboundEmailTest(TestCase):
             mailfrom="invalid@example.com", group_id=group.id, payload="hello world!"
         )
 
-        assert not Activity.objects.filter(group=group, type=Activity.NOTE).exists()
+        assert not Activity.objects.filter(group=group, type=ActivityType.NOTE.value).exists()

@@ -5,6 +5,7 @@ import omit from 'lodash/omit';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import AssigneeSelector from 'sentry/components/assigneeSelector';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Badge from 'sentry/components/badge';
@@ -48,6 +49,7 @@ type Props = WithRouterProps & {
   groupReprocessingStatus: ReprocessingStatus;
   organization: Organization;
   project: Project;
+  replaysCount: number | null;
   event?: Event;
 };
 
@@ -113,8 +115,16 @@ class GroupHeader extends Component<Props, State> {
   }
 
   render() {
-    const {project, group, currentTab, baseUrl, event, organization, location} =
-      this.props;
+    const {
+      project,
+      group,
+      currentTab,
+      baseUrl,
+      event,
+      organization,
+      location,
+      replaysCount,
+    } = this.props;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
@@ -420,6 +430,14 @@ class GroupHeader extends Component<Props, State> {
                 {t('Similar Issues')}
               </ListLink>
             )}
+            <Feature features={['session-replay']} organization={organization}>
+              <ListLink
+                to={`${baseUrl}replays/${location.search}`}
+                isActive={() => currentTab === Tab.REPLAYS}
+              >
+                {t('Replays')} <Badge text={replaysCount ?? ''} />
+              </ListLink>
+            </Feature>
           </NavTabs>
         </div>
       </Layout.Header>

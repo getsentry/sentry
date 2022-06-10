@@ -18,7 +18,6 @@ import {PanelTable} from 'sentry/components/panels';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import DebugMetaStore, {DebugMetaActions} from 'sentry/stores/debugMetaStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
@@ -593,7 +592,7 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   overflow: hidden;
   > * {
     :nth-child(-n + 5) {
-      ${overflowEllipsis};
+      ${p => p.theme.overflowEllipsis};
       border-bottom: 1px solid ${p => p.theme.border};
       :nth-child(5n) {
         height: 100%;

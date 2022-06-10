@@ -25,6 +25,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.faux import DictContaining, faux
+from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
@@ -419,7 +420,7 @@ class TestCommentWebhook(TestCase):
         self.note = Activity.objects.create(
             group=self.issue,
             project=self.project,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=self.user,
             data={"text": "hello world"},
         )

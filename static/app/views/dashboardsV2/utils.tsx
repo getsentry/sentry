@@ -1,6 +1,7 @@
 import {Query} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import pick from 'lodash/pick';
+import trimStart from 'lodash/trimStart';
 import * as qs from 'query-string';
 
 import WidgetArea from 'sentry-images/dashboard/widget-area.svg';
@@ -23,6 +24,7 @@ import {defined} from 'sentry/utils';
 import {getUtcDateString, parsePeriodToHours} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {
+  getAggregateAlias,
   getColumnsAndAggregates,
   isEquation,
   stripEquationPrefix,
@@ -69,13 +71,18 @@ export function eventViewFromWidget(
       ? `${query.conditions} has:geo.country_code`.trim()
       : query.conditions;
 
+  const {orderby} = query;
+  // Need to convert orderby to aggregate alias because eventView still uses aggregate alias format
+  const aggregateAliasOrderBy = orderby
+    ? `${orderby.startsWith('-') ? '-' : ''}${getAggregateAlias(trimStart(orderby, '-'))}`
+    : orderby;
   return EventView.fromSavedQuery({
     id: undefined,
     name: title,
     version: 2,
     fields,
     query: conditions,
-    orderby: query.orderby,
+    orderby: aggregateAliasOrderBy,
     projects,
     range: statsPeriod ?? undefined,
     start: start ? getUtcDateString(start) : undefined,
