@@ -104,13 +104,13 @@ class TestDeprecationDecorator(APITestCase):
         settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-cron": custom_cron})
         settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-duration": custom_duration})
 
-        custom_timeiter = croniter(custom_cron, test_date)
+        custom_time_iter = croniter(custom_cron, test_date)
         custom_duration_timedelta = isodate.parse_duration(custom_duration)
         old_brownout_start = timeiter.get_next(datetime)
         with freeze_time(old_brownout_start):
             self.assert_allowed_request("GET")
 
-        new_brownout_start = custom_timeiter.get_next(datetime)
+        new_brownout_start = custom_time_iter.get_next(datetime)
         with freeze_time(new_brownout_start):
             self.assert_denied_request("GET")
 
@@ -129,13 +129,13 @@ class TestDeprecationDecorator(APITestCase):
 
         register("override-cron", default=custom_cron)
         register("override-duration", default=custom_duration)
-        custom_timeiter = croniter(custom_cron, test_date)
+        custom_time_iter = croniter(custom_cron, test_date)
         custom_duration_timedelta = isodate.parse_duration(custom_duration)
 
         with freeze_time(old_brownout_start):
             self.assert_allowed_request("POST")
 
-        new_brownout_start = custom_timeiter.get_next(datetime)
+        new_brownout_start = custom_time_iter.get_next(datetime)
         with freeze_time(new_brownout_start):
             self.assert_denied_request("POST")
 

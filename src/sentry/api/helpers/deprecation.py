@@ -33,6 +33,7 @@ def _track_deprecated_metrics(request: Request, deprecation_date: datetime):
 
 
 def _serialize_key(key: str) -> Tuple[str, str]:
+    """Converts the key into an option manager key used for the schedule crontab and blackout duration"""
     return f"{key}-cron", f"{key}-duration"
 
 
