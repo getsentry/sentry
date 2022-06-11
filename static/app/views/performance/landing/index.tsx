@@ -218,7 +218,6 @@ export function PerformanceLanding(props: Props) {
                   >
                     {({hasFeature}) =>
                       hasFeature ? (
-                        // transaction search handles searching within the component
                         // TODO replace `handleSearch prop` with transaction name search once
                         // transaction name search becomes the default search bar
                         <TransactionNameSearchBar
