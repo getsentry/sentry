@@ -32,8 +32,6 @@ class SuperuserReceiverTest(TestCase):
     def test_enable_superuser_saas_superuser(self):
         with self.settings(
             SENTRY_SELF_HOSTED=False,
-            VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False,
-            ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV=False,
         ):
             enable_superuser(request=self.superuser_request, user=self.superuser)
             assert not is_active_superuser(self.superuser_request)
@@ -57,8 +55,6 @@ class SuperuserReceiverTest(TestCase):
     def test_enable_superuser_saas_non_superuser(self):
         with self.settings(
             SENTRY_SELF_HOSTED=False,
-            VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False,
-            ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV=True,
         ):
             enable_superuser(request=self.non__superuser_request, user=self.non__superuser)
             assert not is_active_superuser(self.superuser_request)
