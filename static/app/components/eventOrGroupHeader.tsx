@@ -177,6 +177,9 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
     font-style: normal;
     font-weight: 300;
     color: ${p => p.theme.subText};
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   ${p =>
     !p.hasGroupingTreeUI
