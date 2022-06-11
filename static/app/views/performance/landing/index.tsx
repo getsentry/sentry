@@ -242,7 +242,11 @@ export function PerformanceLanding(props: Props) {
                       )
                     }
                   </Feature>
-                  <MetricsEventsDropdown />
+                  <Feature
+                    features={['organizations:performance-transaction-name-only-search']}
+                  >
+                    {({hasFeature}) => hasFeature && <MetricsEventsDropdown />}
+                  </Feature>
                 </SearchFilterContainer>
                 {initiallyLoaded ? (
                   <TeamKeyTransactionManager.Provider
