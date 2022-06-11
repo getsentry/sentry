@@ -159,7 +159,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 result = (
                     int(max(0, ((result / comparison_result) * 100) - 100))
                     if comparison_result > 0
-                    else 0
+                    else int(max(0, result * 100))
                 )
 
         return result
