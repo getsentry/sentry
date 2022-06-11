@@ -30,6 +30,12 @@ function SearchBar(props: SearchBarProps) {
 
   const api = useApi();
 
+  const prepareQuery = (query: string) => {
+    const prependedChar = query[0] === '*' ? '' : '*';
+    const appendedhar = query[query.length - 1] === '*' ? '' : '*';
+    return `${prependedChar}${query}${appendedhar}`;
+  };
+
   const handleSearch = debounce(
     async query => {
       if (query.length < 3) {
@@ -41,7 +47,7 @@ function SearchBar(props: SearchBarProps) {
       try {
         setLoading(true);
         const conditions = new MutableSearch('');
-        conditions.addFilterValues('transaction', [`*${query}*`], false);
+        conditions.addFilterValues('transaction', [prepareQuery(query)], false);
         conditions.addFilterValues('event.type', ['transaction']);
 
         // clear any active requests
