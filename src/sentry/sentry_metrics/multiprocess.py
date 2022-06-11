@@ -472,7 +472,7 @@ def process_messages(
     with metrics.timer("process_messages.reconstruct_messages"):
         for message in outer_message.payload:
             used_tags: Set[str] = set()
-            output_message_meta: Mapping[str, MutableMapping[int, str]] = defaultdict(dict)
+            output_message_meta: Mapping[str, MutableMapping[str, str]] = defaultdict(dict)
             partition_offset = PartitionIdxOffset(message.partition.index, message.offset)
             if partition_offset in skipped_offsets:
                 logger.info(
