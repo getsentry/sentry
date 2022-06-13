@@ -29,6 +29,7 @@ type Props = WithRouterProps & {
   disabled?: boolean;
   onCursor?: CursorHandler;
   pageLinks?: string | null;
+  paginationAnalyticsEvent?: (direction: string) => void;
   size?: 'zero' | 'xsmall' | 'small';
   to?: string;
 };
@@ -44,6 +45,7 @@ const Pagination = ({
   location,
   className,
   onCursor = defaultOnCursor,
+  paginationAnalyticsEvent,
   pageLinks,
   size = 'small',
   caption,
@@ -68,14 +70,20 @@ const Pagination = ({
           aria-label={t('Previous')}
           size={size}
           disabled={previousDisabled}
-          onClick={() => onCursor?.(links.previous?.cursor, path, query, -1)}
+          onClick={() => {
+            onCursor?.(links.previous?.cursor, path, query, -1);
+            paginationAnalyticsEvent?.('Previous');
+          }}
         />
         <Button
           icon={<IconChevron direction="right" size="sm" />}
           aria-label={t('Next')}
           size={size}
           disabled={nextDisabled}
-          onClick={() => onCursor?.(links.next?.cursor, path, query, 1)}
+          onClick={() => {
+            onCursor?.(links.next?.cursor, path, query, 1);
+            paginationAnalyticsEvent?.('Next');
+          }}
         />
       </ButtonBar>
     </Wrapper>
