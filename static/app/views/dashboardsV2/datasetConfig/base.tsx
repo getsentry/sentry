@@ -22,10 +22,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   defaultWidgetQuery: WidgetQuery;
   /**
+   * List of supported display types for dataset.
+   */
+  supportedDisplayTypes: DisplayType[];
+  /**
    * Transforms table API results into format that is used by
    * table and big number components.
    */
-  supportedDisplayTypes: DisplayType[];
   transformTable: (
     data: TableResponse,
     widgetQuery: WidgetQuery,
