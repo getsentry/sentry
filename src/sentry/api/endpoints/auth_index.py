@@ -108,9 +108,7 @@ class AuthIndexEndpoint(Endpoint):
         authenticated = None
 
         def _require_password_or_u2f_check():
-            if (
-                not is_self_hosted() and VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON
-            ) or DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV:
+            if not is_self_hosted() and VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON:
                 # Don't need to check password as its only for self-hosted users or if superuser form is turned off
                 return False
             if request.user.has_usable_password():
