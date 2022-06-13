@@ -260,4 +260,4 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase):
                 format="json",
             )
 
-        assert response.status_code == 400, response.content
+        assert response.status_code == 404, response.content

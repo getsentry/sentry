@@ -65,9 +65,9 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
+import {getDatasetConfig} from '../datasetConfig/base';
 import {getNumEquations} from '../utils';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
@@ -90,38 +90,6 @@ import {
   normalizeQueries,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
-
-function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
-  return {
-    [DataSet.EVENTS]: {
-      name: '',
-      fields: ['count()'],
-      columns: [],
-      fieldAliases: [],
-      aggregates: ['count()'],
-      conditions: '',
-      orderby: widgetBuilderNewDesign ? '-count()' : '',
-    },
-    [DataSet.ISSUES]: {
-      name: '',
-      fields: ['issue', 'assignee', 'title'] as string[],
-      columns: ['issue', 'assignee', 'title'],
-      fieldAliases: [],
-      aggregates: [],
-      conditions: '',
-      orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
-    },
-    [DataSet.RELEASES]: {
-      name: '',
-      fields: [`crash_free_rate(${SessionField.SESSION})`],
-      columns: [],
-      fieldAliases: [],
-      aggregates: [`crash_free_rate(${SessionField.SESSION})`],
-      conditions: '',
-      orderby: widgetBuilderNewDesign ? `-crash_free_rate(${SessionField.SESSION})` : '',
-    },
-  };
-}
 
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
@@ -233,6 +201,10 @@ function WidgetBuilder({
   const api = useApi();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
+    getDatasetConfig(WidgetType.DISCOVER)
+  );
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
@@ -279,9 +251,7 @@ function WidgetBuilder({
         defaultState.queries[0].orderby = '';
       }
     } else {
-      defaultState.queries = [
-        {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
-      ];
+      defaultState.queries = [{...datasetConfig.defaultWidgetQuery}];
     }
 
     return defaultState;
@@ -475,12 +445,13 @@ function WidgetBuilder({
           'queries',
           normalizeQueries({
             displayType: newDisplayType,
-            queries: [{...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]}],
+            queries: [{...getDatasetConfig(WidgetType.DISCOVER).defaultWidgetQuery}],
             widgetType: WidgetType.DISCOVER,
             widgetBuilderNewDesign,
           })
         );
         set(newState, 'dataSet', DataSet.EVENTS);
+        setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
         return {...newState, errors: undefined};
       }
 
@@ -492,6 +463,7 @@ function WidgetBuilder({
         ) {
           set(newState, 'queries', widgetToBeUpdated.queries);
           set(newState, 'dataSet', DataSet.ISSUES);
+          setDataSetConfig(getDatasetConfig(WidgetType.ISSUE));
           return {...newState, errors: undefined};
         }
 
@@ -531,6 +503,7 @@ function WidgetBuilder({
 
       if (prevState.dataSet === DataSet.ISSUES) {
         set(newState, 'dataSet', DataSet.EVENTS);
+        setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
       }
 
       set(newState, 'queries', normalized);
@@ -612,11 +585,14 @@ function WidgetBuilder({
         set(newState, 'displayType', DisplayType.TABLE);
       }
 
+      const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
+      setDataSetConfig(config);
+
       newState.queries.push(
         ...(widgetToBeUpdated?.widgetType &&
         WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
           ? widgetToBeUpdated.queries
-          : [{...getDataSetQuery(widgetBuilderNewDesign)[newDataSet]}])
+          : [{...config.defaultWidgetQuery}])
       );
 
       set(newState, 'userHasModified', true);
@@ -627,7 +603,8 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[prevState.dataSet]);
+      const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[prevState.dataSet]);
+      const query = cloneDeep(config.defaultWidgetQuery);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
@@ -1244,6 +1221,9 @@ function WidgetBuilder({
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
                 onWidgetSelect={prebuiltWidget => {
                   setLatestLibrarySelectionTitle(prebuiltWidget.title);
+                  setDataSetConfig(
+                    getDatasetConfig(prebuiltWidget.widgetType || WidgetType.DISCOVER)
+                  );
                   setState({
                     ...state,
                     ...prebuiltWidget,

@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconArrow} from 'sentry/icons';
@@ -7,7 +7,10 @@ import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {
+  UseVirtualizedListProps,
+  useVirtualizedTree,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
@@ -70,9 +73,14 @@ function makeSortFunction(
   throw new Error(`Unknown sort property ${property}`);
 }
 
+function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
+  return n.node.node.isDirectRecursive();
+}
+
 interface FrameStackTableProps {
   canvasPoolManager: CanvasPoolManager;
   flamegraphRenderer: FlamegraphRenderer;
+  recursion: 'collapsed' | null;
   referenceNode: FlamegraphFrame;
   roots: FlamegraphFrame[];
 }
@@ -82,33 +90,66 @@ export function FrameStackTable({
   flamegraphRenderer,
   canvasPoolManager,
   referenceNode,
+  recursion,
 }: FrameStackTableProps) {
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
+    null
+  );
   const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
-
   const sortFunction = useMemo(() => {
     return makeSortFunction(sort, direction);
   }, [sort, direction]);
 
-  const {
-    items,
-    tabIndexKey,
-    scrollContainerStyles,
-    containerStyles,
-    handleRowClick,
-    handleRowKeyDown,
-    handleExpandTreeNode,
-    handleSortingChange,
-    handleScroll,
-  } = useVirtualizedTree({
-    sortFunction,
-    scrollContainerRef,
-    rowHeight: 24,
-    roots,
-  });
+  const [clickedContextMenuNode, setClickedContextMenuClose] =
+    useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
+
+  const contextMenu = useContextMenu({container: scrollContainerRef});
+
+  const handleZoomIntoNodeClick = useCallback(() => {
+    if (!clickedContextMenuNode) {
+      return;
+    }
+
+    canvasPoolManager.dispatch('zoomIntoFrame', [clickedContextMenuNode.node]);
+  }, [canvasPoolManager, clickedContextMenuNode]);
+
+  const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
+    (r, {handleRowClick, handleExpandTreeNode, handleRowKeyDown, tabIndexKey}) => {
+      return (
+        <FrameStackTableRow
+          ref={n => {
+            r.ref = n;
+          }}
+          node={r.item}
+          style={r.styles}
+          referenceNode={referenceNode}
+          tabIndex={tabIndexKey === r.key ? 0 : 1}
+          flamegraphRenderer={flamegraphRenderer}
+          onClick={handleRowClick}
+          onExpandClick={handleExpandTreeNode}
+          onKeyDown={handleRowKeyDown}
+          onContextMenu={evt => {
+            setClickedContextMenuClose(r.item);
+            contextMenu.handleContextMenu(evt);
+          }}
+        />
+      );
+    },
+    [contextMenu, flamegraphRenderer, referenceNode]
+  );
+
+  const {renderedItems, scrollContainerStyles, containerStyles, handleSortingChange} =
+    useVirtualizedTree({
+      skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
+      sortFunction,
+      renderRow,
+      scrollContainer: scrollContainerRef,
+      rowHeight: 24,
+      roots,
+    });
 
   const onSortChange = useCallback(
     (newSort: 'total weight' | 'self weight' | 'name') => {
@@ -123,19 +164,6 @@ export function FrameStackTable({
     },
     [sort, direction, handleSortingChange]
   );
-
-  const [clickedContextMenuNode, setClickedContextMenuClose] =
-    useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
-
-  const contextMenu = useContextMenu({container: scrollContainerRef.current});
-
-  const handleZoomIntoNodeClick = useCallback(() => {
-    if (!clickedContextMenuNode) {
-      return;
-    }
-
-    canvasPoolManager.dispatch('zoomIntoFrame', [clickedContextMenuNode.node]);
-  }, [canvasPoolManager, clickedContextMenuNode]);
 
   return (
     <FrameBar>
@@ -171,32 +199,12 @@ export function FrameStackTable({
           contextMenu={contextMenu}
         />
         <div
-          ref={scrollContainerRef}
+          ref={ref => setScrollContainerRef(ref)}
           style={scrollContainerStyles}
-          onScroll={handleScroll}
           onContextMenu={contextMenu.handleContextMenu}
         >
           <div style={containerStyles}>
-            {items.map(r => {
-              return (
-                <FrameStackTableRow
-                  key={r.key}
-                  ref={n => (r.ref = n)}
-                  node={r.item}
-                  style={r.styles}
-                  referenceNode={referenceNode}
-                  tabIndex={tabIndexKey === r.key ? 0 : 1}
-                  flamegraphRenderer={flamegraphRenderer}
-                  onClick={() => handleRowClick(r.key)}
-                  onExpandClick={handleExpandTreeNode}
-                  onKeyDown={evt => handleRowKeyDown(r.key, evt)}
-                  onContextMenu={evt => {
-                    setClickedContextMenuClose(r.item);
-                    contextMenu.handleContextMenu(evt);
-                  }}
-                />
-              );
-            })}
+            {renderedItems}
             {/*
               This is a ghost row, we stretch its width and height to fit the entire table
               so that borders on columns are shown across the entire table and not just the rows.
