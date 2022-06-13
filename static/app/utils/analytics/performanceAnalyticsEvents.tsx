@@ -11,6 +11,9 @@ type PerformanceTourParams = {
 
 export type PerformanceEventParameters = {
   'performance_views.create_sample_transaction': SampleTransactionParam;
+  'performance_views.event_details.filter_by_op': {
+    operation: string;
+  };
   'performance_views.landingv2.transactions.sort': {
     direction?: string;
     field?: string;
@@ -110,4 +113,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Trends Widget Page Changed',
   'performance_views.trends.change_duration':
     'Performance Views: Trends Widget Duration Changed',
+  'performance_views.event_details.filter_by_op':
+    'Performance Views: Event Details page operation filter applied',
 };
