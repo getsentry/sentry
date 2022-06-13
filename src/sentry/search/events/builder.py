@@ -109,6 +109,8 @@ class QueryBuilder:
         turbo: bool = False,
         sample_rate: Optional[float] = None,
         equation_config: Optional[Dict[str, bool]] = None,
+        # This allows queries to be resolved without adding time constraints. Currently this is just
+        # used to allow metric alerts to be built and validated before creation in snuba.
         skip_time_conditions: bool = False,
     ):
         self.dataset = dataset
