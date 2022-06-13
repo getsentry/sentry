@@ -23,11 +23,13 @@ class VersionedGroupActivityNotification(GroupActivityNotification, abc.ABC):
             self.version_url = absolute_uri(
                 f"/organizations/{self.organization.slug}/releases/{self.version_parsed}/"
             )
-        else:
-            self.version_parsed = "an upcoming release"
 
     def get_params(self) -> Mapping[str, str]:
-        return {"version": self.version_parsed}
+        params = {}
+        if self.version:
+            return {"version": self.version_parsed}
+
+        return params
 
     def get_html_params(self) -> Mapping[str, str]:
         html_params = {}

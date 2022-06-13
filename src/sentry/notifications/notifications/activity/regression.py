@@ -21,4 +21,7 @@ class RegressionActivityNotification(VersionedGroupActivityNotification):
             self.get_html_params(),
         )
 
+        if "version" in params:
+            message += " in {version}"
+
         return message, params, html_params

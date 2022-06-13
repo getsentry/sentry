@@ -1,6 +1,7 @@
 from unittest import mock
 
 import responses
+from sentry_relay import parse_release
 
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import RegressionActivityNotification
@@ -35,6 +36,38 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest):
         assert (
             text
             == f"{self.user.username} marked <{test_issue_url}|{self.group.qualified_short_id}> as a regression"
+        )
+        assert (
+            attachment["footer"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_regression_with_version(self, mock_func):
+        """
+        Test that a Slack message is sent with the expected payload when an issue regresses in version
+        """
+        notification = RegressionActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.SET_REGRESSION,
+                data={"version": "meow"},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        attachment, text = get_attachment()
+
+        version_parsed = parse_release(notification.activity.data["version"])["description"]
+        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
+
+        assert (
+            text
+            == f"{self.user.username} marked <{test_issue_url}|{self.group.qualified_short_id}> as a regression in {version_parsed}"
         )
         assert (
             attachment["footer"]
