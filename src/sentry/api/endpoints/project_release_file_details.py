@@ -51,6 +51,9 @@ class ClosesDependentFiles:
         for closable in self._closables:
             closable.close()
 
+    def __iter__(self):
+        return self._f
+
     def __getattr__(self, attr):
         return getattr(self._f, attr)
 

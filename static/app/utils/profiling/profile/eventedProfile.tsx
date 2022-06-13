@@ -120,8 +120,8 @@ export class EventedProfile extends Profile {
       while (start >= 0) {
         if (this.appendOrderStack[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          this.appendOrderStack[start].setRecursive(node);
-          node.setRecursive(this.appendOrderStack[start]);
+          this.appendOrderStack[start].setRecursiveThroughNode(node);
+          node.setRecursiveThroughNode(this.appendOrderStack[start]);
           break;
         }
         start--;

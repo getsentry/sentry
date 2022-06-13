@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 import {ItemType, SearchGroup, SearchItem} from './types';
@@ -61,14 +60,14 @@ class SearchDropdown extends PureComponent<Props> {
 
   renderItem = (item: SearchItem) => (
     <SearchListItem
-      key={item.value || item.desc}
+      key={item.value || item.desc || item.title}
       className={item.active ? 'active' : undefined}
       data-test-id="search-autocomplete-item"
-      onClick={this.props.onClick.bind(this, item.value, item)}
+      onClick={item.callback ?? this.props.onClick.bind(this, item.value, item)}
       ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
     >
       <SearchItemTitleWrapper>
-        {item.title && item.title + ' · '}
+        {item.title && item.title + (item.desc ? ' · ' : '')}
         <Description>{this.renderDescription(item)}</Description>
         <Documentation>{item.documentation}</Documentation>
       </SearchItemTitleWrapper>
@@ -189,7 +188,7 @@ const SearchItemTitleWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Description = styled('span')`

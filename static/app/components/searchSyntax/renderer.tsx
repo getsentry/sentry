@@ -101,7 +101,7 @@ const FilterToken = ({
     if (!isActive && !hasLeft) {
       setHasLeft(true);
     }
-  }, [isActive]);
+  }, [hasLeft, isActive]);
 
   const showInvalid = hasLeft && !!filter.invalid;
   const showTooltip = showInvalid && isActive;
@@ -124,7 +124,7 @@ const FilterToken = ({
     window.requestAnimationFrame(
       () => (style.animation = `${shakeAnimation.name} 300ms`)
     );
-  }, [showInvalid]);
+  }, [reduceMotion, showInvalid]);
 
   return (
     <Tooltip

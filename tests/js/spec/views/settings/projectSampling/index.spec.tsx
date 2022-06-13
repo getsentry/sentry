@@ -1,4 +1,5 @@
 import {screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {SamplingRuleType} from 'sentry/types/sampling';
 import {SAMPLING_DOC_LINK} from 'sentry/views/settings/project/sampling/utils';
@@ -37,7 +38,7 @@ describe('Sampling', function () {
 
     // Tab content
     expect(screen.getByText('Operator')).toBeInTheDocument();
-    expect(screen.getByText('Conditions')).toBeInTheDocument();
+    expect(screen.getByText('Condition')).toBeInTheDocument();
     expect(screen.getByText('Rate')).toBeInTheDocument();
 
     // Empty message is displayed
@@ -114,6 +115,38 @@ describe('Sampling', function () {
     expect(router.push).toHaveBeenCalledWith(`${SamplingRuleType.TRANSACTION}/`);
   });
 
+  it('renders single rule without conditions', function () {
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/',
+      method: 'GET',
+      body: TestStubs.Project({
+        dynamicSampling: {
+          rules: [
+            {
+              sampleRate: 0.2,
+              type: 'trace',
+              condition: {
+                op: 'and',
+                inner: [],
+              },
+              id: 40,
+            },
+          ],
+          next_id: 41,
+        },
+      }),
+    });
+
+    renderComponent({
+      withModal: false,
+      ruleType: SamplingRuleType.TRACE,
+    });
+
+    // Tab content
+    expect(screen.getAllByTestId('sampling-rule').length).toBe(1);
+    expect(screen.getByTestId('sampling-rule')).toHaveTextContent('All');
+  });
+
   it('renders individual transactions tab', function () {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
@@ -145,8 +178,23 @@ describe('Sampling', function () {
               },
               id: 42,
             },
+            {
+              sampleRate: 0.2,
+              type: 'trace',
+              condition: {
+                op: 'and',
+                inner: [
+                  {
+                    op: 'glob',
+                    name: 'trace.release',
+                    value: ['1.2.3'],
+                  },
+                ],
+              },
+              id: 43,
+            },
           ],
-          next_id: 43,
+          next_id: 44,
         },
       }),
     });
@@ -170,8 +218,17 @@ describe('Sampling', function () {
     // Tab content
     const rules = screen.getAllByTestId('sampling-rule');
     expect(rules.length).toBe(2);
-    expect(rules[0]).toHaveTextContent('IfEnvironmentprod20%');
+    expect(rules[0]).toHaveTextContent('IfEnvironment=prod20%');
     expect(rules[1]).toHaveTextContent('Else50%');
+
+    // Info Alert
+    screen.getByText(
+      textWithMarkupMatcher('1 Distributed Trace rule will initiate before these rules')
+    );
+    expect(screen.getByRole('link', {name: '1 Distributed Trace rule'})).toHaveAttribute(
+      'href',
+      `${SamplingRuleType.TRACE}/`
+    );
 
     // Empty message is not displayed
     expect(screen.queryByText(EMPTY_MESSAGE)).not.toBeInTheDocument();

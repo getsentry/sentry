@@ -21,7 +21,6 @@ import SelectControl, {
   GeneralSelectValue,
 } from 'sentry/components/forms/selectControl';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 interface TriggerRenderingProps {
@@ -296,12 +295,12 @@ function CompactSelect<OptionType extends GeneralSelectValue = GeneralSelectValu
             menuPlacement="bottom"
             menuIsOpen
             isCompact
-            autoFocus
             controlShouldRenderValue={false}
             hideSelectedOptions={false}
             blurInputOnSelect={false}
             closeMenuOnSelect={false}
             closeMenuOnScroll={false}
+            openMenuOnFocus
           />
         </Overlay>
       </FocusScope>
@@ -321,7 +320,7 @@ export default CompactSelect;
 const MenuControlWrap = styled('div')``;
 
 const ButtonLabel = styled('span')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledBadge = styled(Badge)`

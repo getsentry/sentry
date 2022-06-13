@@ -1,11 +1,10 @@
 import responses
 
+from fixtures.vercel import SECRET
 from sentry.constants import ObjectStatus
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import override_options
-
-from .testutils import SECRET
 
 PRIMARY_UNINSTALL_RESPONSE = """{
     "configurationId": "my_config_id",
