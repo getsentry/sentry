@@ -1,11 +1,12 @@
 from functools import reduce
 from operator import or_
-from typing import Any, Mapping, Optional, Set
+from typing import Any, Mapping, Optional, Set, TypeVar
 
 from django.db.models import Q
 
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
+from sentry.sentry_metrics.indexer.models import BaseIndexer, PerfStringIndexer
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
@@ -17,8 +18,22 @@ _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
+DEFAULT_INDEXER_TYPE = "release_health"
+
+IndexerTable = TypeVar("IndexerTable", bound=BaseIndexer)
+
+TABLE_MAPPING: Mapping[str, IndexerTable] = {
+    "release_health": StringIndexerTable,
+    "performance": PerfStringIndexer,
+}
+
 
 class PGStringIndexerV2(StringIndexer):
+    def __init__(self, initialization_options: Mapping[str, Any]):
+        self.table = TABLE_MAPPING[
+            initialization_options.get("indexer_table", DEFAULT_INDEXER_TYPE)
+        ]
+
     """
     Provides integer IDs for metric names, tag keys and tag values
     and the corresponding reverse lookup.
@@ -200,11 +215,14 @@ class StaticStringsIndexerDecorator(StringIndexer):
     Wrapper for static strings
     """
 
-    def __init__(self) -> None:
-        self.indexer = PGStringIndexerV2()
+    def __init__(self, initialization_options: Mapping[str, Any]) -> None:
+        # xxx The decorator should probably not be aware of how its "base"
+        # object is instantiated but LazyServiceWrapper doesn't really give us any options
+        # for sophisticated DI
+        self.base = PGStringIndexerV2(initialization_options)
 
     def _get_db_records(self, db_keys: KeyCollection) -> Any:
-        return self.indexer._get_db_records(db_keys)
+        return self.base._get_db_records(db_keys)
 
     def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         static_keys = KeyCollection(org_strings)
@@ -221,21 +239,21 @@ class StaticStringsIndexerDecorator(StringIndexer):
         if org_strings_left.size == 0:
             return static_key_results
 
-        indexer_results = self.indexer.bulk_record(org_strings_left.mapping)
+        indexer_results = self.base.bulk_record(org_strings_left.mapping)
 
         return static_key_results.merge(indexer_results)
 
     def record(self, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.indexer.record(org_id, string)
+        return self.base.record(org_id, string)
 
     def resolve(self, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.indexer.resolve(org_id, string)
+        return self.base.resolve(org_id, string)
 
     def reverse_resolve(self, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
-        return self.indexer.reverse_resolve(id)
+        return self.base.reverse_resolve(id)
