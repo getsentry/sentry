@@ -343,10 +343,11 @@ const Body = styled('div')`
 const Actions = styled('div')`
   display: grid;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: 1fr max-content;
+    gap: ${space(2)};
   }
 `;
 
