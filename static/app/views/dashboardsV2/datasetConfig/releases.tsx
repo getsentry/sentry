@@ -1,7 +1,7 @@
 import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
+import {MetricsApiResponse, SessionApiResponse, SessionField} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -22,10 +22,21 @@ import {
 
 import {DatasetConfig} from './base';
 
+const DEFAULT_WIDGET_QUERY: WidgetQuery = {
+  name: '',
+  fields: [`crash_free_rate(${SessionField.SESSION})`],
+  columns: [],
+  fieldAliases: [],
+  aggregates: [`crash_free_rate(${SessionField.SESSION})`],
+  conditions: '',
+  orderby: `-crash_free_rate(${SessionField.SESSION})`,
+};
+
 export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
+  defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
