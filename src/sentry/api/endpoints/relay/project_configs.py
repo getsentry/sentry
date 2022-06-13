@@ -103,7 +103,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         metrics.incr(
             "api.endpoints.relay.project_configs._post",
             tags={"version": version, "reason": reject_reason},
-            amount=1,
             sample_rate=1,
         )
 
