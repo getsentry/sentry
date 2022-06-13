@@ -21,7 +21,7 @@ cssutils==2.4.0
 datadog==0.29.3
 decorator==5.1.1
 django==2.2.28
-django-crispy-forms==1.8.1
+django-crispy-forms==1.14.0
 django-pg-zero-downtime-migrations==0.10
 django-picklefield==2.1.0
 djangorestframework==3.11.2
@@ -70,9 +70,8 @@ protobuf==3.19.0
 psycopg2-binary==2.8.6
 pyasn1==0.4.5
 pyasn1-modules==0.2.4
-pycountry==17.5.14
 pycparser==2.21
-pyjwt==2.1.0
+pyjwt==2.4.0
 pyparsing==3.0.9
 pyrsistent==0.18.1
 python-dateutil==2.8.1
