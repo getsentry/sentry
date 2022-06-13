@@ -213,10 +213,10 @@ class StaticStringsIndexerDecorator(StringIndexer):
     """
 
     def __init__(self) -> None:
-        self.base = PGStringIndexerV2()
+        self.indexer = PGStringIndexerV2()
 
     def _get_db_records(self, db_keys: KeyCollection) -> Any:
-        return self.base._get_db_records(db_keys)
+        return self.indexer._get_db_records(db_keys)
 
     def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         static_keys = KeyCollection(org_strings)
@@ -233,21 +233,21 @@ class StaticStringsIndexerDecorator(StringIndexer):
         if org_strings_left.size == 0:
             return static_key_results
 
-        indexer_results = self.base.bulk_record(org_strings_left.mapping)
+        indexer_results = self.indexer.bulk_record(org_strings_left.mapping)
 
         return static_key_results.merge(indexer_results)
 
     def record(self, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.base.record(org_id, string)
+        return self.indexer.record(org_id, string)
 
     def resolve(self, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
-        return self.base.resolve(org_id, string)
+        return self.indexer.resolve(org_id, string)
 
     def reverse_resolve(self, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
-        return self.base.reverse_resolve(id)
+        return self.indexer.reverse_resolve(id)
