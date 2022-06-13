@@ -698,6 +698,33 @@ export function useVirtualizedTree<T extends TreeLike>(
     renderRow,
   ]);
 
+  // Register a resize observer for when the scroll container is resized.
+  // When the container is resized, update the scroll height in our state.
+  // Similarly to handleScroll, we use requestAnimationFrame to avoid overupdating the UI
+  useEffect(() => {
+    if (!props.scrollContainer) {
+      return undefined;
+    }
+    let rafId: number | undefined;
+    const resizeObserver = new window.ResizeObserver(elements => {
+      rafId = window.requestAnimationFrame(() => {
+        dispatch({
+          type: 'set scroll height',
+          payload: elements[0]?.contentRect?.height ?? 0,
+        });
+      });
+    });
+
+    resizeObserver.observe(props.scrollContainer);
+
+    return () => {
+      if (typeof rafId === 'number') {
+        window.cancelAnimationFrame(rafId);
+      }
+      resizeObserver.disconnect();
+    };
+  }, [props.scrollContainer]);
+
   return {
     tree,
     items,

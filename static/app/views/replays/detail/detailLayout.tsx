@@ -66,10 +66,10 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
             <FeatureFeedback
               featureName="replay"
               feedbackTypes={[
-                'Something is broken',
-                "I don't understand how to use this feature",
-                'I like this feature',
-                'Other reason',
+                t('Something is broken'),
+                t("I don't understand how to use this feature"),
+                t('I like this feature'),
+                t('Other reason'),
               ]}
             />
           </ButtonActionsWrapper>
