@@ -11961,3 +11961,41 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[1]["transaction"] == "bar_transaction"
         assert data[1]["count_unique(user)"] == 0
         assert meta["isMetricsData"]
+
+    def test_sum(self):
+        self.store_metric(
+            50,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            100,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        self.store_metric(
+            150,
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+
+        query = {
+            "project": [self.project.id],
+            "orderby": "sum(transaction.duration)",
+            "field": [
+                "transaction",
+                "sum(transaction.duration)",
+            ],
+            "dataset": "metricsEnhanced",
+            "per_page": 50,
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert data[0]["transaction"] == "foo_transaction"
+        assert data[0]["sum(transaction.duration)"] == 300
+        assert meta["isMetricsData"]
