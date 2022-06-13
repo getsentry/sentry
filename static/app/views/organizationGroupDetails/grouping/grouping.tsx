@@ -5,6 +5,8 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'sentry/api';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import Slider from 'sentry/components/forms/controls/rangeSlider/slider';
@@ -50,6 +52,9 @@ export const groupingFeedbackTypes = [
   t('Too specific grouping'),
   t('Other grouping issue'),
 ];
+
+export const GROUPING_BREAKDOWN__DOC_LINK =
+  'https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/';
 
 function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
   const {cursor, level} = location.query;
@@ -204,10 +209,15 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
         <Layout.Body>
           <Layout.Main fullWidth>
             <ErrorWrapper>
-              <FeatureFeedback
-                featureName="grouping"
-                feedbackTypes={groupingFeedbackTypes}
-              />
+              <ButtonBar gap={1}>
+                <Button href={GROUPING_BREAKDOWN__DOC_LINK} external>
+                  {t('Read Docs')}
+                </Button>
+                <FeatureFeedback
+                  featureName="grouping"
+                  feedbackTypes={groupingFeedbackTypes}
+                />
+              </ButtonBar>
               <StyledErrorMessage
                 onRetry={fetchGroupingLevels}
                 groupId={groupId}
@@ -255,10 +265,15 @@ function Grouping({api, groupId, location, organization, router, projSlug}: Prop
                 />
                 {t('More issues')}
               </SliderWrapper>
-              <FeatureFeedback
-                featureName="grouping"
-                feedbackTypes={groupingFeedbackTypes}
-              />
+              <StyledButtonBar gap={1}>
+                <Button href={GROUPING_BREAKDOWN__DOC_LINK} external>
+                  {t('Read Docs')}
+                </Button>
+                <FeatureFeedback
+                  featureName="grouping"
+                  feedbackTypes={groupingFeedbackTypes}
+                />
+              </StyledButtonBar>
             </Actions>
             <Content isReloading={isGroupingLevelDetailsLoading}>
               <StyledPanelTable headers={['', t('Events')]}>
@@ -327,9 +342,16 @@ const Body = styled('div')`
 
 const Actions = styled('div')`
   display: grid;
-  grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: 1fr max-content;
+  }
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  justify-content: flex-start;
 `;
 
 const StyledErrorMessage = styled(ErrorMessage)`
