@@ -21,10 +21,21 @@ import {WidgetQuery} from '../types';
 
 import {ContextualProps, DatasetConfig} from './base';
 
+const DEFAULT_WIDGET_QUERY: WidgetQuery = {
+  name: '',
+  fields: ['count()'],
+  columns: [],
+  fieldAliases: [],
+  aggregates: ['count()'],
+  conditions: '',
+  orderby: '-count()',
+};
+
 export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   transformSeries: (_data: EventsStats | MultiSeriesEventsStats) => {
     return [] as Series[];

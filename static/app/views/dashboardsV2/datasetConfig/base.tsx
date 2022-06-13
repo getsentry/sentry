@@ -16,6 +16,7 @@ export type ContextualProps = {
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
+  defaultWidgetQuery: WidgetQuery;
   /**
    * Transforms table API results into format that is used by
    * table and big number components
