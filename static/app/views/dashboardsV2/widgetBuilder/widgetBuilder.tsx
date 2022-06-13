@@ -452,18 +452,6 @@ function WidgetBuilder({
       }
 
       if (!prevState.userHasModified) {
-        // If the Widget is an issue widget
-        // TODO: Remove this block?
-        if (
-          newDisplayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType === WidgetType.ISSUE
-        ) {
-          set(newState, 'queries', widgetToBeUpdated.queries);
-          set(newState, 'dataSet', DataSet.ISSUES);
-          setDataSetConfig(getDatasetConfig(WidgetType.ISSUE));
-          return {...newState, errors: undefined};
-        }
-
         // Default widget provided by Add to Dashboard from Discover
         if (defaultWidgetQuery && defaultTableColumns) {
           // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
@@ -496,12 +484,6 @@ function WidgetBuilder({
             });
           }
         }
-      }
-
-      // TODO: Remove this block?
-      if (prevState.dataSet === DataSet.ISSUES) {
-        set(newState, 'dataSet', DataSet.EVENTS);
-        setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
       }
 
       set(newState, 'queries', normalized);
