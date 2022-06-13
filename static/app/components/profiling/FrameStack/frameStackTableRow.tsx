@@ -197,8 +197,8 @@ const FrameNameContainer = styled('div')`
 `;
 
 const FrameChildrenIndicator = styled('button')<{open: boolean}>`
-  width: 1ch;
-  height: 1ch;
+  width: 10px;
+  height: 10px;
   display: flex;
   padding: 0;
   border: none;
@@ -222,5 +222,5 @@ const FrameColorIndicator = styled('div')<{
   display: inline-block;
   flex-shrink: 0;
   background-color: ${p => p.backgroundColor};
-  margin-right: ${space(1)};
+  margin-right: ${space(0.5)};
 `;

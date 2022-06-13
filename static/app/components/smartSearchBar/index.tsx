@@ -45,12 +45,14 @@ import withOrganization from 'sentry/utils/withOrganization';
 
 import {ActionButton} from './actions';
 import SearchDropdown from './searchDropdown';
-import {ItemType, SearchGroup, SearchItem} from './types';
+import SearchHotkeysListener from './searchHotkeysListener';
+import {ItemType, QuickAction, QuickActionType, SearchGroup, SearchItem} from './types';
 import {
   addSpace,
   createSearchGroups,
   filterSearchGroupsByIndex,
   generateOperatorEntryMap,
+  getQuickActionsSearchGroup,
   getValidOps,
   removeSpace,
 } from './utils';
@@ -438,6 +440,126 @@ class SmartSearchBar extends Component<Props, State> {
     }
   }
 
+  moveToNextToken = (
+    token: TokenResult<any> | undefined,
+    filterTokens: TokenResult<Token.Filter>[]
+  ) => {
+    let offset = this.state.query.length;
+
+    if (this.searchInput.current && filterTokens.length > 0) {
+      this.searchInput.current.focus();
+
+      if (token) {
+        const tokenIndex = filterTokens.findIndex(tok => tok === token);
+        if (typeof tokenIndex !== 'undefined') {
+          if (tokenIndex + 1 < filterTokens.length) {
+            offset = filterTokens[tokenIndex + 1].location.end.offset;
+          }
+        }
+      }
+
+      if (this.cursorPosition === this.state.query.length) {
+        offset = filterTokens[0].location.end.offset;
+      }
+
+      this.searchInput.current.selectionStart = offset;
+      this.searchInput.current.selectionEnd = offset;
+      this.updateAutoCompleteItems();
+    }
+  };
+
+  runQuickAction = (action: QuickAction) => {
+    const {query} = this.state;
+    const token = this.cursorToken ?? undefined;
+
+    const filterTokens = this.filterTokens;
+
+    const {actionType, canRunAction} = action;
+
+    if (!canRunAction || canRunAction(token, this.filterTokens.length)) {
+      switch (actionType) {
+        case QuickActionType.Delete: {
+          if (token && filterTokens.length > 0) {
+            const index = filterTokens.findIndex(tok => tok === token) ?? -1;
+
+            if (typeof document.execCommand === 'function' && this.searchInput.current) {
+              // Only use exec command if exists
+              this.searchInput.current.focus();
+
+              this.searchInput.current.selectionStart = token.location.start.offset;
+              this.searchInput.current.selectionEnd = token.location.end.offset + 1;
+
+              document.execCommand('insertText', false, '');
+            } else {
+              // Otherwise we fall back to the non-undo-able version
+              const newQuery =
+                // We trim to remove any remaining spaces
+                query.slice(0, token.location.start.offset).trim() +
+                (index > 0 && index < filterTokens.length - 1 ? ' ' : '') +
+                query.slice(token.location.end.offset).trim();
+              this.updateQuery(newQuery);
+            }
+          }
+
+          break;
+        }
+        case QuickActionType.Negate: {
+          if (token && token.type === Token.Filter) {
+            if (token.negated) {
+              if (
+                typeof document.execCommand === 'function' &&
+                this.searchInput.current
+              ) {
+                this.searchInput.current.focus();
+
+                this.searchInput.current.selectionStart = token.location.start.offset;
+                this.searchInput.current.selectionEnd = token.key.location.start.offset;
+
+                document.execCommand('insertText', false, '');
+              } else {
+                const newQuery =
+                  query.slice(0, token.location.start.offset) +
+                  query.slice(token.key.location.start.offset);
+                this.updateQuery(newQuery, this.cursorPosition - 1);
+              }
+            } else {
+              if (
+                typeof document.execCommand === 'function' &&
+                this.searchInput.current
+              ) {
+                this.searchInput.current.focus();
+
+                this.searchInput.current.selectionStart = token.location.start.offset;
+                this.searchInput.current.selectionEnd = token.location.start.offset;
+
+                document.execCommand('insertText', false, '!');
+              } else {
+                const newQuery =
+                  query.slice(0, token.key.location.start.offset) +
+                  '!' +
+                  query.slice(token.key.location.start.offset);
+                this.updateQuery(newQuery, this.cursorPosition + 1);
+              }
+            }
+          }
+          break;
+        }
+        case QuickActionType.Next: {
+          this.moveToNextToken(token, filterTokens);
+
+          break;
+        }
+        case QuickActionType.Previous: {
+          this.moveToNextToken(token, filterTokens.reverse());
+
+          break;
+        }
+        default:
+          break;
+      }
+    }
+  };
+
   onSubmit = (evt: React.FormEvent) => {
     evt.preventDefault();
     this.doSearch();
@@ -583,7 +705,11 @@ class SmartSearchBar extends Component<Props, State> {
         searchGroups[groupIndex].children[childrenIndex];
 
       if (item) {
-        this.onAutoComplete(item.value, item);
+        if (item.callback) {
+          item.callback();
+        } else {
+          this.onAutoComplete(item.value ?? '', item);
+        }
       }
       return;
     }
@@ -711,6 +837,11 @@ class SmartSearchBar extends Component<Props, State> {
     }
 
     return this.searchInput.current.selectionStart ?? -1;
+  }
+
+  get filterTokens(): TokenResult<Token.Filter>[] {
+    return (this.state.parsedQuery?.filter(tok => tok.type === Token.Filter) ??
+      []) as TokenResult<Token.Filter>[];
   }
 
   /**
@@ -1139,16 +1270,29 @@ class SmartSearchBar extends Component<Props, State> {
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
 
-    this.setState(
-      createSearchGroups(
-        searchItems,
-        hasRecentSearches ? recentSearchItems : undefined,
-        tagName,
-        type,
-        maxSearchItems,
-        queryCharsLeft
-      )
+    const searchGroups = createSearchGroups(
+      searchItems,
+      hasRecentSearches ? recentSearchItems : undefined,
+      tagName,
+      type,
+      maxSearchItems,
+      queryCharsLeft
     );
+
+    const quickActionsSearchResults = getQuickActionsSearchGroup(
+      this.runQuickAction,
+      this.filterTokens.length,
+      this.cursorToken ?? undefined
+    );
+    if (quickActionsSearchResults) {
+      searchGroups.searchGroups.push(quickActionsSearchResults.searchGroup);
+      searchGroups.flatSearchItems = [
+        ...searchGroups.flatSearchItems,
+        ...quickActionsSearchResults.searchItems,
+      ];
+    }
+
+    this.setState(searchGroups);
   }
 
   /**
@@ -1161,6 +1305,12 @@ class SmartSearchBar extends Component<Props, State> {
     const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
+
+    const quickActionsSearchResults = getQuickActionsSearchGroup(
+      this.runQuickAction,
+      this.filterTokens.length,
+      this.cursorToken ?? undefined
+    );
 
     const searchGroups = groups
       .map(({searchItems, recentSearchItems, tagName, type}) =>
@@ -1185,6 +1335,14 @@ class SmartSearchBar extends Component<Props, State> {
           activeSearchItem: -1,
         }
       );
+
+    if (quickActionsSearchResults) {
+      searchGroups.searchGroups.push(quickActionsSearchResults.searchGroup);
+      searchGroups.flatSearchItems = [
+        ...searchGroups.flatSearchItems,
+        ...quickActionsSearchResults.searchItems,
+      ];
+    }
 
     this.setState(searchGroups);
   };
@@ -1384,6 +1542,7 @@ class SmartSearchBar extends Component<Props, State> {
         className={className}
         inputHasFocus={inputHasFocus}
       >
+        <SearchHotkeysListener runQuickAction={this.runQuickAction} />
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
           {inlineLabel}
