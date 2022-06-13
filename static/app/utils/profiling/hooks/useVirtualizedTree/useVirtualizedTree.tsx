@@ -40,6 +40,7 @@ const requestAnimationTimeout = (
 
   const timeout = () => {
     if (start === undefined) {
+      frame.id = window.requestAnimationFrame(timeout);
       return;
     }
     if (Date.now() - start >= delay) {
@@ -667,14 +668,14 @@ export function useVirtualizedTree<T extends TreeLike>(
     return {height, maxHeight: height, overflow: 'hidden'};
   }, [tree.flattened.length, props.rowHeight]);
 
-  // It is important that this is not executed from a map function because
-  // we are assigning the refs to each individual item. If we do that,
-  // we lose access to the refs and cannot call focus or scrollIntoView on them
-
   const renderedItems: React.ReactNode[] = useMemo(() => {
     const renderered: React.ReactNode[] = [];
 
-    for (const item of items) {
+    // It is important that we do not create a copy of item
+    // because refs will assign the dom node to the item.
+    // If we map, we get a new object that our internals will not be able to access.
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
       renderered.push(
         renderRow(item, {
           handleRowClick: handleRowClick(item.key),
