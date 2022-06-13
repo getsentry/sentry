@@ -117,6 +117,12 @@ def pytest_configure(config):
     settings.DEBUG_VIEWS = True
     settings.SERVE_UPLOADED_FILES = True
 
+    # Disable internal error collection during tests.
+    settings.SENTRY_PROJECT = None
+    settings.SENTRY_PROJECT_KEY = None
+
+    settings.SENTRY_ENCRYPTION_SCHEMES = ()
+
     settings.CACHES = {
         "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
         "nodedata": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
