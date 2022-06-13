@@ -429,7 +429,7 @@ class QueryField extends Component<Props> {
           : descriptor.options;
 
         aggregateParameters.forEach(opt => {
-          opt.trailingItems = this.renderTag(opt.value.kind, opt.label as string);
+          opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
         });
 
         return (
