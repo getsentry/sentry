@@ -1,12 +1,10 @@
 from collections import namedtuple
-from functools import partial
 from typing import Optional
-from urllib.parse import parse_qs, quote, urlencode, urljoin, urlparse
+from urllib.parse import quote, urlencode, urljoin, urlparse
 
 from django.conf import settings
 
 from sentry import options
-from sentry.utils import json
 
 ParsedUriMatch = namedtuple("ParsedUriMatch", ["scheme", "domain", "path"])
 
@@ -50,16 +48,6 @@ def safe_urlencode(params, doseq=0):
             new_params.append((k, str(v)))
 
     return urlencode(new_params, doseq)
-
-
-def is_same_domain(url1, url2):
-    """
-    Returns true if the two urls should be treated as if they're from the same
-    domain (trusted).
-    """
-    url1 = urlparse(url1)
-    url2 = urlparse(url2)
-    return url1.netloc == url2.netloc
 
 
 def get_origins(project=None):
@@ -223,34 +211,6 @@ def origin_from_request(request):
     if rv in ("", "null"):
         rv = origin_from_url(request.META.get("HTTP_REFERER"))
     return rv
-
-
-def heuristic_decode(data, possible_content_type=None):
-    """
-    Attempt to decode a HTTP body by trying JSON and Form URL decoders,
-    returning the decoded body (if decoding was successful) and the inferred
-    content type.
-    """
-    inferred_content_type = possible_content_type
-
-    form_encoded_parser = partial(parse_qs, strict_parsing=True, keep_blank_values=True)
-
-    decoders = [
-        ("application/json", json.loads),
-        ("application/x-www-form-urlencoded", form_encoded_parser),
-    ]
-
-    # Prioritize the decoder which supports the possible content type first.
-    decoders.sort(key=lambda d: d[0] == possible_content_type, reverse=True)
-
-    for decoding_type, decoder in decoders:
-        try:
-            return (decoder(data), decoding_type)
-        except Exception:
-            # Try another decoder
-            continue
-
-    return (data, inferred_content_type)
 
 
 def percent_encode(val):

@@ -6,10 +6,6 @@ from distutils import log
 from distutils.core import Command
 from subprocess import STDOUT, CalledProcessError, check_output
 
-import sentry  # We just need its path via __file__
-
-SENTRY_ROOT_PATH = os.path.abspath(os.path.join(sentry.__file__, "..", "..", ".."))
-
 
 class BaseBuildCommand(Command):
     user_options = [
