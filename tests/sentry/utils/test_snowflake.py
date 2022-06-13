@@ -6,7 +6,7 @@ from sentry.testutils import TestCase
 from sentry.utils.snowflake import (
     MAX_AVAILABLE_REGION_SEQUENCES,
     SENTRY_EPOCH_START,
-    snowflake_id_generation,
+    generate_snowflake_id,
 )
 
 
@@ -15,7 +15,7 @@ class SnowflakeUtilsTest(TestCase):
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self):
-        snowflake_id = snowflake_id_generation("test_redis_key")
+        snowflake_id = generate_snowflake_id("test_redis_key")
         expected_value = (16 << 48) + (
             int(self.CURRENT_TIME.timestamp() - SENTRY_EPOCH_START) << 16
         )
@@ -26,15 +26,15 @@ class SnowflakeUtilsTest(TestCase):
     def test_generate_correct_ids_with_region_sequence(self):
         # next id in the same timestamp, should be 1 greater than last id up to 16 timestamps
         # the 17th will be at the previous timestamp
-        snowflake_id = snowflake_id_generation("test_redis_key")
+        snowflake_id = generate_snowflake_id("test_redis_key")
 
         for _ in range(MAX_AVAILABLE_REGION_SEQUENCES - 1):
-            new_snowflake_id = snowflake_id_generation("test_redis_key")
+            new_snowflake_id = generate_snowflake_id("test_redis_key")
 
             assert new_snowflake_id - snowflake_id == 1
             snowflake_id = new_snowflake_id
 
-        snowflake_id = snowflake_id_generation("test_redis_key")
+        snowflake_id = generate_snowflake_id("test_redis_key")
 
         expected_value = (16 << 48) + (
             (int(self.CURRENT_TIME.timestamp() - SENTRY_EPOCH_START) - 1) << 16
