@@ -486,23 +486,30 @@ class SmartSearchBar extends Component<Props, State> {
         case ShortcutType.Delete: {
           if (token && filterTokens.length > 0) {
             const index = filterTokens.findIndex(tok => tok === token) ?? -1;
+            const newQuery =
+              // We trim to remove any remaining spaces
+              query.slice(0, token.location.start.offset).trim() +
+              (index > 0 && index < filterTokens.length - 1 ? ' ' : '') +
+              query.slice(token.location.end.offset).trim();
 
-            if (typeof document.execCommand === 'function' && this.searchInput.current) {
+            if (this.searchInput.current) {
               // Only use exec command if exists
               this.searchInput.current.focus();
 
-              this.searchInput.current.selectionStart = token.location.start.offset;
-              this.searchInput.current.selectionEnd = token.location.end.offset + 1;
+              this.searchInput.current.selectionStart = 0;
+              this.searchInput.current.selectionEnd = query.length;
 
-              document.execCommand('insertText', false, '');
-            } else {
-              // Otherwise we fall back to the non-undo-able version
-              const newQuery =
-                // We trim to remove any remaining spaces
-                query.slice(0, token.location.start.offset).trim() +
-                (index > 0 && index < filterTokens.length - 1 ? ' ' : '') +
-                query.slice(token.location.end.offset).trim();
-              this.updateQuery(newQuery);
+              // Because firefox doesn't support inserting an empty string, we insert a newline character instead
+              // But because of this, only on firefox, if you delete the last token you won't be able to undo.
+              if (
+                (navigator.userAgent.toLowerCase().includes('firefox') &&
+                  newQuery.length === 0) ||
+                !hasExecCommand ||
+                !document.execCommand('insertText', false, newQuery)
+              ) {
+                // This will run either when newQuery is empty on firefox or when execCommand fails.
+                this.updateQuery(newQuery);
+              }
             }
           }
 
@@ -511,39 +518,57 @@ class SmartSearchBar extends Component<Props, State> {
         case ShortcutType.Negate: {
           if (token && token.type === Token.Filter) {
             if (token.negated) {
-              if (
-                typeof document.execCommand === 'function' &&
-                this.searchInput.current
-              ) {
+              if (this.searchInput.current) {
                 this.searchInput.current.focus();
 
-                this.searchInput.current.selectionStart = token.location.start.offset;
-                this.searchInput.current.selectionEnd = token.key.location.start.offset;
+                const tokenCursorOffset =
+                  this.cursorPosition - token.key.location.start.offset;
 
-                document.execCommand('insertText', false, '');
-              } else {
-                const newQuery =
-                  query.slice(0, token.location.start.offset) +
-                  query.slice(token.key.location.start.offset);
-                this.updateQuery(newQuery, this.cursorPosition - 1);
+                // Select the whole token so we can replace it.
+                this.searchInput.current.selectionStart = token.location.start.offset;
+                this.searchInput.current.selectionEnd = token.location.end.offset;
+
+                // We can't call insertText with an empty string on Firefox, so we have to do this.
+                if (
+                  !hasExecCommand ||
+                  !document.execCommand('insertText', false, token.text.slice(1))
+                ) {
+                  // Fallback when execCommand fails
+                  const newQuery =
+                    query.slice(0, token.location.start.offset) +
+                    query.slice(token.key.location.start.offset);
+                  this.updateQuery(newQuery, this.cursorPosition - 1);
+                }
+
+                // Return the cursor to where it should be
+                const newCursorPosition = token.location.start.offset + tokenCursorOffset;
+                this.searchInput.current.selectionStart = newCursorPosition;
+                this.searchInput.current.selectionEnd = newCursorPosition;
               }
             } else {
-              if (
-                typeof document.execCommand === 'function' &&
-                this.searchInput.current
-              ) {
+              if (this.searchInput.current) {
                 this.searchInput.current.focus();
+
+                const tokenCursorOffset =
+                  this.cursorPosition - token.key.location.start.offset;
 
                 this.searchInput.current.selectionStart = token.location.start.offset;
                 this.searchInput.current.selectionEnd = token.location.start.offset;
 
-                document.execCommand('insertText', false, '!');
-              } else {
-                const newQuery =
-                  query.slice(0, token.key.location.start.offset) +
-                  '!' +
-                  query.slice(token.key.location.start.offset);
-                this.updateQuery(newQuery, this.cursorPosition + 1);
+                if (!hasExecCommand || !document.execCommand('insertText', false, '!')) {
+                  // Fallback when execCommand fails
+                  const newQuery =
+                    query.slice(0, token.key.location.start.offset) +
+                    '!' +
+                    query.slice(token.key.location.start.offset);
+                  this.updateQuery(newQuery, this.cursorPosition + 1);
+                }
+
+                // Return the cursor to where it should be, +1 for the ! character we added
+                const newCursorPosition =
+                  token.location.start.offset + tokenCursorOffset + 1;
+                this.searchInput.current.selectionStart = newCursorPosition;
+                this.searchInput.current.selectionEnd = newCursorPosition;
               }
             }
           }
