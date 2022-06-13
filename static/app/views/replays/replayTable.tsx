@@ -43,7 +43,7 @@ function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
+  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const getEventView = () => {
     const query = replayList.map(item => `replayId:${item[idKey]}`).join(' OR ');

@@ -427,13 +427,13 @@ const AlertName = styled('div')`
   ${p => p.theme.overflowEllipsis}
   font-size: ${p => p.theme.fontSizeLarge};
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
     max-width: 300px;
   }
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     max-width: 165px;
   }
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     max-width: 100px;
   }
 `;
