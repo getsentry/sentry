@@ -51,6 +51,14 @@ def test_invalid_public_name_regex(name):
         "e:sessions/healthy.crashed.crashed@",
         "e:sessions/healthy_crashed.crashed@",
         "e:sessions/healthy.crashed_crashed_sessions@",
+        "d:transactions/measurements.frames_slow_rate@ratio",
+        "c:sessions/session@none",
+        "s:sessions/error@none",
+        "g:sessions/error@none",
+        "g:alerts/error@none",
+        "g:custom/error@none",
+        "g:issues/error@none",
+        "c:errors/error@none",
     ],
 )
 def test_valid_mri_schema_regex(name):
