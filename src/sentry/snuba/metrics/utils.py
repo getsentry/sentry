@@ -30,6 +30,7 @@ __all__ = (
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
     "get_intervals",
+    "OP_REGEX",
 )
 
 
@@ -80,7 +81,7 @@ MetricType = Literal["counter", "set", "distribution", "numeric"]
 
 MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
 
-OP_TO_SNUBA_FUNCTION: Mapping[str, Mapping[MetricOperationType, str]] = {
+OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
     "metrics_distributions": {
         "avg": "avgIf",
@@ -96,6 +97,24 @@ OP_TO_SNUBA_FUNCTION: Mapping[str, Mapping[MetricOperationType, str]] = {
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
+
+
+def generate_operation_regex():
+    """
+    Generates a regex of all supported operations defined in OP_TO_SNUBA_FUNCTION
+    """
+    op_lst = []
+    for item in OP_TO_SNUBA_FUNCTION.values():
+        op_lst += list(item.keys())
+
+    op_regex = r"("
+    for op in op_lst:
+        op_regex += f"{op}|"
+    op_regex = op_regex[0:-1] + ")"
+    return op_regex
+
+
+OP_REGEX = generate_operation_regex()
 
 
 AVAILABLE_OPERATIONS = {

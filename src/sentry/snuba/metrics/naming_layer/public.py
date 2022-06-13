@@ -15,12 +15,17 @@ __all__ = (
     "TransactionTagsKey",
     "TransactionStatusTagValue",
     "TransactionSatisfactionTagValue",
+    "PUBLIC_EXPRESSION_REGEX",
+    "PUBLIC_NAME_REGEX",
 )
 
 import re
 from enum import Enum
 
-PUBLIC_NAME_REGEX = re.compile(r"^(\w+)\(([\w.]+)\)$")
+from sentry.snuba.metrics.utils import OP_REGEX
+
+PUBLIC_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
+PUBLIC_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\({PUBLIC_NAME_REGEX}\)$")
 
 
 class SessionMetricKey(Enum):
