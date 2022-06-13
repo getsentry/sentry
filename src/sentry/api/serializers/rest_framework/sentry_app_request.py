@@ -7,6 +7,7 @@ from django.urls import reverse
 from sentry import eventstore
 from sentry.api.serializers import Serializer
 from sentry.models import Organization, Project, SentryApp
+from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 
 class RequestSerializer(Serializer):
@@ -45,7 +46,8 @@ class RequestSerializer(Serializer):
             "responseCode": response_code,
         }
 
-        if response_code >= 400 or response_code == 0:
+        if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
+            # add error data to display in Sentry app dashboard
             data.update(
                 {
                     "requestBody": obj.data.get("request_body"),

@@ -61,12 +61,12 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
         try:
             start = datetime.strptime(start, date_format)
         except ValueError:
-            return Response({"detail": INVALID_DATE_FORMAT_MESSAGE})
+            return Response({"detail": INVALID_DATE_FORMAT_MESSAGE}, status=400)
 
         try:
             end = datetime.strptime(end, date_format)
         except ValueError:
-            return Response({"detail": INVALID_DATE_FORMAT_MESSAGE})
+            return Response({"detail": INVALID_DATE_FORMAT_MESSAGE}, status=400)
 
         kwargs = {}
         if event_type:
@@ -84,10 +84,9 @@ class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
             except Organization.DoesNotExist:
                 return Response({"detail": "Invalid organization."}, status=400)
 
-        filtered_requests = [
-            BufferedRequest(id=i, data=req)
-            for i, req in enumerate(buffer.get_requests(**kwargs))
-            if filter_by_date(req, start, end) and filter_by_organization(req, organization)
-        ]
+        filtered_requests = []
+        for i, req in enumerate(buffer.get_requests(**kwargs)):
+            if filter_by_date(req, start, end) and filter_by_organization(req, organization):
+                filtered_requests.append(BufferedRequest(id=i, data=req))
 
         return Response(serialize(filtered_requests, request.user, RequestSerializer(sentry_app)))

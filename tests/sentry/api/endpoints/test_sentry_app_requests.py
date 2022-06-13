@@ -331,7 +331,7 @@ class GetSentryAppRequestsTest(SentryAppRequestsTest):
         """Test that filtering by the qparams start and end properly filters results"""
         self.login_as(user=self.user)
         buffer = SentryAppWebhookRequestsBuffer(self.published_app)
-        now = datetime.now() + timedelta(hours=-1)
+        now = datetime.now() - timedelta(hours=1)
         buffer.add_request(
             response_code=200,
             org_id=self.org.id,
