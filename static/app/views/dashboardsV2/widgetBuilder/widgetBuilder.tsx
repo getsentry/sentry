@@ -319,6 +319,7 @@ function WidgetBuilder({
           : DataSet.EVENTS,
         limit: newLimit,
       });
+      setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
       setWidgetToBeUpdated(widgetFromDashboard);
     }
     // This should only run once on mount
@@ -419,27 +420,10 @@ function WidgetBuilder({
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const normalized = normalizeQueries({
-        displayType: newDisplayType,
-        queries: prevState.queries,
-        widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
-        widgetBuilderNewDesign,
-      });
 
-      if (newDisplayType === DisplayType.TOP_N) {
-        // TOP N display should only allow a single query
-        normalized.splice(1);
-      }
-
-      if (
-        (prevState.displayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType &&
-          WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES) ||
-        (prevState.dataSet === DataSet.RELEASES &&
-          newDisplayType === DisplayType.WORLD_MAP)
-      ) {
-        // World Map display type only supports Events Dataset
-        // so set state to default events query.
+      if (!!!datasetConfig.supportedDisplayTypes.includes(newDisplayType)) {
+        // Set to Events dataset if Display Type is not supported by
+        // current dataset
         set(
           newState,
           'queries',
@@ -455,8 +439,21 @@ function WidgetBuilder({
         return {...newState, errors: undefined};
       }
 
+      const normalized = normalizeQueries({
+        displayType: newDisplayType,
+        queries: prevState.queries,
+        widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
+        widgetBuilderNewDesign,
+      });
+
+      if (newDisplayType === DisplayType.TOP_N) {
+        // TOP N display should only allow a single query
+        normalized.splice(1);
+      }
+
       if (!prevState.userHasModified) {
-        // If the Widget is an issue widget,
+        // If the Widget is an issue widget
+        // TODO: Remove this block?
         if (
           newDisplayType === DisplayType.TABLE &&
           widgetToBeUpdated?.widgetType === WidgetType.ISSUE
@@ -501,6 +498,7 @@ function WidgetBuilder({
         }
       }
 
+      // TODO: Remove this block?
       if (prevState.dataSet === DataSet.ISSUES) {
         set(newState, 'dataSet', DataSet.EVENTS);
         setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
