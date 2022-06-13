@@ -100,7 +100,14 @@ class RelayProjectConfigsEndpoint(Endpoint):
 
         set_tag("relay_use_v3", use_v3)
         set_tag("relay_use_v3_rejected", reject_reason)
-        return use_v3, reject_reason
+        metrics.incr(
+            "api.endpoints.relay.project_configs._post",
+            tags={"version": version, "reason": reject_reason},
+            amount=1,
+            sample_rate=1,
+        )
+
+        return use_v3
 
     def _post_or_schedule_by_key(self, request: Request):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
