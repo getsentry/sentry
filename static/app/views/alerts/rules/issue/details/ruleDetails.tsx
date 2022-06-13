@@ -9,6 +9,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -245,12 +246,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <Button
-                title={t('Send us feedback via email')}
-                href="mailto:alerting-feedback@sentry.io?subject=Issue Alert Details Feedback"
-              >
-                {t('Give Feedback')}
-              </Button>
+              <FeatureFeedback featureName="issue-alert-details" />
               <Button
                 icon={<IconEdit />}
                 to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}
