@@ -167,6 +167,7 @@ const FrameDrawerLabel = styled('label')`
   white-space: nowrap;
   margin-bottom: 0;
   height: 100%;
+  font-weight: normal;
 
   > input {
     margin: 0 ${space(0.5)} 0 0;
