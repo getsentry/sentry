@@ -50,6 +50,11 @@ export type PerformanceEventParameters = {
   'performance_views.spans.change_sort': {
     sort_column?: string;
   };
+  'performance_views.tags.change_tag': {
+    from_tag: string;
+    is_other_tag: boolean;
+    to_tag: string;
+  };
   'performance_views.tour.advance': PerformanceTourParams;
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
@@ -97,4 +102,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Transaction Summary status breakdown option clicked',
   'performance_views.all_events.open_in_discover':
     'Performance Views: All Events page open in Discover button clicked',
+  'performance_views.tags.change_tag':
+    'Performance Views: Tags Page changed selected tag',
 };
