@@ -28,6 +28,8 @@ function getMatchPlaceholder(type: string): string {
   switch (type) {
     case 'path':
       return 'src/example/*';
+    case 'module':
+      return 'com.module.name.example';
     case 'url':
       return 'https://example.com/settings/*';
     case 'tag':
@@ -151,6 +153,7 @@ class RuleBuilder extends Component<Props, State> {
             onChange={this.handleTypeChange}
             options={[
               {value: 'path', label: t('Path')},
+              {value: 'module', label: t('Module')},
               {value: 'tag', label: t('Tag')},
               {value: 'url', label: t('URL')},
             ]}

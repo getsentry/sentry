@@ -408,6 +408,7 @@ describe('add to dashboard modal', () => {
                 description: 'Test description',
                 displayType: 'top_n',
                 interval: '5m',
+                limit: 5,
                 queries: [
                   {
                     aggregates: ['count()'],

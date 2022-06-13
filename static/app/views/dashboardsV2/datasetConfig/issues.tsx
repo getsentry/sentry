@@ -6,7 +6,7 @@ import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {queryToObj} from 'sentry/utils/stream';
 import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 
 import {ContextualProps, DatasetConfig} from './base';
@@ -28,10 +28,22 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
   statsPeriod?: string | null;
 };
 
+const DEFAULT_WIDGET_QUERY: WidgetQuery = {
+  name: '',
+  fields: ['issue', 'assignee', 'title'] as string[],
+  columns: ['issue', 'assignee', 'title'],
+  fieldAliases: [],
+  aggregates: [],
+  conditions: '',
+  orderby: IssueSortOptions.DATE,
+};
+
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
+  defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequests,
   getCustomFieldRenderer: getIssueFieldRenderer,
   fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
+  supportedDisplayTypes: [DisplayType.TABLE],
   transformTable: transformIssuesResponseToTable,
 };
 

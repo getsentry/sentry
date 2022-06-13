@@ -5,7 +5,7 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
-import {Widget, WidgetQuery, WidgetType} from '../types';
+import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
@@ -19,8 +19,17 @@ export type ContextualProps = {
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
+   * Default query to display when dataset is selected in the
+   * Widget Builder.
+   */
+  defaultWidgetQuery: WidgetQuery;
+  /**
+   * List of supported display types for dataset.
+   */
+  supportedDisplayTypes: DisplayType[];
+  /**
    * Transforms table API results into format that is used by
-   * table and big number components
+   * table and big number components.
    */
   transformTable: (
     data: TableResponse,
@@ -60,7 +69,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
    */
-  transformSeries?: (data: SeriesResponse) => Series[];
+  transformSeries?: (
+    data: SeriesResponse,
+    widgetQuery: WidgetQuery,
+    contextualProps?: ContextualProps
+  ) => Series[];
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(
