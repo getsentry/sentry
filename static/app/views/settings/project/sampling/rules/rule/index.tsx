@@ -89,13 +89,15 @@ export function Rule({
       </Column>
       <Column>
         <Conditions>
-          {rule.condition.inner.map((condition, index) => (
-            <Fragment key={index}>
-              <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
-              <ConditionEqualOperator>{'='}</ConditionEqualOperator>
-              <ConditionValue value={condition.value} />
-            </Fragment>
-          ))}
+          {hideGrabButton && !rule.condition.inner.length
+            ? t('All')
+            : rule.condition.inner.map((condition, index) => (
+                <Fragment key={index}>
+                  <ConditionName>{getInnerNameLabel(condition.name)}</ConditionName>
+                  <ConditionEqualOperator>{'='}</ConditionEqualOperator>
+                  <ConditionValue value={condition.value} />
+                </Fragment>
+              ))}
         </Conditions>
       </Column>
       <RightColumn>

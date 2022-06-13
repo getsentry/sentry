@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import isodate
 from croniter import croniter
 from django.conf import settings
 from freezegun import freeze_time
@@ -9,11 +10,16 @@ from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
 from sentry.api.base import Endpoint
 from sentry.api.helpers.deprecation import deprecated
+from sentry.options import register
 from sentry.testutils import APITestCase
 
 replacement_api = "replacement-api"
 test_date = datetime.fromisoformat("2020-01-01T00:00:00+00:00:00")
 timeiter = croniter("0 12 * * *", test_date)
+default_duration = timedelta(minutes=1)
+
+custom_cron = "30 1 * * *"
+custom_duration = "PT1M1S"
 
 
 class DummyEndpoint(Endpoint):
@@ -24,6 +30,10 @@ class DummyEndpoint(Endpoint):
         return Response({"ok": True})
 
     def head(self, request):
+        return Response({"ok": True})
+
+    @deprecated(test_date, suggested_api=replacement_api, key="override")
+    def post(self, request):
         return Response({"ok": True})
 
 
@@ -89,3 +99,60 @@ class TestDeprecationDecorator(APITestCase):
 
     def test_no_decorator(self):
         self.assert_not_deprecated("HEAD")
+
+    def test_default_key(self):
+        settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-cron": custom_cron})
+        settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-duration": custom_duration})
+
+        custom_time_iter = croniter(custom_cron, test_date)
+        custom_duration_timedelta = isodate.parse_duration(custom_duration)
+        old_brownout_start = timeiter.get_next(datetime)
+        with freeze_time(old_brownout_start):
+            self.assert_allowed_request("GET")
+
+        new_brownout_start = custom_time_iter.get_next(datetime)
+        with freeze_time(new_brownout_start):
+            self.assert_denied_request("GET")
+
+        old_brownout_end = new_brownout_start + default_duration
+        with freeze_time(old_brownout_end):
+            self.assert_denied_request("GET")
+
+        new_brownout_end = new_brownout_start + custom_duration_timedelta
+        with freeze_time(new_brownout_end):
+            self.assert_allowed_request("GET")
+
+    def test_custom_key(self):
+        old_brownout_start = timeiter.get_next(datetime)
+        with freeze_time(old_brownout_start):
+            self.assert_denied_request("POST")
+
+        register("override-cron", default=custom_cron)
+        register("override-duration", default=custom_duration)
+        custom_time_iter = croniter(custom_cron, test_date)
+        custom_duration_timedelta = isodate.parse_duration(custom_duration)
+
+        with freeze_time(old_brownout_start):
+            self.assert_allowed_request("POST")
+
+        new_brownout_start = custom_time_iter.get_next(datetime)
+        with freeze_time(new_brownout_start):
+            self.assert_denied_request("POST")
+
+        new_brownout_end = new_brownout_start + custom_duration_timedelta
+        with freeze_time(new_brownout_end):
+            self.assert_allowed_request("POST")
+
+    def test_bad_schedule_format(self):
+        settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-duration": "bad duration"})
+
+        brownout_start = timeiter.get_next(datetime)
+        with freeze_time(brownout_start):
+            self.assert_allowed_request("GET")
+            settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-duration": "PT1M"})
+            self.assert_denied_request("GET")
+
+            settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-cron": "bad schedule"})
+            self.assert_allowed_request("GET")
+            settings.SENTRY_OPTIONS.update({"api.deprecation.brownout-cron": "0 12 * * *"})
+            self.assert_denied_request("GET")
