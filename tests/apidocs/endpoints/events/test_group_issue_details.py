@@ -1,7 +1,7 @@
 from django.test.client import RequestFactory
 
+from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.apidocs.util import APIDocsTestCase
 
 
 class ProjectGroupIssueDetailsDocs(APIDocsTestCase):

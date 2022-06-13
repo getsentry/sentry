@@ -19,6 +19,9 @@ import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {TableData} from 'sentry/utils/discover/discoverQuery';
+import EventView from 'sentry/utils/discover/eventView';
+import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -54,7 +57,9 @@ type State = {
   loading: boolean;
   loadingEvent: boolean;
   loadingGroup: boolean;
+  loadingReplaysCount: boolean;
   project: null | (Pick<Project, 'id' | 'slug'> & Partial<Pick<Project, 'platform'>>);
+  replaysCount: number | null;
   event?: Event;
 };
 
@@ -75,6 +80,7 @@ class GroupDetails extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData(true);
+    this.fetchReplaysCount();
     this.updateReprocessingProgress();
   }
 
@@ -114,10 +120,12 @@ class GroupDetails extends Component<Props, State> {
       loading: true,
       loadingEvent: true,
       loadingGroup: true,
+      loadingReplaysCount: true,
       error: false,
       eventError: false,
       errorType: null,
       project: null,
+      replaysCount: null,
     };
   }
 
@@ -353,6 +361,39 @@ class GroupDetails extends Component<Props, State> {
     GroupStore.onPopulateReleases(this.props.params.groupId, releases);
   }
 
+  async fetchReplaysCount() {
+    const {api, location, organization, params} = this.props;
+    const {groupId} = params;
+
+    this.setState({loadingReplaysCount: true});
+
+    const eventView = EventView.fromSavedQuery({
+      id: '',
+      name: `Replays in issue ${groupId}`,
+      version: 2,
+      fields: ['count()'],
+      query: `issue.id:${groupId}`,
+      projects: [],
+    });
+
+    try {
+      const [data] = await doDiscoverQuery<TableData>(
+        api,
+        `/organizations/${organization.slug}/events/`,
+        eventView.getEventsAPIPayload(location)
+      );
+
+      const replaysCount = data.data[0]['count()'].toString();
+
+      this.setState({
+        replaysCount: parseInt(replaysCount, 10),
+        loadingReplaysCount: false,
+      });
+    } catch (err) {
+      this.setState({loadingReplaysCount: false});
+    }
+  }
+
   async fetchData(trackView = false) {
     const {api, isGlobalSelectionReady, params} = this.props;
 
@@ -497,7 +538,7 @@ class GroupDetails extends Component<Props, State> {
 
   renderContent(project: AvatarProject, group: Group) {
     const {children, environments, organization} = this.props;
-    const {loadingEvent, eventError, event} = this.state;
+    const {loadingEvent, eventError, event, replaysCount} = this.state;
 
     const {currentTab, baseUrl} = this.getCurrentRouteInfo(group);
     const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -536,6 +577,7 @@ class GroupDetails extends Component<Props, State> {
           project={project as Project}
           event={event}
           group={group}
+          replaysCount={replaysCount}
           currentTab={currentTab}
           baseUrl={baseUrl}
         />
