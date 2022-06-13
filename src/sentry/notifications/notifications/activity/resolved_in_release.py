@@ -21,7 +21,7 @@ class ResolvedInReleaseActivityNotification(VersionedGroupActivityNotification):
             self.get_html_params(),
         )
 
-        if "version" not in params:
-            params["version"] = "an upcoming release"
+        if not params:
+            params = {"version": "an upcoming release"}
 
         return message, params, html_params
