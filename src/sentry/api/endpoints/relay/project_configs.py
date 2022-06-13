@@ -76,33 +76,33 @@ class RelayProjectConfigsEndpoint(Endpoint):
         set_tag("relay_full_config", is_full_config)
 
         use_v3 = True
-        reject_reason = None
+        reason = "accepted"
 
         if version != "3":
             use_v3 = False
-            reject_reason = "version"
+            reason = "version"
         elif not is_full_config:
             # The v3 implementation can't handle partial configs. Relay by
             # default request full configs and the amount of partial configs
             # should be low, so we handle them per request instead of
             # considering them v3.
             use_v3 = False
-            reject_reason = "fullConfig"
+            reason = "fullConfig"
         elif no_cache:
             use_v3 = False
-            reject_reason = "noCache"
+            reason = "noCache"
         elif random.random() >= options.get("relay.project-config-v3-enable"):
             set_tag("relay_v3_sampled", False)
             use_v3 = False
-            reject_reason = "sampling"
+            reason = "sampling"
         else:
             set_tag("relay_v3_sampled", True)
 
         set_tag("relay_use_v3", use_v3)
-        set_tag("relay_use_v3_rejected", reject_reason)
+        set_tag("relay_use_v3_rejected", reason)
         metrics.incr(
             "api.endpoints.relay.project_configs._post",
-            tags={"version": version, "reason": reject_reason},
+            tags={"version": version, "reason": reason},
             sample_rate=1,
         )
 
