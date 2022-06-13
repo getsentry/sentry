@@ -71,7 +71,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return f"{self.type.__name__.lower()}:{self.id}"
 
     @classmethod
-    def from_actor_identifier(cls, actor_identifier):
+    def from_actor_identifier(cls, actor_identifier: Union[int, str]) -> "ActorTuple":
         from sentry.models import Team, User
         from sentry.utils.auth import find_users
 

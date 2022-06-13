@@ -103,7 +103,7 @@ def build_action_text(identity: Identity, action: MessageAction) -> str | None:
         selected_options = action.selected_options or []
         if not len(selected_options):
             return None
-        assignee = selected_options[0].get("value")
+        assignee = selected_options[0]["value"]
         return build_assigned_text(identity, assignee)
 
     # Resolve actions have additional 'parameters' after ':'

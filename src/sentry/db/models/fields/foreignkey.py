@@ -1,10 +1,8 @@
-from typing import cast
+from typing import Any, cast
 
 from django.db import models
 from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models import ForeignKey
-
-from sentry.utils.types import Any
 
 __all__ = ("FlexibleForeignKey",)
 
