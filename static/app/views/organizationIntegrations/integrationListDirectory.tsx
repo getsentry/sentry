@@ -40,6 +40,7 @@ import {
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
+import CreateIntegrationButton from 'sentry/views/organizationIntegrations/createIntegrationButton';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/organization/permissionAlert';
 
@@ -479,7 +480,9 @@ export class IntegrationListDirectory extends AsyncComponent<
   };
 
   renderBody() {
-    const {orgId} = this.props.params;
+    const {
+      params: {orgId},
+    } = this.props;
     const {displayedList, list, searchInput, selectedCategory} = this.state;
 
     const title = t('Integrations');
@@ -492,7 +495,7 @@ export class IntegrationListDirectory extends AsyncComponent<
         {!this.props.hideHeader && (
           <SettingsPageHeader
             title={title}
-            action={
+            body={
               <ActionContainer>
                 <SelectControl
                   name="select-categories"
@@ -510,11 +513,12 @@ export class IntegrationListDirectory extends AsyncComponent<
                   query={searchInput || ''}
                   onChange={this.handleSearchChange}
                   placeholder={t('Filter Integrations...')}
-                  width="25em"
+                  width="100%"
                   data-test-id="search-bar"
                 />
               </ActionContainer>
             }
+            action={<CreateIntegrationButton analyticsView="integrations_directory" />}
           />
         )}
 
@@ -551,7 +555,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
 const ActionContainer = styled('div')`
   display: grid;
-  grid-template-columns: 240px max-content;
+  grid-template-columns: 240px auto;
   gap: ${space(2)};
 `;
 

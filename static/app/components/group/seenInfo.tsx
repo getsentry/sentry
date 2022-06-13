@@ -8,7 +8,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Release} from 'sentry/types';
 import {defined, toTitleCase} from 'sentry/utils';
@@ -126,7 +125,7 @@ const HovercardWrapper = styled('div')`
 
 const DateWrapper = styled('div')`
   margin-bottom: 0;
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledDateTime = styled(DateTime)`

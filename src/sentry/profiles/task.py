@@ -39,6 +39,8 @@ def process_profile(
         profile = _symbolicate(profile=profile, project=project)
     elif profile["platform"] == "android":
         profile = _deobfuscate(profile=profile, project=project)
+    elif profile["platform"] == "rust":
+        profile = _symbolicate(profile=profile, project=project)
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
     profile = _normalize(profile=profile, organization=organization)
@@ -73,11 +75,7 @@ def _normalize(
     profile: MutableMapping[str, Any],
     organization: Organization,
 ) -> MutableMapping[str, Any]:
-    classification_options = {
-        "model": profile["device_model"],
-        "os_name": profile["device_os_name"],
-        "is_emulator": profile["device_is_emulator"],
-    }
+    classification_options = dict()
 
     if profile["platform"] == "android":
         classification_options.update(
@@ -87,9 +85,28 @@ def _normalize(
             }
         )
 
+    if profile["platform"] in ["cocoa", "android"]:
+        classification_options.update(
+            {
+                "model": profile["device_model"],
+                "os_name": profile["device_os_name"],
+                "is_emulator": profile["device_is_emulator"],
+            }
+        )
+        profile.update({"device_classification": str(classify_device(**classification_options))})
+
+    if profile["platform"] == "rust":
+        profile.update(
+            {
+                "device_classification": "",
+                "device_locale": "",
+                "device_manufacturer": "",
+                "device_model": "",
+            }
+        )
+
     profile.update(
         {
-            "device_classification": str(classify_device(**classification_options)),
             "profile": json.dumps(profile["profile"]),
             "retention_days": quotas.get_event_retention(organization=organization),
         }
@@ -120,6 +137,11 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
             for original, symbolicated in zip(
                 profile["sampled_profile"]["samples"], response["stacktraces"]
             ):
+                for frame in symbolicated["frames"]:
+                    frame.pop("pre_context", None)
+                    frame.pop("context_line", None)
+                    frame.pop("post_context", None)
+
                 original["original_frames"] = original["frames"]
                 original["frames"] = symbolicated["frames"]
             break
