@@ -74,6 +74,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
   getPlaceholder() {
     return `#example usage
 path:src/example/pipeline/* person@sentry.io #infra
+module:com.module.name.example #sdks
 url:http://example.com/settings/* #product
 tags.sku_class:enterprise #enterprise`;
   }
