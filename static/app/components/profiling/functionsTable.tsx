@@ -20,6 +20,7 @@ import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -100,12 +101,29 @@ function FunctionsTable(props: FunctionsTableProps) {
         data={functions}
         columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
         columnSortBy={[]}
-        grid={{renderBodyCell: renderFunctionsTableCell}}
+        grid={{
+          renderHeadCell: renderTableHead(RIGHT_ALIGNED_COLUMNS),
+          renderBodyCell: renderFunctionsTableCell,
+        }}
         location={location}
       />
     </Fragment>
   );
 }
+
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>([
+  'p50Duration',
+  'p75Duration',
+  'p90Duration',
+  'p95Duration',
+  'p99Duration',
+  'mainThreadPercent',
+  'p50Frequency',
+  'p75Frequency',
+  'p90Frequency',
+  'p95Frequency',
+  'p99Frequency',
+]);
 
 function renderFunctionsTableCell(
   column: TableColumn,
