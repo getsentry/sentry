@@ -13,7 +13,7 @@ from sentry.api.base import Endpoint
 from sentry.api.permissions import RelayPermission
 from sentry.models import Organization, OrganizationOption, Project, ProjectKey, ProjectKeyStatus
 from sentry.relay import config, projectconfig_cache
-from sentry.tasks.relay import schedule_update_config_cache
+from sentry.tasks.relay import schedule_build_project_config
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -103,12 +103,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if cached_config:
             return cached_config
 
-        schedule_update_config_cache(
-            generate=True,
-            organization_id=None,
-            project_id=None,
+        schedule_build_project_config(
             public_key=public_key,
-            update_reason="project_config.post_v3",
+            trigger="project_config.post_v3",
         )
         return None
 

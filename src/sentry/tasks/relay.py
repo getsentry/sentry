@@ -10,13 +10,17 @@ from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
 
+TASK_SOFT_LIMIT = 25
+TASK_HARD_LIMIT = 30  # Extra 5 seconds to remove the debounce key
 
+
+# DEPRECATED TASK, use build_project_config or invalidate_config_cache instead.
 @instrumented_task(
     name="sentry.tasks.relay.update_config_cache",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=1500,  # 25 minutes; 25 * 60 = 1500
-    time_limit=1800,  # Extra 5 minutes to remove the debounce key; 5 * 60 = 300
+    soft_time_limit=TASK_SOFT_LIMIT,
+    time_limit=TASK_HARD_LIMIT,
 )
 def update_config_cache(
     generate, organization_id=None, project_id=None, public_key=None, update_reason=None
@@ -103,6 +107,7 @@ def update_config_cache(
         )
 
 
+# DEPRECATED SCHEDULER, use schedule_build_project_config or schedule_invalidate_project_config instead.
 def schedule_update_config_cache(
     generate, project_id=None, organization_id=None, public_key=None, update_reason=None
 ):
@@ -124,11 +129,7 @@ def schedule_update_config_cache(
         )
         return
 
-    bools = sorted((bool(organization_id), bool(project_id), bool(public_key)))
-    if bools != [False, False, True]:
-        raise TypeError(
-            "One of organization_id, project_id, public_key has to be provided, not many."
-        )
+    validate_args(organization_id, project_id, public_key)
 
     if projectconfig_debounce_cache.is_debounced(
         public_key=public_key, project_id=project_id, organization_id=organization_id
@@ -162,6 +163,88 @@ def schedule_update_config_cache(
     # the project as debounced.
     projectconfig_debounce_cache.debounce(
         public_key=public_key, project_id=project_id, organization_id=organization_id
+    )
+
+
+@instrumented_task(
+    name="sentry.tasks.relay.build_project_config",
+    queue="relay_config",
+    acks_late=True,
+    soft_time_limit=TASK_SOFT_LIMIT,
+    time_limit=TASK_HARD_LIMIT,
+)
+def build_project_config(public_key=None, trigger=None, **kwargs):
+    """Build a project config and put it in the Redis cache.
+
+    This task is used to compute missing project configs, it is aggressively
+    deduplicated to avoid running duplicate computations and thus should only
+    be invoked using :func:`schedule_build_project_config`. Because of this
+    deduplication it is not suitable for re-computing a project config when
+    an option changed, use :func:`schedule_invalidate_project_config` for this.
+
+    Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
+    """
+
+    try:
+        validate_args(public_key=public_key)
+
+        sentry_sdk.set_tag("public_key", public_key)
+        sentry_sdk.set_tag("update_reason", trigger)
+        sentry_sdk.set_context("kwargs", kwargs)
+
+        from sentry.models import ProjectKey
+
+        try:
+            key = ProjectKey.objects.get(public_key=public_key)
+        except ProjectKey.DoesNotExist:
+            # In this particular case, where a project key got deleted and
+            # triggered an update, we know that key doesn't exist and we want to
+            # avoid creating more tasks for it.
+            projectconfig_cache.set_many({public_key: {"disabled": True}})
+        else:
+            config = compute_projectkey_config(key)
+            projectconfig_cache.set_many({public_key: config})
+
+    finally:
+        # Delete the key in this `finally` block to make sure the debouncing key
+        # is always deleted. Deleting the key at the end of the task also makes
+        # debouncing more effective.
+        projectconfig_debounce_cache.mark_task_done(
+            organization_id=None, project_id=None, public_key=public_key
+        )
+
+
+def schedule_build_project_config(public_key=None, trigger="build"):
+    """Schedule the `build_project_config` with debouncing applied.
+
+    See documentation of `build_project_config` for documentation of parameters.
+    """
+
+    validate_args(public_key=public_key)
+
+    if projectconfig_debounce_cache.is_debounced(
+        public_key=public_key, project_id=None, organization_id=None
+    ):
+        metrics.incr(
+            "relay.projectconfig_cache.skipped",
+            tags={"reason": "debounce", "update_reason": trigger},
+        )
+        # If this task is already in the queue, do not schedule another task.
+        return
+
+    metrics.incr(
+        "relay.projectconfig_cache.scheduled",
+        tags={"update_reason": trigger},
+    )
+    build_project_config.delay(public_key=public_key, trigger=trigger)
+
+    # Checking if the project is debounced and debouncing it are two separate
+    # actions that aren't atomic. If the process marks a project as debounced
+    # and dies before scheduling it, the cache will be stale for the whole TTL.
+    # To avoid that, make sure we first schedule the task, and only then mark
+    # the project as debounced.
+    projectconfig_debounce_cache.debounce(
+        public_key=public_key, project_id=None, organization_id=None
     )
 
 
@@ -244,8 +327,8 @@ def compute_projectkey_config(key):
     name="sentry.tasks.relay.invalidate_project_config",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=30,
-    time_limit=35,
+    soft_time_limit=TASK_SOFT_LIMIT,
+    time_limit=TASK_HARD_LIMIT,
 )
 def invalidate_project_config(
     organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs
@@ -284,6 +367,7 @@ def invalidate_project_config(
     if public_key:
         sentry_sdk.set_tag("public_key", public_key)
     sentry_sdk.set_tag("trigger", trigger)
+    sentry_sdk.set_context("kwargs", kwargs)
 
     configs = compute_configs(
         organization_id=organization_id, project_id=project_id, public_key=public_key
@@ -296,7 +380,7 @@ def invalidate_project_config(
     projectconfig_cache.set_many(configs)
 
 
-def schedule_invalidate_project_cache(
+def schedule_invalidate_project_config(
     *, trigger, organization_id=None, project_id=None, public_key=None
 ):
     """Schedules the :func:`invalidate_project_config` task.

@@ -19,7 +19,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.tasks.relay import schedule_invalidate_project_cache
+from sentry.tasks.relay import schedule_invalidate_project_config
 
 _uuid4_re = re.compile(r"^[a-f0-9]{32}$")
 
@@ -33,12 +33,12 @@ class ProjectKeyStatus:
 
 class ProjectKeyManager(BaseManager):
     def post_save(self, instance, **kwargs):
-        schedule_invalidate_project_cache(
+        schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_save"
         )
 
     def post_delete(self, instance, **kwargs):
-        schedule_invalidate_project_cache(
+        schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
