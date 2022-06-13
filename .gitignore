@@ -38,7 +38,7 @@ node_modules
 /tests/apidocs/openapi-deprecated.json
 /tests/sentry/utils/appleconnect/*.json
 /tests/apidocs/openapi-spectacular.json
-tests/fixtures/integrations/*/data/**
+/fixtures/integrations/*/data/**
 /wheelhouse
 /test_cli/
 Gemfile.lock

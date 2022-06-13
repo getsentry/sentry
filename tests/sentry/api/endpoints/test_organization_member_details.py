@@ -112,10 +112,13 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
     @with_feature("organizations:team-roles")
     def test_hides_retired_organization_roles(self):
+        """
+        Note: Admin will be hidden after team-roles EA.
+        """
         response = self.get_success_response(self.organization.slug, "me")
 
         role_ids = [role["id"] for role in response.data["roles"]]
-        assert role_ids == ["member", "manager", "owner"]
+        assert role_ids == ["member", "admin", "manager", "owner"]
 
     def test_lists_team_roles(self):
         response = self.get_success_response(self.organization.slug, "me")
