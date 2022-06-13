@@ -6,7 +6,6 @@ import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumnOrder,
 } from 'sentry/components/gridEditable';
-import SortLink from 'sentry/components/gridEditable/sortLink';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
@@ -15,6 +14,7 @@ import {ProfileTransaction} from 'sentry/types/profiling/core';
 import {defined} from 'sentry/utils';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateProfileSummaryRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -68,7 +68,7 @@ function ProfileTransactionsTable(props: ProfileTransactionsTableProps) {
       columnOrder={COLUMN_ORDER.map(key => COLUMNS[key])}
       columnSortBy={[]}
       grid={{
-        renderHeadCell: renderTableHead,
+        renderHeadCell: renderTableHead(RIGHT_ALIGNED_COLUMNS),
         renderBodyCell: renderTableBody,
       }}
       location={location}
@@ -76,7 +76,7 @@ function ProfileTransactionsTable(props: ProfileTransactionsTableProps) {
   );
 }
 
-const RightAlignedColumns = new Set<TableColumnKey>([
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>([
   'count',
   'p50',
   'p75',
@@ -84,18 +84,6 @@ const RightAlignedColumns = new Set<TableColumnKey>([
   'p95',
   'p99',
 ]);
-
-function renderTableHead(column: TableColumn, _columnIndex: number) {
-  return (
-    <SortLink
-      align={RightAlignedColumns.has(column.key) ? 'right' : 'left'}
-      title={column.name}
-      direction={undefined}
-      canSort={false}
-      generateSortLink={() => undefined}
-    />
-  );
-}
 
 function renderTableBody(
   column: TableColumn,

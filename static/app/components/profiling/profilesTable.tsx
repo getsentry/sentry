@@ -19,6 +19,7 @@ import {
   generateFlamegraphSummaryRoute,
   generateProfileSummaryRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
+import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -47,12 +48,17 @@ function ProfilesTable(props: ProfilesTableProps) {
         data={props.traces}
         columnOrder={(props.columnOrder ?? DEFAULT_COLUMN_ORDER).map(key => COLUMNS[key])}
         columnSortBy={[]}
-        grid={{renderBodyCell: renderProfilesTableCell}}
+        grid={{
+          renderHeadCell: renderTableHead(RIGHT_ALIGNED_COLUMNS),
+          renderBodyCell: renderProfilesTableCell,
+        }}
         location={location}
       />
     </Fragment>
   );
 }
+
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['trace_duration_ms']);
 
 function renderProfilesTableCell(
   column: TableColumn,
