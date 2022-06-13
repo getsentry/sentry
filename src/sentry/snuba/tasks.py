@@ -1,8 +1,10 @@
 import logging
 from datetime import timedelta
+from typing import Sequence
 
 import sentry_sdk
 from django.utils import timezone
+from snuba_sdk import Request
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.eventstore import Filter
@@ -156,6 +158,16 @@ def build_snuba_filter(
     params: Optional[Mapping[str, Any]] = None,
 ) -> Filter:
     return entity_subscription.build_snuba_filter(query, environment, params)
+
+
+def build_snql_query(
+    entity_subscription: BaseEntitySubscription,
+    query: str,
+    project_ids: Sequence[int],
+    environment: Optional[Environment],
+    params: Optional[Mapping[str, Any]] = None,
+) -> Request:
+    return entity_subscription.build_snql_query(query, project_ids, environment, params)
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:

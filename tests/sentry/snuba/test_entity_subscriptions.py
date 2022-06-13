@@ -1,3 +1,5 @@
+from snuba_sdk import And, Column, Condition, Function, Op
+
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key
@@ -170,6 +172,15 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter.aggregations == [
             ["quantile(0.95)", "duration", "percentile_transaction_duration__95"]
         ]
+        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        assert snql_query.query.select == [
+            Function(
+                "quantile(0.95)",
+                parameters=[Column(name="duration")],
+                alias="percentile_transaction_duration__95",
+            )
+        ]
+        assert snql_query.query.where == [Condition(Column("project_id"), Op.IN, [self.project.id])]
 
     def test_get_entity_subscription_for_events_dataset(self) -> None:
         aggregate = "count_unique(user)"
@@ -189,3 +200,27 @@ class EntitySubscriptionTestCase(TestCase):
             ["tags[sentry:release]", "=", "latest"],
         ]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
+
+        snql_query = entity_subscription.build_snql_query("release:latest", [self.project.id], None)
+        assert snql_query.query.select == [
+            Function(
+                function="uniq",
+                parameters=[Column(name="tags[sentry:user]")],
+                alias="count_unique_user",
+            )
+        ]
+        assert snql_query.query.where == [
+            And(
+                [
+                    Condition(Column("type"), Op.EQ, "error"),
+                    Condition(
+                        Function(
+                            function="ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                        ),
+                        Op.IN,
+                        [],
+                    ),
+                ]
+            ),
+            Condition(Column("project_id"), Op.IN, [self.project.id]),
+        ]
