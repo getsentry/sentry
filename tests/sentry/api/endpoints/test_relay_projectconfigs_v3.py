@@ -117,15 +117,21 @@ def test_return_full_config_if_in_cache(
 
 @pytest.mark.django_db
 def test_return_partial_config_if_in_cache(
-    call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
+    monkeypatch,
+    call_endpoint,
+    default_projectkey,
+    default_project,
 ):
-    # Partial configs aren't supported, but the endpoint must always return full
-    # configs.
+    # Partial configs are handled as ``v2``, even if the param is ``v3``
+    monkeypatch.setattr(
+        "sentry.relay.config.get_project_config",
+        lambda *args, **kwargs: ProjectConfig(default_project, is_mock_config=True),
+    )
+
     result, status_code = call_endpoint(full_config=False)
     assert status_code < 400
     expected = {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
-        "pending": [],
     }
     assert result == expected
 
