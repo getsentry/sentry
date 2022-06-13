@@ -6,7 +6,6 @@ from django.db.models.signals import pre_save
 from rest_framework import serializers
 
 from sentry.db.models import Model
-from sentry.utils.compat import filter
 
 if TYPE_CHECKING:
     from sentry.models import Team, User
@@ -72,7 +71,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return f"{self.type.__name__.lower()}:{self.id}"
 
     @classmethod
-    def from_actor_identifier(cls, actor_identifier):
+    def from_actor_identifier(cls, actor_identifier: Union[int, str]) -> "ActorTuple":
         from sentry.models import Team, User
         from sentry.utils.auth import find_users
 

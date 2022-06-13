@@ -35,14 +35,17 @@ frontend_components_modified_lintable:
 backend_lintable: &backend_lintable
   - '**/*.py'
   - 'requirements-base.txt'
+  - 'requirements-dev-only-frozen.txt'
 
 # Currently used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
 
 backend_build_changes: &backend_build_changes
+  # If you change this line make sure that workflows using this action (e.g. acceptance, api_docs)
+  # *and* file-filters would be updated as well
   - '.github/actions/setup-sentry/action.yml'
-  - '.github/workflows/!(frontend)'
+  - '.github/workflows/backend.yml'
   - '.pre-commit-config.yaml'
   - 'Makefile'
   - 'pyproject.toml'
@@ -61,6 +64,9 @@ backend: &backend
 acceptance: &acceptance
   - *backend
   - *frontend
+  # This is verbose because backend_build_changes includes it, however,
+  - '.github/actions/setup-sentry/action.yml'
+  - '.github/workflows/acceptance.yml'
 
 plugins: &plugins
   - *backend

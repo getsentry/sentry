@@ -109,7 +109,74 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('calls session api when session.status is a group by', async function () {
+  it('fetches release data when sorting on release for metrics api', async function () {
+    const mockRelease = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [
+        {
+          version: 'be1ddfb18126dd2cbde26bfe75488503280e716e',
+        },
+      ],
+    });
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+    });
+    const children = jest.fn(() => <div />);
+    const queries = [
+      {
+        conditions: '',
+        fields: [`count_unique(user)`],
+        aggregates: [`count_unique(user)`],
+        columns: ['release'],
+        name: 'sessions',
+        orderby: '-release',
+      },
+    ];
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={{...singleQueryWidget, queries}}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    await waitFor(() => expect(mockRelease).toHaveBeenCalledTimes(1));
+    expect(mockRelease).toHaveBeenCalledWith(
+      '/organizations/org-slug/releases/',
+      expect.objectContaining({
+        data: {
+          environments: ['prod'],
+          per_page: 50,
+          project: [1],
+          sort: 'date',
+        },
+      })
+    );
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: {
+          environment: ['prod'],
+          field: ['count_unique(sentry.sessions.user)'],
+          groupBy: ['release'],
+          includeSeries: 1,
+          includeTotals: 1,
+          interval: '12h',
+          per_page: 100,
+          project: [1],
+          query: ' release:be1ddfb18126dd2cbde26bfe75488503280e716e',
+          statsPeriod: '14d',
+        },
+      })
+    );
+  });
+
+  it('calls session api when session.status is a group by', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
       body: TestStubs.MetricsField({
@@ -151,6 +218,206 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           statsPeriod: '14d',
         },
       })
+    );
+  });
+
+  it('strips injected sort columns', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
+    });
+    const children = jest.fn(() => <div />);
+
+    const injectedOrderby = {
+      title: 'Sessions',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          conditions: '',
+          fields: [`sum(session)`],
+          aggregates: [`sum(session)`],
+          columns: [],
+          name: 'sessions',
+          orderby: '-count_unique(user)',
+        },
+      ],
+      widgetType: WidgetType.RELEASE,
+    };
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={injectedOrderby}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    await waitFor(() =>
+      expect(children).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          errorMessage: undefined,
+          loading: false,
+          timeseriesResults: [
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 0},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 23},
+                {name: '2022-01-25T00:00:00Z', value: 11},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > crashed, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 0},
+                {name: '2022-01-25T00:00:00Z', value: 0},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > abnormal, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 0},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 37},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 335},
+                {name: '2022-01-25T00:00:00Z', value: 79},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > errored, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 0},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 2503},
+                {name: '2022-01-21T00:00:00Z', value: 661},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 1464},
+                {name: '2022-01-25T00:00:00Z', value: 430},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > healthy, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 23},
+                {name: '2022-01-25T00:00:00Z', value: 11},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > crashed, 2 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 0},
+                {name: '2022-01-25T00:00:00Z', value: 0},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > abnormal, 2 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 37},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 335},
+                {name: '2022-01-25T00:00:00Z', value: 79},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > errored, 2 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 2503},
+                {name: '2022-01-21T00:00:00Z', value: 661},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 1464},
+                {name: '2022-01-25T00:00:00Z', value: 430},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > healthy, 2 : sum(session)',
+            },
+          ],
+        })
+      )
     );
   });
 
@@ -336,6 +603,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           interval: '30m',
           project: [1],
           statsPeriod: '14d',
+          per_page: 1,
+          includeSeries: 1,
+          includeTotals: 0,
         },
       })
     );
@@ -351,6 +621,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           project: [1],
           query: 'environment:prod',
           statsPeriod: '14d',
+          per_page: 1,
+          includeSeries: 1,
+          includeTotals: 0,
         },
       })
     );

@@ -15,6 +15,7 @@ import {OnboardingTaskStatus, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import theme, {Theme} from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
 import {CommonSidebarProps, SidebarPanelKey} from './types';
 
@@ -44,14 +45,21 @@ function OnboardingStatus({
     trackAdvancedAnalyticsEvent('onboarding.wizard_opened', {organization: org});
     onShowPanel();
   };
+  const [onboardingState] = usePersistedOnboardingState();
 
   if (!org.features?.includes('onboarding')) {
     return null;
   }
 
-  const tasks = getMergedTasks({organization: org, projects});
+  const tasks = getMergedTasks({
+    organization: org,
+    projects,
+    onboardingState: onboardingState || undefined,
+  });
 
-  const allDisplayedTasks = tasks.filter(task => task.display);
+  const allDisplayedTasks = tasks
+    .filter(task => task.display)
+    .filter(task => !task.renderCard);
   const doneTasks = allDisplayedTasks.filter(isDone);
   const numberRemaining = allDisplayedTasks.length - doneTasks.length;
 

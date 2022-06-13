@@ -1,3 +1,4 @@
+import os.path
 import re
 import subprocess
 
@@ -32,6 +33,10 @@ PATCH_FILE_PATTERN = (
 
 def main() -> int:
     for patch, filename, pattern in PATCH_FILE_PATTERN:
+        if not os.path.exists(filename):
+            print(f"patch_selenium: ignoring {filename} (does not exist)")
+            continue
+
         with open(filename) as f:
             for line in f:
                 if pattern.search(line):
@@ -40,6 +45,8 @@ def main() -> int:
                 continue
 
         print(f"patching {filename}, you will only see this once")
+        sentry_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+        patch = os.path.join(sentry_root, patch)
         if subprocess.call(("patch", "-f", "-p0", "-i", patch)):
             return 1
 

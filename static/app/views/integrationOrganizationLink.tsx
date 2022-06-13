@@ -14,7 +14,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import {Integration, IntegrationProvider, Organization} from 'sentry/types';
-import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrationAnalyticsEvents';
+import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
 import {
   getIntegrationFeatureGate,
   trackIntegrationAnalytics,

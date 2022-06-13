@@ -15,7 +15,7 @@ import * as qs from 'query-string';
 import type {Client} from 'sentry/__mocks__/api';
 import ConfigStore from 'sentry/stores/configStore';
 
-import TestStubFixtures from '../fixtures/js-stubs/types';
+import TestStubFixtures from '../../fixtures/js-stubs/types';
 
 import {loadFixtures} from './sentry-test/loadFixtures';
 
@@ -147,21 +147,6 @@ jest.mock('@sentry/react', () => {
         finish: jest.fn(),
       }),
     }),
-  };
-});
-
-jest.mock('popper.js', () => {
-  const PopperJS = jest.requireActual('popper.js');
-
-  return class {
-    static placements = PopperJS.placements;
-
-    constructor() {
-      return {
-        destroy: () => {},
-        scheduleUpdate: () => {},
-      };
-    }
   };
 });
 

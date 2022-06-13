@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
@@ -7,7 +7,6 @@ import DropdownControl from 'sentry/components/dropdownControl';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
@@ -34,121 +33,106 @@ type Props = {
   toggleOperationNameFilter: (operationName: string) => void;
 };
 
-class Filter extends Component<Props> {
-  isOperationNameActive(operationName: string) {
-    const {operationNameFilter} = this.props;
-
-    if (operationNameFilter.type === 'no_filter') {
-      return false;
-    }
-
-    // invariant: operationNameFilter.type === 'active_filter'
-
-    return operationNameFilter.operationNames.has(operationName);
+function Filter({
+  operationNameCounts,
+  operationNameFilter,
+  toggleOperationNameFilter,
+  toggleAllOperationNameFilters,
+}: Props) {
+  if (operationNameCounts.size === 0) {
+    return null;
   }
 
-  getNumberOfActiveFilters(): number {
-    const {operationNameFilter} = this.props;
+  const checkedQuantity =
+    operationNameFilter.type === 'no_filter'
+      ? 0
+      : operationNameFilter.operationNames.size;
 
-    if (operationNameFilter.type === 'no_filter') {
-      return 0;
-    }
+  const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
+    hasDarkBorderBottomColor: boolean;
+  } = {
+    children: (
+      <Fragment>
+        <IconFilter />
+        <FilterLabel>{t('Filter')}</FilterLabel>
+      </Fragment>
+    ),
+    priority: 'default',
+    hasDarkBorderBottomColor: false,
+  };
 
-    return operationNameFilter.operationNames.size;
-  }
-
-  render() {
-    const {operationNameCounts} = this.props;
-
-    if (operationNameCounts.size === 0) {
-      return null;
-    }
-
-    const checkedQuantity = this.getNumberOfActiveFilters();
-
-    const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
-      hasDarkBorderBottomColor: boolean;
-    } = {
-      children: (
-        <Fragment>
-          <IconFilter />
-          <FilterLabel>{t('Filter')}</FilterLabel>
-        </Fragment>
-      ),
-      priority: 'default',
-      hasDarkBorderBottomColor: false,
-    };
-
-    if (checkedQuantity > 0) {
-      dropDownButtonProps.children = (
-        <span>{tn('%s Active Filter', '%s Active Filters', checkedQuantity)}</span>
-      );
-      dropDownButtonProps.priority = 'primary';
-      dropDownButtonProps.hasDarkBorderBottomColor = true;
-    }
-
-    return (
-      <Wrapper data-test-id="op-filter-dropdown">
-        <DropdownControl
-          menuWidth="240px"
-          blendWithActor
-          button={({isOpen, getActorProps}) => (
-            <StyledDropdownButton
-              {...getActorProps()}
-              showChevron={false}
-              isOpen={isOpen}
-              hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
-              priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
-              data-test-id="filter-button"
-            >
-              {dropDownButtonProps.children}
-            </StyledDropdownButton>
-          )}
-        >
-          <MenuContent
-            onClick={event => {
-              // propagated clicks will dismiss the menu; we stop this here
-              event.stopPropagation();
-            }}
-          >
-            <Header>
-              <span>{t('Operation')}</span>
-              <CheckboxFancy
-                isChecked={checkedQuantity > 0}
-                isIndeterminate={
-                  checkedQuantity > 0 && checkedQuantity !== operationNameCounts.size
-                }
-                onClick={event => {
-                  event.stopPropagation();
-                  this.props.toggleAllOperationNameFilters();
-                }}
-              />
-            </Header>
-            <List>
-              {Array.from(operationNameCounts, ([operationName, operationCount]) => {
-                const isActive = this.isOperationNameActive(operationName);
-
-                return (
-                  <ListItem key={operationName} isChecked={isActive}>
-                    <OperationDot backgroundColor={pickBarColor(operationName)} />
-                    <OperationName>{operationName}</OperationName>
-                    <OperationCount>{operationCount}</OperationCount>
-                    <CheckboxFancy
-                      isChecked={isActive}
-                      onClick={event => {
-                        event.stopPropagation();
-                        this.props.toggleOperationNameFilter(operationName);
-                      }}
-                    />
-                  </ListItem>
-                );
-              })}
-            </List>
-          </MenuContent>
-        </DropdownControl>
-      </Wrapper>
+  if (checkedQuantity > 0) {
+    dropDownButtonProps.children = (
+      <span>{tn('%s Active Filter', '%s Active Filters', checkedQuantity)}</span>
     );
+    dropDownButtonProps.priority = 'primary';
+    dropDownButtonProps.hasDarkBorderBottomColor = true;
   }
+
+  return (
+    <Wrapper data-test-id="op-filter-dropdown">
+      <DropdownControl
+        menuWidth="240px"
+        blendWithActor
+        button={({isOpen, getActorProps}) => (
+          <StyledDropdownButton
+            {...getActorProps()}
+            showChevron={false}
+            isOpen={isOpen}
+            hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
+            priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
+            data-test-id="filter-button"
+          >
+            {dropDownButtonProps.children}
+          </StyledDropdownButton>
+        )}
+      >
+        <MenuContent
+          onClick={event => {
+            // propagated clicks will dismiss the menu; we stop this here
+            event.stopPropagation();
+          }}
+        >
+          <Header>
+            <span>{t('Operation')}</span>
+            <CheckboxFancy
+              isChecked={checkedQuantity > 0}
+              isIndeterminate={
+                checkedQuantity > 0 && checkedQuantity !== operationNameCounts.size
+              }
+              onClick={event => {
+                event.stopPropagation();
+                toggleAllOperationNameFilters();
+              }}
+            />
+          </Header>
+          <List>
+            {Array.from(operationNameCounts, ([operationName, operationCount]) => {
+              const isActive =
+                operationNameFilter.type === 'no_filter'
+                  ? false
+                  : operationNameFilter.operationNames.has(operationName);
+
+              return (
+                <ListItem key={operationName} isChecked={isActive}>
+                  <OperationDot backgroundColor={pickBarColor(operationName)} />
+                  <OperationName>{operationName}</OperationName>
+                  <OperationCount>{operationCount}</OperationCount>
+                  <CheckboxFancy
+                    isChecked={isActive}
+                    onClick={event => {
+                      event.stopPropagation();
+                      toggleOperationNameFilter(operationName);
+                    }}
+                  />
+                </ListItem>
+              );
+            })}
+          </List>
+        </MenuContent>
+      </DropdownControl>
+    </Wrapper>
+  );
 }
 
 const FilterLabel = styled('span')`
@@ -249,7 +233,7 @@ const OperationDot = styled('div')<{backgroundColor: string}>`
 
 const OperationName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const OperationCount = styled('div')`

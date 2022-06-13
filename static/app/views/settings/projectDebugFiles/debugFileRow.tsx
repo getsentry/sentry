@@ -13,7 +13,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
 
@@ -225,7 +224,7 @@ const Description = styled('div')`
 `;
 
 const DetailsItem = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   margin-top: ${space(1)}
 `;
 

@@ -35,7 +35,7 @@ import {
   measurementType,
   TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {getTitle} from 'sentry/utils/events';
 import localStorage from 'sentry/utils/localStorage';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -66,7 +66,10 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<string> = {
 
 // TODO(mark) these types are coupled to the gridEditable component types and
 // I'd prefer the types to be more general purpose but that will require a second pass.
-export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string>[] {
+export function decodeColumnOrder(
+  fields: Readonly<Field[]>,
+  useFullEquationAsKey?: boolean
+): TableColumn<string>[] {
   let equations = 0;
   return fields.map((f: Field) => {
     const column: TableColumn<string> = {...TEMPLATE_TABLE_COLUMN};
@@ -74,7 +77,7 @@ export function decodeColumnOrder(fields: Readonly<Field[]>): TableColumn<string
     const col = explodeFieldString(f.field, f.alias);
     const columnName = f.field;
     if (isEquation(f.field)) {
-      column.key = `equation[${equations}]`;
+      column.key = useFullEquationAsKey ? f.field : `equation[${equations}]`;
       column.name = getEquation(columnName);
       equations += 1;
     } else {
@@ -562,9 +565,11 @@ export function eventViewToWidgetQuery({
   eventView,
   yAxis,
   displayType,
+  widgetBuilderNewDesign,
 }: {
   displayType: DisplayType;
   eventView: EventView;
+  widgetBuilderNewDesign?: boolean;
   yAxis?: string | string[];
 }) {
   const fields = eventView.fields.map(({field}) => field);
@@ -574,7 +579,7 @@ export function eventViewToWidgetQuery({
   let orderby = '';
   // The orderby should only be set to sort.field if it is a Top N query
   // since the query uses all of the fields, or if the ordering is used in the y-axis
-  if (sort) {
+  if (sort && displayType !== DisplayType.WORLD_MAP) {
     let orderbyFunction = '';
     const aggregateFields = [...queryYAxis, ...aggregates];
     for (let i = 0; i < aggregateFields.length; i++) {
@@ -589,9 +594,20 @@ export function eventViewToWidgetQuery({
       orderby = `${sort.kind === 'desc' ? '-' : ''}${bareOrderby}`;
     }
   }
+  let newAggregates = aggregates;
+
+  if (widgetBuilderNewDesign && displayType !== DisplayType.TABLE) {
+    newAggregates = queryYAxis;
+  } else if (!widgetBuilderNewDesign) {
+    newAggregates = [
+      ...(displayType === DisplayType.TOP_N ? aggregates : []),
+      ...queryYAxis,
+    ];
+  }
+
   const widgetQuery: WidgetQuery = {
     name: '',
-    aggregates: [...(displayType === DisplayType.TOP_N ? aggregates : []), ...queryYAxis],
+    aggregates: newAggregates,
     columns: [...(displayType === DisplayType.TOP_N ? columns : [])],
     fields: [...(displayType === DisplayType.TOP_N ? fields : []), ...queryYAxis],
     conditions: eventView.query,
@@ -621,6 +637,9 @@ export function handleAddQueryToDashboard({
     eventView,
     displayType,
     yAxis,
+    widgetBuilderNewDesign: organization.features.includes(
+      'new-widget-builder-experience-design'
+    ),
   });
 
   if (organization.features.includes('new-widget-builder-experience-design')) {
@@ -645,9 +664,23 @@ export function handleAddQueryToDashboard({
       },
       widget: {
         title: query?.name ?? eventView.name,
-        displayType,
-        queries: [defaultWidgetQuery],
+        displayType:
+          organization.features.includes('new-widget-builder-experience-design') &&
+          displayType === DisplayType.TOP_N
+            ? DisplayType.AREA
+            : displayType,
+        queries: [
+          {
+            ...defaultWidgetQuery,
+            aggregates: [...(typeof yAxis === 'string' ? [yAxis] : yAxis ?? ['count()'])],
+          },
+        ],
         interval: eventView.interval,
+        limit:
+          organization.features.includes('new-widget-builder-experience-design') &&
+          displayType === DisplayType.TOP_N
+            ? Number(eventView.topEvents) || TOP_N
+            : undefined,
       },
       router,
       widgetAsQueryParams,
@@ -692,6 +725,9 @@ export function constructAddQueryToDashboardLink({
     eventView,
     displayType,
     yAxis,
+    widgetBuilderNewDesign: organization.features.includes(
+      'new-widget-builder-experience-design'
+    ),
   });
   const defaultTitle =
     query?.name ?? (eventView.name !== 'All Events' ? eventView.name : undefined);
@@ -707,7 +743,16 @@ export function constructAddQueryToDashboardLink({
       defaultWidgetQuery: urlEncode(defaultWidgetQuery),
       defaultTableColumns: defaultTableFields,
       defaultTitle,
-      displayType,
+      displayType:
+        organization.features.includes('new-widget-builder-experience-design') &&
+        displayType === DisplayType.TOP_N
+          ? DisplayType.AREA
+          : displayType,
+      limit:
+        organization.features.includes('new-widget-builder-experience-design') &&
+        displayType === DisplayType.TOP_N
+          ? Number(eventView.topEvents) || TOP_N
+          : undefined,
     },
   };
 }

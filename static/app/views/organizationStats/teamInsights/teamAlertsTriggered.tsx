@@ -13,19 +13,18 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {Color} from 'sentry/utils/theme';
-import {IncidentRule} from 'sentry/views/alerts/incidentRules/types';
+import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
 import {ProjectBadge, ProjectBadgeContainer} from './styles';
 import {barAxisLabel, convertDayValueObjectToSeries, sortSeriesByDay} from './utils';
 
 type AlertsTriggered = Record<string, number>;
 
-type AlertsTriggeredRule = IncidentRule & {
+type AlertsTriggeredRule = MetricRule & {
   totalThisWeek: number;
   weeklyAvg: number;
 };
@@ -233,7 +232,7 @@ const StyledPanelTable = styled(PanelTable)`
 `;
 
 const AlertNameContainer = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const AlignRight = styled('div')`

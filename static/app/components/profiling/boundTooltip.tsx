@@ -7,8 +7,9 @@ import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegrap
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
+import theme from 'sentry/utils/theme';
 
-function tooltipPlacement(cursor: vec2, container: Rect) {
+function computeBestTooltipPlacement(cursor: vec2, container: Rect) {
   // This is because the cursor's origin is in the top left corner of the arrow, so we want
   // to offset it just enough so that the tooltip does not overlap with the arrow's tail.
   // When the tooltip placed to the left of the cursor, we do not have that issue and hence
@@ -26,6 +27,7 @@ function tooltipPlacement(cursor: vec2, container: Rect) {
     style.left = undefined;
     style.right = container.width - cursor[0]; // No offset is applied here as tooltip is placed to the left
   }
+
   return style;
 }
 
@@ -59,7 +61,7 @@ function BoundTooltip({
     flamegraphCanvas.physicalToLogicalSpace
   );
 
-  const placement = tooltipPlacement(logicalSpaceCursor, bounds);
+  const placement = computeBestTooltipPlacement(logicalSpaceCursor, bounds);
 
   return (
     <Tooltip
@@ -68,6 +70,7 @@ function BoundTooltip({
         ...placement,
         fontSize: flamegraphTheme.SIZES.TOOLTIP_FONT_SIZE,
         fontFamily: flamegraphTheme.FONTS.FONT,
+        zIndex: theme.zIndex.tooltip,
         maxWidth: bounds.width,
       }}
     >
@@ -86,6 +89,7 @@ const Tooltip = styled('div')`
   user-select: none;
   border-radius: ${p => p.theme.borderRadius};
   padding: ${space(0.25)} ${space(1)};
+  border: 1px solid ${p => p.theme.border};
 `;
 
 export {BoundTooltip};

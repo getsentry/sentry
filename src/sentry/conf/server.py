@@ -12,8 +12,6 @@ import tempfile
 from datetime import timedelta
 from urllib.parse import urlparse
 
-from django.conf.global_settings import *  # NOQA
-
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
@@ -945,14 +943,16 @@ SENTRY_FEATURES = {
     "organizations:create": True,
     # Enable the 'discover' interface.
     "organizations:discover": False,
+    # Enables events endpoint usage on discover and dashboards frontend
+    "organizations:discover-frontend-use-events-endpoint": False,
+    # Enables events endpoint usage on performance frontend
+    "organizations:performance-frontend-use-events-endpoint": False,
     # Enable duplicating alert rules.
     "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Enable Filters & Sampling in the org settings
     "organizations:filters-and-sampling": False,
-    # Enable Dynamic Sampling errors in the org settings
-    "organizations:filters-and-sampling-error-rules": False,
     # Allow organizations to configure all symbol sources.
     "organizations:symbol-sources": True,
     # Allow organizations to configure custom external symbol sources.
@@ -993,6 +993,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Enable metric alert charts in email/slack
+    "organizations:metric-alert-chartcuterie": False,
     # Enable the new widget builder experience on Dashboards
     "organizations:new-widget-builder-experience": False,
     # Enable the new widget builder experience "design" on Dashboards
@@ -1083,17 +1085,17 @@ SENTRY_FEATURES = {
     "organizations:performance-autogroup-sibling-spans": False,
     # Enable performance on-boarding checklist
     "organizations:performance-onboarding-checklist": False,
+    # Enable automatic horizontal scrolling on the span tree
+    "organizations:performance-span-tree-autoscroll": False,
+    # Enable transaction name only search
+    "organizations:performance-transaction-name-only-search": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
-    # Enables experimental new-style selection filters to replace the GSH
-    "organizations:selection-filters-v2": False,
     # Enable experimental session replay features
     "organizations:session-replay": False,
-    # Enable logging for weekly reports
-    "organizations:weekly-report-debugging": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
@@ -1348,7 +1350,7 @@ SENTRY_QUOTAS = "sentry.quotas.Quota"
 SENTRY_QUOTA_OPTIONS = {}
 
 # Cache for Relay project configs
-SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.base.ProjectConfigCache"
+SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS = {}
 
 # Which cache to use for debouncing cache updates to the projectconfig cache
@@ -1963,7 +1965,10 @@ SENTRY_DEVSERVICES = {
         {
             "image": "us.gcr.io/sentryio/cbtemulator:23c02d92c7a1747068eb1fc57dddbad23907d614",
             "ports": {"8086/tcp": 8086},
-            "only_if": "bigtable" in settings.SENTRY_NODESTORE,
+            # NEED_BIGTABLE is set by CI so we don't have to pass
+            # --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_BIGTABLE", False)
+            or "bigtable" in settings.SENTRY_NODESTORE,
         }
     ),
     "memcached": lambda settings, options: (
@@ -2004,7 +2009,9 @@ SENTRY_DEVSERVICES = {
                 "CHARTCUTERIE_CONFIG_POLLING": "true",
             },
             "ports": {"9090/tcp": 7901},
-            "only_if": options.get("chart-rendering.enabled"),
+            # NEED_CHARTCUTERIE is set by CI so we don't have to pass --skip-only-if when compiling which services to run.
+            "only_if": os.environ.get("NEED_CHARTCUTERIE", False)
+            or options.get("chart-rendering.enabled"),
         }
     ),
     "cdc": lambda settings, options: (
@@ -2288,7 +2295,14 @@ GEOIP_PATH_MMDB = None
 JS_SDK_LOADER_CDN_URL = ""
 # Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
 JS_SDK_LOADER_SDK_VERSION = ""
-# This should be the url pointing to the JS SDK
+# This should be the url pointing to the JS SDK. It may contain up to two "%s".
+# The first "%s" will be replaced with the SDK version, the second one is used
+# to inject a bundle modifier in the JS SDK CDN loader. e.g:
+# - 'https://browser.sentry-cdn.com/%s/bundle%s.min.js' will become
+# 'https://browser.sentry-cdn.com/7.0.0/bundle.es5.min.js'
+# - 'https://browser.sentry-cdn.com/%s/bundle.min.js' will become
+# 'https://browser.sentry-cdn.com/7.0.0/bundle.min.js'
+# - 'https://browser.sentry-cdn.com/6.19.7/bundle.min.js' will stay the same.
 JS_SDK_LOADER_DEFAULT_SDK_URL = ""
 
 # block domains which are generally used by spammers -- keep this configurable
@@ -2310,6 +2324,15 @@ KAFKA_CLUSTERS = {
     }
 }
 
+# These constants define kafka topic names, as well as keys into `KAFKA_TOPICS`
+# which contains cluster mappings for these topics. Follow these steps to
+# override a kafka topic name:
+#
+#  1. Change the value of the `KAFKA_*` constant (e.g. KAFKA_EVENTS).
+#  2. For changes in override files, such as `sentry.conf.py` or in getsentry's
+#     `prod.py`, also override the entirety of `KAFKA_TOPICS` to ensure the keys
+#     pick up the change.
+
 KAFKA_EVENTS = "events"
 # TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
 # transactions curently share a Kafka topic. Once we are ready with the code
@@ -2322,12 +2345,6 @@ KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
-KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
-    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-}
 KAFKA_INGEST_EVENTS = "ingest-events"
 KAFKA_INGEST_ATTACHMENTS = "ingest-attachments"
 KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
@@ -2335,41 +2352,37 @@ KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
 
+KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
+    "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
+    "transactions": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
+    "sessions": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
+    "metrics": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
+}
+
+# Cluster configuration for each Kafka topic by name.
 KAFKA_TOPICS = {
-    KAFKA_EVENTS: {"cluster": "default", "topic": KAFKA_EVENTS},
-    KAFKA_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_TRANSACTIONS},
-    KAFKA_OUTCOMES: {"cluster": "default", "topic": KAFKA_OUTCOMES},
+    KAFKA_EVENTS: {"cluster": "default"},
+    KAFKA_TRANSACTIONS: {"cluster": "default"},
+    KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
     KAFKA_OUTCOMES_BILLING: None,
-    KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
-    },
-    KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-    },
-    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS,
-    },
-    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {
-        "cluster": "default",
-        "topic": KAFKA_METRICS_SUBSCRIPTIONS_RESULTS,
-    },
+    KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     # Topic for receiving simple events (error events without attachments) from Relay
-    KAFKA_INGEST_EVENTS: {"cluster": "default", "topic": KAFKA_INGEST_EVENTS},
+    KAFKA_INGEST_EVENTS: {"cluster": "default"},
     # Topic for receiving 'complex' events (error events with attachments) from Relay
-    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default", "topic": KAFKA_INGEST_ATTACHMENTS},
+    KAFKA_INGEST_ATTACHMENTS: {"cluster": "default"},
     # Topic for receiving transaction events (APM events) from Relay
-    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default", "topic": KAFKA_INGEST_TRANSACTIONS},
+    KAFKA_INGEST_TRANSACTIONS: {"cluster": "default"},
     # Topic for receiving metrics from Relay
-    KAFKA_INGEST_METRICS: {"cluster": "default", "topic": KAFKA_INGEST_METRICS},
+    KAFKA_INGEST_METRICS: {"cluster": "default"},
     # Topic for indexer translated metrics
-    KAFKA_SNUBA_METRICS: {"cluster": "default", "topic": KAFKA_SNUBA_METRICS},
+    KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
-    KAFKA_PROFILES: {"cluster": "default", "topic": KAFKA_PROFILES},
+    KAFKA_PROFILES: {"cluster": "default"},
 }
 
 # If True, consumers will create the topics if they don't exist
@@ -2579,6 +2592,9 @@ SAMPLED_DEFAULT_RATE = 1.0
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS = {}
+
+# A set of extra tasks to sample
+ADDITIONAL_SAMPLED_TASKS = {}
 
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.

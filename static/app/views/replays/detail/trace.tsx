@@ -77,7 +77,7 @@ export default function Trace({event, organization}: Props) {
         name: `Traces in replay ${eventId}`,
         fields: ['trace', 'count(trace)', 'min(timestamp)'],
         orderby: 'min_timestamp',
-        query: `replayId:${eventId} !transaction:"sentry-replay-event"`,
+        query: `replayId:${eventId} !title:"sentry-replay-event*"`,
         projects: [ALL_ACCESS_PROJECTS],
         version: 2,
 
@@ -88,11 +88,11 @@ export default function Trace({event, organization}: Props) {
       try {
         const [data, , resp] = await doDiscoverQuery<TableData>(
           api,
-          `/organizations/${orgId}/eventsv2/`,
+          `/organizations/${orgId}/events/`,
           eventView.getEventsAPIPayload(location)
         );
 
-        const traceIds = data.data.map(({trace}) => trace);
+        const traceIds = data.data.map(({trace}) => trace).filter(trace => trace);
 
         // TODO(replays): Potential performance concerns here if number of traceIds is large
         const traceDetails = await Promise.all(

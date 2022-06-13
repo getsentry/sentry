@@ -20,5 +20,5 @@ export type SpanSortOption = {
 };
 
 export type SpansTotalValues = {
-  count: number;
+  'count()': number;
 };

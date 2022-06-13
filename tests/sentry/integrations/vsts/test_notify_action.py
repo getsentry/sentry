@@ -3,15 +3,15 @@ from time import time
 import responses
 from freezegun import freeze_time
 
+from fixtures.vsts import GET_PROJECTS_RESPONSE, WORK_ITEM_RESPONSE
+from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.integrations.vsts.notify_action import AzureDevopsCreateTicketAction
 from sentry.models import ExternalIssue, GroupLink, Identity, IdentityProvider, Integration, Rule
 from sentry.testutils.cases import RuleTestCase
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
 
 from .test_issues import VstsIssueBase
-from .testutils import GET_PROJECTS_RESPONSE, WORK_ITEM_RESPONSE
 
 
 @freeze_time()

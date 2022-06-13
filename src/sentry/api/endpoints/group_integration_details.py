@@ -10,6 +10,7 @@ from sentry.integrations import IntegrationFeatures
 from sentry.models import Activity, ExternalIssue, GroupLink, Integration
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.signals import integration_issue_created, integration_issue_linked
+from sentry.types.activity import ActivityType
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -36,7 +37,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         Activity.objects.create(
             project=group.project,
             group=group,
-            type=Activity.CREATE_ISSUE,
+            type=ActivityType.CREATE_ISSUE.value,
             user=request.user,
             data=issue_information,
         )

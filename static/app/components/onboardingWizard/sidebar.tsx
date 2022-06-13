@@ -17,7 +17,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/targetedOnboarding/utils';
 
-import OnboardingViewTask from './onboardingCard';
 import ProgressHeader from './progressHeader';
 import Task from './task';
 import {getMergedTasks} from './taskConfig';
@@ -76,6 +75,7 @@ function OnboardingWizardSidebar({
   projects,
 }: Props) {
   const api = useApi();
+  const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
 
   const markCompletionTimeout = useRef<number | undefined>();
   const markCompletionSeenTimeout = useRef<number | undefined>();
@@ -95,7 +95,11 @@ function OnboardingWizardSidebar({
   }
 
   const {allTasks, customTasks, active, upcoming, complete} = useMemo(() => {
-    const all = getMergedTasks({organization, projects}).filter(task => task.display);
+    const all = getMergedTasks({
+      organization,
+      projects,
+      onboardingState: onboardingState || undefined,
+    }).filter(task => task.display);
     const tasks = all.filter(task => !task.renderCard);
     return {
       allTasks: all,
@@ -104,7 +108,7 @@ function OnboardingWizardSidebar({
       upcoming: tasks.filter(findUpcomingTasks),
       complete: tasks.filter(findCompleteTasks),
     };
-  }, [organization, projects]);
+  }, [organization, projects, onboardingState]);
 
   const markTasksAsSeen = useCallback(
     async function () {
@@ -163,7 +167,6 @@ function OnboardingWizardSidebar({
     </CompleteList>
   );
 
-  const [onboardingState, setOnboardingState] = usePersistedOnboardingState();
   const customizedCards = customTasks
     .map(task =>
       task.renderCard?.({
@@ -192,7 +195,6 @@ function OnboardingWizardSidebar({
       <TopRight src={HighlightTopRight} />
       <ProgressHeader allTasks={allTasks} completedTasks={complete} />
       <TaskList>
-        <OnboardingViewTask org={organization} />
         <AnimatePresence initial={false}>{items}</AnimatePresence>
       </TaskList>
     </TaskSidebarPanel>

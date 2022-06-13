@@ -65,6 +65,7 @@ type Props = {
   organization: Organization;
   projects: Project[];
   setError: (msg: string | undefined) => void;
+  withStaticFilters: boolean;
   columnTitles?: string[];
   summaryConditions?: string;
 };
@@ -153,7 +154,10 @@ class _Table extends Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, projects, location} = this.props;
+    const {eventView, organization, projects, location, withStaticFilters} = this.props;
+    const isAlias = !organization.features.includes(
+      'performance-frontend-use-events-endpoint'
+    );
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -161,7 +165,7 @@ class _Table extends Component<Props, State> {
     const tableMeta = tableData.meta;
 
     const field = String(column.key);
-    const fieldRenderer = getFieldRenderer(field, tableMeta);
+    const fieldRenderer = getFieldRenderer(field, tableMeta, isAlias);
     const rendered = fieldRenderer(dataRow, {organization, location});
 
     const allowActions = [
@@ -171,6 +175,8 @@ class _Table extends Component<Props, State> {
       Actions.SHOW_LESS_THAN,
       Actions.EDIT_THRESHOLD,
     ];
+
+    const cellActions = withStaticFilters ? [] : allowActions;
 
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
@@ -193,7 +199,7 @@ class _Table extends Component<Props, State> {
           column={column}
           dataRow={dataRow}
           handleCellAction={this.handleCellAction(column, dataRow)}
-          allowActions={allowActions}
+          allowActions={cellActions}
         >
           <Link
             to={target}
@@ -224,7 +230,7 @@ class _Table extends Component<Props, State> {
             column={column}
             dataRow={dataRow}
             handleCellAction={this.handleCellAction(column, dataRow)}
-            allowActions={allowActions}
+            allowActions={cellActions}
           >
             {rendered}
           </CellAction>
@@ -237,7 +243,7 @@ class _Table extends Component<Props, State> {
         column={column}
         dataRow={dataRow}
         handleCellAction={this.handleCellAction(column, dataRow)}
-        allowActions={allowActions}
+        allowActions={cellActions}
       >
         {rendered}
       </CellAction>
@@ -369,10 +375,12 @@ class _Table extends Component<Props, State> {
 
   render() {
     const {eventView, organization, location, setError} = this.props;
-
+    const useEvents = organization.features.includes(
+      'performance-frontend-use-events-endpoint'
+    );
     const {widths, transaction, transactionThreshold} = this.state;
     const columnOrder = eventView
-      .getColumns()
+      .getColumns(useEvents)
       // remove team_key_transactions from the column order as we'll be rendering it
       // via a prepended column
       .filter(
@@ -406,6 +414,7 @@ class _Table extends Component<Props, State> {
               transactionName={transaction}
               transactionThreshold={transactionThreshold}
               queryExtras={getMEPQueryParams(value)}
+              useEvents={useEvents}
             >
               {({pageLinks, isLoading, tableData}) => (
                 <Fragment>

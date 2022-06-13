@@ -35,7 +35,6 @@ export default function makeAnalyticsFunction<
     options?: Options
   ) => {
     const eventName = eventKeyToNameMap[eventKey];
-
     const params = {
       eventKey,
       eventName,

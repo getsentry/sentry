@@ -19,7 +19,6 @@ import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
@@ -28,7 +27,7 @@ import EventView from 'sentry/utils/discover/eventView';
 type RouteParams = {
   groupId: string;
   orgId: string;
-  tagKey: string;
+  tagKey?: string;
 };
 
 type Props = {
@@ -95,8 +94,11 @@ class GroupTagValues extends AsyncComponent<
       const issuesQuery = tagValue.query || `${key}:"${tagValue.value}"`;
       const discoverView = EventView.fromSavedQuery({
         id: undefined,
-        name: key,
-        fields: [key, ...discoverFields.filter(field => field !== key)],
+        name: key ?? '',
+        fields: [
+          ...(key !== undefined ? [key] : []),
+          ...discoverFields.filter(field => field !== key),
+        ],
         orderby: '-timestamp',
         query: `issue.id:${groupId} ${issuesQuery}`,
         projects: [Number(project?.id)],
@@ -329,13 +331,13 @@ const Column = styled('div')`
 `;
 
 const NameColumn = styled(Column)`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   display: flex;
   min-width: 320px;
 `;
 
 const NameWrapper = styled('span')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: auto;
 `;
 

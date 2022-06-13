@@ -45,6 +45,7 @@ from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -138,10 +139,10 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
 
 class MailAdapterBuildSubjectPrefixTest(BaseMailAdapterTest):
     def test_default_prefix(self):
-        assert build_subject_prefix(self.project) == "[Sentry] "
+        assert build_subject_prefix(self.project) == "[Sentry]"
 
     def test_project_level_prefix(self):
-        prefix = "[Example prefix] "
+        prefix = "[Example prefix]"
         ProjectOption.objects.set_value(
             project=self.project, key="mail:subject_prefix", value=prefix
         )
@@ -979,7 +980,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
-            type=Activity.ASSIGNED,
+            type=ActivityType.ASSIGNED.value,
             user=self.create_user("foo@example.com"),
             data={"assignee": str(self.user.id), "assigneeType": "user"},
         )
@@ -1005,7 +1006,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
-            type=Activity.ASSIGNED,
+            type=ActivityType.ASSIGNED.value,
             user=self.create_user("foo@example.com"),
             data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
         )
@@ -1032,7 +1033,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
         activity = Activity.objects.create(
             project=self.project,
             group=self.group,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=user_foo,
             data={"text": "sup guise"},
         )

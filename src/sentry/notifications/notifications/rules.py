@@ -28,9 +28,8 @@ logger = logging.getLogger(__name__)
 
 class AlertRuleNotification(ProjectNotification):
     message_builder = "IssueNotificationMessageBuilder"
-    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
     metrics_key = "issue_alert"
-    referrer_base = "alert-rule"
+    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
     template_path = "sentry/emails/error"
 
     def __init__(
@@ -56,9 +55,6 @@ class AlertRuleNotification(ProjectNotification):
             target_identifier=self.target_identifier,
             event=self.event,
         )
-
-    def get_category(self) -> str:
-        return "issue_alert_email"
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return str(self.event.get_email_subject())
@@ -108,7 +104,7 @@ class AlertRuleNotification(ProjectNotification):
 
         return context
 
-    def get_notification_title(self) -> Any:
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
 
         title_str = "Alert triggered"
@@ -121,9 +117,6 @@ class AlertRuleNotification(ProjectNotification):
                 title_str += f" (+{len(self.rules) - 1} other)"
 
         return title_str
-
-    def get_type(self) -> str:
-        return "notify.error"
 
     def send(self) -> None:
         from sentry.notifications.notify import notify

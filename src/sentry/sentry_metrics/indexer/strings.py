@@ -84,7 +84,7 @@ SHARED_TAG_STRINGS = {
     "browser.name": PREFIX + 216,
     "os.name": PREFIX + 217,
     "satisfaction": PREFIX + 218,
-    "ok": PREFIX + 219,
+    "ok": PREFIX + 219,  # now also used by release health
     "cancelled": PREFIX + 220,
     "unknown": PREFIX + 221,
     "aborted": PREFIX + 222,

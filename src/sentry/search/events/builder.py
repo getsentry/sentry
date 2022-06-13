@@ -29,8 +29,10 @@ from sentry.discover.arithmetic import (
     OperandType,
     Operation,
     categorize_columns,
+    is_equation,
     is_equation_alias,
     resolve_equation_list,
+    strip_equation,
 )
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models import Organization
@@ -43,6 +45,7 @@ from sentry.search.events.constants import (
     METRICS_MAX_LIMIT,
     NO_CONVERSION_FIELDS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
+    QUERY_TIPS,
     TAG_KEY_RE,
     TIMESTAMP_FIELDS,
     TREND_FUNCTION_TYPE_MAP,
@@ -71,6 +74,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.sentry_metrics import indexer
+from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
 from sentry.utils.snuba import (
     DATASETS,
@@ -114,6 +118,10 @@ class QueryBuilder:
         self.auto_fields = auto_fields
         self.functions_acl = set() if functions_acl is None else functions_acl
         self.equation_config = {} if equation_config is None else equation_config
+        self.tips: Dict[str, Set[str]] = {
+            "query": set(),
+            "columns": set(),
+        }
 
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
@@ -125,6 +133,7 @@ class QueryBuilder:
         self.groupby: List[SelectType] = []
         self.projects_to_filter: Set[int] = set()
         self.function_alias_map: Dict[str, FunctionDetails] = {}
+        self.equation_alias_map: Dict[str, SelectType] = {}
 
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
@@ -345,6 +354,26 @@ class QueryBuilder:
         lhs_where, lhs_having = self.resolve_boolean_conditions(lhs, use_aggregate_conditions)
         rhs_where, rhs_having = self.resolve_boolean_conditions(rhs, use_aggregate_conditions)
 
+        is_where_condition: Callable[[List[WhereType]], bool] = lambda x: bool(
+            x and len(x) == 1 and isinstance(x[0], Condition)
+        )
+
+        if (
+            # A direct field:a OR field:b
+            operator == Or
+            and is_where_condition(lhs_where)
+            and is_where_condition(rhs_where)
+            and lhs_where[0].lhs == rhs_where[0].lhs
+        ) or (
+            # Chained or statements become field:a OR (field:b OR (...))
+            operator == Or
+            and is_where_condition(lhs_where)
+            and isinstance(rhs_where[0], Or)
+            # Even in a long chain the first condition would be the next field
+            and isinstance(rhs_where[0].conditions[0], Condition)
+            and lhs_where[0].lhs == rhs_where[0].conditions[0].lhs
+        ):
+            self.tips["query"].add(QUERY_TIPS["CHAINED_OR"])
         if operator == Or and (lhs_where or rhs_where) and (lhs_having or rhs_having):
             raise InvalidSearchQuery(
                 "Having an OR between aggregate filters and normal filters is invalid."
@@ -437,6 +466,7 @@ class QueryBuilder:
                 resolved_equation = self.resolve_equation(
                     parsed_equation.equation, f"equation[{index}]"
                 )
+                self.equation_alias_map[equations[index]] = resolved_equation
                 resolved_columns.append(resolved_equation)
                 if parsed_equation.contains_functions:
                     self.aggregates.append(resolved_equation)
@@ -654,8 +684,13 @@ class QueryBuilder:
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             try:
+                # Allow ordering equations with the calculated alias (ie. equation[0])
                 if is_equation_alias(bare_orderby):
                     resolved_orderby = bare_orderby
+                # Allow ordering equations directly with the raw alias (ie. equation|a + b)
+                elif is_equation(bare_orderby):
+                    resolved_orderby = self.equation_alias_map[strip_equation(bare_orderby)]
+                    bare_orderby = resolved_orderby.alias
                 else:
                     resolved_orderby = self.resolve_column(bare_orderby)
             except (NotImplementedError, IncompatibleMetricsQuery):
@@ -1587,20 +1622,58 @@ class MetricsQueryBuilder(QueryBuilder):
         snuba. eg. we can only use the daily granularity if the query starts and ends at midnight
         Seconds are ignored under the assumption that there currently isn't a valid use case to have
         to-the-second accurate information
+
+        We also allow some flexibility on the granularity used the larger the duration of the query since the hypothesis
+        is that users won't be able to notice the loss of accuracy regardless. With that in mind:
+        - If duration is between 12 hours to 3d we allow 15 minutes on the hour boundaries for hourly granularity
+        - if duration is between 3d to 30d we allow 30 minutes on the day boundaries for daily granularities
+            and will fallback to hourly granularity
+        - If the duration is over 30d we always use the daily granularities
         """
-        duration = (self.end - self.start).seconds
+        duration = (self.end - self.start).total_seconds()
 
-        # TODO: could probably allow some leeway on the start & end (a few minutes) and use a bigger granularity
-        # eg. yesterday at 11:59pm to tomorrow at 12:01am could still use the day bucket
+        near_midnight: Callable[[datetime], bool] = lambda time: (
+            time.minute <= 30 and time.hour == 0
+        ) or (time.minute >= 30 and time.hour == 23)
+        near_hour: Callable[[datetime], bool] = lambda time: time.minute <= 15 or time.minute >= 15
 
-        # Query is at least an hour
-        if self.start.minute == self.end.minute == 0 and duration % 3600 == 0:
+        if (
+            # precisely going hour to hour
+            self.start.minute
+            == self.end.minute
+            == duration % 3600
+            == 0
+        ):
             # we're going from midnight -> midnight which aligns with our daily buckets
-            if self.start.hour == self.end.hour == 0 and duration % 86400 == 0:
+            if self.start.hour == self.end.hour == duration % 86400 == 0:
                 granularity = 86400
             # we're roughly going from start of hour -> next which aligns with our hourly buckets
             else:
                 granularity = 3600
+        elif (
+            # Its over 30d, just use the daily granularity
+            duration
+            >= 86400 * 30
+        ):
+            granularity = 86400
+        elif (
+            # more than 3 days
+            duration
+            >= 86400 * 3
+        ):
+            # Allow 30 minutes for the daily buckets
+            if near_midnight(self.start) and near_midnight(self.end):
+                granularity = 86400
+            else:
+                granularity = 3600
+        elif (
+            # more than 12 hours
+            (duration >= 3600 * 12)
+            # Allow 15 minutes for the hourly buckets
+            and near_hour(self.start)
+            and near_hour(self.end)
+        ):
+            granularity = 3600
         # We're going from one random minute to another, we could use the 10s bucket, but no reason for that precision
         # here
         else:
@@ -1950,6 +2023,49 @@ class MetricsQueryBuilder(QueryBuilder):
             return None
 
 
+class HistogramMetricQueryBuilder(MetricsQueryBuilder):
+    base_function_acl = ["histogram"]
+
+    def __init__(
+        self,
+        histogram_params: HistogramParams,
+        *args: Any,
+        **kwargs: Any,
+    ):
+        self.params = kwargs["params"]
+        self.histogram_aliases: List[str] = []
+        self.num_buckets = histogram_params.num_buckets
+        self.min_bin = histogram_params.start_offset
+        self.max_bin = (
+            histogram_params.start_offset + histogram_params.bucket_size * self.num_buckets
+        )
+        if "organization_id" in self.params:
+            self.organization_id: int = cast(int, self.params["organization_id"])
+        else:
+            raise InvalidSearchQuery("Organization id required to create a metrics query")
+
+        self.zoom_params: Optional[Function] = metrics_histogram.zoom_histogram(
+            self.organization_id,
+            self.num_buckets,
+            self.min_bin,
+            self.max_bin,
+        )
+
+        kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
+        super().__init__(*args, **kwargs)
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        result = super().run_query(referrer, use_cache)
+        for row in result["data"]:
+            for key, value in row.items():
+                if key in self.histogram_aliases:
+                    row[key] = metrics_histogram.rebucket_histogram(
+                        value, self.num_buckets, self.min_bin, self.max_bin
+                    )
+
+        return result
+
+
 class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
     time_alias = "time"
 
@@ -1972,9 +2088,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
             functions_acl=functions_acl,
             dry_run=dry_run,
         )
-        if self.granularity.granularity > interval:
+        if self.granularity.granularity >= interval:
             for granularity in METRICS_GRANULARITIES:
-                if granularity <= interval:
+                if granularity < interval:
                     self.granularity = Granularity(granularity)
                     break
 

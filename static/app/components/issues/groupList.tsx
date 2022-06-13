@@ -22,8 +22,8 @@ import {Group} from 'sentry/types';
 import {callIfFunction} from 'sentry/utils/callIfFunction';
 import StreamManager from 'sentry/utils/streamManager';
 import withApi from 'sentry/utils/withApi';
-import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/details/relatedIssuesNotAvailable';
+import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import GroupListHeader from './groupListHeader';
 

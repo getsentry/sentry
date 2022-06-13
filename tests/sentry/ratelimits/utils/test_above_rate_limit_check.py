@@ -3,6 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from time import sleep, time
 from unittest import TestCase
 
+from django.conf import settings
 from freezegun import freeze_time
 
 from sentry.ratelimits import above_rate_limit_check, finish_request
@@ -27,8 +28,8 @@ class RatelimitMiddlewareTest(TestCase):
                 group=self.group,
                 reset_time=expected_reset_time,
                 remaining=9,
-                concurrent_limit=None,
-                concurrent_requests=None,
+                concurrent_limit=settings.SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT,
+                concurrent_requests=1,
             )
             for i in range(10):
                 return_val = above_rate_limit_check(
@@ -42,7 +43,7 @@ class RatelimitMiddlewareTest(TestCase):
                 group=self.group,
                 reset_time=expected_reset_time,
                 remaining=0,
-                concurrent_limit=None,
+                concurrent_limit=settings.SENTRY_CONCURRENT_RATE_LIMIT_DEFAULT,
                 concurrent_requests=None,
             )
 

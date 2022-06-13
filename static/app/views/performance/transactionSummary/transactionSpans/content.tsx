@@ -78,7 +78,10 @@ function SpansContent(props: Props) {
 
       browserHistory.push({
         ...location,
-        query: searchQueryParams,
+        query: {
+          ...searchQueryParams,
+          userModified: key === 'query',
+        },
       });
     };
   }
@@ -127,6 +130,7 @@ function SpansContent(props: Props) {
         referrer="api.performance.transaction-spans"
         cursor="0:0:1"
         noPagination
+        useEvents
       >
         {({tableData}) => {
           const totals: SpansTotalValues | null =

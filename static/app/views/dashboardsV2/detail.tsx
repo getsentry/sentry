@@ -156,7 +156,7 @@ class DashboardDetail extends Component<Props, State> {
           },
           onEdit: () => {
             if (
-              organization.features.includes('new-widget-builder-experience') &&
+              organization.features.includes('new-widget-builder-experience-design') &&
               !organization.features.includes(
                 'new-widget-builder-experience-modal-access'
               )
@@ -441,7 +441,7 @@ class DashboardDetail extends Component<Props, State> {
     });
 
     if (
-      organization.features.includes('new-widget-builder-experience') &&
+      organization.features.includes('new-widget-builder-experience-design') &&
       !organization.features.includes('new-widget-builder-experience-modal-access')
     ) {
       if (dashboardId) {
@@ -598,7 +598,6 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <PageFiltersContainer
-        skipLoadLastUsed={organization.features.includes('global-views')}
         hideGlobalHeader
         defaultSelection={{
           datetime: {
@@ -686,7 +685,6 @@ class DashboardDetail extends Component<Props, State> {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
-          skipLoadLastUsed={organization.features.includes('global-views')}
           hideGlobalHeader
           defaultSelection={{
             datetime: {

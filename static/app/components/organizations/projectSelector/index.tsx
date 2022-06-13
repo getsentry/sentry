@@ -5,7 +5,6 @@ import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuActions} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
@@ -14,7 +13,7 @@ import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pag
 import PlatformList from 'sentry/components/platformList';
 import Tooltip from 'sentry/components/tooltip';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconAdd, IconProject} from 'sentry/icons';
+import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {MinimalProject, Organization, Project} from 'sentry/types';
@@ -249,7 +248,7 @@ function ProjectSelector({
 
     return (
       <StyledHeaderItem
-        data-test-id="global-header-project-selector"
+        data-test-id="page-filter-project-selector"
         icon={
           forceProject && (
             <PlatformList
@@ -276,7 +275,7 @@ function ProjectSelector({
     return (
       <Fragment>{customLoadingIndicator}</Fragment> ?? (
         <StyledHeaderItem
-          data-test-id="global-header-project-selector-loading"
+          data-test-id="page-filter-project-selector-loading"
           icon={<IconProject />}
           loading
         >
@@ -335,8 +334,6 @@ function ProjectSelector({
   });
 
   const hasProjects = !!projects?.length || !!otherProjects?.length;
-  const newProjectUrl = `/organizations/${organization.slug}/projects/new/`;
-  const hasProjectWrite = organization.access.includes('project:write');
 
   const items = !hasProjects
     ? []
@@ -375,20 +372,6 @@ function ProjectSelector({
           virtualizedLabelHeight={theme.headerSelectorLabelHeight}
           inputActions={
             <InputActions>
-              <AddButton
-                aria-label={t('Add Project')}
-                disabled={!hasProjectWrite}
-                to={newProjectUrl}
-                size="xsmall"
-                icon={<IconAdd size="xs" isCircled />}
-                title={
-                  !hasProjectWrite
-                    ? t("You don't have permission to add a project")
-                    : undefined
-                }
-              >
-                {showPin ? '' : t('Project')}
-              </AddButton>
               {showPin && (
                 <GuideAnchor target="new_page_filter_pin" position="bottom">
                   <PageFilterPinButton size="xsmall" filter="projects" />
@@ -453,7 +436,7 @@ function ProjectSelector({
 
             return (
               <StyledHeaderItem
-                data-test-id="global-header-project-selector"
+                data-test-id="page-filter-project-selector"
                 icon={icon}
                 hasSelected={hasSelected}
                 hasChanges={hasChanges}
@@ -508,14 +491,6 @@ const StyledLink = styled(Link)`
 const Label = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
-`;
-
-const AddButton = styled(Button)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  :hover {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 const InputActions = styled('div')`

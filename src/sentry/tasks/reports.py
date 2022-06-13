@@ -21,7 +21,6 @@ from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Limit, Query
 
-from sentry import features
 from sentry.api.serializers.snuba import zerofill
 from sentry.app import tsdb
 from sentry.cache import default_cache
@@ -42,6 +41,7 @@ from sentry.models import (
 )
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
+from sentry.types.activity import ActivityType
 from sentry.utils import json, redis
 from sentry.utils.compat import filter, map, zip
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
@@ -329,7 +329,7 @@ def build_project_issue_summaries(interval, project):
                 last_seen__lt=stop,
                 resolved_at__isnull=False,  # signals this has *ever* been resolved
             ),
-            type__in=(Activity.SET_REGRESSION, Activity.SET_UNRESOLVED),
+            type__in=(ActivityType.SET_REGRESSION.value, ActivityType.SET_UNRESOLVED.value),
             datetime__gte=start,
             datetime__lt=stop,
         )
@@ -747,14 +747,6 @@ def prepare_organization_report(timestamp, duration, organization_id, user_id=No
         )
         return
 
-    if features.has("organizations:weekly-report-debugging", organization):
-        logger.info(
-            "reports.org.begin_computing_report",
-            extra={
-                "organization_id": organization.id,
-            },
-        )
-
     backend.prepare(timestamp, duration, organization)
 
     # If an OrganizationMember row doesn't have an associated user, this is
@@ -779,7 +771,7 @@ def fetch_personal_statistics(start__stop, organization, user):
         Activity.objects.filter(
             project__organization_id=organization.id,
             user_id=user.id,
-            type__in=(Activity.SET_RESOLVED, Activity.SET_RESOLVED_IN_RELEASE),
+            type__in=(ActivityType.SET_RESOLVED.value, ActivityType.SET_RESOLVED_IN_RELEASE.value),
             datetime__gte=start,
             datetime__lt=stop,
             group__status=GroupStatus.RESOLVED,  # only count if the issue is still resolved
@@ -880,23 +872,7 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
 
     user = User.objects.get(id=user_id)
 
-    if features.has("organizations:weekly-report-debugging", organization):
-        logger.info(
-            "reports.deliver_organization_user_report.begin",
-            extra={
-                "user_id": user.id,
-                "organization_id": organization.id,
-            },
-        )
     if not user_subscribed_to_organization_reports(user, organization):
-        if features.has("organizations:weekly-report-debugging", organization):
-            logger.info(
-                "reports.user.unsubscribed",
-                extra={
-                    "user_id": user.id,
-                    "organization_id": organization.id,
-                },
-            )
         logger.debug(
             f"Skipping report for {organization} to {user}, user is not subscribed to reports."
         )
@@ -907,14 +883,6 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         projects.update(Project.objects.get_for_user(team, user, _skip_team_check=True))
 
     if not projects:
-        if features.has("organizations:weekly-report-debugging", organization):
-            logger.info(
-                "reports.user.no_projects",
-                extra={
-                    "user_id": user.id,
-                    "organization_id": organization.id,
-                },
-            )
         logger.debug(
             f"Skipping report for {organization} to {user}, user is not associated with any projects."
         )
@@ -936,14 +904,6 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     )
 
     if not reports:
-        if features.has("organizations:weekly-report-debugging", organization):
-            logger.info(
-                "reports.user.no_reports",
-                extra={
-                    "user_id": user.id,
-                    "organization_id": organization.id,
-                },
-            )
         logger.debug(
             f"Skipping report for {organization} to {user}, no qualifying reports to deliver."
         )
@@ -952,14 +912,6 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
     message = build_message(timestamp, duration, organization, user, reports)
 
     if not dry_run:
-        if features.has("organizations:weekly-report-debugging", organization):
-            logger.info(
-                "reports.deliver_organization_user_report.finish",
-                extra={
-                    "user_id": user.id,
-                    "organization_id": organization.id,
-                },
-            )
         message.send()
 
 

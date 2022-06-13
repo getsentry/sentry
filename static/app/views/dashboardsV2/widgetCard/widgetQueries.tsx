@@ -16,7 +16,11 @@ import {
   PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableData, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {
+  EventsTableData,
+  TableData,
+  TableDataWithTitle,
+} from 'sentry/utils/discover/discoverQuery';
 import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
@@ -24,7 +28,14 @@ import {
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
+import {getDatasetConfig} from '../datasetConfig/base';
+import {
+  DEFAULT_TABLE_LIMIT,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
@@ -38,7 +49,7 @@ type RawResult = EventsStats | MultiSeriesEventsStats;
 
 type SeriesWithOrdering = [order: number, series: Series];
 
-function transformSeries(stats: EventsStats, seriesName: string): Series {
+export function transformSeries(stats: EventsStats, seriesName: string): Series {
   return {
     seriesName,
     data:
@@ -101,50 +112,6 @@ function getIsMetricsDataFromSeriesResponse(result: RawResult): boolean | undefi
   return isMultiSeriesStats(result) ? multiIsMetricsData : result.isMetricsData;
 }
 
-function transformResult(
-  query: WidgetQuery,
-  result: RawResult,
-  displayType: DisplayType,
-  widgetBuilderNewDesign: boolean = false
-): Series[] {
-  let output: Series[] = [];
-
-  const queryAlias = query.name;
-
-  if (isMultiSeriesStats(result)) {
-    let seriesWithOrdering: SeriesWithOrdering[] = [];
-    const isMultiSeriesDataWithGrouping =
-      query.aggregates.length > 1 && query.columns.length;
-
-    // Convert multi-series results into chartable series. Multi series results
-    // are created when multiple yAxis are used. Convert the timeseries
-    // data into a multi-series result set.  As the server will have
-    // replied with a map like: {[titleString: string]: EventsStats}
-    if (
-      widgetBuilderNewDesign &&
-      displayType !== DisplayType.TOP_N &&
-      isMultiSeriesDataWithGrouping
-    ) {
-      seriesWithOrdering = flattenMultiSeriesDataWithGrouping(result, queryAlias);
-    } else {
-      seriesWithOrdering = Object.keys(result).map((seriesName: string) => {
-        const prefixedName = queryAlias ? `${queryAlias} : ${seriesName}` : seriesName;
-        const seriesData: EventsStats = result[seriesName];
-        return [seriesData.order || 0, transformSeries(seriesData, prefixedName)];
-      });
-    }
-
-    output = [...seriesWithOrdering.sort().map(item => item[1])];
-  } else {
-    const field = query.aggregates[0];
-    const prefixedName = queryAlias ? `${queryAlias} : ${field}` : field;
-    const transformed = transformSeries(result, prefixedName);
-    output.push(transformed);
-  }
-
-  return output;
-}
-
 type Props = {
   api: Client;
   children: (
@@ -193,9 +160,6 @@ class WidgetQueries extends Component<Props, State> {
 
   componentDidUpdate(prevProps: Props) {
     const {selection, widget, cursor, organization} = this.props;
-    const widgetBuilderNewDesign = organization.features.includes(
-      'new-widget-builder-experience-design'
-    );
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
@@ -254,12 +218,9 @@ class WidgetQueries extends Component<Props, State> {
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
           return acc.concat(
-            transformResult(
-              query,
-              prevState.rawResults![index],
-              widget.displayType,
-              widgetBuilderNewDesign
-            )
+            this.config.transformSeries!(prevState.rawResults![index], query, {
+              organization,
+            })
           );
         }, []);
 
@@ -274,6 +235,7 @@ class WidgetQueries extends Component<Props, State> {
 
   static contextType = DashboardsMEPContext;
   context: React.ContextType<typeof DashboardsMEPContext> | undefined;
+  config = getDatasetConfig(WidgetType.DISCOVER);
 
   private _isMounted: boolean = false;
 
@@ -287,6 +249,10 @@ class WidgetQueries extends Component<Props, State> {
   fetchEventData(queryFetchID: symbol) {
     const {selection, api, organization, widget, limit, cursor, onDataFetched} =
       this.props;
+
+    const shouldUseEvents = organization.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
 
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
@@ -306,11 +272,14 @@ class WidgetQueries extends Component<Props, State> {
         params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
       }
 
+      const eventsUrl = shouldUseEvents
+        ? `/organizations/${organization.slug}/events/`
+        : `/organizations/${organization.slug}/eventsv2/`;
       if (widget.displayType === 'table') {
-        url = `/organizations/${organization.slug}/eventsv2/`;
+        url = eventsUrl;
         params.referrer = 'api.dashboards.tablewidget';
       } else if (widget.displayType === 'big_number') {
-        url = `/organizations/${organization.slug}/eventsv2/`;
+        url = eventsUrl;
         params.per_page = 1;
         params.referrer = 'api.dashboards.bignumberwidget';
       } else if (widget.displayType === 'world_map') {
@@ -323,7 +292,8 @@ class WidgetQueries extends Component<Props, State> {
         );
       }
 
-      return doDiscoverQuery<TableData>(api, url, {
+      // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
+      return doDiscoverQuery<TableData | EventsTableData>(api, url, {
         ...eventView.generateQueryStringObject(),
         ...params,
       });
@@ -338,7 +308,9 @@ class WidgetQueries extends Component<Props, State> {
         isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
 
         // Cast so we can add the title.
-        const tableData = data as TableDataWithTitle;
+        const tableData = this.config.transformTable(data, widget.queries[0], {
+          organization,
+        }) as TableDataWithTitle;
         tableData.title = widget.queries[i]?.name ?? '';
 
         // Overwrite the local var to work around state being stale in tests.
@@ -389,9 +361,6 @@ class WidgetQueries extends Component<Props, State> {
 
   fetchTimeseriesData(queryFetchID: symbol, displayType: DisplayType) {
     const {selection, api, organization, widget, onDataFetched} = this.props;
-    const widgetBuilderNewDesign = organization.features.includes(
-      'new-widget-builder-experience-design'
-    );
     this.setState({timeseriesResults: [], rawResults: []});
 
     const {environments, projects} = selection;
@@ -505,11 +474,10 @@ class WidgetQueries extends Component<Props, State> {
           }
 
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          const transformedResult = transformResult(
-            widget.queries[requestIndex],
+          const transformedResult = this.config.transformSeries!(
             rawResults,
-            widget.displayType,
-            widgetBuilderNewDesign
+            widget.queries[requestIndex],
+            {organization}
           );
           // When charting timeseriesData on echarts, color association to a timeseries result
           // is order sensitive, ie series at index i on the timeseries array will use color at

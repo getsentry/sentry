@@ -2,18 +2,22 @@ import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {EventQuery} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Organization, TagCollection} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {metric, trackAnalyticsEvent} from 'sentry/utils/analytics';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import EventView, {
+  isAPIPayloadSimilar,
+  LocationQuery,
+} from 'sentry/utils/discover/eventView';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
+import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
-import withTags from 'sentry/utils/withTags';
 
 import TableView from './tableView';
 
@@ -26,7 +30,6 @@ type TableProps = {
   organization: Organization;
   setError: (msg: string, code: number) => void;
   showTags: boolean;
-  tags: TagCollection;
   title: string;
 };
 
@@ -89,10 +92,23 @@ class Table extends PureComponent<TableProps, TableState> {
     // note: If the eventView has no aggregates, the endpoint will automatically add the event id in
     // the API payload response
 
-    const url = `/organizations/${organization.slug}/eventsv2/`;
+    const shouldUseEvents = organization.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
+    const url = shouldUseEvents
+      ? `/organizations/${organization.slug}/events/`
+      : `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
-    const apiPayload = eventView.getEventsAPIPayload(location);
+
+    // adding user_modified property. this property will be removed once search bar experiment is complete
+    const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
+      EventQuery & {user_modified?: string};
     apiPayload.referrer = 'api.discover.query-table';
+
+    const queryUserModified = decodeScalar(location.query.userModified);
+    if (queryUserModified !== undefined) {
+      apiPayload.user_modified = queryUserModified;
+    }
 
     setError('', 200);
 
@@ -120,12 +136,21 @@ class Table extends PureComponent<TableProps, TableState> {
           return;
         }
 
+        const {fields, ...nonFieldsMeta} = data.meta ?? {};
+        // events api uses a different response format so we need to construct tableData differently
+        const tableData = shouldUseEvents
+          ? {
+              ...data,
+              meta: {...fields, nonFieldsMeta},
+            }
+          : data;
+
         this.setState(prevState => ({
           isLoading: false,
           tableFetchID: undefined,
           error: null,
           pageLinks: resp ? resp.getResponseHeader('Link') : prevState.pageLinks,
-          tableData: data,
+          tableData,
         }));
       })
       .catch(err => {
@@ -160,9 +185,8 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, tags} = this.props;
+    const {eventView} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
-    const tagKeys = Object.values(tags).map(({key}) => key);
 
     const isFirstPage = pageLinks
       ? parseLinkHeader(pageLinks).previous.results === false
@@ -182,7 +206,6 @@ class Table extends PureComponent<TableProps, TableState> {
                 error={error}
                 eventView={eventView}
                 tableData={tableData}
-                tagKeys={tagKeys}
                 measurementKeys={measurementKeys}
                 spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
               />
@@ -195,7 +218,7 @@ class Table extends PureComponent<TableProps, TableState> {
   }
 }
 
-export default withApi(withTags(Table));
+export default withApi(Table);
 
 const Container = styled('div')`
   min-width: 0;

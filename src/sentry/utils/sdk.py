@@ -49,6 +49,9 @@ SAMPLED_URL_NAMES = {
     # notification platform
     "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
+    # events
+    "sentry-api-0-organization-eventsv2": 0.1,
+    "sentry-api-0-organization-events": 1,
     # releases
     "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-release-details": settings.SAMPLED_DEFAULT_RATE,
@@ -101,6 +104,9 @@ SAMPLED_TASKS = {
     "sentry.tasks.reports.prepare_organization_report": 0.1,
     "sentry.tasks.reports.deliver_organization_user_report": 0.01,
 }
+
+if settings.ADDITIONAL_SAMPLED_TASKS:
+    SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
 
 
 UNSAFE_TAG = "_unsafe"

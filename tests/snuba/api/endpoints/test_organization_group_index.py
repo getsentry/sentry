@@ -50,6 +50,7 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
@@ -84,7 +85,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         group = event.group
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(sort_by="date", query="is:unresolved")
+        response = self.get_success_response(sort_by="date", query="is:unresolved")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
@@ -127,7 +128,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             sort="trend",
             query="is:unresolved",
             limit=1,
@@ -139,7 +140,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         header_links = parse_link_header(response["Link"])
         cursor = [link for link in header_links.values() if link["rel"] == "next"][0]["cursor"]
-        response = self.get_valid_response(
+        response = self.get_success_response(
             sort="trend",
             query="is:unresolved",
             limit=1,
@@ -171,7 +172,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         inbox_2.update(date_added=inbox_1.date_added - timedelta(hours=1))
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             sort="inbox", query="is:unresolved is:for_review", limit=1
         )
         assert len(response.data) == 1
@@ -262,7 +263,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         GroupAssignee.objects.assign(unowned_assigned_to_other, other_user)
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             sort="inbox",
             query="is:unresolved is:for_review assigned_or_suggested:[me, none]",
             limit=10,
@@ -289,7 +290,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             sort_by="date", query="is:unresolved trace:a7d67cf796774551a95be6543cacd459"
         )
         assert len(response.data) == 1
@@ -314,7 +315,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         with self.feature("organizations:global-views"):
-            response = self.get_valid_response(project_id=[-1])
+            response = self.get_success_response(project_id=[-1])
             assert response.status_code == 200
 
     def test_boolean_search_feature_flag(self):
@@ -370,7 +371,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         group2 = event2.group
         self.login_as(user=self.user)
-        response = self.get_valid_response(sort_by="date", limit=1)
+        response = self.get_success_response(sort_by="date", limit=1)
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
 
@@ -398,9 +399,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        self.get_valid_response(groupStatsPeriod="24h")
-        self.get_valid_response(groupStatsPeriod="14d")
-        self.get_valid_response(groupStatsPeriod="")
+        self.get_success_response(groupStatsPeriod="24h")
+        self.get_success_response(groupStatsPeriod="14d")
+        self.get_success_response(groupStatsPeriod="")
         response = self.get_response(groupStatsPeriod="48h")
         assert response.status_code == 400
 
@@ -424,7 +425,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(environment="production")
+        response = self.get_success_response(environment="production")
         assert len(response.data) == 1
 
         response = self.get_response(environment="garbage")
@@ -444,7 +445,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         group2 = event2.group
 
         self.login_as(user=self.user)
-        response = self.get_valid_response()
+        response = self.get_success_response()
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
 
@@ -459,7 +460,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(query="c" * 32)
+        response = self.get_success_response(query="c" * 32)
         assert response["X-Sentry-Direct-Hit"] == "1"
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
@@ -482,7 +483,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=user)
 
         with self.feature("organizations:global-views"):
-            response = self.get_valid_response(query=event_id, project=[other_project.id])
+            response = self.get_success_response(query=event_id, project=[other_project.id])
         assert response["X-Sentry-Direct-Hit"] == "1"
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
@@ -498,7 +499,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(query="  {}  ".format("c" * 32))
+        response = self.get_success_response(query="  {}  ".format("c" * 32))
         assert response["X-Sentry-Direct-Hit"] == "1"
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event.group.id)
@@ -511,7 +512,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group()
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(query="c" * 32)
+        response = self.get_success_response(query="c" * 32)
         assert len(response.data) == 0
 
     def test_lookup_by_short_id(self):
@@ -519,7 +520,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         short_id = group.qualified_short_id
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(query=short_id, shortIdLookup=1)
+        response = self.get_success_response(query=short_id, shortIdLookup=1)
         assert len(response.data) == 1
 
     def test_lookup_by_short_id_ignores_project_list(self):
@@ -534,7 +535,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             organization.slug, project=project.id, query=short_id, shortIdLookup=1
         )
         assert len(response.data) == 1
@@ -550,16 +551,16 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=user)
 
-        response = self.get_valid_response(organization.slug, query=short_id, shortIdLookup=1)
+        response = self.get_success_response(organization.slug, query=short_id, shortIdLookup=1)
         assert len(response.data) == 0
 
     def test_lookup_by_group_id(self):
         self.login_as(user=self.user)
-        response = self.get_valid_response(group=self.group.id)
+        response = self.get_success_response(group=self.group.id)
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.group.id)
         group_2 = self.create_group()
-        response = self.get_valid_response(group=[self.group.id, group_2.id])
+        response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
     def test_lookup_by_group_id_no_perms(self):
@@ -589,7 +590,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
 
         with self.feature("organizations:global-views"):
-            response = self.get_valid_response(**{"query": 'first-release:"%s"' % release.version})
+            response = self.get_success_response(
+                **{"query": 'first-release:"%s"' % release.version}
+            )
         issues = json.loads(response.content)
         assert len(issues) == 2
         assert int(issues[0]["id"]) == event2.group.id
@@ -608,7 +611,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        response = self.get_valid_response(release=release.version)
+        response = self.get_success_response(release=release.version)
         issues = json.loads(response.content)
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
@@ -626,7 +629,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
 
-        response = self.get_valid_response(release=release.version[:3] + "*")
+        response = self.get_success_response(release=release.version[:3] + "*")
         issues = json.loads(response.content)
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
@@ -643,7 +646,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=project.id,
         )
         record_group_history(event.group, GroupHistoryStatus.REGRESSED, release=release)
-        response = self.get_valid_response(query=f"regressed_in_release:{release.version}")
+        response = self.get_success_response(query=f"regressed_in_release:{release.version}")
         issues = json.loads(response.content)
         assert [int(issue["id"]) for issue in issues] == [event.group.id]
 
@@ -666,7 +669,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response()
+        response = self.get_success_response()
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(events[1].group.id)
 
@@ -676,7 +679,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.create_group(last_seen=timezone.now() - timedelta(days=2))
 
         with self.options({"system.event-retention-days": 1}):
-            response = self.get_valid_response()
+            response = self.get_success_response()
 
         assert len(response.data) == 0
 
@@ -698,11 +701,11 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
             self.login_as(user=self.user)
 
-            response = self.get_valid_response(statsPeriod="6h")
+            response = self.get_success_response(statsPeriod="6h")
             assert len(response.data) == 1
             assert response.data[0]["id"] == str(group.id)
 
-            response = self.get_valid_response(statsPeriod="1h")
+            response = self.get_success_response(statsPeriod="1h")
             assert len(response.data) == 0
 
     @patch("sentry.analytics.record")
@@ -1809,7 +1812,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
         )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
@@ -1863,7 +1866,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
         self.login_as(user=member)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
         )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
@@ -1881,13 +1884,13 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 project_id=self.project.id,
             )
 
-        response = self.get_valid_response(query="is:unresolved", sort_by="date", method="get")
+        response = self.get_success_response(query="is:unresolved", sort_by="date", method="get")
         assert len(response.data) == 100
 
-        response = self.get_valid_response(qs_params={"status": "unresolved"}, status="resolved")
+        response = self.get_success_response(qs_params={"status": "unresolved"}, status="resolved")
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
-        response = self.get_valid_response(query="is:unresolved", sort_by="date", method="get")
+        response = self.get_success_response(query="is:unresolved", sort_by="date", method="get")
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
@@ -1926,12 +1929,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             relationship=GroupLink.Relationship.references,
         )[0]
 
-        response = self.get_valid_response(sort_by="date", query="is:unresolved", method="get")
+        response = self.get_success_response(sort_by="date", query="is:unresolved", method="get")
         assert len(response.data) == 1
 
         with self.tasks():
             with self.feature({"organizations:integrations-issue-sync": True}):
-                response = self.get_valid_response(
+                response = self.get_success_response(
                     qs_params={"status": "unresolved"}, status="resolved"
                 )
                 group = Group.objects.get(id=group.id)
@@ -1942,7 +1945,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                     external_issue, True, group.project_id
                 )
 
-        response = self.get_valid_response(sort_by="date", query="is:unresolved", method="get")
+        response = self.get_success_response(sort_by="date", query="is:unresolved", method="get")
         assert len(response.data) == 0
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
@@ -1980,7 +1983,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         with self.tasks():
             with self.feature({"organizations:integrations-issue-sync": True}):
-                response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
+                response = self.get_success_response(
+                    qs_params={"id": group.id}, status="unresolved"
+                )
                 assert response.status_code == 200
                 assert response.data == {"status": "unresolved", "statusDetails": {}}
 
@@ -2003,7 +2008,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         uo1 = UserOption.objects.create(key="self_assign_issue", value="1", project=None, user=user)
 
         self.login_as(user=user)
-        response = self.get_valid_response(qs_params={"id": group.id}, status="resolved")
+        response = self.get_success_response(qs_params={"id": group.id}, status="resolved")
         assert response.data["assignedTo"]["id"] == str(user.id)
         assert response.data["assignedTo"]["type"] == "user"
         assert response.data["status"] == "resolved"
@@ -2026,7 +2031,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="resolvedInNextRelease"
         )
         assert response.data["status"] == "resolved"
@@ -2043,7 +2048,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == ""
         uo1.delete()
 
@@ -2076,7 +2083,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="resolvedInNextRelease"
         )
         assert response.data["status"] == "resolved"
@@ -2108,7 +2115,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         # Ensure that Activity has `current_release_version` set on `Resolved in next release`
         activity = Activity.objects.filter(
             group=grp_resolution.group,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=grp_resolution.id,
         ).first()
 
@@ -2137,7 +2144,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="resolvedInNextRelease"
         )
         assert response.data["status"] == "resolved"
@@ -2201,7 +2208,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         # is set to its default of `True`
         assert Group.objects.get(id=group.id).get_last_release() == release_1.version
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="resolvedInNextRelease"
         )
         assert response.data["status"] == "resolved"
@@ -2242,7 +2249,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="resolvedInNextRelease"
         )
         assert response.data["status"] == "resolved"
@@ -2260,7 +2267,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         activity = Activity.objects.filter(
             group=grp_resolution.group,
-            type=Activity.SET_RESOLVED_IN_RELEASE,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=grp_resolution.id,
         ).first()
         assert activity.data["version"] == release_2.version
@@ -2276,7 +2283,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         with self.feature("organizations:global-views"):
-            response = self.get_valid_response(
+            response = self.get_success_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
             )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
@@ -2309,7 +2316,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="resolved", statusDetails={"inRelease": "latest"}
         )
         assert response.data["status"] == "resolved"
@@ -2329,7 +2336,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == release.version
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
@@ -2345,7 +2354,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id},
             status="resolved",
             statusDetails={"inRelease": release.version},
@@ -2368,7 +2377,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == release.version
 
     def test_in_semver_projects_set_resolved_in_explicit_release(self):
@@ -2387,7 +2398,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id},
             status="resolved",
             statusDetails={"inRelease": release_1.version},
@@ -2410,7 +2421,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == release_1.version
 
         assert GroupResolution.has_resolution(group=group, release=release_2)
@@ -2424,7 +2437,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="resolved", statusDetails={"inNextRelease": True}
         )
         assert response.data["status"] == "resolved"
@@ -2445,7 +2458,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_next_release_legacy(self):
@@ -2456,7 +2471,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="resolvedInNextRelease"
         )
         assert response.data["status"] == "resolved"
@@ -2480,7 +2495,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_RELEASE)
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
+        )
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_explicit_commit_unreleased(self):
@@ -2490,7 +2507,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id},
             status="resolved",
             statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
@@ -2512,7 +2529,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_COMMIT)
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         assert activity.data["commit"] == commit.id
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
@@ -2527,7 +2544,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id},
             status="resolved",
             statusDetails={"inCommit": {"commit": commit.key, "repository": repo.name}},
@@ -2550,7 +2567,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             user=self.user, group=group, is_active=True
         ).exists()
 
-        activity = Activity.objects.get(group=group, type=Activity.SET_RESOLVED_IN_COMMIT)
+        activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         assert activity.data["commit"] == commit.id
 
         resolution = GroupResolution.objects.get(group=group)
@@ -2587,7 +2604,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
+        response = self.get_success_response(qs_params={"id": group.id}, status="unresolved")
         assert response.data == {"status": "unresolved", "statusDetails": {}}
 
         group = Group.objects.get(id=group.id)
@@ -2609,7 +2626,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(qs_params={"id": group.id}, status="unresolved")
+        response = self.get_success_response(qs_params={"id": group.id}, status="unresolved")
         assert response.data == {"status": "unresolved", "statusDetails": {}}
 
         group = Group.objects.get(id=group.id)
@@ -2627,7 +2644,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.IGNORED
         ).exists()
-        response = self.get_valid_response(qs_params={"id": group.id}, status="ignored")
+        response = self.get_success_response(qs_params={"id": group.id}, status="ignored")
         # existing snooze objects should be cleaned up
         assert not GroupSnooze.objects.filter(id=snooze.id).exists()
 
@@ -2642,7 +2659,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="ignored", ignoreDuration=30
         )
         snooze = GroupSnooze.objects.get(group=group)
@@ -2674,7 +2691,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="ignored", ignoreCount=100
         )
         snooze = GroupSnooze.objects.get(group=group)
@@ -2711,7 +2728,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": group.id}, status="ignored", ignoreUserCount=10
         )
         snooze = GroupSnooze.objects.get(group=group)
@@ -2741,7 +2758,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         with self.feature("organizations:global-views"):
-            response = self.get_valid_response(
+            response = self.get_success_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isBookmarked="true"
             )
         assert response.data == {"isBookmarked": True}
@@ -2774,7 +2791,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         with self.feature("organizations:global-views"):
-            response = self.get_valid_response(
+            response = self.get_success_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}, isSubscribed="true"
             )
         assert response.data == {"isSubscribed": True, "subscriptionDetails": {"reason": "unknown"}}
@@ -2796,7 +2813,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group2 = self.create_group()
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": [group1.id, group2.id]}, isPublic="true"
         )
         assert response.data["isPublic"] is True
@@ -2818,7 +2835,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             assert bool(g.get_share_id())
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": [group1.id, group2.id]}, isPublic="false"
         )
         assert response.data == {"isPublic": False, "shareId": None}
@@ -2840,7 +2857,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         with self.feature("organizations:global-views"):
-            response = self.get_valid_response(
+            response = self.get_success_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}, hasSeen="true"
             )
         assert response.data == {"hasSeen": True}
@@ -2871,7 +2888,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         self.create_group()
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": [group1.id, group2.id, group3.id]}, merge="1"
         )
         assert response.data["merge"]["parent"] == str(group2.id)
@@ -2897,7 +2914,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         user = self.user
 
         self.login_as(user=user)
-        response = self.get_valid_response(qs_params={"id": group1.id}, assignedTo=user.username)
+        response = self.get_success_response(qs_params={"id": group1.id}, assignedTo=user.username)
         assert response.data["assignedTo"]["id"] == str(user.id)
         assert response.data["assignedTo"]["type"] == "user"
         assert GroupAssignee.objects.filter(group=group1, user=user).exists()
@@ -2907,11 +2924,16 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert not GroupAssignee.objects.filter(group=group2, user=user).exists()
 
-        assert Activity.objects.filter(group=group1, user=user, type=Activity.ASSIGNED).count() == 1
+        assert (
+            Activity.objects.filter(
+                group=group1, user=user, type=ActivityType.ASSIGNED.value
+            ).count()
+            == 1
+        )
 
         assert GroupSubscription.objects.filter(user=user, group=group1, is_active=True).exists()
 
-        response = self.get_valid_response(qs_params={"id": group1.id}, assignedTo="")
+        response = self.get_success_response(qs_params={"id": group1.id}, assignedTo="")
         assert response.data["assignedTo"] is None
 
         assert not GroupAssignee.objects.filter(group=group1, user=user).exists()
@@ -2947,17 +2969,19 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group, status=GroupHistoryStatus.ASSIGNED
         ).exists()
 
-        response = self.get_valid_response(qs_params={"id": group.id}, assignedTo=f"team:{team.id}")
+        response = self.get_success_response(
+            qs_params={"id": group.id}, assignedTo=f"team:{team.id}"
+        )
         assert response.data["assignedTo"]["id"] == str(team.id)
         assert response.data["assignedTo"]["type"] == "team"
         assert GroupHistory.objects.filter(group=group, status=GroupHistoryStatus.ASSIGNED).exists()
         assert GroupAssignee.objects.filter(group=group, team=team).exists()
 
-        assert Activity.objects.filter(group=group, type=Activity.ASSIGNED).count() == 1
+        assert Activity.objects.filter(group=group, type=ActivityType.ASSIGNED.value).count() == 1
 
         assert GroupSubscription.objects.filter(group=group, is_active=True).count() == 2
 
-        response = self.get_valid_response(qs_params={"id": group.id}, assignedTo="")
+        response = self.get_success_response(qs_params={"id": group.id}, assignedTo="")
         assert response.data["assignedTo"] is None
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.UNASSIGNED
@@ -2999,7 +3023,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group2 = self.create_group()
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(qs_params={"id": [group1.id, group2.id]}, inbox="true")
+        response = self.get_success_response(qs_params={"id": [group1.id, group2.id]}, inbox="true")
         assert response.data == {"inbox": True}
         assert GroupInbox.objects.filter(group=group1).exists()
         assert GroupInbox.objects.filter(group=group2).exists()
@@ -3010,7 +3034,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group2, status=GroupHistoryStatus.REVIEWED
         ).exists()
 
-        response = self.get_valid_response(qs_params={"id": [group2.id]}, inbox="false")
+        response = self.get_success_response(qs_params={"id": [group2.id]}, inbox="false")
         assert response.data == {"inbox": False}
         assert GroupInbox.objects.filter(group=group1).exists()
         assert not GroupHistory.objects.filter(
@@ -3026,14 +3050,14 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group2 = self.create_group()
 
         self.login_as(user=self.user)
-        response = self.get_valid_response(
+        response = self.get_success_response(
             qs_params={"id": [group1.id, group2.id]}, status="resolved"
         )
         assert response.data["inbox"] is None
         assert not GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
 
-        self.get_valid_response(qs_params={"id": [group2.id]}, status="unresolved")
+        self.get_success_response(qs_params={"id": [group2.id]}, status="unresolved")
         assert not GroupInbox.objects.filter(group=group1).exists()
         assert not GroupInbox.objects.filter(group=group2).exists()
         assert not GroupHistory.objects.filter(

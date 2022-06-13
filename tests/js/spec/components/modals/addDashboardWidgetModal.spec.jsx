@@ -77,7 +77,7 @@ function mountModalWithRtl({initialData, onAddWidget, onUpdateWidget, widget, so
   );
 }
 
-async function clickSubmit(wrapper) {
+function clickSubmit(wrapper) {
   // Click on submit.
   const button = wrapper.find('Button[data-test-id="add-widget"] button');
   button.simulate('click');
@@ -1136,7 +1136,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     wrapper.unmount();
   });
 
-  it('renders the tab button bar from widget library', async function () {
+  it('renders the tab button bar from widget library', function () {
     const onAddLibraryWidgetMock = jest.fn();
     const wrapper = mountModal({
       initialData,
@@ -1239,7 +1239,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       await tick();
       userEvent.click(screen.getByText('Table'));
       userEvent.click(screen.getByText('Line Chart'));
-      expect(screen.queryByText('Data Set')).not.toBeInTheDocument();
+      expect(screen.queryByText('Dataset')).not.toBeInTheDocument();
       wrapper.unmount();
     });
 
@@ -1254,7 +1254,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
       expect(metricsDataMock).not.toHaveBeenCalled();
 
-      expect(screen.getByText('Data Set')).toBeInTheDocument();
+      expect(screen.getByText('Dataset')).toBeInTheDocument();
       expect(
         screen.getByText('All Events (Errors and Transactions)')
       ).toBeInTheDocument();
@@ -1313,7 +1313,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         source: types.DashboardWidgetSource.DASHBOARDS,
       });
 
-      expect(await screen.findByText('Data Set')).toBeInTheDocument();
+      expect(await screen.findByText('Dataset')).toBeInTheDocument();
 
       expect(
         screen.getByText('All Events (Errors and Transactions)')
@@ -1547,7 +1547,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
         await screen.findByRole('heading', {name: 'Add Widget'})
       ).toBeInTheDocument();
 
-      // change data set to metrics
+      // change dataset to metrics
       userEvent.click(screen.getByLabelText(/release/i));
 
       // open visualization select

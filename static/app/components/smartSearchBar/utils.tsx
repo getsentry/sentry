@@ -8,7 +8,9 @@ import {
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ItemType, SearchGroup, SearchItem} from './types';
+import HotkeysLabel from '../hotkeysLabel';
+
+import {ItemType, QuickAction, QuickActionType, SearchGroup, SearchItem} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -113,11 +115,13 @@ export function createSearchGroups(
 
   if (queryCharsLeft || queryCharsLeft === 0) {
     searchItems = searchItems.filter(
-      (value: SearchItem) => value.value.length <= queryCharsLeft
+      (value: SearchItem) =>
+        typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
     );
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
-        (value: SearchItem) => value.value.length <= queryCharsLeft
+        (value: SearchItem) =>
+          typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
       );
     }
   }
@@ -129,12 +133,15 @@ export function createSearchGroups(
     children: [...searchItems],
   };
 
-  const recentSearchGroup: SearchGroup | undefined = recentSearchItems && {
-    title: t('Recent Searches'),
-    type: 'header',
-    icon: <IconClock size="xs" />,
-    children: [...recentSearchItems],
-  };
+  const recentSearchGroup: SearchGroup | undefined =
+    recentSearchItems && recentSearchItems.length > 0
+      ? {
+          title: t('Recent Searches'),
+          type: 'header',
+          icon: <IconClock size="xs" />,
+          children: [...recentSearchItems],
+        }
+      : undefined;
 
   if (searchGroup.children && !!searchGroup.children.length) {
     searchGroup.children[activeSearchItem] = {
@@ -181,37 +188,44 @@ export function generateOperatorEntryMap(tag: string) {
     [TermOperator.Default]: {
       type: ItemType.TAG_OPERATOR,
       value: ':',
-      desc: `${tag}:${t('[value] is equal to')}`,
+      desc: `${tag}:${t('[value]')}`,
+      documentation: 'is equal to',
     },
     [TermOperator.GreaterThanEqual]: {
       type: ItemType.TAG_OPERATOR,
       value: ':>=',
-      desc: `${tag}:${t('>=[value] is greater than or equal to')}`,
+      desc: `${tag}:${t('>=[value]')}`,
+      documentation: 'is greater than or equal to',
     },
     [TermOperator.LessThanEqual]: {
       type: ItemType.TAG_OPERATOR,
       value: ':<=',
-      desc: `${tag}:${t('<=[value] is less than or equal to')}`,
+      desc: `${tag}:${t('<=[value]')}`,
+      documentation: 'is less than or equal to',
     },
     [TermOperator.GreaterThan]: {
       type: ItemType.TAG_OPERATOR,
       value: ':>',
-      desc: `${tag}:${t('>[value] is greater than')}`,
+      desc: `${tag}:${t('>[value]')}`,
+      documentation: 'is greater than',
     },
     [TermOperator.LessThan]: {
       type: ItemType.TAG_OPERATOR,
       value: ':<',
-      desc: `${tag}:${t('<[value] is less than')}`,
+      desc: `${tag}:${t('<[value]')}`,
+      documentation: 'is less than',
     },
     [TermOperator.Equal]: {
       type: ItemType.TAG_OPERATOR,
       value: ':=',
-      desc: `${tag}:${t('=[value] is equal to')}`,
+      desc: `${tag}:${t('=[value]')}`,
+      documentation: 'is equal to',
     },
     [TermOperator.NotEqual]: {
       type: ItemType.TAG_OPERATOR,
       value: '!:',
-      desc: `!${tag}:${t('[value] is not equal to')}`,
+      desc: `!${tag}:${t('[value]')}`,
+      documentation: 'is not equal to',
     },
   };
 }
@@ -236,4 +250,79 @@ export function getValidOps(
   );
 
   return [...validOps];
+}
+
+export const quickActions: QuickAction[] = [
+  {
+    text: 'Delete',
+    actionType: QuickActionType.Delete,
+    hotkeys: {
+      actual: 'option+backspace',
+      display: 'option+backspace',
+    },
+    canRunAction: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Negate',
+    actionType: QuickActionType.Negate,
+    hotkeys: {
+      actual: ['option+1', 'cmd+1'],
+      display: 'option+!',
+    },
+    canRunAction: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Previous Token',
+    actionType: QuickActionType.Previous,
+    hotkeys: {
+      actual: ['option+left'],
+      display: 'option+left',
+    },
+    canRunAction: (tok, count) => {
+      return count > 1 || tok?.type !== Token.Filter;
+    },
+  },
+  {
+    text: 'Next Token',
+    actionType: QuickActionType.Next,
+    hotkeys: {
+      actual: ['option+right'],
+      display: 'option+right',
+    },
+    canRunAction: (tok, count) => {
+      return count > 1 || tok?.type !== Token.Filter;
+    },
+  },
+];
+
+export function getQuickActionsSearchGroup(
+  runTokenActionOnCursorToken: (action: QuickAction) => void,
+  filterTokenCount: number,
+  activeToken?: TokenResult<any>
+): {searchGroup: SearchGroup; searchItems: SearchItem[]} | undefined {
+  const searchItems = quickActions
+    .filter(
+      action => !action.canRunAction || action.canRunAction(activeToken, filterTokenCount)
+    )
+    .map(action => ({
+      title: action.text,
+      callback: () => runTokenActionOnCursorToken(action),
+      documentation: action.hotkeys && <HotkeysLabel value={action.hotkeys.display} />,
+    }));
+
+  return searchItems.length > 0 && filterTokenCount > 0
+    ? {
+        searchGroup: {
+          title: t('Quick Actions'),
+          type: 'header',
+          icon: <IconStar size="xs" />,
+          children: searchItems,
+        },
+        searchItems,
+      }
+    : undefined;
 }

@@ -1,5 +1,6 @@
 import copy
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 import responses
@@ -7,7 +8,9 @@ from django.test.utils import override_settings
 from django.urls import reverse
 from exam import fixture
 
-from sentry.integrations.jira import JiraIntegrationProvider
+from fixtures.integrations import StubService
+from fixtures.integrations.jira import StubJiraApiClient
+from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.models import (
     ExternalIssue,
     Integration,
@@ -21,8 +24,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
-from tests.fixtures.integrations import StubService
-from tests.fixtures.integrations.jira import StubJiraApiClient
 
 
 def get_client():
@@ -318,6 +319,52 @@ class JiraIntegrationTest(APITestCase):
         installation.org_integration.save()
 
         with mock.patch.object(installation, "get_client", get_client):
+            fields = installation.get_create_issue_config(group, self.user)
+            project_field = [field for field in fields if field["name"] == "project"][0]
+
+            assert project_field == {
+                "default": "10001",
+                "choices": [("10000", "EX"), ("10001", "ABC")],
+                "type": "select",
+                "name": "project",
+                "label": "Jira Project",
+                "updatesForm": True,
+            }
+
+    @patch("sentry.integrations.jira.integration.JiraIntegration.fetch_issue_create_meta")
+    def test_get_create_issue_config_with_default_project_deleted(
+        self, mock_fetch_issue_create_meta
+    ):
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "message",
+                "timestamp": self.min_ago,
+                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        installation = self.integration.get_installation(self.organization.id)
+        installation.org_integration.config = {
+            "project_issue_defaults": {str(group.project_id): {"project": "10004"}}
+        }
+        installation.org_integration.save()
+
+        with mock.patch.object(installation, "get_client", get_client):
+            mock_fetch_issue_create_meta_return_value = json.loads(
+                StubService.get_stub_json("jira", "fetch_issue_create_meta.json")
+            )
+            project_list_response = json.loads(
+                StubService.get_stub_json("jira", "project_list_response.json")
+            )
+            side_effect_values = [
+                mock_fetch_issue_create_meta_return_value for project in project_list_response
+            ]
+            # return None the first time fetch_issue_create_meta is called to mimic a deleted default project id (10004)
+            # so that we drop into the code block where it iterates over available projects
+            mock_fetch_issue_create_meta.side_effect = [None, *side_effect_values]
+
             fields = installation.get_create_issue_config(group, self.user)
             project_field = [field for field in fields if field["name"] == "project"][0]
 

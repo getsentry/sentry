@@ -37,7 +37,11 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
-import {isAggregateField, isEquation} from 'sentry/utils/discover/fields';
+import {
+  isAggregateField,
+  isEquation,
+  isEquationAlias,
+} from 'sentry/utils/discover/fields';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -49,6 +53,7 @@ import {
   getNumEquations,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
+  getWidgetReleasesUrl,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
@@ -259,6 +264,7 @@ function WidgetViewerModal(props: Props) {
   if (
     widget.widgetType === WidgetType.DISCOVER &&
     orderby &&
+    !isEquationAlias(rawOrderby) &&
     !fields.includes(rawOrderby)
   ) {
     fields.push(rawOrderby);
@@ -356,7 +362,8 @@ function WidgetViewerModal(props: Props) {
   let columnOrder = decodeColumnOrder(
     fields.map(field => ({
       field,
-    }))
+    })),
+    organization.features.includes('discover-frontend-use-events-endpoint')
   );
   const columnSortBy = eventView.getSorts();
   columnOrder = columnOrder.map((column, index) => ({
@@ -608,25 +615,26 @@ function WidgetViewerModal(props: Props) {
           }}
           location={location}
         />
-        {(links?.previous?.results || links?.next?.results) && (
-          <Pagination
-            pageLinks={pageLinks}
-            onCursor={newCursor => {
-              router.replace({
-                pathname: location.pathname,
-                query: {
-                  ...location.query,
-                  [WidgetViewerQueryField.CURSOR]: newCursor,
-                },
-              });
-              trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
-                organization,
-                widget_type: WidgetType.RELEASE,
-                display_type: widget.displayType,
-              });
-            }}
-          />
-        )}
+        {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
+          (links?.previous?.results || links?.next?.results) && (
+            <Pagination
+              pageLinks={pageLinks}
+              onCursor={newCursor => {
+                router.replace({
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.CURSOR]: newCursor,
+                  },
+                });
+                trackAdvancedAnalyticsEvent('dashboards_views.widget_viewer.paginate', {
+                  organization,
+                  widget_type: WidgetType.RELEASE,
+                  display_type: widget.displayType,
+                });
+              }}
+            />
+          )}
       </Fragment>
     );
   };
@@ -926,6 +934,10 @@ function WidgetViewerModal(props: Props) {
       openLabel = t('Open in Issues');
       path = getWidgetIssueUrl(primaryWidget, modalTableSelection, organization);
       break;
+    case WidgetType.RELEASE:
+      openLabel = t('Open in Releases');
+      path = getWidgetReleasesUrl(primaryWidget, modalTableSelection, organization);
+      break;
     case WidgetType.DISCOVER:
     default:
       openLabel = t('Open in Discover');
@@ -963,26 +975,25 @@ function WidgetViewerModal(props: Props) {
                 {t('Edit Widget')}
               </Button>
             )}
-            {widget.widgetType &&
-              [WidgetType.DISCOVER, WidgetType.ISSUE].includes(widget.widgetType) && (
-                <Button
-                  to={path}
-                  priority="primary"
-                  type="button"
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent(
-                      'dashboards_views.widget_viewer.open_source',
-                      {
-                        organization,
-                        widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                        display_type: widget.displayType,
-                      }
-                    );
-                  }}
-                >
-                  {openLabel}
-                </Button>
-              )}
+            {widget.widgetType && (
+              <Button
+                to={path}
+                priority="primary"
+                type="button"
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'dashboards_views.widget_viewer.open_source',
+                    {
+                      organization,
+                      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                      display_type: widget.displayType,
+                    }
+                  );
+                }}
+              >
+                {openLabel}
+              </Button>
+            )}
           </ButtonBar>
         </ResultsContainer>
       </Footer>
@@ -1046,6 +1057,7 @@ const HighlightContainer = styled('span')<{display?: 'block' | 'flex'}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 2;
+  flex: 1;
 `;
 
 const ResultsContainer = styled('div')`

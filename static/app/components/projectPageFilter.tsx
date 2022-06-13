@@ -15,12 +15,11 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import {MinimalProject} from 'sentry/types';
 import {trimSlug} from 'sentry/utils/trimSlug';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 type ProjectSelectorProps = React.ComponentProps<typeof ProjectSelector>;
@@ -47,6 +46,11 @@ type Props = WithRouterProps & {
    * is used to determine how many projects to show, and how much to truncate.
    */
   maxTitleLength?: number;
+
+  /**
+   * Reset these URL params when we fire actions (custom routing only)
+   */
+  resetParamsOnChange?: string[];
 
   /**
    * A project will be forced from parent component (selection is disabled, and if user
@@ -77,6 +81,7 @@ function ProjectPageFilter({
   router,
   specificProjectSlugs,
   maxTitleLength = 30,
+  resetParamsOnChange = [],
   ...otherProps
 }: Props) {
   const [currentSelectedProjects, setCurrentSelectedProjects] = useState<number[] | null>(
@@ -84,7 +89,7 @@ function ProjectPageFilter({
   );
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const organization = useOrganization();
-  const {selection, isReady, desyncedFilters} = useLegacyStore(PageFiltersStore);
+  const {selection, isReady, desyncedFilters} = usePageFilters();
 
   useEffect(
     () => {
@@ -105,7 +110,7 @@ function ProjectPageFilter({
   const handleApplyChange = (newProjects: number[]) => {
     updateProjects(newProjects, router, {
       save: true,
-      resetParams: [],
+      resetParams: resetParamsOnChange,
       environments: [], // Clear environments when switching projects
     });
   };
@@ -164,6 +169,7 @@ function ProjectPageFilter({
           hideBottomBorder={false}
           isOpen={isOpen}
           highlighted={desyncedFilters.has('projects')}
+          data-test-id="page-filter-project-selector"
         >
           <DropdownTitle>
             <PageFilterPinIndicator filter="projects">{icon}</PageFilterPinIndicator>
@@ -178,7 +184,11 @@ function ProjectPageFilter({
   };
 
   const customLoadingIndicator = (
-    <PageFilterDropdownButton showChevron={false} disabled>
+    <PageFilterDropdownButton
+      showChevron={false}
+      disabled
+      data-test-id="page-filter-project-selector-loading"
+    >
       <DropdownTitle>
         <IconProject />
         <TitleContainer>{t('Loading\u2026')}</TitleContainer>

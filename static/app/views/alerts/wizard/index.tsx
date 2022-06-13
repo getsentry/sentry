@@ -14,10 +14,10 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import {Dataset} from 'sentry/views/alerts/incidentRules/types';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
 import {
@@ -37,7 +37,6 @@ type RouteParams = {
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
-  project: Project;
   projectId: string;
 };
 
@@ -111,15 +110,13 @@ class AlertWizard extends Component<Props, State> {
           },
         };
 
-    const noFeatureMessage = t('Requires incidents feature.');
     const renderNoAccess = p => (
       <Hovercard
         body={
           <FeatureDisabled
             features={p.features}
             hideHelpToggle
-            message={noFeatureMessage}
-            featureName={noFeatureMessage}
+            featureName={t('Metric Alerts')}
           />
         }
       >
@@ -131,9 +128,9 @@ class AlertWizard extends Component<Props, State> {
       <Feature
         features={
           isTransactionDataset
-            ? ['incidents', 'performance-view']
+            ? ['organizations:incidents', 'organizations:performance-view']
             : isMetricAlert
-            ? ['incidents']
+            ? ['organizations:incidents']
             : []
         }
         requireAll

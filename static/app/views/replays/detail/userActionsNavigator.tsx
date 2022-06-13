@@ -1,11 +1,7 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import {
-  onlyUserActions,
-  transformCrumbs,
-} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {
   Panel as BasePanel,
   PanelBody as BasePanelBody,
@@ -19,9 +15,9 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
-import {getCurrentUserAction} from 'sentry/utils/replays/getCurrentUserAction';
+import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
@@ -37,7 +33,7 @@ type Props = {
   /**
    * Raw breadcrumbs, `undefined` means it is still loading
    */
-  crumbs: RawCrumb[] | undefined;
+  crumbs: Crumb[] | undefined;
   /**
    * Root replay event, `undefined` means it is still loading
    */
@@ -49,39 +45,72 @@ type ContainerProps = {
   isSelected: boolean;
 };
 
+const USER_ACTIONS = [
+  BreadcrumbType.ERROR,
+  BreadcrumbType.INIT,
+  BreadcrumbType.NAVIGATION,
+  BreadcrumbType.UI,
+  BreadcrumbType.USER,
+];
+
 function UserActionsNavigator({event, crumbs}: Props) {
-  const {setCurrentTime, currentHoverTime} = useReplayContext();
-  const [currentUserAction, setCurrentUserAction] = useState<Crumb>();
-  const [closestUserAction, setClosestUserAction] = useState<Crumb>();
+  const {
+    setCurrentTime,
+    setCurrentHoverTime,
+    currentHoverTime,
+    currentTime,
+    highlight,
+    removeHighlight,
+    clearAllHighlights,
+  } = useReplayContext();
 
-  const {startTimestamp} = event || {};
-  const userActionCrumbs = crumbs && onlyUserActions(transformCrumbs(crumbs));
-  const isLoaded = userActionCrumbs && startTimestamp;
+  const startTimestamp = event?.startTimestamp || 0;
+  const userActionCrumbs =
+    crumbs?.filter(crumb => USER_ACTIONS.includes(crumb.type)) || [];
 
-  const getClosestUserAction = useCallback(
-    async (hovertime: number) => {
-      const closestUserActionItem = getCurrentUserAction(
-        userActionCrumbs,
-        startTimestamp,
-        hovertime
-      );
-      if (
-        closestUserActionItem &&
-        closestUserAction?.timestamp !== closestUserActionItem.timestamp
-      ) {
-        setClosestUserAction(closestUserActionItem);
+  const isLoaded = Boolean(event);
+
+  const currentUserAction = getPrevBreadcrumb({
+    crumbs: userActionCrumbs,
+    targetTimestampMs: startTimestamp * 1000 + currentTime,
+    allowExact: true,
+  });
+
+  const closestUserAction =
+    currentHoverTime !== undefined
+      ? getPrevBreadcrumb({
+          crumbs: userActionCrumbs,
+          targetTimestampMs: startTimestamp * 1000 + (currentHoverTime ?? 0),
+          allowExact: true,
+        })
+      : undefined;
+
+  const onMouseEnter = useCallback(
+    (item: Crumb) => {
+      if (startTimestamp) {
+        setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
+      }
+
+      if (item.data && 'nodeId' in item.data) {
+        // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
+        // crumb to a tooltip
+        clearAllHighlights();
+        highlight({nodeId: item.data.nodeId});
       }
     },
-    [closestUserAction?.timestamp, startTimestamp, userActionCrumbs]
+    [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]
   );
 
-  useEffect(() => {
-    if (!currentHoverTime) {
-      setClosestUserAction(undefined);
-      return;
-    }
-    getClosestUserAction(currentHoverTime);
-  }, [getClosestUserAction, currentHoverTime]);
+  const onMouseLeave = useCallback(
+    (item: Crumb) => {
+      setCurrentHoverTime(undefined);
+
+      if (item.data && 'nodeId' in item.data) {
+        removeHighlight({nodeId: item.data.nodeId});
+      }
+    },
+    [setCurrentHoverTime, removeHighlight]
+  );
 
   return (
     <Panel>
@@ -93,16 +122,17 @@ function UserActionsNavigator({event, crumbs}: Props) {
           userActionCrumbs.map(item => (
             <PanelItemCenter
               key={item.id}
-              onClick={() => {
-                setCurrentUserAction(item);
-                item.timestamp
-                  ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
-                  : '';
-              }}
+              onMouseEnter={() => onMouseEnter(item)}
+              onMouseLeave={() => onMouseLeave(item)}
             >
               <Container
                 isHovered={closestUserAction?.id === item.id}
                 isSelected={currentUserAction?.id === item.id}
+                onClick={() =>
+                  item.timestamp !== undefined
+                    ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
+                    : null
+                }
               >
                 <Wrapper>
                   <Type
@@ -110,7 +140,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
                     color={item.color}
                     description={item.description}
                   />
-                  <ActionCategory category={item} />
+                  <ActionCategory action={item} />
                 </Wrapper>
                 <PlayerRelativeTime
                   relativeTime={startTimestamp}
@@ -134,8 +164,10 @@ const Panel = styled(BasePanel)`
   grid-template-rows: auto 1fr;
   height: 0;
   min-height: 100%;
-  @media only screen and (max-width: ${p => p.theme.breakpoints[1]}) {
-    min-height: 450px;
+  @media only screen and (max-width: ${p => p.theme.breakpoints[2]}) {
+    height: fit-content;
+    max-height: 400px;
+    margin-top: ${space(2)};
   }
 `;
 
@@ -158,15 +190,15 @@ const PanelItemCenter = styled(PanelItem)`
   cursor: pointer;
 `;
 
-const Container = styled('div')<ContainerProps>`
-  display: flex;
+const Container = styled('button')<ContainerProps>`
+  display: inline-flex;
+  width: 100%;
+  border: none;
+  background: transparent;
   justify-content: space-between;
   align-items: center;
   border-left: 4px solid transparent;
   padding: ${space(1)} ${space(1.5)};
-  &:hover {
-    background: ${p => p.theme.surface400};
-  }
   ${p => p.isHovered && `background: ${p.theme.surface400};`}
   ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
 `;

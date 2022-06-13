@@ -1,5 +1,7 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/featureBadge';
 import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -33,14 +35,14 @@ export function DataSetStep({
   if (displayType !== DisplayType.TABLE) {
     disabledChoices.push([
       DataSet.ISSUES,
-      t('This data set is restricted to tabular visualization.'),
+      t('This dataset is restricted to tabular visualization.'),
     ]);
 
     if (displayType === DisplayType.WORLD_MAP) {
       disabledChoices.push([
         DataSet.RELEASES,
         t(
-          'This data set is restricted to big number, tabular and time series visualizations.'
+          'This dataset is restricted to big number, tabular and time series visualizations.'
         ),
       ]);
     }
@@ -48,7 +50,7 @@ export function DataSetStep({
 
   return (
     <BuildStep
-      title={t('Choose your data set')}
+      title={t('Choose your dataset')}
       description={tct(
         `This reflects the type of information you want to use. To learn more, [link: read the docs].`,
         {
@@ -65,7 +67,12 @@ export function DataSetStep({
           hasReleaseHealthFeature
             ? [
                 ...DATASET_CHOICES,
-                [DataSet.RELEASES, t('Releases (sessions, crash rates)')],
+                [
+                  DataSet.RELEASES,
+                  <Fragment key="releases-dataset">
+                    {t('Releases (sessions, crash rates)')} <FeatureBadge type="beta" />
+                  </Fragment>,
+                ],
               ]
             : DATASET_CHOICES
         }

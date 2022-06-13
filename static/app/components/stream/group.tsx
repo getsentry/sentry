@@ -23,7 +23,6 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {
   Group,
@@ -41,7 +40,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {queryToObj} from 'sentry/utils/stream';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {TimePeriodType} from 'sentry/views/alerts/rules/details/constants';
+import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getTabs,
@@ -620,6 +619,9 @@ const GroupSummary = styled('div')<{canSelect: boolean}>`
 const GroupCheckBoxWrapper = styled('div')`
   margin-left: ${space(2)};
   align-self: flex-start;
+  height: 15px;
+  display: flex;
+  align-items: center;
 
   & input[type='checkbox'] {
     margin: 0;
@@ -733,7 +735,7 @@ const StartedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.gray500};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -746,7 +748,7 @@ const EventsReprocessedColumn = styled('div')`
   align-self: center;
   margin: 0 ${space(2)};
   color: ${p => p.theme.gray500};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

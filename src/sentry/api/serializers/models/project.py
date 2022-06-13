@@ -48,7 +48,6 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.snuba import discover
 from sentry.tasks.symbolication import should_demote_symbolication
 from sentry.utils import json
-from sentry.utils.compat import zip
 
 STATUS_LABELS = {
     ProjectStatus.VISIBLE: "active",
