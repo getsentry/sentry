@@ -33,12 +33,13 @@ from sentry.snuba.metrics.fields.base import (
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX
+from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
     FIELD_ALIAS_MAPPINGS,
-    FIELD_REGEX,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
@@ -52,7 +53,7 @@ from sentry.utils.snuba import parse_snuba_datetime
 
 
 def parse_field(field: str) -> MetricField:
-    matches = FIELD_REGEX.match(field)
+    matches = PUBLIC_EXPRESSION_REGEX.match(field)
     try:
         if matches is None:
             raise TypeError
@@ -641,7 +642,7 @@ class SnubaResultConverter:
             series = group.get("series")
 
             for key in set(totals or ()) | set(series or ()):
-                matches = FIELD_REGEX.match(key)
+                matches = MRI_EXPRESSION_REGEX.match(key)
                 if matches:
                     operation = matches[1]
                     metric_mri = matches[2]

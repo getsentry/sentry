@@ -3,7 +3,6 @@ __all__ = (
     "GRANULARITY",
     "TS_COL_QUERY",
     "TS_COL_GROUP",
-    "FIELD_REGEX",
     "TAG_REGEX",
     "MetricOperationType",
     "MetricUnit",
@@ -31,6 +30,7 @@ __all__ = (
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
     "get_intervals",
+    "OP_REGEX",
 )
 
 
@@ -52,14 +52,12 @@ from typing import (
 
 from sentry.snuba.dataset import EntityKey
 
+#: Max number of data points per time series:
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
 
-#: Max number of data points per time series:
-# ToDo modify this regex to only support the operations provided
-FIELD_REGEX = re.compile(r"^(\w+)\(([\w.:/@]+)\)$")
 TAG_REGEX = re.compile(r"^([\w.]+)$")
 
 #: A function that can be applied to a metric
@@ -83,7 +81,7 @@ MetricType = Literal["counter", "set", "distribution", "numeric"]
 
 MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
 
-OP_TO_SNUBA_FUNCTION: Mapping[str, Mapping[MetricOperationType, str]] = {
+OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
     "metrics_distributions": {
         "avg": "avgIf",
@@ -99,6 +97,19 @@ OP_TO_SNUBA_FUNCTION: Mapping[str, Mapping[MetricOperationType, str]] = {
     },
     "metrics_sets": {"count_unique": "uniqIf"},
 }
+
+
+def generate_operation_regex():
+    """
+    Generates a regex of all supported operations defined in OP_TO_SNUBA_FUNCTION
+    """
+    operations = []
+    for item in OP_TO_SNUBA_FUNCTION.values():
+        operations += list(item.keys())
+    return rf"({'|'.join(map(str, operations))})"
+
+
+OP_REGEX = generate_operation_regex()
 
 
 AVAILABLE_OPERATIONS = {
