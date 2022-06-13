@@ -52,9 +52,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
 
-        enable_v3 = random.random() < options.get("relay.project-config-v3-enable")
-
-        if enable_v3 and version == "3" and not no_cache:
+        if self._should_use_v3(request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
@@ -71,6 +69,21 @@ class RelayProjectConfigsEndpoint(Endpoint):
             )
         else:
             return Response("Unsupported version, we only support versions 1 to 3.", 400)
+
+    def _should_use_v3(self, request):
+        if request.GET.get("version") != "3":
+            return False
+        if not request.relay_request_data.get("fullConfig"):
+            # The v3 implementation can't handle partial configs. Relay by
+            # default request full configs and the amount of partial configs
+            # should be low, so we handle them per request instead of
+            # considering them v3.
+            return False
+        if request.relay_request_data.get("noCache"):
+            return False
+        if random.random() >= options.get("relay.project-config-v3-enable"):
+            return False
+        return True
 
     def _post_or_schedule_by_key(self, request: Request):
         public_keys = set(request.relay_request_data.get("publicKeys") or ())
