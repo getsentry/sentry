@@ -22,6 +22,7 @@ DEFAULT_INDEXER_TYPE = "release_health"
 
 IndexerTable = TypeVar("IndexerTable", bound=BaseIndexer)
 
+# noinspection PyTypeChecker
 TABLE_MAPPING: Mapping[str, IndexerTable] = {
     "release_health": StringIndexerTable,
     "performance": PerfStringIndexer,
@@ -47,7 +48,7 @@ class PGStringIndexerV2(StringIndexer):
 
         query_statement = reduce(or_, conditions)
 
-        return StringIndexerTable.objects.filter(query_statement)
+        return self.table.objects.filter(query_statement)
 
     def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         """
@@ -143,15 +144,13 @@ class PGStringIndexerV2(StringIndexer):
         new_records = []
         for write_pair in db_write_keys.as_tuples():
             organization_id, string = write_pair
-            new_records.append(
-                StringIndexerTable(organization_id=int(organization_id), string=string)
-            )
+            new_records.append(self.table(organization_id=int(organization_id), string=string))
 
         with metrics.timer("sentry_metrics.indexer.pg_bulk_create"):
             # We use `ignore_conflicts=True` here to avoid race conditions where metric indexer
             # records might have be created between when we queried in `bulk_record` and the
             # attempt to create the rows down below.
-            StringIndexerTable.objects.bulk_create(new_records, ignore_conflicts=True)
+            self.table.objects.bulk_create(new_records, ignore_conflicts=True)
 
         db_write_key_results = KeyResults()
         db_write_key_results.add_key_results(
@@ -187,11 +186,9 @@ class PGStringIndexerV2(StringIndexer):
         metrics.incr(_INDEXER_CACHE_METRIC, tags={"cache_hit": "false", "caller": "resolve"})
         try:
             id: int = (
-                StringIndexerTable.objects.using_replica()
-                .get(organization_id=org_id, string=string)
-                .id
+                self.table.objects.using_replica().get(organization_id=org_id, string=string).id
             )
-        except StringIndexerTable.DoesNotExist:
+        except self.table.DoesNotExist:
             return None
         indexer_cache.set(key, id)
 
@@ -203,8 +200,8 @@ class PGStringIndexerV2(StringIndexer):
         Returns None if the entry cannot be found.
         """
         try:
-            string: str = StringIndexerTable.objects.get_from_cache(id=id, use_replica=True).string
-        except StringIndexerTable.DoesNotExist:
+            string: str = self.table.objects.get_from_cache(id=id, use_replica=True).string
+        except self.table.DoesNotExist:
             return None
 
         return string
