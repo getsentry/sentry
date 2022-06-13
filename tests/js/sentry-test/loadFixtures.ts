@@ -4,9 +4,9 @@
 import fs from 'fs';
 import path from 'path';
 
-import TestStubFixtures from '../../fixtures/js-stubs/types';
+import TestStubFixtures from '../../../fixtures/js-stubs/types';
 
-const FIXTURES_ROOT = path.join(__dirname, '../../fixtures');
+const FIXTURES_ROOT = path.join(__dirname, '../../../fixtures');
 
 type Options = {
   /**

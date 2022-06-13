@@ -22,7 +22,6 @@ import Radio from 'sentry/components/radio';
 import Tooltip from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {AvatarProject, Organization, Project} from 'sentry/types';
 import {formatPercentage, getDuration} from 'sentry/utils/formatters';
@@ -623,7 +622,7 @@ const ItemRadioContainer = styled('div')`
 const ItemTransactionName = styled(Link)`
   font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const ItemTransactionDurationChange = styled('div')`

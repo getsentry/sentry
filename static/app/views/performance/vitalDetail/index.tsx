@@ -11,6 +11,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization, PageFilters, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
@@ -53,6 +54,10 @@ class VitalDetail extends Component<Props, State> {
     const {api, organization, selection} = this.props;
     loadOrganizationTags(api, organization.slug, selection);
     addRoutePerformanceContext(selection);
+
+    trackAdvancedAnalyticsEvent('performance_views.vital_detail.view', {
+      organization,
+    });
   }
 
   componentDidUpdate(prevProps: Props) {
