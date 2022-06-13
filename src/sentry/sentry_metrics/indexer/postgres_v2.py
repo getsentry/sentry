@@ -4,7 +4,7 @@ from typing import Any, Mapping, Optional, Set, TypeVar
 
 from django.db.models import Q
 
-from sentry.sentry_metrics.configuration import METRICS_INGEST_CONFIG
+from sentry.sentry_metrics.configuration import get_ingest_config
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import BaseIndexer, PerfStringIndexer
@@ -30,10 +30,10 @@ TABLE_MAPPING = {
 
 
 class PGStringIndexerV2(StringIndexer):
-    def __init__(self, initialization_options: Mapping[str, Any]):
-        ingest_profile = initialization_options.get("metrics_ingest_profile", DEFAULT_INDEXER_TYPE)
-        self.table: IndexerTable = TABLE_MAPPING[ingest_profile]
-        self.metrics_prefix = METRICS_INGEST_CONFIG[ingest_profile].internal_metrics_prefix
+    def __init__(self):
+        ingest_profile = get_ingest_config()
+        self.table: IndexerTable = TABLE_MAPPING[ingest_profile.name]
+        self.metrics_prefix = ingest_profile.internal_metrics_tag
 
     """
     Provides integer IDs for metric names, tag keys and tag values
@@ -212,11 +212,8 @@ class StaticStringsIndexerDecorator(StringIndexer):
     Wrapper for static strings
     """
 
-    def __init__(self, initialization_options: Mapping[str, Any]) -> None:
-        # xxx The decorator should probably not be aware of how its "base"
-        # object is instantiated but LazyServiceWrapper doesn't really give us any options
-        # for sophisticated DI
-        self.base = PGStringIndexerV2(initialization_options)
+    def __init__(self) -> None:
+        self.base = PGStringIndexerV2()
 
     def _get_db_records(self, db_keys: KeyCollection) -> Any:
         return self.base._get_db_records(db_keys)

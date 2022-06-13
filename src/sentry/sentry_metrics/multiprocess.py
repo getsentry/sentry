@@ -35,7 +35,7 @@ from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, get_ingest_config
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -789,9 +789,9 @@ def get_streaming_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     factory_name: str,
-    indexer_profile: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
+    indexer_profile = get_ingest_config()
     if factory_name == "multiprocess":
         processing_factory = MetricsConsumerStrategyFactory(
             max_batch_size=max_batch_size,

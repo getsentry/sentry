@@ -49,7 +49,7 @@ class PostgresIndexerTest(TestCase):
 
 class StaticStringsIndexerTest(TestCase):
     def setUp(self) -> None:
-        self.indexer = StaticStringsIndexerDecorator({})
+        self.indexer = StaticStringsIndexerDecorator()
 
     def test_static_strings_only(self) -> None:
         org_strings = {2: {"release"}, 3: {"production", "environment", "release"}}
@@ -88,7 +88,7 @@ class StaticStringsIndexerTest(TestCase):
 class PostgresIndexerV2Test(TestCase):
     def setUp(self) -> None:
         self.strings = {"hello", "hey", "hi"}
-        self.indexer = PGStringIndexerV2({})
+        self.indexer = PGStringIndexerV2()
         self.org2 = self.create_organization()
 
     def tearDown(self) -> None:
