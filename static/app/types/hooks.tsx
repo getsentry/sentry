@@ -310,7 +310,11 @@ type AnalyticsTrackEventV2 = (
      * The Amplitude event name. Set to null if event should not go to Amplitude.
      */
     eventName: string | null;
-    organization: Organization | null;
+    /**
+     * Organization to pass in. If full org object not available, pass in just the Id.
+     * If no org, pass in null.
+     */
+    organization: Organization | string | null;
   },
   options?: {
     /**
