@@ -6,7 +6,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {OrganizationSummary, PageFilters} from 'sentry/types';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -107,7 +107,7 @@ class IssueWidgetQueries extends Component<Props, State> {
     const {api, selection, widget, limit, cursor, organization, onDataFetched} =
       this.props;
 
-    const request = this.config.getTableRequest!(widget, limit, cursor, {
+    const requests = this.config.getTableRequests!(widget, limit, cursor, {
       organization,
       pageFilters: selection,
       api,
@@ -116,16 +116,20 @@ class IssueWidgetQueries extends Component<Props, State> {
     try {
       this.setState({tableResults: [], loading: true, errorMessage: undefined});
 
-      const [data, _, resp] = await request;
+      let transformedResults: TableData = {data: []};
+      let pageLinks: null | string = null;
+      let totalCount: null | string = null;
+      for await (const response of requests) {
+        const [data, _, resp] = response;
 
-      const transformedResults = this.config.transformTable(data, widget.queries[0]);
+        transformedResults = this.config.transformTable(data, widget.queries[0]);
 
-      const pageLinks = resp?.getResponseHeader('Link') ?? null;
-      const totalCount = resp?.getResponseHeader('X-Hits') ?? null;
+        pageLinks = resp?.getResponseHeader('Link') ?? null;
+        totalCount = resp?.getResponseHeader('X-Hits') ?? null;
+      }
 
       this.setState({
         loading: false,
-        errorMessage: undefined,
         tableResults: transformedResults.data,
         totalCount,
         pageLinks,
