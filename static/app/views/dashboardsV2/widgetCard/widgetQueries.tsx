@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -334,9 +333,9 @@ class WidgetQueries extends Component<Props, State> {
     this.setState({
       loading: true,
       errorMessage: undefined,
-      tableResults: [],
-      timeseriesResults: [],
-      rawResults: [],
+      tableResults: undefined,
+      timeseriesResults: undefined,
+      rawResults: undefined,
     });
 
     let requests;
@@ -396,10 +395,8 @@ class WidgetQueries extends Component<Props, State> {
     const filteredTimeseriesResults = timeseriesResults?.filter(result => !!result);
     return children({
       loading,
-      timeseriesResults: isEmpty(filteredTimeseriesResults)
-        ? undefined
-        : filteredTimeseriesResults,
-      tableResults: isEmpty(tableResults) ? undefined : tableResults,
+      timeseriesResults: filteredTimeseriesResults,
+      tableResults,
       errorMessage,
       pageLinks,
     });
