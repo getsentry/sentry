@@ -107,27 +107,53 @@ function FrameStack(props: FrameStackProps) {
     >
       <FrameTabs>
         <li className={tab === 'bottom up' ? 'active' : undefined}>
-          <Button priority="link" size="zero" onClick={() => setTab('bottom up')}>
+          <Button
+            data-title={t('Bottom Up')}
+            priority="link"
+            size="zero"
+            onClick={() => setTab('bottom up')}
+          >
             {t('Bottom Up')}
           </Button>
         </li>
         <li className={tab === 'call order' ? 'active' : undefined}>
-          <Button priority="link" size="zero" onClick={() => setTab('call order')}>
+          <Button
+            data-title={t('Call Order')}
+            priority="link"
+            size="zero"
+            onClick={() => setTab('call order')}
+          >
             {t('Call Order')}
           </Button>
         </li>
+        <Separator />
         <li className={treeType === 'all' ? 'active' : undefined}>
-          <Button priority="link" size="zero" onClick={() => setTreeType('all')}>
+          <Button
+            data-title={t('All Frames')}
+            priority="link"
+            size="zero"
+            onClick={() => setTreeType('all')}
+          >
             {t('All Frames')}
           </Button>
         </li>
         <li className={treeType === 'application' ? 'active' : undefined}>
-          <Button priority="link" size="zero" onClick={() => setTreeType('application')}>
+          <Button
+            data-title={t('Application Frames')}
+            priority="link"
+            size="zero"
+            onClick={() => setTreeType('application')}
+          >
             {t('Application Frames')}
           </Button>
         </li>
         <li className={treeType === 'system' ? 'active' : undefined}>
-          <Button priority="link" size="zero" onClick={() => setTreeType('system')}>
+          <Button
+            data-title={t('System Frames')}
+            priority="link"
+            size="zero"
+            onClick={() => setTreeType('system')}
+          >
             {t('System Frames')}
           </Button>
         </li>
@@ -149,6 +175,14 @@ const FrameDrawer = styled('div')`
   flex-direction: column;
 `;
 
+const Separator = styled('li')`
+  width: 1px;
+  height: 66%;
+  margin: 0 ${space(0.5)};
+  background: ${p => p.theme.border};
+  transform: translateY(29%);
+`;
+
 const FrameTabs = styled('ul')`
   display: flex;
   list-style-type: none;
@@ -160,7 +194,6 @@ const FrameTabs = styled('ul')`
 
   > li {
     font-size: ${p => p.theme.fontSizeSmall};
-    font-weight: bold;
     margin-right: ${space(1)};
 
     button {
@@ -172,12 +205,24 @@ const FrameTabs = styled('ul')`
       padding: ${space(0.5)} 0;
       color: ${p => p.theme.textColor};
 
+      &::after {
+        display: block;
+        content: attr(data-title);
+        font-weight: bold;
+        height: 1px;
+        color: transparent;
+        overflow: hidden;
+        visibility: hidden;
+        white-space: nowrap;
+      }
+
       &:hover {
         color: ${p => p.theme.textColor};
       }
     }
 
     &.active button {
+      font-weight: bold;
       border-bottom: 2px solid ${prop => prop.theme.active};
     }
   }
