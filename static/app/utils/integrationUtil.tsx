@@ -3,6 +3,7 @@ import * as qs from 'query-string';
 
 import {Result} from 'sentry/components/forms/selectAsyncControl';
 import {
+  IconAsana,
   IconBitbucket,
   IconGeneric,
   IconGithub,
@@ -198,6 +199,8 @@ export const safeGetQsParam = (param: string) => {
 export const getIntegrationIcon = (integrationType?: string, size?: string) => {
   const iconSize = size || 'md';
   switch (integrationType) {
+    case 'asana':
+      return <IconAsana size={iconSize} />;
     case 'bitbucket':
       return <IconBitbucket size={iconSize} />;
     case 'gitlab':
