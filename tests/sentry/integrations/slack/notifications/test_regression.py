@@ -29,7 +29,13 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest):
             notification.send()
 
         attachment, text = get_attachment()
-        assert text == "Issue marked as regression"
+
+        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
+
+        assert (
+            text
+            == f"{self.user.username} marked <{test_issue_url}|{self.group.qualified_short_id}> as a regression"
+        )
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user|Notification Settings>"

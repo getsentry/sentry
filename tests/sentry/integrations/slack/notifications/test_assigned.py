@@ -138,7 +138,13 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest):
         with self.tasks():
             notification.send()
         attachment, text = get_attachment()
-        assert text == f"Issue assigned to {self.name} by themselves"
+
+        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
+
+        assert (
+            text
+            == f"{self.name} assigned <{test_issue_url}|{self.group.qualified_short_id}> to themselves"
+        )
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
@@ -154,7 +160,10 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest):
                 data={"assignee": self.user.id},
             )
         )
+
+        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
+
         assert (
             notification.get_notification_title()
-            == f"Issue automatically assigned to {self.user.get_display_name()}"
+            == f"Sentry assigned <{test_issue_url}|{self.group.qualified_short_id}> to {self.user.get_display_name()}"
         )

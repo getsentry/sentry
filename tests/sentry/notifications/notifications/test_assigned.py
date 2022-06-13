@@ -22,6 +22,8 @@ class AssignedNotificationAPITest(APITestCase):
 
         self.login_as(self.user)
 
+        self.test_issue_url_template = "http://testserver/organizations/{org_slug}/issues/{issue_id}/?referrer=activity_notification"
+
     @responses.activate
     def test_sends_assignment_notification(self):
         """
@@ -58,7 +60,15 @@ class AssignedNotificationAPITest(APITestCase):
 
         attachment, text = get_attachment()
 
-        assert text == f"Issue assigned to {self.user.get_display_name()} by themselves"
+        test_issue_url = self.test_issue_url_template.format(
+            org_slug=self.organization.slug,
+            issue_id=self.group.id,
+        )
+
+        assert (
+            text
+            == f"{self.user.get_display_name()} assigned <{test_issue_url}|{self.group.qualified_short_id}> to themselves"
+        )
         assert attachment["title"] == self.group.title
         assert self.project.slug in attachment["footer"]
 
@@ -89,8 +99,14 @@ class AssignedNotificationAPITest(APITestCase):
 
         attachment, text = get_attachment()
 
+        test_issue_url = self.test_issue_url_template.format(
+            org_slug=self.organization.slug,
+            issue_id=self.group.id,
+        )
+
         assert (
-            text == f"Issue assigned to the {self.team.name} team by {self.user.get_display_name()}"
+            text
+            == f"{self.user.get_display_name()} assigned <{test_issue_url}|{self.group.qualified_short_id}> to the {self.team.name} team"
         )
         assert attachment["title"] == self.group.title
         assert self.project.slug in attachment["footer"]

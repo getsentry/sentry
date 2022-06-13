@@ -115,7 +115,7 @@ class ActivityNotificationTest(APITestCase):
 
         attachment, text = get_attachment()
         # check the Slack version
-        assert text == f"New comment by {self.name}"
+        assert text == f"New comment by {self.name} on {self.group.qualified_short_id}"
         assert attachment["title"] == f"{self.group.title}"
         assert (
             attachment["title_link"]
@@ -149,7 +149,12 @@ class ActivityNotificationTest(APITestCase):
 
         attachment, text = get_attachment()
 
-        assert text == f"Issue unassigned by {self.name}"
+        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
+
+        assert (
+            text
+            == f"{self.user.username} unassigned <{test_issue_url}|{self.group.qualified_short_id}>"
+        )
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]
@@ -258,7 +263,11 @@ class ActivityNotificationTest(APITestCase):
 
         attachment, text = get_attachment()
 
-        assert text == "Issue marked as regression"
+        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{group.id}/?referrer=activity_notification"
+
+        assert (
+            text == f"Sentry marked <{test_issue_url}|{group.qualified_short_id}> as a regression"
+        )
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=regression_activity-slack-user|Notification Settings>"
@@ -280,10 +289,12 @@ class ActivityNotificationTest(APITestCase):
             )
         assert response.status_code == 200, response.content
 
+        version_parsed = parse_release(release.version)["description"]
+
         msg = mail.outbox[0]
         # check the txt version
         assert (
-            f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {release.version}"
+            f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {version_parsed}"
             in msg.body
         )
         # check the html version
@@ -291,8 +302,13 @@ class ActivityNotificationTest(APITestCase):
             f'text-decoration: none">{self.short_id}</a> as resolved in' in msg.alternatives[0][0]
         )
 
+        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
+
         attachment, text = get_attachment()
-        assert text == f"Issue marked as resolved in {release.version} by {self.name}"
+        assert (
+            text
+            == f"{self.user.username} marked <{test_issue_url}|{self.short_id}> as resolved in {version_parsed}"
+        )
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]

@@ -61,18 +61,6 @@ class AssignedActivityNotification(GroupActivityNotification):
     def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
         return "{author} assigned {an issue} to {assignee}", {"assignee": self.get_assignee()}, {}
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
-        assignee = self.get_assignee()
-
-        if not self.activity.user:
-            return f"Issue automatically assigned to {assignee}"
-
-        author = self.activity.user.get_display_name()
-        if assignee == "themselves":
-            author, assignee = assignee, author
-
-        return f"Issue assigned to {assignee} by {author}"
-
     def get_participants_with_group_subscription_reason(
         self,
     ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:

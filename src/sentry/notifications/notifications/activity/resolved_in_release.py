@@ -2,37 +2,25 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from sentry.utils.html import escape
-from sentry.utils.http import absolute_uri
+from sentry.models import Activity
 
-from .base import GroupActivityNotification
+from .versioned_notification import VersionedGroupActivityNotification
 
 
-class ResolvedInReleaseActivityNotification(GroupActivityNotification):
+class ResolvedInReleaseActivityNotification(VersionedGroupActivityNotification):
     metrics_key = "resolved_in_release_activity"
     title = "Resolved Issue"
 
-    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
-        data = self.activity.data
+    def __init__(self, activity: Activity) -> None:
+        super().__init__(activity)
 
-        url = "/organizations/{}/releases/{}/?project={}".format(
-            self.organization.slug, data["version"], self.project.id
+    def get_description(self) -> tuple[str, Mapping[str, Any], Mapping[str, Any]]:
+        message, params, html_params = (
+            "{author} marked {an issue} as resolved in {version}",
+            self.get_params(),
+            self.get_html_params(),
         )
 
-        if data.get("version"):
-            return (
-                "{author} marked {an issue} as resolved in {version}",
-                {"version": data["version"]},
-                {
-                    "version": '<a href="{}">{}</a>'.format(
-                        absolute_uri(url), escape(data["version"])
-                    )
-                },
-            )
-        return "{author} marked {an issue} as resolved in an upcoming release", {}, {}
+        params["version"] = params.get("version", "an upcoming release")
 
-    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
-        data = self.activity.data
-        author = self.activity.user.get_display_name()
-        release = data["version"] if data.get("version") else "an upcoming release"
-        return f"Issue marked as resolved in {release} by {author}"
+        return message, params, html_params

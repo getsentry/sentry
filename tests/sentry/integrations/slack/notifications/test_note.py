@@ -30,7 +30,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest):
 
         attachment, text = get_attachment()
 
-        assert text == f"New comment by {self.name}"
+        assert text == f"New comment by {self.name} on {self.group.qualified_short_id}"
         assert attachment["title"] == f"{self.group.title}"
         assert (
             attachment["title_link"]

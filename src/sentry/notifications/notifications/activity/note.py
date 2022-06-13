@@ -19,7 +19,7 @@ class NoteActivityNotification(GroupActivityNotification):
     @property
     def title(self) -> str:
         author = self.activity.user.get_display_name()
-        return f"New comment by {author}"
+        return f"New comment by {author} on {self.activity.group.qualified_short_id}"
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         return self.title

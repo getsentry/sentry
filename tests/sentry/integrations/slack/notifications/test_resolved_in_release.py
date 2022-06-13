@@ -1,6 +1,7 @@
 from unittest import mock
 
 import responses
+from sentry_relay import parse_release
 
 from sentry.models import Activity
 from sentry.notifications.notifications.activity import ResolvedInReleaseActivityNotification
@@ -29,8 +30,14 @@ class SlackResolvedInReleaseNotificationTest(SlackActivityNotificationTest):
             notification.send()
 
         attachment, text = get_attachment()
-        release_name = notification.activity.data["version"]
-        assert text == f"Issue marked as resolved in {release_name} by {self.name}"
+        version_parsed = parse_release(notification.activity.data["version"])["description"]
+
+        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
+
+        assert (
+            text
+            == f"{self.user.username} marked <{test_issue_url}|{self.group.qualified_short_id}> as resolved in {version_parsed}"
+        )
         assert (
             attachment["footer"]
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=resolved_in_release_activity-slack-user|Notification Settings>"
