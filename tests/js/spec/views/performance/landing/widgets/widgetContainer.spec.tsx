@@ -26,7 +26,7 @@ const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, ...rest}) => {
+const WrappedComponent = ({data, withStaticFilters = false, ...rest}) => {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
@@ -41,6 +41,7 @@ const WrappedComponent = ({data, ...rest}) => {
               PerformanceWidgetSetting.DURATION_HISTOGRAM,
             ]}
             rowChartSettings={[]}
+            withStaticFilters={withStaticFilters}
             forceDefaultChartSetting
             {...data}
             {...rest}

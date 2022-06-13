@@ -321,10 +321,12 @@ export function VitalWidget(props: PerformanceWidgetProps) {
                         barHeight={20}
                       />
                     </VitalBarCell>
-                    <ListClose
-                      setSelectListIndex={setSelectListIndex}
-                      onClick={() => excludeTransaction(listItem.transaction, props)}
-                    />
+                    {!props.withStaticFilters && (
+                      <ListClose
+                        setSelectListIndex={setSelectListIndex}
+                        onClick={() => excludeTransaction(listItem.transaction, props)}
+                      />
+                    )}
                   </Fragment>
                 );
               })}

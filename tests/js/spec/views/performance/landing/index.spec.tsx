@@ -14,7 +14,7 @@ import {REACT_NATIVE_COLUMN_TITLES} from 'sentry/views/performance/landing/data'
 import * as utils from 'sentry/views/performance/landing/utils';
 import {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
-const WrappedComponent = ({data}) => {
+const WrappedComponent = ({data, withStaticFilters = false}) => {
   const eventView = EventView.fromLocation(data.router.location);
 
   return (
@@ -30,6 +30,7 @@ const WrappedComponent = ({data}) => {
           handleSearch={() => {}}
           handleTrendsClick={() => {}}
           setError={() => {}}
+          withStaticFilters={withStaticFilters}
         />
       </MEPSettingProvider>
     </OrganizationContext.Provider>
@@ -313,5 +314,22 @@ describe('Performance > Landing > Index', function () {
     expect(wrapper.find('div[data-test-id="frontend-pageload-view"]').exists()).toBe(
       true
     );
+  });
+
+  describe('with transaction search feature', function () {
+    it('renders the search bar', function () {
+      const data = initializeData({
+        features: ['performance-transaction-name-only-search'],
+      });
+
+      wrapper = mountWithTheme(
+        <WrappedComponent data={data} withStaticFilters />,
+        data.routerContext
+      );
+
+      expect(wrapper.find('div[data-test-id="transaction-search-bar"]').exists()).toBe(
+        true
+      );
+    });
   });
 });

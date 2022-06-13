@@ -20,6 +20,7 @@ export type ChartRowProps = {
   chartHeight: number;
   eventView: EventView;
   location: Location;
+  withStaticFilters: boolean;
 };
 
 function getInitialChartSettings(
