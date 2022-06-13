@@ -43,12 +43,12 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
    * TODO: Promote to required when other configs implement this
    */
-  getTableRequests?: (
+  getTableRequest?: (
     widget: Widget,
     limit?: number,
     cursor?: string,
     contextualProps?: ContextualProps
-  ) => Promise<any>[]; // TODO: Properly type
+  ) => ReturnType<Client['requestPromise']>;
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.

@@ -29,13 +29,13 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
 };
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
-  getTableRequests,
+  getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
   fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
   transformTable: transformIssuesResponseToTable,
 };
 
-export function getTableRequests(
+export function getTableRequest(
   widget: Widget,
   limit?: number,
   cursor?: string,
@@ -68,16 +68,13 @@ export function getTableRequests(
     params.utc = contextualProps?.pageFilters.datetime.utc;
   }
 
-  return [
-    // TODO: These should be considered required if there's a dependency here
-    contextualProps!.api!.requestPromise(groupListUrl, {
-      includeAllArgs: true,
-      method: 'GET',
-      data: {
-        ...params,
-      },
-    }),
-  ];
+  return contextualProps!.api!.requestPromise(groupListUrl, {
+    includeAllArgs: true,
+    method: 'GET',
+    data: {
+      ...params,
+    },
+  });
 }
 
 export function transformIssuesResponseToTable(

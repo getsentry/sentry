@@ -103,13 +103,13 @@ class IssueWidgetQueries extends Component<Props, State> {
 
   config = getDatasetConfig(WidgetType.ISSUE);
 
-  fetchData() {
+  async fetchData() {
     const {api, selection, widget, limit, cursor, organization, onDataFetched} =
       this.props;
 
     let totalCount, pageLinks, transformedResults;
 
-    const apiPromises = this.config.getTableRequests!(widget, limit, cursor, {
+    const request = this.config.getTableRequest!(widget, limit, cursor, {
       organization,
       pageFilters: selection,
       api,
@@ -118,17 +118,12 @@ class IssueWidgetQueries extends Component<Props, State> {
     try {
       this.setState({tableResults: [], loading: true, errorMessage: undefined});
 
-      // TODO: Issues only has one promise, the transformed results
-      // need to build in a sane way
-      Promise.all(apiPromises).then(responses => {
-        responses.forEach(([data, _, resp]) => {
-          transformedResults = this.config.transformTable(data, widget.queries[0]);
-          pageLinks = resp?.getResponseHeader('Link') ?? null; // <-- this is common
+      const [data, _, resp] = await request;
 
-          // TODO: How to handle this unique stuff after making the request
-          totalCount = resp?.getResponseHeader('X-Hits') ?? null; // <-- not in widgetQueries.tsx
-        });
-      });
+      transformedResults = this.config.transformTable(data, widget.queries[0]);
+
+      pageLinks = resp?.getResponseHeader('Link') ?? null;
+      totalCount = resp?.getResponseHeader('X-Hits') ?? null;
 
       this.setState({
         loading: false,
