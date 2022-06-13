@@ -1,13 +1,13 @@
 from functools import reduce
 from operator import or_
-from typing import Any, Mapping, Optional, Set, TypeVar
+from typing import Any, Mapping, Optional, Set, Type, Union
 
 from django.db.models import Q
 
 from sentry.sentry_metrics.configuration import get_ingest_config
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
-from sentry.sentry_metrics.indexer.models import BaseIndexer, PerfStringIndexer
+from sentry.sentry_metrics.indexer.models import PerfStringIndexer
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 from sentry.utils import metrics
@@ -21,9 +21,9 @@ _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
 DEFAULT_INDEXER_TYPE = "release-health"
 
-IndexerTable = TypeVar("IndexerTable", bound=BaseIndexer)
+IndexerTable = Type[Union[StringIndexerTable, PerfStringIndexer]]
 
-TABLE_MAPPING = {
+TABLE_MAPPING: Mapping[str, IndexerTable] = {
     "release-health": StringIndexerTable,
     "performance": PerfStringIndexer,
 }

@@ -36,6 +36,6 @@ _METRICS_INGEST_CONFIG: Mapping[str, MetricsIngestConfiguration] = {
 
 
 def get_ingest_config(
-    environment_key="SENTRY_METRICS_INGEST_PROFILE",
+    environment_key: str = "SENTRY_METRICS_INGEST_PROFILE",
 ) -> MetricsIngestConfiguration:
     return _METRICS_INGEST_CONFIG[os.environ.get(environment_key, "release-health")]
