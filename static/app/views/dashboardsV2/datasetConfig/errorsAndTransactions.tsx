@@ -18,7 +18,7 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {WidgetQuery} from '../types';
+import {DisplayType, WidgetQuery} from '../types';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -44,6 +44,15 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
+  supportedDisplayTypes: [
+    DisplayType.AREA,
+    DisplayType.BAR,
+    DisplayType.BIG_NUMBER,
+    DisplayType.LINE,
+    DisplayType.TABLE,
+    DisplayType.TOP_N,
+    DisplayType.WORLD_MAP,
+  ],
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
 };
