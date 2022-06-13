@@ -5,14 +5,11 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import ReleaseCommit
-from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
 
 
 class ProjectCommitsEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectReleasePermission,)
-    rate_limits = RateLimitConfig(
-        group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
-    )
 
     def get(self, request: Request, project) -> Response:
         """
