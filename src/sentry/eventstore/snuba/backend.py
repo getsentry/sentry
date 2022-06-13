@@ -207,15 +207,20 @@ class SnubaEventStorage(EventStorage):
                 raw_query_kwargs["conditions"] = [
                     ["timestamp", ">", datetime.fromtimestamp(random.randint(0, 1000000000))]
                 ]
-            result = snuba.raw_query(
-                selected_columns=["group_id"],
-                start=event.datetime,
-                end=event.datetime + timedelta(seconds=1),
-                filter_keys={"project_id": [project_id], "event_id": [event_id]},
-                limit=1,
-                referrer="eventstore.get_event_by_id_nodestore",
-                **raw_query_kwargs,
-            )
+            try:
+                result = snuba.raw_query(
+                    selected_columns=["group_id"],
+                    start=event.datetime,
+                    end=event.datetime + timedelta(seconds=1),
+                    filter_keys={"project_id": [project_id], "event_id": [event_id]},
+                    limit=1,
+                    referrer="eventstore.get_event_by_id_nodestore",
+                    **raw_query_kwargs,
+                )
+            except snuba.QueryOutsideRetentionError:
+                # this can happen due to races.  We silently want to hide
+                # this from callers.
+                return None
 
             # Return None if the event from Nodestore was not yet written to Snuba
             if len(result["data"]) != 1:

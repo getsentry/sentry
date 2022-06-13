@@ -149,6 +149,24 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         assert event.project_id == self.project2.id
         assert event.group_id == event.group.id
 
+    def test_get_event_beyond_retention(self):
+        event = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "type": "default",
+                "platform": "python",
+                "fingerprint": ["group2"],
+                "timestamp": iso_format(before_now(days=14)),
+                "tags": {"foo": "1"},
+            },
+            project_id=self.project2.id,
+        )
+
+        with mock.patch("sentry.quotas.get_event_retention") as get_event_retention:
+            get_event_retention.return_value = 7
+            event = self.eventstore.get_event_by_id(self.project2.id, "d" * 32)
+            assert event is None
+
     def test_get_next_prev_event_id(self):
         event = self.eventstore.get_event_by_id(self.project2.id, "b" * 32)
 
