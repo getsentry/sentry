@@ -8,21 +8,18 @@ import space from 'sentry/styles/space';
 
 import Button from '../button';
 import HotkeysLabel from '../hotkeysLabel';
-import {TokenResult} from '../searchSyntax/parser';
 
 import {ItemType, QuickAction, SearchGroup, SearchItem} from './types';
-import {quickActions} from './utils';
 
 type Props = {
-  filterTokenCount: number;
   items: SearchGroup[];
   loading: boolean;
   onClick: (value: string, item: SearchItem) => void;
   runQuickAction: (action: QuickAction) => void;
   searchSubstring: string;
   className?: string;
-  cursorToken?: TokenResult<any> | null;
   maxMenuHeight?: number;
+  visibleActions?: QuickAction[];
 };
 
 class SearchDropdown extends PureComponent<Props> {
@@ -85,15 +82,8 @@ class SearchDropdown extends PureComponent<Props> {
   );
 
   render() {
-    const {
-      className,
-      loading,
-      items,
-      runQuickAction,
-      cursorToken,
-      filterTokenCount,
-      maxMenuHeight,
-    } = this.props;
+    const {className, loading, items, runQuickAction, visibleActions, maxMenuHeight} =
+      this.props;
     return (
       <StyledSearchDropdown className={className}>
         {loading ? (
@@ -121,26 +111,19 @@ class SearchDropdown extends PureComponent<Props> {
         <DropdownFooter>
           <ActionsRow>
             {runQuickAction &&
-              quickActions
-                .filter(
-                  action =>
-                    action.hotkeys &&
-                    (!action.canRunAction ||
-                      action.canRunAction(cursorToken, filterTokenCount))
-                )
-                .map(action => {
-                  return (
-                    <ActionButtonContainer
-                      key={action.text}
-                      onClick={() => runQuickAction(action)}
-                    >
-                      <HotkeyGlyphWrapper>
-                        <HotkeysLabel value={action.hotkeys?.display ?? []} />
-                      </HotkeyGlyphWrapper>
-                      <HotkeyTitle>{action.text}</HotkeyTitle>
-                    </ActionButtonContainer>
-                  );
-                })}
+              visibleActions?.map(action => {
+                return (
+                  <ActionButtonContainer
+                    key={action.text}
+                    onClick={() => runQuickAction(action)}
+                  >
+                    <HotkeyGlyphWrapper>
+                      <HotkeysLabel value={action.hotkeys?.display ?? []} />
+                    </HotkeyGlyphWrapper>
+                    <HotkeyTitle>{action.text}</HotkeyTitle>
+                  </ActionButtonContainer>
+                );
+              })}
           </ActionsRow>
           <Button
             size="xsmall"

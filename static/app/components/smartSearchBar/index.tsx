@@ -53,6 +53,7 @@ import {
   filterSearchGroupsByIndex,
   generateOperatorEntryMap,
   getValidOps,
+  quickActions,
   removeSpace,
 } from './utils';
 
@@ -1574,8 +1575,12 @@ class SmartSearchBar extends Component<Props, State> {
             loading={loading}
             searchSubstring={searchTerm}
             runQuickAction={this.runQuickAction}
-            cursorToken={this.cursorToken}
-            filterTokenCount={this.filterTokens.length}
+            visibleActions={quickActions.filter(
+              action =>
+                action.hotkeys &&
+                (!action.canRunAction ||
+                  action.canRunAction(this.cursorToken, this.filterTokens.length))
+            )}
             maxMenuHeight={maxMenuHeight}
           />
         )}
