@@ -42,7 +42,7 @@ function Value({meta, value}: Props) {
   }
 
   return (
-    <InlinePre data-test-id="frame-registers-value">
+    <InlinePre>
       <AnnotatedText value={formatValue()} meta={meta} />
       <StyledTooltip
         title={REGISTER_VIEWS[state.view]}

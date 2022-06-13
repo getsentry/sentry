@@ -12,7 +12,7 @@ import {getSortedRegisters} from './utils';
 import Value from './value';
 
 type Props = {
-  registers: Record<string, string>;
+  registers: Record<string, string | null>;
   deviceArch?: string;
 };
 
