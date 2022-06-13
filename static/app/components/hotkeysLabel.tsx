@@ -95,6 +95,6 @@ const HotkeysContainer = styled('div')`
   align-items: center;
 
   > * {
-    margin-right: ${space(1)};
+    margin-right: ${space(0.5)};
   }
 `;

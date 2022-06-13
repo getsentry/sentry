@@ -276,25 +276,25 @@ export const quickActions: QuickAction[] = [
     },
   },
   {
-    text: 'Previous Token',
+    text: 'Previous',
     actionType: QuickActionType.Previous,
     hotkeys: {
       actual: ['option+left'],
       display: 'option+left',
     },
     canRunAction: (tok, count) => {
-      return count > 1 || tok?.type !== Token.Filter;
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
   },
   {
-    text: 'Next Token',
+    text: 'Next',
     actionType: QuickActionType.Next,
     hotkeys: {
       actual: ['option+right'],
       display: 'option+right',
     },
     canRunAction: (tok, count) => {
-      return count > 1 || tok?.type !== Token.Filter;
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
   },
 ];

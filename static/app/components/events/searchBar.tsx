@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import {ClassNames} from '@emotion/react';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
@@ -60,6 +59,7 @@ function SearchBar(props: SearchBarProps) {
   useEffect(() => {
     // Clear memoized data on mount to make tests more consistent.
     getEventFieldValues.cache.clear?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectIds]);
 
   // Returns array of tag values that substring match `query`; invokes `callback`
@@ -132,28 +132,21 @@ function SearchBar(props: SearchBarProps) {
   return (
     <Measurements>
       {({measurements}) => (
-        <ClassNames>
-          {({css}) => (
-            <SmartSearchBar
-              hasRecentSearches
-              savedSearchType={SavedSearchType.EVENT}
-              onGetTagValues={getEventFieldValues}
-              supportedTags={getTagList(measurements)}
-              prepareQuery={query => {
-                // Prepare query string (e.g. strip special characters like negation operator)
-                return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
-              }}
-              maxSearchItems={maxSearchItems}
-              excludeEnvironment
-              dropdownClassName={css`
-                max-height: ${maxMenuHeight ?? 300}px;
-                overflow-y: auto;
-              `}
-              getFieldDoc={getFieldDoc}
-              {...props}
-            />
-          )}
-        </ClassNames>
+        <SmartSearchBar
+          hasRecentSearches
+          savedSearchType={SavedSearchType.EVENT}
+          onGetTagValues={getEventFieldValues}
+          supportedTags={getTagList(measurements)}
+          prepareQuery={query => {
+            // Prepare query string (e.g. strip special characters like negation operator)
+            return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
+          }}
+          maxSearchItems={maxSearchItems}
+          excludeEnvironment
+          maxMenuHeight={maxMenuHeight ?? 300}
+          getFieldDoc={getFieldDoc}
+          {...props}
+        />
       )}
     </Measurements>
   );

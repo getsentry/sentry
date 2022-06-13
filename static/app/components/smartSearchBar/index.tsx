@@ -52,8 +52,8 @@ import {
   createSearchGroups,
   filterSearchGroupsByIndex,
   generateOperatorEntryMap,
-  getQuickActionsSearchGroup,
   getValidOps,
+  quickActions,
   removeSpace,
 } from './utils';
 
@@ -172,6 +172,10 @@ type Props = WithRouterProps & {
    * Allows additional content to be played before the search bar and icon
    */
   inlineLabel?: React.ReactNode;
+  /**
+   * Maximum height for the search dropdown menu
+   */
+  maxMenuHeight?: number;
   /**
    * Used to enforce length on the query
    */
@@ -1279,19 +1283,6 @@ class SmartSearchBar extends Component<Props, State> {
       queryCharsLeft
     );
 
-    const quickActionsSearchResults = getQuickActionsSearchGroup(
-      this.runQuickAction,
-      this.filterTokens.length,
-      this.cursorToken ?? undefined
-    );
-    if (quickActionsSearchResults) {
-      searchGroups.searchGroups.push(quickActionsSearchResults.searchGroup);
-      searchGroups.flatSearchItems = [
-        ...searchGroups.flatSearchItems,
-        ...quickActionsSearchResults.searchItems,
-      ];
-    }
-
     this.setState(searchGroups);
   }
 
@@ -1305,12 +1296,6 @@ class SmartSearchBar extends Component<Props, State> {
     const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
-
-    const quickActionsSearchResults = getQuickActionsSearchGroup(
-      this.runQuickAction,
-      this.filterTokens.length,
-      this.cursorToken ?? undefined
-    );
 
     const searchGroups = groups
       .map(({searchItems, recentSearchItems, tagName, type}) =>
@@ -1335,14 +1320,6 @@ class SmartSearchBar extends Component<Props, State> {
           activeSearchItem: -1,
         }
       );
-
-    if (quickActionsSearchResults) {
-      searchGroups.searchGroups.push(quickActionsSearchResults.searchGroup);
-      searchGroups.flatSearchItems = [
-        ...searchGroups.flatSearchItems,
-        ...quickActionsSearchResults.searchItems,
-      ];
-    }
 
     this.setState(searchGroups);
   };
@@ -1482,6 +1459,7 @@ class SmartSearchBar extends Component<Props, State> {
       useFormWrapper,
       inlineLabel,
       maxQueryLength,
+      maxMenuHeight,
     } = this.props;
 
     const {
@@ -1596,6 +1574,14 @@ class SmartSearchBar extends Component<Props, State> {
             onClick={this.onAutoComplete}
             loading={loading}
             searchSubstring={searchTerm}
+            runQuickAction={this.runQuickAction}
+            visibleActions={quickActions.filter(
+              action =>
+                action.hotkeys &&
+                (!action.canRunAction ||
+                  action.canRunAction(this.cursorToken, this.filterTokens.length))
+            )}
+            maxMenuHeight={maxMenuHeight}
           />
         )}
       </Container>
