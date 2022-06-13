@@ -1,5 +1,3 @@
-import {Organization} from 'sentry/types';
-
 import {coreUIEventMap, CoreUIEventParameters} from './coreuiAnalyticsEvents';
 import {dashboardsEventMap, DashboardsEventParameters} from './dashboardsAnalyticsEvents';
 import {discoverEventMap, DiscoverEventParameters} from './discoverAnalyticsEvents';
@@ -43,9 +41,6 @@ const allEventMap = {
  * Generic typed analytics function for growth, issue, and performance events.
  * Can split up analytics functions to a smaller set of events like we do for trackIntegrationAnalytics
  */
-const trackAdvancedAnalyticsEvent = makeAnalyticsFunction<
-  EventParameters,
-  {organization: Organization} // org is required
->(allEventMap);
+const trackAdvancedAnalyticsEvent = makeAnalyticsFunction<EventParameters>(allEventMap);
 
 export default trackAdvancedAnalyticsEvent;
