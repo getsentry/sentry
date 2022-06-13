@@ -101,7 +101,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         set_tag("relay_use_v3", use_v3)
         set_tag("relay_use_v3_rejected", reason)
         metrics.incr(
-            "api.endpoints.relay.project_configs._post",
+            "api.endpoints.relay.project_configs.post",
             tags={"version": version, "reason": reason},
             sample_rate=1,
         )
