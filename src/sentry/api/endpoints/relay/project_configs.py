@@ -68,6 +68,8 @@ class RelayProjectConfigsEndpoint(Endpoint):
             return Response("Unsupported version, we only support versions 1 to 3.", 400)
 
     def _should_use_v3(self, request):
+        version = request.GET.get("version")
+        set_tag("relay_endpoint_version", version)
         no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
         is_full_config = request.relay_request_data.get("fullConfig")
@@ -76,7 +78,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         use_v3 = True
         reject_reason = None
 
-        if request.GET.get("version") != "3":
+        if version != "3":
             use_v3 = False
             reject_reason = "version"
         elif not is_full_config:
