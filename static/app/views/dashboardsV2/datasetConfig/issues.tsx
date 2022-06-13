@@ -37,9 +37,9 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
 
 function getTableRequests(
   widget: Widget,
+  contextualProps: ContextualProps,
   limit?: number,
-  cursor?: string,
-  contextualProps?: ContextualProps
+  cursor?: string
 ) {
   const groupListUrl = `/organizations/${contextualProps?.organization?.slug}/issues/`;
 

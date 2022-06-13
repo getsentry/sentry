@@ -45,9 +45,16 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getTableRequests?: (
     widget: Widget,
+    contextualProps: ContextualProps,
     limit?: number,
-    cursor?: string,
-    contextualProps?: ContextualProps
+    cursor?: string
+  ) => ReturnType<Client['requestPromise']>[];
+  /**
+   * TODO: Add Description
+   */
+  getTimeseriesRequests?: (
+    widget: Widget,
+    contextualProps: ContextualProps
   ) => ReturnType<Client['requestPromise']>[];
   /**
    * Transforms timeseries API results into series data that is

@@ -107,11 +107,16 @@ class IssueWidgetQueries extends Component<Props, State> {
     const {api, selection, widget, limit, cursor, organization, onDataFetched} =
       this.props;
 
-    const requests = this.config.getTableRequests!(widget, limit, cursor, {
-      organization,
-      pageFilters: selection,
-      api,
-    });
+    const requests = this.config.getTableRequests!(
+      widget,
+      {
+        organization,
+        pageFilters: selection,
+        api,
+      },
+      limit,
+      cursor
+    );
 
     try {
       this.setState({tableResults: [], loading: true, errorMessage: undefined});
