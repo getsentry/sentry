@@ -1700,6 +1700,9 @@ class SlackActivityNotificationTest(ActivityTestCase):
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
+    def get_issue_url(self):
+        return f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
+
 
 @apply_feature_flag_on_cls("organizations:metrics")
 @pytest.mark.usefixtures("reset_snuba")

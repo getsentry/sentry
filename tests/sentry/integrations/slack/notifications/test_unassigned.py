@@ -30,9 +30,10 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest):
 
         attachment, text = get_attachment()
 
-        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
-
-        assert text == f"{self.name} unassigned <{test_issue_url}|{self.group.qualified_short_id}>"
+        assert (
+            text
+            == f"{self.name} unassigned <{self.get_issue_url()}|{self.group.qualified_short_id}>"
+        )
         assert attachment["title"] == self.group.title
         assert (
             attachment["footer"]

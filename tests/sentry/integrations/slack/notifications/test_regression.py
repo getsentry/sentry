@@ -31,11 +31,9 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest):
 
         attachment, text = get_attachment()
 
-        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
-
         assert (
             text
-            == f"{self.user.username} marked <{test_issue_url}|{self.group.qualified_short_id}> as a regression"
+            == f"{self.user.username} marked <{self.get_issue_url()}|{self.group.qualified_short_id}> as a regression"
         )
         assert (
             attachment["footer"]
@@ -63,11 +61,10 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest):
         attachment, text = get_attachment()
 
         version_parsed = parse_release(notification.activity.data["version"])["description"]
-        test_issue_url = f"http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=activity_notification"
 
         assert (
             text
-            == f"{self.user.username} marked <{test_issue_url}|{self.group.qualified_short_id}> as a regression in {version_parsed}"
+            == f"{self.user.username} marked <{self.get_issue_url()}|{self.group.qualified_short_id}> as a regression in {version_parsed}"
         )
         assert (
             attachment["footer"]
