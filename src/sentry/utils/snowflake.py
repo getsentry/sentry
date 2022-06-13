@@ -82,9 +82,9 @@ def generate_snowflake_id(redis_key: str) -> int:
         segment_values[REGION_SEQUENCE],
     ) = get_sequence_value_from_redis(redis_key, segment_values[TIME_DIFFERENCE])
 
-    for key, value in segment_values.items():
-        if key.validate(value):
-            snowflake_id = (snowflake_id << key.length) | value
+    for segment in BIT_SEGMENT_SCHEMA:
+        if segment.validate(segment_values[segment]):
+            snowflake_id = (snowflake_id << segment.length) | segment_values[segment]
 
     ID_VALIDATOR.validate(snowflake_id)
 
