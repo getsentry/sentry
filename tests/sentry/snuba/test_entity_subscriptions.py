@@ -73,6 +73,29 @@ class EntitySubscriptionTestCase(TestCase):
             ],
             ["identity", "sessions", "_total_count"],
         ]
+        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        snql_query.query.select.sort(key=lambda q: q.function)
+        assert snql_query.query.select == [
+            Function(
+                function="identity", parameters=[Column(name="sessions")], alias="_total_count"
+            ),
+            Function(
+                function="if",
+                parameters=[
+                    Function(function="greater", parameters=[Column(name="sessions"), 0]),
+                    Function(
+                        function="divide",
+                        parameters=[Column(name="sessions_crashed"), Column(name="sessions")],
+                    ),
+                    None,
+                ],
+                alias="_crash_rate_alert_aggregate",
+            ),
+        ]
+        assert snql_query.query.where == [
+            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="org_id"), Op.EQ, None),
+        ]
 
     def test_get_entity_subscription_for_metrics_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"

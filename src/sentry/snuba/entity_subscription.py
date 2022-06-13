@@ -298,9 +298,41 @@ class SessionsEntitySubscription(BaseEntitySubscription):
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
-        params: Optional[Mapping[str, Any]] = None,
+        params: Optional[MutableMapping[str, Any]] = None,
     ) -> Request:
-        raise NotImplementedError
+        from sentry.search.events.builder import SessionsQueryBuilder
+
+        aggregations = [self.aggregate]
+        # This aggregation is added to return the total number of sessions in crash
+        # rate alerts that is used to identify if we are below a general minimum alert threshold
+        count_col = re.search(r"(sessions|users)", self.aggregate)
+        if not count_col:
+            raise UnsupportedQuerySubscription(
+                "Only crash free percentage queries are supported for subscriptions"
+                "over the sessions dataset"
+            )
+        count_col_matched = count_col.group()
+
+        aggregations += [f"identity({count_col_matched}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
+
+        if params is None:
+            params = {}
+
+        params["project_id"] = project_ids
+
+        if environment:
+            params["environment"] = environment.name
+
+        return SessionsQueryBuilder(
+            dataset=Dataset(self.dataset.value),
+            query=query,
+            selected_columns=aggregations,
+            params=params,
+            offset=None,
+            limit=None,
+            functions_acl=["identity"],
+            skip_time_conditions=True,
+        ).get_snql_query()
 
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
