@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import {DndContext, useDroppable} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -41,6 +42,10 @@ function ReplayDetails() {
   const [isPictureInPicture, setIsPictureInPicture] = useState(false);
   const togglePictureInPicture = () => setIsPictureInPicture(!isPictureInPicture);
 
+  const {setNodeRef} = useDroppable({
+    id: 'replay-details-player-draggable',
+  });
+
   if (!fetching && !replay) {
     // TODO(replay): Give the user more details when errors happen
     console.log({fetching, fetchError}); // eslint-disable-line no-console
@@ -77,44 +82,46 @@ function ReplayDetails() {
 
   return (
     <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
-      <DetailLayout
-        event={replay?.getEvent()}
-        orgId={orgId}
-        crumbs={replay?.getRawCrumbs()}
-      >
-        <Layout.Body>
-          <Layout.Main ref={fullscreenRef}>
-            <ReplayView
-              toggleFullscreen={toggleFullscreen}
-              isFullscreen={isFullscreen}
-              isPictureInPicture={isPictureInPicture}
-              togglePictureInPicture={togglePictureInPicture}
-            />
-          </Layout.Main>
-
-          <Layout.Side>
-            <ErrorBoundary>
-              <UserActionsNavigator
-                crumbs={replay?.getRawCrumbs()}
-                event={replay?.getEvent()}
+      <DndContext>
+        <DetailLayout
+          event={replay?.getEvent()}
+          orgId={orgId}
+          crumbs={replay?.getRawCrumbs()}
+        >
+          <Layout.Body ref={setNodeRef}>
+            <Layout.Main ref={fullscreenRef}>
+              <ReplayView
+                toggleFullscreen={toggleFullscreen}
+                isFullscreen={isFullscreen}
+                isPictureInPicture={isPictureInPicture}
+                togglePictureInPicture={togglePictureInPicture}
               />
-            </ErrorBoundary>
-          </Layout.Side>
+            </Layout.Main>
 
-          <StickyMain fullWidth>
-            <ErrorBoundary>
-              <ReplayTimeline />
-            </ErrorBoundary>
-            <FocusTabs />
-          </StickyMain>
+            <Layout.Side>
+              <ErrorBoundary>
+                <UserActionsNavigator
+                  crumbs={replay?.getRawCrumbs()}
+                  event={replay?.getEvent()}
+                />
+              </ErrorBoundary>
+            </Layout.Side>
 
-          <StyledLayoutMain fullWidth>
-            <ErrorBoundary>
-              <FocusArea replay={replay} />
-            </ErrorBoundary>
-          </StyledLayoutMain>
-        </Layout.Body>
-      </DetailLayout>
+            <StickyMain fullWidth>
+              <ErrorBoundary>
+                <ReplayTimeline />
+              </ErrorBoundary>
+              <FocusTabs />
+            </StickyMain>
+
+            <StyledLayoutMain fullWidth>
+              <ErrorBoundary>
+                <FocusArea replay={replay} />
+              </ErrorBoundary>
+            </StyledLayoutMain>
+          </Layout.Body>
+        </DetailLayout>
+      </DndContext>
     </ReplayContextProvider>
   );
 }

@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {DndContext, useDraggable} from '@dnd-kit/core';
+import {useDraggable} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -38,7 +38,7 @@ function ReplayView({
 
   const {attributes, listeners, setNodeRef, transform} = useDraggable({
     id: 'replay-details-player-draggable',
-    disabled: isPictureInPicture,
+    disabled: !isPictureInPicture,
   });
 
   useEffect(() => {
@@ -61,34 +61,32 @@ function ReplayView({
   }, [windowInnerHeight]);
 
   return (
-    <DndContext>
-      <DraggableWrapper
-        ref={setNodeRef}
-        transform={transform}
-        isPictureInPicture={isPictureInPicture}
-        {...listeners}
-        {...attributes}
-      >
-        <PanelNoMargin isFullscreen={isFullscreen}>
-          <PanelHeader>
-            <ReplayCurrentUrl />
-          </PanelHeader>
-          <PanelHeader ref={playerRef} disablePadding noBorder>
-            <ReplayPlayer height={isFullscreen ? Infinity : playerHeight} />
-          </PanelHeader>
-          <HorizontalMouseTracking>
-            <PlayerScrubber />
-          </HorizontalMouseTracking>
-          <ReplayControllerWrapper>
-            <ReplayController
-              toggleFullscreen={toggleFullscreen}
-              isPictureInPicture={isPictureInPicture}
-              togglePictureInPicture={togglePictureInPicture}
-            />
-          </ReplayControllerWrapper>
-        </PanelNoMargin>
-      </DraggableWrapper>
-    </DndContext>
+    <DraggableWrapper
+      ref={setNodeRef}
+      transform={transform}
+      isPictureInPicture={isPictureInPicture}
+      {...listeners}
+      {...attributes}
+    >
+      <PanelNoMargin isFullscreen={isFullscreen}>
+        <PanelHeader>
+          <ReplayCurrentUrl />
+        </PanelHeader>
+        <PanelHeader ref={playerRef} disablePadding noBorder>
+          <ReplayPlayer height={isFullscreen ? Infinity : playerHeight} />
+        </PanelHeader>
+        <HorizontalMouseTracking>
+          <PlayerScrubber />
+        </HorizontalMouseTracking>
+        <ReplayControllerWrapper>
+          <ReplayController
+            toggleFullscreen={toggleFullscreen}
+            isPictureInPicture={isPictureInPicture}
+            togglePictureInPicture={togglePictureInPicture}
+          />
+        </ReplayControllerWrapper>
+      </PanelNoMargin>
+    </DraggableWrapper>
   );
 }
 
@@ -99,14 +97,15 @@ const ReplayControllerWrapper = styled(PanelBody)`
 const DraggableWrapper = styled('div')<{
   isPictureInPicture: boolean;
   transform: {
-    scaleX: number;
-    scaleY: number;
     x: number;
     y: number;
   } | null;
 }>`
   z-index: 100000;
-  ${p => `transform: translate3d(${p.transform?.x}px, ${p.transform?.y}px, 0);`}
+  ${p =>
+    p.transform
+      ? `transform: translate3d(${p.transform?.x}px, ${p.transform?.y}px, 0);`
+      : ''}
 `;
 
 const PanelNoMargin = styled(Panel)<{
