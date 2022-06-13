@@ -35,6 +35,7 @@ from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -48,33 +49,6 @@ MAX_TAG_VALUE_LENGTH = 200
 logger = logging.getLogger(__name__)
 
 MessageBatch = List[Message[KafkaPayload]]
-
-
-@dataclass(frozen=True)
-class IndexerConfiguration:
-    input_topic: str
-    output_topic: str
-    use_case_id: Optional[str]
-    internal_metrics_prefix: Optional[str]
-
-
-METRICS_INDEXER_CONFIG: Mapping[str, IndexerConfiguration] = {
-    "release-health": IndexerConfiguration(
-        input_topic=settings.KAFKA_INGEST_METRICS,
-        output_topic=settings.KAFKA_SNUBA_METRICS,
-        # For non-SaaS deploys one may want different values here
-        # This keeps our internal metrics consistent on release of (newer)
-        # performance helath metrics.
-        use_case_id=None,
-        internal_metrics_prefix=None,
-    ),
-    "performance": IndexerConfiguration(
-        input_topic=settings.KAFKA_INGEST_PERFORMANCE_METRICS,
-        output_topic=settings.KAFKA_SNUBA_GENERIC_METRICS,
-        use_case_id="performance",
-        internal_metrics_prefix="perf",
-    ),
-}
 
 
 def initializer() -> None:
@@ -565,7 +539,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         processes: int,
         input_block_size: int,
         output_block_size: int,
-        config: IndexerConfiguration,
+        config: MetricsIngestConfiguration,
     ):
         self.__config = config
         self.__max_batch_time = max_batch_time
@@ -606,7 +580,7 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         max_batch_time: float,
         commit_max_batch_size: int,
         commit_max_batch_time: int,
-        config: IndexerConfiguration,
+        config: MetricsIngestConfiguration,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
@@ -815,7 +789,7 @@ def get_streaming_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     factory_name: str,
-    indexer_profile: IndexerConfiguration,
+    indexer_profile: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
     if factory_name == "multiprocess":

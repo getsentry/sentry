@@ -4,6 +4,7 @@ from typing import Any, Mapping, Optional, Set, TypeVar
 
 from django.db.models import Q
 
+from sentry.sentry_metrics.configuration import METRICS_INGEST_CONFIG
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import BaseIndexer, PerfStringIndexer
@@ -18,22 +19,21 @@ _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
-DEFAULT_INDEXER_TYPE = "release_health"
+DEFAULT_INDEXER_TYPE = "release-health"
 
 IndexerTable = TypeVar("IndexerTable", bound=BaseIndexer)
 
-# noinspection PyTypeChecker
-TABLE_MAPPING: Mapping[str, IndexerTable] = {
-    "release_health": StringIndexerTable,
+TABLE_MAPPING = {
+    "release-health": StringIndexerTable,
     "performance": PerfStringIndexer,
 }
 
 
 class PGStringIndexerV2(StringIndexer):
     def __init__(self, initialization_options: Mapping[str, Any]):
-        self.table = TABLE_MAPPING[
-            initialization_options.get("indexer_table", DEFAULT_INDEXER_TYPE)
-        ]
+        ingest_profile = initialization_options.get("metrics_ingest_profile", DEFAULT_INDEXER_TYPE)
+        self.table: IndexerTable = TABLE_MAPPING[ingest_profile]
+        self.metrics_prefix = METRICS_INGEST_CONFIG[ingest_profile].internal_metrics_prefix
 
     """
     Provides integer IDs for metric names, tag keys and tag values
