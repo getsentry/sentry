@@ -11962,7 +11962,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[1]["count_unique(user)"] == 0
         assert meta["isMetricsData"]
 
-    def test_sum(self):
+    def test_sum_transaction_duration(self):
         self.store_metric(
             50,
             tags={"transaction": "foo_transaction"},
