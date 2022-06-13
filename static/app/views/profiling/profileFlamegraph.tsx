@@ -29,7 +29,7 @@ const LoadingGroup: ProfileGroup = {
   profiles: [Profile.Empty()],
 };
 
-function FlamegraphView(): React.ReactElement {
+function ProfileFlamegraph(): React.ReactElement {
   const location = useLocation();
   const organization = useOrganization();
   const [profileGroup, setProfileGroup] = useProfileGroup();
@@ -100,4 +100,4 @@ const FlamegraphContainer = styled('div')`
   }
 `;
 
-export default FlamegraphView;
+export default ProfileFlamegraph;
