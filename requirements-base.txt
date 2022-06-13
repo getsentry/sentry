@@ -12,7 +12,7 @@ django-crispy-forms==1.14.0
 django-picklefield==2.1.0
 django-pg-zero-downtime-migrations==0.10
 Django==2.2.28
-djangorestframework==3.11.2
+djangorestframework==3.12.4
 drf-spectacular==0.22.1
 email-reply-parser==0.5.12
 google-api-core==1.25.1

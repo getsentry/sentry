@@ -6,6 +6,7 @@ import uuid
 from collections import defaultdict, namedtuple
 from functools import reduce
 from hashlib import md5
+from typing import Callable, ContextManager, TypeVar
 
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -18,6 +19,8 @@ from sentry.utils.redis import SentryScript, check_cluster_versions, get_cluster
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
@@ -571,7 +574,11 @@ class RedisTSDB(BaseTSDB):
         rollups = self.get_active_series(timestamp=timestamp)
 
         for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
-            wrapper = SuppressionWrapper if not durable else lambda value: value
+            wrapper: Callable[[ContextManager[T]], ContextManager[T]]
+            if not durable:
+                wrapper = SuppressionWrapper
+            else:
+                wrapper = lambda value: value
 
             temporary_id = uuid.uuid1().hex
 

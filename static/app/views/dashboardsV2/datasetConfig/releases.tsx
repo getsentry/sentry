@@ -7,7 +7,7 @@ import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
-import {WidgetQuery} from '../types';
+import {DisplayType, WidgetQuery} from '../types';
 import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
@@ -38,6 +38,14 @@ export const ReleasesConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  supportedDisplayTypes: [
+    DisplayType.AREA,
+    DisplayType.BAR,
+    DisplayType.BIG_NUMBER,
+    DisplayType.LINE,
+    DisplayType.TABLE,
+    DisplayType.TOP_N,
+  ],
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
