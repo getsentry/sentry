@@ -15,10 +15,10 @@ type Props = {
   items: SearchGroup[];
   loading: boolean;
   onClick: (value: string, item: SearchItem) => void;
-  runQuickAction: (action: QuickAction) => void;
   searchSubstring: string;
   className?: string;
   maxMenuHeight?: number;
+  runQuickAction?: (action: QuickAction) => void;
   visibleActions?: QuickAction[];
 };
 
