@@ -103,15 +103,10 @@ def generate_operation_regex():
     """
     Generates a regex of all supported operations defined in OP_TO_SNUBA_FUNCTION
     """
-    op_lst = []
+    operations = []
     for item in OP_TO_SNUBA_FUNCTION.values():
-        op_lst += list(item.keys())
-
-    op_regex = r"("
-    for op in op_lst:
-        op_regex += f"{op}|"
-    op_regex = op_regex[0:-1] + ")"
-    return op_regex
+        operations += list(item.keys())
+    return rf"({'|'.join(map(str, operations))})"
 
 
 OP_REGEX = generate_operation_regex()
