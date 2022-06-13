@@ -182,7 +182,7 @@ class DataScrubbing<T extends ProjectId = undefined> extends Component<Props<T>,
           />
           <PanelAction>
             <Button href={ADVANCED_DATASCRUBBING_LINK} target="_blank">
-              {t('Read the docs')}
+              {t('Read Docs')}
             </Button>
             <Button
               disabled={disabled}

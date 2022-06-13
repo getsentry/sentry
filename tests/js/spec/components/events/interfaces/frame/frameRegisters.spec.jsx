@@ -39,7 +39,7 @@ describe('RegisterValue', () => {
     });
 
     it('should display the numeric value', () => {
-      wrapper.find('Toggle').simulate('click');
+      wrapper.find('svg[aria-label="Toggle register value format"]').simulate('click');
       expect(wrapper.text()).toBe('10');
     });
   });
@@ -54,7 +54,7 @@ describe('RegisterValue', () => {
     });
 
     it('should display the numeric value', () => {
-      wrapper.find('Toggle').simulate('click');
+      wrapper.find('svg[aria-label="Toggle register value format"]').simulate('click');
       expect(wrapper.text()).toBe('10');
     });
   });
@@ -69,7 +69,7 @@ describe('RegisterValue', () => {
     });
 
     it('should display the numeric value', () => {
-      wrapper.find('Toggle').simulate('click');
+      wrapper.find('svg[aria-label="Toggle register value format"]').simulate('click');
       expect(wrapper.text()).toBe('xyz');
     });
   });
