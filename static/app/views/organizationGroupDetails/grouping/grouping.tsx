@@ -53,7 +53,7 @@ export const groupingFeedbackTypes = [
   t('Other grouping issue'),
 ];
 
-export const GROUPING_BREAKDOWN__DOC_LINK =
+const GROUPING_BREAKDOWN__DOC_LINK =
   'https://docs.sentry.io/product/data-management-settings/event-grouping/grouping-breakdown/';
 
 function Grouping({api, groupId, location, organization, router, projSlug}: Props) {
