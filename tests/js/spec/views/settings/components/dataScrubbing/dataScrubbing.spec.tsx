@@ -89,7 +89,7 @@ describe('Data Scrubbing', () => {
       // PanelAction
       const actionButtons = wrapper.find('PanelAction').find('Button');
       expect(actionButtons).toHaveLength(2);
-      expect(actionButtons.at(0).text()).toEqual('Read the docs');
+      expect(actionButtons.at(0).text()).toEqual('Read Docs');
       expect(actionButtons.at(1).text()).toEqual('Add Rule');
       expect(actionButtons.at(1).prop('disabled')).toEqual(false);
     });
@@ -151,7 +151,7 @@ describe('Data Scrubbing', () => {
       // PanelAction
       const actionButtons = wrapper.find('PanelAction').find('Button');
       expect(actionButtons).toHaveLength(2);
-      expect(actionButtons.at(0).text()).toEqual('Read the docs');
+      expect(actionButtons.at(0).text()).toEqual('Read Docs');
       expect(actionButtons.at(1).text()).toEqual('Add Rule');
       expect(actionButtons.at(1).prop('disabled')).toEqual(false);
     });

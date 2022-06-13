@@ -50,6 +50,7 @@ interface UseVirtualizedListProps<T extends TreeLike> {
   rowHeight: number;
   scrollContainerRef: React.MutableRefObject<HTMLElement | null>;
   overscroll?: number;
+  skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
 }
 
@@ -59,7 +60,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   props: UseVirtualizedListProps<T>
 ) {
   const [tree, setTree] = useState(() => {
-    const initialTree = VirtualizedTree.fromRoots(props.roots);
+    const initialTree = VirtualizedTree.fromRoots(props.roots, props.skipFunction);
 
     if (props.sortFunction) {
       initialTree.sort(props.sortFunction);
@@ -68,20 +69,28 @@ export function useVirtualizedTree<T extends TreeLike>(
     return initialTree;
   });
 
+  const expandedHistory = useRef<Set<T>>(new Set());
   useEffectAfterFirstRender(() => {
-    const newTree = VirtualizedTree.fromRoots(props.roots);
+    const expandedNodes = tree.getAllExpandedNodes(expandedHistory.current);
+    const newTree = VirtualizedTree.fromRoots(
+      props.roots,
+      props.skipFunction,
+      expandedNodes
+    );
+
+    expandedHistory.current = expandedNodes;
 
     if (props.sortFunction) {
       newTree.sort(props.sortFunction);
     }
 
     setTree(newTree);
-  }, [props.roots]);
+  }, [props.roots, props.skipFunction]);
 
   const [state, dispatch] = useReducer(VirtualizedTreeStateReducer, {
+    scrollTop: 0,
     roots: props.roots,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
-    scrollTop: 0,
     scrollHeight: props.scrollContainerRef.current?.getBoundingClientRect()?.height ?? 0,
   });
 
@@ -93,6 +102,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     const visibleItems: {
       item: VirtualizedTreeNode<T>;
       key: number;
+      ref: HTMLElement | null;
       styles: React.CSSProperties;
     }[] = [];
 
@@ -111,6 +121,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     // Points to the currently iterated item
     let indexPointer = 0;
 
+    // Max number of visible items in our list
     const MAX_VISIBLE_ITEMS = Math.ceil(
       (state.scrollHeight + OVERSCROLL_HEIGHT * 2) / props.rowHeight
     );
@@ -126,6 +137,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       if (elementTop >= viewport.top && elementBottom <= viewport.bottom) {
         visibleItems[visibleItemIndex] = {
           key: indexPointer,
+          ref: null,
           styles: {position: 'absolute', top: elementTop},
           item: tree.flattened[indexPointer],
         };
@@ -143,9 +155,13 @@ export function useVirtualizedTree<T extends TreeLike>(
   const scrollRafId = useRef<number | undefined>(undefined);
   const handleScroll = useCallback(element => {
     // use requestAnimationFrame to avoidoverupdating the UI.
+    if (scrollRafId.current) {
+      window.cancelAnimationFrame(scrollRafId.current);
+      scrollRafId.current = undefined;
+    }
+
     scrollRafId.current = window.requestAnimationFrame(() => {
       dispatch({type: 'set scroll top', payload: Math.max(element.target.scrollTop, 0)});
-      scrollRafId.current = undefined;
     });
   }, []);
 
@@ -164,7 +180,10 @@ export function useVirtualizedTree<T extends TreeLike>(
   const handleExpandTreeNode = useCallback(
     (node: VirtualizedTreeNode<T>, opts?: {expandChildren: boolean}) => {
       tree.expandNode(node, !node.expanded, opts);
-      setTree(new VirtualizedTree(tree.roots, tree.flattened));
+      const newTree = new VirtualizedTree(tree.roots, tree.flattened);
+      expandedHistory.current = newTree.getAllExpandedNodes(new Set());
+
+      setTree(newTree);
     },
     [tree]
   );
@@ -225,10 +244,63 @@ export function useVirtualizedTree<T extends TreeLike>(
     return {height: tree.flattened.length * props.rowHeight};
   }, [tree.flattened.length, props.rowHeight]);
 
+  const [tabIndexKey, setTabIndexKey] = useState<number | null>(null);
+  const handleRowClick = useCallback((key: number) => {
+    setTabIndexKey(key);
+  }, []);
+
+  const handleRowKeyDown = useCallback(
+    (key: number, event: React.KeyboardEvent) => {
+      if (event.key === 'Enter') {
+        handleExpandTreeNode(tree.flattened[key], {expandChildren: true});
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const indexInVisibleItems = items.findIndex(i => i.key === key);
+
+        if (indexInVisibleItems !== -1) {
+          const nextIndex = indexInVisibleItems + 1;
+
+          // Bound check if we are at end of list
+          if (nextIndex > tree.flattened.length - 1) {
+            return;
+          }
+
+          setTabIndexKey(items[nextIndex].key);
+          items[nextIndex].ref?.focus({preventScroll: true});
+          items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
+        }
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const indexInVisibleItems = items.findIndex(i => i.key === key);
+
+        if (indexInVisibleItems !== -1) {
+          const nextIndex = indexInVisibleItems - 1;
+
+          // Bound check if we are at start of list
+          if (nextIndex < 0) {
+            return;
+          }
+
+          setTabIndexKey(items[nextIndex].key);
+          items[nextIndex].ref?.focus({preventScroll: true});
+          items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
+        }
+      }
+    },
+    [handleExpandTreeNode, items, tree.flattened]
+  );
+
   return {
     tree,
     items,
+    tabIndexKey,
     handleScroll,
+    handleRowClick,
+    handleRowKeyDown,
     handleExpandTreeNode,
     handleSortingChange,
     scrollContainerStyles,

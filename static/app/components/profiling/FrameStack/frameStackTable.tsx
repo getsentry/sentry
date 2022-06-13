@@ -4,12 +4,15 @@ import styled from '@emotion/styled';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {FrameCallersTableCell} from './frameStack';
+import {FrameStackContextMenu} from './frameStackContextMenu';
 import {FrameStackTableRow} from './frameStackTableRow';
 
 function makeSortFunction(
@@ -67,8 +70,14 @@ function makeSortFunction(
   throw new Error(`Unknown sort property ${property}`);
 }
 
+function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
+  return n.node.node.isDirectRecursive();
+}
+
 interface FrameStackTableProps {
+  canvasPoolManager: CanvasPoolManager;
   flamegraphRenderer: FlamegraphRenderer;
+  recursion: 'collapsed' | null;
   referenceNode: FlamegraphFrame;
   roots: FlamegraphFrame[];
 }
@@ -76,26 +85,31 @@ interface FrameStackTableProps {
 export function FrameStackTable({
   roots,
   flamegraphRenderer,
+  canvasPoolManager,
   referenceNode,
+  recursion,
 }: FrameStackTableProps) {
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
-
   const sortFunction = useMemo(() => {
     return makeSortFunction(sort, direction);
   }, [sort, direction]);
 
   const {
     items,
+    tabIndexKey,
     scrollContainerStyles,
     containerStyles,
+    handleRowClick,
+    handleRowKeyDown,
     handleExpandTreeNode,
     handleSortingChange,
     handleScroll,
   } = useVirtualizedTree({
+    skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
     scrollContainerRef,
     rowHeight: 24,
@@ -115,6 +129,19 @@ export function FrameStackTable({
     },
     [sort, direction, handleSortingChange]
   );
+
+  const [clickedContextMenuNode, setClickedContextMenuClose] =
+    useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
+
+  const contextMenu = useContextMenu({container: scrollContainerRef.current});
+
+  const handleZoomIntoNodeClick = useCallback(() => {
+    if (!clickedContextMenuNode) {
+      return;
+    }
+
+    canvasPoolManager.dispatch('zoomIntoFrame', [clickedContextMenuNode.node]);
+  }, [canvasPoolManager, clickedContextMenuNode]);
 
   return (
     <FrameBar>
@@ -145,21 +172,34 @@ export function FrameStackTable({
             </TableHeaderButton>
           </FrameNameCell>
         </FrameCallersTableHeader>
+        <FrameStackContextMenu
+          onZoomIntoNodeClick={handleZoomIntoNodeClick}
+          contextMenu={contextMenu}
+        />
         <div
           ref={scrollContainerRef}
           style={scrollContainerStyles}
           onScroll={handleScroll}
+          onContextMenu={contextMenu.handleContextMenu}
         >
           <div style={containerStyles}>
             {items.map(r => {
               return (
                 <FrameStackTableRow
                   key={r.key}
+                  ref={n => (r.ref = n)}
                   node={r.item}
                   style={r.styles}
                   referenceNode={referenceNode}
+                  tabIndex={tabIndexKey === r.key ? 0 : 1}
                   flamegraphRenderer={flamegraphRenderer}
-                  handleExpandedClick={handleExpandTreeNode}
+                  onClick={() => handleRowClick(r.key)}
+                  onExpandClick={handleExpandTreeNode}
+                  onKeyDown={evt => handleRowKeyDown(r.key, evt)}
+                  onContextMenu={evt => {
+                    setClickedContextMenuClose(r.item);
+                    contextMenu.handleContextMenu(evt);
+                  }}
                 />
               );
             })}

@@ -14,16 +14,14 @@ import {
 } from 'sentry/utils/profiling/flamegraph/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {FlamegraphView} from 'sentry/utils/profiling/flamegraphView';
 import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
+import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import usePrevious from 'sentry/utils/usePrevious';
-
-import {useContextMenu} from '../../utils/profiling/hooks/useContextMenu';
 
 import {BoundTooltip} from './boundTooltip';
 import {FlamegraphOptionsContextMenu} from './flamegraphOptionsContextMenu';
@@ -327,9 +325,8 @@ function FlamegraphZoomView({
       setConfigSpaceCursor(null);
     };
 
-    const onZoomIntoFrame = (frame: FlamegraphFrame) => {
+    const onZoomIntoFrame = () => {
       setConfigSpaceCursor(null);
-      dispatchFlamegraphState({type: 'set selected node', payload: frame});
     };
 
     scheduler.on('resetZoom', onResetZoom);
@@ -589,32 +586,7 @@ function FlamegraphZoomView({
     };
   }, [flamegraphCanvasRef, zoom, scroll]);
 
-  // Context menu coordinates
-  const contextMenuProps = useContextMenu();
-  const [contextMenuCoordinates, setContextMenuCoordinates] = useState<Rect | null>(null);
-  const onContextMenu = useCallback(
-    (evt: React.MouseEvent) => {
-      evt.preventDefault();
-      evt.stopPropagation();
-
-      if (!flamegraphCanvasRef) {
-        return;
-      }
-
-      const parentPosition = flamegraphCanvasRef.getBoundingClientRect();
-
-      setContextMenuCoordinates(
-        new Rect(
-          evt.clientX - parentPosition.left,
-          evt.clientY - parentPosition.top,
-          0,
-          0
-        )
-      );
-      contextMenuProps.setOpen(true);
-    },
-    [flamegraphCanvasRef, contextMenuProps]
-  );
+  const contextMenu = useContextMenu({container: flamegraphCanvasRef});
 
   return (
     <Fragment>
@@ -625,7 +597,7 @@ function FlamegraphZoomView({
           onMouseUp={onCanvasMouseUp}
           onMouseMove={onCanvasMouseMove}
           onMouseLeave={onCanvasMouseLeave}
-          onContextMenu={onContextMenu}
+          onContextMenu={contextMenu.handleContextMenu}
           style={{cursor: lastInteraction === 'pan' ? 'grab' : 'default'}}
         />
         <Canvas
@@ -634,13 +606,7 @@ function FlamegraphZoomView({
             pointerEvents: 'none',
           }}
         />
-        {contextMenuProps.open ? (
-          <FlamegraphOptionsContextMenu
-            container={flamegraphCanvasRef}
-            contextMenuCoordinates={contextMenuCoordinates}
-            contextMenuProps={contextMenuProps}
-          />
-        ) : null}
+        <FlamegraphOptionsContextMenu contextMenu={contextMenu} />
         {flamegraphCanvas &&
         flamegraphRenderer &&
         flamegraphView &&

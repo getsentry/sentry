@@ -15,6 +15,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageHeading from 'sentry/components/pageHeading';
+import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
@@ -60,6 +61,7 @@ type Props = {
   projects: Project[];
   selection: PageFilters;
   setError: (msg: string | undefined) => void;
+  withStaticFilters: boolean;
 };
 
 const fieldToViewMap: Record<LandingDisplayField, FC<Props>> = {
@@ -79,6 +81,7 @@ export function PerformanceLanding(props: Props) {
     handleSearch,
     handleTrendsClick,
     onboardingProject,
+    withStaticFilters,
   } = props;
 
   const {teams, initiallyLoaded} = useTeams({provideUserTeams: true});
@@ -108,7 +111,9 @@ export function PerformanceLanding(props: Props) {
     hasMounted.current = true;
   }, []);
 
-  const filterString = getTransactionSearchQuery(location, eventView.query);
+  const filterString = withStaticFilters
+    ? 'transaction.duration:<15m'
+    : getTransactionSearchQuery(location, eventView.query);
 
   const ViewComponent = fieldToViewMap[landingDisplay.field];
 
@@ -139,6 +144,10 @@ export function PerformanceLanding(props: Props) {
   if (showOnboarding) {
     pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
   }
+
+  const SearchFilterContainer = organization.features.includes('performance-use-metrics')
+    ? SearchContainerWithFilterAndMetrics
+    : SearchContainerWithFilter;
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -202,23 +211,43 @@ export function PerformanceLanding(props: Props) {
               </Fragment>
             ) : (
               <Fragment>
-                <SearchContainerWithFilter>
+                <SearchFilterContainer>
                   {pageFilters}
-                  <SearchBar
-                    searchSource="performance_landing"
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={filterString}
-                    fields={generateAggregateFields(
-                      organization,
-                      [...eventView.fields, {field: 'tps()'}],
-                      ['epm()', 'eps()']
-                    )}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                  <MetricsEventsDropdown />
-                </SearchContainerWithFilter>
+                  <Feature
+                    features={['organizations:performance-transaction-name-only-search']}
+                  >
+                    {({hasFeature}) =>
+                      hasFeature ? (
+                        // TODO replace `handleSearch prop` with transaction name search once
+                        // transaction name search becomes the default search bar
+                        <TransactionNameSearchBar
+                          organization={organization}
+                          location={location}
+                          eventView={eventView}
+                        />
+                      ) : (
+                        <SearchBar
+                          searchSource="performance_landing"
+                          organization={organization}
+                          projectIds={eventView.project}
+                          query={filterString}
+                          fields={generateAggregateFields(
+                            organization,
+                            [...eventView.fields, {field: 'tps()'}],
+                            ['epm()', 'eps()']
+                          )}
+                          onSearch={handleSearch}
+                          maxQueryLength={MAX_QUERY_LENGTH}
+                        />
+                      )
+                    }
+                  </Feature>
+                  <Feature
+                    features={['organizations:performance-transaction-name-only-search']}
+                  >
+                    {({hasFeature}) => hasFeature && <MetricsEventsDropdown />}
+                  </Feature>
+                </SearchFilterContainer>
                 {initiallyLoaded ? (
                   <TeamKeyTransactionManager.Provider
                     organization={organization}
@@ -259,5 +288,17 @@ const SearchContainerWithFilter = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr;
+  }
+`;
+
+const SearchContainerWithFilterAndMetrics = styled('div')`
+  display: grid;
+  grid-template-rows: auto auto auto;
+  gap: ${space(2)};
+  margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-rows: auto;
+    grid-template-columns: auto 1fr auto;
   }
 `;

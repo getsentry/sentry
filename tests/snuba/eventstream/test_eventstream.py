@@ -3,6 +3,8 @@ import time
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
+from django.conf import settings
+
 from sentry.event_manager import EventManager
 from sentry.eventstream.kafka import KafkaEventStream
 from sentry.eventstream.snuba import SnubaEventStream
@@ -42,7 +44,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase):
 
         produce_args, produce_kwargs = list(self.kafka_eventstream.producer.produce.call_args)
         assert not produce_args
-        assert produce_kwargs["topic"] == "events"
+        assert produce_kwargs["topic"] == settings.KAFKA_EVENTS
         assert produce_kwargs["key"] == str(self.project.id).encode("utf-8")
 
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])

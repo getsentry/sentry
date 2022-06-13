@@ -4,7 +4,6 @@ import ActivityAvatar from 'sentry/components/activity/item/avatar';
 import Card from 'sentry/components/card';
 import Link, {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {User} from 'sentry/types';
 
@@ -96,7 +95,7 @@ const CardHeader = styled('div')`
 const Title = styled('div')`
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   font-weight: normal;
 `;
 
@@ -104,7 +103,7 @@ const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   line-height: 1.5;
 `;
 
@@ -129,7 +128,7 @@ const DateSelected = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.textColor};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const DateStatus = styled('span')`

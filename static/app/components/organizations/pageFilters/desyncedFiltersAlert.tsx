@@ -7,17 +7,16 @@ import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   router: InjectedRouter;
 };
 
 export default function DesyncedFilterAlert({router}: Props) {
-  const {desyncedFilters} = useLegacyStore(PageFiltersStore);
+  const {desyncedFilters} = usePageFilters();
   const organization = useOrganization();
   const [hideAlert, setHideAlert] = useState(false);
 

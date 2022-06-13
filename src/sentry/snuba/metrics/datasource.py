@@ -26,13 +26,10 @@ from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.query import Groupable, MetricsQuery
-from sentry.snuba.metrics.query_builder import (
-    ALLOWED_GROUPBY_COLUMNS,
-    SnubaQueryBuilder,
-    SnubaResultConverter,
-)
+from sentry.snuba.metrics.query_builder import SnubaQueryBuilder, SnubaResultConverter
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
+    FIELD_ALIAS_MAPPINGS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
@@ -45,7 +42,6 @@ from sentry.snuba.metrics.utils import (
     TagValue,
     get_intervals,
 )
-from sentry.snuba.sessions_v2 import InvalidField
 from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
@@ -135,8 +131,8 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
                         unit=None,  # snuba does not know the unit
                     )
                 )
-            except InvalidField:
-                # An instance of `InvalidField` exception is raised here when there is no reverse
+            except InvalidParams:
+                # An instance of `InvalidParams` exception is raised here when there is no reverse
                 # mapping from MRI to public name because of the naming change
                 logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
                 continue
@@ -459,7 +455,7 @@ def _get_group_limit_filters(
     # For example, (project_id, transaction) is translated to (project_id, tags[3])
     keys = tuple(
         resolve_tag_key(metrics_query.org_id, field)
-        if field not in ALLOWED_GROUPBY_COLUMNS
+        if field not in FIELD_ALIAS_MAPPINGS.values()
         else field
         for field in metrics_query.groupby
     )
@@ -589,8 +585,9 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
 
         # The initial query has to contain only one field which is the same as the order by
         # field
+        assert len(metrics_query.orderby) == 1
         orderby_field = [
-            field for field in metrics_query.select if field == metrics_query.orderby.field
+            field for field in metrics_query.select if field == metrics_query.orderby[0].field
         ][0]
         metrics_query = replace(metrics_query, select=[orderby_field])
 

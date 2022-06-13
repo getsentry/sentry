@@ -8,6 +8,7 @@ from sentry.integrations.slack.message_builder import (
     SlackBody,
 )
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
+from sentry.integrations.slack.utils.escape import escape_slack_text
 
 
 class SlackMetricAlertMessageBuilder(BlockSlackMessageBuilder):
@@ -42,7 +43,7 @@ class SlackMetricAlertMessageBuilder(BlockSlackMessageBuilder):
 
         blocks = [
             self.get_markdown_block(
-                text=f"<{data['title_link']}|*{data['title']}*>  \n{data['text']}"
+                text=f"<{data['title_link']}|*{escape_slack_text(data['title'])}*>  \n{data['text']}"
             )
         ]
 

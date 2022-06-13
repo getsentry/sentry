@@ -24,11 +24,6 @@ def random_normal(mu, sigma, minimum, maximum=None):
     return random_value
 
 
-def milliseconds_ago(now, milliseconds):
-    ago = now - timedelta(milliseconds=milliseconds)
-    return (ago - epoch).total_seconds()
-
-
 def random_ip():
     not_valid = [10, 127, 169, 172, 192]
 

@@ -92,7 +92,7 @@ describe('EventsV2 > ChartFooter', function () {
     expect(optionSelector.props().selected).toEqual('5');
   });
 
-  it('renders single value y-axis dropdown selector on a Top display', async function () {
+  it('renders single value y-axis dropdown selector on a Top display', function () {
     const organization = TestStubs.Organization({
       features,
     });
@@ -118,7 +118,7 @@ describe('EventsV2 > ChartFooter', function () {
     expect(yAxis).toEqual(['failure_count()']);
   });
 
-  it('renders multi value y-axis dropdown selector on a non-Top display', async function () {
+  it('renders multi value y-axis dropdown selector on a non-Top display', function () {
     const organization = TestStubs.Organization({
       features,
     });
