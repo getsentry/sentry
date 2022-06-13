@@ -107,8 +107,6 @@ class IssueWidgetQueries extends Component<Props, State> {
     const {api, selection, widget, limit, cursor, organization, onDataFetched} =
       this.props;
 
-    let totalCount, pageLinks, transformedResults;
-
     const request = this.config.getTableRequest!(widget, limit, cursor, {
       organization,
       pageFilters: selection,
@@ -120,10 +118,10 @@ class IssueWidgetQueries extends Component<Props, State> {
 
       const [data, _, resp] = await request;
 
-      transformedResults = this.config.transformTable(data, widget.queries[0]);
+      const transformedResults = this.config.transformTable(data, widget.queries[0]);
 
-      pageLinks = resp?.getResponseHeader('Link') ?? null;
-      totalCount = resp?.getResponseHeader('X-Hits') ?? null;
+      const pageLinks = resp?.getResponseHeader('Link') ?? null;
+      const totalCount = resp?.getResponseHeader('X-Hits') ?? null;
 
       this.setState({
         loading: false,

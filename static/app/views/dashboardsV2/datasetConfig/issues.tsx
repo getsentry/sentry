@@ -35,7 +35,7 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
   transformTable: transformIssuesResponseToTable,
 };
 
-export function getTableRequest(
+function getTableRequest(
   widget: Widget,
   limit?: number,
   cursor?: string,
