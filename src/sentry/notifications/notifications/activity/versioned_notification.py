@@ -25,17 +25,13 @@ class VersionedGroupActivityNotification(GroupActivityNotification, abc.ABC):
             )
 
     def get_params(self) -> Mapping[str, str]:
-        params = {}
         if self.version:
             return {"version": self.version_parsed}
 
-        return params
+        return {}
 
     def get_html_params(self) -> Mapping[str, str]:
-        html_params = {}
         if self.version:
-            html_params[
-                "version"
-            ] = f'<a href="{self.version_url}">{escape(self.version_parsed)}</a>'
+            return {"version": f'<a href="{self.version_url}">{escape(self.version_parsed)}</a>'}
 
-        return html_params
+        return {}
