@@ -1,6 +1,8 @@
 import {OrganizationSummary, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {MetaType} from 'sentry/utils/discover/eventView';
+import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
 import {WidgetQuery, WidgetType} from '../types';
 
@@ -24,10 +26,27 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     contextualProps?: ContextualProps
   ) => TableData;
   /**
+   * Used for mapping column names to more desirable
+   * values in tables.
+   */
+  fieldHeaderMap?: Record<string, string>;
+  /**
+   * Used to select custom renderers for field types.
+   */
+  getCustomFieldRenderer?: (
+    field: string,
+    meta: MetaType,
+    contextualProps?: ContextualProps
+  ) => ReturnType<typeof getFieldRenderer> | null;
+  /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
    */
-  transformSeries?: (data: SeriesResponse) => Series[];
+  transformSeries?: (
+    data: SeriesResponse,
+    widgetQuery: WidgetQuery,
+    contextualProps?: ContextualProps
+  ) => Series[];
 }
 
 export function getDatasetConfig<T extends WidgetType | undefined>(

@@ -1,5 +1,4 @@
-import '@emotion/react';
-
+import {css} from '@emotion/react';
 import color from 'color';
 
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -309,9 +308,9 @@ const generateAliases = (colors: BaseColors) => ({
    */
   searchTokenBackground: {
     valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(0.2).string(),
+    validActive: color(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.2).string(),
+    invalidActive: color(colors.red100).opaquer(0.8).string(),
   },
 
   /**
@@ -319,9 +318,9 @@ const generateAliases = (colors: BaseColors) => ({
    */
   searchTokenBorder: {
     valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(0.4).string(),
+    validActive: color(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(0.4).string(),
+    invalidActive: color(colors.red200).opaquer(1).string(),
   },
 
   /**
@@ -562,6 +561,13 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     }`,
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
+  }),
+  overflowEllipsis: css({
+    display: 'block',
+    width: '100%',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
   }),
 });
 

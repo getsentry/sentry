@@ -49,7 +49,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        no_cache = request.relay_request_data.get("no_cache") or False
+        no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
 
         enable_v3 = random.random() < options.get("relay.project-config-v3-enable")

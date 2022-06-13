@@ -17,7 +17,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {
   Organization,
@@ -1040,7 +1039,7 @@ const ChartPanel = styled(Panel)`
 
 const Cell = styled('div')`
   text-align: right;
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const DescriptionCell = styled(Cell)`
