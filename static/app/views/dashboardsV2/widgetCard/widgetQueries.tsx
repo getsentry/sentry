@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import cloneDeep from 'lodash/cloneDeep';
+import isEmpty from 'lodash/isEmpty';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -269,66 +269,7 @@ class WidgetQueries extends Component<Props, State> {
 
   private _isMounted: boolean = false;
 
-  async fetchTimeseriesData(queryFetchID: symbol) {
-    const {selection, api, organization, widget, onDataFetched} = this.props;
-    const widgetBuilderNewDesign = organization.features.includes(
-      'new-widget-builder-experience-design'
-    );
-    this.setState({timeseriesResults: [], rawResults: []});
-
-    const requests = this.config.getTimeseriesRequests!(widget, {
-      organization,
-      pageFilters: selection,
-      api,
-    });
-
-    let isMetricsData: boolean | undefined;
-    for (const [i, request] of requests.entries()) {
-      const rawResults = await request;
-      console.log(rawResults);
-      if (!this._isMounted) {
-        return;
-      }
-      // If one of the queries is sampled, then mark the whole thing as sampled
-      isMetricsData =
-        isMetricsData === false ? false : getIsMetricsDataFromSeriesResponse(rawResults);
-      this.setState(prevState => {
-        if (prevState.queryFetchID !== queryFetchID) {
-          // invariant: a different request was initiated after this request
-          return prevState;
-        }
-
-        const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-        const transformedResult = transformResult(
-          widget.queries[i],
-          rawResults,
-          widget.displayType,
-          widgetBuilderNewDesign
-        );
-        // When charting timeseriesData on echarts, color association to a timeseries result
-        // is order sensitive, ie series at index i on the timeseries array will use color at
-        // index i on the color array. This means that on multi series results, we need to make
-        // sure that the order of series in our results do not change between fetches to avoid
-        // coloring inconsistencies between renders.
-        transformedResult.forEach((result, resultIndex) => {
-          timeseriesResults[i * transformedResult.length + resultIndex] = result;
-        });
-
-        const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
-        rawResultsClone[i] = rawResults;
-
-        onDataFetched?.({timeseriesResults});
-
-        return {
-          ...prevState,
-          timeseriesResults,
-          rawResults: rawResultsClone,
-        };
-      });
-    }
-  }
-
-  processTableResponse(responses) {
+  processTableResponse = responses => {
     const {widget, organization} = this.props;
     let pageLinks: string | null = null;
     let isMetricsData: boolean | undefined;
@@ -347,12 +288,44 @@ class WidgetQueries extends Component<Props, State> {
     });
 
     return {pageLinks: pageLinks ?? undefined, tableResults, isMetricsData};
-  }
+  };
 
-  processTimeseriesResponse(responses) {
+  processTimeseriesResponse = responses => {
+    const {organization, widget} = this.props;
+
+    const widgetBuilderNewDesign = organization.features.includes(
+      'new-widget-builder-experience-design'
+    );
     let isMetricsData: boolean | undefined;
+    const rawResults: RawResult[] = [];
+    const timeseriesResults: Series[] = [];
+    responses.forEach((rawResult, i) => {
+      if (!this._isMounted) {
+        return;
+      }
+      // If one of the queries is sampled, then mark the whole thing as sampled
+      isMetricsData =
+        isMetricsData === false ? false : getIsMetricsDataFromSeriesResponse(rawResult);
+
+      const transformedResult = transformResult(
+        widget.queries[i],
+        rawResult,
+        widget.displayType,
+        widgetBuilderNewDesign
+      );
+      // When charting timeseriesData on echarts, color association to a timeseries result
+      // is order sensitive, ie series at index i on the timeseries array will use color at
+      // index i on the color array. This means that on multi series results, we need to make
+      // sure that the order of series in our results do not change between fetches to avoid
+      // coloring inconsistencies between renders.
+      transformedResult.forEach((result, resultIndex) => {
+        timeseriesResults[i * transformedResult.length + resultIndex] = result;
+      });
+
+      rawResults[i] = rawResult;
+    });
     return {timeseriesResults, rawResults, isMetricsData};
-  }
+  };
 
   async fetchData() {
     const {selection, api, organization, widget, limit, cursor, onDataFetched} =
@@ -369,39 +342,37 @@ class WidgetQueries extends Component<Props, State> {
     let requests;
     let responseProcessor;
     let isMetricsData;
+    const contextualRequestProps = {
+      organization,
+      pageFilters: selection,
+      api,
+    };
     try {
       if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
         requests = this.config.getTableRequests!(
           widget,
-          {
-            organization,
-            pageFilters: selection,
-            api,
-          },
+          contextualRequestProps,
           limit,
           cursor
         );
-        responseProcessor = this.processTableResponse.bind(this);
+        responseProcessor = this.processTableResponse;
       } else {
-        // this.fetchTimeseriesData(Symbol('bleh'));
-        requests = this.config.getTimeseriesRequests!(widget, {
-          organization,
-          pageFilters: selection,
-          api,
-        });
-        responseProcessor = () => {};
-        return;
+        requests = this.config.getTimeseriesRequests!(widget, contextualRequestProps);
+        responseProcessor = this.processTimeseriesResponse;
       }
 
       const responses = await Promise.all(requests);
       const processedData = responseProcessor(responses);
 
-      onDataFetched?.({...processedData});
+      isMetricsData = processedData.isMetricsData;
 
+      if (!this._isMounted) {
+        return;
+      }
+
+      onDataFetched?.({...processedData});
       this.setState({
         ...processedData,
-        // tableResults,
-        // pageLinks,
       });
     } catch (err) {
       const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
@@ -425,8 +396,10 @@ class WidgetQueries extends Component<Props, State> {
     const filteredTimeseriesResults = timeseriesResults?.filter(result => !!result);
     return children({
       loading,
-      timeseriesResults: filteredTimeseriesResults,
-      tableResults,
+      timeseriesResults: isEmpty(filteredTimeseriesResults)
+        ? undefined
+        : filteredTimeseriesResults,
+      tableResults: isEmpty(tableResults) ? undefined : tableResults,
       errorMessage,
       pageLinks,
     });
