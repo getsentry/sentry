@@ -11,7 +11,6 @@ import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Actor, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -20,7 +19,6 @@ import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
 type Props = {
   incident: Incident;
-  orgId: string;
   organization: Organization;
   projects: Project[];
   projectsLoaded: boolean;
@@ -86,7 +84,7 @@ function AlertListRow({incident, projectsLoaded, projects, organization}: Props)
 }
 
 const Title = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   min-width: 130px;
 `;
 
@@ -100,13 +98,13 @@ const ProjectBadge = styled(IdBadge)`
 `;
 
 const FlexCenter = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   display: flex;
   align-items: center;
 `;
 
 const TeamWrapper = styled('span')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledActorAvatar = styled(ActorAvatar)`

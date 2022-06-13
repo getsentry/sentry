@@ -41,6 +41,29 @@ def _get_from_index(release: Release, dist: Optional[Distribution], url: str) ->
     return pseudo_releasefile(url, entry, dist)
 
 
+class ClosesDependentFiles:
+    def __init__(self, f, *closables) -> None:
+        self._f = f
+        self._closables = closables
+
+    def close(self):
+        self._f.close()
+        for closable in self._closables:
+            closable.close()
+
+    def __iter__(self):
+        return self._f
+
+    def __getattr__(self, attr):
+        return getattr(self._f, attr)
+
+    def __dir__(self):
+        ret = list(super().__dir__())
+        ret.extend(dir(self._f))
+        ret.sort()
+        return ret
+
+
 class ReleaseFileDetailsMixin:
     """Shared functionality of ProjectReleaseFileDetails and OrganizationReleaseFileDetails
 
@@ -67,12 +90,12 @@ class ReleaseFileDetailsMixin:
 
         # Do not use ReleaseFileCache here, we view download as a singular event
         archive_file = ReleaseFile.objects.get(release_id=release.id, ident=archive_ident)
-        archive = ZipFile(archive_file.file.getfile())
-        fp = archive.open(entry["filename"])
+        archive_file_fp = archive_file.file.getfile()
+        fp = ZipFile(archive_file_fp).open(entry["filename"])
         headers = entry.get("headers", {})
 
         response = FileResponse(
-            fp,
+            ClosesDependentFiles(fp, archive_file_fp),
             content_type=headers.get("content-type", "application/octet-stream"),
         )
         response["Content-Length"] = entry["size"]

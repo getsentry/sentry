@@ -1288,6 +1288,53 @@ describe('WidgetBuilder', function () {
       await screen.findByText('Limit to 2 results');
     });
 
+    it('alerts the user if there are unsaved changes', async function () {
+      const {router} = renderTestComponent();
+
+      const alertMock = jest.fn();
+      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+        alertMock();
+      });
+
+      const customWidgetLabels = await screen.findAllByText('Custom Widget');
+      // EditableText and chart title
+      expect(customWidgetLabels).toHaveLength(2);
+
+      // Change title text
+      userEvent.click(customWidgetLabels[0]);
+      userEvent.clear(screen.getByRole('textbox', {name: 'Widget title'}));
+      userEvent.paste(
+        screen.getByRole('textbox', {name: 'Widget title'}),
+        'Unique Users'
+      );
+      userEvent.keyboard('{enter}');
+
+      // Click Cancel
+      userEvent.click(screen.getByText('Cancel'));
+
+      // Assert an alert was triggered
+      expect(alertMock).toHaveBeenCalled();
+    });
+
+    it('does not trigger alert dialog if no changes', async function () {
+      const {router} = renderTestComponent();
+
+      const alertMock = jest.fn();
+      const setRouteLeaveHookMock = jest.spyOn(router, 'setRouteLeaveHook');
+      setRouteLeaveHookMock.mockImplementationOnce((_route, _callback) => {
+        alertMock();
+      });
+
+      await screen.findAllByText('Custom Widget');
+
+      // Click Cancel
+      userEvent.click(screen.getByText('Cancel'));
+
+      // Assert an alert was triggered
+      expect(alertMock).not.toHaveBeenCalled();
+    });
+
     describe('Sort by selectors', function () {
       it('renders', async function () {
         renderTestComponent({
@@ -1953,6 +2000,53 @@ describe('WidgetBuilder', function () {
         expect(screen.getAllByText('count()')).toHaveLength(2);
         await selectEvent.select(screen.getAllByText('count()')[1], 'count() * 100');
       });
+
+      it('does not reset the orderby when ordered by an equation in table', async function () {
+        const widget: Widget = {
+          id: '1',
+          title: 'Errors over time',
+          interval: '5m',
+          displayType: DisplayType.TABLE,
+          queries: [
+            {
+              name: '',
+              conditions: '',
+              fields: [
+                'count()',
+                'count_unique(id)',
+                'equation|count() + count_unique(id)',
+              ],
+              aggregates: [
+                'count()',
+                'count_unique(id)',
+                'equation|count() + count_unique(id)',
+              ],
+              columns: [],
+              orderby: '-equation[0]',
+            },
+          ],
+        };
+
+        const dashboard: DashboardDetails = {
+          id: '1',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [widget],
+        };
+
+        renderTestComponent({
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await screen.findByText('Sort by a column');
+
+        // 1 in the column selector, 1 in the sort by field
+        expect(screen.getAllByText('count() + count_unique(id)')).toHaveLength(2);
+      });
     });
 
     describe('Widget creation coming from other verticals', function () {
@@ -2309,7 +2403,7 @@ describe('WidgetBuilder', function () {
 
         userEvent.paste(
           await screen.findByPlaceholderText('Search for events, users, tags, and more'),
-          'is:',
+          'bookmarks',
           {
             clipboardData: {getData: () => ''},
           } as unknown as React.ClipboardEvent<HTMLTextAreaElement>

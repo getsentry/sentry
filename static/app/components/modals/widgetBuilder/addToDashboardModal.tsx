@@ -93,14 +93,23 @@ function AddToDashboardModal({
       return;
     }
 
+    let orderby = widget.queries[0].orderby;
+    if (!!!(DisplayType.AREA && widget.queries[0].columns.length)) {
+      orderby = ''; // Clear orderby if its not a top n visualization.
+    }
+    const query = widget.queries[0];
+
+    const newWidget = {
+      ...widget,
+      title: widget.title === '' ? t('All Events') : widget.title,
+      queries: [{...query, orderby}],
+    };
+
     try {
       const dashboard = await fetchDashboard(api, organization.slug, selectedDashboardId);
       const newDashboard = {
         ...dashboard,
-        widgets: [
-          ...dashboard.widgets,
-          {...widget, title: widget.title === '' ? t('All Events') : widget.title},
-        ],
+        widgets: [...dashboard.widgets, newWidget],
       };
 
       await updateDashboard(api, organization.slug, newDashboard);

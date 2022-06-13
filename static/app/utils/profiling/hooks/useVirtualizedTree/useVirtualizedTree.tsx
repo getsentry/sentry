@@ -39,6 +39,9 @@ const requestAnimationTimeout = (
   });
 
   const timeout = () => {
+    if (start === undefined) {
+      return;
+    }
     if (Date.now() - start >= delay) {
       callback();
     } else {
@@ -667,18 +670,32 @@ export function useVirtualizedTree<T extends TreeLike>(
   // It is important that this is not executed from a map function because
   // we are assigning the refs to each individual item. If we do that,
   // we lose access to the refs and cannot call focus or scrollIntoView on them
-  const renderedItems: React.ReactNode[] = [];
-  for (const item of items) {
-    renderedItems.push(
-      renderRow(item, {
-        handleRowClick: handleRowClick(item.key),
-        handleExpandTreeNode,
-        handleRowKeyDown,
-        handleRowMouseEnter: handleRowMouseEnter(item.key),
-        tabIndexKey: state.tabIndexKey,
-      })
-    );
-  }
+
+  const renderedItems: React.ReactNode[] = useMemo(() => {
+    const renderered: React.ReactNode[] = [];
+
+    for (const item of items) {
+      renderered.push(
+        renderRow(item, {
+          handleRowClick: handleRowClick(item.key),
+          handleExpandTreeNode,
+          handleRowKeyDown,
+          handleRowMouseEnter: handleRowMouseEnter(item.key),
+          tabIndexKey: state.tabIndexKey,
+        })
+      );
+    }
+
+    return renderered;
+  }, [
+    items,
+    handleRowClick,
+    handleRowKeyDown,
+    state.tabIndexKey,
+    handleRowMouseEnter,
+    handleExpandTreeNode,
+    renderRow,
+  ]);
 
   return {
     tree,

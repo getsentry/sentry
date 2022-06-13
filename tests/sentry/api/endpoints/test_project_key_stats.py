@@ -15,11 +15,28 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         self.path = f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/keys/{self.key.public_key}/stats/"
 
     def test_simple(self):
+        # This outcome should not be included.
+        other_key = ProjectKey.objects.create(project=self.project)
         self.store_outcomes(
             {
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": other_key.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 100,
+            },
+            1,
+        )
+        # These outcomes should be included.
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": before_now(hours=1),
+                "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -32,6 +49,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.FILTERED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -43,6 +61,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
             {
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
+                "key_id": self.key.id,
                 "project_id": self.project.id,
                 "outcome": Outcome.RATE_LIMITED,
                 "reason": "none",
@@ -52,16 +71,16 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
             5,
         )
         response = self.client.get(self.path)
-        assert response.status_code == 200
-
         assert response.status_code == 200, response.content
-        assert type(response.data[-1]["ts"]) == int
-        assert response.data[-1]["total"] == 8, response.data
-        assert response.data[-1]["filtered"] == 1, response.data
-        assert response.data[-1]["dropped"] == 5, response.data
-        assert response.data[-1]["accepted"] == 2, response.data
-        for point in response.data[:-1]:
-            assert point["total"] == 0
+
+        # Find the bucket with data.
+        # The index of this bucket can shift when we run tests at UTC midnight
+        result = [bucket for bucket in response.data if bucket["total"] > 0][0]
+        assert type(result["ts"]) == int
+        assert result["total"] == 8, response.data
+        assert result["filtered"] == 1, response.data
+        assert result["dropped"] == 5, response.data
+        assert result["accepted"] == 2, response.data
 
     def test_ignore_discard(self):
         self.store_outcomes(
@@ -69,6 +88,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -81,6 +101,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.CLIENT_DISCARD,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -89,11 +110,11 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
             1,
         )
         response = self.client.get(self.path)
-        assert response.status_code == 200
-
         assert response.status_code == 200, response.content
-        assert response.data[-1]["total"] == 2, response.data
-        assert response.data[-1]["filtered"] == 0, response.data
+
+        result = [bucket for bucket in response.data if bucket["total"] > 0][0]
+        assert result["total"] == 2, response.data
+        assert result["filtered"] == 0, response.data
 
     def test_invalid_parameters(self):
         url = self.path + "?resolution=2d"
@@ -106,6 +127,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(hours=1),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -118,6 +140,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "org_id": self.organization.id,
                 "timestamp": before_now(days=10),
                 "project_id": self.project.id,
+                "key_id": self.key.id,
                 "outcome": Outcome.ACCEPTED,
                 "reason": "none",
                 "category": DataCategory.ERROR,
@@ -132,14 +155,12 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "until": before_now().timestamp(),
             },
         )
-        assert response.status_code == 200
-
         assert response.status_code == 200, response.content
-        assert type(response.data[-1]["ts"]) == int
-        assert response.data[-1]["total"] == 2, response.data
-        assert response.data[-1]["filtered"] == 0, response.data
-        assert response.data[-1]["dropped"] == 0, response.data
-        assert response.data[-1]["accepted"] == 2, response.data
-        for point in response.data[:-1]:
-            assert point["total"] == 0
+
+        result = [bucket for bucket in response.data if bucket["total"] > 0][0]
+        assert type(result["ts"]) == int
+        assert result["total"] == 2, response.data
+        assert result["filtered"] == 0, response.data
+        assert result["dropped"] == 0, response.data
+        assert result["accepted"] == 2, response.data
         assert len(response.data) == 2

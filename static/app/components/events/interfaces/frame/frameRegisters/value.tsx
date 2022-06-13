@@ -53,6 +53,7 @@ function Value({meta, value}: Props) {
             setState({view: (state.view + 1) % REGISTER_VIEWS.length});
           }}
           size="xs"
+          aria-label={t('Toggle register value format')}
         />
       </StyledTooltip>
     </InlinePre>

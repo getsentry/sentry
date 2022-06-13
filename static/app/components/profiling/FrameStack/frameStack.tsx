@@ -44,6 +44,14 @@ function FrameStack(props: FrameStackProps) {
     []
   );
 
+  const onBottomUpClick = useCallback(() => {
+    setTab('bottom up');
+  }, []);
+
+  const onCallOrderClick = useCallback(() => {
+    setTab('call order');
+  }, []);
+
   const {height, onMouseDown} = useVerticallyResizableDrawer({
     initialHeight: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT,
     minHeight: 30,
@@ -57,19 +65,19 @@ function FrameStack(props: FrameStackProps) {
     >
       <FrameTabs>
         <li className={tab === 'bottom up' ? 'active' : undefined}>
-          <Button priority="link" size="zero" onClick={() => setTab('bottom up')}>
+          <Button priority="link" size="zero" onClick={onBottomUpClick}>
             {t('Bottom Up')}
           </Button>
         </li>
         <li className={tab === 'call order' ? 'active' : undefined}>
-          <Button priority="link" size="zero" onClick={() => setTab('call order')}>
+          <Button priority="link" size="zero" onClick={onCallOrderClick}>
             {t('Call Order')}
           </Button>
         </li>
         <li>
           <FrameDrawerLabel>
             <input type="checkbox" onChange={handleRecursionChange} />
-            Collapse recursion
+            {t('Collapse recursion')}
           </FrameDrawerLabel>
         </li>
         <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />

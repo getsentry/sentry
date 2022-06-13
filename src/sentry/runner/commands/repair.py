@@ -5,6 +5,7 @@ import click
 from django.db import transaction
 
 from sentry.runner.decorators import configuration
+from sentry.types.activity import ActivityType
 
 
 class RollbackLocally(Exception):
@@ -50,8 +51,6 @@ def create_missing_dsns():
 def fix_group_counters():
     from django.db import connection
 
-    from sentry.models import Activity
-
     click.echo("Correcting Group.num_comments counter")
     cursor = connection.cursor()
     cursor.execute(
@@ -61,7 +60,7 @@ def fix_group_counters():
             WHERE type = %s and group_id = sentry_groupedmessage.id
         )
     """,
-        [Activity.NOTE],
+        [ActivityType.NOTE.value],
     )
 
 
