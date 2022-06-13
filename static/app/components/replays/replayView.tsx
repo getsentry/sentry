@@ -18,10 +18,17 @@ const SCREEN_HEIGHT_DIVISOR = 2;
 
 type Props = {
   isFullscreen: boolean;
+  isPictureInPicture: boolean;
   toggleFullscreen: () => void;
+  togglePictureInPicture: () => void;
 };
 
-function ReplayView({isFullscreen, toggleFullscreen}: Props) {
+function ReplayView({
+  isFullscreen,
+  toggleFullscreen,
+  isPictureInPicture,
+  togglePictureInPicture,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
 
@@ -59,7 +66,11 @@ function ReplayView({isFullscreen, toggleFullscreen}: Props) {
         <PlayerScrubber />
       </HorizontalMouseTracking>
       <ReplayControllerWrapper>
-        <ReplayController toggleFullscreen={toggleFullscreen} />
+        <ReplayController
+          toggleFullscreen={toggleFullscreen}
+          isPictureInPicture={isPictureInPicture}
+          togglePictureInPicture={togglePictureInPicture}
+        />
       </ReplayControllerWrapper>
     </PanelNoMargin>
   );

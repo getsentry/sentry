@@ -9,6 +9,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime, relativeTimeInMs} from 'sentry/components/replays/utils';
 import {
   IconArrow,
+  IconCopy,
   IconNext,
   IconPause,
   IconPlay,
@@ -32,8 +33,10 @@ const USER_ACTIONS = [
 ];
 
 interface Props {
+  isPictureInPicture?: boolean;
   speedOptions?: number[];
   toggleFullscreen?: () => void;
+  togglePictureInPicture?: () => void;
 }
 
 function ReplayPlayPauseBar() {
@@ -114,7 +117,9 @@ function ReplayPlaybackSpeed({speedOptions}: {speedOptions: number[]}) {
 
 const ReplayControls = ({
   toggleFullscreen = () => {},
+  togglePictureInPicture = () => {},
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4],
+  isPictureInPicture = false,
 }: Props) => {
   const {isFullscreen} = useFullscreen();
   const {isSkippingInactive, toggleSkipInactive} = useReplayContext();
@@ -138,6 +143,19 @@ const ReplayControls = ({
 
       <Button
         size="xsmall"
+        title={
+          isPictureInPicture ? t('Exit picture-in-picture') : t('View picture-in-picture')
+        }
+        aria-label={
+          isPictureInPicture ? t('Exit picture-in-picture') : t('View picture-in-picture')
+        }
+        icon={<IconCopy size="sm" />}
+        priority={isPictureInPicture ? 'primary' : undefined}
+        onClick={togglePictureInPicture}
+      />
+
+      <Button
+        size="xsmall"
         title={isFullscreen ? t('Exit full screen') : t('View in full screen')}
         aria-label={isFullscreen ? t('Exit full screen') : t('View in full screen')}
         icon={<IconResize size="sm" />}
@@ -151,7 +169,7 @@ const ReplayControls = ({
 const ButtonGrid = styled('div')`
   display: grid;
   grid-column-gap: ${space(1)};
-  grid-template-columns: max-content auto max-content max-content max-content;
+  grid-template-columns: max-content auto max-content max-content max-content max-content;
   align-items: center;
 `;
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -37,6 +37,9 @@ function ReplayDetails() {
   });
 
   const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
+
+  const [isPictureInPicture, setIsPictureInPicture] = useState(false);
+  const togglePictureInPicture = () => setIsPictureInPicture(!isPictureInPicture);
 
   if (!fetching && !replay) {
     // TODO(replay): Give the user more details when errors happen
@@ -81,7 +84,12 @@ function ReplayDetails() {
       >
         <Layout.Body>
           <Layout.Main ref={fullscreenRef}>
-            <ReplayView toggleFullscreen={toggleFullscreen} isFullscreen={isFullscreen} />
+            <ReplayView
+              toggleFullscreen={toggleFullscreen}
+              isFullscreen={isFullscreen}
+              isPictureInPicture={isPictureInPicture}
+              togglePictureInPicture={togglePictureInPicture}
+            />
           </Layout.Main>
 
           <Layout.Side>
