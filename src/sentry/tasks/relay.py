@@ -202,14 +202,8 @@ def build_project_config(public_key=None, trigger=None, **kwargs):
             # avoid creating more tasks for it.
             projectconfig_cache.set_many({public_key: {"disabled": True}})
         else:
-            from sentry.models import ProjectKeyStatus
-            from sentry.relay.config import get_project_config
-
-            if key.status != ProjectKeyStatus.ACTIVE:
-                projectconfig_cache.set_many({public_key: {"disabled": True}})
-            else:
-                config = get_project_config(key.project, project_keys=[key], full_config=True)
-                projectconfig_cache.set_many({public_key: config.to_dict()})
+            config = compute_projectkey_config(key)
+            projectconfig_cache.set_many({public_key: config})
 
     finally:
         # Delete the key in this `finally` block to make sure the debouncing key
