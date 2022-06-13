@@ -33,7 +33,6 @@ class PGStringIndexerV2(StringIndexer):
     def __init__(self):
         ingest_profile = get_ingest_config()
         self.table: IndexerTable = TABLE_MAPPING[ingest_profile.name]
-        self.metrics_prefix = ingest_profile.internal_metrics_tag
 
     """
     Provides integer IDs for metric names, tag keys and tag values
