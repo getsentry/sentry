@@ -142,9 +142,14 @@ function FrameStack(props: FrameStackProps) {
             {t('System Frames')}
           </Button>
         </li>
+        <Separator />
         <li>
           <FrameDrawerLabel>
-            <input type="checkbox" onChange={handleRecursionChange} />
+            <input
+              type="checkbox"
+              checked={recursion === 'collapsed'}
+              onChange={handleRecursionChange}
+            />
             {t('Collapse recursion')}
           </FrameDrawerLabel>
         </li>
