@@ -14,6 +14,10 @@ export type PerformanceEventParameters = {
   'performance_views.event_details.filter_by_op': {
     operation: string;
   };
+  'performance_views.event_details.open_span_details': {
+    description: string;
+    operation: string;
+  };
   'performance_views.event_details.search_query': {
     query: string;
   };
@@ -120,4 +124,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Event Details page operation filter applied',
   'performance_views.event_details.search_query':
     'Performance Views: Event Details search query',
+  'performance_views.event_details.open_span_details':
+    'Performance Views: Event Details span details opened',
 };

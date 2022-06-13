@@ -35,6 +35,7 @@ import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -79,6 +80,19 @@ class SpanDetail extends Component<Props, State> {
   state: State = {
     errorsOpened: false,
   };
+
+  componentDidMount() {
+    const {span, organization} = this.props;
+    if ('type' in span) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('performance_views.event_details.open_span_details', {
+      organization,
+      operation: span.op ?? 'undefined',
+      description: span.description ?? 'undefined',
+    });
+  }
 
   renderTraversalButton(): React.ReactNode {
     if (!this.props.childTransactions) {
