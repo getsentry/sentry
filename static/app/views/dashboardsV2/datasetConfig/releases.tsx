@@ -22,7 +22,7 @@ import {
 
 import {DatasetConfig} from './base';
 
-const DEFAULT_WIDGET_QUERY = {
+const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
   fields: [`crash_free_rate(${SessionField.SESSION})`],
   columns: [],

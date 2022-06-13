@@ -257,22 +257,6 @@ function WidgetBuilder({
     return defaultState;
   });
 
-  const widgetType =
-    state.dataSet === DataSet.EVENTS
-      ? WidgetType.DISCOVER
-      : state.dataSet === DataSet.ISSUES
-      ? WidgetType.ISSUE
-      : WidgetType.RELEASE;
-
-  const currentWidget = {
-    title: state.title,
-    displayType: state.displayType,
-    interval: state.interval,
-    queries: state.queries,
-    limit: state.limit,
-    widgetType,
-  };
-
   const [widgetToBeUpdated, setWidgetToBeUpdated] = useState<Widget | null>(null);
 
   // For analytics around widget library selection
@@ -399,6 +383,22 @@ function WidgetBuilder({
 
     router.setRouteLeaveHook(route, onUnload);
   }, [isSubmitting, state.userHasModified, route, router]);
+
+  const widgetType =
+    state.dataSet === DataSet.EVENTS
+      ? WidgetType.DISCOVER
+      : state.dataSet === DataSet.ISSUES
+      ? WidgetType.ISSUE
+      : WidgetType.RELEASE;
+
+  const currentWidget = {
+    title: state.title,
+    displayType: state.displayType,
+    interval: state.interval,
+    queries: state.queries,
+    limit: state.limit,
+    widgetType,
+  };
 
   const currentDashboardId = state.selectedDashboard?.value ?? dashboardId;
   const queryParamsWithoutSource = omit(location.query, 'source');
