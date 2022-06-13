@@ -60,7 +60,6 @@ export type PerformanceEventParameters = {
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
   'performance_views.trace_view.view': {};
-  'performance_views.vital_detail.view': {};
   'performance_views.transaction_summary.change_chart_display': {
     from_chart: string;
     to_chart: string;
@@ -68,6 +67,7 @@ export type PerformanceEventParameters = {
   'performance_views.transaction_summary.status_breakdown_click': {
     status: string;
   };
+  'performance_views.vital_detail.view': {};
 };
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
