@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import space from 'sentry/styles/space';
-import trackUserOnlyAnalyticsEvents from 'sentry/utils/analytics/trackUserOnlyAnalyticsEvents';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
@@ -26,7 +26,7 @@ export default function DemoHeader() {
       <StyledLogoSentry />
       <StyledExternalLink
         onClick={() =>
-          trackUserOnlyAnalyticsEvents('growth.demo_click_docs', {organization: null})
+          trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
         }
         href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
         openInNewTab
@@ -36,7 +36,7 @@ export default function DemoHeader() {
       <RequestDemoBtn
         priority="form"
         onClick={() =>
-          trackUserOnlyAnalyticsEvents('growth.demo_click_request_demo', {
+          trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
             organization: null,
           })
         }
@@ -59,7 +59,7 @@ export default function DemoHeader() {
           // from localStorage when the user clicks the button.
           window.open(url, '_blank');
 
-          trackUserOnlyAnalyticsEvents('growth.demo_click_get_started', {
+          trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
             cta: sandboxData?.cta?.id,
             organization: null,
           });
