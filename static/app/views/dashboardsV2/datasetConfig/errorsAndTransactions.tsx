@@ -26,12 +26,23 @@ import {
 
 import {ContextualProps, DatasetConfig} from './base';
 
+const DEFAULT_WIDGET_QUERY: WidgetQuery = {
+  name: '',
+  fields: ['count()'],
+  columns: [],
+  fieldAliases: [],
+  aggregates: ['count()'],
+  conditions: '',
+  orderby: '-count()',
+};
+
 type SeriesWithOrdering = [order: number, series: Series];
 
 export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
