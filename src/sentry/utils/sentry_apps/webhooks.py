@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 
 WEBHOOK_TIMEOUT = 5
+TIMEOUT_STATUS_CODE = 0
 
 logger = logging.getLogger("sentry.sentry_apps.webhooks")
 
@@ -55,7 +56,7 @@ def send_and_save_webhook_request(
     event = f"{app_platform_event.resource}.{app_platform_event.action}"
     slug = sentry_app.slug_for_metrics
     url = url or sentry_app.webhook_url
-
+    response = None
     try:
         response = safe_urlopen(
             url=url,
@@ -74,8 +75,13 @@ def send_and_save_webhook_request(
             },
         )
         track_response_code(error_type, slug, event)
-        # Response code of 0 represents timeout
-        buffer.add_request(response_code=0, org_id=org_id, event=event, url=url)
+        buffer.add_request(
+            response_code=TIMEOUT_STATUS_CODE,
+            org_id=org_id,
+            event=event,
+            url=url,
+            headers=app_platform_event.headers,
+        )
         # Re-raise the exception because some of these tasks might retry on the exception
         raise
 
@@ -87,6 +93,8 @@ def send_and_save_webhook_request(
         url=url,
         error_id=response.headers.get("Sentry-Hook-Error"),
         project_id=response.headers.get("Sentry-Hook-Project"),
+        response=response,
+        headers=app_platform_event.headers,
     )
 
     if response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
