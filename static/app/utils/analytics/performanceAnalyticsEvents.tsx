@@ -55,6 +55,7 @@ export type PerformanceEventParameters = {
     is_other_tag: boolean;
     to_tag: string;
   };
+  'performance_views.tags.jump_to_release': {};
   'performance_views.tour.advance': PerformanceTourParams;
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
@@ -104,4 +105,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: All Events page open in Discover button clicked',
   'performance_views.tags.change_tag':
     'Performance Views: Tags Page changed selected tag',
+  'performance_views.tags.jump_to_release':
+    'Performance Views: Tags Page link to release in table clicked',
 };
