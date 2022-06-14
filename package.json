@@ -175,7 +175,7 @@
     "html-webpack-plugin": "^5.5.0",
     "jest": "28.1.1",
     "jest-canvas-mock": "^2.4.0",
-    "jest-environment-jsdom": "^28.1.0",
+    "jest-environment-jsdom": "^28.1.1",
     "jest-fetch-mock": "^3.0.3",
     "jest-junit": "13.2.0",
     "jest-sentry-environment": "3.0.0",
