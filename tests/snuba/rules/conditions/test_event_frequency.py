@@ -138,8 +138,8 @@ class StandardIntervalMixin:
         self.assertDoesNotPass(rule, event)
 
     def test_comparison_empty_comparison_period(self):
-        # Test data is 1 event in the current period and 0 events in the comparison period. This
-        # should always result in 0 and never fire.
+        # Test data is 1 event in the current period and 0 events in the comparison period. In this
+        # case we should regard it as a 100% increase.
         event = self.store_event(
             data={
                 "fingerprint": ["something_random"],
@@ -150,16 +150,16 @@ class StandardIntervalMixin:
         )
         data = {
             "interval": "1h",
-            "value": 0,
+            "value": 99,
             "comparisonType": "percent",
             "comparisonInterval": "1d",
         }
         rule = self.get_rule(data=data, rule=Rule(environment_id=None))
-        self.assertDoesNotPass(rule, event)
+        self.assertPasses(rule, event)
 
         data = {
             "interval": "1h",
-            "value": 100,
+            "value": 101,
             "comparisonType": "percent",
             "comparisonInterval": "1d",
         }
