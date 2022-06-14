@@ -1,4 +1,10 @@
-from .base import OrganizationFeature, ProjectFeature, ProjectPluginFeature, UserFeature  # NOQA
+from .base import (  # NOQA
+    Feature,
+    OrganizationFeature,
+    ProjectFeature,
+    ProjectPluginFeature,
+    UserFeature,
+)
 from .handler import *  # NOQA
 from .manager import *  # NOQA
 
