@@ -50,7 +50,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
-  getFieldOptions: getEventsFieldOptions,
+  getTableFieldOptions: getEventsFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,

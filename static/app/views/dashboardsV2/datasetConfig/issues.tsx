@@ -25,7 +25,7 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getIssueFieldRenderer,
-  getFieldOptions: () => generateIssueWidgetFieldOptions(),
+  getTableFieldOptions: () => generateIssueWidgetFieldOptions(),
   fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
   supportedDisplayTypes: [DisplayType.TABLE],
   transformTable: transformIssuesResponseToTable,

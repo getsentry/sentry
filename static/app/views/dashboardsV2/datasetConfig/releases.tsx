@@ -43,7 +43,7 @@ export const ReleasesConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
-  getFieldOptions: getReleasesFieldOptions,
+  getTableFieldOptions: getReleasesFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,

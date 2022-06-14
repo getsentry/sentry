@@ -22,7 +22,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
-  getFieldOptions: (
+  getTableFieldOptions: (
     contextualProps?: ContextualProps,
     tags?: TagCollection
   ) => Record<string, SelectValue<FieldValue>>;

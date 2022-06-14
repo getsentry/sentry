@@ -88,7 +88,7 @@ export function ColumnsStep({
           widgetType={widgetType}
           fields={explodedFields}
           errors={queryErrors}
-          fieldOptions={datasetConfig.getFieldOptions({organization}, tags)}
+          fieldOptions={datasetConfig.getTableFieldOptions({organization}, tags)}
           onChange={onYAxisOrColumnFieldChange}
         />
       ) : dataSet === DataSet.ISSUES ? (
@@ -98,7 +98,7 @@ export function ColumnsStep({
           widgetType={widgetType}
           fields={explodedFields}
           errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
-          fieldOptions={datasetConfig.getFieldOptions({organization}, tags)}
+          fieldOptions={datasetConfig.getTableFieldOptions({organization}, tags)}
           onChange={newFields => {
             const fieldStrings = newFields.map(generateFieldAsString);
             const splitFields = getColumnsAndAggregatesAsStrings(newFields);

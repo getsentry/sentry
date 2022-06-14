@@ -36,7 +36,7 @@ export function ReleaseColumnFields({
       widgetType={widgetType}
       fields={explodedFields}
       errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
-      fieldOptions={datasetConfig.getFieldOptions()}
+      fieldOptions={datasetConfig.getTableFieldOptions()}
       filterAggregateParameters={filterAggregateParameters}
       filterPrimaryOptions={option =>
         filterPrimaryOptions({
