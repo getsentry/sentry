@@ -15,11 +15,13 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
 
         team_ids_by_organization_member_id = get_team_slugs_by_organization_member_id(item_list)
         for item in item_list:
-            teams = team_ids_by_organization_member_id.get(item.id, [])
+            teams, teams_with_role = team_ids_by_organization_member_id.get(item.id, ([], []))
             try:
-                attrs[item]["teams"] = teams
+                attrs[item]["teams"] = teams  # Deprecated
+                attrs[item]["teamRoles"] = teams_with_role
             except KeyError:
-                attrs[item] = {"teams": teams}
+                attrs[item] = {"teams": teams}  # Deprecated
+                attrs[item] = {"teamRoles": teams_with_role}
 
         return attrs
 
@@ -27,5 +29,6 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> OrganizationMemberWithTeamsResponse:
         d = cast(OrganizationMemberWithTeamsResponse, super().serialize(obj, attrs, user))
-        d["teams"] = attrs.get("teams", [])
+        d["teams"] = attrs.get("teams", [])  # Deprecated
+        d["teamRoles"] = attrs.get("teamRoles", [])
         return d
