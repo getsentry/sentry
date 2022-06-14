@@ -52,6 +52,7 @@ ID_VALIDATOR = SnowflakeBitSegment(
 assert ID_VALIDATOR.length == 53
 
 MAX_AVAILABLE_REGION_SEQUENCES = 1 << REGION_SEQUENCE.length
+assert MAX_AVAILABLE_REGION_SEQUENCES > 0
 
 
 def msb_0_ordering(value, width):
@@ -98,19 +99,24 @@ def get_redis_cluster(redis_key: str):
 def get_sequence_value_from_redis(redis_key: str, starting_timestamp: int) -> Tuple[int, int]:
     cluster = get_redis_cluster(redis_key)
 
-    for i in range(int(_TTL.total_seconds())):
+    # this is the amount we want to lookback for previous timestamps
+    # the below is more of a safety net if starting_timestamp is ever
+    # below 5 minutes, then we will change the lookback window accordingly
+    time_range = min(starting_timestamp, int(_TTL.total_seconds()))
+
+    for i in range(time_range):
         timestamp = starting_timestamp - i
 
         # We are decreasing the value by 1 each time since the incr operation in redis
         # initializes the counter at 1. For our region sequences, we want the value to
         # be from 0-15 and not 1-16
-        sequence_value = cluster.incr(timestamp)
+        sequence_value = cluster.incr(str(timestamp))
         sequence_value -= 1
 
         if sequence_value == 0:
-            cluster.expire(timestamp, int(_TTL.total_seconds()))
+            cluster.expire(str(timestamp), int(_TTL.total_seconds()))
 
-        if sequence_value < (MAX_AVAILABLE_REGION_SEQUENCES):
+        if sequence_value < MAX_AVAILABLE_REGION_SEQUENCES:
             return timestamp, sequence_value
 
     raise Exception("No available ID")
