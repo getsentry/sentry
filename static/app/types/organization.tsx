@@ -58,7 +58,8 @@ export type Organization = OrganizationSummary & {
   sensitiveFields: string[];
   storeCrashReports: number;
   trustedRelays: Relay[];
-  role?: string;
+  orgRole?: string;
+  role?: string; // Deprecated, use orgRole
 };
 
 export type Team = {
