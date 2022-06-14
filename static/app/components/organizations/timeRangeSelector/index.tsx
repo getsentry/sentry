@@ -259,7 +259,12 @@ class TimeRangeSelector extends PureComponent<Props, State> {
   };
 
   handleAbsoluteClick = () => {
-    const {relative, onChange, defaultPeriod, defaultAbsolute} = this.props;
+    const {relative, onChange, defaultPeriod, defaultAbsolute, start, end} = this.props;
+
+    // If we already have a start/end we don't have to set a default
+    if (start && end) {
+      return;
+    }
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
