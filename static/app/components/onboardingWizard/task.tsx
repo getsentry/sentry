@@ -71,7 +71,9 @@ function Task({router, task, onSkip, onMarkComplete, forwardedRef, organization}
     }
 
     if (task.actionType === 'app') {
-      navigateTo(`${task.location}?onboardingTask`, router);
+      const url = new URL(task.location, window.location.origin);
+      url.searchParams.append('referrer', 'onboarding_task');
+      navigateTo(url.toString(), router);
     }
   };
 

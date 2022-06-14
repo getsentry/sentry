@@ -1,18 +1,19 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
+import {HeaderContainer} from 'sentry/components/events/interfaces/spans/header';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayView from 'sentry/components/replays/replayView';
-import useFullscreen from 'sentry/components/replays/useFullscreen';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
-import useReplayData from 'sentry/utils/replays/useReplayData';
+import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import DetailLayout from './detail/detailLayout';
@@ -37,14 +38,7 @@ function ReplayDetails() {
 
   const {ref: fullscreenRef, isFullscreen, toggle: toggleFullscreen} = useFullscreen();
 
-  if (fetching) {
-    return (
-      <DetailLayout orgId={orgId}>
-        <LoadingIndicator />
-      </DetailLayout>
-    );
-  }
-  if (!replay) {
+  if (!fetching && !replay) {
     // TODO(replay): Give the user more details when errors happen
     console.log({fetching, fetchError}); // eslint-disable-line no-console
     return (
@@ -55,7 +49,8 @@ function ReplayDetails() {
       </DetailLayout>
     );
   }
-  if (replay.getRRWebEvents().length < 2) {
+
+  if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
       <DetailLayout event={replay.getEvent()} orgId={orgId}>
         <DetailedError
@@ -80,9 +75,9 @@ function ReplayDetails() {
   return (
     <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
       <DetailLayout
-        event={replay.getEvent()}
+        event={replay?.getEvent()}
         orgId={orgId}
-        crumbs={replay.getRawCrumbs()}
+        crumbs={replay?.getRawCrumbs()}
       >
         <Layout.Body>
           <Layout.Main ref={fullscreenRef}>
@@ -90,20 +85,26 @@ function ReplayDetails() {
           </Layout.Main>
 
           <Layout.Side>
-            <UserActionsNavigator
-              crumbs={replay.getRawCrumbs()}
-              event={replay.getEvent()}
-            />
+            <ErrorBoundary>
+              <UserActionsNavigator
+                crumbs={replay?.getRawCrumbs()}
+                event={replay?.getEvent()}
+              />
+            </ErrorBoundary>
           </Layout.Side>
 
           <StickyMain fullWidth>
-            <ReplayTimeline />
+            <ErrorBoundary>
+              <ReplayTimeline />
+            </ErrorBoundary>
             <FocusTabs />
           </StickyMain>
 
-          <Layout.Main fullWidth>
-            <FocusArea replay={replay} />
-          </Layout.Main>
+          <StyledLayoutMain fullWidth>
+            <ErrorBoundary>
+              <FocusArea replay={replay} />
+            </ErrorBoundary>
+          </StyledLayoutMain>
         </Layout.Body>
       </DetailLayout>
     </ReplayContextProvider>
@@ -120,6 +121,12 @@ const StickyMain = styled(Layout.Main)`
   padding: ${space(1.5)} ${space(4)} 0;
   max-width: none;
   background: ${p => p.theme.background};
+`;
+
+const StyledLayoutMain = styled(Layout.Main)`
+  ${HeaderContainer} {
+    position: relative;
+  }
 `;
 
 export default ReplayDetails;

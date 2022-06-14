@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {setTag} from '@sentry/react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -81,10 +82,19 @@ export default function SpanDetailsContentWrapper(props: Props) {
             referrer="api.performance.transaction-spans"
             cursor="0:0:1"
             noPagination
+            useEvents
           >
             {({tableData}) => {
               const totalCount: number | null =
-                (tableData?.data?.[0]?.count as number) ?? null;
+                (tableData?.data?.[0]?.['count()'] as number) ?? null;
+
+              if (totalCount) {
+                setTag('spans.totalCount', totalCount);
+                const countGroup = [
+                  1, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
+                ].find(n => totalCount <= n);
+                setTag('spans.totalCount.grouped', `<=${countGroup}`);
+              }
 
               return (
                 <SuspectSpansQuery

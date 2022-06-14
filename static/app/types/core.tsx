@@ -5,6 +5,8 @@
  * or used in multiple views.
  */
 import type {getInterval} from 'sentry/components/charts/utils';
+import {MenuListItemProps} from 'sentry/components/menuListItem';
+import type {InternalTooltipProps} from 'sentry/components/tooltip';
 import type {API_ACCESS_SCOPES} from 'sentry/constants';
 
 /**
@@ -44,20 +46,23 @@ export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 /**
  * The option format used by react-select based components
  */
-export type SelectValue<T> = {
+export type SelectValue<T> = MenuListItemProps & {
   label: string | number | React.ReactElement;
   value: T;
   disabled?: boolean;
   tooltip?: React.ReactNode;
+  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
 };
 
 /**
  * The 'other' option format used by checkboxes, radios and more.
  */
-export type Choices = [
+export type Choice = [
   value: string | number,
   label: string | number | React.ReactElement
-][];
+];
+
+export type Choices = Choice[];
 
 // https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 // Note: the value of the enum on the frontend is plural,

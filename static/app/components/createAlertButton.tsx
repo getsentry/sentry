@@ -27,7 +27,7 @@ import useApi from 'sentry/utils/useApi';
 import {
   errorFieldConfig,
   transactionFieldConfig,
-} from 'sentry/views/alerts/incidentRules/constants';
+} from 'sentry/views/alerts/rules/metric/constants';
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
 import {
   AlertType,
@@ -297,6 +297,11 @@ function CreateAlertFromViewButton({
     );
   }
   const hasErrors = Object.values(errors).some(x => x);
+
+  const alertTemplate = alertType
+    ? AlertWizardRuleTemplates[alertType]
+    : DEFAULT_WIZARD_TEMPLATE;
+
   const to = hasErrors
     ? undefined
     : {
@@ -309,10 +314,9 @@ function CreateAlertFromViewButton({
           referrer,
           ...(useAlertWizardV3
             ? {
+                ...alertTemplate,
                 project: project?.slug,
-                ...(alertType
-                  ? AlertWizardRuleTemplates[alertType]
-                  : DEFAULT_WIZARD_TEMPLATE),
+                aggregate: queryParams.yAxis ?? alertTemplate.aggregate,
               }
             : {}),
         },
@@ -426,7 +430,7 @@ const CreateAlertButton = withRouter(
         tooltipProps={{
           isHoverable: true,
           position: 'top',
-          popperStyle: {
+          overlayStyle: {
             maxWidth: '270px',
           },
         }}

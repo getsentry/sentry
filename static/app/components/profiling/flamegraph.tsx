@@ -1,4 +1,12 @@
-import {Fragment, ReactElement, useEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  ReactElement,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
@@ -45,7 +53,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
   const [{sorting, view, xAxis}, dispatch] = useFlamegraphPreferences();
   const [{threadId}, dispatchThreadId] = useFlamegraphProfiles();
 
-  const [canvasBounds, setCanvasBounds] = useState<Rect>(Rect.Empty());
+  const canvasBounds = useRef<Rect>(Rect.Empty());
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -180,7 +188,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     return () => canvasPoolManager.unregisterScheduler(scheduler);
   }, [canvasPoolManager, scheduler]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (
       !flamegraphView ||
       !flamegraphCanvas ||
@@ -197,7 +205,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       [flamegraphCanvasRef, flamegraphOverlayCanvasRef],
       () => {
         const bounds = flamegraphCanvasRef.getBoundingClientRect();
-        setCanvasBounds(new Rect(bounds.x, bounds.y, bounds.width, bounds.height));
+        canvasBounds.current = new Rect(bounds.x, bounds.y, bounds.width, bounds.height);
 
         flamegraphCanvas.initPhysicalSpace();
         flamegraphView.resizeConfigSpace(flamegraphCanvas);
@@ -228,7 +236,6 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
     flamegraphMiniMapOverlayCanvasRef,
     flamegraphOverlayCanvasRef,
     flamegraphView,
-    setCanvasBounds,
   ]);
 
   return (
@@ -273,7 +280,7 @@ function Flamegraph(props: FlamegraphProps): ReactElement {
       <FlamegraphZoomViewContainer>
         <ProfileDragDropImport onImport={props.onImport}>
           <FlamegraphZoomView
-            canvasBounds={canvasBounds}
+            canvasBounds={canvasBounds.current}
             canvasPoolManager={canvasPoolManager}
             flamegraph={flamegraph}
             flamegraphCanvas={flamegraphCanvas}
@@ -299,6 +306,7 @@ const FlamegraphZoomViewMinimapContainer = styled('div')<{
 
 const FlamegraphZoomViewContainer = styled('div')`
   position: relative;
+  display: flex;
   flex: 1 1 100%;
 `;
 

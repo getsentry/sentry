@@ -81,10 +81,16 @@ function readShowTagsState() {
   return value === '1';
 }
 
-function getYAxis(location: Location, savedQuery?: SavedQuery) {
-  return location.query.yAxis
-    ? decodeList(location.query.yAxis)
-    : decodeList(savedQuery?.yAxis);
+function getYAxis(location: Location, eventView: EventView, savedQuery?: SavedQuery) {
+  if (location.query.yAxis) {
+    return decodeList(location.query.yAxis);
+  }
+  if (location.query.yAxis === null) {
+    return [];
+  }
+  return savedQuery?.yAxis && savedQuery?.yAxis.length > 0
+    ? decodeList(savedQuery?.yAxis)
+    : [eventView.getYAxis()];
 }
 
 class Results extends Component<Props, State> {
@@ -131,8 +137,8 @@ class Results extends Component<Props, State> {
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
-    const yAxisArray = getYAxis(location, savedQuery);
-    const prevYAxisArray = getYAxis(prevProps.location, prevState.savedQuery);
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
+    const prevYAxisArray = getYAxis(prevProps.location, eventView, prevState.savedQuery);
 
     if (
       !isAPIPayloadSimilar(currentQuery, prevQuery) ||
@@ -228,7 +234,7 @@ class Results extends Component<Props, State> {
     return null;
   };
 
-  handleConfirmed = async () => {
+  handleConfirmed = () => {
     this.setState({needConfirmation: false, confirmedQuery: true}, () => {
       this.setState({confirmedQuery: false});
     });
@@ -308,7 +314,10 @@ class Results extends Component<Props, State> {
 
     router.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   };
 
@@ -320,7 +329,7 @@ class Results extends Component<Props, State> {
 
     const newQuery = {
       ...location.query,
-      yAxis: value,
+      yAxis: value.length > 0 ? value : [null],
       // If using Multi Y-axis and not in a supported display, change to the default display mode
       display:
         value.length > 1 && !isDisplayMultiYAxisSupported
@@ -479,7 +488,7 @@ class Results extends Component<Props, State> {
       : eventView.fields;
     const query = eventView.query;
     const title = this.getDocumentTitle();
-    const yAxisArray = getYAxis(location, savedQuery);
+    const yAxisArray = getYAxis(location, eventView, savedQuery);
 
     return (
       <SentryDocumentTitle title={title} orgSlug={organization.slug}>
@@ -623,12 +632,16 @@ function ResultsContainer(props: Props) {
    *
    * Also, we skip loading last used projects if you have multiple projects feature as
    * you no longer need to enforce a project if it is empty. We assume an empty project is
-   * the desired behavior because saved queries can contain a project filter.
+   * the desired behavior because saved queries can contain a project filter. The only
+   * exception is if we are showing a prebuilt saved query in which case we want to
+   * respect pinned filters.
    */
 
   return (
     <PageFiltersContainer
-      skipLoadLastUsed={props.organization.features.includes('global-views')}
+      skipLoadLastUsed={
+        props.organization.features.includes('global-views') && !!props.savedQuery
+      }
       hideGlobalHeader
     >
       <SavedQueryAPI {...props} />

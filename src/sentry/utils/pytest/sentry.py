@@ -1,11 +1,20 @@
+from __future__ import annotations
+
+import collections
 import os
+import random
 from hashlib import md5
+from typing import TypeVar
 from unittest import mock
 
+import pytest
 from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.utils.warnings import UnsupportedBackend
+
+K = TypeVar("K")
+V = TypeVar("V")
 
 TEST_ROOT = os.path.normpath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir, os.pardir, os.pardir, "tests")
@@ -34,7 +43,7 @@ def pytest_configure(config):
     # override docs which are typically synchronized from an upstream server
     # to ensure tests are consistent
     os.environ.setdefault(
-        "INTEGRATION_DOC_FOLDER", os.path.join(TEST_ROOT, "fixtures", "integration-docs")
+        "INTEGRATION_DOC_FOLDER", os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
     )
     from sentry.utils import integrationdocs
 
@@ -58,11 +67,14 @@ def pytest_configure(config):
         else:
             raise RuntimeError("oops, wrong database: %r" % test_db)
 
+    # silence (noisy) loggers by default when testing
+    settings.LOGGING["loggers"]["sentry"]["level"] = "ERROR"
+
     # Disable static compiling in tests
     settings.STATIC_BUNDLES = {}
 
     # override a few things with our test specifics
-    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("tests",)
+    settings.INSTALLED_APPS = tuple(settings.INSTALLED_APPS) + ("fixtures",)
     # Need a predictable key for tests that involve checking signatures
     settings.SENTRY_PUBLIC = False
 
@@ -163,8 +175,8 @@ def pytest_configure(config):
     settings.ASANA_CLIENT_SECRET = "123"
     settings.BITBUCKET_CONSUMER_KEY = "abc"
     settings.BITBUCKET_CONSUMER_SECRET = "123"
-    settings.GITHUB_APP_ID = "abc"
-    settings.GITHUB_API_SECRET = "123"
+    settings.SENTRY_OPTIONS["github-login.client-id"] = "abc"
+    settings.SENTRY_OPTIONS["github-login.client-secret"] = "123"
     # this isn't the real secret
     settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
@@ -264,6 +276,36 @@ def pytest_runtest_teardown(item):
     Hub.main.bind_client(None)
 
 
+def _shuffle(items: list[pytest.Item]) -> None:
+    # goal: keep classes together, keep modules together but otherwise shuffle
+    # this prevents duplicate setup/teardown work
+    nodes: dict[str, dict[str, pytest.Item | dict[str, pytest.Item]]]
+    nodes = collections.defaultdict(dict)
+    for item in items:
+        parts = item.nodeid.split("::", maxsplit=2)
+        if len(parts) == 2:
+            nodes[parts[0]][parts[1]] = item
+        elif len(parts) == 3:
+            nodes[parts[0]].setdefault(parts[1], {})[parts[2]] = item
+        else:
+            raise AssertionError(f"unexpected nodeid: {item.nodeid}")
+
+    def _shuffle_d(dct: dict[K, V]) -> dict[K, V]:
+        return dict(random.sample(dct.items(), len(dct)))
+
+    new_items = []
+    for first_v in _shuffle_d(nodes).values():
+        for second_v in _shuffle_d(first_v).values():
+            if isinstance(second_v, dict):
+                for item in _shuffle_d(second_v).values():
+                    new_items.append(item)
+            else:
+                new_items.append(second_v)
+
+    assert len(new_items) == len(items)
+    items[:] = new_items
+
+
 def pytest_collection_modifyitems(config, items):
     """
     After collection, we need to:
@@ -311,7 +353,11 @@ def pytest_collection_modifyitems(config, items):
         else:
             discard.append(item)
 
+    items[:] = keep
+
+    if os.environ.get("SENTRY_SHUFFLE_TESTS"):
+        _shuffle(items)
+
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
-        items[:] = keep
         config.hook.pytest_deselected(items=discard)

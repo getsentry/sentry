@@ -14,7 +14,6 @@ import TimeSince from 'sentry/components/timeSince';
 import Tooltip from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters, Release} from 'sentry/types';
 
@@ -212,7 +211,7 @@ const VersionWrapper = styled('div')`
 `;
 
 const StyledVersion = styled(Version)`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const StyledPanel = styled(Panel)<{reloading: number}>`
@@ -331,7 +330,7 @@ export const ReleaseProjectsLayout = styled('div')<{showReleaseAdoptionStages?: 
 `;
 
 export const ReleaseProjectColumn = styled('div')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   line-height: 20px;
 `;
 

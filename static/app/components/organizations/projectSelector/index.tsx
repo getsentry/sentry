@@ -1,11 +1,10 @@
-import {PureComponent} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {MenuActions} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
@@ -14,7 +13,7 @@ import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pag
 import PlatformList from 'sentry/components/platformList';
 import Tooltip from 'sentry/components/tooltip';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {IconAdd, IconProject} from 'sentry/icons';
+import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {MinimalProject, Organization, Project} from 'sentry/types';
@@ -37,7 +36,7 @@ type Props = WithRouterProps & {
   /**
    * Triggered when the selection changes are applied
    */
-  onApplyChange: (newProjects?: number[]) => void;
+  onApplyChange: (newProjects: number[]) => void;
   /**
    * Triggers any time a selection is changed, but the menu has not yet been closed or "applied"
    */
@@ -106,38 +105,46 @@ type Props = WithRouterProps & {
   showProjectSettingsLink?: boolean;
 };
 
-type State = {
-  hasChanges: boolean;
-};
+function ProjectSelector({
+  customDropdownButton,
+  customLoadingIndicator,
+  disableMultipleProjectSelection,
+  footerMessage,
+  forceProject,
+  isGlobalSelectionReady,
+  location,
+  lockedMessageSubject = t('page'),
+  memberProjects,
+  nonMemberProjects = [],
+  onApplyChange,
+  onChange,
+  organization,
+  router,
+  shouldForceProject,
+  showIssueStreamLink,
+  showPin,
+  showProjectSettingsLink,
+  value,
+  ...extraProps
+}: Props) {
+  // Used to determine if we should show the 'apply' changes button
+  const [hasChanges, setHasChanges] = useState(false);
 
-class ProjectSelector extends PureComponent<Props, State> {
-  static defaultProps = {
-    lockedMessageSubject: t('page'),
-  };
+  // Used to keep selected proects sorted in the same order when opening /
+  // closing the project selector
+  const lastSelected = useRef(value);
 
-  state: State = {
-    hasChanges: false,
-  };
-
-  /**
-   * Used to keep selected proects sorted in the same order when opening / closing the project selector
-   */
-  lastSelected = this.props.value;
-
-  get multi() {
-    const {organization, disableMultipleProjectSelection} = this.props;
-    return (
-      !disableMultipleProjectSelection && organization.features.includes('global-views')
-    );
-  }
+  const isMulti =
+    !disableMultipleProjectSelection && organization.features.includes('global-views');
 
   /**
    * Reset "hasChanges" state and call `onApplyChange` callback
    *
    * @param value optional parameter that will be passed to onApplyChange callback
    */
-  doApplyChange = (value?: number[]) => {
-    this.setState({hasChanges: false}, () => this.props.onApplyChange(value));
+  const doApplyChange = (newValue: number[]) => {
+    setHasChanges(false);
+    onApplyChange(newValue);
   };
 
   /**
@@ -146,9 +153,9 @@ class ProjectSelector extends PureComponent<Props, State> {
    *
    * Should perform an "update" callback
    */
-  handleUpdate = (actions: {close: () => void}) => {
+  const handleUpdate = (actions: {close: () => void}) => {
     actions.close();
-    this.doApplyChange();
+    doApplyChange(value);
   };
 
   /**
@@ -156,14 +163,15 @@ class ProjectSelector extends PureComponent<Props, State> {
    *
    * Should perform an "update" callback
    */
-  handleQuickSelect = (selected: Pick<Project, 'id'>) => {
+  const handleQuickSelect = (selected: Pick<Project, 'id'>) => {
     trackAdvancedAnalyticsEvent('projectselector.direct_selection', {
-      path: getRouteStringFromRoutes(this.props.router.routes),
-      organization: this.props.organization,
+      path: getRouteStringFromRoutes(router.routes),
+      organization,
     });
-    const value = selected.id === null ? [] : [parseInt(selected.id, 10)];
-    this.props.onChange(value);
-    this.doApplyChange(value);
+
+    const newValue = selected.id === null ? [] : [parseInt(selected.id, 10)];
+    onChange(newValue);
+    doApplyChange(newValue);
   };
 
   /**
@@ -171,23 +179,21 @@ class ProjectSelector extends PureComponent<Props, State> {
    *
    * Should perform an "update" callback
    */
-  handleClose = () => {
+  const handleClose = () => {
     // Only update if there are changes
-    if (!this.state.hasChanges) {
+    if (!hasChanges) {
       return;
     }
 
-    const {value} = this.props;
-
     trackAdvancedAnalyticsEvent('projectselector.update', {
       count: value.length,
-      path: getRouteStringFromRoutes(this.props.router.routes),
-      organization: this.props.organization,
-      multi: this.multi,
+      path: getRouteStringFromRoutes(router.routes),
+      organization,
+      multi: isMulti,
     });
 
-    this.doApplyChange();
-    this.lastSelected = value;
+    doApplyChange(value);
+    lastSelected.current = value;
   };
 
   /**
@@ -195,38 +201,28 @@ class ProjectSelector extends PureComponent<Props, State> {
    *
    * Should perform an "update" callback
    */
-  handleClear = () => {
+  const handleClear = () => {
     trackAdvancedAnalyticsEvent('projectselector.clear', {
-      path: getRouteStringFromRoutes(this.props.router.routes),
-      organization: this.props.organization,
+      path: getRouteStringFromRoutes(router.routes),
+      organization,
     });
 
-    this.props.onChange([]);
-    this.doApplyChange();
+    onChange([]);
+    doApplyChange([]);
   };
 
-  /**
-   * Handler for selecting multiple items, should NOT call update
-   */
-  handleMultiSelect = (selected: Project[]) => {
-    const {onChange, value} = this.props;
+  const allProjects = [...memberProjects, ...nonMemberProjects];
+  const selectedProjectIds = useMemo(() => new Set(value), [value]);
 
-    trackAdvancedAnalyticsEvent('projectselector.toggle', {
-      action: selected.length > value.length ? 'added' : 'removed',
-      path: getRouteStringFromRoutes(this.props.router.routes),
-      organization: this.props.organization,
-    });
+  const selected = allProjects.filter(project =>
+    selectedProjectIds.has(parseInt(project.id, 10))
+  );
 
-    const selectedList = selected.map(({id}) => parseInt(id, 10)).filter(i => i);
-    onChange(selectedList);
-    this.setState({hasChanges: true});
-  };
-
-  renderProjectName() {
-    const {forceProject, location, organization, showIssueStreamLink} = this.props;
-
-    if (showIssueStreamLink && forceProject && this.multi) {
-      return (
+  // `forceProject` can be undefined if it is loading the project
+  // We are intentionally using an empty string as its "loading" state
+  if (shouldForceProject) {
+    const projectName =
+      forceProject && showIssueStreamLink && isMulti ? (
         <Tooltip title={t('Issues Stream')} position="bottom">
           <StyledLink
             to={{
@@ -237,276 +233,230 @@ class ProjectSelector extends PureComponent<Props, State> {
             {forceProject.slug}
           </StyledLink>
         </Tooltip>
+      ) : forceProject ? (
+        forceProject.slug
+      ) : (
+        ''
       );
-    }
 
-    if (forceProject) {
-      return forceProject.slug;
-    }
-
-    return '';
-  }
-
-  getLockedMessage() {
-    const {forceProject, lockedMessageSubject} = this.props;
-
-    if (forceProject) {
-      return tct('This [subject] is unique to the [projectSlug] project', {
-        subject: lockedMessageSubject,
-        projectSlug: forceProject.slug,
-      });
-    }
-
-    return tct('This [subject] is unique to a project', {subject: lockedMessageSubject});
-  }
-
-  render() {
-    const {
-      onChange: _onChange,
-      value,
-      memberProjects,
-      isGlobalSelectionReady,
-      disableMultipleProjectSelection,
-      nonMemberProjects = [],
-      organization,
-      shouldForceProject,
-      forceProject,
-      showProjectSettingsLink,
-      footerMessage,
-      customDropdownButton,
-      customLoadingIndicator,
-      showPin,
-      ...extraProps
-    } = this.props;
-    const selectedProjectIds = new Set(value);
-    const multi = this.multi;
-
-    const allProjects = [...memberProjects, ...nonMemberProjects];
-    const selected = allProjects.filter(project =>
-      selectedProjectIds.has(parseInt(project.id, 10))
-    );
-
-    // `forceProject` can be undefined if it is loading the project
-    // We are intentionally using an empty string as its "loading" state
-    if (shouldForceProject) {
-      return (
-        <StyledHeaderItem
-          data-test-id="global-header-project-selector"
-          icon={
-            forceProject && (
-              <PlatformList
-                platforms={forceProject.platform ? [forceProject.platform] : []}
-                max={1}
-              />
-            )
-          }
-          locked
-          lockedMessage={this.getLockedMessage()}
-          settingsLink={
-            (forceProject &&
-              showProjectSettingsLink &&
-              `/settings/${organization.slug}/projects/${forceProject.slug}/`) ||
-            undefined
-          }
-        >
-          {this.renderProjectName()}
-        </StyledHeaderItem>
-      );
-    }
-
-    if (!isGlobalSelectionReady) {
-      return (
-        customLoadingIndicator ?? (
-          <StyledHeaderItem
-            data-test-id="global-header-project-selector-loading"
-            icon={<IconProject />}
-            loading
-          >
-            {t('Loading\u2026')}
-          </StyledHeaderItem>
-        )
-      );
-    }
-
-    const listSort = (project: Project) => [
-      !this.lastSelected.includes(parseInt(project.id, 10)),
-      !project.isBookmarked,
-      project.slug,
-    ];
-
-    const projects = sortBy(memberProjects, listSort);
-    const otherProjects = sortBy(nonMemberProjects, listSort);
-
-    const handleMultiSelect = (project: Project) => {
-      const selectedProjectsMap = new Map(selected.map(p => [p.slug, p]));
-
-      if (selectedProjectsMap.has(project.slug)) {
-        // unselected a project
-        selectedProjectsMap.delete(project.slug);
-        this.handleMultiSelect(Array.from(selectedProjectsMap.values()));
-        return;
-      }
-
-      selectedProjectsMap.set(project.slug, project);
-      this.handleMultiSelect(Array.from(selectedProjectsMap.values()));
-    };
-
-    const getProjectItem = (project: Project) => ({
-      item: project,
-      searchKey: project.slug,
-      label: ({inputValue}: {inputValue: typeof project.slug}) => (
-        <SelectorItem
-          project={project}
-          organization={organization}
-          multi={multi}
-          inputValue={inputValue}
-          isChecked={!!selected.find(({slug}) => slug === project.slug)}
-          onMultiSelect={handleMultiSelect}
-        />
-      ),
-    });
-
-    const hasProjects = !!projects?.length || !!otherProjects?.length;
-    const newProjectUrl = `/organizations/${organization.slug}/projects/new/`;
-    const hasProjectWrite = organization.access.includes('project:write');
-
-    const items = !hasProjects
-      ? []
-      : [
-          {
-            hideGroupLabel: true,
-            items: projects.map(getProjectItem),
-          },
-          {
-            hideGroupLabel: otherProjects.length === 0,
-            itemSize: 'small',
-            id: 'no-membership-header', // needed for tests for non-virtualized lists
-            label: <Label>{t("Projects I don't belong to")}</Label>,
-            items: otherProjects.map(getProjectItem),
-          },
-        ];
+    const lockedMessage = forceProject
+      ? tct('This [subject] is unique to the [projectSlug] project', {
+          subject: lockedMessageSubject,
+          projectSlug: forceProject.slug,
+        })
+      : tct('This [subject] is unique to a project', {subject: lockedMessageSubject});
 
     return (
-      <ClassNames>
-        {({css}) => (
-          <StyledDropdownAutocomplete
-            {...extraProps}
-            blendCorner={false}
-            searchPlaceholder={t('Filter projects')}
-            onSelect={i => this.handleQuickSelect(i.item)}
-            onClose={this.handleClose}
-            maxHeight={500}
-            minWidth={350}
-            inputProps={{style: {padding: 8, paddingLeft: 10}}}
-            rootClassName={css`
-              display: flex;
-            `}
-            emptyMessage={t('You have no projects')}
-            noResultsMessage={t('No projects found')}
-            virtualizedHeight={theme.headerSelectorRowHeight}
-            virtualizedLabelHeight={theme.headerSelectorLabelHeight}
-            inputActions={
-              <InputActions>
-                <AddButton
-                  aria-label={t('Add Project')}
-                  disabled={!hasProjectWrite}
-                  to={newProjectUrl}
-                  size="xsmall"
-                  icon={<IconAdd size="xs" isCircled />}
-                  title={
-                    !hasProjectWrite
-                      ? t("You don't have permission to add a project")
-                      : undefined
-                  }
-                >
-                  {showPin ? '' : t('Project')}
-                </AddButton>
-                {showPin && (
-                  <GuideAnchor target="new_page_filter_pin" position="bottom">
-                    <PageFilterPinButton size="xsmall" filter="projects" />
-                  </GuideAnchor>
-                )}
-              </InputActions>
-            }
-            menuFooter={({actions}) => (
-              <ProjectSelectorFooter
-                selected={selectedProjectIds}
-                disableMultipleProjectSelection={disableMultipleProjectSelection}
-                organization={organization}
-                hasChanges={this.state.hasChanges}
-                onApply={() => this.handleUpdate(actions)}
-                onShowAllProjects={() => {
-                  this.handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
-                  actions.close();
-                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
-                    button_type: 'all',
-                    path: getRouteStringFromRoutes(this.props.router.routes),
-                    organization,
-                  });
-                }}
-                onShowMyProjects={() => {
-                  this.handleClear();
-                  actions.close();
-                  trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
-                    button_type: 'my',
-                    path: getRouteStringFromRoutes(this.props.router.routes),
-                    organization,
-                  });
-                }}
-                message={footerMessage}
-              />
-            )}
-            items={items}
-            allowActorToggle
-            closeOnSelect
-          >
-            {({actions, isOpen}) => {
-              if (customDropdownButton) {
-                return customDropdownButton({
-                  actions,
-                  selectedProjects: selected,
-                  isOpen,
-                });
-              }
-              const hasSelected = !!selected.length;
-              const title = hasSelected
-                ? selected.map(({slug}) => slug).join(', ')
-                : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
-                ? t('All Projects')
-                : t('My Projects');
-              const icon = hasSelected ? (
-                <PlatformList
-                  platforms={selected.map(p => p.platform ?? 'other').reverse()}
-                  max={5}
-                />
-              ) : (
-                <IconProject />
-              );
-
-              return (
-                <StyledHeaderItem
-                  data-test-id="global-header-project-selector"
-                  icon={icon}
-                  hasSelected={hasSelected}
-                  hasChanges={this.state.hasChanges}
-                  isOpen={isOpen}
-                  onClear={this.handleClear}
-                  allowClear={multi}
-                  settingsLink={
-                    selected.length === 1
-                      ? `/settings/${organization.slug}/projects/${selected[0]?.slug}/`
-                      : ''
-                  }
-                >
-                  {title}
-                </StyledHeaderItem>
-              );
-            }}
-          </StyledDropdownAutocomplete>
-        )}
-      </ClassNames>
+      <StyledHeaderItem
+        data-test-id="page-filter-project-selector"
+        icon={
+          forceProject && (
+            <PlatformList
+              platforms={forceProject.platform ? [forceProject.platform] : []}
+              max={1}
+            />
+          )
+        }
+        locked
+        lockedMessage={lockedMessage}
+        settingsLink={
+          (forceProject &&
+            showProjectSettingsLink &&
+            `/settings/${organization.slug}/projects/${forceProject.slug}/`) ||
+          undefined
+        }
+      >
+        {projectName}
+      </StyledHeaderItem>
     );
   }
+
+  if (!isGlobalSelectionReady) {
+    return (
+      <Fragment>{customLoadingIndicator}</Fragment> ?? (
+        <StyledHeaderItem
+          data-test-id="page-filter-project-selector-loading"
+          icon={<IconProject />}
+          loading
+        >
+          {t('Loading\u2026')}
+        </StyledHeaderItem>
+      )
+    );
+  }
+
+  const listSort = (project: Project) => [
+    !lastSelected.current.includes(parseInt(project.id, 10)),
+    !project.isBookmarked,
+    project.slug,
+  ];
+
+  const projects = sortBy(memberProjects, listSort);
+  const otherProjects = sortBy(nonMemberProjects, listSort);
+
+  const handleMultiSelect = (project: Project) => {
+    const selectedProjectsMap = new Map(selected.map(p => [p.slug, p]));
+
+    if (selectedProjectsMap.has(project.slug)) {
+      // unselected a project
+      selectedProjectsMap.delete(project.slug);
+    } else {
+      selectedProjectsMap.set(project.slug, project);
+    }
+
+    trackAdvancedAnalyticsEvent('projectselector.toggle', {
+      action: selected.length > value.length ? 'added' : 'removed',
+      path: getRouteStringFromRoutes(router.routes),
+      organization,
+    });
+
+    const selectedList = [...selectedProjectsMap.values()]
+      .map(({id}) => parseInt(id, 10))
+      .filter(i => i);
+
+    onChange(selectedList);
+    setHasChanges(true);
+  };
+
+  const getProjectItem = (project: Project) => ({
+    item: project,
+    searchKey: project.slug,
+    label: ({inputValue}: {inputValue: typeof project.slug}) => (
+      <SelectorItem
+        project={project}
+        organization={organization}
+        multi={isMulti}
+        inputValue={inputValue}
+        isChecked={!!selected.find(({slug}) => slug === project.slug)}
+        onMultiSelect={handleMultiSelect}
+      />
+    ),
+  });
+
+  const hasProjects = !!projects?.length || !!otherProjects?.length;
+
+  const items = !hasProjects
+    ? []
+    : [
+        {
+          hideGroupLabel: true,
+          items: projects.map(getProjectItem),
+        },
+        {
+          hideGroupLabel: otherProjects.length === 0,
+          itemSize: 'small',
+          id: 'no-membership-header', // needed for tests for non-virtualized lists
+          label: <Label>{t("Projects I don't belong to")}</Label>,
+          items: otherProjects.map(getProjectItem),
+        },
+      ];
+
+  return (
+    <ClassNames>
+      {({css}) => (
+        <StyledDropdownAutocomplete
+          {...extraProps}
+          blendCorner={false}
+          searchPlaceholder={t('Filter projects')}
+          onSelect={i => handleQuickSelect(i.item)}
+          onClose={handleClose}
+          maxHeight={500}
+          minWidth={350}
+          inputProps={{style: {padding: 8, paddingLeft: 10}}}
+          rootClassName={css`
+            display: flex;
+          `}
+          emptyMessage={t('You have no projects')}
+          noResultsMessage={t('No projects found')}
+          virtualizedHeight={theme.headerSelectorRowHeight}
+          virtualizedLabelHeight={theme.headerSelectorLabelHeight}
+          inputActions={
+            <InputActions>
+              {showPin && (
+                <GuideAnchor target="new_page_filter_pin" position="bottom">
+                  <PageFilterPinButton size="xsmall" filter="projects" />
+                </GuideAnchor>
+              )}
+            </InputActions>
+          }
+          menuFooter={({actions}) => (
+            <ProjectSelectorFooter
+              selected={selectedProjectIds}
+              disableMultipleProjectSelection={disableMultipleProjectSelection}
+              organization={organization}
+              hasChanges={hasChanges}
+              onApply={() => handleUpdate(actions)}
+              onShowAllProjects={() => {
+                handleQuickSelect({id: ALL_ACCESS_PROJECTS.toString()});
+                actions.close();
+                trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                  button_type: 'all',
+                  path: getRouteStringFromRoutes(router.routes),
+                  organization,
+                });
+              }}
+              onShowMyProjects={() => {
+                handleClear();
+                actions.close();
+                trackAdvancedAnalyticsEvent('projectselector.multi_button_clicked', {
+                  button_type: 'my',
+                  path: getRouteStringFromRoutes(router.routes),
+                  organization,
+                });
+              }}
+              message={footerMessage}
+            />
+          )}
+          items={items}
+          allowActorToggle
+          closeOnSelect
+        >
+          {({actions, isOpen}) => {
+            if (customDropdownButton) {
+              return customDropdownButton({
+                actions,
+                selectedProjects: selected,
+                isOpen,
+              });
+            }
+            const hasSelected = !!selected.length;
+            const title = hasSelected
+              ? selected.map(({slug}) => slug).join(', ')
+              : selectedProjectIds.has(ALL_ACCESS_PROJECTS)
+              ? t('All Projects')
+              : t('My Projects');
+            const icon = hasSelected ? (
+              <PlatformList
+                platforms={selected.map(p => p.platform ?? 'other').reverse()}
+                max={5}
+              />
+            ) : (
+              <IconProject />
+            );
+
+            return (
+              <StyledHeaderItem
+                data-test-id="page-filter-project-selector"
+                icon={icon}
+                hasSelected={hasSelected}
+                hasChanges={hasChanges}
+                isOpen={isOpen}
+                onClear={handleClear}
+                allowClear={isMulti}
+                settingsLink={
+                  selected.length === 1
+                    ? `/settings/${organization.slug}/projects/${selected[0]?.slug}/`
+                    : ''
+                }
+              >
+                {title}
+              </StyledHeaderItem>
+            );
+          }}
+        </StyledDropdownAutocomplete>
+      )}
+    </ClassNames>
+  );
 }
 
 export default withRouter(ProjectSelector);
@@ -541,14 +491,6 @@ const StyledLink = styled(Link)`
 const Label = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
-`;
-
-const AddButton = styled(Button)`
-  display: block;
-  color: ${p => p.theme.gray300};
-  :hover {
-    color: ${p => p.theme.subText};
-  }
 `;
 
 const InputActions = styled('div')`

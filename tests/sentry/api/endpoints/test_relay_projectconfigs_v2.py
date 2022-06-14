@@ -55,8 +55,8 @@ def setup_relay(default_project):
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
-    def inner(full_config, public_keys=None):
-        path = reverse("sentry-api-0-relay-projectconfigs") + "?version=2"
+    def inner(full_config, public_keys=None, version="2"):
+        path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]

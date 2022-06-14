@@ -69,9 +69,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
   it('can send chart requests', async function () {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `sum(session)`,
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({
+        field: `sum(sentry.sessions.session)`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -96,10 +96,10 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           timeseriesResults: [
             {
               data: expect.arrayContaining([
-                {name: '2021-03-15T00:00:00Z', value: 0},
-                {name: '2021-03-16T00:00:00Z', value: 0},
-                {name: '2021-03-17T00:00:00Z', value: 2},
-                {name: '2021-03-18T00:00:00Z', value: 490},
+                {name: '2021-12-01T16:15:00Z', value: 443.6200417187068},
+                {name: '2021-12-01T16:30:00Z', value: 471.7512262596214},
+                {name: '2021-12-01T16:45:00Z', value: 632.5356294251225},
+                {name: '2021-12-01T17:00:00Z', value: 538.6063865509535},
               ]),
               seriesName: 'sessions > sum(session)',
             },
@@ -109,10 +109,322 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
   });
 
-  it('can send table requests', async function () {
+  it('fetches release data when sorting on release for metrics api', async function () {
+    const mockRelease = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [
+        {
+          version: 'be1ddfb18126dd2cbde26bfe75488503280e716e',
+        },
+      ],
+    });
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+    });
+    const children = jest.fn(() => <div />);
+    const queries = [
+      {
+        conditions: '',
+        fields: [`count_unique(user)`],
+        aggregates: [`count_unique(user)`],
+        columns: ['release'],
+        name: 'sessions',
+        orderby: '-release',
+      },
+    ];
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={{...singleQueryWidget, queries}}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    await waitFor(() => expect(mockRelease).toHaveBeenCalledTimes(1));
+    expect(mockRelease).toHaveBeenCalledWith(
+      '/organizations/org-slug/releases/',
+      expect.objectContaining({
+        data: {
+          environments: ['prod'],
+          per_page: 50,
+          project: [1],
+          sort: 'date',
+        },
+      })
+    );
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/metrics/data/',
+      expect.objectContaining({
+        query: {
+          environment: ['prod'],
+          field: ['count_unique(sentry.sessions.user)'],
+          groupBy: ['release'],
+          includeSeries: 1,
+          includeTotals: 1,
+          interval: '12h',
+          per_page: 100,
+          project: [1],
+          query: ' release:be1ddfb18126dd2cbde26bfe75488503280e716e',
+          statsPeriod: '14d',
+        },
+      })
+    );
+  });
+
+  it('calls session api when session.status is a group by', function () {
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionUserStatusCountByReleaseInPeriod(),
+      body: TestStubs.MetricsField({
+        field: `count_unique(user)`,
+      }),
+    });
+    const children = jest.fn(() => <div />);
+    const queries = [
+      {
+        conditions: '',
+        fields: [`count_unique(user)`],
+        aggregates: [`count_unique(user)`],
+        columns: ['session.status'],
+        name: 'sessions',
+        orderby: '-count_unique(user)',
+      },
+    ];
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={{...singleQueryWidget, queries}}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+
+    expect(mock).toHaveBeenCalledWith(
+      '/organizations/org-slug/sessions/',
+      expect.objectContaining({
+        query: {
+          environment: ['prod'],
+          field: ['count_unique(user)'],
+          groupBy: ['session.status'],
+          interval: '30m',
+          project: [1],
+          statsPeriod: '14d',
+        },
+      })
+    );
+  });
+
+  it('strips injected sort columns', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
+    });
+    const children = jest.fn(() => <div />);
+
+    const injectedOrderby = {
+      title: 'Sessions',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          conditions: '',
+          fields: [`sum(session)`],
+          aggregates: [`sum(session)`],
+          columns: [],
+          name: 'sessions',
+          orderby: '-count_unique(user)',
+        },
+      ],
+      widgetType: WidgetType.RELEASE,
+    };
+
+    render(
+      <ReleaseWidgetQueries
+        api={api}
+        widget={injectedOrderby}
+        organization={organization}
+        selection={selection}
+      >
+        {children}
+      </ReleaseWidgetQueries>
+    );
+    expect(mock).toHaveBeenCalledTimes(1);
+
+    await waitFor(() =>
+      expect(children).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          errorMessage: undefined,
+          loading: false,
+          timeseriesResults: [
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 0},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 23},
+                {name: '2022-01-25T00:00:00Z', value: 11},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > crashed, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 0},
+                {name: '2022-01-25T00:00:00Z', value: 0},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > abnormal, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 0},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 37},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 335},
+                {name: '2022-01-25T00:00:00Z', value: 79},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > errored, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 0},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 2503},
+                {name: '2022-01-21T00:00:00Z', value: 661},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 1464},
+                {name: '2022-01-25T00:00:00Z', value: 430},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > healthy, 1 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 23},
+                {name: '2022-01-25T00:00:00Z', value: 11},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > crashed, 2 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 0},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 0},
+                {name: '2022-01-25T00:00:00Z', value: 0},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > abnormal, 2 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 37},
+                {name: '2022-01-21T00:00:00Z', value: 0},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 335},
+                {name: '2022-01-25T00:00:00Z', value: 79},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > errored, 2 : sum(session)',
+            },
+            {
+              data: [
+                {name: '2022-01-15T00:00:00Z', value: 1},
+                {name: '2022-01-16T00:00:00Z', value: 0},
+                {name: '2022-01-17T00:00:00Z', value: 0},
+                {name: '2022-01-18T00:00:00Z', value: 0},
+                {name: '2022-01-19T00:00:00Z', value: 0},
+                {name: '2022-01-20T00:00:00Z', value: 2503},
+                {name: '2022-01-21T00:00:00Z', value: 661},
+                {name: '2022-01-22T00:00:00Z', value: 0},
+                {name: '2022-01-23T00:00:00Z', value: 0},
+                {name: '2022-01-24T00:00:00Z', value: 1464},
+                {name: '2022-01-25T00:00:00Z', value: 430},
+                {name: '2022-01-26T00:00:00Z', value: 0},
+                {name: '2022-01-27T00:00:00Z', value: 0},
+                {name: '2022-01-28T00:00:00Z', value: 0},
+              ],
+              seriesName: 'sessions > healthy, 2 : sum(session)',
+            },
+          ],
+        })
+      )
+    );
+  });
+
+  it('can send table requests', async function () {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsSessionUserCountByStatusByRelease(),
     });
     const children = jest.fn(() => <div />);
 
@@ -137,73 +449,64 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
             {
               data: [
                 {
-                  'count_unique(user)': 92,
+                  'count_unique(user)': 1,
                   id: '0',
-                  project: 123,
-                  release: '7a82c130be9143361f20bc77252df783cf91e4fc',
+                  release: '1',
                   'session.status': 'crashed',
-                  'sum(session)': 492,
-                },
-                {
-                  'count_unique(user)': 760,
-                  id: '1',
-                  project: 123,
-                  release: 'e102abb2c46e7fe8686441091005c12aed90da99',
-                  'session.status': 'healthy',
-                  'sum(session)': 6260,
-                },
-                {
-                  'count_unique(user)': 0,
-                  id: '2',
-                  project: 123,
-                  release: 'e102abb2c46e7fe8686441091005c12aed90da99',
-                  'session.status': 'abnormal',
-                  'sum(session)': 0,
+                  'sum(session)': 34,
                 },
                 {
                   'count_unique(user)': 1,
-                  id: '3',
-                  project: 123,
-                  release: 'e102abb2c46e7fe8686441091005c12aed90da99',
-                  'session.status': 'crashed',
-                  'sum(session)': 5,
-                },
-                {
-                  'count_unique(user)': 0,
-                  id: '4',
-                  project: 123,
-                  release: '7a82c130be9143361f20bc77252df783cf91e4fc',
+                  id: '1',
+                  release: '1',
                   'session.status': 'abnormal',
-                  'sum(session)': 0,
+                  'sum(session)': 1,
                 },
                 {
-                  'count_unique(user)': 9,
-                  id: '5',
-                  project: 123,
-                  release: 'e102abb2c46e7fe8686441091005c12aed90da99',
+                  'count_unique(user)': 2,
+                  id: '2',
+                  release: '1',
                   'session.status': 'errored',
-                  'sum(session)': 59,
+                  'sum(session)': 451,
                 },
                 {
-                  'count_unique(user)': 99136,
-                  id: '6',
-                  project: 123,
-                  release: '7a82c130be9143361f20bc77252df783cf91e4fc',
+                  'count_unique(user)': 3,
+                  id: '3',
+                  release: '1',
                   'session.status': 'healthy',
-                  'sum(session)': 202136,
+                  'sum(session)': 5058,
                 },
                 {
-                  'count_unique(user)': 915,
-                  id: '7',
-                  project: 123,
-                  release: '7a82c130be9143361f20bc77252df783cf91e4fc',
+                  'count_unique(user)': 2,
+                  id: '4',
+                  release: '2',
+                  'session.status': 'crashed',
+                  'sum(session)': 35,
+                },
+                {
+                  'count_unique(user)': 1,
+                  id: '5',
+                  release: '2',
+                  'session.status': 'abnormal',
+                  'sum(session)': 1,
+                },
+                {
+                  'count_unique(user)': 1,
+                  id: '6',
+                  release: '2',
                   'session.status': 'errored',
-                  'sum(session)': 1954,
+                  'sum(session)': 452,
+                },
+                {
+                  'count_unique(user)': 10,
+                  id: '7',
+                  release: '2',
+                  'session.status': 'healthy',
+                  'sum(session)': 5059,
                 },
               ],
               meta: {
                 'count_unique(user)': 'integer',
-                project: 'string',
                 release: 'string',
                 'session.status': 'string',
                 'sum(session)': 'integer',
@@ -219,9 +522,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
   it('can send big number requests', async function () {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sessions/',
-      body: TestStubs.SessionsField({
-        field: `count_unique(user)`,
+      url: '/organizations/org-slug/metrics/data/',
+      body: TestStubs.MetricsField({
+        field: `count_unique(sentry.sessions.user)`,
       }),
     });
     const children = jest.fn(() => <div />);
@@ -242,8 +545,8 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({
-          field: ['count_unique(user)'],
-          orderBy: '-count_unique(user)',
+          field: ['count_unique(sentry.sessions.user)'],
+          orderBy: '-count_unique(sentry.sessions.user)',
         }),
       })
     );
@@ -254,7 +557,7 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
           loading: false,
           tableResults: [
             {
-              data: [{id: '0', 'count_unique(user)': 492}],
+              data: [{'count_unique(user)': 51292.95404741901, id: '0'}],
               meta: {'count_unique(user)': 'integer'},
               title: 'sessions',
             },
@@ -265,14 +568,14 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
   });
 
   it('can send multiple API requests', function () {
-    const sessionMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sessions/',
+    const metricsMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.SessionsField({
-        field: `sum(session)`,
+        field: `sum(sentry.sessions.session)`,
       }),
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(session)`],
+          field: [`sum(sentry.sessions.session)`],
         }),
       ],
     });
@@ -288,35 +591,39 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
     );
     // Child should be rendered and 2 requests should be sent.
     expect(screen.getByTestId('child')).toBeInTheDocument();
-    expect(sessionMock).toHaveBeenCalledTimes(2);
-    expect(sessionMock).toHaveBeenNthCalledWith(
+    expect(metricsMock).toHaveBeenCalledTimes(2);
+    expect(metricsMock).toHaveBeenNthCalledWith(
       1,
-      '/organizations/org-slug/sessions/',
+      '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
         query: {
           environment: ['prod'],
-          field: ['sum(session)'],
+          field: ['sum(sentry.sessions.session)'],
           groupBy: [],
           interval: '30m',
-          per_page: 20,
           project: [1],
           statsPeriod: '14d',
+          per_page: 1,
+          includeSeries: 1,
+          includeTotals: 0,
         },
       })
     );
-    expect(sessionMock).toHaveBeenNthCalledWith(
+    expect(metricsMock).toHaveBeenNthCalledWith(
       2,
-      '/organizations/org-slug/sessions/',
+      '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
         query: {
           environment: ['prod'],
-          field: ['sum(session)'],
+          field: ['sum(sentry.sessions.session)'],
           groupBy: [],
           interval: '30m',
-          per_page: 20,
           project: [1],
           query: 'environment:prod',
           statsPeriod: '14d',
+          per_page: 1,
+          includeSeries: 1,
+          includeTotals: 0,
         },
       })
     );
@@ -324,12 +631,12 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
   it('sets errorMessage when the first request fails', async function () {
     const failMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sessions/',
+      url: '/organizations/org-slug/metrics/data/',
       statusCode: 400,
       body: {detail: badMessage},
       match: [
         MockApiClient.matchQuery({
-          field: [`sum(session)`],
+          field: [`sum(sentry.sessions.session)`],
         }),
       ],
     });
@@ -358,9 +665,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
   it('adjusts interval based on date window', function () {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sessions/',
+      url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.SessionsField({
-        field: `sum(session)`,
+        field: `sum(sentry.sessions.session)`,
       }),
     });
 
@@ -392,9 +699,9 @@ describe('Dashboards > ReleaseWidgetQueries', function () {
 
   it('does not re-fetch when renaming legend alias / adding falsy fields', () => {
     const mock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sessions/',
+      url: '/organizations/org-slug/metrics/data/',
       body: TestStubs.SessionsField({
-        field: `sum(session)`,
+        field: `sum(sentry.sessions.session)`,
       }),
     });
     const children = jest.fn(() => <div />);

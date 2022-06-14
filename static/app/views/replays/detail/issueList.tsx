@@ -10,7 +10,7 @@ import {DEFAULT_STREAM_GROUP_STATS_PERIOD} from 'sentry/components/stream/group'
 import GroupChart from 'sentry/components/stream/groupChart';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Group, NewQuery, PageFilters} from 'sentry/types';
+import {Group, NewQuery} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import theme from 'sentry/utils/theme';
@@ -18,12 +18,11 @@ import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import withPageFilters from 'sentry/utils/withPageFilters';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
   projectId: string;
   replayId: string;
-  selection: PageFilters;
 };
 const columns = [t('Issue'), t('Graph'), t('Events'), t('Users')];
 
@@ -31,13 +30,13 @@ function IssueList(props: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const api = useApi();
+  const {selection} = usePageFilters();
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[2]})`);
 
   const [issuesById, setIssuesById] = useState<Record<string, Group>>({});
   const [issueStatsById, setIssuesStatsById] = useState<Record<string, Group>>({});
 
   const getEventView = () => {
-    const {selection} = props;
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
@@ -159,6 +158,7 @@ function IssueList(props: Props) {
         return (
           <StyledPanelTable
             isEmpty={data.tableData?.data.length === 0}
+            emptyMessage={t('No related Issues found.')}
             isLoading={data.isLoading}
             headers={
               isScreenLarge ? columns : columns.filter(column => column !== t('Graph'))
@@ -198,4 +198,4 @@ const StyledPanelTable = styled(PanelTable)`
   }
 `;
 
-export default withPageFilters(IssueList);
+export default IssueList;

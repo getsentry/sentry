@@ -3,7 +3,6 @@ __all__ = (
     "GRANULARITY",
     "TS_COL_QUERY",
     "TS_COL_GROUP",
-    "FIELD_REGEX",
     "TAG_REGEX",
     "MetricOperationType",
     "MetricUnit",
@@ -12,7 +11,7 @@ __all__ = (
     "AVAILABLE_OPERATIONS",
     "OPERATIONS_TO_ENTITY",
     "METRIC_TYPE_TO_ENTITY",
-    "ALLOWED_GROUPBY_COLUMNS",
+    "FIELD_ALIAS_MAPPINGS",
     "Tag",
     "TagValue",
     "MetricMeta",
@@ -30,11 +29,14 @@ __all__ = (
     "MetricEntity",
     "UNALLOWED_TAGS",
     "combine_dictionary_of_list_values",
+    "get_intervals",
+    "OP_REGEX",
 )
 
 
 import re
 from abc import ABC
+from datetime import datetime, timedelta
 from typing import (
     Collection,
     Dict,
@@ -50,15 +52,13 @@ from typing import (
 
 from sentry.snuba.dataset import EntityKey
 
+#: Max number of data points per time series:
 MAX_POINTS = 10000
 GRANULARITY = 24 * 60 * 60
 TS_COL_QUERY = "timestamp"
 TS_COL_GROUP = "bucketed_time"
 
-#: Max number of data points per time series:
-# ToDo modify this regex to only support the operations provided
-FIELD_REGEX = re.compile(r"^(\w+)\(((\w|\.|_|\:|\/|\@)+)\)$")
-TAG_REGEX = re.compile(r"^(\w|\.|_)+$")
+TAG_REGEX = re.compile(r"^([\w.]+)$")
 
 #: A function that can be applied to a metric
 MetricOperationType = Literal[
@@ -81,7 +81,7 @@ MetricType = Literal["counter", "set", "distribution", "numeric"]
 
 MetricEntity = Literal["metrics_counters", "metrics_sets", "metrics_distributions"]
 
-OP_TO_SNUBA_FUNCTION: Mapping[str, Mapping[MetricOperationType, str]] = {
+OP_TO_SNUBA_FUNCTION = {
     "metrics_counters": {"sum": "sumIf"},
     "metrics_distributions": {
         "avg": "avgIf",
@@ -99,6 +99,19 @@ OP_TO_SNUBA_FUNCTION: Mapping[str, Mapping[MetricOperationType, str]] = {
 }
 
 
+def generate_operation_regex():
+    """
+    Generates a regex of all supported operations defined in OP_TO_SNUBA_FUNCTION
+    """
+    operations = []
+    for item in OP_TO_SNUBA_FUNCTION.values():
+        operations += list(item.keys())
+    return rf"({'|'.join(map(str, operations))})"
+
+
+OP_REGEX = generate_operation_regex()
+
+
 AVAILABLE_OPERATIONS = {
     type_: sorted(mapping.keys()) for type_, mapping in OP_TO_SNUBA_FUNCTION.items()
 }
@@ -113,7 +126,7 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "distribution": EntityKey.MetricsDistributions,
 }
 
-ALLOWED_GROUPBY_COLUMNS = ("project_id",)
+FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
 
 
 class Tag(TypedDict):
@@ -211,3 +224,11 @@ class NotSupportedOverCompositeEntityException(DerivedMetricException):
 
 class OrderByNotSupportedOverCompositeEntityException(NotSupportedOverCompositeEntityException):
     ...
+
+
+def get_intervals(start: datetime, end: datetime, granularity: int):
+    assert granularity > 0
+    delta = timedelta(seconds=granularity)
+    while start < end:
+        yield start
+        start += delta

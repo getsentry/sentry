@@ -1,99 +1,98 @@
 import {useMemo} from 'react';
+import {uuid4} from '@sentry/utils';
 
-import EventEntry from 'sentry/components/events/eventEntry';
+import Spans from 'sentry/components/events/interfaces/spans';
+import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TagsTable from 'sentry/components/tagsTable';
-import type {Entry, Event} from 'sentry/types/event';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import {isBreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import useActiveTabFromLocation from 'sentry/utils/replays/hooks/useActiveTabFromLocation';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 import Console from './console';
 import IssueList from './issueList';
 import MemoryChart from './memoryChart';
 import Trace from './trace';
-import useActiveTabFromLocation from './useActiveTabFromLocation';
 
 type Props = {
-  replay: ReplayReader;
+  replay: ReplayReader | null;
 };
 
-function getBreadcrumbsByCategory(breadcrumbEntry: Entry, categories: string[]) {
-  return breadcrumbEntry.data.values.filter(breadcrumb =>
-    categories.includes(breadcrumb.category)
-  );
+function getBreadcrumbsByCategory(breadcrumbs: RawCrumb[], categories: string[]) {
+  return breadcrumbs
+    .filter(isBreadcrumbTypeDefault)
+    .filter(breadcrumb => categories.includes(breadcrumb.category || ''));
 }
 
 function FocusArea({replay}: Props) {
   const active = useActiveTabFromLocation();
-  const {routes, router} = useRouteContext();
   const {currentTime, currentHoverTime, setCurrentTime, setCurrentHoverTime} =
     useReplayContext();
   const organization = useOrganization();
 
-  const event = replay.getEvent();
-  const spansEntry = replay.getEntryType(EntryType.SPANS);
-
   // Memoize this because re-renders will interfere with the mouse state of the
   // chart (e.g. on mouse over and out)
   const memorySpans = useMemo(() => {
-    return replay.getRawSpans().filter(replay.isMemorySpan);
+    return replay?.getRawSpans().filter(replay.isMemorySpan);
   }, [replay]);
+
+  if (!replay || !memorySpans) {
+    return <Placeholder height="150px" />;
+  }
+
+  const event = replay.getEvent();
 
   switch (active) {
     case 'console':
-      const breadcrumbEntry = replay.getEntryType(EntryType.BREADCRUMBS);
-      const consoleMessages = getBreadcrumbsByCategory(breadcrumbEntry, [
+      const consoleMessages = getBreadcrumbsByCategory(replay?.getRawCrumbs(), [
         'console',
-        'error',
       ]);
       return (
-        <div id="console">
-          <Console breadcrumbs={consoleMessages ?? []} orgSlug={organization.slug} />
-        </div>
+        <Console
+          breadcrumbs={consoleMessages ?? []}
+          startTimestamp={event?.startTimestamp}
+        />
       );
-    case 'performance': {
+    case 'network': {
+      // Fake the span and Trace context
       const nonMemorySpansEntry = {
-        ...spansEntry,
-        data: spansEntry.data.filter(replay.isNotMemorySpan),
+        type: EntryType.SPANS,
+        data: replay
+          .getRawSpans()
+          .filter(replay.isNotMemorySpan)
+          .map(({startTimestamp, endTimestamp, ...span}) => ({
+            ...span,
+            timestamp: endTimestamp,
+            start_timestamp: startTimestamp,
+            span_id: uuid4(), // TODO(replays): used as a React key
+            parent_span_id: 'replay_network_trace',
+          })),
       };
       const performanceEvent = {
         ...event,
+        contexts: {
+          trace: {
+            type: 'trace',
+            op: 'Network',
+            description: 'WIP',
+            span_id: 'replay_network_trace',
+            status: 'ok',
+          },
+        },
         entries: [nonMemorySpansEntry],
-      } as Event;
-      return (
-        <div id="performance">
-          <EventEntry
-            projectSlug={getProjectSlug(performanceEvent)}
-            // group={group}
-            organization={organization}
-            event={performanceEvent}
-            entry={nonMemorySpansEntry}
-            route={routes[routes.length - 1]}
-            router={router}
-          />
-        </div>
-      );
+      } as EventTransaction;
+      return <Spans organization={organization} event={performanceEvent} />;
     }
     case 'trace':
-      return (
-        <div id="trace">
-          <Trace organization={organization} event={event} />
-        </div>
-      );
+      return <Trace organization={organization} event={event} />;
     case 'issues':
-      return (
-        <div id="issues">
-          <IssueList replayId={event.id} projectId={event.projectID} />
-        </div>
-      );
+      return <IssueList replayId={event.id} projectId={event.projectID} />;
     case 'tags':
-      return (
-        <div id="tags">
-          <TagsTable generateUrl={() => ''} event={event} query="" />
-        </div>
-      );
+      return <TagsTable generateUrl={() => ''} event={event} query="" />;
     case 'memory':
       return (
         <MemoryChart
@@ -102,16 +101,12 @@ function FocusArea({replay}: Props) {
           memorySpans={memorySpans}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
-          startTimestamp={event.startTimestamp}
+          startTimestamp={event?.startTimestamp}
         />
       );
     default:
       return null;
   }
-}
-
-function getProjectSlug(event: Event) {
-  return event.projectSlug || event['project.name']; // seems janky
 }
 
 export default FocusArea;

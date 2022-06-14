@@ -10,7 +10,6 @@ from django.db.models.functions import Lower
 from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
 
-from sentry.utils.compat import map, zip
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
 
 quote_name = connections["default"].ops.quote_name

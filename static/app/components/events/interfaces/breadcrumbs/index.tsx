@@ -9,32 +9,22 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventDataSection from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {
-  BreadcrumbLevelType,
-  BreadcrumbType,
-  Crumb,
-  RawCrumb,
-} from 'sentry/types/breadcrumbs';
-import {EntryType, Event} from 'sentry/types/event';
+import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import SearchBarAction from '../searchBarAction';
-import SearchBarActionFilter from '../searchBarAction/searchBarActionFilter';
+import SearchBarAction from '../searchBarActionV2';
 
 import Level from './breadcrumb/level';
 import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
-import {transformCrumbs} from './utils';
+import {getVirtualCrumb, transformCrumbs} from './utils';
 
-type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options'];
+type FilterOptions = NonNullable<
+  React.ComponentProps<typeof SearchBarAction>['filterOptions']
+>;
 
-type FilterTypes = {
-  description: string;
-  id: BreadcrumbType;
-  isChecked: boolean;
-  levels: BreadcrumbLevelType[];
-  symbol: React.ReactElement;
-};
+type FilterOptionWithLevels = FilterOptions[0] & {levels?: BreadcrumbLevelType[]};
 
 type Props = Pick<React.ComponentProps<typeof Breadcrumbs>, 'route' | 'router'> & {
   data: {
@@ -49,6 +39,7 @@ type State = {
   breadcrumbs: Crumb[];
   displayRelativeTime: boolean;
   filterOptions: FilterOptions;
+  filterSelections: FilterOptions;
   filteredByFilter: Crumb[];
   filteredBySearch: Crumb[];
   searchTerm: string;
@@ -68,7 +59,8 @@ function BreadcrumbsContainer({
     breadcrumbs: [],
     filteredByFilter: [],
     filteredBySearch: [],
-    filterOptions: {},
+    filterOptions: [],
+    filterSelections: [],
     displayRelativeTime: false,
   });
 
@@ -84,13 +76,13 @@ function BreadcrumbsContainer({
 
   useEffect(() => {
     loadBreadcrumbs();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function loadBreadcrumbs() {
     let crumbs = data.values;
 
     // Add the (virtual) breadcrumb based on the error or message event if possible.
-    const virtualCrumb = getVirtualCrumb();
+    const virtualCrumb = getVirtualCrumb(event);
 
     if (virtualCrumb) {
       crumbs = [...crumbs, virtualCrumb];
@@ -112,32 +104,41 @@ function BreadcrumbsContainer({
     const typeOptions = getFilterTypes(crumbs);
     const levels = getFilterLevels(typeOptions);
 
-    const options = {};
+    const options: FilterOptions = [];
 
     if (!!typeOptions.length) {
-      options[t('Types')] = typeOptions.map(typeOption => omit(typeOption, 'levels'));
+      options.push({
+        value: 'types',
+        label: t('Types'),
+        options: typeOptions.map(typeOption => omit(typeOption, 'levels')),
+      });
     }
 
     if (!!levels.length) {
-      options[t('Levels')] = levels;
+      options.push({
+        value: 'levels',
+        label: t('Levels'),
+        options: levels,
+      });
     }
 
     return options;
   }
 
   function getFilterTypes(crumbs: ReturnType<typeof transformCrumbs>) {
-    const filterTypes: FilterTypes[] = [];
+    const filterTypes: FilterOptionWithLevels[] = [];
 
     for (const index in crumbs) {
       const breadcrumb = crumbs[index];
-      const foundFilterType = filterTypes.findIndex(f => f.id === breadcrumb.type);
+      const foundFilterType = filterTypes.findIndex(
+        f => f.value === `type-${breadcrumb.type}`
+      );
 
       if (foundFilterType === -1) {
         filterTypes.push({
-          id: breadcrumb.type,
-          symbol: <Type type={breadcrumb.type} color={breadcrumb.color} />,
-          isChecked: false,
-          description: breadcrumb.description,
+          value: `type-${breadcrumb.type}`,
+          leadingItems: <Type type={breadcrumb.type} color={breadcrumb.color} />,
+          label: breadcrumb.description,
           levels: breadcrumb?.level ? [breadcrumb.level] : [],
         });
         continue;
@@ -145,30 +146,33 @@ function BreadcrumbsContainer({
 
       if (
         breadcrumb?.level &&
-        !filterTypes[foundFilterType].levels.includes(breadcrumb.level)
+        !filterTypes[foundFilterType].levels?.includes(breadcrumb.level)
       ) {
-        filterTypes[foundFilterType].levels.push(breadcrumb.level);
+        filterTypes[foundFilterType].levels?.push(breadcrumb.level);
       }
     }
 
     return filterTypes;
   }
 
-  function getFilterLevels(types: FilterTypes[]) {
-    const filterLevels: FilterOptions[0] = [];
+  function getFilterLevels(types: FilterOptionWithLevels[]) {
+    const filterLevels: FilterOptions = [];
 
     for (const indexType in types) {
       for (const indexLevel in types[indexType].levels) {
-        const level = types[indexType].levels[indexLevel];
+        const level = types[indexType].levels?.[indexLevel];
 
-        if (filterLevels.some(f => f.id === level)) {
+        if (filterLevels.some(f => f.value === `level-${level}`)) {
           continue;
         }
 
         filterLevels.push({
-          id: level,
-          symbol: <Level level={level} />,
-          isChecked: false,
+          value: `level-${level}`,
+          label: (
+            <LevelWrap>
+              <Level level={level} />
+            </LevelWrap>
+          ),
         });
       }
     }
@@ -207,17 +211,17 @@ function BreadcrumbsContainer({
     );
   }
 
-  function getFilteredCrumbsByFilter(newfilterOptions: FilterOptions) {
+  function getFilteredCrumbsByFilter(selectedFilterOptions: FilterOptions) {
     const checkedTypeOptions = new Set(
-      Object.values(newfilterOptions)[0]
-        .filter(filterOption => filterOption.isChecked)
-        .map(option => option.id)
+      selectedFilterOptions
+        .filter(option => option.value.startsWith('type-'))
+        .map(option => option.value.split('-')[1])
     );
 
     const checkedLevelOptions = new Set(
-      Object.values(newfilterOptions)[1]
-        .filter(filterOption => filterOption.isChecked)
-        .map(option => option.id)
+      selectedFilterOptions
+        .filter(option => option.value.startsWith('level-'))
+        .map(option => option.value.split('-')[1])
     );
 
     if (!![...checkedTypeOptions].length && !![...checkedLevelOptions].length) {
@@ -243,51 +247,6 @@ function BreadcrumbsContainer({
     return breadcrumbs;
   }
 
-  function moduleToCategory(module?: string | null) {
-    if (!module) {
-      return undefined;
-    }
-    const match = module.match(/^.*\/(.*?)(:\d+)/);
-    if (!match) {
-      return module.split(/./)[0];
-    }
-    return match[1];
-  }
-
-  function getVirtualCrumb(): RawCrumb | undefined {
-    const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
-
-    if (!exception && !event.message) {
-      return undefined;
-    }
-
-    const timestamp = event.dateCreated;
-
-    if (exception) {
-      const {type, value, module: mdl} = exception.data.values[0];
-      return {
-        type: BreadcrumbType.ERROR,
-        level: BreadcrumbLevelType.ERROR,
-        category: moduleToCategory(mdl) || 'exception',
-        data: {
-          type,
-          value,
-        },
-        timestamp,
-      };
-    }
-
-    const levelTag = (event.tags || []).find(tag => tag.key === 'level');
-
-    return {
-      type: BreadcrumbType.INFO,
-      level: (levelTag?.value as BreadcrumbLevelType) || BreadcrumbLevelType.UNDEFINED,
-      category: 'message',
-      message: event.message,
-      timestamp,
-    };
-  }
-
   function handleSearch(value: string) {
     setState({
       ...state,
@@ -298,10 +257,9 @@ function BreadcrumbsContainer({
 
   function handleFilter(newfilterOptions: FilterOptions) {
     const newfilteredByFilter = getFilteredCrumbsByFilter(newfilterOptions);
-
     setState({
       ...state,
-      filterOptions: newfilterOptions,
+      filterSelections: newfilterOptions,
       filteredByFilter: newfilteredByFilter,
       filteredBySearch: filterBySearch(searchTerm, newfilteredByFilter),
     });
@@ -317,14 +275,8 @@ function BreadcrumbsContainer({
   function handleResetFilter() {
     setState({
       ...state,
+      filterSelections: [],
       filteredByFilter: breadcrumbs,
-      filterOptions: Object.keys(filterOptions).reduce((accumulator, currentValue) => {
-        accumulator[currentValue] = filterOptions[currentValue].map(filterOption => ({
-          ...filterOption,
-          isChecked: false,
-        }));
-        return accumulator;
-      }, {}),
       filteredBySearch: filterBySearch(searchTerm, breadcrumbs),
     });
   }
@@ -343,9 +295,7 @@ function BreadcrumbsContainer({
     }
 
     if (searchTerm && !filteredBySearch.length) {
-      const hasActiveFilter = Object.values(filterOptions)
-        .flatMap(filterOption => filterOption)
-        .find(filterOption => filterOption.isChecked);
+      const hasActiveFilter = state.filterSelections.length > 0;
 
       return {
         emptyMessage: t('Sorry, no breadcrumbs match your search query'),
@@ -379,9 +329,9 @@ function BreadcrumbsContainer({
           placeholder={t('Search breadcrumbs')}
           onChange={handleSearch}
           query={searchTerm}
-          filter={
-            <SearchBarActionFilter onChange={handleFilter} options={filterOptions} />
-          }
+          filterOptions={filterOptions}
+          filterSelections={state.filterSelections}
+          onFilterChange={handleFilter}
         />
       }
       wrapTitle={false}
@@ -409,4 +359,10 @@ export default BreadcrumbsContainer;
 
 const StyledSearchBarAction = styled(SearchBarAction)`
   z-index: 2;
+`;
+
+const LevelWrap = styled('span')`
+  height: ${p => p.theme.text.lineHeightBody}em;
+  display: flex;
+  align-items: center;
 `;

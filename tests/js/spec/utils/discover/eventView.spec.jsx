@@ -998,6 +998,19 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       display: 'previous',
     });
   });
+
+  it('filters out invalid teams', function () {
+    const eventView = EventView.fromSavedQueryOrLocation(undefined, {
+      query: {
+        statsPeriod: '14d',
+        project: ['123'],
+        team: ['myteams', '1', 'unassigned'],
+        environment: ['staging'],
+      },
+    });
+
+    expect(eventView.team).toEqual(['myteams', 1]);
+  });
 });
 
 describe('EventView.generateQueryStringObject()', function () {
@@ -2571,6 +2584,23 @@ describe('EventView.sortOnField()', function () {
       ...modifiedState,
       sorts: [{field: 'title', kind: 'desc'}],
     });
+  });
+
+  it('sorts on a field using function format', function () {
+    const modifiedState = {
+      ...state,
+      fields: [...state.fields, {field: 'count()'}],
+    };
+
+    const eventView = new EventView(modifiedState);
+    expect(eventView).toMatchObject(modifiedState);
+
+    const field = modifiedState.fields[2];
+
+    let sortedEventView = eventView.sortOnField(field, meta, undefined, true);
+    expect(sortedEventView.sorts).toEqual([{field: 'count()', kind: 'asc'}]);
+    sortedEventView = sortedEventView.sortOnField(field, meta, undefined, true);
+    expect(sortedEventView.sorts).toEqual([{field: 'count()', kind: 'desc'}]);
   });
 });
 

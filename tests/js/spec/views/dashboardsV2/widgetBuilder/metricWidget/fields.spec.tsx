@@ -56,6 +56,74 @@ describe('generateReleaseWidgetFieldOptions', function () {
           },
         },
       },
+      'function:count_abnormal': {
+        label: 'count_abnormal(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'count_abnormal',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
+      'function:count_crashed': {
+        label: 'count_crashed(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'count_crashed',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
+      'function:count_errored': {
+        label: 'count_errored(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'count_errored',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
+      'function:count_healthy': {
+        label: 'count_healthy(…)',
+        value: {
+          kind: 'function',
+          meta: {
+            name: 'count_healthy',
+            parameters: [
+              {
+                columnTypes: ['integer', 'string'],
+                defaultValue: 'session',
+                kind: 'column',
+                required: true,
+              },
+            ],
+          },
+        },
+      },
       'function:count_unique': {
         label: 'count_unique(…)',
         value: {
@@ -209,20 +277,20 @@ describe('generateReleaseWidgetFieldOptions', function () {
           },
         },
       },
-      'tag:environment': {
+      'field:environment': {
         label: 'environment',
         value: {
-          kind: 'tag',
+          kind: 'field',
           meta: {
             dataType: 'string',
             name: 'environment',
           },
         },
       },
-      'tag:release': {
+      'field:release': {
         label: 'release',
         value: {
-          kind: 'tag',
+          kind: 'field',
           meta: {
             dataType: 'string',
             name: 'release',
@@ -230,9 +298,5 @@ describe('generateReleaseWidgetFieldOptions', function () {
         },
       },
     });
-  });
-
-  it('ignores tags+aggregates if there are no fields', function () {
-    expect(generateReleaseWidgetFieldOptions([], tagKeys)).toEqual({});
   });
 });

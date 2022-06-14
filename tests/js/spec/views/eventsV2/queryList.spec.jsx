@@ -139,7 +139,7 @@ describe('EventsV2 > QueryList', function () {
     expect(queryChangeMock).toHaveBeenCalled();
   });
 
-  it('returns short url location for saved query', async function () {
+  it('returns short url location for saved query', function () {
     const wrapper = mountWithTheme(
       <QueryList
         organization={organization}
@@ -269,11 +269,7 @@ describe('EventsV2 > QueryList', function () {
   describe('Add to Dashboard modal', () => {
     it('opens a modal with the correct params for Top 5 chart', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const wrapper = mountWithTheme(
         <QueryList
@@ -283,6 +279,7 @@ describe('EventsV2 > QueryList', function () {
               display: DisplayModes.TOP5,
               orderby: 'test',
               fields: ['test', 'count()'],
+              yAxis: ['count()'],
             }),
           ]}
           pageLinks=""
@@ -315,10 +312,11 @@ describe('EventsV2 > QueryList', function () {
         expect.objectContaining({
           widget: {
             title: 'Saved query #1',
-            displayType: DisplayType.TOP_N,
+            displayType: DisplayType.AREA,
+            limit: 5,
             queries: [
               {
-                aggregates: ['count()', 'count()'],
+                aggregates: ['count()'],
                 columns: ['test'],
                 conditions: '',
                 fields: ['test', 'count()', 'count()'],
@@ -331,8 +329,8 @@ describe('EventsV2 > QueryList', function () {
             defaultTableColumns: ['test', 'count()'],
             defaultTitle: 'Saved query #1',
             defaultWidgetQuery:
-              'name=&aggregates=count()%2Ccount()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
-            displayType: DisplayType.TOP_N,
+              'name=&aggregates=count()&columns=test&fields=test%2Ccount()%2Ccount()&conditions=&orderby=test',
+            displayType: DisplayType.AREA,
             source: DashboardWidgetSource.DISCOVERV2,
           }),
         })
@@ -341,11 +339,7 @@ describe('EventsV2 > QueryList', function () {
 
     it('opens a modal with the correct params for other chart', async function () {
       const featuredOrganization = TestStubs.Organization({
-        features: [
-          'dashboards-edit',
-          'new-widget-builder-experience',
-          'new-widget-builder-experience-design',
-        ],
+        features: ['dashboards-edit', 'new-widget-builder-experience-design'],
       });
       const wrapper = mountWithTheme(
         <QueryList

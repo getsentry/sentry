@@ -1,12 +1,12 @@
 from django.conf.urls import url
 
-from .endpoints.action import SlackActionEndpoint
-from .endpoints.command import SlackCommandsEndpoint
-from .endpoints.event import SlackEventEndpoint
 from .views.link_identity import SlackLinkIdentityView
 from .views.link_team import SlackLinkTeamView
 from .views.unlink_identity import SlackUnlinkIdentityView
 from .views.unlink_team import SlackUnlinkTeamView
+from .webhooks.action import SlackActionEndpoint
+from .webhooks.command import SlackCommandsEndpoint
+from .webhooks.event import SlackEventEndpoint
 
 urlpatterns = [
     url(r"^action/$", SlackActionEndpoint.as_view()),

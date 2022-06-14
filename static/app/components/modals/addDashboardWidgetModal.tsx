@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
-import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -66,9 +65,6 @@ import {
 import WidgetCard from 'sentry/views/dashboardsV2/widgetCard';
 import {WidgetTemplate} from 'sentry/views/dashboardsV2/widgetLibrary/data';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
-
-import Option from '../forms/selectOption';
-import Tooltip from '../tooltip';
 
 import {TAB, TabsButtonBar} from './dashboardWidgetLibraryModal/tabsButtonBar';
 
@@ -136,9 +132,9 @@ const newIssueQuery: WidgetQuery = {
 
 const newMetricsQuery: WidgetQuery = {
   name: '',
-  fields: [`sum(${SessionField.SESSION})`],
+  fields: [`crash_free_rate(${SessionField.SESSION})`],
   columns: [],
-  aggregates: [`sum(${SessionField.SESSION})`],
+  aggregates: [`crash_free_rate(${SessionField.SESSION})`],
   conditions: '',
   orderby: '',
 };
@@ -275,7 +271,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
     }
   };
 
-  handleSubmitFromSelectedDashboard = async (
+  handleSubmitFromSelectedDashboard = (
     errors: FlatValidationError,
     widgetData: Widget
   ) => {
@@ -343,7 +339,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
     }
   };
 
-  handleSubmitFromLibrary = async (errors: FlatValidationError, widgetData: Widget) => {
+  handleSubmitFromLibrary = (errors: FlatValidationError, widgetData: Widget) => {
     const {closeModal, dashboard, onAddLibraryWidget, organization} = this.props;
     if (!dashboard) {
       errors.dashboard = t('This field may not be blank');
@@ -568,6 +564,12 @@ class AddDashboardWidgetModal extends Component<Props, State> {
         label: d.title,
         value: d.id,
         isDisabled: d.widgetDisplay.length >= MAX_WIDGETS,
+        tooltip:
+          d.widgetDisplay.length >= MAX_WIDGETS &&
+          tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+            maxWidgets: MAX_WIDGETS,
+          }),
+        tooltipOptions: {position: 'right'},
       };
     });
     return (
@@ -594,20 +596,6 @@ class AddDashboardWidgetModal extends Component<Props, State> {
             ]}
             onChange={(option: SelectValue<string>) => this.handleDashboardChange(option)}
             disabled={loading}
-            components={{
-              Option: ({label, data, ...optionProps}: OptionProps<any>) => (
-                <Tooltip
-                  disabled={!!!data.isDisabled}
-                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                    maxWidgets: MAX_WIDGETS,
-                  })}
-                  containerDisplayMode="block"
-                  position="right"
-                >
-                  <Option label={label} data={data} {...(optionProps as any)} />
-                </Tooltip>
-              ),
-            }}
           />
         </Field>
       </Fragment>
@@ -877,7 +865,7 @@ class AddDashboardWidgetModal extends Component<Props, State> {
           </DoubleFieldWrapper>
           {(showIssueDatasetSelector || showMetricsDatasetSelector) && (
             <Fragment>
-              <StyledFieldLabel>{t('Data Set')}</StyledFieldLabel>
+              <StyledFieldLabel>{t('Dataset')}</StyledFieldLabel>
               <StyledRadioGroup
                 style={{flex: 1}}
                 choices={datasetChoices}

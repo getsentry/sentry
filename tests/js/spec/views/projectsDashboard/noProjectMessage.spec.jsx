@@ -11,7 +11,7 @@ describe('NoProjectMessage', function () {
 
   const org = TestStubs.Organization();
 
-  it('renders', async function () {
+  it('renders', function () {
     const organization = TestStubs.Organization({slug: 'org-slug'});
     const childrenMock = jest.fn().mockReturnValue(null);
     delete organization.projects;

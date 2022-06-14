@@ -56,7 +56,6 @@ function ProjectSelectorItem({
           <FeatureDisabled
             features={features}
             hideHelpToggle
-            message={t('Multiple project selection disabled')}
             featureName={t('Multiple Project Selection')}
           />
         }
@@ -103,7 +102,7 @@ function ProjectSelectorItem({
         icon={<IconOpen />}
       />
       <ActionButton
-        to={`/settings/${organization.slug}/${project.slug}/`}
+        to={`/settings/${organization.slug}/projects/${project.slug}/`}
         size="zero"
         priority="link"
         aria-label="Project Settings"

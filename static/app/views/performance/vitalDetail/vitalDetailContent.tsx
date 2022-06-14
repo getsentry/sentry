@@ -41,6 +41,7 @@ import {getTransactionSearchQuery} from '../utils';
 import Table from './table';
 import {
   vitalAbbreviations,
+  vitalAlertTypes,
   vitalDescription,
   vitalMap,
   vitalSupportedBrowsers,
@@ -91,7 +92,10 @@ class VitalDetailContent extends Component<Props, State> {
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   };
 
@@ -115,7 +119,7 @@ class VitalDetailContent extends Component<Props, State> {
   };
 
   renderCreateAlertButton() {
-    const {eventView, organization, projects} = this.props;
+    const {eventView, organization, projects, vitalName} = this.props;
 
     return (
       <CreateAlertFromViewButton
@@ -124,7 +128,9 @@ class VitalDetailContent extends Component<Props, State> {
         projects={projects}
         onIncompatibleQuery={this.handleIncompatibleQuery}
         onSuccess={() => {}}
+        useAlertWizardV3={organization.features.includes('alert-wizard-v3')}
         aria-label={t('Create Alert')}
+        alertType={vitalAlertTypes[vitalName]}
         referrer="performance"
       />
     );

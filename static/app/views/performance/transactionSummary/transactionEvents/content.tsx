@@ -14,6 +14,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -113,7 +114,10 @@ function Search(props: Props) {
 
     browserHistory.push({
       pathname: location.pathname,
-      query: searchQueryParams,
+      query: {
+        ...searchQueryParams,
+        userModified: true,
+      },
     });
   };
 
@@ -123,6 +127,12 @@ function Search(props: Props) {
     spanOperationBreakdownFilter,
     percentileValues
   );
+
+  const handleDiscoverButtonClick = () => {
+    trackAdvancedAnalyticsEvent('performance_views.all_events.open_in_discover', {
+      organization,
+    });
+  };
 
   return (
     <FilterActions>
@@ -160,7 +170,10 @@ function Search(props: Props) {
           );
         })}
       </DropdownControl>
-      <Button to={eventView.getResultsViewUrlTarget(organization.slug)}>
+      <Button
+        to={eventView.getResultsViewUrlTarget(organization.slug)}
+        onClick={handleDiscoverButtonClick}
+      >
         {t('Open in Discover')}
       </Button>
     </FilterActions>

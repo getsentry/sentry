@@ -1,8 +1,8 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import ModalActions from 'sentry/actions/modalActions';
 import {Client} from 'sentry/api';
+import ModalStore from 'sentry/stores/modalStore';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity';
 import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
 
@@ -250,7 +250,7 @@ describe('AccountSecurity', function () {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
 
     // expect modal to be called
-    const openEmailModalFunc = jest.spyOn(ModalActions, 'openModal');
+    const openEmailModalFunc = jest.spyOn(ModalStore, 'openModal');
     const Add2FAButton = wrapper.find('Button[className="enroll-button"]').first();
 
     Add2FAButton.simulate('click');

@@ -49,6 +49,9 @@ SAMPLED_URL_NAMES = {
     # notification platform
     "sentry-api-0-user-notification-settings": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-team-notification-settings": settings.SAMPLED_DEFAULT_RATE,
+    # events
+    "sentry-api-0-organization-eventsv2": 0.1,
+    "sentry-api-0-organization-events": 1,
     # releases
     "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-release-details": settings.SAMPLED_DEFAULT_RATE,
@@ -97,10 +100,16 @@ SAMPLED_TASKS = {
     "sentry.tasks.reprocessing2.handle_remaining_events": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.reprocessing2.reprocess_group": settings.SENTRY_REPROCESSING_APM_SAMPLING,
     "sentry.tasks.reprocessing2.finish_reprocessing": settings.SENTRY_REPROCESSING_APM_SAMPLING,
+    # `update_config_cache` is deprecated, leave this sampling until it's removed
     "sentry.tasks.relay.update_config_cache": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.tasks.relay.build_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
+    "sentry.tasks.relay.invalidate_project_config": settings.SENTRY_RELAY_TASK_APM_SAMPLING,
     "sentry.tasks.reports.prepare_organization_report": 0.1,
     "sentry.tasks.reports.deliver_organization_user_report": 0.01,
 }
+
+if settings.ADDITIONAL_SAMPLED_TASKS:
+    SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
 
 
 UNSAFE_TAG = "_unsafe"

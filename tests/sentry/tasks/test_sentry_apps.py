@@ -1,5 +1,6 @@
 from collections import namedtuple
-from unittest.mock import patch
+from copy import deepcopy
+from unittest.mock import MagicMock, patch
 
 import pytest
 from celery import Task
@@ -24,11 +25,12 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.helpers.faux import faux
+from sentry.testutils.helpers.faux import DictContaining, faux
+from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
-from sentry.utils.sentryappwebhookrequests import SentryAppWebhookRequestsBuffer
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
 def raiseStatusFalse():
@@ -43,65 +45,95 @@ def raiseException():
     raise Exception
 
 
+class RequestMock:
+    def __init__(self):
+        self.body = "blah blah"
+
+
+class ResponseMock:
+    def __init__(self, headers, content, text, ok, status_code, request):
+        self.headers = headers
+        self.content = content
+        self.text = text
+        self.ok = ok
+        self.status_code = status_code
+        self.request = request
+
+    def get(self, request=None, content=None):
+        if request:
+            return self.request
+        if content:
+            return self.content
+        return None
+
+
+headers = {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"}
+
+mock_fail_resp = ResponseMock(
+    headers=headers,
+    content={},
+    text="",
+    ok=False,
+    status_code=400,
+    request=RequestMock(),
+)
+
+mock_fail_html_resp = deepcopy(mock_fail_resp)
+mock_fail_html_resp.content = "a bunch of garbage HTML"
+
+MockFailureHTMLContentResponseInstance = MagicMock(
+    status_code=mock_fail_html_resp.status_code,
+    headers=mock_fail_html_resp.headers,
+    content=mock_fail_html_resp.content,
+    request=mock_fail_html_resp.request,
+)
+MockFailureHTMLContentResponseInstance.__iter__.return_value = []
+
+mock_fail_json_resp = deepcopy(mock_fail_resp)
+mock_fail_json_resp.content = '{"error": "bad request"}'
+
+MockFailureJSONContentResponseInstance = MagicMock(
+    status_code=mock_fail_json_resp.status_code,
+    headers=mock_fail_html_resp.headers,
+    content=mock_fail_json_resp.content,
+    request=mock_fail_json_resp.request,
+)
+MockFailureJSONContentResponseInstance.__iter__.return_value = []
+
+MockResponseWithHeadersInstance = MagicMock(
+    status_code=mock_fail_resp.status_code, headers=mock_fail_resp.headers
+)
+MockResponseWithHeadersInstance.__iter__.return_value = []
+
+MockFailureResponseInstance = MagicMock(
+    status_code=mock_fail_resp.status_code, headers=mock_fail_resp.headers
+)
+MockFailureResponseInstance.__iter__.return_value = []
+
+
 MockResponse = namedtuple(
     "MockResponse", ["headers", "content", "text", "ok", "status_code", "raise_for_status"]
 )
 MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse)
-MockFailureResponseInstance = MockResponse({}, {}, "", False, 400, raiseStatusTrue)
 MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException)
-MockResponseWithHeadersInstance = MockResponse(
-    {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
-    {},
-    "",
-    False,
-    400,
-    raiseStatusTrue,
-)
-
-
-class DictContaining:
-    def __init__(self, *args, **kwargs):
-        if len(args) == 1 and isinstance(args[0], dict):
-            self.args = []
-            self.kwargs = args[0]
-        else:
-            self.args = args
-            self.kwargs = kwargs
-
-    def __eq__(self, other):
-        return self._args_match(other) and self._kwargs_match(other)
-
-    def _args_match(self, other):
-        for key in self.args:
-            if key not in other:
-                return False
-        return True
-
-    def _kwargs_match(self, other):
-        for key, value in self.kwargs.items():
-            if self.kwargs[key] != other[key]:
-                return False
-        return True
 
 
 class TestSendAlertEvent(TestCase):
     def setUp(self):
-        self.organization = self.create_organization(slug="foo")
         self.sentry_app = self.create_sentry_app(organization=self.organization)
-        self.project = self.create_project(organization=self.organization)
         self.rule = Rule.objects.create(project=self.project, label="Issa Rule")
         self.install = self.create_sentry_app_installation(
-            organization=self.project.organization, slug=self.sentry_app.slug
+            organization=self.organization, slug=self.sentry_app.slug
         )
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_sentry_app(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         send_alert_event(event, self.rule, 9999)
 
         assert not safe_urlopen.called
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_sentry_app_in_future(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         rule_future = RuleFuture(rule=self.rule, kwargs={})
@@ -111,7 +143,7 @@ class TestSendAlertEvent(TestCase):
 
         assert not safe_urlopen.called
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen")
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_no_installation(self, safe_urlopen):
         sentry_app = self.create_sentry_app(organization=self.organization)
         event = self.store_event(data={}, project_id=self.project.id)
@@ -122,7 +154,7 @@ class TestSendAlertEvent(TestCase):
 
         assert not safe_urlopen.called
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         group = event.group
@@ -177,7 +209,7 @@ class TestSendAlertEvent(TestCase):
         assert requests[0]["response_code"] == 200
         assert requests[0]["event_type"] == "event_alert.triggered"
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_send_alert_event_with_additional_payload(self, safe_urlopen):
         event = self.store_event(data={}, project_id=self.project.id)
         settings = [
@@ -215,17 +247,15 @@ class TestSendAlertEvent(TestCase):
         assert requests[0]["event_type"] == "event_alert.triggered"
 
 
-@patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+@patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestProcessResourceChange(TestCase):
     def setUp(self):
-        self.project = self.create_project()
-
         self.sentry_app = self.create_sentry_app(
-            organization=self.project.organization, events=["issue.created"]
+            organization=self.organization, events=["issue.created"]
         )
 
         self.install = self.create_sentry_app_installation(
-            organization=self.project.organization, slug=self.sentry_app.slug
+            organization=self.organization, slug=self.sentry_app.slug
         )
 
     def test_group_created_sends_webhook(self, safe_urlopen):
@@ -372,7 +402,7 @@ class TestSendResourceChangeWebhook(TestCase):
             slug=self.sentry_app_2.slug,
         )
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponse404)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
     @with_feature("organizations:integrations-event-hooks")
     def test_sends_webhooks_to_all_installs(self, safe_urlopen):
         one_min_ago = iso_format(before_now(minutes=1))
@@ -428,7 +458,7 @@ class TestInstallationWebhook(TestCase):
         assert len(run.mock_calls) == 0
 
 
-@patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+@patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestCommentWebhook(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -448,7 +478,7 @@ class TestCommentWebhook(TestCase):
         self.note = Activity.objects.create(
             group=self.issue,
             project=self.project,
-            type=Activity.NOTE,
+            type=ActivityType.NOTE.value,
             user=self.user,
             data={"text": "hello world"},
         )
@@ -492,7 +522,7 @@ class TestCommentWebhook(TestCase):
         assert faux(safe_urlopen).kwarg_equals("data.data.issue_id", self.issue.id, format="json")
 
 
-@patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+@patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestWorkflowNotification(TestCase):
     def setUp(self):
         self.project = self.create_project()
@@ -551,9 +581,6 @@ class TestWorkflowNotification(TestCase):
 
 class TestWebhookRequests(TestCase):
     def setUp(self):
-        self.project = self.create_project()
-        self.user = self.create_user()
-
         self.sentry_app = self.create_sentry_app(
             name="Test App",
             organization=self.project.organization,
@@ -568,7 +595,9 @@ class TestWebhookRequests(TestCase):
         self.issue = self.create_group(project=self.project)
         self.buffer = SentryAppWebhookRequestsBuffer(self.sentry_app)
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockFailureResponseInstance)
+    @patch(
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockFailureResponseInstance
+    )
     def test_saves_error_if_webhook_request_fails(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
 
@@ -587,7 +616,53 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization.id
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseInstance)
+    @patch(
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
+        return_value=MockFailureHTMLContentResponseInstance,
+    )
+    def test_saves_error_if_webhook_request_with_html_content_fails(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+
+        with self.assertRaises(ClientError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 400
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["response_body"] == mock_fail_html_resp.content
+
+    @patch(
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
+        return_value=MockFailureJSONContentResponseInstance,
+    )
+    def test_saves_error_if_webhook_request_with_json_content_fails(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+
+        with self.assertRaises(ClientError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 400
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
+        assert json.loads(first_request["response_body"]) == mock_fail_json_resp.content
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_saves_request_if_webhook_request_succeeds(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
         send_webhooks(installation=self.install, event="issue.assigned", data=data, actor=self.user)
@@ -602,7 +677,7 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization.id
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", side_effect=Timeout)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", side_effect=Timeout)
     def test_saves_error_for_request_timeout(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
         # we don't log errors for unpublished and internal apps
@@ -621,7 +696,10 @@ class TestWebhookRequests(TestCase):
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization.id
 
-    @patch("sentry.tasks.sentry_apps.safe_urlopen", return_value=MockResponseWithHeadersInstance)
+    @patch(
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
+        return_value=MockResponseWithHeadersInstance,
+    )
     def test_saves_error_event_id_if_in_header(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
         with self.assertRaises(ClientError):

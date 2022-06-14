@@ -14,7 +14,6 @@ from sentry.db.models.manager import M, make_key
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.query import create_or_update
 from sentry.utils.cache import cache
-from sentry.utils.compat import zip
 from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger("sentry")

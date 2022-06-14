@@ -20,7 +20,6 @@ from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
-from sentry.utils.compat import zip
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 

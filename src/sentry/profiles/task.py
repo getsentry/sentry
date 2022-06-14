@@ -1,15 +1,21 @@
+from datetime import datetime
 from time import sleep, time
-from typing import Any, MutableMapping
+from typing import Any, MutableMapping, Optional
 
+import sentry_sdk
 from django.conf import settings
+from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
+from sentry import quotas
+from sentry.constants import DataCategory
 from sentry.lang.native.symbolicator import Symbolicator
-from sentry.models import Project, ProjectDebugFile
+from sentry.models import Organization, Project, ProjectDebugFile
 from sentry.profiles.device import classify_device
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
 from sentry.utils import json, kafka_config
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.pubsub import KafkaPublisher
 
 processed_profiles_publisher = None
@@ -22,13 +28,22 @@ processed_profiles_publisher = None
     max_retries=5,
     acks_late=True,
 )
-def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
-    if profile["platform"] == "cocoa":
-        profile = _symbolicate(profile=profile)
-    elif profile["platform"] == "android":
-        profile = _deobfuscate(profile=profile)
+def process_profile(
+    profile: MutableMapping[str, Any],
+    key_id: Optional[int],
+    **kwargs: Any,
+) -> None:
+    project = Project.objects.get_from_cache(id=profile["project_id"])
 
-    profile = _normalize(profile=profile)
+    if profile["platform"] == "cocoa":
+        profile = _symbolicate(profile=profile, project=project)
+    elif profile["platform"] == "android":
+        profile = _deobfuscate(profile=profile, project=project)
+    elif profile["platform"] == "rust":
+        profile = _symbolicate(profile=profile, project=project)
+
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    profile = _normalize(profile=profile, organization=organization)
 
     global processed_profiles_publisher
 
@@ -43,13 +58,24 @@ def process_profile(profile: MutableMapping[str, Any], **kwargs: Any) -> None:
         json.dumps(profile),
     )
 
+    track_outcome(
+        org_id=project.organization_id,
+        project_id=project.id,
+        key_id=key_id,
+        outcome=Outcome.ACCEPTED,
+        reason=None,
+        timestamp=datetime.utcnow().replace(tzinfo=UTC),
+        event_id=profile["transaction_id"],
+        category=DataCategory.PROFILE,
+        quantity=1,
+    )
 
-def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-    classification_options = {
-        "model": profile["device_model"],
-        "os_name": profile["device_os_name"],
-        "is_emulator": profile["device_is_emulator"],
-    }
+
+def _normalize(
+    profile: MutableMapping[str, Any],
+    organization: Organization,
+) -> MutableMapping[str, Any]:
+    classification_options = dict()
 
     if profile["platform"] == "android":
         classification_options.update(
@@ -59,19 +85,37 @@ def _normalize(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
             }
         )
 
+    if profile["platform"] in ["cocoa", "android"]:
+        classification_options.update(
+            {
+                "model": profile["device_model"],
+                "os_name": profile["device_os_name"],
+                "is_emulator": profile["device_is_emulator"],
+            }
+        )
+        profile.update({"device_classification": str(classify_device(**classification_options))})
+
+    if profile["platform"] == "rust":
+        profile.update(
+            {
+                "device_classification": "",
+                "device_locale": "",
+                "device_manufacturer": "",
+                "device_model": "",
+            }
+        )
+
     profile.update(
         {
-            "device_classification": str(classify_device(**classification_options)),
             "profile": json.dumps(profile["profile"]),
-            "retention_days": 30,
+            "retention_days": quotas.get_event_retention(organization=organization),
         }
     )
 
     return profile
 
 
-def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
-    project = Project.objects.get_from_cache(id=profile["project_id"])
+def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> MutableMapping[str, Any]:
     symbolicator = Symbolicator(project=project, event_id=profile["profile_id"])
     modules = profile["debug_meta"]["images"]
     stacktraces = [
@@ -87,13 +131,19 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     while True:
         try:
             response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+
+            assert len(profile["sampled_profile"]["samples"]) == len(response["stacktraces"])
+
             for original, symbolicated in zip(
                 profile["sampled_profile"]["samples"], response["stacktraces"]
             ):
-                for original_frame, symbolicated_frame in zip(
-                    original["frames"], symbolicated["frames"]
-                ):
-                    original_frame.update(symbolicated_frame)
+                for frame in symbolicated["frames"]:
+                    frame.pop("pre_context", None)
+                    frame.pop("context_line", None)
+                    frame.pop("post_context", None)
+
+                original["original_frames"] = original["frames"]
+                original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:
             if (
@@ -108,24 +158,24 @@ def _symbolicate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
                 )
                 sleep(sleep_time)
                 continue
-        except Exception:
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             break
 
     # remove debug information we don't need anymore
     profile.pop("debug_meta")
 
-    # save the symbolicated frames on the profile
-    profile["profile"] = profile["sampled_profile"]
+    # rename the profile key to suggest it has been processed
+    profile["profile"] = profile.pop("sampled_profile")
 
     return profile
 
 
-def _deobfuscate(profile: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+def _deobfuscate(profile: MutableMapping[str, Any], project: Project) -> MutableMapping[str, Any]:
     debug_file_id = profile.get("build_id")
     if debug_file_id is None or debug_file_id == "":
         return profile
 
-    project = Project.objects.get_from_cache(id=profile["project_id"])
     dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [debug_file_id], features=["mapping"])
     debug_file_path = dif_paths.get(debug_file_id)
     if debug_file_path is None:

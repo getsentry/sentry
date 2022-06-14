@@ -88,6 +88,13 @@ export function YAxisSelector({
 
   function filterAggregateParameters(fieldValue: QueryFieldValue) {
     return (option: FieldValueOption) => {
+      if (isReleaseWidget) {
+        if (option.value.kind === FieldValueKind.METRICS) {
+          return true;
+        }
+        return false;
+      }
+
       // Only validate function parameters for timeseries widgets and
       // world map widgets.
       if (doNotValidateYAxis(displayType)) {
@@ -95,10 +102,6 @@ export function YAxisSelector({
       }
 
       if (fieldValue.kind !== FieldValueKind.FUNCTION) {
-        return true;
-      }
-
-      if (isReleaseWidget || option.value.kind === FieldValueKind.METRICS) {
         return true;
       }
 

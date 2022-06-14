@@ -1,135 +1,106 @@
-import last from 'lodash/last';
-import memoize from 'lodash/memoize';
-import type {eventWithTime} from 'rrweb/typings/types';
-
+import type {Crumb} from 'sentry/types/breadcrumbs';
+import type {Event, EventTransaction} from 'sentry/types/event';
+import {
+  breadcrumbFactory,
+  replayTimestamps,
+  rrwebEventListFactory,
+  spansFactory,
+} from 'sentry/utils/replays/replayDataUtils';
 import type {
   MemorySpanType,
-  RawSpanType,
-} from 'sentry/components/events/interfaces/spans/types';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
-import type {Event, EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
-import createHighlightEvents from 'sentry/utils/replays/createHighlightEvents';
-import mergeAndSortEvents from 'sentry/utils/replays/mergeAndSortEvents';
-import mergeBreadcrumbEntries from 'sentry/utils/replays/mergeBreadcrumbEntries';
-import mergeSpanEntries from 'sentry/utils/replays/mergeSpanEntries';
+  RecordingEvent,
+  ReplayCrumb,
+  ReplayError,
+  ReplaySpan,
+} from 'sentry/views/replays/types';
 
-export default class ReplayReader {
-  static factory(
-    event: EventTransaction | undefined,
-    rrwebEvents: eventWithTime[] | undefined,
-    replayEvents: Event[] | undefined
-  ) {
-    if (!event || !rrwebEvents || !replayEvents) {
-      return null;
-    }
-    return new ReplayReader(event, rrwebEvents, replayEvents);
-  }
-
-  private constructor(
-    /**
-     * The root Replay event, created at the start of the browser session.
-     */
-    private _event: EventTransaction,
-
-    /**
-     * The captured data from rrweb.
-     * Saved as N attachments that belong to the root Replay event.
-     */
-    private _rrwebEvents: eventWithTime[],
-
-    /**
-     * Regular Sentry SDK events that occurred during the rrweb session.
-     */
-    private _replayEvents: Event[]
-  ) {}
+interface ReplayReaderParams {
+  breadcrumbs: ReplayCrumb[] | undefined;
+  errors: ReplayError[] | undefined;
 
   /**
-   * The original `this._event.startTimestamp` and `this._event.endTimestamp`
-   * are the same. It's because the root replay event is re-purposing the
-   * `transaction` type, but it is not a real span occuring over time.
-   * So we need to figure out the real end time, in milliseconds.
+   * The root Replay event, created at the start of the browser session.
    */
-  private _getEndTimestampMS() {
-    const crumbs = this.getRawCrumbs();
-    const spans = this.getRawSpans();
+  event: Event | undefined;
 
-    const lastRRweb = last(this._rrwebEvents);
-    const lastBreadcrumb = last(crumbs);
-    const lastSpan = last(spans);
+  /**
+   * The captured data from rrweb.
+   * Saved as N attachments that belong to the root Replay event.
+   */
+  rrwebEvents: RecordingEvent[] | undefined;
 
-    return Math.max(
-      lastRRweb?.timestamp || 0,
-      +new Date(lastBreadcrumb?.timestamp || 0),
-      (lastSpan?.timestamp || 0) * 1000
-    );
+  spans: ReplaySpan[] | undefined;
+}
+
+type RequiredNotNull<T> = {
+  [P in keyof T]: NonNullable<T[P]>;
+};
+
+export default class ReplayReader {
+  static factory({breadcrumbs, event, errors, rrwebEvents, spans}: ReplayReaderParams) {
+    if (!breadcrumbs || !event || !rrwebEvents || !spans || !errors) {
+      return null;
+    }
+
+    return new ReplayReader({breadcrumbs, event, errors, rrwebEvents, spans});
   }
 
-  getEvent = memoize(() => {
-    const breadcrumbEntry = this.getEntryType(EntryType.BREADCRUMBS);
-    const spansEntry = this.getEntryType(EntryType.SPANS);
-    const endTimestampMS = this._getEndTimestampMS();
+  private constructor({
+    breadcrumbs,
+    event,
+    errors,
+    rrwebEvents,
+    spans,
+  }: RequiredNotNull<ReplayReaderParams>) {
+    const {startTimestampMS, endTimestampMS} = replayTimestamps(
+      rrwebEvents,
+      breadcrumbs,
+      spans
+    );
 
-    return {
-      ...this._event,
-      entries: [breadcrumbEntry, spansEntry],
+    this.spans = spansFactory(spans);
+    this.breadcrumbs = breadcrumbFactory(startTimestampMS, event, errors, breadcrumbs);
+
+    this.rrwebEvents = rrwebEventListFactory(
+      startTimestampMS,
+      endTimestampMS,
+      spans,
+      rrwebEvents
+    );
+
+    this.event = {
+      ...event,
+      startTimestamp: startTimestampMS / 1000,
       endTimestamp: endTimestampMS / 1000,
     } as EventTransaction;
-  });
+  }
 
-  getRRWebEvents = memoize(() => {
-    const spans = this.getRawSpans();
+  private event: EventTransaction;
+  private rrwebEvents: RecordingEvent[];
+  private breadcrumbs: Crumb[];
+  private spans: ReplaySpan[];
 
-    // Find LCP spans that have a valid replay node id, this will be used to
-    const highlights = createHighlightEvents(spans);
+  getEvent = () => {
+    return this.event;
+  };
 
-    // Create a final event so that rrweb has the same internal duration as the
-    // root event.
-    // This allows the scrubber to view timestamps after the last captured
-    // rrweb event, like if a memory span was captured after the last mouse-move,
-    // but before page unload.
-    const endEvent = {
-      type: 5, // EventType.Custom
-      timestamp: this._getEndTimestampMS(),
-      data: {
-        tag: 'replay-end',
-      },
-    } as eventWithTime;
-
-    // TODO(replays): ideally this would happen on SDK, but due
-    // to how plugins work, we are unable to specify a timestamp for an event
-    // (rrweb applies it), so it's possible actual LCP timestamp does not
-    // match when the observer happens and we emit an rrweb event (will
-    // look into this)
-    return mergeAndSortEvents(this._rrwebEvents, highlights, [endEvent]);
-  });
-
-  getEntryType = memoize((type: EntryType) => {
-    switch (type) {
-      case EntryType.BREADCRUMBS:
-        return mergeBreadcrumbEntries(this._replayEvents);
-      case EntryType.SPANS:
-        return mergeSpanEntries(this._replayEvents);
-      default:
-        throw new Error(
-          `ReplayReader is unable to prepare EntryType ${type}. Type not supported.`
-        );
-    }
-  });
+  getRRWebEvents = () => {
+    return this.rrwebEvents;
+  };
 
   getRawCrumbs = () => {
-    return this.getEntryType(EntryType.BREADCRUMBS)?.data.values as RawCrumb[];
+    return this.breadcrumbs;
   };
 
   getRawSpans = () => {
-    return this.getEntryType(EntryType.SPANS)?.data as RawSpanType[];
+    return this.spans;
   };
 
-  isMemorySpan = (span: RawSpanType): span is MemorySpanType => {
+  isMemorySpan = (span: ReplaySpan): span is MemorySpanType => {
     return span.op === 'memory';
   };
 
-  isNotMemorySpan = (span: RawSpanType) => {
+  isNotMemorySpan = (span: ReplaySpan) => {
     return !this.isMemorySpan(span);
   };
 }

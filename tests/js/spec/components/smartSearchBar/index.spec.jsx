@@ -2,6 +2,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {SmartSearchBar} from 'sentry/components/smartSearchBar';
+import {QuickActionType} from 'sentry/components/smartSearchBar/types';
+import {quickActions} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
 
 describe('SmartSearchBar', function () {
@@ -567,7 +569,7 @@ describe('SmartSearchBar', function () {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      // 1 items because of headers ("Tags")
+      // 2 items because of headers ("Tags")
       expect(searchBar.state.searchGroups).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
@@ -682,12 +684,12 @@ describe('SmartSearchBar', function () {
       searchBar.updateAutoCompleteItems();
       await tick();
       wrapper.update();
-      // one search group because only showing tags now
+      // one search group because showing tags
       expect(searchBar.state.searchGroups).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
-    it('shows errors on incorrect tokens', async function () {
+    it('shows errors on incorrect tokens', function () {
       const props = {
         query: 'tag: is: has: ',
         organization,
@@ -794,6 +796,202 @@ describe('SmartSearchBar', function () {
       mockCursorPosition(searchBar, 5);
       searchBar.onAutoComplete('id:1', {});
       expect(searchBar.state.query).toEqual('user:"id:1" ');
+    });
+  });
+
+  it('quotes in predefined values with spaces when autocompleting', async function () {
+    jest.useRealTimers();
+    const onSearch = jest.fn();
+    supportedTags.predefined = {
+      key: 'predefined',
+      name: 'predefined',
+      predefined: true,
+      values: ['predefined tag with spaces'],
+    };
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      location,
+      organization,
+      supportedTags,
+      onSearch,
+    };
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('textarea').simulate('focus');
+    searchBar
+      .find('textarea')
+      .simulate('change', {target: {value: 'predefined:predefined'}});
+    await tick();
+
+    const preventDefault = jest.fn();
+    searchBar.find('textarea').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('textarea').simulate('keyDown', {key: 'Enter', preventDefault});
+    await tick();
+
+    expect(searchBar.find('textarea').props().value).toEqual(
+      'predefined:"predefined tag with spaces" '
+    );
+  });
+
+  it('escapes quotes in predefined values properly when autocompleting', async function () {
+    jest.useRealTimers();
+    const onSearch = jest.fn();
+    supportedTags.predefined = {
+      key: 'predefined',
+      name: 'predefined',
+      predefined: true,
+      values: ['"predefined" "tag" "with" "quotes"'],
+    };
+    const props = {
+      orgId: 'org-slug',
+      projectId: '0',
+      query: '',
+      location,
+      organization,
+      supportedTags,
+      onSearch,
+    };
+    const searchBar = mountWithTheme(
+      <SmartSearchBar {...props} api={new Client()} />,
+
+      options
+    );
+    searchBar.find('textarea').simulate('focus');
+    searchBar
+      .find('textarea')
+      .simulate('change', {target: {value: 'predefined:predefined'}});
+    await tick();
+
+    const preventDefault = jest.fn();
+    searchBar.find('textarea').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('textarea').simulate('keyDown', {key: 'Enter', preventDefault});
+    await tick();
+
+    expect(searchBar.find('textarea').props().value).toEqual(
+      'predefined:"\\"predefined\\" \\"tag\\" \\"with\\" \\"quotes\\"" '
+    );
+  });
+
+  describe('quick actions', () => {
+    it('delete first token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 1);
+
+      await tick();
+
+      const deleteAction = quickActions.find(
+        a => a.actionType === QuickActionType.Delete
+      );
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runQuickAction(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual('sdk.name:sentry-cocoa has:key');
+      }
+    });
+
+    it('delete middle token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = quickActions.find(
+        a => a.actionType === QuickActionType.Delete
+      );
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runQuickAction(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual('is:unresolved has:key');
+      }
+    });
+
+    it('negate token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = quickActions.find(
+        a => a.actionType === QuickActionType.Negate
+      );
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runQuickAction(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual(
+          'is:unresolved !sdk.name:sentry-cocoa has:key '
+        );
+      }
+    });
+
+    it('un-negate token', async () => {
+      const props = {
+        query: 'is:unresolved !sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = quickActions.find(
+        a => a.actionType === QuickActionType.Negate
+      );
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runQuickAction(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual(
+          'is:unresolved sdk.name:sentry-cocoa has:key '
+        );
+      }
     });
   });
 });

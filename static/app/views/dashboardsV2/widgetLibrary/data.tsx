@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TOP_N} from 'sentry/utils/discover/types';
 
 import {DisplayType, Widget, WidgetType} from '../types';
 
@@ -48,6 +49,43 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
         aggregates: ['count()'],
         columns: ['transaction'],
         orderby: '-count()',
+      },
+    ],
+  },
+  {
+    id: undefined,
+    title: t('Crash Rates for Recent Releases'),
+    description: t('Percentage of crashed sessions for latest releases.'),
+    displayType: DisplayType.LINE,
+    widgetType: WidgetType.RELEASE,
+    interval: '5m',
+    limit: 8,
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['crash_rate(session)', 'release'],
+        aggregates: ['crash_rate(session)'],
+        columns: ['release'],
+        orderby: '-release',
+      },
+    ],
+  },
+  {
+    id: undefined,
+    title: t('Session Health'),
+    description: t('Number of abnormal,crashed, errored and healthy sessions.'),
+    displayType: DisplayType.TABLE,
+    widgetType: WidgetType.RELEASE,
+    interval: '5m',
+    queries: [
+      {
+        name: '',
+        conditions: '',
+        fields: ['session.status', 'sum(session)'],
+        aggregates: ['sum(session)'],
+        columns: ['session.status'],
+        orderby: '',
       },
     ],
   },
@@ -166,3 +204,16 @@ export const DEFAULT_WIDGETS: Readonly<Array<WidgetTemplate>> = [
     ],
   },
 ];
+
+export function getTopNConvertedDefaultWidgets(): Readonly<Array<WidgetTemplate>> {
+  return DEFAULT_WIDGETS.map(widget => {
+    if (widget.displayType === DisplayType.TOP_N) {
+      return {
+        ...widget,
+        displayType: DisplayType.AREA,
+        limit: TOP_N,
+      };
+    }
+    return widget;
+  });
+}

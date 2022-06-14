@@ -278,7 +278,11 @@ class Actions extends Component<Props, State> {
       return children({
         ...props,
         renderDisabled: ({features}: {features: string[]}) => (
-          <FeatureDisabled alert featureName="Discard and Delete" features={features} />
+          <FeatureDisabled
+            alert
+            featureName={t('Discard and Delete')}
+            features={features}
+          />
         ),
       });
     }

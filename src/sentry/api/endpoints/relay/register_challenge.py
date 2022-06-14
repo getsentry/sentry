@@ -7,6 +7,7 @@ from sentry_relay import create_register_challenge, is_version_supported
 from sentry import options
 from sentry.api.authentication import is_internal_relay, is_static_relay, relay_from_id
 from sentry.api.base import Endpoint
+from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils import json
@@ -21,6 +22,9 @@ class RelayRegisterChallengeSerializer(RelayIdSerializer):
 class RelayRegisterChallengeEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
+
+    enforce_rate_limit = True
+    rate_limits = RELAY_AUTH_RATE_LIMITS
 
     def post(self, request: Request) -> Response:
         """

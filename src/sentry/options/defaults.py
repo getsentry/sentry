@@ -67,7 +67,7 @@ register("mail.username", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITI
 register("mail.password", flags=FLAG_REQUIRED | FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("mail.use-tls", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.use-ssl", default=False, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
-register("mail.subject-prefix", default="[Sentry] ", flags=FLAG_PRIORITIZE_DISK)
+register("mail.subject-prefix", default="[Sentry]", flags=FLAG_PRIORITIZE_DISK)
 register("mail.from", default="root@localhost", flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
 register("mail.list-namespace", type=String, default="localhost", flags=FLAG_NOSTORE)
 register("mail.enable-replies", default=False, flags=FLAG_PRIORITIZE_DISK)
@@ -391,3 +391,15 @@ register("reprocessing2.drop-delete-old-primary-hash", default=[])
 # contents are a list of project IDs to message types to be randomly assigned
 # e.g. [{"project_id": 2, "message_type": "error"}, {"project_id": 3, "message_type": "transaction"}]
 register("kafka.send-project-events-to-random-partitions", default=[])
+
+# Rate to project_configs_v3
+register("relay.project-config-v3-enable", default=0.0)
+
+# Mechanism for dialing up the last-seen-updater, which isn't needed outside
+# of SaaS (last_seen is a marker for deleting stale customer data)
+register("sentry-metrics.last-seen-updater.accept-rate", default=0.0)
+
+# default brownout crontab for api deprecations
+register("api.deprecation.brownout-cron", default="0 12 * * *", type=String)
+# Brownout duration to be stored in ISO8601 format for durations (See https://en.wikipedia.org/wiki/ISO_8601#Durations)
+register("api.deprecation.brownout-duration", default="PT1M")

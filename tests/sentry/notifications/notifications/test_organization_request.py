@@ -14,6 +14,7 @@ class DummyRoleBasedRecipientStrategy(RoleBasedRecipientStrategy):
 
 
 class DummyRequestNotification(OrganizationRequestNotification):
+    metrics_key = "dummy"
     template_path = ""
     RoleBasedRecipientStrategyClass = DummyRoleBasedRecipientStrategy
 

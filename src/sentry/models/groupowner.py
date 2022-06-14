@@ -6,7 +6,6 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, Model
-from sentry.utils.compat import filter
 
 
 class GroupOwnerType(Enum):

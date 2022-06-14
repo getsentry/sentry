@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence
 
 from django.conf import settings
@@ -21,7 +23,7 @@ if TYPE_CHECKING:
 
 
 class ActivityManager(BaseManager):
-    def get_activities_for_group(self, group: "Group", num: int) -> Sequence["Group"]:
+    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime").select_related("user")
 
@@ -53,12 +55,12 @@ class ActivityManager(BaseManager):
 
     def create_group_activity(
         self,
-        group: "Group",
+        group: Group,
         type: ActivityType,
-        user: Optional["User"] = None,
+        user: Optional[User] = None,
         data: Optional[Mapping[str, Any]] = None,
         send_notification: bool = True,
-    ) -> "Activity":
+    ) -> Activity:
         activity = self.create(
             project_id=group.project_id,
             group=group,
@@ -74,31 +76,6 @@ class ActivityManager(BaseManager):
 
 class Activity(Model):
     __include_in_export__ = False
-
-    # TODO(mgaeta): Replace all usages with ActivityTypes.
-    ASSIGNED = ActivityType.ASSIGNED.value
-    CREATE_ISSUE = ActivityType.CREATE_ISSUE.value
-    DEPLOY = ActivityType.DEPLOY.value
-    FIRST_SEEN = ActivityType.FIRST_SEEN.value
-    MARK_REVIEWED = ActivityType.MARK_REVIEWED.value
-    MERGE = ActivityType.MERGE.value
-    NEW_PROCESSING_ISSUES = ActivityType.NEW_PROCESSING_ISSUES.value
-    NOTE = ActivityType.NOTE.value
-    RELEASE = ActivityType.RELEASE.value
-    REPROCESS = ActivityType.REPROCESS.value
-    SET_IGNORED = ActivityType.SET_IGNORED.value
-    SET_PRIVATE = ActivityType.SET_PRIVATE.value
-    SET_PUBLIC = ActivityType.SET_PUBLIC.value
-    SET_REGRESSION = ActivityType.SET_REGRESSION.value
-    SET_RESOLVED = ActivityType.SET_RESOLVED.value
-    SET_RESOLVED_BY_AGE = ActivityType.SET_RESOLVED_BY_AGE.value
-    SET_RESOLVED_IN_COMMIT = ActivityType.SET_RESOLVED_IN_COMMIT.value
-    SET_RESOLVED_IN_PULL_REQUEST = ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value
-    SET_RESOLVED_IN_RELEASE = ActivityType.SET_RESOLVED_IN_RELEASE.value
-    SET_UNRESOLVED = ActivityType.SET_UNRESOLVED.value
-    UNASSIGNED = ActivityType.UNASSIGNED.value
-    UNMERGE_DESTINATION = ActivityType.UNMERGE_DESTINATION.value
-    UNMERGE_SOURCE = ActivityType.UNMERGE_SOURCE.value
 
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group", null=True)
@@ -128,9 +105,11 @@ class Activity(Model):
         from sentry.models import Release
 
         # XXX(dcramer): fix for bad data
-        if self.type in (self.RELEASE, self.DEPLOY) and isinstance(self.data["version"], Release):
+        if self.type in (ActivityType.RELEASE.value, ActivityType.DEPLOY.value) and isinstance(
+            self.data["version"], Release
+        ):
             self.data["version"] = self.data["version"].version
-        if self.type == self.ASSIGNED:
+        if self.type == ActivityType.ASSIGNED.value:
             self.data["assignee"] = str(self.data["assignee"])
 
     def save(self, *args, **kwargs):
@@ -142,14 +121,14 @@ class Activity(Model):
             return
 
         # HACK: support Group.num_comments
-        if self.type == Activity.NOTE:
+        if self.type == ActivityType.NOTE.value:
             self.group.update(num_comments=F("num_comments") + 1)
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
 
         # HACK: support Group.num_comments
-        if self.type == Activity.NOTE:
+        if self.type == ActivityType.NOTE.value:
             self.group.update(num_comments=F("num_comments") - 1)
 
     def send_notification(self):

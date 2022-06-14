@@ -6,6 +6,7 @@ import uuid
 from collections import defaultdict, namedtuple
 from functools import reduce
 from hashlib import md5
+from typing import Callable, ContextManager, TypeVar
 
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -18,6 +19,8 @@ from sentry.utils.redis import SentryScript, check_cluster_versions, get_cluster
 from sentry.utils.versioning import Version
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
@@ -261,7 +264,15 @@ class RedisTSDB(BaseTSDB):
                         client.expireat(hash_key, key_expiries.pop(hash_key))
 
     def get_range(
-        self, model, keys, start, end, rollup=None, environment_ids=None, use_cache=False
+        self,
+        model,
+        keys,
+        start,
+        end,
+        rollup=None,
+        environment_ids=None,
+        use_cache=False,
+        jitter_value=None,
     ):
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -435,7 +446,15 @@ class RedisTSDB(BaseTSDB):
         }
 
     def get_distinct_counts_totals(
-        self, model, keys, start, end=None, rollup=None, environment_id=None, use_cache=False
+        self,
+        model,
+        keys,
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+        use_cache=False,
+        jitter_value=None,
     ):
         """
         Count distinct items during a time range.
@@ -555,7 +574,11 @@ class RedisTSDB(BaseTSDB):
         rollups = self.get_active_series(timestamp=timestamp)
 
         for (cluster, durable), environment_ids in self.get_cluster_groups(environment_ids):
-            wrapper = SuppressionWrapper if not durable else lambda value: value
+            wrapper: Callable[[ContextManager[T]], ContextManager[T]]
+            if not durable:
+                wrapper = SuppressionWrapper
+            else:
+                wrapper = lambda value: value
 
             temporary_id = uuid.uuid1().hex
 
@@ -668,6 +691,7 @@ class RedisTSDB(BaseTSDB):
                     # Figure out all of the keys we need to be incrementing, as
                     # well as their expiration policies.
                     for rollup, max_values in self.rollups.items():
+                        chunk = []
                         for environment_id in environment_ids:
                             chunk = self.make_frequency_table_keys(
                                 model, rollup, ts, key, environment_id

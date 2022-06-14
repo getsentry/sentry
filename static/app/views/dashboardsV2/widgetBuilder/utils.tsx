@@ -1,3 +1,4 @@
+import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
@@ -7,7 +8,9 @@ import {Organization, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
+  getEquationAliasIndex,
   isEquation,
+  isEquationAlias,
   isLegalYAxisType,
   stripDerivedMetricsPrefix,
 } from 'sentry/utils/discover/fields';
@@ -24,7 +27,7 @@ import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {FlatValidationError, ValidationError} from '../utils';
+import {FlatValidationError, getNumEquations, ValidationError} from '../utils';
 
 // Used in the widget builder to limit the number of lines plotted in the chart
 export const DEFAULT_RESULTS_LIMIT = 5;
@@ -56,7 +59,6 @@ export const displayTypes = {
   [DisplayType.TABLE]: t('Table'),
   [DisplayType.WORLD_MAP]: t('World Map'),
   [DisplayType.BIG_NUMBER]: t('Big Number'),
-  [DisplayType.TOP_N]: t('Top 5 Events'),
 };
 
 export function mapErrors(
@@ -97,6 +99,7 @@ export function normalizeQueries({
 }): Widget['queries'] {
   const isTimeseriesChart = getIsTimeseriesChart(displayType);
   const isTabularChart = [DisplayType.TABLE, DisplayType.TOP_N].includes(displayType);
+  queries = cloneDeep(queries);
 
   if (
     [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
@@ -136,16 +139,19 @@ export function normalizeQueries({
         widgetType === WidgetType.RELEASE
           ? stripDerivedMetricsPrefix(queries[0].orderby)
           : queries[0].orderby;
+      const rawOrderBy = trimStart(queryOrderBy, '-');
 
-      // Ignore the orderby if it is a raw equation and we're switching to a table
-      // or Top-N chart, a custom equation should be reset since it only applies when
-      // grouping in timeseries charts
       const resetOrderBy =
-        isTabularChart &&
-        (isEquation(trimStart(queryOrderBy, '-')) ||
-          ![...query.columns, ...query.aggregates].includes(
-            trimStart(queryOrderBy, '-')
-          ));
+        // Raw Equation from Top N only applies to timeseries
+        (isTabularChart && isEquation(rawOrderBy)) ||
+        // Not contained as tag, field, or function
+        (!isEquation(rawOrderBy) &&
+          !isEquationAlias(rawOrderBy) &&
+          ![...query.columns, ...query.aggregates].includes(rawOrderBy)) ||
+        // Equation alias and not contained
+        (isEquationAlias(rawOrderBy) &&
+          getEquationAliasIndex(rawOrderBy) >
+            getNumEquations([...query.columns, ...query.aggregates]) - 1);
       const orderBy =
         (!resetOrderBy && trimStart(queryOrderBy, '-')) ||
         (widgetType === WidgetType.ISSUE
@@ -334,7 +340,7 @@ export function filterPrimaryOptions({
     if (displayType === DisplayType.TABLE) {
       return [
         FieldValueKind.FUNCTION,
-        FieldValueKind.TAG,
+        FieldValueKind.FIELD,
         FieldValueKind.NUMERIC_METRICS,
       ].includes(option.value.kind);
     }

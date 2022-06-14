@@ -1,3 +1,5 @@
+from snuba_sdk import And, Column, Condition, Function, Op
+
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key
@@ -70,6 +72,29 @@ class EntitySubscriptionTestCase(TestCase):
                 "_crash_rate_alert_aggregate",
             ],
             ["identity", "sessions", "_total_count"],
+        ]
+        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        snql_query.query.select.sort(key=lambda q: q.function)
+        assert snql_query.query.select == [
+            Function(
+                function="identity", parameters=[Column(name="sessions")], alias="_total_count"
+            ),
+            Function(
+                function="if",
+                parameters=[
+                    Function(function="greater", parameters=[Column(name="sessions"), 0]),
+                    Function(
+                        function="divide",
+                        parameters=[Column(name="sessions_crashed"), Column(name="sessions")],
+                    ),
+                    None,
+                ],
+                alias="_crash_rate_alert_aggregate",
+            ),
+        ]
+        assert snql_query.query.where == [
+            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="org_id"), Op.EQ, None),
         ]
 
     def test_get_entity_subscription_for_metrics_dataset_non_supported_aggregate(self) -> None:
@@ -170,6 +195,15 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter.aggregations == [
             ["quantile(0.95)", "duration", "percentile_transaction_duration__95"]
         ]
+        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        assert snql_query.query.select == [
+            Function(
+                "quantile(0.95)",
+                parameters=[Column(name="duration")],
+                alias="percentile_transaction_duration__95",
+            )
+        ]
+        assert snql_query.query.where == [Condition(Column("project_id"), Op.IN, [self.project.id])]
 
     def test_get_entity_subscription_for_events_dataset(self) -> None:
         aggregate = "count_unique(user)"
@@ -189,3 +223,27 @@ class EntitySubscriptionTestCase(TestCase):
             ["tags[sentry:release]", "=", "latest"],
         ]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
+
+        snql_query = entity_subscription.build_snql_query("release:latest", [self.project.id], None)
+        assert snql_query.query.select == [
+            Function(
+                function="uniq",
+                parameters=[Column(name="tags[sentry:user]")],
+                alias="count_unique_user",
+            )
+        ]
+        assert snql_query.query.where == [
+            And(
+                [
+                    Condition(Column("type"), Op.EQ, "error"),
+                    Condition(
+                        Function(
+                            function="ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                        ),
+                        Op.IN,
+                        [],
+                    ),
+                ]
+            ),
+            Condition(Column("project_id"), Op.IN, [self.project.id]),
+        ]

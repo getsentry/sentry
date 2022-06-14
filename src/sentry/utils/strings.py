@@ -7,25 +7,8 @@ import zlib
 
 from django.utils.encoding import force_text, smart_text
 
-from sentry.utils.compat import map
-
-_word_sep_re = re.compile(r"[\s.;,_-]+", re.UNICODE)
-_camelcase_re = re.compile(r"(?:[A-Z]{2,}(?=[A-Z]))|(?:[A-Z][a-z0-9]+)|(?:[a-z0-9]+)")
-_letters_re = re.compile(r"[A-Z]+")
-_digit_re = re.compile(r"\d+")
 _sprintf_placeholder_re = re.compile(
     r"%(?:\d+\$)?[+-]?(?:[ 0]|\'.{1})?-?\d*(?:\.\d+)?[bcdeEufFgGosxX]"
-)
-
-_lone_surrogate = re.compile(
-    """(?x)
-    (
-        [\ud800-\udbff](?![\udc00-\udfff])
-    ) | (
-        (?<![\ud800-\udbff])
-        [\udc00-\udfff]
-    )
-"""
 )
 
 INVALID_ESCAPE = re.compile(
@@ -85,10 +68,6 @@ def decompress(value):
     return zlib.decompress(base64.b64decode(value))
 
 
-def gunzip(value):
-    return zlib.decompress(value, 16 + zlib.MAX_WBITS)
-
-
 def strip(value):
     if not value:
         return ""
@@ -134,33 +113,6 @@ def to_unicode(value):
         except Exception:
             value = "(Error decoding value)"
     return value
-
-
-def split_camelcase(word):
-    pieces = _camelcase_re.findall(word)
-
-    # Unicode characters or some stuff, ignore it.
-    if sum(len(x) for x in pieces) != len(word):
-        yield word
-    else:
-        yield from pieces
-
-
-def split_any_wordlike(value, handle_camelcase=False):
-    for word in _word_sep_re.split(value):
-        if handle_camelcase:
-            yield from split_camelcase(word)
-        else:
-            yield word
-
-
-def tokens_from_name(value, remove_digits=False):
-    for word in split_any_wordlike(value, handle_camelcase=True):
-        if remove_digits:
-            word = _digit_re.sub("", word)
-        word = word.lower()
-        if word:
-            yield word
 
 
 valid_dot_atom_characters = frozenset(string.ascii_letters + string.digits + ".!#$%&'*+-/=?^_`{|}~")

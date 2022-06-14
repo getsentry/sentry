@@ -28,10 +28,13 @@ configure-sentry-cli() {
     # We can remove this after it's fixed
     # https://github.com/getsentry/sentry-cli/pull/1059
     export SENTRY_CLI_NO_EXIT_TRAP=${SENTRY_CLI_NO_EXIT_TRAP-0}
-    if [ -n "${SENTRY_DSN+x}" ] && [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
+    if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
             curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.0.4 bash
         fi
+        # This exported variable does not persist outside of the calling script, thus, not affecting other
+        # parts of the system
+        export SENTRY_DSN="https://9bdb053cb8274ea69231834d1edeec4c@o1.ingest.sentry.io/5723503"
         eval "$(sentry-cli bash-hook)"
     fi
 }
@@ -127,12 +130,7 @@ install-py-dev() {
 patch-selenium() {
     # XXX: getsentry repo calls this!
     # This hack is until we can upgrade to a newer version of Selenium
-    fx_profile=.venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py
-    # Remove this block when upgrading the selenium package
-    if grep -q "or setting is" "${fx_profile}"; then
-        echo "We are patching ${fx_profile}. You will see this message only once."
-        patch -p0 <scripts/patches/firefox_profile.diff
-    fi
+    python -S -m tools.patch_selenium
 }
 
 setup-git-config() {
@@ -150,7 +148,9 @@ setup-git() {
         echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
         exit 1
     )
-    pip install -r requirements-pre-commit.txt
+    if ! require pre-commit; then
+        pip install -r requirements-dev.txt
+    fi
     pre-commit install --install-hooks
     echo ""
 }
@@ -179,9 +179,9 @@ install-js-dev() {
 }
 
 develop() {
-    setup-git
     install-js-dev
     install-py-dev
+    setup-git
 }
 
 init-config() {

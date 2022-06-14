@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {Manager, Popper, PopperProps, Reference} from 'react-popper';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
@@ -10,8 +10,9 @@ import MenuItem from 'sentry/components/menuItem';
 import {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Project, Team} from 'sentry/types';
+import {Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
@@ -27,6 +28,7 @@ type Props = {
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
   isLoading: boolean;
   keyedTeams: Set<string> | null;
+  organization: Organization;
   project: Project;
   teams: Team[];
   title: React.ComponentClass<TitleProps>;
@@ -39,19 +41,6 @@ type State = {
 };
 
 class TeamKeyTransaction extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-
-    let portal = document.getElementById('team-key-transaction-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'team-key-transaction-portal');
-      document.body.appendChild(portal);
-    }
-    this.portalEl = portal;
-    this.menuEl = null;
-  }
-
   state: State = {
     isOpen: false,
   };
@@ -67,11 +56,9 @@ class TeamKeyTransaction extends Component<Props, State> {
 
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClickOutside, true);
-    this.portalEl.remove();
   }
 
-  private portalEl: Element;
-  private menuEl: Element | null;
+  private menuEl: Element | null = null;
 
   handleClickOutside = (event: MouseEvent) => {
     if (!this.menuEl) {
@@ -91,7 +78,13 @@ class TeamKeyTransaction extends Component<Props, State> {
   };
 
   toggleSelection = (enabled: boolean, selection: TeamSelection) => () => {
-    const {handleToggleKeyTransaction} = this.props;
+    const {handleToggleKeyTransaction, organization} = this.props;
+    const {action} = selection;
+    trackAdvancedAnalyticsEvent('performance_views.team_key_transaction.set', {
+      organization,
+      action,
+    });
+
     return enabled ? handleToggleKeyTransaction(selection) : undefined;
   };
 
@@ -207,16 +200,17 @@ class TeamKeyTransaction extends Component<Props, State> {
       return null;
     }
 
-    const modifiers: PopperProps['modifiers'] = {
-      hide: {
+    const modifiers = [
+      {
+        name: 'hide',
         enabled: false,
       },
-      preventOverflow: {
-        padding: 10,
+      {
+        name: 'preventOverflow',
         enabled: true,
-        boundariesElement: 'viewport',
+        options: {padding: 10},
       },
-    };
+    ];
 
     return createPortal(
       <Popper placement="top" modifiers={modifiers}>
@@ -233,7 +227,7 @@ class TeamKeyTransaction extends Component<Props, State> {
           </DropdownWrapper>
         )}
       </Popper>,
-      this.portalEl
+      document.body
     );
   }
 

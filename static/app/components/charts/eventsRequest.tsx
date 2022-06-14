@@ -124,7 +124,7 @@ type EventsRequestPartialProps = {
    */
   confirmedQuery?: boolean;
   /**
-   * Name used for display current series data set tooltip
+   * Name used for display current series dataset tooltip
    */
   currentSeriesNames?: string[];
   /**
@@ -193,6 +193,10 @@ type EventsRequestPartialProps = {
    * in the `results` child render function.
    */
   topEvents?: number;
+  /**
+   * Tracks whether the query was modified by a user in the search bar
+   */
+  userModified?: string;
   /**
    * Whether or not to zerofill results
    */
@@ -329,7 +333,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
   };
 
   /**
-   * Retrieves data set for the current period (since data can potentially
+   * Retrieves dataset for the current period (since data can potentially
    * contain previous period's data), as well as the previous period if
    * possible.
    *

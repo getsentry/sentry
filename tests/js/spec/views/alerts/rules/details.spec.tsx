@@ -3,7 +3,7 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import MetricAlertDetails from 'sentry/views/alerts/rules/details';
+import MetricAlertDetails from 'sentry/views/alerts/rules/metric/details';
 
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
@@ -38,7 +38,7 @@ describe('MetricAlertDetails', () => {
   it('renders', async () => {
     const {routerContext, organization, router} = initializeOrg();
     const incident = TestStubs.Incident();
-    const rule = TestStubs.IncidentRule({
+    const rule = TestStubs.MetricRule({
       projects: [project.slug],
       latestIncident: incident,
     });
@@ -62,7 +62,7 @@ describe('MetricAlertDetails', () => {
         location={router.location}
         params={{orgId: organization.slug, ruleId: rule.id}}
       />,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
@@ -82,7 +82,7 @@ describe('MetricAlertDetails', () => {
 
   it('renders selected incident', async () => {
     const {routerContext, organization, router} = initializeOrg();
-    const rule = TestStubs.IncidentRule({projects: [project.slug]});
+    const rule = TestStubs.MetricRule({projects: [project.slug]});
     const incident = TestStubs.Incident();
 
     MockApiClient.addMockResponse({
@@ -113,7 +113,7 @@ describe('MetricAlertDetails', () => {
         location={{...router.location, query: {alert: incident.id}}}
         params={{orgId: organization.slug, ruleId: rule.id}}
       />,
-      {context: routerContext}
+      {context: routerContext, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);

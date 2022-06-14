@@ -29,6 +29,8 @@ from sentry.notifications.utils.digest import (
     should_send_as_alert_notification,
 )
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.dates import to_timestamp
+from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, Team, User
@@ -38,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 class DigestNotification(ProjectNotification):
     message_builder = "DigestNotificationMessageBuilder"
-    referrer_base = "digest"
+    metrics_key = "digest"
     template_path = "sentry/emails/digests/body"
 
     def __init__(
@@ -53,12 +55,6 @@ class DigestNotification(ProjectNotification):
         self.target_type = target_type
         self.target_identifier = target_identifier
 
-    def get_category(self) -> str:
-        return "digest_email"
-
-    def get_type(self) -> str:
-        return "notify.digest"
-
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "project", self.project.id, "alert_digest"
 
@@ -66,11 +62,23 @@ class DigestNotification(ProjectNotification):
         if not context:
             # This shouldn't be possible but adding a message just in case.
             return "Digest Report"
+
         return get_digest_subject(context["group"], context["counts"], context["start"])
 
-    def get_notification_title(self) -> str:
-        # This shouldn't be possible but adding a message just in case.
-        return "Digest Report"
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        if not context:
+            return "Digest Report"
+
+        return "<!date^{:.0f}^{count} {noun} detected {date} in| Digest Report for> <{project_link}|{project_name}>".format(
+            to_timestamp(context["start"]),
+            count=len(context["counts"]),
+            noun="issue" if len(context["counts"]) == 1 else "issues",
+            project_link=absolute_uri(
+                f'/organizations/{context["group"].project.organization.slug}/projects/{context["group"].project.slug}/'
+            ),
+            project_name=context["group"].project.name,
+            date="{date_pretty}",
+        )
 
     def get_title_link(self, recipient: Team | User) -> str | None:
         return None
