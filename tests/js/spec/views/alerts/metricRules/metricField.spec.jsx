@@ -56,7 +56,20 @@ describe('MetricField', function () {
     openSelectMenu('(Required)');
 
     // 10 error aggregate configs
-    expect(screen.getAllByTestId('label')).toHaveLength(10);
+    [
+      'avg(…)',
+      'percentile(…)',
+      'p50(…)',
+      'p75(…)',
+      'p95(…)',
+      'p99(…)',
+      'p100(…)',
+      'failure_rate()',
+      'apdex(…)',
+      'count()',
+    ].forEach(label => {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    });
     userEvent.click(screen.getByText('avg(…)'));
     expect(model.fields.get('metric')).toBe('avg(transaction.duration)');
 
