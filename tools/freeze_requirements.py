@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor
 from os.path import abspath
+from shutil import copyfile
 from subprocess import CalledProcessError, run
 from typing import Optional
 
@@ -54,8 +55,22 @@ def main(repo: str, outdir: Optional[str]) -> int:
     IS_GETSENTRY = repo == "getsentry"
 
     base_path = abspath(gitroot())
+
     if outdir is None:
         outdir = base_path
+    else:
+        # We rely on pip-compile's behavior when -o FILE is
+        # already a lockfile, due to >= pins.
+        # So if we have a different outdir (used by things like
+        # bin.lint_requirements), we'll need to copy over existing
+        # lockfiles.
+        for lockfile in (
+            "requirements-frozen.txt",
+            "requirements-dev-frozen.txt",
+            "requirements-dev-only-frozen.txt",
+        ):
+            # TODO: same getsentry switch behavior needed
+            copyfile(f"{base_path}/{lockfile}", f"{outdir}/{lockfile}")
 
     base_cmd = (
         "pip-compile",

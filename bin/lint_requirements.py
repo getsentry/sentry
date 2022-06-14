@@ -8,8 +8,6 @@ from tools import freeze_requirements
 
 
 def main() -> int:
-    # XXX: actually this won't work as we rely on pip-tools looking at the
-    #      same outfile, so inside there we need to copy to dest dir
     with TemporaryDirectory() as tmpdir:
         rc = freeze_requirements.main("sentry", tmpdir)
         if rc != 0:
@@ -22,10 +20,14 @@ def main() -> int:
             "requirements-dev-frozen.txt",
             "requirements-dev-only-frozen.txt",
         ):
+            with open(lockfile) as f:
+                original = f.readlines()
+            with open(f"{tmpdir}/{lockfile}") as f:
+                new = f.readlines()
             diff = tuple(
                 unified_diff(
-                    lockfile,
-                    f"{tmpdir}/{lockfile}",
+                    original,
+                    new,
                     fromfile=lockfile,
                     tofile="newly generated lockfile",
                 )
@@ -39,7 +41,6 @@ def main() -> int:
         if rc != 0:
             print(  # noqa
                 """
-
 Requirement lockfiles are mismatched. To regenerate them,
 use `make freeze-requirements`.
 """
