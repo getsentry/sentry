@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from os.path import abspath
 from shutil import copyfile
 from subprocess import CalledProcessError, run
-from typing import Optional
+from typing import Any, Optional
 
 from tools.lib import gitroot
 
@@ -31,7 +31,8 @@ def worker(args: tuple[str, ...]) -> None:
         )
 
 
-def check_futures(futures: tuple[Future, ...]) -> int:
+# XXX(typing): it's supposed to be list[Future]
+def check_futures(futures: list[Any]) -> int:
     rc = 0
     for future in futures:
         try:
@@ -64,12 +65,12 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
         # So if we have a different outdir (used by things like
         # tools.lint_requirements), we'll need to copy over existing
         # lockfiles.
-        lockfiles = (
+        lockfiles = [
             "requirements-frozen.txt",
             "requirements-dev-frozen.txt",
-        )
+        ]
         if IS_GETSENTRY:
-            lockfiles += ("requirements-dev-only-frozen.txt",)
+            lockfiles.append("requirements-dev-only-frozen.txt")
         for fn in lockfiles:
             copyfile(f"{base_path}/{fn}", f"{outdir}/{fn}")
 
@@ -82,7 +83,7 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
     )
 
     executor = ThreadPoolExecutor(max_workers=3)
-    futures = (
+    futures = [
         executor.submit(
             worker,
             (
@@ -102,11 +103,11 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
                 f"{outdir}/requirements-dev-frozen.txt",
             ),
         ),
-    )
+    ]
     if not IS_GETSENTRY:
         # requirements-dev-only-frozen.txt is only used in sentry as a
         # fast path for some CI jobs.
-        futures += (
+        futures.append(
             executor.submit(
                 worker,
                 (
@@ -115,7 +116,7 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
                     "-o",
                     f"{outdir}/requirements-dev-only-frozen.txt",
                 ),
-            ),
+            )
         )
 
     rc = check_futures(futures)
@@ -125,7 +126,7 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
 
     if IS_GETSENTRY:
         rc = check_futures(
-            (
+            [
                 executor.submit(
                     worker,
                     (
@@ -149,7 +150,7 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
                         f"{outdir}/requirements-dev-frozen.txt",
                     ),
                 ),
-            )
+            ]
         )
 
     executor.shutdown()
