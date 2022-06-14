@@ -7,6 +7,7 @@ import {
   findRangeBinarySearch,
   getContext,
   makeProjectionMatrix,
+  matchHighlightedBounds,
   Rect,
   Transform,
   trimTextCenter,
@@ -359,12 +360,162 @@ describe('findRangeBinarySearch', () => {
 
 describe('trimTextCenter', () => {
   it('trims nothing if low > length', () => {
-    expect(trimTextCenter('abc', 4)).toBe('abc');
+    expect(trimTextCenter('abc', 4)).toMatchObject({
+      end: 3,
+      length: 3,
+      start: 0,
+      text: 'abc',
+    });
   });
   it('trims center perfectly', () => {
-    expect(trimTextCenter('abcdef', 5.5)).toBe(`ab${ELLIPSIS}ef`);
+    expect(trimTextCenter('abcdef', 5.5)).toMatchObject({
+      end: 4,
+      length: 2,
+      start: 2,
+      text: `ab${ELLIPSIS}ef`,
+    });
   });
   it('favors prefix length', () => {
-    expect(trimTextCenter('abcdef', 5)).toBe(`ab${ELLIPSIS}f`);
+    expect(trimTextCenter('abcdef', 5)).toMatchObject({
+      end: 5,
+      length: 3,
+      start: 2,
+      text: `ab${ELLIPSIS}f`,
+    });
   });
+});
+
+describe('matchHighlightedBounds', () => {
+  const testTable = [
+    {
+      args: {
+        text: 'CA::Display::DisplayLink::dispatch_items(unsigned long long, unsigned long long, unsigned long long)',
+        searchRegex: /display/gi,
+        trim: {
+          // match tail truncated
+          text: 'CA::Dis…long)',
+          start: 7,
+          end: 95,
+          length: 88,
+        },
+      },
+      expected: [
+        [4, 8], // Dis...
+      ],
+    },
+    {
+      args: {
+        text: '-[UIScrollView _smoothScrollDisplayLink:]',
+        searchRegex: /display/gi,
+        trim: {
+          // match bounds are shifted after truncate
+          text: '-[UIScrollView _sm…rollDisplayLink:]',
+          start: 18,
+          end: 24,
+          length: 6,
+        },
+      },
+      expected: [
+        [23, 30], // Display
+      ],
+    },
+    {
+      args: {
+        text: 'CA::Display::DisplayLink::dispatch_deferred_display_links()',
+        searchRegex: /display/gi,
+        trim: {
+          // match, match tail truncated, match shifted,
+          text: 'CA::Display::Displ…ed_display_links()',
+          start: 18,
+          end: 41,
+          length: 23,
+        },
+      },
+      expected: [
+        [4, 11], // Display
+        [13, 18], // Displ…
+        [22, 29], // display
+      ],
+    },
+    {
+      args: {
+        text: '-[UIScrollView _smoothScrollDisplayLink:]',
+        searchRegex: /display/gi,
+        trim: {
+          // matched text is within truncated ellipsis ,
+          text: '-[UIScr…Link:]',
+          start: 7,
+          end: 35,
+          length: 28,
+        },
+      },
+      expected: [
+        [7, 8], // …
+      ],
+    },
+    {
+      args: {
+        text: 'CA::Layer::layout_and_display_if_needed(CA::Transaction*)',
+        searchRegex: /display/gi,
+        trim: {
+          // whole text is truncated
+          text: '…',
+          start: 0,
+          end: 57,
+          length: 57,
+        },
+      },
+      expected: [
+        [0, 1], // …
+      ],
+    },
+    {
+      args: {
+        text: '__CFRunLoopRun',
+        searchRegex: /runloop/gi,
+        trim: {
+          // nothing is truncated
+          text: '__CFRunLoopRun',
+          start: 0,
+          end: 14,
+          length: 14,
+        },
+      },
+      expected: [[4, 11]],
+    },
+    {
+      args: {
+        text: '__CFRunLoopRun',
+        searchRegex: /runloop/gi,
+        trim: {
+          text: '__CF…pRun',
+          start: 4,
+          end: 10,
+          length: 6,
+        },
+      },
+      expected: [[4, 6]],
+    },
+    {
+      args: {
+        text: '__CFRunLoopRun',
+        searchRegex: /looprun/gi,
+        trim: {
+          text: '__C…un',
+          start: 3,
+          end: 12,
+          length: 9,
+        },
+      },
+      expected: [[3, 6]],
+    },
+  ];
+
+  it.each(testTable)(
+    `when searching for "display" in "$args.text" truncated to "$args.trim.text" it matches $expected.length boundaries`,
+    ({args, expected}) => {
+      const value = matchHighlightedBounds(args.text, args.searchRegex, args.trim);
+      expect(value).toEqual(expected);
+    }
+  );
 });

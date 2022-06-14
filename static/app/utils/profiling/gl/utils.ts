@@ -503,18 +503,37 @@ export function formatColorForFrame(
 }
 
 export const ELLIPSIS = '\u2026';
-export function trimTextCenter(text: string, low: number) {
+type TrimTextCenter = {
+  end: number;
+  length: number;
+  start: number;
+  text: string;
+};
+export function trimTextCenter(text: string, low: number): TrimTextCenter {
   if (low >= text.length) {
-    return text;
+    return {
+      text,
+      start: 0,
+      end: text.length,
+      length: text.length,
+    };
   }
   const prefixLength = Math.floor(low / 2);
   // Use 1 character less than the low value to account for ellipsis
   // and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
-  return `${text.substring(0, prefixLength)}${ELLIPSIS}${text.substring(
-    text.length - postfixLength + ELLIPSIS.length
-  )}`;
+  const start = prefixLength;
+  const end = Math.floor(text.length - postfixLength + ELLIPSIS.length);
+
+  const trimText = `${text.substring(0, start)}${ELLIPSIS}${text.substring(end)}`;
+
+  return {
+    text: trimText,
+    start,
+    end,
+    length: end - start,
+  };
 }
 
 export function computeClampedConfigView(
@@ -534,4 +553,69 @@ export function computeClampedConfigView(
   const clampedY = clamp(newConfigView.y, 0, maxY);
 
   return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
+}
+
+function isBetween(num: number, low: number, high: number) {
+  return num >= low && num <= high;
+}
+
+function computeHighlightedBounds(
+  bounds: number[],
+  trim: TrimTextCenter
+): [number, number] {
+  let next = bounds;
+  const [boundStart, boundEnd] = next;
+  const {start, end, length} = trim;
+
+  if (start === 0 && end === length && trim.text.length > 1) {
+    return next as [number, number];
+  }
+  // check if matched word now falls within an ellipsis at the head or tail of the word
+  // "display" in "...play"
+  const isHeadEllipsis = isBetween(boundStart, start, end);
+  // "display" in "dis..."
+  const isTailEllipsis = isBetween(boundEnd, start, end);
+  const isFullyTruncated = isHeadEllipsis && isTailEllipsis;
+  if (isTailEllipsis) {
+    next[1] = start;
+  }
+  if (isHeadEllipsis) {
+    next[0] = end;
+  }
+  if (isFullyTruncated) {
+    next = [start, start + 1];
+  }
+  return next.map(v => {
+    if (v >= end) {
+      const delta = v - length;
+      if (delta === start) {
+        return start;
+      }
+      return delta + 1;
+    }
+    return v;
+  }) as [number, number];
+}
+
+export function matchHighlightedBounds(
+  text: string,
+  searchRegex: RegExp,
+  trim: TrimTextCenter
+) {
+  const boundaries: [number, number][] = [];
+  for (const match of text.matchAll(searchRegex)) {
+    if (typeof match.index === 'undefined') {
+      continue;
+    }
+    const bounds = [match.index, match[0].length + match.index];
+    const computedBounds = computeHighlightedBounds(bounds, trim);
+    const lastBound = boundaries[boundaries.length - 1];
+    const isContinuous = lastBound && isBetween(computedBounds[0], ...lastBound);
+    if (isContinuous) {
+      lastBound[1] = computedBounds[1];
+      continue;
+    }
+    boundaries.push(computedBounds);
+  }
+  return boundaries;
 }

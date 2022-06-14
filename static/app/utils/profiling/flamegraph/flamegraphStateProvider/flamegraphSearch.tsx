@@ -1,6 +1,6 @@
 import {FlamegraphFrame} from '../../flamegraphFrame';
 
-type FlamegraphSearch = {
+export type FlamegraphSearch = {
   index: number | null;
   query: string;
   results: Record<string, FlamegraphFrame> | null;
