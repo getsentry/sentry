@@ -107,6 +107,7 @@ def update_config_cache(
             organization_id=organization_id, project_id=project_id, public_key=public_key
         )
 
+
 # DEPRECATED SCHEDULER, use schedule_build_project_config or schedule_invalidate_project_config instead.
 def schedule_update_config_cache(
     generate, project_id=None, organization_id=None, public_key=None, update_reason=None
@@ -383,7 +384,9 @@ def invalidate_project_config(
     projectconfig_cache.set_many(configs)
 
 
-def schedule_invalidate_project_config(*, trigger, organization_id=None, project_id=None, public_key=None):
+def schedule_invalidate_project_config(
+    *, trigger, organization_id=None, project_id=None, public_key=None
+):
     """Schedules the :func:`invalidate_project_config` task.
 
     This takes care of not scheduling a duplicate task if one is already scheduled.  The
