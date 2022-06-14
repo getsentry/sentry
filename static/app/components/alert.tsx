@@ -79,12 +79,7 @@ function Alert({
       )}
       <ContentWrapper>
         <ContentWrapperInner>
-          <MessageContainer
-            onClick={handleClick}
-            showIcon={showIcon}
-            showTrailingItems={showTrailingItems}
-            {...messageHoverProps}
-          >
+          <MessageContainer onClick={handleClick} {...messageHoverProps}>
             <Message>{children}</Message>
             {showTrailingItems && (
               <TrailingItemsWrap>
@@ -187,7 +182,7 @@ const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
 const IconWrapper = styled('div')`
   display: flex;
   height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-  padding-right: ${space(1)};
+  padding-right: ${space(0.5)};
   padding-left: ${space(0.5)};
   box-sizing: content-box;
   align-items: center;
@@ -203,14 +198,11 @@ const ContentWrapperInner = styled('div')`
   flex-grow: 1;
 `;
 
-const MessageContainer = styled('div')<{
-  showIcon: boolean;
-  showTrailingItems: boolean;
-}>`
+const MessageContainer = styled('div')`
   display: flex;
   width: 100%;
-  padding-left: ${p => (p.showIcon ? '0' : space(0.5))};
-  padding-right: ${p => (p.showTrailingItems ? '0' : space(0.5))};
+  padding-left: ${space(0.5)};
+  padding-right: ${space(0.5)};
   flex-direction: row;
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: column;
@@ -246,10 +238,13 @@ const ExpandIconWrap = styled('div')`
   height: 100%;
   display: flex;
   align-items: center;
+  padding-left: ${space(0.5)};
+  padding-right: ${space(0.5)};
 `;
 
 const ExpandContainer = styled('div')`
   display: grid;
+  padding-top: ${space(1.5)};
   padding-right: ${space(1.5)};
   padding-bottom: ${space(1.5)};
 `;
