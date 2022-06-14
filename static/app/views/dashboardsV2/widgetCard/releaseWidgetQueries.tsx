@@ -278,8 +278,20 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   fetchData() {
-    const {selection, api, organization, widget, cursor, onDataFetched} = this.props;
+    const {
+      selection,
+      api,
+      organization,
+      widget: initialWidget,
+      cursor,
+      onDataFetched,
+    } = this.props;
     const {releases} = this.state;
+
+    // HACK: Cloning the widget because we're modifying the query conditions
+    // to support sorting by release
+    const widget = cloneDeep(initialWidget);
+
     const isCustomReleaseSorting = requiresCustomReleaseSorting(widget);
     const isDescending = widget.queries[0].orderby.startsWith('-');
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
