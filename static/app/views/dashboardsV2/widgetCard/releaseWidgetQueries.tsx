@@ -5,8 +5,6 @@ import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {doMetricsRequest} from 'sentry/actionCreators/metrics';
-import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
@@ -24,12 +22,10 @@ import {TOP_N} from 'sentry/utils/discover/types';
 
 import {getDatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetType} from '../types';
-import {getWidgetInterval} from '../utils';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
   DISABLED_SORT,
-  FIELD_TO_METRICS_EXPRESSION,
   METRICS_EXPRESSION_TO_FIELD,
 } from '../widgetBuilder/releaseWidget/fields';
 
@@ -63,10 +59,6 @@ type State = {
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: Series[];
 };
-
-function fieldsToDerivedMetrics(field: string): string {
-  return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
-}
 
 export function derivedMetricsToField(field: string): string {
   return METRICS_EXPRESSION_TO_FIELD[field] ?? field;
@@ -289,6 +281,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   fetchData() {
     const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
       this.props;
+    const {releases} = this.state;
+    const isCustomReleaseSorting = this.requiresCustomReleaseSorting();
+    const isDescending = widget.queries[0].orderby.startsWith('-');
 
     if (widget.displayType === DisplayType.WORLD_MAP) {
       this.setState({errorMessage: t('World Map is not supported by metrics.')});
@@ -305,56 +300,16 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       tableResults: [],
       queryFetchID,
     });
-    const {environments, projects, datetime} = selection;
-    const {start, end, period} = datetime;
+    const columns = widget.queries[0].columns;
 
-    const promises: Promise<
-      MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
-    >[] = [];
+    const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
+    const includeTotals =
+      widget.displayType === DisplayType.TABLE ||
+      widget.displayType === DisplayType.BIG_NUMBER ||
+      columns.length > 0
+        ? 1
+        : 0;
 
-    // Only time we need to use sessions API is when session.status is requested
-    // as a group by.
-    const useSessionAPI = widget.queries[0].columns.includes('session.status');
-    const isDescending = widget.queries[0].orderby.startsWith('-');
-    const rawOrderby = trimStart(widget.queries[0].orderby, '-');
-    const unsupportedOrderby =
-      DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
-
-    // Temporary solution to support sorting on releases when querying the
-    // Metrics API:
-    //
-    // We first request the top 50 recent releases from postgres. Note that the
-    // release request is based on the project and environment selected in the
-    // page filters.
-    //
-    // We then construct a massive OR condition and append it to any specified
-    // filter condition. We also maintain an ordered array of release versions
-    // to order the results returned from the metrics endpoint.
-    //
-    // Also note that we request a limit of 100 on the metrics endpoint, this
-    // is because in a query, the limit should be applied after the results are
-    // sorted based on the release version. The larger number of rows we
-    // request, the more accurate our results are going to be.
-    //
-    // After the results are sorted, we truncate the data to the requested
-    // limit. This will result in a few edge cases:
-    //
-    //   1. low to high sort may not show releases at the beginning of the
-    //      selected period if there are more than 50 releases in the selected
-    //      period.
-    //
-    //   2. if a recent release is not returned due to the 100 row limit
-    //      imposed on the metrics query the user won't see it on the
-    //      table/chart/
-    //
-    const isCustomReleaseSorting = this.requiresCustomReleaseSorting();
-    const {releases} = this.state;
-    const interval = getWidgetInterval(
-      widget,
-      {start, end, period},
-      // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-      isCustomReleaseSorting ? 'low' : undefined
-    );
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
@@ -377,87 +332,15 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       }
     }
 
-    const {aggregates, injectedFields} = resolveDerivedStatusFields(
-      widget.queries[0].aggregates,
-      widget.queries[0].orderby,
-      useSessionAPI
+    const promises: Promise<
+      MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
+    >[] = widget.queries.map(query =>
+      this.config.getTableRequest!(widget, query, this.limit, cursor, {
+        api,
+        organization,
+        pageFilters: selection,
+      })
     );
-    const columns = widget.queries[0].columns;
-
-    const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
-    const includeTotals =
-      widget.displayType === DisplayType.TABLE ||
-      widget.displayType === DisplayType.BIG_NUMBER ||
-      columns.length > 0
-        ? 1
-        : 0;
-
-    widget.queries.forEach(query => {
-      let requestData;
-      let requester;
-      if (useSessionAPI) {
-        const sessionAggregates = aggregates.filter(
-          agg =>
-            !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
-        );
-        requestData = {
-          field: sessionAggregates,
-          orgSlug: organization.slug,
-          end,
-          environment: environments,
-          groupBy: columns,
-          limit: undefined,
-          orderBy: '', // Orderby not supported with session.status
-          interval,
-          project: projects,
-          query: query.conditions,
-          start,
-          statsPeriod: period,
-          includeAllArgs,
-          cursor,
-        };
-        requester = doSessionsRequest;
-      } else {
-        requestData = {
-          field: aggregates.map(fieldsToDerivedMetrics),
-          orgSlug: organization.slug,
-          end,
-          environment: environments,
-          groupBy: columns.map(fieldsToDerivedMetrics),
-          limit: columns.length === 0 ? 1 : isCustomReleaseSorting ? 100 : this.limit,
-          orderBy: unsupportedOrderby
-            ? ''
-            : isDescending
-            ? `-${fieldsToDerivedMetrics(rawOrderby)}`
-            : fieldsToDerivedMetrics(rawOrderby),
-          interval,
-          project: projects,
-          query:
-            query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`),
-          start,
-          statsPeriod: period,
-          includeAllArgs,
-          cursor,
-          includeSeries,
-          includeTotals,
-        };
-        requester = doMetricsRequest;
-
-        if (
-          rawOrderby &&
-          !!!unsupportedOrderby &&
-          !!!aggregates.includes(rawOrderby) &&
-          !!!columns.includes(rawOrderby)
-        ) {
-          requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
-          if (!!!injectedFields.includes(rawOrderby)) {
-            injectedFields.push(rawOrderby);
-          }
-        }
-      }
-
-      promises.push(requester(api, requestData));
-    });
 
     let completed = 0;
     promises.forEach(async (promise, requestIndex) => {
