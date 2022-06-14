@@ -35,11 +35,22 @@ function ReplayView({
 
   const [windowInnerHeight, setWindowInnerHeight] = useState(window.innerHeight);
   const [playerHeight, setPlayerHeight] = useState(0);
+  const [{x, y}, setPlayerPosition] = useState({x: 0, y: 0});
 
   const {attributes, listeners, setNodeRef, transform} = useDraggable({
     id: 'replay-details-player-draggable',
     disabled: !isPictureInPicture,
   });
+
+  useEffect(() => {
+    if (!isPictureInPicture) {
+      setPlayerPosition({x: 0, y: 0});
+    }
+
+    if (transform?.x && transform?.y) {
+      setPlayerPosition({x: transform.x, y: transform.y});
+    }
+  }, [transform?.x, transform?.y, isPictureInPicture]);
 
   useEffect(() => {
     const onResize = debounce(() => {
@@ -62,8 +73,8 @@ function ReplayView({
 
   return (
     <DraggableWrapper
+      playerPosition={{x, y}}
       ref={setNodeRef}
-      transform={transform}
       isPictureInPicture={isPictureInPicture}
       {...listeners}
       {...attributes}
@@ -96,23 +107,26 @@ const ReplayControllerWrapper = styled(PanelBody)`
 
 const DraggableWrapper = styled('div')<{
   isPictureInPicture: boolean;
-  transform: {
+  playerPosition: {
     x: number;
     y: number;
-  } | null;
+  };
 }>`
-  z-index: 100000;
   ${p =>
-    p.transform
-      ? `transform: translate3d(${p.transform?.x}px, ${p.transform?.y}px, 0);`
+    p.isPictureInPicture
+      ? `transform: translate3d(${p.playerPosition?.x}px, ${p.playerPosition?.y}px, 0);`
       : ''}
+
+  ${p =>
+    `transform: translateX(${p.playerPosition?.x ?? 0}px) translateY(${
+      p.playerPosition?.y ?? 0
+    }px);`}
 `;
 
 const PanelNoMargin = styled(Panel)<{
   isFullscreen: boolean;
 }>`
   margin-bottom: 0;
-
   ${p =>
     p.isFullscreen
       ? `height: 100%;
