@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytz
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -70,7 +71,15 @@ class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
 
     def post(self, request: Request, project) -> Response:
         samples_root = os.path.join(DATA_ROOT, "samples")
-        with open(os.path.join(samples_root, get_json_name(project))) as fp:
+
+        expected_commonpath = os.path.realpath(samples_root)
+        json_path = os.path.join(samples_root, get_json_name(project))
+        json_real_path = os.path.realpath(json_path)
+
+        if expected_commonpath != os.path.commonpath([expected_commonpath, json_real_path]):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        with open(json_path) as fp:
             data = json.load(fp)
 
         data = fix_event_data(data)
