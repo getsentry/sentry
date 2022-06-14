@@ -94,7 +94,7 @@ describe('Breadcrumbs', () => {
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
-      expect(screen.getAllByText(textWithMarkupMatcher('Warning'))).toHaveLength(6);
+      expect(screen.getAllByText(textWithMarkupMatcher('Warning'))).toHaveLength(5);
     });
 
     it('should filter crumbs based on crumb category', function () {

@@ -51,8 +51,8 @@ const IconWrapper = styled('div')<Pick<Props, 'color'>>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
