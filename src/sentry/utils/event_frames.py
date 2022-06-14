@@ -76,7 +76,6 @@ def flutter_frame_munger(key: str, frame: MutableMapping[str, Any]) -> bool:
             if src_path:
                 frame[key] = src_path
                 return True
-
     return False
 
 
