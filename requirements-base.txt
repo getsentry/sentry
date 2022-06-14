@@ -102,3 +102,6 @@ phabricator==0.7.0
 # sentry.utils.pytest and sentry.testutils are moved to tests/
 selenium==3.141.0  # When upgrading, remove hack from lib.sh (see https://github.com/getsentry/sentry/pull/29887 for details)
 sqlparse==0.2.4
+
+# work around old protobuf descriptors broken with protobuf 4.x
+protobuf==3.20.1
