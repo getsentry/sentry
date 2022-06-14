@@ -623,7 +623,9 @@ function WidgetBuilder({
       newQuery = datasetConfig.handleColumnFieldChangeOverride(newQuery);
     }
 
-    newQuery = datasetConfig.handleTableOrderByReset(newQuery, fieldStrings);
+    if (datasetConfig.handleOrderByReset) {
+      newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
+    }
 
     set(newState, 'queries', [newQuery]);
     set(newState, 'userHasModified', true);
@@ -652,7 +654,9 @@ function WidgetBuilder({
         newQuery.aggregates = fieldStrings;
       }
 
-      newQuery = datasetConfig.handleTableOrderByReset(newQuery, fieldStrings);
+      if (datasetConfig.handleOrderByReset) {
+        newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
+      }
 
       return newQuery;
     });

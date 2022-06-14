@@ -34,7 +34,6 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     contextualProps?: ContextualProps,
     tags?: TagCollection
   ) => Record<string, SelectValue<FieldValue>>;
-  handleTableOrderByReset: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
   /**
    * List of supported display types for dataset.
    */
@@ -66,6 +65,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * column updates for tables in the Widget Buulder.
    */
   handleColumnFieldChangeOverride?: (widgetQuery: WidgetQuery) => WidgetQuery;
+  /**
+   * Called on column or y-axis change in the Widget Builder
+   * to reset the orderby of the widget query.
+   */
+  handleOrderByReset?: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
@@ -99,7 +103,7 @@ export function getDatasetConfig(
   }
 }
 
-export function handleTableOrderByReset(
+export function handleOrderByReset(
   widgetQuery: WidgetQuery,
   newFields: string[]
 ): WidgetQuery {

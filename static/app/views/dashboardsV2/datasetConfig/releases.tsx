@@ -25,7 +25,7 @@ import {
   mapDerivedMetricsToFields,
 } from '../widgetCard/transformSessionsResponseToTable';
 
-import {DatasetConfig, handleTableOrderByReset} from './base';
+import {DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -45,7 +45,7 @@ export const ReleasesConfig: DatasetConfig<
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   getTableFieldOptions: getReleasesTableFieldOptions,
   handleColumnFieldChangeOverride,
-  handleTableOrderByReset: handleReleasesTableOrderByReset,
+  handleOrderByReset: handleReleasesTableOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -63,7 +63,7 @@ function handleReleasesTableOrderByReset(widgetQuery: WidgetQuery, newFields: st
   if (disableSortBy) {
     widgetQuery.orderby = '';
   }
-  return handleTableOrderByReset(widgetQuery, newFields);
+  return handleOrderByReset(widgetQuery, newFields);
 }
 
 function handleColumnFieldChangeOverride(widgetQuery: WidgetQuery): WidgetQuery {
