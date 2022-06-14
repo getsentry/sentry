@@ -1,5 +1,6 @@
 import logging
 import time
+from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Dict, List, Mapping, MutableMapping, Sequence, Union
 from unittest import mock
@@ -239,7 +240,7 @@ def __translated_payload(
 
     """
     indexer = MockIndexer()
-    payload = payload.copy()
+    payload = deepcopy(payload)
     org_id = payload["org_id"]
 
     new_tags = {
