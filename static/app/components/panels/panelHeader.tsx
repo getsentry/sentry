@@ -22,7 +22,6 @@ type Props = {
 
 const getPadding = ({disablePadding, hasButtons}: Props) => css`
   padding: ${hasButtons ? space(1) : space(2)} ${disablePadding ? 0 : space(2)};
-  padding-right: ${hasButtons ? space(2) : null};
 `;
 
 const PanelHeader = styled('div')<Props>`
