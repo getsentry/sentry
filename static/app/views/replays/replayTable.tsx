@@ -46,7 +46,7 @@ function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
   const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
 
   const getEventView = () => {
-    const query = replayList.map(item => `replayId:${item.id}`).join(' OR ');
+    const query = replayList.map(item => `replayId:${item[idKey]}`).join(' OR ');
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
@@ -136,8 +136,8 @@ function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
                     <Duration
                       seconds={
                         Math.floor(
-                          dataEntries[replay.id]
-                            ? dataEntries[replay.id]['equation[0]']
+                          dataEntries[replay[idKey]]
+                            ? dataEntries[replay[idKey]]['equation[0]']
                             : 0
                         ) || 1
                       }
@@ -146,8 +146,8 @@ function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
                     />
                   </Item>
                   <Item>
-                    {dataEntries[replay.id]
-                      ? dataEntries[replay.id]?.count_if_event_type_equals_error
+                    {dataEntries[replay[idKey]]
+                      ? dataEntries[replay[idKey]]?.count_if_event_type_equals_error
                       : 0}
                   </Item>
                 </React.Fragment>

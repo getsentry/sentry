@@ -9,7 +9,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import SidebarSection from 'sentry/components/sidebarSection';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {CrashFreeTimeBreakdown, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -158,7 +157,7 @@ const Text = styled('div')<{bold?: boolean; right?: boolean}>`
   text-align: ${p => (p.right ? 'right' : 'left')};
   color: ${p => (p.bold ? p.theme.textColor : p.theme.gray300)};
   padding-bottom: ${space(0.25)};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const Percent = styled(Text)`

@@ -21,7 +21,7 @@ import PermissionAlert from 'sentry/views/settings/organization/permissionAlert'
 import TextBlock from '../../components/text/textBlock';
 
 import {modalCss} from './modal/utils';
-import Modal from './modal';
+import {SamplingRuleModal} from './modal';
 import {TraceRules} from './traceRules';
 import {TransactionRules} from './transactionRules';
 import {SAMPLING_DOC_LINK} from './utils';
@@ -105,21 +105,21 @@ class Sampling extends AsyncView<Props, State> {
     }
   };
 
-  handleOpenRule = (rule?: SamplingRule) => () => {
-    const {organization, project, hasAccess} = this.props;
+  handleOpenRule = (type: SamplingRuleType) => (ruleToUpdate?: SamplingRule) => () => {
+    const {project, organization, hasAccess} = this.props;
     const {rules} = this.state;
 
     return openModal(
       modalProps => (
-        <Modal
+        <SamplingRuleModal
           {...modalProps}
-          api={this.api}
           organization={organization}
           project={project}
-          rule={rule}
+          rule={ruleToUpdate}
           rules={rules}
           onSubmitSuccess={this.successfullySubmitted}
           disabled={!hasAccess}
+          type={type}
         />
       ),
       {
@@ -184,13 +184,6 @@ class Sampling extends AsyncView<Props, State> {
     const {rules} = this.state;
     const {hasAccess, location, params, routes} = this.props;
     const disabled = !hasAccess;
-
-    const commonRuleProps = {
-      disabled,
-      onAddRule: this.handleOpenRule(),
-      onEditRule: this.handleOpenRule,
-      onDeleteRule: this.handleDeleteRule,
-    };
 
     const [traceRules, transactionRules] = partition(
       rules,
@@ -278,7 +271,10 @@ class Sampling extends AsyncView<Props, State> {
             onUpdateRules={newRules =>
               this.handleUpdateRules([...traceRules, ...newRules])
             }
-            {...commonRuleProps}
+            onDeleteRule={this.handleDeleteRule}
+            onAddRule={this.handleOpenRule(SamplingRuleType.TRANSACTION)()}
+            onEditRule={this.handleOpenRule(SamplingRuleType.TRANSACTION)}
+            disabled={disabled}
           />
         ) : (
           <TraceRules
@@ -286,7 +282,10 @@ class Sampling extends AsyncView<Props, State> {
             onUpdateRules={newRules =>
               this.handleUpdateRules([...transactionRules, ...newRules])
             }
-            {...commonRuleProps}
+            onDeleteRule={this.handleDeleteRule}
+            onAddRule={this.handleOpenRule(SamplingRuleType.TRACE)()}
+            onEditRule={this.handleOpenRule(SamplingRuleType.TRACE)}
+            disabled={disabled}
           />
         )}
       </Fragment>
