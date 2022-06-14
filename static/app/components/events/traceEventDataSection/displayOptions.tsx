@@ -204,7 +204,7 @@ const Wrapper = styled(DropdownControl)`
     max-width: 100%;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 1/-1;
   }
 `;
@@ -213,7 +213,7 @@ const DropdownMenu = styled(Content)`
   width: 100%;
   border-top: none;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     top: calc(100% + ${space(0.5)} - 2px);
     border-radius: ${p => p.theme.borderRadius};
     border-top: 1px solid ${p => p.theme.border};
@@ -231,7 +231,7 @@ const OptionsButton = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
   white-space: nowrap;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     max-width: 200px;
     border-radius: ${p => p.theme.borderRadius};
 
@@ -257,7 +257,7 @@ const OptionsButton = styled(DropdownButton)`
       `}
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     ${ButtonLabel} {
       grid-template-columns: max-content 1fr max-content;
     }
