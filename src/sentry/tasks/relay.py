@@ -237,7 +237,7 @@ def schedule_build_project_config(public_key=None, trigger="build"):
 
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
-        tags={"update_reason": trigger},
+        tags={"update_reason": trigger, "task": "build"},
     )
     build_project_config.delay(public_key=public_key, trigger=trigger)
 
