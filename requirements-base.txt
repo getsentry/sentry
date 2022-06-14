@@ -104,4 +104,4 @@ selenium==3.141.0  # When upgrading, remove hack from lib.sh (see https://github
 sqlparse==0.2.4
 
 # work around old protobuf descriptors broken with protobuf 4.x
-protobuf==3.20.1
+protobuf==3.19.0
