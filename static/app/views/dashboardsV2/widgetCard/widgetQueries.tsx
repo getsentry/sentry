@@ -275,15 +275,13 @@ class WidgetQueries extends Component<Props, State> {
     this.setState({
       loading: true,
       errorMessage: undefined,
-      // TODO: Should these be unset before requesting?
-      // tableResults: undefined,
-      // timeseriesResults: undefined,
-      // rawResults: undefined,
     });
 
-    let requests;
-    let responseProcessor;
-    let isMetricsData;
+    let requests: ReturnType<Client['requestPromise']>[];
+    let responseProcessor:
+      | typeof this.processTableResponse
+      | typeof this.processTimeseriesResponse;
+    let isMetricsData: boolean | undefined;
     const contextualRequestProps = {
       organization,
       pageFilters: selection,
@@ -314,6 +312,7 @@ class WidgetQueries extends Component<Props, State> {
 
       onDataFetched?.({...processedData});
       this.setState({
+        loading: false,
         ...processedData,
       });
     } catch (err) {

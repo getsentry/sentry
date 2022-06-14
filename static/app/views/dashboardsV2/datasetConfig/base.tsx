@@ -50,7 +50,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     contextualProps?: ContextualProps
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
-   * TODO: Promote to required when other configs implement this
+   * Generate the request promises for fetching
+   * tabular data.
    */
   getTableRequests?: (
     widget: Widget,
@@ -59,7 +60,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     cursor?: string
   ) => ReturnType<Client['requestPromise']>[];
   /**
-   * TODO: Add Description
+   * Generate the request promises for fetching
+   * timeseries data.
    */
   getTimeseriesRequests?: (
     widget: Widget,
