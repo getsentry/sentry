@@ -138,6 +138,25 @@ function updateGhostRow({
   ref.current.style.transform = `translateY(${rowHeight * tabIndexKey - scrollTop}px)`;
   ref.current.style.opacity = '1';
 }
+function findOptimisticStartIndex<T extends TreeLike>({
+  items,
+  overscroll,
+  rowHeight,
+  scrollTop,
+  viewport,
+}: {
+  items: VirtualizedTreeNode<T>[];
+  overscroll: number;
+  rowHeight: number;
+  scrollTop: number;
+  viewport: {bottom: number; top: number};
+}): number {
+  if (!items.length || viewport.top === 0) {
+    return 0;
+  }
+  return Math.max(Math.floor(scrollTop / rowHeight) - overscroll, 0);
+}
+
 function findVisibleItems<T extends TreeLike>({
   items,
   overscroll,
@@ -154,7 +173,6 @@ function findVisibleItems<T extends TreeLike>({
   // This is overscroll height for single direction, when computing the total,
   // we need to multiply this by 2 because we overscroll in both directions.
   const OVERSCROLL_HEIGHT = overscroll * rowHeight;
-
   const visibleItems: VisibleItem<T>[] = [];
 
   // Clamp viewport to scrollHeight bounds [0, length * rowHeight] because some browsers may fire
@@ -170,7 +188,13 @@ function findVisibleItems<T extends TreeLike>({
   // Points to the position inside the visible array
   let visibleItemIndex = 0;
   // Points to the currently iterated item
-  let indexPointer = 0;
+  let indexPointer = findOptimisticStartIndex({
+    items,
+    viewport,
+    scrollTop,
+    rowHeight,
+    overscroll,
+  });
 
   // Max number of visible items in our list
   const MAX_VISIBLE_ITEMS = Math.ceil((scrollHeight + OVERSCROLL_HEIGHT * 2) / rowHeight);
