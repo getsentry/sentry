@@ -1,11 +1,15 @@
+import trimStart from 'lodash/trimStart';
+
 import {OrganizationSummary, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, WidgetQuery, WidgetType} from '../types';
+import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
@@ -30,6 +34,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     contextualProps?: ContextualProps,
     tags?: TagCollection
   ) => Record<string, SelectValue<FieldValue>>;
+  handleTableOrderByReset: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
   /**
    * List of supported display types for dataset.
    */
@@ -56,6 +61,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     contextualProps?: ContextualProps
   ) => ReturnType<typeof getFieldRenderer> | null;
+  /**
+   * Apply dataset specifc overrides to the logic that handles
+   * column updates for tables in the Widget Buulder.
+   */
+  handleColumnFieldChangeOverride?: (widgetQuery: WidgetQuery) => WidgetQuery;
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
@@ -87,4 +97,29 @@ export function getDatasetConfig(
     default:
       return ErrorsAndTransactionsConfig;
   }
+}
+
+export function handleTableOrderByReset(
+  widgetQuery: WidgetQuery,
+  newFields: string[]
+): WidgetQuery {
+  const rawOrderby = trimStart(widgetQuery.orderby, '-');
+  const isDescending = widgetQuery.orderby.startsWith('-');
+  const orderbyPrefix = isDescending ? '-' : '';
+
+  if (!newFields.includes(rawOrderby) && widgetQuery.orderby !== '') {
+    const isFromAggregates = widgetQuery.aggregates.includes(rawOrderby);
+    const isCustomEquation = isEquation(rawOrderby);
+    const isUsedInGrouping = widgetQuery.columns.includes(rawOrderby);
+
+    const keepCurrentOrderby = isFromAggregates || isCustomEquation || isUsedInGrouping;
+    const firstAggregateAlias = isEquation(widgetQuery.aggregates[0] ?? '')
+      ? `equation[${getNumEquations(widgetQuery.aggregates) - 1}]`
+      : newFields[0];
+
+    widgetQuery.orderby =
+      (keepCurrentOrderby && widgetQuery.orderby) ||
+      `${orderbyPrefix}${firstAggregateAlias}`;
+  }
+  return widgetQuery;
 }

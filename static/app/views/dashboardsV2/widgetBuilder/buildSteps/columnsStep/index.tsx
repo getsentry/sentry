@@ -1,13 +1,7 @@
-import cloneDeep from 'lodash/cloneDeep';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
-import {
-  generateFieldAsString,
-  getColumnsAndAggregatesAsStrings,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 
@@ -21,8 +15,8 @@ interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
   explodedFields: QueryFieldValue[];
+  handleColumnFieldChange: (newFields: QueryFieldValue[]) => void;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
-  onYAxisOrColumnFieldChange: (newFields: QueryFieldValue[]) => void;
   organization: Organization;
   queries: WidgetQuery[];
   tags: TagCollection;
@@ -33,11 +27,9 @@ interface Props {
 export function ColumnsStep({
   dataSet,
   displayType,
-  onQueryChange,
   organization,
-  queries,
   widgetType,
-  onYAxisOrColumnFieldChange,
+  handleColumnFieldChange,
   queryErrors,
   explodedFields,
   tags,
@@ -81,7 +73,7 @@ export function ColumnsStep({
             )
       }
     >
-      {dataSet === DataSet.EVENTS ? (
+      {[DataSet.EVENTS, DataSet.ISSUES].includes(dataSet) ? (
         <ColumnFields
           displayType={displayType}
           organization={organization}
@@ -89,26 +81,7 @@ export function ColumnsStep({
           fields={explodedFields}
           errors={queryErrors}
           fieldOptions={datasetConfig.getTableFieldOptions({organization}, tags)}
-          onChange={onYAxisOrColumnFieldChange}
-        />
-      ) : dataSet === DataSet.ISSUES ? (
-        <ColumnFields
-          displayType={displayType}
-          organization={organization}
-          widgetType={widgetType}
-          fields={explodedFields}
-          errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
-          fieldOptions={datasetConfig.getTableFieldOptions({organization}, tags)}
-          onChange={newFields => {
-            const fieldStrings = newFields.map(generateFieldAsString);
-            const splitFields = getColumnsAndAggregatesAsStrings(newFields);
-            const newQuery = cloneDeep(queries[0]);
-            newQuery.fields = fieldStrings;
-            newQuery.aggregates = splitFields.aggregates;
-            newQuery.columns = splitFields.columns;
-            newQuery.fieldAliases = splitFields.fieldAliases;
-            onQueryChange(0, newQuery);
-          }}
+          onChange={handleColumnFieldChange}
         />
       ) : (
         <ReleaseColumnFields
@@ -117,7 +90,7 @@ export function ColumnsStep({
           widgetType={widgetType}
           explodedFields={explodedFields}
           queryErrors={queryErrors}
-          onYAxisOrColumnFieldChange={onYAxisOrColumnFieldChange}
+          onYAxisOrColumnFieldChange={handleColumnFieldChange}
         />
       )}
     </BuildStep>
