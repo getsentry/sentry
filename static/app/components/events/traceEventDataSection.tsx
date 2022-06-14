@@ -141,6 +141,15 @@ export function TraceEventDataSection({
       ];
     }
 
+    if (platform.startsWith('python')) {
+      return [
+        {
+          label: displayOptions['raw-stack-trace'],
+          value: 'raw-stack-trace',
+        },
+      ];
+    }
+
     return [
       {
         label: displayOptions.minified,
