@@ -69,7 +69,7 @@ function StackTrace({
       hasNewestFirst={(data.frames ?? []).length > 1}
       showPermalink
     >
-      {({sortBy, display, fullStackTrace}) =>
+      {({recentFirst, display, fullStackTrace}) =>
         stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
@@ -83,7 +83,7 @@ function StackTrace({
                 ? STACK_VIEW.FULL
                 : STACK_VIEW.APP
             }
-            newestFirst={sortBy === 'recent-first'}
+            newestFirst={recentFirst}
             stacktrace={data}
             groupingCurrentLevel={groupingCurrentLevel}
             hasHierarchicalGrouping={hasHierarchicalGrouping}

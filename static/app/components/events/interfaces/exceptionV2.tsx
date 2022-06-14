@@ -101,7 +101,7 @@ function Exception({
       showPermalink
       wrapTitle={false}
     >
-      {({sortBy, display, fullStackTrace}) =>
+      {({recentFirst, display, fullStackTrace}) =>
         stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
@@ -117,7 +117,7 @@ function Exception({
                 : STACK_VIEW.APP
             }
             projectId={projectId}
-            newestFirst={sortBy === 'recent-first'}
+            newestFirst={recentFirst}
             event={event}
             platform={platform}
             values={data.values}

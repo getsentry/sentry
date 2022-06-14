@@ -124,7 +124,7 @@ function Threads({
 
   function renderContent({
     display,
-    sortBy,
+    recentFirst,
     fullStackTrace,
   }: Parameters<React.ComponentProps<typeof TraceEventDataSection>['children']>[0]) {
     const stackType = display.includes('minified')
@@ -143,7 +143,7 @@ function Threads({
               : STACK_VIEW.APP
           }
           projectId={projectId}
-          newestFirst={sortBy === 'recent-first'}
+          newestFirst={recentFirst}
           event={event}
           platform={platform}
           values={exception.values}
@@ -169,7 +169,7 @@ function Threads({
               ? STACK_VIEW.FULL
               : STACK_VIEW.APP
           }
-          newestFirst={sortBy === 'recent-first'}
+          newestFirst={recentFirst}
           event={event}
           platform={platform}
           groupingCurrentLevel={groupingCurrentLevel}

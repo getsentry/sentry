@@ -31,8 +31,16 @@ export const displayOptions = {
   'verbose-function-names': t('Verbose function names'),
 };
 
+type State = {
+  display: Array<keyof typeof displayOptions>;
+  fullStackTrace: boolean;
+  sortBy: keyof typeof sortByOptions;
+};
+
+type ChildProps = Omit<State, 'sortBy'> & {recentFirst: boolean};
+
 type Props = {
-  children: (childProps: State) => React.ReactNode;
+  children: (childProps: ChildProps) => React.ReactNode;
   eventId: Event['id'];
   fullStackTrace: boolean;
   hasAbsoluteAddresses: boolean;
@@ -52,13 +60,9 @@ type Props = {
   wrapTitle?: boolean;
 };
 
-type State = {
-  display: Array<keyof typeof displayOptions>;
-  fullStackTrace: boolean;
-  sortBy: keyof typeof sortByOptions;
-};
-
-export const TraceEventDataSectionContext = createContext<State | undefined>(undefined);
+export const TraceEventDataSectionContext = createContext<ChildProps | undefined>(
+  undefined
+);
 
 export function TraceEventDataSection({
   type,
@@ -173,6 +177,12 @@ export function TraceEventDataSection({
     ? t('Not available on raw stack trace')
     : undefined;
 
+  const childProps = {
+    recentFirst: state.sortBy === 'recent-first',
+    display: state.display,
+    fullStackTrace: state.fullStackTrace,
+  };
+
   return (
     <EventDataSection
       type={type}
@@ -258,8 +268,8 @@ export function TraceEventDataSection({
       showPermalink={false}
       wrapTitle={wrapTitle}
     >
-      <TraceEventDataSectionContext.Provider value={state}>
-        {children(state)}
+      <TraceEventDataSectionContext.Provider value={childProps}>
+        {children(childProps)}
       </TraceEventDataSectionContext.Provider>
     </EventDataSection>
   );
