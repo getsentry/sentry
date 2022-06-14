@@ -24,7 +24,7 @@ import {Image, ImageStatus} from 'sentry/types/debugImage';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import SearchBarAction from '../searchBarActionV2';
+import SearchBarAction from '../searchBarAction';
 
 import Status from './debugImage/status';
 import DebugImage from './debugImage';

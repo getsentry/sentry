@@ -14,7 +14,7 @@ import {Organization, Project} from 'sentry/types';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';
 
-import SearchBarAction from '../../searchBarActionV2';
+import SearchBarAction from '../../searchBarAction';
 
 import Status from './candidate/status';
 import Candidate from './candidate';
