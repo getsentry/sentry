@@ -66,6 +66,10 @@ export type PerformanceEventParameters = {
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
   'performance_views.trace_view.open_in_discover': {};
+  'performance_views.trace_view.open_transaction_details': {
+    operation: string;
+    transaction: string;
+  };
   'performance_views.trace_view.view': {};
   'performance_views.transaction_summary.change_chart_display': {
     from_chart: string;
@@ -125,6 +129,8 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.trace_view.view': 'Performance Views: Trace View viewed',
   'performance_views.trace_view.open_in_discover':
     'Performance Views: Trace View open in Discover button clicked',
+  'performance_views.trace_view.open_transaction_details':
+    'Performance Views: Trace View transaction details opened',
   'performance_views.transaction_summary.change_chart_display':
     'Performance Views: Transaction Summary chart display changed',
   'performance_views.transaction_summary.status_breakdown_click':
