@@ -106,7 +106,6 @@ const Chart = ({firstEvent, stats, transactionStats}: Props) => {
     },
     xAxes: Array.from(new Array(series.length)).map((_i, index) => ({
       gridIndex: index,
-      boundaryGap: true,
       axisLine: {
         show: false,
       },
