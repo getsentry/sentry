@@ -1,8 +1,9 @@
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getMetricRuleDiscoverUrl} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
 
 interface PresetCta {
@@ -23,11 +24,9 @@ interface PresetCta {
 interface PresetCtaOpts {
   orgSlug: string;
   projects: Project[];
-  end?: string;
-  eventType?: string;
-  fields?: string[];
+  query?: string;
   rule?: MetricRule;
-  start?: string;
+  timePeriod?: TimePeriodType;
 }
 
 /**
@@ -37,10 +36,8 @@ export function makeDefaultCta({
   orgSlug,
   projects,
   rule,
-  eventType,
-  start,
-  end,
-  fields,
+  timePeriod,
+  query,
 }: PresetCtaOpts): PresetCta {
   if (!rule) {
     return {
@@ -58,13 +55,10 @@ export function makeDefaultCta({
     to: getMetricRuleDiscoverUrl({
       orgSlug,
       projects,
-      environment: rule.environment,
       rule,
-      eventType,
-      start,
-      end,
+      timePeriod,
+      query,
       extraQueryParams,
-      fields,
     }),
   };
 }
