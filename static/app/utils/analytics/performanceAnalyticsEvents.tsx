@@ -17,6 +17,8 @@ export type PerformanceEventParameters = {
   'performance_views.event_details.filter_by_op': {
     operation: string;
   };
+
+  'performance_views.event_details.json_button_click': {};
   'performance_views.event_details.open_span_details': {
     description: string;
     operation: string;
@@ -133,4 +135,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Event Details span details opened',
   'performance_views.event_details.anchor_span':
     'Performance Views: Event Details span anchored',
+  'performance_views.event_details.json_button_click':
+    'Performance Views: Event Details JSON button clicked',
 };
