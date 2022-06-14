@@ -15,18 +15,14 @@ interface PresetCta {
    * The location to direct to upon clicking the CTA.
    */
   to: LinkProps['to'];
-  /**
-   * The tooltip title for the CTA button, may be empty.
-   */
-  title?: string;
 }
 
 interface PresetCtaOpts {
   orgSlug: string;
   projects: Project[];
+  timePeriod: TimePeriodType;
   query?: string;
   rule?: MetricRule;
-  timePeriod?: TimePeriodType;
 }
 
 /**

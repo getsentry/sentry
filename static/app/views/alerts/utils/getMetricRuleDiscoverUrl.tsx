@@ -8,10 +8,10 @@ import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
 interface MetricRuleDiscoverUrlOptions {
   orgSlug: string;
   projects: Project[];
+  timePeriod: Omit<TimePeriodType, 'display' | 'label'>;
   extraQueryParams?: Partial<NewQuery>;
   query?: string;
   rule?: MetricRule;
-  timePeriod?: TimePeriodType;
 }
 
 /**
@@ -47,8 +47,7 @@ export function getMetricRuleDiscoverQuery({
   query,
   extraQueryParams,
 }: Omit<MetricRuleDiscoverUrlOptions, 'orgSlug'>) {
-  const missingDate = (!timePeriod?.start && !timePeriod?.end) || !timePeriod?.period;
-  if (!projects || !projects.length || !rule || missingDate) {
+  if (!projects || !projects.length || !rule) {
     return '';
   }
 
