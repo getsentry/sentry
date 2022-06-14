@@ -1,7 +1,6 @@
 import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
-import Grid from 'sentry/components/charts/components/grid';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import AreaSeries from 'sentry/components/charts/series/areaSeries';
 import type {SessionApiResponse} from 'sentry/types';
@@ -12,10 +11,9 @@ import {
   transformSessionResponseToSeries,
 } from 'sentry/views/alerts/rules/metric/details/metricChartOption';
 
-import {DEFAULT_FONT_FAMILY, slackChartSize} from './slack';
+import {DEFAULT_FONT_FAMILY, slackChartDefaults, slackChartSize} from './slack';
 import {ChartType, RenderDescriptor} from './types';
 
-const metricAlertGrid = Grid({left: 5, right: 5, bottom: 4, top: 16});
 const metricAlertXaxis = XAxis({
   theme,
   splitNumber: 3,
@@ -79,7 +77,7 @@ metricAlertCharts.push({
           ...metricAlertYaxis.axisLabel,
         },
       },
-      grid: metricAlertGrid,
+      grid: slackChartDefaults.grid,
     };
   },
   ...slackChartSize,
@@ -112,7 +110,7 @@ metricAlertCharts.push({
           ...metricAlertYaxis.axisLabel,
         },
       },
-      grid: metricAlertGrid,
+      grid: slackChartDefaults.grid,
     };
   },
   ...slackChartSize,
