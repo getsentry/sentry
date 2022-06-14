@@ -51,7 +51,7 @@ stderr:
     return rc
 
 
-def main(repo: str, outdir: Optional[str]) -> int:
+def main(repo: str, outdir: Optional[str] = None) -> int:
     IS_GETSENTRY = repo == "getsentry"
 
     base_path = abspath(gitroot())
