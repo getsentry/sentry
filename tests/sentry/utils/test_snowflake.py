@@ -4,9 +4,11 @@ from freezegun import freeze_time
 
 from sentry.testutils import TestCase
 from sentry.utils.snowflake import (
+    _TTL,
     MAX_AVAILABLE_REGION_SEQUENCES,
     SENTRY_EPOCH_START,
     generate_snowflake_id,
+    get_redis_cluster,
 )
 
 
@@ -41,3 +43,16 @@ class SnowflakeUtilsTest(TestCase):
         )
 
         assert snowflake_id == expected_value
+
+    @freeze_time(CURRENT_TIME)
+    def test_out_of_region_sequences(self):
+        cluster = get_redis_cluster("test_redis_key")
+        current_timestamp = int(datetime.now().timestamp() - SENTRY_EPOCH_START)
+        for i in range(int(_TTL.total_seconds())):
+            timestamp = current_timestamp - i
+            cluster.set(str(timestamp), 16)
+
+        with self.assertRaises(Exception) as context:
+            generate_snowflake_id("test_redis_key")
+
+        self.assertTrue("No available ID" in str(context.exception))
