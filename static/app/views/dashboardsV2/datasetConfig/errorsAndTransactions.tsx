@@ -50,7 +50,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
-  getTableFieldOptions: getEventsFieldOptions,
+  getTableFieldOptions: getEventsTableFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -64,7 +64,10 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
 };
 
-function getEventsFieldOptions(contextualProps?: ContextualProps, tags?: TagCollection) {
+function getEventsTableFieldOptions(
+  contextualProps?: ContextualProps,
+  tags?: TagCollection
+) {
   const organization = contextualProps?.organization!;
   const measurements = {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
 

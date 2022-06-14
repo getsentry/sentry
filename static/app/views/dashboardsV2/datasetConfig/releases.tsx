@@ -43,7 +43,7 @@ export const ReleasesConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
-  getTableFieldOptions: getReleasesFieldOptions,
+  getTableFieldOptions: getReleasesTableFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -56,7 +56,7 @@ export const ReleasesConfig: DatasetConfig<
   transformTable: transformSessionsResponseToTable,
 };
 
-function getReleasesFieldOptions() {
+function getReleasesTableFieldOptions() {
   return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
 }
 

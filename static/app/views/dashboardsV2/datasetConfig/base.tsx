@@ -22,6 +22,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  /**
+   * Field options to display in the Column selectors for
+   * Table display type.
+   */
   getTableFieldOptions: (
     contextualProps?: ContextualProps,
     tags?: TagCollection
