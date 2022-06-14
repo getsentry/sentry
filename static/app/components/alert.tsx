@@ -78,30 +78,33 @@ function Alert({
         </IconWrapper>
       )}
       <ContentWrapper>
-        <MessageContainer
-          onClick={handleClick}
-          showIcon={showIcon}
-          showTrailingItems={showTrailingItems}
-          {...messageHoverProps}
-        >
-          <Message>{children}</Message>
-          {(showExpand || showTrailingItems) && (
-            <TrailingItemsWrap>
-              <TrailingItems onClick={e => e.stopPropagation()}>
-                {trailingItems}
-              </TrailingItems>
-              {showExpand && (
-                <ExpandIconWrap>
-                  <IconChevron direction={isExpanded ? 'up' : 'down'} />
-                </ExpandIconWrap>
-              )}
-            </TrailingItemsWrap>
+        <ContentWrapperInner>
+          <MessageContainer
+            onClick={handleClick}
+            showIcon={showIcon}
+            showTrailingItems={showTrailingItems}
+            {...messageHoverProps}
+          >
+            <Message>{children}</Message>
+            {(showExpand || showTrailingItems) && (
+              <TrailingItemsWrap>
+                <TrailingItems onClick={e => e.stopPropagation()}>
+                  {trailingItems}
+                </TrailingItems>
+              </TrailingItemsWrap>
+            )}
+          </MessageContainer>
+
+          {isExpanded && (
+            <ExpandContainer>
+              {Array.isArray(expand) ? expand.map(item => item) : expand}
+            </ExpandContainer>
           )}
-        </MessageContainer>
-        {isExpanded && (
-          <ExpandContainer>
-            {Array.isArray(expand) ? expand.map(item => item) : expand}
-          </ExpandContainer>
+        </ContentWrapperInner>
+        {showExpand && (
+          <ExpandIconWrap>
+            <IconChevron direction={isExpanded ? 'up' : 'down'} />
+          </ExpandIconWrap>
         )}
       </ContentWrapper>
     </Wrap>
@@ -178,6 +181,7 @@ const alertStyles = ({
 
 const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
   ${alertStyles}
+  padding: ${space(1.5)}
 `;
 
 const IconWrapper = styled('div')`
@@ -190,6 +194,12 @@ const IconWrapper = styled('div')`
 
 const ContentWrapper = styled('div')`
   width: 100%;
+  display: flex;
+  flex-direction: row;
+`;
+
+const ContentWrapperInner = styled('div')`
+  flex-grow: 1;
 `;
 
 const MessageContainer = styled('div')<{
@@ -202,9 +212,9 @@ const MessageContainer = styled('div')<{
   padding-bottom: ${space(1.5)};
   padding-left: ${p => (p.showIcon ? '0' : space(2))};
   padding-right: ${p => (p.showTrailingItems ? space(1.5) : space(2))};
-  flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    flex-direction: row;
+  flex-direction: row;
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    flex-direction: column;
     align-items: start;
   }
 `;
