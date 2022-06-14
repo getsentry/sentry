@@ -287,16 +287,6 @@ def test_process_messages(mock_indexer) -> None:
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
 
 
-try:
-    import pytest_benchmark  # type: ignore  # noqa
-except ImportError:
-    pass
-else:
-
-    def test_process_messages_bench(benchmark):
-        benchmark(test_process_messages)
-
-
 invalid_payloads = [
     (
         {
