@@ -270,7 +270,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     quota: Any
     isDefault: bool
     defaultRole: bool
-    availableRoles: list[Any]  # TODO: deprecate, use orgRoleList
+    availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
     orgRoleList: List[RoleSerializerResponse]
     teamRoleList: List[RoleSerializerResponse]
     openMembership: bool
