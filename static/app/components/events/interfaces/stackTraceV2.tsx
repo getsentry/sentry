@@ -6,8 +6,7 @@ import {Group, PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE, STACK_VIEW} from 'sentry/types/stacktrace';
 
-import TraceEventDataSection from '../traceEventDataSection';
-import {DisplayOption} from '../traceEventDataSection/displayOptions';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import CrashContentStackTrace from './crashContent/stackTrace';
 import NoStackTraceMessage from './noStackTraceMessage';
@@ -70,7 +69,7 @@ function StackTrace({
       hasNewestFirst={(data.frames ?? []).length > 1}
       showPermalink
     >
-      {({raw, recentFirst, activeDisplayOptions}) =>
+      {({sortBy, display, fullStackTrace}) =>
         stackTraceNotFound ? (
           <NoStackTraceMessage />
         ) : (
@@ -78,13 +77,13 @@ function StackTrace({
             event={event}
             platform={platform}
             stackView={
-              raw
+              display.includes('raw-stack-trace')
                 ? STACK_VIEW.RAW
-                : activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)
+                : fullStackTrace
                 ? STACK_VIEW.FULL
                 : STACK_VIEW.APP
             }
-            newestFirst={recentFirst}
+            newestFirst={sortBy === 'recent-first'}
             stacktrace={data}
             groupingCurrentLevel={groupingCurrentLevel}
             hasHierarchicalGrouping={hasHierarchicalGrouping}

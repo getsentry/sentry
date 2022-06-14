@@ -15,8 +15,7 @@ import {
   Thread,
 } from 'sentry/types';
 
-import TraceEventDataSection from '../traceEventDataSection';
-import {DisplayOption} from '../traceEventDataSection/displayOptions';
+import {TraceEventDataSection} from '../traceEventDataSection';
 
 import Exception from './crashContent/exception';
 import StackTrace from './crashContent/stackTrace';
@@ -124,11 +123,11 @@ function Threads({
   }
 
   function renderContent({
-    recentFirst,
-    raw,
-    activeDisplayOptions,
+    display,
+    sortBy,
+    fullStackTrace,
   }: Parameters<React.ComponentProps<typeof TraceEventDataSection>['children']>[0]) {
-    const stackType = activeDisplayOptions.includes(DisplayOption.MINIFIED)
+    const stackType = display.includes('minified')
       ? STACK_TYPE.MINIFIED
       : STACK_TYPE.ORIGINAL;
 
@@ -137,14 +136,14 @@ function Threads({
         <Exception
           stackType={stackType}
           stackView={
-            raw
+            display.includes('raw-stack-trace')
               ? STACK_VIEW.RAW
-              : activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)
+              : fullStackTrace
               ? STACK_VIEW.FULL
               : STACK_VIEW.APP
           }
           projectId={projectId}
-          newestFirst={recentFirst}
+          newestFirst={sortBy === 'recent-first'}
           event={event}
           platform={platform}
           values={exception.values}
@@ -164,13 +163,13 @@ function Threads({
         <StackTrace
           stacktrace={stackTrace}
           stackView={
-            raw
+            display.includes('raw-stack-trace')
               ? STACK_VIEW.RAW
-              : activeDisplayOptions.includes(DisplayOption.FULL_STACK_TRACE)
+              : fullStackTrace
               ? STACK_VIEW.FULL
               : STACK_VIEW.APP
           }
-          newestFirst={recentFirst}
+          newestFirst={sortBy === 'recent-first'}
           event={event}
           platform={platform}
           groupingCurrentLevel={groupingCurrentLevel}
