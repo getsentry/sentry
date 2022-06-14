@@ -49,7 +49,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
-        if self._should_use_v3(request):
+        if self._should_use_v3(version, request):
             # Always compute the full config. It's invalid to send partial
             # configs to processing relays, and these validate the requests they
             # get with permissions and trim configs down accordingly.
@@ -67,8 +67,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         else:
             return Response("Unsupported version, we only support versions 1 to 3.", 400)
 
-    def _should_use_v3(self, request):
-        version = request.GET.get("version")
+    def _should_use_v3(self, version, request):
         set_tag("relay_endpoint_version", version)
         no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
