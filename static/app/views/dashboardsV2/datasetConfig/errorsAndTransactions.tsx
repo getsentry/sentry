@@ -18,7 +18,7 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {WidgetQuery} from '../types';
+import {DisplayType, WidgetQuery} from '../types';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -26,13 +26,33 @@ import {
 
 import {ContextualProps, DatasetConfig} from './base';
 
+const DEFAULT_WIDGET_QUERY: WidgetQuery = {
+  name: '',
+  fields: ['count()'],
+  columns: [],
+  fieldAliases: [],
+  aggregates: ['count()'],
+  conditions: '',
+  orderby: '-count()',
+};
+
 type SeriesWithOrdering = [order: number, series: Series];
 
 export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
+  supportedDisplayTypes: [
+    DisplayType.AREA,
+    DisplayType.BAR,
+    DisplayType.BIG_NUMBER,
+    DisplayType.LINE,
+    DisplayType.TABLE,
+    DisplayType.TOP_N,
+    DisplayType.WORLD_MAP,
+  ],
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
 };

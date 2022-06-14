@@ -244,6 +244,34 @@ describe('Performance > Table', function () {
       );
     });
 
+    it('hides cell actions when withStaticFilters is true', async function () {
+      const data = initializeData(
+        {
+          query: 'event.type:transaction transaction:/api*',
+        },
+        ['performance-frontend-use-events-endpoint']
+      );
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+          withStaticFilters
+        />
+      );
+
+      await tick();
+      wrapper.update();
+      const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
+      const userMiseryCell = firstRow.find('GridBodyCell').at(9);
+      const cellAction = userMiseryCell.find('CellAction');
+
+      expect(cellAction.prop('allowActions')).toEqual([]);
+    });
+
     it('sends MEP param when setting enabled', async function () {
       const data = initializeData(
         {
@@ -356,6 +384,34 @@ describe('Performance > Table', function () {
       expect(menu.find('MenuButtons').find('ActionItem').at(2).text()).toEqual(
         'Edit threshold (300ms)'
       );
+    });
+
+    it('hides cell actions when withStaticFilters is true', async function () {
+      const data = initializeData(
+        {
+          query: 'event.type:transaction transaction:/api*',
+        },
+        ['performance-frontend-use-events-endpoint']
+      );
+
+      const wrapper = mountWithTheme(
+        <WrappedComponent
+          data={data}
+          eventView={mockEventView(data)}
+          setError={jest.fn()}
+          summaryConditions=""
+          projects={data.projects}
+          withStaticFilters
+        />
+      );
+
+      await tick();
+      wrapper.update();
+      const firstRow = wrapper.find('GridBody').find('GridRow').at(0);
+      const userMiseryCell = firstRow.find('GridBodyCell').at(9);
+      const cellAction = userMiseryCell.find('CellAction');
+
+      expect(cellAction.prop('allowActions')).toEqual([]);
     });
 
     it('sends MEP param when setting enabled', async function () {
