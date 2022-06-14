@@ -192,7 +192,7 @@ const ProjectsHeader = styled(Layout.Header)`
   border-bottom: none;
   align-items: end;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: 26px ${space(4)} 0 ${space(4)};
   }
 `;
@@ -213,11 +213,11 @@ const SearchAndSelectorWrapper = styled('div')`
   align-items: flex-end;
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     display: flex;
   }
 `;
@@ -225,7 +225,7 @@ const SearchAndSelectorWrapper = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
   }
 `;
@@ -240,11 +240,11 @@ const ProjectCards = styled('div')`
   grid-template-columns: minmax(100px, 1fr);
   gap: ${space(3)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 `;

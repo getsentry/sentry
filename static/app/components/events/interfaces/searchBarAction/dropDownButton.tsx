@@ -68,7 +68,7 @@ const StyledDropdownButton = styled(DropdownButton)`
       }
     `}
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     border-right: 0;
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;

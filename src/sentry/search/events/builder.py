@@ -109,6 +109,9 @@ class QueryBuilder:
         turbo: bool = False,
         sample_rate: Optional[float] = None,
         equation_config: Optional[Dict[str, bool]] = None,
+        # This allows queries to be resolved without adding time constraints. Currently this is just
+        # used to allow metric alerts to be built and validated before creation in snuba.
+        skip_time_conditions: bool = False,
     ):
         self.dataset = dataset
 
@@ -140,6 +143,7 @@ class QueryBuilder:
         self.offset = None if offset is None else Offset(offset)
         self.turbo = turbo
         self.sample_rate = sample_rate
+        self.skip_time_conditions = skip_time_conditions
 
         (
             self.field_alias_converter,
@@ -150,6 +154,8 @@ class QueryBuilder:
         self.limitby = self.resolve_limitby(limitby)
         self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
+        self.start: Optional[datetime] = None
+        self.end: Optional[datetime] = None
         self.resolve_query(
             query=query,
             use_aggregate_conditions=use_aggregate_conditions,
@@ -159,6 +165,8 @@ class QueryBuilder:
         )
 
     def resolve_time_conditions(self) -> None:
+        if self.skip_time_conditions:
+            return
         # start/end are required so that we can run a query in a reasonable amount of time
         if "start" not in self.params or "end" not in self.params:
             raise InvalidSearchQuery("Cannot query without a valid date range")
@@ -169,8 +177,8 @@ class QueryBuilder:
         ), "Both start and end params must be datetime objects"
 
         # Strip timezone, which are ignored and assumed UTC to match filtering
-        self.start: datetime = self.params["start"].replace(tzinfo=timezone.utc)
-        self.end: datetime = self.params["end"].replace(tzinfo=timezone.utc)
+        self.start = self.params["start"].replace(tzinfo=timezone.utc)
+        self.end = self.params["end"].replace(tzinfo=timezone.utc)
 
     def resolve_column_name(self, col: str) -> str:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
@@ -407,9 +415,11 @@ class QueryBuilder:
         conditions = []
 
         # Update start to be within retention
-        expired, self.start = outside_retention_with_modified_start(
-            self.start, self.end, Organization(self.params.get("organization_id"))
-        )
+        expired = False
+        if self.start and self.end:
+            expired, self.start = outside_retention_with_modified_start(
+                self.start, self.end, Organization(self.params.get("organization_id"))
+            )
 
         project_id: List[int] = self.params.get("project_id", [])  # type: ignore
         assert all(
@@ -420,8 +430,10 @@ class QueryBuilder:
                 "Invalid date range. Please try a more recent date range."
             )
 
-        conditions.append(Condition(self.column("timestamp"), Op.GTE, self.start))
-        conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
+        if self.start:
+            conditions.append(Condition(self.column("timestamp"), Op.GTE, self.start))
+        if self.end:
+            conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
         if "project_id" in self.params:
             conditions.append(
@@ -1545,6 +1557,13 @@ class HistogramQueryBuilder(QueryBuilder):
         return base_groupby
 
 
+class SessionsQueryBuilder(QueryBuilder):
+    def resolve_params(self) -> List[WhereType]:
+        conditions = super().resolve_params()
+        conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
+        return conditions
+
+
 class MetricsQueryBuilder(QueryBuilder):
     def __init__(
         self,
@@ -1630,6 +1649,8 @@ class MetricsQueryBuilder(QueryBuilder):
             and will fallback to hourly granularity
         - If the duration is over 30d we always use the daily granularities
         """
+        if self.end is None or self.start is None:
+            raise ValueError("skip_time_conditions must be False when calling this method")
         duration = (self.end - self.start).total_seconds()
 
         near_midnight: Callable[[datetime], bool] = lambda time: (

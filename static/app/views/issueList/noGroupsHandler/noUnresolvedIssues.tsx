@@ -82,7 +82,7 @@ const Wrapper = styled('div')`
   text-align: center;
   color: ${p => p.theme.subText};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;
@@ -90,7 +90,7 @@ const Wrapper = styled('div')`
 const EmptyMessage = styled('div')`
   font-weight: 600;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     font-size: ${p => p.theme.fontSizeExtraLarge};
   }
 `;

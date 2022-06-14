@@ -163,7 +163,7 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
 }
 
 const SummaryGroupedBy = styled('small')`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
     margin: 0 !important;
   }

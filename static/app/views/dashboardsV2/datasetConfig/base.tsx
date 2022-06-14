@@ -4,7 +4,7 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
-import {WidgetQuery, WidgetType} from '../types';
+import {DisplayType, WidgetQuery, WidgetType} from '../types';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
@@ -21,6 +21,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  /**
+   * List of supported display types for dataset.
+   */
+  supportedDisplayTypes: DisplayType[];
   /**
    * Transforms table API results into format that is used by
    * table and big number components.
