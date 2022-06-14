@@ -1187,6 +1187,37 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             get_granularity(start, end) == 60
         ), "12h at boundary, but 15 min after the boundary for start"
 
+    def test_get_snql_query(self):
+        query = MetricsQueryBuilder(self.params, "", selected_columns=["p90(transaction.duration)"])
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "metrics"
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                _metric_percentile_definition(self.organization.id, "90"),
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(self.organization.id, ["transaction.duration"]),
+            ],
+        )
+
+    def test_get_snql_query_errors_with_multiple_dataset(self):
+        query = MetricsQueryBuilder(
+            self.params, "", selected_columns=["p90(transaction.duration)", "count_unique(user)"]
+        )
+        with self.assertRaises(NotImplementedError):
+            query.get_snql_query()
+
+    def test_get_snql_query_errors_with_no_functions(self):
+        query = MetricsQueryBuilder(self.params, "", selected_columns=["project"])
+        with self.assertRaises(IncompatibleMetricsQuery):
+            query.get_snql_query()
+
     def test_run_query(self):
         self.store_metric(
             100,
