@@ -202,7 +202,7 @@ const Header = styled('div')<{nativePlatform: boolean; raw: boolean}>`
   flex: 1;
   z-index: 3;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: ${p =>
       p.raw && !p.nativePlatform
         ? '1fr max-content minmax(140px, auto)'
@@ -210,7 +210,7 @@ const Header = styled('div')<{nativePlatform: boolean; raw: boolean}>`
     grid-template-rows: ${p => (p.raw && !p.nativePlatform ? '1fr' : 'repeat(2, 1fr)')};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: ${p =>
       p.raw
         ? p.nativePlatform
@@ -238,7 +238,7 @@ const RawToggler = styled(BooleanField)`
 `;
 
 const DownloadButton = styled(Button)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 1/-1;
   }
 `;

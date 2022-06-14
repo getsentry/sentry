@@ -753,7 +753,7 @@ const StyledPanelTable = styled(PanelTable)<{disableTopBorder: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: ${p => (p.disableTopBorder ? 'none' : `1px solid ${p.theme.border}`)};
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: min-content 1fr 1fr 1fr;
   }
 `;

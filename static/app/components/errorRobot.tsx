@@ -151,7 +151,7 @@ const ErrorRobotWrapper = styled('div')<{gradient: boolean}>`
   padding: 40px ${space(3)} ${space(3)};
   min-height: 260px;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex-direction: column;
     align-items: center;
     padding: ${space(3)};
@@ -167,7 +167,7 @@ const Robot = styled('div')`
   background: url(${robotBackground});
   background-size: cover;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 110px;
     height: 130px;
   }
@@ -183,7 +183,7 @@ const Eye = styled('span')`
   transform: translateZ(0);
   animation: blink-eye 0.6s infinite;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 6px;
     height: 6px;
     top: 35px;
@@ -213,7 +213,7 @@ const MessageContainer = styled('div')`
   max-width: 480px;
   margin-left: 40px;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
   }
 `;

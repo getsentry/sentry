@@ -285,7 +285,7 @@ const SearchContainerWithFilter = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr;
   }
@@ -297,7 +297,7 @@ const SearchContainerWithFilterAndMetrics = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }

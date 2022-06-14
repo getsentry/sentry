@@ -304,7 +304,7 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   flex-wrap: wrap;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 `;

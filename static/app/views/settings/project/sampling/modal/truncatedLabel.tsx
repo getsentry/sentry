@@ -7,7 +7,7 @@ type Props = {
 };
 
 export function TruncatedLabel({value}: Props) {
-  const isSmallDevice = useMedia(`(max-width: ${theme.breakpoints[0]})`);
+  const isSmallDevice = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
   return (
     <Truncate value={value} maxLength={isSmallDevice ? 30 : 40} expandable={false} />

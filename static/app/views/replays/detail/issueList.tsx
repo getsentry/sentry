@@ -31,7 +31,7 @@ function IssueList(props: Props) {
   const location = useLocation();
   const api = useApi();
   const {selection} = usePageFilters();
-  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[2]})`);
+  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   const [issuesById, setIssuesById] = useState<Record<string, Group>>({});
   const [issueStatsById, setIssuesStatsById] = useState<Record<string, Group>>({});
@@ -193,7 +193,7 @@ const StyledPanelTable = styled(PanelTable)`
   overflow: visible;
   grid-template-columns: minmax(1fr, max-content) repeat(3, max-content);
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(0, 1fr) repeat(2, max-content);
   }
 `;

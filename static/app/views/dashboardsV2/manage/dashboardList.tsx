@@ -228,11 +228,11 @@ const DashboardGrid = styled('div')`
   grid-template-rows: repeat(3, max-content);
   gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
 `;
@@ -243,15 +243,15 @@ const WidgetGrid = styled('div')`
   grid-auto-flow: row dense;
   gap: ${space(0.25)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[4]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xxlarge}) {
     grid-template-columns: repeat(8, minmax(0, 1fr));
   }
 `;
@@ -265,12 +265,12 @@ const BigNumberWidgetWrapper = styled('div')`
   /* 2 cols */
   grid-area: span 1 / span 2;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     /* 4 cols */
     grid-area: span 1 / span 1;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     /* 6 and 8 cols */
     grid-area: span 1 / span 2;
   }

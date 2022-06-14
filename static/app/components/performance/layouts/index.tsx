@@ -15,11 +15,11 @@ export const PerformanceLayoutBodyRow = styled('div')<{
   grid-column-gap: ${space(2)};
   grid-row-gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     ${p =>
       p.columns
         ? `

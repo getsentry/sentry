@@ -347,7 +347,7 @@ const StyledActions = styled('div')`
   align-items: center;
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto;
   }
 `;

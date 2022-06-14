@@ -94,7 +94,7 @@ export default class Subscriptions extends Component<Props> {
 const SubscriptionGrid = styled('div')`
   display: grid;
   grid-template: auto / 1fr 1fr 1fr;
-  @media (max-width: ${props => props.theme.breakpoints[2]}) {
+  @media (max-width: ${props => props.theme.breakpoints.large}) {
     grid-template: 1fr 1fr 1fr / auto;
   }
 `;

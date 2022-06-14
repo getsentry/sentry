@@ -214,7 +214,7 @@ const StyledSidebarItem = styled(Link)`
     transition: 0.15s background-color linear;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin: 0 4px;
 
     &:before {

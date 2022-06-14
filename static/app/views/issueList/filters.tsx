@@ -68,7 +68,7 @@ const SearchContainer = styled('div')`
   margin-bottom: ${space(2)};
   grid-template-columns: minmax(0, max-content) minmax(20rem, 1fr);
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;

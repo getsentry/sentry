@@ -99,7 +99,7 @@ const Wrapper = styled('div')<{collapsed: boolean}>`
   border-bottom: 1px solid ${p => p.theme.border};
   z-index: ${p => p.theme.zIndex.settingsSidebarNav};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     height: ${p => p.theme.sidebar.mobileHeight};
     margin-left: 0;
   }
@@ -121,7 +121,7 @@ const BaseButton = styled(Button)`
 `;
 
 const RequestDemoBtn = styled(BaseButton)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;

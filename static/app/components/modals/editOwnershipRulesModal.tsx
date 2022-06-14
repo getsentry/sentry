@@ -23,7 +23,7 @@ const EditOwnershipRulesModal = ({Body, Header, onSave, ...props}: Props) => {
 };
 
 export const modalCss = css`
-  @media (min-width: ${theme.breakpoints[0]}) {
+  @media (min-width: ${theme.breakpoints.small}) {
     width: 80%;
   }
   [role='document'] {

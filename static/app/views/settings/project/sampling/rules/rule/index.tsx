@@ -186,7 +186,7 @@ const Conditions = styled('div')`
   align-items: flex-start;
   width: 100%;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: max-content max-content 1fr;
     grid-column-gap: ${space(1)};
   }
@@ -198,7 +198,7 @@ const ConditionName = styled('div')`
 
 const ConditionEqualOperator = styled('div')`
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: block;
   }
 `;

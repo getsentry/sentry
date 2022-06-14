@@ -12,7 +12,7 @@ export const DataSection = styled('div')`
   /* Padding aligns with Layout.Body */
   padding: ${space(3)} ${space(2)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(3)} ${space(4)} ${space(3)};
   }
 `;
@@ -63,7 +63,7 @@ export const BannerSummary = styled('p')`
   margin-bottom: 0;
   padding: ${space(2)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding: ${space(2)} ${space(4)};
   }
 

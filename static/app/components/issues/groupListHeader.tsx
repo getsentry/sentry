@@ -38,7 +38,7 @@ const IssueWrapper = styled(Heading)`
   flex: 1;
   width: 66.66%;
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 50%;
   }
 `;
@@ -47,7 +47,7 @@ const EventUserWrapper = styled(Heading)`
   justify-content: flex-end;
   width: 60px;
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
   }
 `;

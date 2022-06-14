@@ -53,7 +53,7 @@ const Wrapper = styled('div')`
   gap: ${space(2)};
   width: 100%;
   margin: ${space(2)} auto;
-  @media only screen and (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media only screen and (max-width: ${p => p.theme.breakpoints.small}) {
     flex-wrap: wrap;
     margin: ${space(4)} auto;
   }
@@ -85,7 +85,7 @@ const Captions = styled('div')`
   align-items: flex-start;
   width: 100%;
   padding: ${space(1)};
-  @media only screen and (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media only screen and (max-width: ${p => p.theme.breakpoints.small}) {
     flex-wrap: wrap;
   }
 `;
@@ -95,7 +95,7 @@ const LabelWrap = styled('div')`
   flex-shrink: 0;
   width: 6em;
   margin-top: ${space(0.5)};
-  @media only screen and (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media only screen and (max-width: ${p => p.theme.breakpoints.small}) {
     margin-bottom: ${space(0.5)};
   }
 `;

@@ -400,7 +400,7 @@ const PackageInfo = styled('div')`
   grid-template-columns: auto 1fr;
   order: 2;
   align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     order: 0;
   }
 `;
@@ -436,14 +436,14 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   align-items: center;
   justify-content: flex-start;
 
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} minmax(117px, auto)
       1fr;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
-      props.theme.breakpoints[3]}) {
+  @media (min-width: ${props => props.theme.breakpoints.large}) and (max-width: ${props =>
+      props.theme.breakpoints.xlarge}) {
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
       1fr;

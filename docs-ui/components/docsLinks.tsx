@@ -80,7 +80,7 @@ const LinkWrap = styled(LinkTo)`
   cursor: pointer;
   margin: ${space(1)} 0;
 
-  @media only screen and (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media only screen and (max-width: ${p => p.theme.breakpoints.small}) {
     width: calc((100% - ${space(2)}) / 2);
   }
 `;

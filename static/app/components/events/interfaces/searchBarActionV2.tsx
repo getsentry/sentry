@@ -72,16 +72,16 @@ const Wrapper = styled('div')`
   width: 100%;
   justify-content: flex-end;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
     flex-direction: column;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 400px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 600px;
   }
 `;
@@ -112,7 +112,7 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
       }
     `}
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     .search-input,
     .search-input:focus {
       border-radius: ${p => p.theme.borderRadius};
@@ -124,7 +124,7 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
 const StyledTrigger = styled(DropdownButtonV2)`
   border-radius: ${p => p.theme.borderRadiusLeft};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     border-radius: ${p => p.theme.borderRadius};
     margin-bottom: ${space(1)};
   }

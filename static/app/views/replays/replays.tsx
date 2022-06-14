@@ -32,7 +32,7 @@ function Replays() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
+  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const [searchQuery, setSearchQuery] = useState<string>(
     getQueryParamAsString(location.query.query)
@@ -187,7 +187,7 @@ const StyledPageContent = styled(PageContent)`
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
   }
 `;

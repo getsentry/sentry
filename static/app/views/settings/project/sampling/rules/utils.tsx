@@ -6,7 +6,7 @@ export const layout = (theme: Theme) => `
     text-align: right;
   }
 
-  @media (max-width: ${theme.breakpoints[0]}) {
+  @media (max-width: ${theme.breakpoints.small}) {
     :nth-child(5n - 4),
     :nth-child(5n - 3) {
       display: none;
@@ -16,15 +16,15 @@ export const layout = (theme: Theme) => `
 
 grid-template-columns: 1fr 0.5fr 66px;
 
-@media (min-width: ${theme.breakpoints[0]}) {
+@media (min-width: ${theme.breakpoints.small}) {
   grid-template-columns: 48px 95px 1fr 0.5fr 66px;
 }
 
-@media (min-width: ${theme.breakpoints[2]}) {
+@media (min-width: ${theme.breakpoints.large}) {
   grid-template-columns: 48px 95px 1.5fr 1fr 124px;
 }
 
-@media (min-width: ${theme.breakpoints[3]}) {
+@media (min-width: ${theme.breakpoints.xlarge}) {
   grid-template-columns: 48px 95px 1fr 0.5fr 124px;
 }
 `;

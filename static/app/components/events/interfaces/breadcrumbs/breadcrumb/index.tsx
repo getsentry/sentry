@@ -85,7 +85,7 @@ const Wrapper = styled('div')<{error: boolean; scrollbarSize: number}>`
     padding: ${space(1)} ${space(2)};
   }
 
-  @media (max-width: ${props => props.theme.breakpoints[0]}) {
+  @media (max-width: ${props => props.theme.breakpoints.small}) {
     grid-template-rows: repeat(2, auto);
     grid-template-columns: max-content 1fr 74px 82px ${p => p.scrollbarSize}px;
 

@@ -38,7 +38,7 @@ const Wrapper = styled('div')`
   margin-top: ${space(1)};
   position: relative;
 
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     margin-top: 0;
     gap: 0;
     grid-template-columns: ${p =>
@@ -48,11 +48,11 @@ const Wrapper = styled('div')`
     justify-content: flex-end;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[1]}) {
+  @media (min-width: ${props => props.theme.breakpoints.medium}) {
     width: 400px;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[3]}) {
+  @media (min-width: ${props => props.theme.breakpoints.xlarge}) {
     width: 600px;
   }
 `;
@@ -72,7 +72,7 @@ const StyledSearchBar = styled(SearchBar)<{blendWithFilter?: boolean}>`
     align-items: center;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     ${p =>
       p.blendWithFilter &&
       `

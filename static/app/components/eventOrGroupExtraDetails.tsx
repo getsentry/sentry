@@ -120,7 +120,7 @@ const GroupExtra = styled('div')`
     color: inherit;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     line-height: 1;
   }
 `;

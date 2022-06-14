@@ -76,7 +76,7 @@ const FilePathInfo = styled('div')`
     padding-top: 0;
     padding-bottom: 0;
     line-height: 1.5;
-    @media (max-width: ${theme.breakpoints[1]}) {
+    @media (max-width: ${theme.breakpoints.medium}) {
       width: auto;
     }
   }

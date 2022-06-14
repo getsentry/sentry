@@ -75,7 +75,7 @@ function ActionSet({
   // Determine whether to nest "Merge" and "Mark as Reviewed" buttons inside
   // the dropdown menu based on the current screen size
   const theme = useTheme();
-  const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints[3]})`);
+  const nestMergeAndReview = useMedia(`(max-width: ${theme.breakpoints.xlarge})`);
 
   const menuItems: MenuItemProps[] = [
     {
@@ -244,10 +244,10 @@ function ActionSet({
 export default ActionSet;
 
 const Wrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     width: 66.66%;
   }
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     width: 50%;
   }
   flex: 1;

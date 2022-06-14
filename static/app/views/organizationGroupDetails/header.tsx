@@ -493,7 +493,7 @@ const StyledTagAndMessageWrapper = styled(TagAndMessageWrapper)`
   justify-content: flex-start;
   line-height: 1.2;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-bottom: ${space(2)};
   }
 `;

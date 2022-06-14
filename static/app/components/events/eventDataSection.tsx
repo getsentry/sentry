@@ -171,7 +171,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     font-weight: normal;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) {
+  @media (min-width: ${props => props.theme.breakpoints.large}) {
     & > small {
       margin-left: ${space(1)};
       display: inline-block;
@@ -182,7 +182,7 @@ const SectionHeader = styled('div')<{isCentered?: boolean}>`
     p.isCentered &&
     css`
       align-items: center;
-      @media (max-width: ${p.theme.breakpoints[0]}) {
+      @media (max-width: ${p.theme.breakpoints.small}) {
         display: block;
       }
     `}
