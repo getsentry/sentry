@@ -376,7 +376,12 @@ class SpanDetail extends Component<Props, State> {
                     <SpanIdTitle>Span ID</SpanIdTitle>
                   ) : (
                     <SpanIdTitle
-                      onClick={scrollToSpan(span.span_id, scrollToHash, location)}
+                      onClick={scrollToSpan(
+                        span.span_id,
+                        scrollToHash,
+                        location,
+                        organization
+                      )}
                     >
                       Span ID
                       <StyledIconAnchor />

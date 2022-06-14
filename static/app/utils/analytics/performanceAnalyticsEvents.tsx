@@ -11,6 +11,9 @@ type PerformanceTourParams = {
 
 export type PerformanceEventParameters = {
   'performance_views.create_sample_transaction': SampleTransactionParam;
+  'performance_views.event_details.anchor_span': {
+    span_id: string;
+  };
   'performance_views.event_details.filter_by_op': {
     operation: string;
   };
@@ -126,4 +129,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Event Details search query',
   'performance_views.event_details.open_span_details':
     'Performance Views: Event Details span details opened',
+  'performance_views.event_details.anchor_span':
+    'Performance Views: Event Details span anchored',
 };
