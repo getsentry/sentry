@@ -188,6 +188,7 @@ const IconWrapper = styled('div')`
   display: flex;
   height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
   padding-right: ${space(1)};
+  padding-left: ${space(0.5)};
   box-sizing: content-box;
   align-items: center;
 `;
