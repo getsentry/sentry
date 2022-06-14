@@ -218,7 +218,7 @@ class WidgetQueries extends Component<Props, State> {
     const {widget, organization} = this.props;
     let pageLinks: string | null = null;
     let isMetricsData: boolean | undefined;
-    const tableResults = responses.map(([data, _textcode, resp], i) => {
+    const tableResults = responses.map(([data, _textstatus, resp], i) => {
       // If one of the queries is sampled, then mark the whole thing as sampled
       isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
 
@@ -235,7 +235,7 @@ class WidgetQueries extends Component<Props, State> {
     return {pageLinks: pageLinks ?? undefined, tableResults, isMetricsData};
   };
 
-  processTimeseriesResponse = responses => {
+  processTimeseriesResponse = (responses: RawResult[]) => {
     const {organization, widget} = this.props;
 
     let isMetricsData: boolean | undefined;
@@ -275,9 +275,10 @@ class WidgetQueries extends Component<Props, State> {
     this.setState({
       loading: true,
       errorMessage: undefined,
-      tableResults: undefined,
-      timeseriesResults: undefined,
-      rawResults: undefined,
+      // TODO: Should these be unset before requesting?
+      // tableResults: undefined,
+      // timeseriesResults: undefined,
+      // rawResults: undefined,
     });
 
     let requests;

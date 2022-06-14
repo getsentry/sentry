@@ -1085,7 +1085,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders events, status, and title table columns', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('title')).toBeInTheDocument();
+      expect(await screen.findByText('title')).toBeInTheDocument();
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
       expect(screen.getByText('events')).toBeInTheDocument();
       expect(screen.getByText('6')).toBeInTheDocument();
@@ -1145,13 +1145,13 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders pagination buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
 
     it('paginates to the next page', async function () {
       const {rerender} = await renderModal({initialData, widget: mockWidget});
-      expect(screen.getByText('Error: Failed')).toBeInTheDocument();
+      expect(await screen.findByText('Error: Failed')).toBeInTheDocument();
       userEvent.click(screen.getByRole('button', {name: 'Next'}));
       expect(issuesMock).toHaveBeenCalledTimes(1);
       expect(initialData.router.replace).toHaveBeenCalledWith(

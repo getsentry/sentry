@@ -37,9 +37,9 @@ type State = {
   errorMessage: undefined | string;
   loading: boolean;
   memberListStoreLoaded: boolean;
-  pageLinks: null | string;
   tableResults: TableDataRow[];
   totalCount: null | string;
+  pageLinks?: null | string;
 };
 
 class IssueWidgetQueries extends Component<Props, State> {
@@ -54,6 +54,7 @@ class IssueWidgetQueries extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchData();
+    this._isMounted = true;
   }
 
   componentDidUpdate(prevProps: Props) {
@@ -91,7 +92,10 @@ class IssueWidgetQueries extends Component<Props, State> {
 
   componentWillUnmount() {
     this.unlisteners.forEach(unlistener => unlistener?.());
+    this._isMounted = false;
   }
+
+  private _isMounted: boolean = false;
 
   unlisteners = [
     MemberListStore.listen(() => {
@@ -102,6 +106,26 @@ class IssueWidgetQueries extends Component<Props, State> {
   ];
 
   config = getDatasetConfig(WidgetType.ISSUE);
+
+  processTableResponse = responses => {
+    const {widget} = this.props;
+    let transformedResults: TableData = {data: []};
+    let pageLinks: null | string = null;
+    let totalCount: null | string = null;
+    responses.forEach(response => {
+      const [data, _textstatus, resp] = response;
+
+      transformedResults = this.config.transformTable(data, widget.queries[0]);
+
+      pageLinks = resp?.getResponseHeader('Link') ?? null;
+      totalCount = resp?.getResponseHeader('X-Hits') ?? null;
+    });
+    return {
+      pageLinks: pageLinks ?? undefined,
+      totalCount,
+      tableResults: transformedResults.data,
+    };
+  };
 
   async fetchData() {
     const {api, selection, widget, limit, cursor, organization, onDataFetched} =
@@ -121,31 +145,28 @@ class IssueWidgetQueries extends Component<Props, State> {
     try {
       this.setState({tableResults: [], loading: true, errorMessage: undefined});
 
-      let transformedResults: TableData = {data: []};
-      let pageLinks: null | string = null;
-      let totalCount: null | string = null;
-      for await (const response of requests) {
-        const [data, _, resp] = response;
+      const responses = await Promise.all(requests);
+      const {totalCount, pageLinks, tableResults} = this.processTableResponse(responses);
 
-        transformedResults = this.config.transformTable(data, widget.queries[0]);
-
-        pageLinks = resp?.getResponseHeader('Link') ?? null;
-        totalCount = resp?.getResponseHeader('X-Hits') ?? null;
+      if (!this._isMounted) {
+        return;
       }
-
-      this.setState({
-        loading: false,
-        tableResults: transformedResults.data,
-        totalCount,
-        pageLinks,
-      });
       onDataFetched?.({
-        issuesResults: transformedResults.data,
+        issuesResults: tableResults,
         totalIssuesCount: totalCount ?? undefined,
         pageLinks: pageLinks ?? undefined,
       });
+      this.setState({
+        loading: false,
+        tableResults,
+        totalCount,
+        pageLinks,
+      });
     } catch (response) {
       const errorResponse = response?.responseJSON?.detail ?? null;
+      if (!this._isMounted) {
+        return;
+      }
       this.setState({
         loading: false,
         errorMessage: errorResponse ?? t('Unable to load Widget'),
