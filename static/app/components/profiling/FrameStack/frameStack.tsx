@@ -147,6 +147,7 @@ const FrameTabs = styled('ul')`
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
 export const FrameCallersTableCell = styled('div')<{
+  isSelected?: boolean;
   noPadding?: boolean;
   textAlign?: React.CSSProperties['textAlign'];
 }>`
@@ -156,6 +157,20 @@ export const FrameCallersTableCell = styled('div')<{
   flex-shrink: 0;
   padding: 0 ${p => (p.noPadding ? 0 : space(1))} 0 0;
   text-align: ${p => p.textAlign ?? 'initial'};
+
+  &:first-child,
+  &:nth-child(2) {
+    position: sticky;
+    z-index: 1;
+    background-color: ${p => (p.isSelected ? p.theme.blue300 : p.theme.background)};
+  }
+
+  &:first-child {
+    left: 0;
+  }
+  &:nth-child(2) {
+    left: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
+  }
 
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.border};

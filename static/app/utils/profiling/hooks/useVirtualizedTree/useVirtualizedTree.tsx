@@ -189,6 +189,8 @@ export function useVirtualizedTree<T extends TreeLike>(
   const clickedGhostRowRef = useRef<HTMLDivElement | null>(null);
   const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
 
+  const previousHoveredRow = useRef<number | null>(null);
+
   const [state, dispatch] = useReducer(VirtualizedTreeStateReducer, {
     scrollTop: 0,
     roots: props.roots,
@@ -200,7 +202,6 @@ export function useVirtualizedTree<T extends TreeLike>(
   // Keep a ref to latest state to avoid re-rendering
   const latestStateRef = useRef<typeof state>(state);
   latestStateRef.current = state;
-
   const [tree, setTree] = useState(() => {
     const initialTree = VirtualizedTree.fromRoots(props.roots, props.skipFunction);
 
@@ -210,6 +211,14 @@ export function useVirtualizedTree<T extends TreeLike>(
 
     return initialTree;
   });
+
+  const cleanupAllHoveredRows = useCallback(() => {
+    for (const row of latestItemsRef.current) {
+      if (row.ref && row.ref.dataset.hovered) {
+        delete row.ref.dataset.hovered;
+      }
+    }
+  }, []);
 
   const expandedHistory = useRef<Set<T>>(new Set());
   useEffectAfterFirstRender(() => {
@@ -244,11 +253,13 @@ export function useVirtualizedTree<T extends TreeLike>(
     } else {
       hideGhostRow({ref: clickedGhostRowRef});
     }
+
+    cleanupAllHoveredRows();
     hideGhostRow({ref: hoveredGhostRowRef});
 
     dispatch({type: 'set tab index key', payload: tabIndex});
     setTree(newTree);
-  }, [props.roots, props.skipFunction]);
+  }, [props.roots, props.skipFunction, cleanupAllHoveredRows]);
 
   const {rowHeight, renderRow} = props;
   const items = useMemo(() => {
@@ -340,6 +351,8 @@ export function useVirtualizedTree<T extends TreeLike>(
           rowHeight: props.rowHeight,
         });
       }
+
+      cleanupAllHoveredRows();
       hideGhostRow({
         ref: hoveredGhostRowRef,
       });
@@ -352,7 +365,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     return () => {
       scrollContainer.removeEventListener('scroll', handleScroll);
     };
-  }, [props.scrollContainer, props.rowHeight]);
+  }, [props.scrollContainer, props.rowHeight, cleanupAllHoveredRows]);
 
   useEffect(() => {
     const scrollContainer = props.scrollContainer;
@@ -404,6 +417,12 @@ export function useVirtualizedTree<T extends TreeLike>(
         (latestStateRef.current.scrollTop + evt.clientY - rect.top) / props.rowHeight
       );
 
+      cleanupAllHoveredRows();
+      const element = latestItemsRef.current.find(item => item.key === index);
+      if (element?.ref) {
+        element.ref.dataset.hovered = 'true';
+      }
+
       // If a node exists at the index, select it
       if (tree.flattened[index] && index !== latestStateRef.current.tabIndexKey) {
         updateGhostRow({
@@ -423,7 +442,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       scrollContainer.removeEventListener('click', handleClick);
       scrollContainer.removeEventListener('mousemove', handleMouseMove);
     };
-  }, [props.rowHeight, props.scrollContainer, tree.flattened]);
+  }, [props.rowHeight, props.scrollContainer, tree.flattened, cleanupAllHoveredRows]);
 
   // When mouseleave is triggered on the contianer,
   // we need to hide the ghost row to avoid an orphaned row
@@ -434,6 +453,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     function onMouseLeave() {
+      cleanupAllHoveredRows();
       hideGhostRow({
         ref: hoveredGhostRowRef,
       });
@@ -445,7 +465,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     return () => {
       container.removeEventListener('scroll', onMouseLeave);
     };
-  });
+  }, [cleanupAllHoveredRows, props.scrollContainer]);
 
   // When a node is expanded, the underlying tree is recomputed (the flattened tree is updated)
   // We copy the properties of the old tree by creating a new instance of VirtualizedTree
@@ -609,6 +629,12 @@ export function useVirtualizedTree<T extends TreeLike>(
   const handleRowMouseEnter = useCallback(
     (key: number) => {
       return (_evt: React.MouseEvent<HTMLElement>) => {
+        if (previousHoveredRow.current !== key) {
+          cleanupAllHoveredRows();
+
+          (_evt.currentTarget as HTMLElement).dataset.hovered = 'true';
+          previousHoveredRow.current = key;
+        }
         updateGhostRow({
           ref: hoveredGhostRowRef,
           tabIndexKey: key,
@@ -618,7 +644,7 @@ export function useVirtualizedTree<T extends TreeLike>(
         });
       };
     },
-    [state.scrollTop, props.rowHeight]
+    [state.scrollTop, props.rowHeight, cleanupAllHoveredRows]
   );
 
   // Register a resize observer for when the scroll container is resized.
@@ -635,6 +661,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           type: 'set scroll height',
           payload: elements[0]?.contentRect?.height ?? 0,
         });
+        cleanupAllHoveredRows();
         hideGhostRow({
           ref: hoveredGhostRowRef,
         });
@@ -649,7 +676,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       }
       resizeObserver.disconnect();
     };
-  }, [props.scrollContainer]);
+  }, [props.scrollContainer, cleanupAllHoveredRows]);
 
   // Basic required styles for the scroll container
   const scrollContainerStyles: React.CSSProperties = useMemo(() => {
@@ -665,7 +692,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   // scrollbar is sized according to the number of items in the list.
   const containerStyles: React.CSSProperties = useMemo(() => {
     const height = tree.flattened.length * props.rowHeight;
-    return {height, maxHeight: height, overflow: 'hidden'};
+    return {height, maxHeight: height};
   }, [tree.flattened.length, props.rowHeight]);
 
   const renderedItems: React.ReactNode[] = useMemo(() => {
