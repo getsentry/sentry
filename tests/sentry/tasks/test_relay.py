@@ -162,7 +162,9 @@ def test_generate(
 
 
 @pytest.mark.django_db
-def test_project_update_option(default_projectkey, default_project, emulate_transactions, redis_cache):
+def test_project_update_option(
+    default_projectkey, default_project, emulate_transactions, redis_cache
+):
     # XXX: there should only be one hook triggered, regardless of debouncing
     with emulate_transactions(assert_num_callbacks=4):
         default_project.update_option(
@@ -272,6 +274,7 @@ def test_db_transaction(default_project, default_projectkey, redis_cache, task_r
         "applications": {"$string": ["@creditcard:mask"]}
     }
 
+
 class TestInvalidationTask:
     @pytest.fixture
     def debounce_cache(self, monkeypatch):
@@ -369,7 +372,7 @@ class TestInvalidationTask:
         default_organization,
         default_projectkey,
         redis_cache,
-        task_runner
+        task_runner,
     ):
         # Currently for org-wide we delete the config instead of computing it.
         cfg = {"dummy-key": "val"}
