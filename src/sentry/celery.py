@@ -1,8 +1,16 @@
-from celery import Celery, Task
-from celery.worker.request import Request
+# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+import celery
 from django.conf import settings
 
 from sentry.utils import metrics
+
+if celery.version_info >= (5, 2) <= (6):
+    from celery import Celery, Task
+else:
+    from celery import Celery
+    from celery.app.task import Task
+
+from celery.worker.request import Request
 
 DB_SHARED_THREAD = """\
 DatabaseWrapper objects created in a thread can only \

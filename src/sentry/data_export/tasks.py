@@ -4,8 +4,15 @@ import logging
 import tempfile
 from hashlib import sha1
 
+# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+import celery
 import sentry_sdk
-from celery import current_task
+
+if celery.version_info >= (5, 2) <= (6):
+    from celery import current_task
+else:
+    from celery.task import current as current_task
+
 from celery.exceptions import MaxRetriesExceededError
 from django.core.files.base import ContentFile
 from django.db import IntegrityError, router

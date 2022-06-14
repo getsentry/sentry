@@ -3,7 +3,14 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping
 
-from celery import current_task
+# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+import celery
+
+if celery.version_info >= (5, 2) <= (6):
+    from celery import current_task
+else:
+    from celery.task import current as current_task
+
 from django.urls import reverse
 from requests.exceptions import RequestException
 
