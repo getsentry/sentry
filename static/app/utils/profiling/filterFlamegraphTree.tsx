@@ -4,7 +4,7 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 // The filtering is done in two steps - the first step marks nodes
 // that should be kept in the tree. The second step iterates over all of the
 // nodes that should be kept in the tree and finds their new parent nodes
-// by walkign up the node.parent reference chain and checking if the parent
+// by walking up the node.parent reference chain and checking if the parent
 // is in the set of nodes that should be kept.
 
 // A tiny but important implementation details is that we only need to find every node's

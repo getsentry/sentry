@@ -33,11 +33,11 @@ function FrameStack(props: FrameStackProps) {
       return null;
     }
 
-    const skipFunction =
+    const skipFunction: (f: FlamegraphFrame) => boolean =
       treeType === 'application'
-        ? (f: FlamegraphFrame): boolean => !f.frame.is_application
+        ? f => !f.frame.is_application
         : treeType === 'system'
-        ? (f: FlamegraphFrame): boolean => f.frame.is_application
+        ? f => f.frame.is_application
         : () => false;
 
     const maybeFilteredRoots =
