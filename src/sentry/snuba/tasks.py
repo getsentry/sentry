@@ -185,7 +185,10 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
     )
     # TODO: Once metrics work with `QueryBuilder` then use `build_snql_query` by default for all
     # datasets
-    if features.has("organizations:metric-alert-snql") and dataset != QueryDatasets.METRICS:
+    if (
+        features.has("organizations:metric-alert-snql", subscription.project.organization)
+        and dataset != QueryDatasets.METRICS
+    ):
         snql_query = build_snql_query(
             entity_subscription,
             snuba_query.query,
