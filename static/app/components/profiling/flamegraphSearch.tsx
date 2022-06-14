@@ -8,7 +8,10 @@ import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {
+  FlamegraphFrame,
+  getFlamegraphFrameSearchId,
+} from 'sentry/utils/profiling/flamegraphFrame';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
@@ -46,13 +49,8 @@ function frameSearch(
         const frame = frames[i];
 
         if (new RegExp(lookup, flags ?? 'g').test(frame.frame.name.trim())) {
-          results[
-            `${
-              frame.frame.name +
-              (frame.frame.file ? frame.frame.file : '') +
-              String(frame.start)
-            }`
-          ] = frame;
+          const frameId = getFlamegraphFrameSearchId(frame);
+          results[frameId] = frame;
           matches += 1;
         }
       }

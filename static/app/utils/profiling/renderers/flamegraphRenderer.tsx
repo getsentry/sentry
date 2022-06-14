@@ -2,7 +2,7 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
-import {FlamegraphFrame} from '../flamegraphFrame';
+import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {
   createProgram,
   createShader,
@@ -444,18 +444,10 @@ class FlamegraphRenderer {
       for (let i = 0; i < length; i++) {
         frame = this.frames[i];
         const vertexOffset = i * VERTICES;
-
+        const frameId = getFlamegraphFrameSearchId(frame);
         this.gl.uniform1i(
           this.uniforms.u_is_search_result,
-          searchResults[
-            `${
-              frame.frame.name +
-              (frame.frame.file ? frame.frame.file : '') +
-              String(frame.start)
-            }`
-          ]
-            ? 1
-            : 0
+          searchResults[frameId] ? 1 : 0
         );
         this.gl.drawArrays(this.gl.TRIANGLES, vertexOffset, VERTICES);
       }
