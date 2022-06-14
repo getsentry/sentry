@@ -3,6 +3,12 @@ from unittest.mock import patch
 
 import responses
 
+from fixtures.vsts import (
+    WORK_ITEM_STATES,
+    WORK_ITEM_UNASSIGNED,
+    WORK_ITEM_UPDATED,
+    WORK_ITEM_UPDATED_STATUS,
+)
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models import (
     Activity,
@@ -16,13 +22,6 @@ from sentry.models import (
 )
 from sentry.testutils import APITestCase
 from sentry.utils.http import absolute_uri
-
-from .testutils import (
-    WORK_ITEM_STATES,
-    WORK_ITEM_UNASSIGNED,
-    WORK_ITEM_UPDATED,
-    WORK_ITEM_UPDATED_STATUS,
-)
 
 
 class VstsWebhookWorkItemTest(APITestCase):

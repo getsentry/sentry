@@ -11,7 +11,7 @@ from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
 from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import generate_chart
-from sentry.charts.types import ChartType
+from sentry.charts.types import ChartSize, ChartType
 from sentry.incidents.logic import translate_aggregate_field
 from sentry.incidents.models import AlertRule, Incident, User
 from sentry.models import ApiKey, Organization
@@ -78,7 +78,7 @@ def fetch_metric_alert_sessions_data(
             f"Failed to load sessions for chart: {exc}",
             exc_info=True,
         )
-        return None
+        raise exc
 
 
 def fetch_metric_alert_events_timeseries(
@@ -103,7 +103,7 @@ def fetch_metric_alert_events_timeseries(
             "data": [
                 {
                     "name": point[0] * 1000,
-                    "value": reduce(lambda a, b: a + float(b["count"]), point[1], 0.0),
+                    "value": reduce(lambda a, b: a + float(b["count"] or 0), point[1], 0.0),
                 }
                 for point in resp.data["data"]
             ],
@@ -114,7 +114,7 @@ def fetch_metric_alert_events_timeseries(
             f"Failed to load events-stats for chart: {exc}",
             exc_info=True,
         )
-        return []
+        raise exc
 
 
 def fetch_metric_alert_incidents(
@@ -153,6 +153,7 @@ def build_metric_alert_chart(
     start: Optional[str] = None,
     end: Optional[str] = None,
     user: Optional["User"] = None,
+    size: Optional[ChartSize] = None,
 ) -> Optional[str]:
     """Builds the dataset required for metric alert chart the same way the frontend would"""
     snuba_query: SnubaQuery = alert_rule.snuba_query
@@ -225,7 +226,7 @@ def build_metric_alert_chart(
         )
 
     try:
-        url = generate_chart(style, chart_data)
+        url = generate_chart(style, chart_data, size=size)
         return cast(str, url)
     except RuntimeError as exc:
         logger.error(

@@ -9,6 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.models import Activity
 from sentry.signals import comment_deleted, comment_updated
+from sentry.types.activity import ActivityType
 
 
 class GroupNotesDetailsEndpoint(GroupEndpoint):
@@ -22,7 +23,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group, type=Activity.NOTE, user=request.user, id=note_id
+                group=group, type=ActivityType.NOTE.value, user=request.user, id=note_id
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -52,7 +53,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group, type=Activity.NOTE, user=request.user, id=note_id
+                group=group, type=ActivityType.NOTE.value, user=request.user, id=note_id
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist

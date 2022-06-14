@@ -26,7 +26,7 @@ const initializeData = (query = {}, rest: initializeDataSettings = {}) => {
   return data;
 };
 
-const WrappedComponent = ({data, ...rest}) => {
+const WrappedComponent = ({data, withStaticFilters = false, ...rest}) => {
   return (
     <OrganizationContext.Provider value={data.organization}>
       <MEPSettingProvider>
@@ -41,6 +41,7 @@ const WrappedComponent = ({data, ...rest}) => {
               PerformanceWidgetSetting.DURATION_HISTOGRAM,
             ]}
             rowChartSettings={[]}
+            withStaticFilters={withStaticFilters}
             forceDefaultChartSetting
             {...data}
             {...rest}
@@ -107,7 +108,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     }
   });
 
-  it('Check requests when changing widget props', async function () {
+  it('Check requests when changing widget props', function () {
     const data = initializeData();
 
     wrapper = render(
@@ -160,7 +161,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
+  it('Check requests when changing widget props for GenericDiscoverQuery based widget', function () {
     const data = initializeData();
 
     wrapper = render(

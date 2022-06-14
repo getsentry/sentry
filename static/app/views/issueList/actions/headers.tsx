@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {PageFilters} from 'sentry/types';
 
@@ -123,7 +122,7 @@ const AssigneesLabel = styled('div')`
 // Reprocessing
 const StartedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: 85px;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
@@ -133,7 +132,7 @@ const StartedColumn = styled(ToolbarHeader)`
 
 const EventsReprocessedColumn = styled(ToolbarHeader)`
   margin: 0 ${space(2)};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: 75px;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {

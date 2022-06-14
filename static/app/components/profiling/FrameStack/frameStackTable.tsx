@@ -1,15 +1,21 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import {
+  UseVirtualizedListProps,
+  useVirtualizedTree,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
 import {FrameCallersTableCell} from './frameStack';
+import {FrameStackContextMenu} from './frameStackContextMenu';
 import {FrameStackTableRow} from './frameStackTableRow';
 
 function makeSortFunction(
@@ -67,8 +73,14 @@ function makeSortFunction(
   throw new Error(`Unknown sort property ${property}`);
 }
 
+function skipRecursiveNodes(n: VirtualizedTreeNode<FlamegraphFrame>): boolean {
+  return n.node.node.isDirectRecursive();
+}
+
 interface FrameStackTableProps {
+  canvasPoolManager: CanvasPoolManager;
   flamegraphRenderer: FlamegraphRenderer;
+  recursion: 'collapsed' | null;
   referenceNode: FlamegraphFrame;
   roots: FlamegraphFrame[];
 }
@@ -76,28 +88,81 @@ interface FrameStackTableProps {
 export function FrameStackTable({
   roots,
   flamegraphRenderer,
+  canvasPoolManager,
   referenceNode,
+  recursion,
 }: FrameStackTableProps) {
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
+    null
+  );
   const [sort, setSort] = useState<'total weight' | 'self weight' | 'name'>(
     'total weight'
   );
   const [direction, setDirection] = useState<'asc' | 'desc'>('desc');
-
   const sortFunction = useMemo(() => {
     return makeSortFunction(sort, direction);
   }, [sort, direction]);
 
+  const [clickedContextMenuNode, setClickedContextMenuClose] =
+    useState<VirtualizedTreeNode<FlamegraphFrame> | null>(null);
+
+  const contextMenu = useContextMenu({container: scrollContainerRef});
+
+  const handleZoomIntoNodeClick = useCallback(() => {
+    if (!clickedContextMenuNode) {
+      return;
+    }
+
+    canvasPoolManager.dispatch('zoomIntoFrame', [clickedContextMenuNode.node]);
+  }, [canvasPoolManager, clickedContextMenuNode]);
+
+  const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
+    (
+      r,
+      {
+        handleRowClick,
+        handleRowMouseEnter,
+        handleExpandTreeNode,
+        handleRowKeyDown,
+        tabIndexKey,
+      }
+    ) => {
+      return (
+        <FrameStackTableRow
+          ref={n => {
+            r.ref = n;
+          }}
+          node={r.item}
+          style={r.styles}
+          referenceNode={referenceNode}
+          tabIndex={tabIndexKey === r.key ? 0 : 1}
+          flamegraphRenderer={flamegraphRenderer}
+          onClick={handleRowClick}
+          onExpandClick={handleExpandTreeNode}
+          onKeyDown={handleRowKeyDown}
+          onMouseEnter={handleRowMouseEnter}
+          onContextMenu={evt => {
+            setClickedContextMenuClose(r.item);
+            contextMenu.handleContextMenu(evt);
+          }}
+        />
+      );
+    },
+    [contextMenu, flamegraphRenderer, referenceNode]
+  );
+
   const {
-    items,
+    renderedItems,
     scrollContainerStyles,
     containerStyles,
-    handleExpandTreeNode,
     handleSortingChange,
-    handleScroll,
+    clickedGhostRowRef,
+    hoveredGhostRowRef,
   } = useVirtualizedTree({
+    skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
-    scrollContainerRef,
+    renderRow,
+    scrollContainer: scrollContainerRef,
     rowHeight: 24,
     roots,
   });
@@ -145,41 +210,38 @@ export function FrameStackTable({
             </TableHeaderButton>
           </FrameNameCell>
         </FrameCallersTableHeader>
-        <div
-          ref={scrollContainerRef}
-          style={scrollContainerStyles}
-          onScroll={handleScroll}
-        >
-          <div style={containerStyles}>
-            {items.map(r => {
-              return (
-                <FrameStackTableRow
-                  key={r.key}
-                  node={r.item}
-                  style={r.styles}
-                  referenceNode={referenceNode}
-                  flamegraphRenderer={flamegraphRenderer}
-                  handleExpandedClick={handleExpandTreeNode}
-                />
-              );
-            })}
-            {/*
+        <FrameStackContextMenu
+          onZoomIntoNodeClick={handleZoomIntoNodeClick}
+          contextMenu={contextMenu}
+        />
+        <div style={{position: 'relative', height: '100%'}}>
+          <div ref={clickedGhostRowRef} />
+          <div ref={hoveredGhostRowRef} />
+          <div
+            ref={ref => setScrollContainerRef(ref)}
+            style={scrollContainerStyles}
+            onContextMenu={contextMenu.handleContextMenu}
+          >
+            <div style={containerStyles}>
+              {renderedItems}
+              {/*
               This is a ghost row, we stretch its width and height to fit the entire table
               so that borders on columns are shown across the entire table and not just the rows.
               This is useful when number of rows does not fill up the entire table height.
              */}
-            <div
-              style={{
-                display: 'flex',
-                width: '100%',
-                pointerEvents: 'none',
-                position: 'absolute',
-                height: '100%',
-              }}
-            >
-              <FrameCallersTableCell />
-              <FrameCallersTableCell />
-              <FrameCallersTableCell />
+              <div
+                style={{
+                  display: 'flex',
+                  width: '100%',
+                  pointerEvents: 'none',
+                  position: 'absolute',
+                  height: '100%',
+                }}
+              >
+                <FrameCallersTableCell />
+                <FrameCallersTableCell />
+                <FrameCallersTableCell />
+              </div>
             </div>
           </div>
         </div>

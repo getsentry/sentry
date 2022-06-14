@@ -88,7 +88,7 @@ describe('IntegrationCodeMappings', function () {
     ModalStore.teardown();
   });
 
-  it('shows the paths', async () => {
+  it('shows the paths', () => {
     expect(wrapper.find('RepoName').length).toEqual(2);
     expect(wrapper.find('RepoName').at(0).text()).toEqual(repos[0].name);
     expect(wrapper.find('RepoName').at(1).text()).toEqual(repos[1].name);

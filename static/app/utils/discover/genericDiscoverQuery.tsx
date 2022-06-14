@@ -190,7 +190,7 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
       payload.referrer = referrer;
     }
 
-    if (props.route === 'eventsv2') {
+    if (['events', 'eventsv2'].includes(props.route)) {
       const queryUserModified = decodeScalar(location.query?.userModified);
       if (queryUserModified !== undefined) {
         payload.user_modified = queryUserModified;
@@ -329,7 +329,7 @@ export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
 
 export type DiscoverQueryRequestParams = Partial<EventQuery & LocationQuery>;
 
-export async function doDiscoverQuery<T>(
+export function doDiscoverQuery<T>(
   api: Client,
   url: string,
   params: DiscoverQueryRequestParams

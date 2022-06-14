@@ -729,7 +729,7 @@ const DurationGuideBox = styled('div')<{alignLeft: boolean}>`
   }};
 `;
 
-const HeaderContainer = styled('div')`
+export const HeaderContainer = styled('div')`
   width: 100%;
   position: sticky;
   left: 0;

@@ -34,6 +34,16 @@ class ResizeObserver {
 window.ResizeObserver = ResizeObserver;
 window.requestAnimationFrame = (cb: Function) => cb();
 
+const makeScrollContainerMock = ({height}: {height: number}) => {
+  return {
+    getBoundingClientRect: () => {
+      return {height};
+    },
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  } as unknown as HTMLElement;
+};
+
 describe('useVirtualizedTree', () => {
   it('returns a tree', () => {
     const results = reactHooks.renderHook(() =>
@@ -41,7 +51,8 @@ describe('useVirtualizedTree', () => {
         overscroll: 0,
         rowHeight: 10,
         roots: [],
-        scrollContainerRef: {current: null},
+        scrollContainer: null,
+        renderRow: () => <div />,
       })
     );
 
@@ -49,20 +60,17 @@ describe('useVirtualizedTree', () => {
   });
 
   it('shows first 10 items', () => {
-    const mockScrollContainer = {
-      getBoundingClientRect: () => {
-        return {height: 100};
-      },
-    };
+    const mockScrollContainer = makeScrollContainerMock({height: 100});
 
     const roots = [chain('child', 10)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
-        scrollContainerRef: {current: mockScrollContainer as HTMLDivElement},
+        scrollContainer: mockScrollContainer,
         overscroll: 0,
         roots,
+        renderRow: () => <div />,
       })
     );
 
@@ -80,20 +88,17 @@ describe('useVirtualizedTree', () => {
   });
 
   it('shows 5-15 items', async () => {
-    const mockScrollContainer = {
-      getBoundingClientRect: () => {
-        return {height: 100};
-      },
-    };
+    const mockScrollContainer = makeScrollContainerMock({height: 100});
 
     const roots = [chain('child', 20)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
-        scrollContainerRef: {current: mockScrollContainer as HTMLDivElement},
+        scrollContainer: mockScrollContainer,
         overscroll: 0,
         roots,
+        renderRow: () => <div />,
       })
     );
 
@@ -101,7 +106,7 @@ describe('useVirtualizedTree', () => {
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
-      result.current.handleScroll({target: {scrollTop: 50}});
+      result.current.dispatch({type: 'set scroll top', payload: 50});
     });
 
     await waitFor(() => {
@@ -114,20 +119,17 @@ describe('useVirtualizedTree', () => {
   });
 
   it('shows last 10 items', async () => {
-    const mockScrollContainer = {
-      getBoundingClientRect: () => {
-        return {height: 100};
-      },
-    };
+    const mockScrollContainer = makeScrollContainerMock({height: 100});
 
     const roots = [chain('child', 20)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
-        scrollContainerRef: {current: mockScrollContainer as HTMLDivElement},
+        scrollContainer: mockScrollContainer,
         overscroll: 0,
         roots,
+        renderRow: () => <div />,
       })
     );
 
@@ -135,7 +137,7 @@ describe('useVirtualizedTree', () => {
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
-      result.current.handleScroll({target: {scrollTop: 100}});
+      result.current.dispatch({type: 'set scroll top', payload: 100});
     });
 
     await waitFor(() => {
@@ -147,21 +149,18 @@ describe('useVirtualizedTree', () => {
     expect(result.current.items.length).toBe(10);
   });
 
-  it('shows overscroll items', async () => {
-    const mockScrollContainer = {
-      getBoundingClientRect: () => {
-        return {height: 100};
-      },
-    };
+  it('shows overscroll items', () => {
+    const mockScrollContainer = makeScrollContainerMock({height: 100});
 
     const roots = [chain('child', 20)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
-        scrollContainerRef: {current: mockScrollContainer as HTMLDivElement},
+        scrollContainer: mockScrollContainer,
         overscroll: 2,
         roots,
+        renderRow: () => <div />,
       })
     );
 
@@ -169,7 +168,7 @@ describe('useVirtualizedTree', () => {
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
-      result.current.handleScroll({target: {scrollTop: 50}});
+      result.current.dispatch({type: 'set scroll top', payload: 50});
     });
 
     for (let i = 3; i < 17; i++) {
@@ -179,21 +178,18 @@ describe('useVirtualizedTree', () => {
     expect(result.current.items.length).toBe(14);
   });
 
-  it('items have a stable key', async () => {
-    const mockScrollContainer = {
-      getBoundingClientRect: () => {
-        return {height: 100};
-      },
-    };
+  it('items have a stable key', () => {
+    const mockScrollContainer = makeScrollContainerMock({height: 100});
 
     const roots = [chain('child', 20)];
 
     const {result} = reactHooks.renderHook(() =>
       useVirtualizedTree({
         rowHeight: 10,
-        scrollContainerRef: {current: mockScrollContainer as HTMLDivElement},
+        scrollContainer: mockScrollContainer,
         overscroll: 0,
         roots,
+        renderRow: () => <div />,
       })
     );
 
@@ -201,13 +197,13 @@ describe('useVirtualizedTree', () => {
       result.current.handleExpandTreeNode(result.current.tree.roots[0], {
         expandChildren: true,
       });
-      result.current.handleScroll({target: {scrollTop: 50}});
+      result.current.dispatch({type: 'set scroll top', payload: 50});
     });
 
     const stableKeys = result.current.items.map(item => item.key);
 
     reactHooks.act(() => {
-      result.current.handleScroll({target: {scrollTop: 60}});
+      result.current.dispatch({type: 'set scroll top', payload: 60});
     });
 
     // First 9 items should be the same, the last item should be different

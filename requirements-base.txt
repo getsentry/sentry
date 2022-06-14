@@ -8,11 +8,11 @@ click==8.0.4
 confluent-kafka==1.7.0
 croniter==0.3.37
 datadog==0.29.3
-django-crispy-forms==1.8.1
+django-crispy-forms==1.14.0
 django-picklefield==2.1.0
-django-pg-zero-downtime-migrations==0.10
+django-pg-zero-downtime-migrations==0.11
 Django==2.2.28
-djangorestframework==3.11.2
+djangorestframework==3.12.4
 drf-spectacular==0.22.1
 email-reply-parser==0.5.12
 google-api-core==1.25.1
@@ -25,6 +25,7 @@ google-cloud-storage==1.35.0
 # Only necessary to prevent installing the latest version
 # https://github.com/googleapis/python-crc32c/issues/83
 google-crc32c==1.1.2
+isodate==0.6.1
 jsonschema==3.2.0
 lxml==4.6.5
 maxminddb==2.0.3
@@ -38,7 +39,7 @@ Pillow==9.0.1
 progressbar2==3.41.0
 python-rapidjson==1.4
 psycopg2-binary==2.8.6
-PyJWT==2.1.0
+PyJWT==2.4.0
 python-dateutil==2.8.1
 python-memcached==1.59
 python-u2flib-server==5.0.0
@@ -76,7 +77,7 @@ zstandard==0.14.1
 msgpack==1.0.0
 cryptography==3.4.8
 # celery
-billiard==3.6.3
+billiard==3.6.4
 kombu==4.6.11
 
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1

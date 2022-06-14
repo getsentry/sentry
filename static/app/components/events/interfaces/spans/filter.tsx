@@ -7,7 +7,6 @@ import DropdownControl from 'sentry/components/dropdownControl';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
@@ -234,7 +233,7 @@ const OperationDot = styled('div')<{backgroundColor: string}>`
 
 const OperationName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const OperationCount = styled('div')`

@@ -9,7 +9,6 @@ import StrictClick from 'sentry/components/strictClick';
 import {IconChevron, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -462,7 +461,7 @@ const StyledIconRefresh = styled(IconRefresh)`
 `;
 
 const LeadHint = styled('div')<{width?: string}>`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   max-width: ${p => (p.width ? p.width : '67px')}
 `;
 

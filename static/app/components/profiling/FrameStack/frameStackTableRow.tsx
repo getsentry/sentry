@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {forwardRef, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {IconSettings, IconUser} from 'sentry/icons';
@@ -20,82 +20,113 @@ function computeRelativeWeight(base: number, value: number) {
 
 interface FrameStackTableRowProps {
   flamegraphRenderer: FlamegraphRenderer;
-  handleExpandedClick: (
+  node: VirtualizedTreeNode<FlamegraphFrame>;
+  onClick: React.MouseEventHandler<HTMLDivElement>;
+  onContextMenu: React.MouseEventHandler<HTMLDivElement>;
+  onExpandClick: (
     node: VirtualizedTreeNode<FlamegraphFrame>,
     opts?: {expandChildren: boolean}
   ) => void;
-  node: VirtualizedTreeNode<FlamegraphFrame>;
+  onKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
+  onMouseEnter: React.MouseEventHandler<HTMLDivElement>;
   referenceNode: FlamegraphFrame;
   style: React.CSSProperties;
+  tabIndex: number;
 }
 
-export function FrameStackTableRow({
-  node,
-  flamegraphRenderer,
-  referenceNode,
-  handleExpandedClick,
-  style,
-}: FrameStackTableRowProps) {
-  const colorString = useMemo(() => {
-    return formatColorForFrame(node.node, flamegraphRenderer);
-  }, [node, flamegraphRenderer]);
-
-  const handleExpanding = useCallback(
-    (evt: React.MouseEvent) => {
-      handleExpandedClick(node, {expandChildren: evt.metaKey});
+export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowProps>(
+  (
+    {
+      node,
+      flamegraphRenderer,
+      referenceNode,
+      onExpandClick,
+      onContextMenu,
+      tabIndex,
+      onKeyDown,
+      onClick,
+      onMouseEnter,
+      style,
     },
-    [node, handleExpandedClick]
-  );
+    ref
+  ) => {
+    const colorString = useMemo(() => {
+      return formatColorForFrame(node.node, flamegraphRenderer);
+    }, [node, flamegraphRenderer]);
 
-  return (
-    <FrameCallersRow style={style}>
-      <FrameCallersTableCell textAlign="right">
-        {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
-        <Weight
-          weight={computeRelativeWeight(
-            referenceNode.node.totalWeight,
-            node.node.node.selfWeight
-          )}
-        />
-      </FrameCallersTableCell>
-      <FrameCallersTableCell noPadding textAlign="right">
-        <FrameWeightTypeContainer>
-          <FrameWeightContainer>
-            {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
-            <Weight
-              weight={computeRelativeWeight(
-                referenceNode.node.totalWeight,
-                node.node.node.totalWeight
-              )}
-            />
-          </FrameWeightContainer>
-          <FrameTypeIndicator>
-            {node.node.node.frame.is_application ? (
-              <IconUser size="xs" />
-            ) : (
-              <IconSettings size="xs" />
-            )}
-          </FrameTypeIndicator>
-        </FrameWeightTypeContainer>
-      </FrameCallersTableCell>
-      <FrameCallersTableCell
-        // We stretch this table to 100% width.
-        style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
+    const handleExpanding = useCallback(
+      (evt: React.MouseEvent) => {
+        evt.stopPropagation();
+        onExpandClick(node, {expandChildren: evt.metaKey});
+      },
+      [node, onExpandClick]
+    );
+
+    return (
+      <FrameCallersRow
+        ref={ref}
+        style={style}
+        onContextMenu={onContextMenu}
+        tabIndex={tabIndex}
+        isSelected={tabIndex === 0}
+        onKeyDown={onKeyDown}
+        onClick={onClick}
+        onMouseEnter={onMouseEnter}
       >
-        <FrameNameContainer>
-          <FrameColorIndicator backgroundColor={colorString} />
-          <FrameChildrenIndicator onClick={handleExpanding} open={node.expanded}>
-            {node.node.children.length > 0 ? '\u203A' : null}
-          </FrameChildrenIndicator>
-          <FrameName>{node.node.frame.name}</FrameName>
-        </FrameNameContainer>
-      </FrameCallersTableCell>
-    </FrameCallersRow>
-  );
-}
+        <FrameCallersTableCell textAlign="right">
+          {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
+          <Weight
+            isSelected={tabIndex === 0}
+            weight={computeRelativeWeight(
+              referenceNode.node.totalWeight,
+              node.node.node.selfWeight
+            )}
+          />
+        </FrameCallersTableCell>
+        <FrameCallersTableCell noPadding textAlign="right">
+          <FrameWeightTypeContainer>
+            <FrameWeightContainer>
+              {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
+              <Weight
+                isSelected={tabIndex === 0}
+                weight={computeRelativeWeight(
+                  referenceNode.node.totalWeight,
+                  node.node.node.totalWeight
+                )}
+              />
+            </FrameWeightContainer>
+            <FrameTypeIndicator isSelected={tabIndex === 0}>
+              {node.node.node.frame.is_application ? (
+                <IconUser size="xs" />
+              ) : (
+                <IconSettings size="xs" />
+              )}
+            </FrameTypeIndicator>
+          </FrameWeightTypeContainer>
+        </FrameCallersTableCell>
+        <FrameCallersTableCell
+          // We stretch this table to 100% width.
+          style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
+        >
+          <FrameNameContainer>
+            <FrameColorIndicator style={{backgroundColor: colorString}} />
+            <FrameChildrenIndicator
+              tabIndex={-1}
+              onClick={handleExpanding}
+              open={node.expanded}
+            >
+              {node.node.children.length > 0 ? '\u203A' : null}
+            </FrameChildrenIndicator>
+            <FrameName>{node.node.frame.name}</FrameName>
+          </FrameNameContainer>
+        </FrameCallersTableCell>
+      </FrameCallersRow>
+    );
+  }
+);
 
-const Weight = styled((props: {weight: number}) => {
-  const {weight, ...rest} = props;
+const Weight = styled((props: {isSelected: boolean; weight: number}) => {
+  const {weight, isSelected: _, ...rest} = props;
   return (
     <div {...rest}>
       {weight.toFixed(1)}%
@@ -105,23 +136,26 @@ const Weight = styled((props: {weight: number}) => {
 })`
   display: inline-block;
   min-width: 7ch;
-  color: ${props => props.theme.subText};
+  color: ${p => (p.isSelected ? p.theme.white : p.theme.subText)};
+  opacity: ${p => (p.isSelected ? 0.8 : 1)};
 `;
 
 const FrameWeightTypeContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  position: relative;
 `;
 
-const FrameTypeIndicator = styled('div')`
+const FrameTypeIndicator = styled('div')<{isSelected: boolean}>`
   flex-shrink: 0;
   width: 26px;
   height: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: ${p => p.theme.subText};
+  color: ${p => (p.isSelected ? p.theme.white : p.theme.subText)};
+  opacity: ${p => (p.isSelected ? 0.8 : 1)};
 `;
 
 const FrameWeightContainer = styled('div')`
@@ -144,12 +178,13 @@ const BackgroundWeightBar = styled('div')`
   width: 100%;
 `;
 
-const FrameCallersRow = styled('div')`
+const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: 100%;
+  color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
 
-  &:hover {
-    background-color: ${p => p.theme.surface400};
+  &:focus {
+    outline: none;
   }
 `;
 
@@ -159,8 +194,8 @@ const FrameNameContainer = styled('div')`
 `;
 
 const FrameChildrenIndicator = styled('button')<{open: boolean}>`
-  width: 1ch;
-  height: 1ch;
+  width: 10px;
+  height: 10px;
   display: flex;
   padding: 0;
   border: none;
@@ -175,14 +210,11 @@ const FrameName = styled('span')`
   margin-left: ${space(0.5)};
 `;
 
-const FrameColorIndicator = styled('div')<{
-  backgroundColor: React.CSSProperties['backgroundColor'];
-}>`
+const FrameColorIndicator = styled('div')`
   width: 12px;
   height: 12px;
   border-radius: 2px;
   display: inline-block;
   flex-shrink: 0;
-  background-color: ${p => p.backgroundColor};
-  margin-right: ${space(1)};
+  margin-right: ${space(0.5)};
 `;

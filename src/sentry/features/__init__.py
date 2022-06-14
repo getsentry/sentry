@@ -67,6 +67,9 @@ default_manager.add("organizations:discover", OrganizationFeature)
 default_manager.add(
     "organizations:discover-frontend-use-events-endpoint", OrganizationFeature, True
 )
+default_manager.add(
+    "organizations:performance-frontend-use-events-endpoint", OrganizationFeature, True
+)
 default_manager.add("organizations:duplicate-alert-rule", OrganizationFeature, True)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
 default_manager.add("organizations:filters-and-sampling", OrganizationFeature, True)
@@ -131,7 +134,6 @@ default_manager.add("organizations:symbol-sources", OrganizationFeature)
 default_manager.add("organizations:team-roles", OrganizationFeature, True)
 default_manager.add("organizations:transaction-metrics-extraction", OrganizationFeature)
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)
-default_manager.add("organizations:weekly-report-debugging", OrganizationFeature, True)
 default_manager.add("organizations:widget-library", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)

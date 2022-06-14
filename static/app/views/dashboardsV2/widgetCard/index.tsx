@@ -10,6 +10,7 @@ import Feature from 'sentry/components/acl/feature';
 import Alert from 'sentry/components/alert';
 import Button from 'sentry/components/button';
 import {HeaderTitle} from 'sentry/components/charts/styles';
+import DateTime from 'sentry/components/dateTime';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel} from 'sentry/components/panels';
@@ -17,17 +18,18 @@ import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
+import {statsPeriodToDays} from 'sentry/utils/dates';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {Widget, WidgetType} from '../types';
+import {DisplayType, Widget, WidgetType} from '../types';
+import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
@@ -69,6 +71,8 @@ type State = {
   tableData?: TableDataWithTitle[];
   totalIssuesCount?: string;
 };
+
+const METRICS_BACKED_SESSIONS_START_DATE = new Date('2022-04-12');
 
 class WidgetCard extends Component<Props, State> {
   state: State = {};
@@ -212,6 +216,36 @@ class WidgetCard extends Component<Props, State> {
       noLazyLoad,
       showStoredAlert,
     } = this.props;
+
+    const {start, period} = selection.datetime;
+    let showIncompleteDataAlert: boolean = false;
+    if (widget.widgetType === WidgetType.RELEASE && showStoredAlert) {
+      if (start) {
+        let startDate: Date | undefined = undefined;
+        if (typeof start === 'string') {
+          startDate = new Date(start);
+        } else {
+          startDate = start;
+        }
+        showIncompleteDataAlert = startDate < METRICS_BACKED_SESSIONS_START_DATE;
+      } else if (period) {
+        const periodInDays = statsPeriodToDays(period);
+        const current = new Date();
+        const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
+        showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
+      }
+    }
+    if (widget.displayType === DisplayType.TOP_N) {
+      const queries = widget.queries.map(query => ({
+        ...query,
+        // Use the last aggregate because that's where the y-axis is stored
+        aggregates: query.aggregates.length
+          ? [query.aggregates[query.aggregates.length - 1]]
+          : [],
+      }));
+      widget.queries = queries;
+      widget.limit = DEFAULT_RESULTS_LIMIT;
+    }
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}
@@ -275,6 +309,18 @@ class WidgetCard extends Component<Props, State> {
               }
             </DashboardsMEPConsumer>
           </Feature>
+          <Feature organization={organization} features={['dashboards-releases']}>
+            {showIncompleteDataAlert && (
+              <StoredDataAlert showIcon>
+                {tct(
+                  'Releases data is only available from [date]. Data may be incomplete as a result.',
+                  {
+                    date: <DateTime date={METRICS_BACKED_SESSIONS_START_DATE} dateOnly />,
+                  }
+                )}
+              </StoredDataAlert>
+            )}
+          </Feature>
         </DashboardsMEPProvider>
       </ErrorBoundary>
     );
@@ -336,7 +382,7 @@ const GrabbableButton = styled(Button)`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   font-weight: normal;
 `;
 

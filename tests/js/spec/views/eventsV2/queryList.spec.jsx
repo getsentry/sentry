@@ -139,7 +139,7 @@ describe('EventsV2 > QueryList', function () {
     expect(queryChangeMock).toHaveBeenCalled();
   });
 
-  it('returns short url location for saved query', async function () {
+  it('returns short url location for saved query', function () {
     const wrapper = mountWithTheme(
       <QueryList
         organization={organization}
