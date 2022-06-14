@@ -432,7 +432,7 @@ function generateGenericPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) || withStaticFilters) {
+  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -509,7 +509,7 @@ function generateBackendPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) || withStaticFilters) {
+  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -590,7 +590,7 @@ function generateMobilePerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) || withStaticFilters) {
+  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -657,7 +657,7 @@ function generateFrontendPageloadPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) || withStaticFilters) {
+  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
@@ -725,7 +725,7 @@ function generateFrontendOtherPerformanceEventView(
   const conditions = new MutableSearch(searchQuery);
 
   // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) || withStaticFilters) {
+  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
     conditions.setFilterValues('transaction.duration', ['<15m']);
   }
 
