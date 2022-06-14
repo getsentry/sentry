@@ -136,7 +136,9 @@ function Native({
           <TogglableAddress
             address={instructionAddr}
             startingAddress={image ? image.image_addr : null}
-            isAbsolute={traceEventDataSectionContext['absolute-addresses'].enabled}
+            isAbsolute={traceEventDataSectionContext.display.includes(
+              'absolute-addresses'
+            )}
             isFoundByStackScanning={isFoundByStackScanning}
             isInlineFrame={!!isInlineFrame}
             relativeAddressMaxlength={maxLengthOfRelativeAddress}
@@ -145,10 +147,12 @@ function Native({
         )}
         <Symbol
           frame={frame}
-          showCompleteFunctionName={
-            traceEventDataSectionContext['verbose-function-names'].enabled
-          }
-          absoluteFilePaths={traceEventDataSectionContext['absolute-file-paths'].enabled}
+          showCompleteFunctionName={traceEventDataSectionContext.display.includes(
+            'verbose-function-names'
+          )}
+          absoluteFilePaths={traceEventDataSectionContext.display.includes(
+            'absolute-file-paths'
+          )}
           isHoverPreviewed={isHoverPreviewed}
           isUsedForGrouping={isUsedForGrouping}
           nativeStackTraceV2
