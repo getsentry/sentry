@@ -1,3 +1,4 @@
+from html import escape
 from pprint import saferepr
 
 from django import forms
@@ -28,7 +29,6 @@ from sentry.models import (
     Team,
     User,
 )
-from sentry.utils.html import escape
 
 csrf_protect_m = method_decorator(csrf_protect)
 sensitive_post_parameters_m = method_decorator(sensitive_post_parameters())
