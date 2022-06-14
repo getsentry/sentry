@@ -6,6 +6,7 @@ import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -54,6 +55,12 @@ function TransactionOverview(props: Props) {
   const api = useApi();
 
   const {location, selection, organization, projects} = props;
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('performance_views.transaction_summary.view', {
+      organization,
+    });
+  }, [organization]);
 
   useEffect(
     () => {
