@@ -139,7 +139,8 @@ class SpansInterface extends PureComponent<Props, State> {
                           onClick={scrollToSpan(
                             spanId,
                             scrollToHash,
-                            this.props.location
+                            this.props.location,
+                            this.props.organization
                           )}
                         >
                           {operation}
