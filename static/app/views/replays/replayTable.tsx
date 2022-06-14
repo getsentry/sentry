@@ -24,7 +24,9 @@ import useProjects from 'sentry/utils/useProjects';
 import {Replay} from './types';
 
 type Props = {
+  idKey: string;
   replayList: Replay[];
+  showProjectColumn?: boolean;
 };
 
 type ReplayDurationAndErrors = {
@@ -36,15 +38,15 @@ type ReplayDurationAndErrors = {
   replayId: string;
 };
 
-function ReplayTable({replayList}: Props) {
+function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
-  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
+  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const getEventView = () => {
-    const query = replayList.map(item => `replayId:${item.id}`).join(' OR ');
+    const query = replayList.map(item => `replayId:${item[idKey]}`).join(' OR ');
     const eventQueryParams: NewQuery = {
       id: '',
       name: '',
@@ -92,7 +94,7 @@ function ReplayTable({replayList}: Props) {
                   <Link
                     to={`/organizations/${organization.slug}/replays/${generateEventSlug({
                       project: replay.project,
-                      id: replay.id,
+                      id: replay[idKey],
                     })}/`}
                   >
                     {replay['user.display']}
@@ -108,7 +110,7 @@ function ReplayTable({replayList}: Props) {
                 // this is the subheading for the avatar, so displayEmail in this case is a misnomer
                 displayEmail={getUrlPathname(replay.url) ?? ''}
               />
-              {isScreenLarge && (
+              {isScreenLarge && showProjectColumn && (
                 <Item>
                   <ProjectBadge
                     project={
@@ -134,8 +136,8 @@ function ReplayTable({replayList}: Props) {
                     <Duration
                       seconds={
                         Math.floor(
-                          dataEntries[replay.id]
-                            ? dataEntries[replay.id]['equation[0]']
+                          dataEntries[replay[idKey]]
+                            ? dataEntries[replay[idKey]]['equation[0]']
                             : 0
                         ) || 1
                       }
@@ -144,8 +146,8 @@ function ReplayTable({replayList}: Props) {
                     />
                   </Item>
                   <Item>
-                    {dataEntries[replay.id]
-                      ? dataEntries[replay.id]?.count_if_event_type_equals_error
+                    {dataEntries[replay[idKey]]
+                      ? dataEntries[replay[idKey]]?.count_if_event_type_equals_error
                       : 0}
                   </Item>
                 </React.Fragment>

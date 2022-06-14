@@ -9,7 +9,6 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {
   EventGroupComponent,
@@ -259,7 +258,7 @@ const Header = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 `;
@@ -283,7 +282,7 @@ const ContributionIcon = styled(({isContributing, ...p}) =>
 
 const ContributingToggle = styled(ButtonBar)`
   justify-content: flex-end;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(0.5)};
   }
 `;
@@ -300,8 +299,8 @@ const TextWithQuestionTooltip = styled('div')`
 `;
 
 const Hash = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    ${overflowEllipsis};
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    ${p => p.theme.overflowEllipsis};
     width: 210px;
   }
 `;

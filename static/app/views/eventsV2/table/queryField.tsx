@@ -1,5 +1,5 @@
 import {Component, createRef} from 'react';
-import {components, OptionProps, SingleValueProps} from 'react-select';
+import {components, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
@@ -109,18 +109,6 @@ type OptionType = {
 
 class QueryField extends Component<Props> {
   FieldSelectComponents = {
-    Option: ({label, data, ...props}: OptionProps<OptionType>) => {
-      return (
-        <components.Option label={label} data={data} {...props}>
-          <InnerWrap isFocused={props.isFocused}>
-            <OptionLabelWrapper data-test-id="label">
-              {label}
-              {data.value && this.renderTag(data.value.kind, label)}
-            </OptionLabelWrapper>
-          </InnerWrap>
-        </components.Option>
-      );
-    },
     SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => {
       return (
         <components.SingleValue data={data} {...props}>
@@ -138,15 +126,6 @@ class QueryField extends Component<Props> {
         justifyContent: 'space-between',
         alignItems: 'center',
         width: 'calc(100% - 10px)',
-      };
-      return {...provided, ...custom};
-    },
-    option(provided: React.CSSProperties) {
-      const custom = {
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        width: '100%',
       };
       return {...provided, ...custom};
     },
@@ -449,6 +428,10 @@ class QueryField extends Component<Props> {
           ? descriptor.options.filter(filterAggregateParameters)
           : descriptor.options;
 
+        aggregateParameters.forEach(opt => {
+          opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
+        });
+
         return (
           <SelectControl
             key="select"
@@ -603,6 +586,10 @@ class QueryField extends Component<Props> {
     const allFieldOptions = filterPrimaryOptions
       ? Object.values(fieldOptions).filter(filterPrimaryOptions)
       : Object.values(fieldOptions);
+
+    allFieldOptions.forEach(opt => {
+      opt.trailingItems = this.renderTag(opt.value.kind, String(opt.label));
+    });
 
     const selectProps: ControlProps<FieldValueOption> = {
       name: 'field',
@@ -815,22 +802,6 @@ const ArithmeticError = styled(Tooltip)`
   color: ${p => p.theme.red300};
   animation: ${() => pulse(1.15)} 1s ease infinite;
   display: flex;
-`;
-
-const InnerWrap = styled('div')<{isFocused: boolean}>`
-  display: flex;
-  padding: 0 ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
-  box-sizing: border-box;
-  width: 100%;
-  ${p => p.isFocused && `background: ${p.theme.hover};`}
-`;
-
-const OptionLabelWrapper = styled('span')`
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  padding: ${space(1)} 0;
 `;
 
 export {QueryField};

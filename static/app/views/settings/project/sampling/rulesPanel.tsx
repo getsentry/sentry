@@ -22,6 +22,7 @@ export function RulesPanel({
   onDeleteRule,
   onUpdateRules,
   disabled,
+  infoAlert,
 }: RulesPanelProps) {
   return (
     <Panel>
@@ -31,7 +32,7 @@ export function RulesPanel({
         onDeleteRule={onDeleteRule}
         disabled={disabled}
         onUpdateRules={onUpdateRules}
-        emptyMessage={t('There are no transaction rules to display')}
+        infoAlert={infoAlert}
       />
       <StyledPanelFooter>
         <StyledButtonBar gap={1}>
@@ -53,7 +54,7 @@ export function RulesPanel({
 
 const StyledPanelFooter = styled(PanelFooter)`
   padding: ${space(1)} ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -61,14 +62,14 @@ const StyledPanelFooter = styled(PanelFooter)`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
   }
 `;
 
 const AddRuleButton = styled(Button)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: 100%;
   }
 `;

@@ -1,3 +1,5 @@
+import {TokenResult} from '../searchSyntax/parser';
+
 export enum ItemType {
   DEFAULT = 'default',
   TAG_KEY = 'tag-key',
@@ -19,14 +21,18 @@ export type SearchGroup = {
 };
 
 export type SearchItem = {
-  desc: string;
-  value: string;
   active?: boolean;
+  /**
+   * Call a callback instead of setting a value in the search query
+   */
+  callback?: () => void;
   children?: React.ReactNode[];
+  desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
   title?: string;
   type?: ItemType;
+  value?: string;
 };
 
 export type Tag = {
@@ -34,4 +40,24 @@ export type Tag = {
   key: string;
   predefined: boolean;
   values: string[];
+};
+
+export enum QuickActionType {
+  Delete = 'delete',
+  Negate = 'negate',
+  Next = 'next',
+  Previous = 'previous',
+}
+
+export type QuickAction = {
+  actionType: QuickActionType;
+  text: string;
+  canRunAction?: (
+    token: TokenResult<any> | null | undefined,
+    filterTokenCount: number
+  ) => boolean;
+  hotkeys?: {
+    actual: string[] | string;
+    display: string[] | string;
+  };
 };

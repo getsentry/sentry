@@ -2,15 +2,28 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.models import ProjectKey, ProjectKeyStatus, ProjectOption
+from sentry.models import Project, ProjectKey, ProjectKeyStatus, ProjectOption
 from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
-from sentry.tasks.relay import schedule_update_config_cache
+from sentry.tasks.relay import (
+    build_project_config,
+    schedule_build_project_config,
+    schedule_invalidate_project_config,
+)
 
 
 def _cache_keys_for_project(project):
     for key in ProjectKey.objects.filter(project_id=project.id):
         yield key.public_key
+
+
+def _cache_keys_for_org(org):
+    # The `ProjectKey` model doesn't have any attribute we can use to filter by
+    # org, and the `Project` model doesn't have a project key exposed. So using
+    # the org we fetch the project, and then the project key.
+    for proj in Project.objects.filter(organization_id=org.id):
+        for key in ProjectKey.objects.filter(project_id=proj.id):
+            yield key.public_key
 
 
 @pytest.fixture
@@ -56,15 +69,10 @@ def debounce_cache(monkeypatch):
     return debounce_cache
 
 
-@pytest.fixture
-def always_update_cache(monkeypatch):
-    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: True)
-
-
 @pytest.mark.django_db
 def test_debounce(
     monkeypatch,
-    default_project,
+    default_projectkey,
     default_organization,
     debounce_cache,
 ):
@@ -74,55 +82,33 @@ def test_debounce(
         assert not args
         tasks.append(kwargs)
 
-    monkeypatch.setattr("sentry.tasks.relay.update_config_cache.apply_async", apply_async)
+    monkeypatch.setattr("sentry.tasks.relay.build_project_config.apply_async", apply_async)
 
-    debounce_cache.mark_task_done(None, default_project.id, None)
-    schedule_update_config_cache(generate=True, project_id=default_project.id)
-    schedule_update_config_cache(generate=False, project_id=default_project.id)
-
-    debounce_cache.mark_task_done(None, None, default_organization.id)
-    schedule_update_config_cache(generate=True, organization_id=default_organization.id)
-    schedule_update_config_cache(generate=False, organization_id=default_organization.id)
+    schedule_build_project_config(
+        public_key=default_projectkey.public_key, trigger="first_schedule"
+    )
+    schedule_build_project_config(
+        public_key=default_projectkey.public_key, trigger="second_schedule"
+    )
 
     assert tasks == [
-        {
-            "generate": True,
-            "project_id": default_project.id,
-            "organization_id": None,
-            "public_key": None,
-            "update_reason": None,
-        },
-        {
-            "generate": True,
-            "project_id": None,
-            "organization_id": default_organization.id,
-            "public_key": None,
-            "update_reason": None,
-        },
+        {"public_key": default_projectkey.public_key, "trigger": "first_schedule"},
     ]
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("entire_organization", (True, False))
 def test_generate(
     monkeypatch,
     default_project,
     default_organization,
     default_projectkey,
     task_runner,
-    entire_organization,
     redis_cache,
-    always_update_cache,
 ):
     assert not redis_cache.get(default_projectkey.public_key)
 
-    if not entire_organization:
-        kwargs = {"project_id": default_project.id}
-    else:
-        kwargs = {"organization_id": default_organization.id}
-
     with task_runner():
-        schedule_update_config_cache(generate=True, **kwargs)
+        build_project_config(default_projectkey.public_key)
 
     cfg = redis_cache.get(default_projectkey.public_key)
 
@@ -136,35 +122,6 @@ def test_generate(
             "quotas": [],
         }
     ]
-
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("entire_organization", (True, False))
-def test_invalidate(
-    monkeypatch,
-    default_project,
-    default_projectkey,
-    default_organization,
-    task_runner,
-    entire_organization,
-    redis_cache,
-    always_update_cache,
-):
-
-    cfg = {"foo": "bar"}
-    redis_cache.set_many({default_projectkey.public_key: cfg})
-    assert redis_cache.get(default_projectkey.public_key) == cfg
-
-    if not entire_organization:
-        kwargs = {"project_id": default_project.id}
-    else:
-        kwargs = {"organization_id": default_organization.id}
-
-    with task_runner():
-        schedule_update_config_cache(generate=False, **kwargs)
-
-    for cache_key in _cache_keys_for_project(default_project):
-        assert not redis_cache.get(cache_key)
 
 
 @pytest.mark.django_db
@@ -201,16 +158,18 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
     ProjectOption.objects._option_cache.clear()
     with task_runner():
         with patch("sentry.utils.cache.cache.get", return_value=None):
-            with patch("sentry.tasks.relay.schedule_update_config_cache") as update_config_cache:
+            with patch("sentry.tasks.relay.schedule_build_project_config") as build_project_config:
                 default_project.get_option(
                     "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
                 )
 
-    update_config_cache.assert_not_called()
+    assert not build_project_config.called
 
 
 @pytest.mark.django_db
 def test_projectkeys(default_project, task_runner, redis_cache):
+    # When a projectkey is deleted the invalidation task should be triggered and the project
+    # should be cached as disabled.
     with task_runner():
         deleted_pks = list(ProjectKey.objects.filter(project=default_project))
         for key in deleted_pks:
@@ -220,7 +179,7 @@ def test_projectkeys(default_project, task_runner, redis_cache):
         pk.save()
 
     for key in deleted_pks:
-        assert redis_cache.get(key.public_key) == {"disabled": True}
+        assert redis_cache.get(key.public_key) is None
 
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
@@ -234,7 +193,120 @@ def test_projectkeys(default_project, task_runner, redis_cache):
     with task_runner():
         pk.delete()
 
-    assert redis_cache.get(pk.public_key) == {"disabled": True}
+    assert redis_cache.get(pk.public_key) is None
 
     for key in ProjectKey.objects.filter(project_id=default_project.id):
         assert not redis_cache.get(key.public_key)
+
+
+class TestInvalidationTask:
+    @pytest.fixture
+    def debounce_cache(self, monkeypatch):
+        debounce_cache = RedisProjectConfigDebounceCache()
+        monkeypatch.setattr(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.mark_task_done",
+            debounce_cache.mark_task_done,
+        )
+        monkeypatch.setattr(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.check_is_debounced",
+            debounce_cache.check_is_debounced,
+        )
+        monkeypatch.setattr(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.debounce",
+            debounce_cache.debounce,
+        )
+        monkeypatch.setattr(
+            "sentry.relay.projectconfig_debounce_cache.invalidation.is_debounced",
+            debounce_cache.is_debounced,
+        )
+
+        return debounce_cache
+
+    @pytest.mark.django_db
+    def test_debounce(
+        self,
+        monkeypatch,
+        default_project,
+        default_organization,
+        debounce_cache,
+    ):
+        tasks = []
+
+        def apply_async(args, kwargs):
+            assert not args
+            tasks.append(kwargs)
+
+        monkeypatch.setattr("sentry.tasks.relay.invalidate_project_config.apply_async", apply_async)
+
+        debounce_cache.mark_task_done(
+            public_key=None, project_id=default_project.id, organization_id=None
+        )
+        schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
+        schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
+
+        debounce_cache.mark_task_done(
+            public_key=None, project_id=None, organization_id=default_organization.id
+        )
+        schedule_invalidate_project_config(organization_id=default_organization.id, trigger="test")
+        schedule_invalidate_project_config(organization_id=default_organization.id, trigger="test")
+
+        assert tasks == [
+            {
+                "project_id": default_project.id,
+                "organization_id": None,
+                "public_key": None,
+                "trigger": "test",
+            },
+            {
+                "project_id": None,
+                "organization_id": default_organization.id,
+                "public_key": None,
+                "trigger": "test",
+            },
+        ]
+
+    @pytest.mark.django_db
+    def test_invalidate(
+        self,
+        monkeypatch,
+        default_project,
+        default_organization,
+        default_projectkey,
+        task_runner,
+        redis_cache,
+    ):
+        cfg = {"dummy-key": "val"}
+        redis_cache.set_many({default_projectkey.public_key: cfg})
+        assert redis_cache.get(default_projectkey.public_key) == cfg
+
+        with task_runner():
+            schedule_invalidate_project_config(project_id=default_project.id, trigger="test")
+
+        for cache_key in _cache_keys_for_project(default_project):
+            cfg = redis_cache.get(cache_key)
+            assert "dummy-key" not in cfg
+            assert cfg["disabled"] is False
+            assert cfg["projectId"] == default_project.id
+
+    @pytest.mark.django_db
+    def test_invalidate_org(
+        self,
+        monkeypatch,
+        default_project,
+        default_organization,
+        default_projectkey,
+        task_runner,
+        redis_cache,
+    ):
+        # Currently for org-wide we delete the config instead of computing it.
+        cfg = {"dummy-key": "val"}
+        redis_cache.set_many({default_projectkey.public_key: cfg})
+        assert redis_cache.get(default_projectkey.public_key) == cfg
+
+        with task_runner():
+            schedule_invalidate_project_config(
+                organization_id=default_organization.id, trigger="test"
+            )
+
+        for cache_key in _cache_keys_for_project(default_project):
+            assert redis_cache.get(cache_key) is None

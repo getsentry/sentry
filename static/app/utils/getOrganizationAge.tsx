@@ -1,8 +1,7 @@
-import moment from 'moment';
-
 import {Organization} from 'sentry/types';
 
+import getDaysSinceDate from './getDaysSinceDate';
+
 export default function getOrganizationAge(organization: Organization) {
-  const dateCreated = moment(organization.dateCreated).utc().startOf('day');
-  return moment().utc().startOf('day').diff(dateCreated, 'days');
+  return getDaysSinceDate(organization.dateCreated);
 }

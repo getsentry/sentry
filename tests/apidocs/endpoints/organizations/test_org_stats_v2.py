@@ -4,10 +4,10 @@ import pytz
 from django.test.client import RequestFactory
 from django.urls import reverse
 
+from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.utils.outcomes import Outcome
-from tests.apidocs.util import APIDocsTestCase
 
 
 class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):

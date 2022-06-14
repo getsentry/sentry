@@ -12,7 +12,7 @@ type Props = {
 function getMediaQueryForSpacer(p: Props & {theme: Theme}) {
   return p.isSpacer
     ? css`
-        @media (max-width: ${p.theme.breakpoints[1]}) {
+        @media (max-width: ${p.theme.breakpoints.medium}) {
           display: none;
         }
       `

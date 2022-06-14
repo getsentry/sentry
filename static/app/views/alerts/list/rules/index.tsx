@@ -211,27 +211,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
                   t('Project'),
                   t('Team'),
-                  <StyledSortLink
-                    key="dateAdded"
-                    role="columnheader"
-                    aria-sort={
-                      sort.field !== 'date_added'
-                        ? 'none'
-                        : sort.asc
-                        ? 'ascending'
-                        : 'descending'
-                    }
-                    to={{
-                      pathname: location.pathname,
-                      query: {
-                        ...currentQuery,
-                        asc: sort.field === 'date_added' && !sort.asc ? '1' : undefined,
-                        sort: 'date_added',
-                      },
-                    }}
-                  >
-                    {t('Created')} {sort.field === 'date_added' && sortArrow}
-                  </StyledSortLink>,
                   t('Actions'),
                 ]}
                 isLoading={loading || !loadedTeams}
@@ -350,11 +329,11 @@ const StyledSortLink = styled(Link)`
 const StyledPanelTable = styled(PanelTable)`
   position: static;
   overflow: auto;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     overflow: initial;
   }
 
-  grid-template-columns: 4fr auto 140px 60px 110px auto;
+  grid-template-columns: 4fr auto 140px 60px auto;
   white-space: nowrap;
   font-size: ${p => p.theme.fontSizeMedium};
 `;

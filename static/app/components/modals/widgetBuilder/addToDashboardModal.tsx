@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router';
-import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Query} from 'history';
@@ -15,8 +14,6 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
-import SelectOption from 'sentry/components/forms/selectOption';
-import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -93,14 +90,23 @@ function AddToDashboardModal({
       return;
     }
 
+    let orderby = widget.queries[0].orderby;
+    if (!!!(DisplayType.AREA && widget.queries[0].columns.length)) {
+      orderby = ''; // Clear orderby if its not a top n visualization.
+    }
+    const query = widget.queries[0];
+
+    const newWidget = {
+      ...widget,
+      title: widget.title === '' ? t('All Events') : widget.title,
+      queries: [{...query, orderby}],
+    };
+
     try {
       const dashboard = await fetchDashboard(api, organization.slug, selectedDashboardId);
       const newDashboard = {
         ...dashboard,
-        widgets: [
-          ...dashboard.widgets,
-          {...widget, title: widget.title === '' ? t('All Events') : widget.title},
-        ],
+        widgets: [...dashboard.widgets, newWidget],
       };
 
       await updateDashboard(api, organization.slug, newDashboard);
@@ -137,6 +143,12 @@ function AddToDashboardModal({
                   label: title,
                   value: id,
                   isDisabled: widgetDisplay.length >= MAX_WIDGETS,
+                  tooltip:
+                    widgetDisplay.length >= MAX_WIDGETS &&
+                    tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                      maxWidgets: MAX_WIDGETS,
+                    }),
+                  tooltipOptions: {position: 'right'},
                 })),
               ]
             }
@@ -145,20 +157,6 @@ function AddToDashboardModal({
                 return;
               }
               setSelectedDashboardId(option.value);
-            }}
-            components={{
-              Option: ({label, data, ...optionProps}: OptionProps<any>) => (
-                <Tooltip
-                  disabled={!!!data.isDisabled}
-                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                    maxWidgets: MAX_WIDGETS,
-                  })}
-                  containerDisplayMode="block"
-                  position="right"
-                >
-                  <SelectOption label={label} data={data} {...(optionProps as any)} />
-                </Tooltip>
-              ),
             }}
           />
         </SelectControlWrapper>
@@ -206,7 +204,7 @@ const SelectControlWrapper = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${props => props.theme.breakpoints[0]}) {
+  @media (max-width: ${props => props.theme.breakpoints.small}) {
     grid-template-rows: repeat(2, 1fr);
     gap: ${space(1.5)};
     width: 100%;
