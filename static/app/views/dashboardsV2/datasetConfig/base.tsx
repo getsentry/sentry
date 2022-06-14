@@ -1,3 +1,4 @@
+import {Client} from 'sentry/api';
 import {OrganizationSummary, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -47,6 +48,16 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     contextualProps?: ContextualProps
   ) => ReturnType<typeof getFieldRenderer> | null;
+  /**
+   * Generate the request promises for fetching
+   * tabular data.
+   */
+  getTableRequest?: (
+    widget: WidgetQuery,
+    limit?: number,
+    cursor?: string,
+    contextualProps?: ContextualProps
+  ) => ReturnType<Client['requestPromise']>;
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.

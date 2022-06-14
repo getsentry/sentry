@@ -6,30 +6,11 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {OrganizationSummary, PageFilters} from 'sentry/types';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import {DEFAULT_TABLE_LIMIT, Widget, WidgetQuery, WidgetType} from '../types';
-
-const DEFAULT_SORT = IssueSortOptions.DATE;
-const DEFAULT_EXPAND = ['owners'];
-
-type EndpointParams = Partial<PageFilters['datetime']> & {
-  environment: string[];
-  project: number[];
-  collapse?: string[];
-  cursor?: string;
-  expand?: string[];
-  groupStatsPeriod?: string | null;
-  limit?: number;
-  page?: number | string;
-  query?: string;
-  sort?: string;
-  statsPeriod?: string | null;
-};
+import {Widget, WidgetQuery, WidgetType} from '../types';
 
 type Props = {
   api: Client;
@@ -122,44 +103,17 @@ class IssueWidgetQueries extends Component<Props, State> {
 
   config = getDatasetConfig(WidgetType.ISSUE);
 
-  async fetchIssuesData() {
-    const {selection, api, organization, widget, limit, cursor, onDataFetched} =
-      this.props;
+  async fetchTableData() {
+    const {organization, selection, widget, limit, cursor, onDataFetched} = this.props;
     this.setState({tableResults: []});
-    // Issue Widgets only support single queries
-    const query = widget.queries[0];
-    const groupListUrl = `/organizations/${organization.slug}/issues/`;
-    const params: EndpointParams = {
-      project: selection.projects,
-      environment: selection.environments,
-      query: query.conditions,
-      sort: query.orderby || DEFAULT_SORT,
-      expand: DEFAULT_EXPAND,
-      limit: limit ?? DEFAULT_TABLE_LIMIT,
-      cursor,
-    };
 
-    if (selection.datetime.period) {
-      params.statsPeriod = selection.datetime.period;
-    }
-    if (selection.datetime.end) {
-      params.end = getUtcDateString(selection.datetime.end);
-    }
-    if (selection.datetime.start) {
-      params.start = getUtcDateString(selection.datetime.start);
-    }
-    if (selection.datetime.utc) {
-      params.utc = selection.datetime.utc;
-    }
+    const request = this.config.getTableRequest!(widget.queries[0], limit, cursor, {
+      organization,
+      pageFilters: selection,
+    });
 
     try {
-      const [data, _, resp] = await api.requestPromise(groupListUrl, {
-        includeAllArgs: true,
-        method: 'GET',
-        data: {
-          ...params,
-        },
-      });
+      const [data, _, resp] = await request;
       const tableResults = this.config.transformTable(data, widget.queries[0], {
         pageFilters: selection,
       });
@@ -189,7 +143,7 @@ class IssueWidgetQueries extends Component<Props, State> {
 
   fetchData() {
     this.setState({loading: true, errorMessage: undefined});
-    this.fetchIssuesData();
+    this.fetchTableData();
   }
 
   render() {
