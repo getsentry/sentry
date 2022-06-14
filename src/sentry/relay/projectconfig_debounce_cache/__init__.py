@@ -14,6 +14,15 @@ backend = LazyServiceWrapper(
 
 backend.expose(locals())
 
+invalidation = LazyServiceWrapper(
+    ProjectConfigDebounceCache,
+    settings.SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE,
+    {
+        "key_prefix": "relayconfig-invalidation-dedup",
+        **settings.SENTRY_RELAY_PROJECTCONFIG_DEBOUNCE_CACHE_OPTIONS,
+    },
+)
+
 if TYPE_CHECKING:
     check_is_debounced = backend.check_is_debounced
     mark_task_done = backend.mark_task_done

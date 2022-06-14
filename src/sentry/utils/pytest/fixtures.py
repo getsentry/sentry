@@ -148,6 +148,11 @@ def factories():
 
 @pytest.fixture
 def task_runner():
+    """Context manager that ensures Celery tasks run directly inline where invoked.
+
+    While this context manager is active any Celery tasks created will run immediately at
+    the callsite rather than being sent to RabbitMQ and handled by a worker.
+    """
     from sentry.testutils.helpers.task_runner import TaskRunner
 
     return TaskRunner
