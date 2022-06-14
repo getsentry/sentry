@@ -71,6 +71,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               'wasm',
               'bcsymbolmap',
               'uuidmap',
+              'il2cpp',
             ],
           },
         },

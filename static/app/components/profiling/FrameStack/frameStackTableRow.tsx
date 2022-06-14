@@ -28,6 +28,7 @@ interface FrameStackTableRowProps {
     opts?: {expandChildren: boolean}
   ) => void;
   onKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
+  onMouseEnter: React.MouseEventHandler<HTMLDivElement>;
   referenceNode: FlamegraphFrame;
   style: React.CSSProperties;
   tabIndex: number;
@@ -44,6 +45,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
       tabIndex,
       onKeyDown,
       onClick,
+      onMouseEnter,
       style,
     },
     ref
@@ -69,6 +71,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
         isSelected={tabIndex === 0}
         onKeyDown={onKeyDown}
         onClick={onClick}
+        onMouseEnter={onMouseEnter}
       >
         <FrameCallersTableCell textAlign="right">
           {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
@@ -178,13 +181,7 @@ const BackgroundWeightBar = styled('div')`
 const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: 100%;
-
-  background-color: ${p => (p.isSelected ? p.theme.blue300 : 'transparent')};
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
-
-  &:hover {
-    background-color: ${p => (p.isSelected ? p.theme.blue300 : p.theme.blue100)};
-  }
 
   &:focus {
     outline: none;
