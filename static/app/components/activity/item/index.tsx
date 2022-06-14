@@ -107,13 +107,9 @@ function ActivityItem({
 
             {showRange && (
               <StyledDateTimeWindow>
-                <StyledDateTime timeOnly={timeOnly} timeAndDate={!timeOnly} date={date} />
+                <StyledDateTime timeOnly={timeOnly} date={date} />
                 {' — '}
-                <StyledDateTime
-                  timeOnly={timeOnly}
-                  timeAndDate={!timeOnly}
-                  date={dateEnded}
-                />
+                <StyledDateTime timeOnly={timeOnly} date={dateEnded} />
               </StyledDateTimeWindow>
             )}
           </ActivityHeader>

@@ -94,9 +94,9 @@ class MetricAlertDetails extends Component<Props, State> {
         label: t('Custom time'),
         display: (
           <Fragment>
-            <DateTime date={moment.utc(location.query.start)} timeAndDate />
+            <DateTime date={moment.utc(location.query.start)} />
             {' — '}
-            <DateTime date={moment.utc(location.query.end)} timeAndDate />
+            <DateTime date={moment.utc(location.query.end)} />
           </Fragment>
         ),
         custom: true,
@@ -113,9 +113,9 @@ class MetricAlertDetails extends Component<Props, State> {
         label: t('Custom time'),
         display: (
           <Fragment>
-            <DateTime date={moment.utc(start)} timeAndDate />
+            <DateTime date={moment.utc(start)} />
             {' — '}
-            <DateTime date={moment.utc(end)} timeAndDate />
+            <DateTime date={moment.utc(end)} />
           </Fragment>
         ),
         custom: true,

@@ -123,7 +123,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       <Container>
         {data[field]
           ? getDynamicText({
-              value: <FieldDateTime date={data[field]} />,
+              value: <FieldDateTime date={data[field]} year seconds timeZone />,
               fixed: 'timestamp',
             })
           : emptyValue}
