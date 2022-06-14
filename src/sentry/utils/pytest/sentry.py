@@ -264,6 +264,20 @@ def pytest_runtest_teardown(item):
     with clusters.get("default").all() as client:
         client.flushdb()
 
+    import celery
+
+    if celery.version_info >= (5, 2) <= (6):
+        from celery.app.control import Control
+
+        from sentry.celery import app
+
+        celery_app_control = Control(app)
+        celery_app_control.discard_all()
+    else:
+        from celery.task.control import discard_all
+
+        discard_all()
+
     from sentry.models import OrganizationOption, ProjectOption, UserOption
 
     for model in (OrganizationOption, ProjectOption, UserOption):
