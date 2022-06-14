@@ -24,7 +24,9 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
 import type {Color} from 'sentry/utils/theme';
+import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/rules/metric/types';
@@ -156,6 +158,12 @@ function RuleListRow({
               ? trigger?.alertThreshold?.toLocaleString()
               : resolvedTrigger?.toLocaleString()
           }`}
+          {getThresholdUnits(
+            rule.aggregate,
+            rule.comparisonDelta
+              ? AlertRuleComparisonType.CHANGE
+              : AlertRuleComparisonType.COUNT
+          )}
         </TriggerText>
       </FlexCenter>
     );
