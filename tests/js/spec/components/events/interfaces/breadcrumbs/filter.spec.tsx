@@ -1,64 +1,68 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Level from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/level';
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
-import SearchBarActionFilter from 'sentry/components/events/interfaces/searchBarAction/searchBarActionFilter';
+import SearchBarAction from 'sentry/components/events/interfaces/searchBarActionV2';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 
-const options: React.ComponentProps<typeof SearchBarActionFilter>['options'] = {
-  ['Types']: [
-    {
-      id: BreadcrumbType.HTTP,
-      description: 'HTTP request',
-      symbol: <Type color="green300" type={BreadcrumbType.HTTP} />,
-      isChecked: true,
-    },
-    {
-      id: BreadcrumbType.TRANSACTION,
-      description: 'Transaction',
-      symbol: <Type color="pink300" type={BreadcrumbType.TRANSACTION} />,
-      isChecked: true,
-    },
-    {
-      id: BreadcrumbType.UI,
-      description: 'User Action',
-      symbol: <Type color="purple300" type={BreadcrumbType.UI} />,
-      isChecked: true,
-    },
-    {
-      id: BreadcrumbType.NAVIGATION,
-      description: 'Navigation',
-      symbol: <Type color="green300" type={BreadcrumbType.NAVIGATION} />,
-      isChecked: true,
-    },
-    {
-      id: BreadcrumbType.DEBUG,
-      description: 'Debug',
-      symbol: <Type color="purple300" type={BreadcrumbType.DEBUG} />,
-      isChecked: true,
-    },
-    {
-      id: BreadcrumbType.ERROR,
-      description: 'Error',
-      symbol: <Type color="red300" type={BreadcrumbType.ERROR} />,
-      isChecked: true,
-    },
-  ],
-  ['Levels']: [
-    {
-      id: BreadcrumbLevelType.INFO,
-      symbol: <Level level={BreadcrumbLevelType.INFO} />,
-      isChecked: true,
-    },
-    {
-      id: BreadcrumbLevelType.ERROR,
-      symbol: <Level level={BreadcrumbLevelType.ERROR} />,
-      isChecked: true,
-    },
-  ],
-};
+const options: NonNullable<
+  React.ComponentProps<typeof SearchBarAction>['filterOptions']
+> = [
+  {
+    value: 'types',
+    label: 'Types',
+    options: [
+      {
+        value: BreadcrumbType.HTTP,
+        label: 'HTTP request',
+        leadingItems: <Type color="green300" type={BreadcrumbType.HTTP} />,
+      },
+      {
+        value: BreadcrumbType.TRANSACTION,
+        label: 'Transaction',
+        leadingItems: <Type color="pink300" type={BreadcrumbType.TRANSACTION} />,
+      },
+      {
+        value: BreadcrumbType.UI,
+        label: 'User Action',
+        leadingItems: <Type color="purple300" type={BreadcrumbType.UI} />,
+      },
+      {
+        value: BreadcrumbType.NAVIGATION,
+        label: 'Navigation',
+        leadingItems: <Type color="green300" type={BreadcrumbType.NAVIGATION} />,
+      },
+      {
+        value: BreadcrumbType.DEBUG,
+        label: 'Debug',
+        leadingItems: <Type color="purple300" type={BreadcrumbType.DEBUG} />,
+      },
+      {
+        value: BreadcrumbType.ERROR,
+        label: 'Error',
+        leadingItems: <Type color="red300" type={BreadcrumbType.ERROR} />,
+      },
+    ],
+  },
+  {
+    value: 'levels',
+    label: 'Levels',
+    options: [
+      {
+        value: BreadcrumbLevelType.INFO,
+        label: 'info',
+        leadingItems: <Level level={BreadcrumbLevelType.INFO} />,
+      },
+      {
+        value: BreadcrumbLevelType.ERROR,
+        label: 'error',
+        leadingItems: <Level level={BreadcrumbLevelType.ERROR} />,
+      },
+    ],
+  },
+];
 
-describe('SearchBarActionFilter', () => {
+describe('SearchBarAction', () => {
   let handleFilter;
 
   beforeEach(() => {
@@ -66,93 +70,115 @@ describe('SearchBarActionFilter', () => {
   });
 
   it('default render', () => {
-    const wrapper = mountWithTheme(
-      <SearchBarActionFilter options={options} onChange={handleFilter} />
+    const {container} = render(
+      <SearchBarAction
+        filterOptions={options}
+        onFilterChange={handleFilter}
+        onChange={() => null}
+        placeholder=""
+        query=""
+      />
     );
 
-    const filterDropdownMenu = wrapper.find('StyledContent');
+    const filterDropdownMenu = screen.getByText('Filter By');
+    userEvent.click(filterDropdownMenu);
 
-    // Headers
-    const headers = filterDropdownMenu.find('Header');
-    expect(headers).toHaveLength(2);
-    expect(headers.at(0).text()).toBe('Types');
-    expect(headers.at(1).text()).toBe('Levels');
+    // Types
+    expect(screen.getByText('Types')).toBeInTheDocument();
+    expect(screen.getByText('HTTP request')).toBeInTheDocument();
+    expect(screen.getByText('Transaction')).toBeInTheDocument();
+    expect(screen.getByText('User Action')).toBeInTheDocument();
+    expect(screen.getByText('Navigation')).toBeInTheDocument();
+    expect(screen.getByText('Debug')).toBeInTheDocument();
+    expect(screen.getAllByText('Error')[0]).toBeInTheDocument();
 
-    // Lists
-    const lists = filterDropdownMenu.find('StyledList');
-    expect(lists).toHaveLength(2);
-    expect(lists.at(0).find('StyledListItem')).toHaveLength(6);
-    expect(lists.at(1).find('StyledListItem')).toHaveLength(2);
+    // Levels
+    expect(screen.getByText('Levels')).toBeInTheDocument();
+    expect(screen.getByText('info')).toBeInTheDocument();
+    expect(screen.getAllByText('Error')[1]).toBeInTheDocument();
 
-    expect(wrapper).toSnapshot();
+    expect(container).toSnapshot();
   });
 
   it('Without Options', () => {
-    const wrapper = mountWithTheme(
-      <SearchBarActionFilter options={{}} onChange={handleFilter} />
+    render(
+      <SearchBarAction
+        filterOptions={[]}
+        onFilterChange={handleFilter}
+        onChange={() => null}
+        placeholder=""
+        query=""
+      />
     );
-    expect(wrapper.find('Header').exists()).toBe(false);
-    expect(wrapper.find('StyledListItem').exists()).toBe(false);
+
+    expect(screen.queryByText('Types')).not.toBeInTheDocument();
+    expect(screen.queryByText('Levels')).not.toBeInTheDocument();
   });
 
   it('With Option Type only', () => {
-    const {Types} = options;
-    const wrapper = mountWithTheme(
-      <SearchBarActionFilter options={{Types}} onChange={handleFilter} />
+    const typeOptions = options[0];
+    render(
+      <SearchBarAction
+        filterOptions={[typeOptions]}
+        onFilterChange={handleFilter}
+        onChange={() => null}
+        placeholder=""
+        query=""
+      />
     );
 
-    const filterDropdownMenu = wrapper.find('StyledContent');
+    const filterDropdownMenu = screen.getByText('Filter By');
+    userEvent.click(filterDropdownMenu);
 
     // Header
-    const header = filterDropdownMenu.find('Header');
-    expect(header).toHaveLength(1);
-    expect(header.text()).toBe('Types');
-
-    // List
-    const list = filterDropdownMenu.find('StyledList');
-    expect(list).toHaveLength(1);
+    expect(screen.getByText('Types')).toBeInTheDocument();
+    expect(screen.queryByText('Levels')).not.toBeInTheDocument();
 
     // List Items
-    const listItems = list.find('StyledListItem');
-    expect(listItems).toHaveLength(6);
-    const firstItem = listItems.at(0);
-    expect(firstItem.find('Description').text()).toBe(options.Types[0].description);
+    expect(screen.getByText('HTTP request')).toBeInTheDocument();
+    expect(screen.getByText('Transaction')).toBeInTheDocument();
+    expect(screen.getByText('User Action')).toBeInTheDocument();
+    expect(screen.getByText('Navigation')).toBeInTheDocument();
+    expect(screen.getByText('Debug')).toBeInTheDocument();
+    expect(screen.getAllByText('Error')[0]).toBeInTheDocument();
 
-    // Check Item
-    expect(firstItem.find('CheckboxFancy').props().isChecked).toBeTruthy();
-    firstItem.simulate('click');
+    const httpRequestItem = screen.getByText('HTTP request');
+    userEvent.click(httpRequestItem);
 
-    expect(handleFilter).toHaveBeenCalledTimes(1);
+    const httpRequestOption = (typeOptions.options ?? []).find(
+      opt => opt.label === 'HTTP request'
+    );
+    expect(handleFilter).toHaveBeenCalledWith([httpRequestOption]);
   });
 
   it('With Option Level only', () => {
-    const {Levels} = options;
-    const wrapper = mountWithTheme(
-      <SearchBarActionFilter options={{Levels}} onChange={handleFilter} />
+    const levelOptions = options[1];
+    render(
+      <SearchBarAction
+        filterOptions={[levelOptions]}
+        onFilterChange={handleFilter}
+        onChange={() => null}
+        placeholder=""
+        query=""
+      />
     );
 
-    const filterDropdownMenu = wrapper.find('StyledContent');
+    const filterDropdownMenu = screen.getByText('Filter By');
+    userEvent.click(filterDropdownMenu);
 
     // Header
-    const header = filterDropdownMenu.find('Header');
-    expect(header).toHaveLength(1);
-    expect(header.text()).toBe('Levels');
-
-    // List
-    const list = filterDropdownMenu.find('StyledList');
-    expect(list).toHaveLength(1);
+    expect(screen.getByText('Levels')).toBeInTheDocument();
+    expect(screen.queryByText('Types')).not.toBeInTheDocument();
 
     // List Items
-    const listItems = list.find('StyledListItem');
-    expect(listItems).toHaveLength(2);
-    const firstItem = listItems.at(0);
-    expect(firstItem.text()).toBe('Info');
+    expect(screen.getByText('info')).toBeInTheDocument();
+    expect(screen.getByText('error')).toBeInTheDocument();
 
     // Check Item
-    expect(firstItem.find('CheckboxFancy').props().isChecked).toBeTruthy();
+    const infoItem = screen.getByText('info');
+    userEvent.click(infoItem);
 
-    firstItem.simulate('click');
-
-    expect(handleFilter).toHaveBeenCalledTimes(1);
+    const infoOption = (levelOptions.options ?? []).find(opt => opt.label === 'info');
+    expect(handleFilter).toHaveBeenCalledWith([infoOption]);
   });
 });
