@@ -4,7 +4,7 @@ from django.conf import settings
 
 from sentry.utils import metrics
 
-if celery.version_info >= (5, 2) <= (6):
+if celery.version_info >= (5, 2):
     from celery import Celery, Task
 else:
     from celery import Celery

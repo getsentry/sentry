@@ -266,7 +266,7 @@ def pytest_runtest_teardown(item):
 
     import celery
 
-    if celery.version_info >= (5, 2) <= (6):
+    if celery.version_info >= (5, 2):
         from celery.app.control import Control
 
         from sentry.celery import app
