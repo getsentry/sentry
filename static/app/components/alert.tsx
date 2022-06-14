@@ -237,7 +237,7 @@ const TrailingItemsWrap = styled(TrailingItems)`
 const ExpandIconWrap = styled('div')`
   height: 100%;
   display: flex;
-  align-items: center;
+  align-items: start;
   padding-left: ${space(0.5)};
   padding-right: ${space(0.5)};
 `;
@@ -246,7 +246,7 @@ const ExpandContainer = styled('div')`
   display: grid;
   padding-top: ${space(1.5)};
   padding-right: ${space(1.5)};
-  padding-bottom: ${space(1.5)};
+  padding-left: ${space(0.5)};
 `;
 
 export {alertStyles};
