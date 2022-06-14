@@ -78,7 +78,6 @@ export type PerformanceEventParameters = {
   'performance_views.transaction_summary.status_breakdown_click': {
     status: string;
   };
-  'performance_views.transaction_summary.view': {};
   'performance_views.trends.change_duration': {
     value: string;
     widget_type: string;
@@ -136,8 +135,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Transaction Summary chart display changed',
   'performance_views.transaction_summary.status_breakdown_click':
     'Performance Views: Transaction Summary status breakdown option clicked',
-  'performance_views.transaction_summary.view':
-    'Performance Views: Transaction Summary overview viewed',
   'performance_views.all_events.open_in_discover':
     'Performance Views: All Events page open in Discover button clicked',
   'performance_views.tags.change_tag':
