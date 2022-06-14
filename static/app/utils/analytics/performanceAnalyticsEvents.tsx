@@ -59,6 +59,7 @@ export type PerformanceEventParameters = {
   'performance_views.span_summary.change_chart': {
     change_to_display: string;
   };
+  'performance_views.span_summary.view': {};
   'performance_views.spans.change_op': {
     operation_name?: string;
   };
@@ -109,6 +110,7 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Landing Page Transactions Table Page Changed',
   'performance_views.span_summary.change_chart':
     'Performance Views: Span Summary displayed chart changed',
+  'performance_views.span_summary.view': 'Performance Views: Span Summary page viewed',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',
   'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
   'performance_views.overview.view': 'Performance Views: Transaction overview view',
