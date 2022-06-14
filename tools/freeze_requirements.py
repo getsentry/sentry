@@ -62,15 +62,16 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
         # We rely on pip-compile's behavior when -o FILE is
         # already a lockfile, due to >= pins.
         # So if we have a different outdir (used by things like
-        # bin.lint_requirements), we'll need to copy over existing
+        # tools.lint_requirements), we'll need to copy over existing
         # lockfiles.
-        for lockfile in (
+        lockfiles = (
             "requirements-frozen.txt",
             "requirements-dev-frozen.txt",
-            "requirements-dev-only-frozen.txt",
-        ):
-            # TODO: same getsentry switch behavior needed
-            copyfile(f"{base_path}/{lockfile}", f"{outdir}/{lockfile}")
+        )
+        if IS_GETSENTRY:
+            lockfiles += ("requirements-dev-only-frozen.txt",)
+        for fn in lockfiles:
+            copyfile(f"{base_path}/{fn}", f"{outdir}/{fn}")
 
     base_cmd = (
         "pip-compile",
