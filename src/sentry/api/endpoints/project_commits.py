@@ -2,9 +2,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.models import ReleaseCommit
+from sentry.models import Commit
 
 
 class ProjectCommitsEndpoint(ProjectEndpoint):
@@ -24,16 +23,13 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
                                      commits of.
         """
 
-        try:
-            queryset = ReleaseCommit.objects.filter(
-                organization_id=project.organization_id, project_id=project.id
-            )
-        except ReleaseCommit.DoesNotExist:
-            raise ResourceDoesNotExist
+        queryset = Commit.objects.filter(
+            organization_id=project.organization_id, releasecommit__project_id=project.id
+        ).distinct("id")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="order",
-            on_results=lambda x: serialize([rc.commit for rc in x], request.user),
+            order_by="id",
+            on_results=lambda x: serialize(x, request.user),
         )
