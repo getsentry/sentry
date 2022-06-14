@@ -103,6 +103,10 @@ export function getDatasetConfig(
   }
 }
 
+/**
+ * A generic orderby reset helper function that updates the query's
+ * orderby based on new selected fields.
+ */
 export function handleOrderByReset(
   widgetQuery: WidgetQuery,
   newFields: string[]

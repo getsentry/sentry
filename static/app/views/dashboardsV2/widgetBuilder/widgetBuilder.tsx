@@ -612,7 +612,7 @@ function WidgetBuilder({
     const fieldStrings = newFields.map(generateFieldAsString);
     const splitFields = getColumnsAndAggregatesAsStrings(newFields);
     const newState = cloneDeep(state);
-    let newQuery = newState.queries[0];
+    let newQuery = cloneDeep(newState.queries[0]);
 
     newQuery.fields = fieldStrings;
     newQuery.aggregates = splitFields.aggregates;
