@@ -120,6 +120,8 @@ const DraggableWrapper = styled('div')<{
     y: number;
   };
 }>`
+  position: relative;
+  z-index: 10000;
   width: ${p => (p.isPictureInPicture ? 'max-content' : '100%')};
   ${p =>
     p.isPictureInPicture
