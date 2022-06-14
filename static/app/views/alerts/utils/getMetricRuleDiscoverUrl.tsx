@@ -1,7 +1,7 @@
-import {NewQuery, Project} from 'sentry/types';
+import type {NewQuery, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
 
