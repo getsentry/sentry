@@ -12,9 +12,12 @@ from typing_extensions import TypedDict
 from sentry import features, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
-from sentry.api.serializers.models.organization_member.response import RoleSerializerResponse
 from sentry.api.serializers.models.project import ProjectSerializerResponse
-from sentry.api.serializers.models.role import OrganizationRoleSerializer, TeamRoleSerializer
+from sentry.api.serializers.models.role import (
+    OrganizationRoleSerializer,
+    RoleSerializerResponse,
+    TeamRoleSerializer,
+)
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.app import quotas
 from sentry.auth.access import Access
