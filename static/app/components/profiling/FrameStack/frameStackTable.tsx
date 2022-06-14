@@ -13,6 +13,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import theme from 'sentry/utils/theme';
 
 import {FrameCallersTableCell} from './frameStack';
 import {FrameStackContextMenu} from './frameStackContextMenu';
@@ -214,7 +215,7 @@ export function FrameStackTable({
           onZoomIntoNodeClick={handleZoomIntoNodeClick}
           contextMenu={contextMenu}
         />
-        <div style={{position: 'relative', height: '100%'}}>
+        <div style={{position: 'relative', height: '100%', background: theme.white}}>
           <div ref={clickedGhostRowRef} />
           <div ref={hoveredGhostRowRef} />
           <div
@@ -229,19 +230,11 @@ export function FrameStackTable({
               so that borders on columns are shown across the entire table and not just the rows.
               This is useful when number of rows does not fill up the entire table height.
              */}
-              <div
-                style={{
-                  display: 'flex',
-                  width: '100%',
-                  pointerEvents: 'none',
-                  position: 'absolute',
-                  height: '100%',
-                }}
-              >
+              <GhostRowContainer>
                 <FrameCallersTableCell />
                 <FrameCallersTableCell />
-                <FrameCallersTableCell />
-              </div>
+                <FrameCallersTableCell style={{width: '100%'}} />
+              </GhostRowContainer>
             </div>
           </div>
         </div>
@@ -249,6 +242,15 @@ export function FrameStackTable({
     </FrameBar>
   );
 }
+
+const GhostRowContainer = styled('div')`
+  display: flex;
+  width: 100%;
+  pointer-events: none;
+  position: absolute;
+  height: 100%;
+  z-index: -1;
+`;
 
 const TableHeaderButton = styled('button')`
   display: flex;
@@ -310,7 +312,7 @@ const FrameCallersTableHeader = styled('div')`
   > div {
     position: relative;
     border-bottom: 1px solid ${p => p.theme.border};
-    background-color: ${p => p.theme.surface400};
+    background-color: ${p => p.theme.background};
     white-space: nowrap;
 
     &:last-child {
