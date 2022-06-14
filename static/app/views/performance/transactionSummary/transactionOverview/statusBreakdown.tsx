@@ -12,6 +12,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -85,6 +86,14 @@ function StatusBreakdown({eventView, location, organization}: Props) {
                   query: query.formatString(),
                 },
               });
+
+              trackAdvancedAnalyticsEvent(
+                'performance_views.transaction_summary.status_breakdown_click',
+                {
+                  organization,
+                  status: row['transaction.status'] as string,
+                }
+              );
             },
           }));
           return <BreakdownBars data={points} />;

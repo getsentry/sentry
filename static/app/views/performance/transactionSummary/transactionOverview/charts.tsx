@@ -12,7 +12,8 @@ import {
 import {Panel} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {OrganizationSummary, SelectValue} from 'sentry/types';
+import {Organization, SelectValue} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -73,7 +74,7 @@ type Props = {
   currentFilter: SpanOperationBreakdownFilter;
   eventView: EventView;
   location: Location;
-  organization: OrganizationSummary;
+  organization: Organization;
   totalValues: number | null;
   withoutZerofill: boolean;
 };
@@ -87,6 +88,16 @@ function TransactionSummaryCharts({
   withoutZerofill,
 }: Props) {
   function handleDisplayChange(value: string) {
+    const display = decodeScalar(location.query.display, DisplayModes.DURATION);
+    trackAdvancedAnalyticsEvent(
+      'performance_views.transaction_summary.change_chart_display',
+      {
+        organization,
+        from_chart: display,
+        to_chart: value,
+      }
+    );
+
     browserHistory.push({
       pathname: location.pathname,
       query: {
