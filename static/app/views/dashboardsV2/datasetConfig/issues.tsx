@@ -6,7 +6,7 @@ import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {queryToObj} from 'sentry/utils/stream';
 import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 
 import {ContextualProps, DatasetConfig} from './base';
@@ -131,11 +131,18 @@ export function transformIssuesResponseToTable(
   return {data: transformedTableResults} as TableData;
 }
 
-function getTableRequest(query: WidgetQuery, limit, cursor, contextualProps) {
-  const groupListUrl = `/organizations/${contextualProps?.organization.slug}/issues/`;
+function getTableRequest(
+  _widget: Widget,
+  query: WidgetQuery,
+  limit?: number,
+  cursor?: string,
+  contextualProps?: ContextualProps
+) {
+  const groupListUrl = `/organizations/${contextualProps?.organization?.slug}/issues/`;
+
   const params: EndpointParams = {
-    project: contextualProps?.pageFilters.projects,
-    environment: contextualProps?.pageFilters.environments,
+    project: contextualProps?.pageFilters?.projects ?? [],
+    environment: contextualProps?.pageFilters?.environments ?? [],
     query: query.conditions,
     sort: query.orderby || DEFAULT_SORT,
     expand: DEFAULT_EXPAND,
@@ -143,20 +150,20 @@ function getTableRequest(query: WidgetQuery, limit, cursor, contextualProps) {
     cursor,
   };
 
-  if (contextualProps?.datetime.period) {
-    params.statsPeriod = contextualProps?.datetime.period;
+  if (contextualProps?.pageFilters?.datetime.period) {
+    params.statsPeriod = contextualProps?.pageFilters?.datetime.period;
   }
-  if (contextualProps?.datetime.end) {
-    params.end = getUtcDateString(contextualProps?.datetime.end);
+  if (contextualProps?.pageFilters?.datetime.end) {
+    params.end = getUtcDateString(contextualProps?.pageFilters?.datetime.end);
   }
-  if (contextualProps?.datetime.start) {
-    params.start = getUtcDateString(contextualProps?.datetime.start);
+  if (contextualProps?.pageFilters?.datetime.start) {
+    params.start = getUtcDateString(contextualProps?.pageFilters?.datetime.start);
   }
-  if (contextualProps?.datetime.utc) {
-    params.utc = contextualProps?.datetime.utc;
+  if (contextualProps?.pageFilters?.datetime.utc) {
+    params.utc = contextualProps?.pageFilters?.datetime.utc;
   }
 
-  return contextualProps?.api!.requestPromise(groupListUrl, {
+  return contextualProps!.api!.requestPromise(groupListUrl, {
     includeAllArgs: true,
     method: 'GET',
     data: {

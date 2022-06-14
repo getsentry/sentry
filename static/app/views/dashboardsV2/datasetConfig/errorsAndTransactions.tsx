@@ -10,6 +10,10 @@ import {
   getFieldRenderer,
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
+import {
+  DiscoverQueryRequestParams,
+  doDiscoverQuery,
+} from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
 import {
   eventDetailsRouteWithEventView,
@@ -18,7 +22,8 @@ import {
 import {getShortEventId} from 'sentry/utils/events';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {DisplayType, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
+import {eventViewFromWidget, getDashboardsMEPQueryParams} from '../utils';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -53,6 +58,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     DisplayType.TOP_N,
     DisplayType.WORLD_MAP,
   ],
+  getTableRequest,
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
 };
@@ -186,4 +192,61 @@ export function getCustomEventsFieldRenderer(
   }
 
   return getFieldRenderer(field, meta, isAlias);
+}
+
+function getTableRequest(
+  widget: Widget,
+  query: WidgetQuery,
+  limit?: number,
+  cursor?: string,
+  contextualProps?: ContextualProps
+) {
+  const shouldUseEvents = contextualProps?.organization?.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
+  const isMEPEnabled =
+    contextualProps?.organization?.features.includes('dashboards-mep') ?? false;
+
+  const eventView = eventViewFromWidget(
+    widget.title,
+    query,
+    contextualProps?.pageFilters!
+  );
+
+  const params: DiscoverQueryRequestParams = {
+    per_page: limit ?? DEFAULT_TABLE_LIMIT,
+    cursor,
+    ...getDashboardsMEPQueryParams(isMEPEnabled),
+  };
+
+  if (query.orderby) {
+    params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
+  }
+
+  let url: string = '';
+  const eventsUrl = shouldUseEvents
+    ? `/organizations/${contextualProps?.organization?.slug}/events/`
+    : `/organizations/${contextualProps?.organization?.slug}/eventsv2/`;
+  if (widget.displayType === DisplayType.TABLE) {
+    url = eventsUrl;
+    params.referrer = 'api.dashboards.tablewidget';
+  } else if (widget.displayType === DisplayType.BIG_NUMBER) {
+    url = eventsUrl;
+    params.per_page = 1;
+    params.referrer = 'api.dashboards.bignumberwidget';
+  } else if (widget.displayType === DisplayType.WORLD_MAP) {
+    url = `/organizations/${contextualProps?.organization?.slug}/events-geo/`;
+    delete params.per_page;
+    params.referrer = 'api.dashboards.worldmapwidget';
+  } else {
+    throw Error(
+      'Expected widget displayType to be either big_number, table or world_map'
+    );
+  }
+
+  // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
+  return doDiscoverQuery<TableData | EventsTableData>(contextualProps?.api!, url, {
+    ...eventView.generateQueryStringObject(),
+    ...params,
+  });
 }

@@ -16,32 +16,13 @@ import {
   PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {
-  EventsTableData,
-  TableData,
-  TableDataWithTitle,
-} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
-import {
-  DiscoverQueryRequestParams,
-  doDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import {
-  DEFAULT_TABLE_LIMIT,
-  DisplayType,
-  Widget,
-  WidgetQuery,
-  WidgetType,
-} from '../types';
-import {
-  eventViewFromWidget,
-  getDashboardsMEPQueryParams,
-  getNumEquations,
-  getWidgetInterval,
-} from '../utils';
+import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
+import {getDashboardsMEPQueryParams, getNumEquations, getWidgetInterval} from '../utils';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
 
@@ -246,58 +227,21 @@ class WidgetQueries extends Component<Props, State> {
     return this.props.organization.features.includes('dashboards-mep');
   }
 
-  fetchEventData(queryFetchID: symbol) {
+  fetchTableData(queryFetchID: symbol) {
     const {selection, api, organization, widget, limit, cursor, onDataFetched} =
       this.props;
-
-    const shouldUseEvents = organization.features.includes(
-      'discover-frontend-use-events-endpoint'
-    );
 
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
     // to do a discover 'table' query instead of a 'timeseries' query.
 
-    const promises = widget.queries.map(query => {
-      const eventView = eventViewFromWidget(widget.title, query, selection);
-
-      let url: string = '';
-      const params: DiscoverQueryRequestParams = {
-        per_page: limit ?? DEFAULT_TABLE_LIMIT,
-        cursor,
-        ...getDashboardsMEPQueryParams(this.isMEPEnabled),
-      };
-
-      if (query.orderby) {
-        params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
-      }
-
-      const eventsUrl = shouldUseEvents
-        ? `/organizations/${organization.slug}/events/`
-        : `/organizations/${organization.slug}/eventsv2/`;
-      if (widget.displayType === 'table') {
-        url = eventsUrl;
-        params.referrer = 'api.dashboards.tablewidget';
-      } else if (widget.displayType === 'big_number') {
-        url = eventsUrl;
-        params.per_page = 1;
-        params.referrer = 'api.dashboards.bignumberwidget';
-      } else if (widget.displayType === 'world_map') {
-        url = `/organizations/${organization.slug}/events-geo/`;
-        delete params.per_page;
-        params.referrer = 'api.dashboards.worldmapwidget';
-      } else {
-        throw Error(
-          'Expected widget displayType to be either big_number, table or world_map'
-        );
-      }
-
-      // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
-      return doDiscoverQuery<TableData | EventsTableData>(api, url, {
-        ...eventView.generateQueryStringObject(),
-        ...params,
-      });
-    });
+    const promises = widget.queries.map(query =>
+      this.config.getTableRequest!(widget, query, limit, cursor, {
+        api,
+        organization,
+        pageFilters: selection,
+      })
+    );
 
     let completed = 0;
     let isMetricsData: boolean | undefined;
@@ -531,7 +475,7 @@ class WidgetQueries extends Component<Props, State> {
     this.setState({loading: true, errorMessage: undefined, queryFetchID});
 
     if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
-      this.fetchEventData(queryFetchID);
+      this.fetchTableData(queryFetchID);
     } else {
       this.fetchTimeseriesData(queryFetchID, widget.displayType);
     }

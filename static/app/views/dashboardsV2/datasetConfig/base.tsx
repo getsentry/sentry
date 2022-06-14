@@ -5,13 +5,14 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
-import {DisplayType, WidgetQuery, WidgetType} from '../types';
+import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type ContextualProps = {
+  api?: Client;
   organization?: OrganizationSummary;
   pageFilters?: PageFilters;
 };
@@ -53,7 +54,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * tabular data.
    */
   getTableRequest?: (
-    widget: WidgetQuery,
+    widget: Widget,
+    query: WidgetQuery,
     limit?: number,
     cursor?: string,
     contextualProps?: ContextualProps

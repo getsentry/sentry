@@ -104,13 +104,21 @@ class IssueWidgetQueries extends Component<Props, State> {
   config = getDatasetConfig(WidgetType.ISSUE);
 
   async fetchTableData() {
-    const {organization, selection, widget, limit, cursor, onDataFetched} = this.props;
+    const {api, organization, selection, widget, limit, cursor, onDataFetched} =
+      this.props;
     this.setState({tableResults: []});
 
-    const request = this.config.getTableRequest!(widget.queries[0], limit, cursor, {
-      organization,
-      pageFilters: selection,
-    });
+    const request = this.config.getTableRequest!(
+      widget,
+      widget.queries[0],
+      limit,
+      cursor,
+      {
+        api,
+        organization,
+        pageFilters: selection,
+      }
+    );
 
     try {
       const [data, _, resp] = await request;
