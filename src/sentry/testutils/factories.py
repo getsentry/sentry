@@ -95,16 +95,11 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json, loremipsum
 
 
-def get_fixture_path(name):
-    return os.path.join(
-        os.path.dirname(__file__),  # src/sentry/testutils/
-        os.pardir,  # src/sentry/
-        os.pardir,  # src/
-        os.pardir,
-        "tests",
-        "fixtures",
-        name,
-    )
+def get_fixture_path(*parts: str) -> str:
+    path = os.path.realpath(__file__)
+    for _ in range(4):  # src/sentry/testutils/{__file__}
+        path = os.path.dirname(path)
+    return os.path.join(path, "fixtures", *parts)
 
 
 def make_sentence(words=None):

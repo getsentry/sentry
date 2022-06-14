@@ -62,3 +62,15 @@ export type ReplayCrumb = RawCrumb & {
    */
   timestamp: number;
 };
+
+/**
+ * This is a result of a custom discover query
+ */
+export interface ReplayError {
+  ['error.type']: string;
+  ['error.value']: string;
+  id: string;
+  ['issue.id']: number;
+  ['project.name']: string;
+  timestamp: string;
+}

@@ -1,5 +1,4 @@
 from io import BytesIO
-from os import pardir
 from os.path import join
 from zipfile import ZipFile
 
@@ -7,13 +6,13 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from exam import fixture
 
-from sentry.constants import MODULE_ROOT
 from sentry.models import Project
 from sentry.profiles.task import _deobfuscate, _normalize
 from sentry.testutils import TestCase
+from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 
-PROFILES_FIXTURES_PATH = join(MODULE_ROOT, pardir, pardir, "tests", "fixtures", "profiles")
+PROFILES_FIXTURES_PATH = get_fixture_path("profiles")
 
 PROGUARD_UUID = "6dc7fdb0-d2fb-4c8e-9d6b-bb1aa98929b1"
 PROGUARD_SOURCE = b"""\

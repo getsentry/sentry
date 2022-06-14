@@ -4,14 +4,11 @@ from typing import Any, Mapping, Optional, Tuple, Union, cast, overload
 
 import pytz
 from dateutil.parser import parse
-from django.db import connections
 from django.http.request import HttpRequest
 from django.utils.timezone import is_aware, make_aware
 
 from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
-
-DATE_TRUNC_GROUPERS = {"date": "day", "hour": "hour", "minute": "minute"}
 
 epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
 
@@ -61,12 +58,6 @@ def floor_to_utc_day(value: datetime) -> datetime:
     Floors a given datetime to UTC midnight.
     """
     return value.astimezone(pytz.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-
-
-def get_sql_date_trunc(col: Any, db: str = "default", grouper: str = "hour") -> Any:
-    conn = connections[db]
-    method = DATE_TRUNC_GROUPERS[grouper]
-    return conn.ops.date_trunc_sql(method, col)
 
 
 def parse_date(datestr: str, timestr: str) -> Optional[datetime]:
