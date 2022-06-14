@@ -95,7 +95,6 @@ export default class PercentageAreaChart extends Component<Props> {
             ].join('');
           },
         }}
-        xAxis={{boundaryGap: true}}
         yAxis={{
           min: 0,
           max: 100,
