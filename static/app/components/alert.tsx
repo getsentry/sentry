@@ -86,7 +86,7 @@ function Alert({
             {...messageHoverProps}
           >
             <Message>{children}</Message>
-            {(showExpand || showTrailingItems) && (
+            {showTrailingItems && (
               <TrailingItemsWrap>
                 <TrailingItems onClick={e => e.stopPropagation()}>
                   {trailingItems}
@@ -187,7 +187,7 @@ const Wrap = styled('div')<AlertProps & {hovered: boolean}>`
 const IconWrapper = styled('div')`
   display: flex;
   height: calc(${p => p.theme.fontSizeMedium} * ${p => p.theme.text.lineHeightBody});
-  padding: ${space(1.5)} ${space(1)} ${space(1.5)} ${space(2)};
+  padding-right: ${space(1)};
   box-sizing: content-box;
   align-items: center;
 `;
@@ -208,10 +208,8 @@ const MessageContainer = styled('div')<{
 }>`
   display: flex;
   width: 100%;
-  padding-top: ${space(1.5)};
-  padding-bottom: ${space(1.5)};
-  padding-left: ${p => (p.showIcon ? '0' : space(2))};
-  padding-right: ${p => (p.showTrailingItems ? space(1.5) : space(2))};
+  padding-left: ${p => (p.showIcon ? '0' : space(0.5))};
+  padding-right: ${p => (p.showTrailingItems ? '0' : space(0.5))};
   flex-direction: row;
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     flex-direction: column;
