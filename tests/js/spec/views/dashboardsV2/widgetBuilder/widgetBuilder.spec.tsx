@@ -2791,6 +2791,8 @@ describe('WidgetBuilder', function () {
           await screen.findByPlaceholderText('Search for events, users, tags, and more'),
           'session.status:'
         );
+
+        await tick();
         expect(await screen.findByText('No items found')).toBeInTheDocument();
 
         userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
