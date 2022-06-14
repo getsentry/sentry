@@ -41,7 +41,6 @@ type Props = {
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
-  includeAllArgs?: boolean;
   limit?: number;
   onDataFetched?: (results: {
     tableResults?: TableDataWithTitle[];
