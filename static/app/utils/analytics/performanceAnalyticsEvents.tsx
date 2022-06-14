@@ -72,6 +72,7 @@ export type PerformanceEventParameters = {
   };
   'performance_views.transaction_summary.status_breakdown_click': {
     status: string;
+  };
   'performance_views.trends.change_duration': {
     value: string;
     widget_type: string;
