@@ -1,7 +1,7 @@
 beautifulsoup4==4.7.1
 boto3==1.13.16
 botocore==1.16.16
-celery==4.4.7
+celery==5.2.7
 click==8.0.4
 # See if we can remove CPATH from lib.sh
 # https://github.com/getsentry/sentry/pull/30094
@@ -78,7 +78,7 @@ msgpack==1.0.0
 cryptography==3.4.8
 # celery
 billiard==3.6.4
-kombu==4.6.11
+kombu==5.2.4
 
 # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
 # See https://github.com/grpc/grpc/issues/23796 and
