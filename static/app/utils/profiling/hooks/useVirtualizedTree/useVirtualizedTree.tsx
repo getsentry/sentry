@@ -445,7 +445,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     return () => {
       container.removeEventListener('mouseleave', onMouseLeave);
     };
-  });
+  }, [props.scrollContainer]);
 
   // When a node is expanded, the underlying tree is recomputed (the flattened tree is updated)
   // We copy the properties of the old tree by creating a new instance of VirtualizedTree
