@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
@@ -12,7 +12,9 @@ from typing_extensions import TypedDict
 from sentry import features, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models import UserSerializer
+from sentry.api.serializers.models.organization_member.response import RoleSerializerResponse
 from sentry.api.serializers.models.project import ProjectSerializerResponse
+from sentry.api.serializers.models.role import OrganizationRoleSerializer, TeamRoleSerializer
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.app import quotas
 from sentry.auth.access import Access
@@ -266,7 +268,9 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     quota: Any
     isDefault: bool
     defaultRole: bool
-    availableRoles: list[Any]  # TODO replace with enum/literal
+    availableRoles: list[Any]  # TODO: deprecate, use orgRoleList
+    orgRoleList: List[RoleSerializerResponse]
+    teamRoleList: List[RoleSerializerResponse]
     openMembership: bool
     allowSharedIssues: bool
     enhancedPrivacy: bool
@@ -334,7 +338,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
             {
                 "isDefault": obj.is_default,
                 "defaultRole": obj.default_role,
-                "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],
+                "availableRoles": [
+                    {"id": r.id, "name": r.name} for r in roles.get_all()
+                ],  # Deprecated
+                "orgRoleList": serialize(roles.get_all(), serializer=OrganizationRoleSerializer()),
+                "teamRoleList": serialize(
+                    roles.team_roles.get_all(), serializer=TeamRoleSerializer()
+                ),
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),
                 "requireEmailVerification": bool(
