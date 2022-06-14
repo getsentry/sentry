@@ -69,6 +69,7 @@ export const iconProps: IconProps = {
       ['line', 'Line'],
       ['circle', 'Circle'],
       ['bar', 'Bar'],
+      ['area', 'Area'],
     ],
     default: 'line',
     enumerate: true,
@@ -167,7 +168,11 @@ export const icons: IconData[] = [
   {id: 'sync', groups: ['action'], keywords: ['swap']},
   {id: 'menu', groups: ['action'], keywords: ['navigate']},
   {id: 'list', groups: ['action'], keywords: ['item']},
-  {id: 'dashboard', groups: ['action'], keywords: ['overview', 'group', 'organize']},
+  {
+    id: 'dashboard',
+    groups: ['product'],
+    keywords: ['overview', 'group', 'organize', 'widgets'],
+  },
   {
     id: 'upgrade',
     groups: ['action'],
@@ -180,7 +185,7 @@ export const icons: IconData[] = [
   },
   {
     id: 'return',
-    groups: ['action'],
+    groups: ['device'],
     keywords: ['enter'],
   },
   {
@@ -234,7 +239,7 @@ export const icons: IconData[] = [
   },
   {
     id: 'stats',
-    groups: ['product', 'chart'],
+    groups: ['product'],
     keywords: ['bar', 'graph'],
   },
   {
@@ -264,7 +269,7 @@ export const icons: IconData[] = [
   },
   {
     id: 'print',
-    groups: ['action', 'device'],
+    groups: ['device'],
     keywords: [],
   },
   {
@@ -304,29 +309,28 @@ export const icons: IconData[] = [
   },
   {
     id: 'stack',
-    groups: ['action'],
+    groups: ['chart'],
     keywords: ['group', 'combine', 'view'],
   },
   {
     id: 'span',
-    groups: ['device'],
+    groups: ['chart'],
     keywords: ['performance', 'transaction'],
   },
   {
     id: 'link',
-    groups: ['action', 'device'],
+    groups: ['action'],
     keywords: ['hyperlink', 'anchor'],
   },
   {
     id: 'attachment',
-    groups: ['device'],
+    groups: ['action'],
     keywords: ['include', 'clip'],
   },
   {
     id: 'location',
     groups: ['action'],
     keywords: ['pin', 'position', 'map'],
-    additionalProps: ['isSolid'],
   },
   {
     id: 'edit',
@@ -421,11 +425,6 @@ export const icons: IconData[] = [
     keywords: ['person', 'portrait'],
   },
   {
-    id: 'group',
-    groups: ['action'],
-    keywords: ['person', 'people'],
-  },
-  {
     id: 'chat',
     groups: ['action', 'action'],
     keywords: ['message', 'bubble'],
@@ -506,7 +505,6 @@ export const icons: IconData[] = [
     id: 'lightning',
     groups: ['product'],
     keywords: ['feature', 'new', 'fresh'],
-    additionalProps: ['isSolid'],
   },
   {
     id: 'business',
@@ -622,5 +620,35 @@ export const icons: IconData[] = [
     id: 'expand',
     groups: ['action'],
     keywords: ['open'],
+  },
+  {
+    id: 'asana',
+    groups: ['logo'],
+    keywords: [''],
+  },
+  {
+    id: 'globe',
+    groups: ['action'],
+    keywords: ['international', 'global'],
+  },
+  {
+    id: 'group',
+    groups: ['action'],
+    keywords: ['users', 'person', 'people'],
+  },
+  {
+    id: 'input',
+    groups: ['device'],
+    keywords: ['text'],
+  },
+  {
+    id: 'number',
+    groups: ['chart'],
+    keywords: ['value'],
+  },
+  {
+    id: 'vercel',
+    groups: ['logo'],
+    keywords: [''],
   },
 ];

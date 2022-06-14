@@ -74,7 +74,6 @@ from sentry.auth.superuser import COOKIE_SALT as SU_COOKIE_SALT
 from sentry.auth.superuser import COOKIE_SECURE as SU_COOKIE_SECURE
 from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
-from sentry.constants import MODULE_ROOT
 from sentry.eventstream.snuba import SnubaEventStream
 from sentry.mail import mail_adapter
 from sentry.models import AuthProvider as AuthProviderModel
@@ -112,6 +111,7 @@ from sentry.search.events.constants import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.tagstore.snuba import SnubaTagStorage
+from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
@@ -270,8 +270,7 @@ class BaseTestCase(Fixtures, Exam):
         self.save_session()
 
     def load_fixture(self, filepath):
-        filepath = os.path.join(MODULE_ROOT, os.pardir, os.pardir, "tests", "fixtures", filepath)
-        with open(filepath, "rb") as fp:
+        with open(get_fixture_path(filepath), "rb") as fp:
             return fp.read()
 
     def _pre_setup(self):

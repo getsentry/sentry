@@ -33,8 +33,6 @@ import {
   METRICS_EXPRESSION_TO_FIELD,
 } from '../widgetBuilder/releaseWidget/fields';
 
-import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
-
 type Props = {
   api: Client;
   children: (
@@ -85,6 +83,7 @@ export function derivedMetricsToField(field: string): string {
  */
 export function resolveDerivedStatusFields(
   fields: string[],
+  orderby: string,
   useSessionAPI: boolean
 ): {
   aggregates: string[];
@@ -97,6 +96,16 @@ export function resolveDerivedStatusFields(
   );
 
   const injectedFields: string[] = [];
+
+  const rawOrderby = trimStart(orderby, '-');
+  const unsupportedOrderby =
+    DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
+
+  if (rawOrderby && !!!unsupportedOrderby && !!!fields.includes(rawOrderby)) {
+    if (!!!injectedFields.includes(rawOrderby)) {
+      injectedFields.push(rawOrderby);
+    }
+  }
 
   if (!!!useSessionAPI) {
     return {aggregates, derivedStatusFields, injectedFields};
@@ -202,29 +211,17 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       this.fetchData();
       return;
     }
-
-    // If the query names have changed, then update timeseries labels
-    const useSessionAPI = widget.queries[0].columns.includes('session.status');
     if (
       !loading &&
       !isEqual(widgetQueryNames, prevWidgetQueryNames) &&
       rawResults?.length === widget.queries.length
     ) {
-      const {derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
-        widget.queries[0].aggregates,
-        useSessionAPI
-      );
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformSessionsResponseToSeries(
-              rawResult,
-              derivedStatusFields,
-              injectedFields,
-              widget.queries[index].name
-            )
+            this.config.transformSeries!(rawResult, widget.queries[index])
           ),
         };
       });
@@ -380,8 +377,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       }
     }
 
-    const {aggregates, derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
+    const {aggregates, injectedFields} = resolveDerivedStatusFields(
       widget.queries[0].aggregates,
+      widget.queries[0].orderby,
       useSessionAPI
     );
     const columns = widget.queries[0].columns;
@@ -507,11 +505,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           if (includeSeries) {
-            const transformedResult = transformSessionsResponseToSeries(
+            const transformedResult = this.config.transformSeries!(
               data,
-              derivedStatusFields,
-              injectedFields,
-              widget.queries[requestIndex].name
+              widget.queries[requestIndex]
             );
 
             // When charting timeseriesData on echarts, color association to a timeseries result
