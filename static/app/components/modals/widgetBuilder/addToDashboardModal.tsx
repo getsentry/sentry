@@ -1,6 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
 import {InjectedRouter} from 'react-router';
-import {OptionProps} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Query} from 'history';
@@ -15,8 +14,6 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/selectControl';
-import SelectOption from 'sentry/components/forms/selectOption';
-import Tooltip from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
@@ -146,6 +143,12 @@ function AddToDashboardModal({
                   label: title,
                   value: id,
                   isDisabled: widgetDisplay.length >= MAX_WIDGETS,
+                  tooltip:
+                    widgetDisplay.length >= MAX_WIDGETS &&
+                    tct('Max widgets ([maxWidgets]) per dashboard reached.', {
+                      maxWidgets: MAX_WIDGETS,
+                    }),
+                  tooltipOptions: {position: 'right'},
                 })),
               ]
             }
@@ -154,20 +157,6 @@ function AddToDashboardModal({
                 return;
               }
               setSelectedDashboardId(option.value);
-            }}
-            components={{
-              Option: ({label, data, ...optionProps}: OptionProps<any>) => (
-                <Tooltip
-                  disabled={!!!data.isDisabled}
-                  title={tct('Max widgets ([maxWidgets]) per dashboard reached.', {
-                    maxWidgets: MAX_WIDGETS,
-                  })}
-                  containerDisplayMode="block"
-                  position="right"
-                >
-                  <SelectOption label={label} data={data} {...(optionProps as any)} />
-                </Tooltip>
-              ),
             }}
           />
         </SelectControlWrapper>
