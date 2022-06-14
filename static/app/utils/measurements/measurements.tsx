@@ -30,8 +30,8 @@ function measurementsFromDetails(
   );
 }
 
-const MOBILE_MEASUREMENTS = measurementsFromDetails(MOBILE_VITAL_DETAILS);
-const WEB_MEASUREMENTS = measurementsFromDetails(WEB_VITAL_DETAILS);
+export const MOBILE_MEASUREMENTS = measurementsFromDetails(MOBILE_VITAL_DETAILS);
+export const WEB_MEASUREMENTS = measurementsFromDetails(WEB_VITAL_DETAILS);
 
 type ChildrenProps = {
   measurements: MeasurementCollection;

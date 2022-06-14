@@ -8,11 +8,10 @@ import {
   getColumnsAndAggregatesAsStrings,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import Measurements from 'sentry/utils/measurements/measurements';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 
-import {DataSet, getAmendedFieldOptions} from '../../utils';
+import {DataSet} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {ColumnFields} from './columnFields';
@@ -43,6 +42,7 @@ export function ColumnsStep({
   explodedFields,
   tags,
 }: Props) {
+  const datasetConfig = getDatasetConfig(widgetType);
   return (
     <BuildStep
       title={t('Choose your columns')}
@@ -82,19 +82,15 @@ export function ColumnsStep({
       }
     >
       {dataSet === DataSet.EVENTS ? (
-        <Measurements>
-          {({measurements}) => (
-            <ColumnFields
-              displayType={displayType}
-              organization={organization}
-              widgetType={widgetType}
-              fields={explodedFields}
-              errors={queryErrors}
-              fieldOptions={getAmendedFieldOptions({measurements, organization, tags})}
-              onChange={onYAxisOrColumnFieldChange}
-            />
-          )}
-        </Measurements>
+        <ColumnFields
+          displayType={displayType}
+          organization={organization}
+          widgetType={widgetType}
+          fields={explodedFields}
+          errors={queryErrors}
+          fieldOptions={datasetConfig.getFieldOptions({organization}, tags)}
+          onChange={onYAxisOrColumnFieldChange}
+        />
       ) : dataSet === DataSet.ISSUES ? (
         <ColumnFields
           displayType={displayType}
@@ -102,7 +98,7 @@ export function ColumnsStep({
           widgetType={widgetType}
           fields={explodedFields}
           errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
-          fieldOptions={generateIssueWidgetFieldOptions()}
+          fieldOptions={datasetConfig.getFieldOptions({organization}, tags)}
           onChange={newFields => {
             const fieldStrings = newFields.map(generateFieldAsString);
             const splitFields = getColumnsAndAggregatesAsStrings(newFields);

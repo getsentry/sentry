@@ -2,7 +2,7 @@ import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {EventsStats, MultiSeriesEventsStats} from 'sentry/types';
+import {EventsStats, MultiSeriesEventsStats, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
@@ -10,12 +10,18 @@ import {
   getFieldRenderer,
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
 import {Container} from 'sentry/utils/discover/styles';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import {
+  MOBILE_MEASUREMENTS,
+  WEB_MEASUREMENTS,
+} from 'sentry/utils/measurements/measurements';
+import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {DisplayType, WidgetQuery} from '../types';
@@ -44,6 +50,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
+  getFieldOptions: getEventsFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -56,6 +63,18 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
 };
+
+function getEventsFieldOptions(contextualProps?: ContextualProps, tags?: TagCollection) {
+  const organization = contextualProps?.organization!;
+  const measurements = {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
+
+  return generateFieldOptions({
+    organization,
+    tagKeys: Object.values(tags ?? {}).map(({key}) => key),
+    measurementKeys: Object.values(measurements).map(({key}) => key),
+    spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
+  });
+}
 
 function transformEventsResponseToTable(
   data: TableData | EventsTableData,
