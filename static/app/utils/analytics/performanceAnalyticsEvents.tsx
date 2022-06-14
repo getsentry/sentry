@@ -84,6 +84,10 @@ export type PerformanceEventParameters = {
     direction: string;
     widget_type: string;
   };
+  'performance_views.vital_detail.switch_vital': {
+    from_vital: string;
+    to_vital: string;
+  };
   'performance_views.vital_detail.view': {};
 };
 
@@ -115,6 +119,8 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.overview.view': 'Performance Views: Transaction overview view',
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
+  'performance_views.vital_detail.switch_vital':
+    'Performance Views: Vital Detail vital type switched',
   'performance_views.trace_view.view': 'Performance Views: Trace View viewed',
   'performance_views.transaction_summary.change_chart_display':
     'Performance Views: Transaction Summary chart display changed',
