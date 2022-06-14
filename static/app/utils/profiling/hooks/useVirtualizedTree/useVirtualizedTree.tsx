@@ -116,9 +116,9 @@ function updateGhostRow({
   tabIndexKey,
   rowHeight,
   scrollTop,
-  backgroundColor,
+  interaction,
 }: {
-  backgroundColor: string;
+  interaction: 'hover' | 'active';
   ref: MutableRefObject<HTMLElement | null>;
   rowHeight: number;
   scrollTop: number;
@@ -131,7 +131,8 @@ function updateGhostRow({
   ref.current.style.right = '0';
   ref.current.style.height = `${rowHeight}px`;
   ref.current.style.position = 'absolute';
-  ref.current.style.backgroundColor = backgroundColor;
+  ref.current.style.backgroundColor =
+    interaction === 'active' ? theme.blue300 : theme.blue100;
   ref.current.style.pointerEvents = 'none';
   ref.current.style.willChange = 'transform, opacity';
   ref.current.style.transform = `translateY(${rowHeight * tabIndexKey - scrollTop}px)`;
@@ -239,7 +240,7 @@ export function useVirtualizedTree<T extends TreeLike>(
         tabIndexKey: tabIndex,
         rowHeight: props.rowHeight,
         scrollTop: latestStateRef.current.scrollTop,
-        backgroundColor: theme.blue300,
+        interaction: 'active',
       });
     } else {
       hideGhostRow({ref: clickedGhostRowRef});
@@ -336,7 +337,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           ref: clickedGhostRowRef,
           tabIndexKey: latestStateRef.current.tabIndexKey,
           scrollTop: Math.max(evt.target.scrollTop, 0),
-          backgroundColor: theme.blue300,
+          interaction: 'active',
           rowHeight: props.rowHeight,
         });
       }
@@ -362,9 +363,8 @@ export function useVirtualizedTree<T extends TreeLike>(
     }
 
     // Because nodes dont span the full width, it's possible for users to
-    // click on a node at the far right end which is outside of the row width.
-    // In that case, check if the top position where the user clicked overlaps
-    // with a row and select that row.
+    // click or hover on a node at the far right end which is outside of the row width.
+    // In that case, we check if the cursor position overlaps with a row and select that row.
     const handleClick = (evt: MouseEvent) => {
       if (evt.target !== scrollContainer) {
         // user clicked on an element inside the container, defer to onClick
@@ -384,7 +384,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           tabIndexKey: index,
           scrollTop: latestStateRef.current.scrollTop,
           rowHeight: props.rowHeight,
-          backgroundColor: theme.blue300,
+          interaction: 'active',
         });
       }
     };
@@ -411,7 +411,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           tabIndexKey: index,
           scrollTop: latestStateRef.current.scrollTop,
           rowHeight: props.rowHeight,
-          backgroundColor: theme.blue100,
+          interaction: 'hover',
         });
       }
     };
@@ -443,7 +443,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     });
 
     return () => {
-      container.removeEventListener('scroll', onMouseLeave);
+      container.removeEventListener('mouseleave', onMouseLeave);
     };
   });
 
@@ -472,7 +472,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           ref: clickedGhostRowRef,
           tabIndexKey: tabIndex,
           scrollTop: Math.max(latestStateRef.current.scrollTop, 0),
-          backgroundColor: theme.blue300,
+          interaction: 'active',
           rowHeight: props.rowHeight,
         });
       }
@@ -507,7 +507,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           ref: clickedGhostRowRef,
           tabIndexKey: tabIndex,
           scrollTop: Math.max(latestStateRef.current.scrollTop, 0),
-          backgroundColor: theme.blue300,
+          interaction: 'active',
           rowHeight: props.rowHeight,
         });
       }
@@ -528,7 +528,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           tabIndexKey,
           scrollTop: state.scrollTop,
           rowHeight: props.rowHeight,
-          backgroundColor: theme.blue300,
+          interaction: 'active',
         });
       };
     },
@@ -568,7 +568,7 @@ export function useVirtualizedTree<T extends TreeLike>(
             tabIndexKey: items[nextIndex].key,
             scrollTop: latestStateRef.current.scrollTop,
             rowHeight: props.rowHeight,
-            backgroundColor: theme.blue300,
+            interaction: 'active',
           });
           items[nextIndex].ref?.focus({preventScroll: true});
           items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
@@ -595,7 +595,7 @@ export function useVirtualizedTree<T extends TreeLike>(
             tabIndexKey: items[nextIndex].key,
             scrollTop: latestStateRef.current.scrollTop,
             rowHeight: props.rowHeight,
-            backgroundColor: theme.blue300,
+            interaction: 'active',
           });
           items[nextIndex].ref?.focus({preventScroll: true});
           items[nextIndex].ref?.scrollIntoView({block: 'nearest'});
@@ -614,7 +614,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           tabIndexKey: key,
           scrollTop: state.scrollTop,
           rowHeight: props.rowHeight,
-          backgroundColor: theme.blue100,
+          interaction: 'hover',
         });
       };
     },
