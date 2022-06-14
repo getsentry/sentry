@@ -138,9 +138,7 @@ interface BaseProps {
 export interface FormFieldProps
   extends BaseProps,
     ObservableProps,
-    Omit<FieldProps, keyof ResolvedObservableProps | 'children'> {
-  formFieldForwardRef?: React.Ref<FormField>;
-}
+    Omit<FieldProps, keyof ResolvedObservableProps | 'children'> {}
 
 /**
  * ResolvedProps do NOT include props which may be given functions that are

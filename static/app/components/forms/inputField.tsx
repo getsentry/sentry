@@ -1,4 +1,4 @@
-import {forwardRef} from 'react';
+import {forwardRef, LegacyRef} from 'react';
 
 import Input, {InputProps} from 'sentry/components/forms/controls/input';
 import FormField, {FormFieldProps} from 'sentry/components/forms/formField';
@@ -46,19 +46,18 @@ function defaultField({
   );
 }
 
-const InputField = forwardRef<FormField, InputFieldProps>(
-  (props: InputFieldProps, ref) => {
-    return (
-      <FormField className={props.className} formFieldForwardRef={ref} {...props}>
-        {formFieldProps => {
-          const {children: _children, ...otherFieldProps} = formFieldProps;
-          return props.field
-            ? props.field(otherFieldProps)
-            : defaultField(otherFieldProps);
-        }}
-      </FormField>
-    );
-  }
-);
+const InputField = forwardRef(function InputField(
+  props: InputFieldProps,
+  ref: LegacyRef<FormField>
+) {
+  return (
+    <FormField className={props.className} ref={ref} {...props}>
+      {formFieldProps => {
+        const {children: _children, ...otherFieldProps} = formFieldProps;
+        return props.field ? props.field(otherFieldProps) : defaultField(otherFieldProps);
+      }}
+    </FormField>
+  );
+});
 
 export default InputField;
