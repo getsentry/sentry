@@ -35,6 +35,7 @@ from sentry.utils.colors import get_hashed_color
 from sentry.utils.http import absolute_uri
 from sentry.utils.integrationdocs import integration_doc_exists
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import User
@@ -98,7 +99,7 @@ class ProjectManager(BaseManager):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
-class Project(Model, PendingDeletionMixin):
+class Project(Model, PendingDeletionMixin, SnowflakeIdMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -175,9 +176,12 @@ class Project(Model, PendingDeletionMixin):
                     reserved=RESERVED_PROJECT_SLUGS,
                     max_length=50,
                 )
-            super().save(*args, **kwargs)
-        else:
-            super().save(*args, **kwargs)
+
+        snowflake_redis_key = "project_snowflake_key"
+        self.save_with_snowflake_id(
+            snowflake_redis_key, lambda: super(Project, self).save(*args, **kwargs)
+        )
+
         self.update_rev_for_option()
 
     def get_absolute_url(self, params=None):

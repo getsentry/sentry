@@ -26,6 +26,7 @@ from sentry.db.models.utils import slugify_instance
 from sentry.roles.manager import Role
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.snowflake import SnowflakeIdMixin
 
 if TYPE_CHECKING:
     from sentry.models import User
@@ -110,7 +111,7 @@ class OrganizationManager(BaseManager):
         return [r.organization for r in results]
 
 
-class Organization(Model):
+class Organization(Model, SnowflakeIdMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -190,9 +191,11 @@ class Organization(Model):
             lock = locks.get("slug:organization", duration=5)
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, reserved=RESERVED_ORGANIZATION_SLUGS)
-            super().save(*args, **kwargs)
-        else:
-            super().save(*args, **kwargs)
+
+        snowflake_redis_key = "organization_snowflake_key"
+        self.save_with_snowflake_id(
+            snowflake_redis_key, lambda: super(Organization, self).save(*args, **kwargs)
+        )
 
     def delete(self, **kwargs):
         from sentry.models import NotificationSetting
