@@ -42,6 +42,14 @@ function ReplayView({
     disabled: !isPictureInPicture,
   });
 
+  const handlePictureInPicture = () => {
+    setPlayerPosition({
+      x: window.visualViewport.width - (playerRef?.current?.clientWidth ?? 0),
+      y: window.visualViewport.height - (playerRef?.current?.clientHeight ?? 0),
+    });
+    togglePictureInPicture();
+  };
+
   useEffect(() => {
     if (!isPictureInPicture) {
       setPlayerPosition({x: 0, y: 0});
@@ -79,7 +87,7 @@ function ReplayView({
       {...listeners}
       {...attributes}
     >
-      <PanelNoMargin isFullscreen={isFullscreen}>
+      <PanelNoMargin isFullscreen={isFullscreen} isPictureInPicture={isPictureInPicture}>
         <PanelHeader>
           <ReplayCurrentUrl />
         </PanelHeader>
@@ -93,7 +101,7 @@ function ReplayView({
           <ReplayController
             toggleFullscreen={toggleFullscreen}
             isPictureInPicture={isPictureInPicture}
-            togglePictureInPicture={togglePictureInPicture}
+            togglePictureInPicture={handlePictureInPicture}
           />
         </ReplayControllerWrapper>
       </PanelNoMargin>
@@ -112,6 +120,7 @@ const DraggableWrapper = styled('div')<{
     y: number;
   };
 }>`
+  width: ${p => (p.isPictureInPicture ? 'max-content' : '100%')};
   ${p =>
     p.isPictureInPicture
       ? `transform: translate3d(${p.playerPosition?.x}px, ${p.playerPosition?.y}px, 0);`
@@ -125,8 +134,11 @@ const DraggableWrapper = styled('div')<{
 
 const PanelNoMargin = styled(Panel)<{
   isFullscreen: boolean;
+  isPictureInPicture: boolean;
 }>`
   margin-bottom: 0;
+  width: ${p => (p.isPictureInPicture ? 'max-content' : '100%')};
+  z-index: 10000;
   ${p =>
     p.isFullscreen
       ? `height: 100%;
