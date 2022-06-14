@@ -1,15 +1,11 @@
 import ast
 
-from tools.flake8_plugin import S001, S002, SentryCheck
+from tools.flake8_plugin import SentryCheck
 
 
 def _run(src):
     tree = ast.parse(src)
-    return list(SentryCheck(tree=tree).run())
-
-
-def _errors(*errors):
-    return [SentryCheck.adapt_error(e) for e in errors]
+    return sorted("t.py:{}:{}: {}".format(*error) for error in SentryCheck(tree=tree).run())
 
 
 def test_S001():
@@ -23,7 +19,10 @@ A().called_once()
 """
 
     errors = _run(S001_py)
-    assert errors == _errors(S001(6, 0, vars=("called_once",)))
+    assert errors == [
+        "t.py:6:0: S001 Avoid using the called_once mock call as it is confusing and "
+        "prone to causing invalid test behavior.",
+    ]
 
 
 def test_S002():
@@ -32,7 +31,7 @@ print("print statements are not allowed")
 """
 
     errors = _run(S002_py)
-    assert errors == _errors(S002(1, 0))
+    assert errors == ["t.py:1:0: S002 print functions or statements are not allowed."]
 
 
 def test_S003():
@@ -54,28 +53,8 @@ def bad_code():
 
     errors = _run(S003_py)
     assert errors == [
-        (
-            1,
-            0,
-            "S003: Use ``from sentry.utils import json`` instead.",
-            SentryCheck,
-        ),
-        (
-            2,
-            0,
-            "S003: Use ``from sentry.utils import json`` instead.",
-            SentryCheck,
-        ),
-        (
-            3,
-            0,
-            "S003: Use ``from sentry.utils import json`` instead.",
-            SentryCheck,
-        ),
-        (
-            4,
-            0,
-            "S003: Use ``from sentry.utils import json`` instead.",
-            SentryCheck,
-        ),
+        "t.py:1:0: S003 Use ``from sentry.utils import json`` instead.",
+        "t.py:2:0: S003 Use ``from sentry.utils import json`` instead.",
+        "t.py:3:0: S003 Use ``from sentry.utils import json`` instead.",
+        "t.py:4:0: S003 Use ``from sentry.utils import json`` instead.",
     ]
