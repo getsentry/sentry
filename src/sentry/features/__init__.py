@@ -1,4 +1,4 @@
-from .base import Feature, OrganizationFeature, ProjectFeature, ProjectPluginFeature  # NOQA
+from .base import OrganizationFeature, ProjectFeature, ProjectPluginFeature, UserFeature  # NOQA
 from .handler import *  # NOQA
 from .manager import *  # NOQA
 
@@ -194,6 +194,8 @@ default_manager.add("projects:similarity-view-v2", ProjectFeature)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)
+default_manager.add("users:notification-slack-automatic", UserFeature)
+
 
 # This is a gross hardcoded list, but there's no
 # other sensible way to manage this right now without augmenting

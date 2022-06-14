@@ -50,7 +50,7 @@ class FeatureHandler:
 class BatchFeatureHandler(FeatureHandler):
     @abc.abstractmethod
     def _check_for_batch(
-        self, feature_name: str, organization: "Organization", actor: "User"
+        self, feature_name: str, organization: Optional["Organization"], actor: "User"
     ) -> bool:
         raise NotImplementedError
 

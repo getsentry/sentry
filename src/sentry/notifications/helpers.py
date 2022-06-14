@@ -3,7 +3,11 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
-from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
+from sentry import features
+from sentry.notifications.defaults import (
+    NOTIFICATION_SETTING_DEFAULTS,
+    NOTIFICATION_SETTINGS_ALL_SOMETIMES,
+)
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
     NOTIFICATION_SETTING_OPTION_VALUES,
@@ -32,20 +36,28 @@ if TYPE_CHECKING:
 def _get_notification_setting_default(
     provider: ExternalProviders,
     type: NotificationSettingTypes,
+    recipient: Team | User | None = None,
 ) -> NotificationSettingOptionValues:
     """
     In order to increase engagement, we automatically opt users into receiving
     Slack notifications if they install Slack and link their identity.
     Approval notifications always default to Slack being on.
     """
+    from sentry.models import User
+
+    if isinstance(recipient, User) and features.has(
+        "users:notification-slack-automatic", None, actor=recipient
+    ):
+        return NOTIFICATION_SETTINGS_ALL_SOMETIMES[type]
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
 
 def _get_default_value_by_provider(
     type: NotificationSettingTypes,
+    recipient: Team | User | None = None,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     return {
-        provider: _get_notification_setting_default(provider, type)
+        provider: _get_notification_setting_default(provider, type, recipient)
         for provider in NOTIFICATION_SETTING_DEFAULTS.keys()
     }
 
@@ -63,7 +75,7 @@ def _get_setting_mapping_from_mapping(
      email but we'll worry about that later since we don't have a FE for it yet.
     """
     return merge_notification_settings_up(
-        _get_default_value_by_provider(type),
+        _get_default_value_by_provider(type, recipient),
         *(
             notification_settings_by_recipient.get(recipient, {}).get(scope, {})
             for scope in (
@@ -146,6 +158,7 @@ def get_values_by_provider_by_type(
     ],
     all_providers: Iterable[ExternalProviders],
     type: NotificationSettingTypes,
+    recipient: Team | User | None = None,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Given a mapping of scopes to a mapping of default and specific notification
@@ -165,7 +178,7 @@ def get_values_by_provider_by_type(
         provider: (
             parent_specific_mapping.get(provider)
             or organization_independent_mapping.get(provider)
-            or _get_notification_setting_default(provider, type)
+            or _get_notification_setting_default(provider, type, recipient)
         )
         for provider in all_providers
     }
@@ -450,7 +463,7 @@ def get_fallback_settings(
 
             if recipient:
                 # Each provider has it's own defaults by type.
-                value = _get_notification_setting_default(provider, type_enum)
+                value = _get_notification_setting_default(provider, type_enum, recipient)
                 value_str = NOTIFICATION_SETTING_OPTION_VALUES[value]
                 user_scope_str = NOTIFICATION_SCOPE_TYPE[NotificationScopeType.USER]
 
@@ -535,7 +548,7 @@ def get_most_specific_notification_setting_value(
         or get_highest_notification_setting_value(
             get_value_for_actor(notification_settings_by_scope, recipient)
         )
-        or _get_notification_setting_default(ExternalProviders.EMAIL, type)
+        or _get_notification_setting_default(ExternalProviders.EMAIL, type, recipient)
     )
 
 
@@ -567,7 +580,7 @@ def get_values_by_provider(
     setting by provider?
     """
     return merge_notification_settings_up(
-        _get_default_value_by_provider(type),
+        _get_default_value_by_provider(type, recipient),
         get_value_for_actor(notification_settings_by_scope, recipient),
         get_value_for_parent(notification_settings_by_scope, parent_id, type),
     )

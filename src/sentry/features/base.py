@@ -1,4 +1,12 @@
-__all__ = ["Feature", "OrganizationFeature", "ProjectFeature", "ProjectPluginFeature"]
+from __future__ import annotations
+
+__all__ = [
+    "Feature",
+    "OrganizationFeature",
+    "ProjectFeature",
+    "ProjectPluginFeature",
+    "UserFeature",
+]
 
 import abc
 from typing import TYPE_CHECKING, Any
@@ -19,29 +27,36 @@ class Feature:
         self.name = name
 
     @abc.abstractmethod
-    def get_organization(self) -> "Organization":
+    def get_organization(self) -> Organization | None:
         raise NotImplementedError
 
 
 class OrganizationFeature(Feature):
-    def __init__(self, name: str, organization: "Organization") -> None:
+    def __init__(self, name: str, organization: Organization) -> None:
         super().__init__(name)
         self.organization = organization
 
-    def get_organization(self) -> "Organization":
+    def get_organization(self) -> Organization:
         return self.organization
 
 
 class ProjectFeature(Feature):
-    def __init__(self, name: str, project: "Project") -> None:
+    def __init__(self, name: str, project: Project) -> None:
         super().__init__(name)
         self.project = project
 
-    def get_organization(self) -> "Organization":
+    def get_organization(self) -> Organization:
         return self.project.organization
 
 
 class ProjectPluginFeature(ProjectFeature):
-    def __init__(self, name: str, project: "Project", plugin: Any) -> None:
+    def __init__(self, name: str, project: Project, plugin: Any) -> None:
         super().__init__(name, project=project)
         self.plugin = plugin
+
+
+class UserFeature(Feature):
+    # the Feature abstraction requires get_organization to return a result
+    # but it's not relevant for a user feature
+    def get_organization(self) -> None:
+        return None
