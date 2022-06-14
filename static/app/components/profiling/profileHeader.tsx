@@ -4,15 +4,15 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {Breadcrumb} from 'sentry/components/profiling/breadcrumb';
 import {t} from 'sentry/locale';
 import {
-  generateFlamegraphRouteWithQuery,
-  generateFlamegraphSummaryRouteWithQuery,
+  generateProfileDetailsRouteWithQuery,
+  generateProfileFlamegraphRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
-function FlamegraphHeader() {
+function ProfileHeader() {
   const params = useParams();
   const location = useLocation();
   const organization = useOrganization();
@@ -39,21 +39,21 @@ function FlamegraphHeader() {
         />
       </Layout.HeaderContent>
       <Layout.HeaderNavTabs underlined>
-        <li className={location.pathname.endsWith('summary/') ? 'active' : undefined}>
+        <li className={location.pathname.endsWith('details/') ? 'active' : undefined}>
           <Link
-            to={generateFlamegraphSummaryRouteWithQuery({
+            to={generateProfileDetailsRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: params.projectId,
               profileId: params.eventId,
               location,
             })}
           >
-            {t('Summary')}
+            {t('Details')}
           </Link>
         </li>
         <li className={location.pathname.endsWith('flamegraph/') ? 'active' : undefined}>
           <Link
-            to={generateFlamegraphRouteWithQuery({
+            to={generateProfileFlamegraphRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: params.projectId,
               profileId: params.eventId,
@@ -68,4 +68,4 @@ function FlamegraphHeader() {
   );
 }
 
-export {FlamegraphHeader};
+export {ProfileHeader};

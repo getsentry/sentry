@@ -19,7 +19,7 @@ import {FunctionCall} from 'sentry/types/profiling/core';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {formatPercentage} from 'sentry/utils/formatters';
-import {generateFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -58,7 +58,7 @@ function FunctionsTable(props: FunctionsTableProps) {
         ([profileId, threadId]) => {
           return {
             value: getShortEventId(profileId),
-            target: generateFlamegraphRouteWithQuery({
+            target: generateProfileFlamegraphRouteWithQuery({
               orgSlug: organization.slug,
               projectSlug: props.project.slug,
               profileId,

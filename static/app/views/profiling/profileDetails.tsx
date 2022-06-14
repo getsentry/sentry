@@ -17,7 +17,7 @@ import space from 'sentry/styles/space';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
-import {generateFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -58,7 +58,7 @@ function collectTopProfileFrames(profile: Profile) {
 
 const RESULTS_PER_PAGE = 50;
 
-function FlamegraphSummary() {
+function ProfileDetails() {
   const location = useLocation();
   const [state] = useProfileGroup();
   const organization = useOrganization();
@@ -144,7 +144,7 @@ function FlamegraphSummary() {
   return (
     <Fragment>
       <SentryDocumentTitle
-        title={t('Profiling \u2014 Function')}
+        title={t('Profiling \u2014 Details')}
         orgSlug={organization.slug}
       >
         <Layout.Body>
@@ -224,7 +224,7 @@ function ProfilingFunctionsTableCell({
       return (
         <Container>
           <Link
-            to={generateFlamegraphRouteWithQuery({
+            to={generateProfileFlamegraphRouteWithQuery({
               orgSlug: orgId,
               projectSlug: projectId,
               profileId: eventId,
@@ -295,4 +295,4 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
 };
 
-export default FlamegraphSummary;
+export default ProfileDetails;

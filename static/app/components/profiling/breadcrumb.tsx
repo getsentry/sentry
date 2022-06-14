@@ -6,7 +6,7 @@ import Breadcrumbs, {Crumb} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {
-  generateFlamegraphRouteWithQuery,
+  generateProfileFlamegraphRouteWithQuery,
   generateProfileSummaryRouteWithQuery,
   generateProfilingRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
@@ -60,7 +60,7 @@ function trailToCrumb(
     }
     case 'flamegraph': {
       return {
-        to: generateFlamegraphRouteWithQuery({
+        to: generateProfileFlamegraphRouteWithQuery({
           location,
           orgSlug: organization.slug,
           projectSlug: trail.payload.projectSlug,
