@@ -168,7 +168,7 @@ jobs:
           filters: |
             all:
               - added|modified: '**/*.py'
-              - added|modified: 'requirements-dev-only-frozen.txt'
+              - added|modified: 'requirements-*.txt'
 
       - uses: actions/setup-python@v3
         with:

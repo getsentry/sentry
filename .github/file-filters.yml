@@ -32,14 +32,13 @@ frontend_modified_lintable:
 frontend_components_modified_lintable:
   - added|modified: *frontend_components_lintable
 
-backend_lintable: &backend_lintable
-  - '**/*.py'
-  - 'requirements-frozen.txt'
-  - 'requirements-dev-only-frozen.txt'
-
-# Currently used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
+# Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
+
+backend_lintable: &backend_lintable
+  - '**/*.py'
+  - *backend_dependencies
 
 backend_build_changes: &backend_build_changes
   # If you change this line make sure that workflows using this action (e.g. acceptance, api_docs)
@@ -52,7 +51,6 @@ backend_build_changes: &backend_build_changes
 
 backend: &backend
   - *backend_build_changes
-  - *backend_dependencies
   - *backend_lintable
   - '**/*.sh'
   - '**/*.pysnap'
@@ -92,7 +90,6 @@ migrations_modified:
 # These files will trigger our wokrflow to check if lockfile
 # updates are needed
 migration_lockfile:
-  - *backend_dependencies
   - *backend_lintable
   - .github/workflows/check-if-migration-is-required.yml
   - .github/workflows/scripts/migration-check.sh

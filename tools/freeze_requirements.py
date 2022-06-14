@@ -3,6 +3,7 @@ from __future__ import annotations
 from concurrent.futures import Future, ThreadPoolExecutor
 from os.path import abspath
 from subprocess import CalledProcessError, run
+from typing import Optional
 
 from tools.lib import gitroot
 
@@ -49,10 +50,13 @@ stderr:
     return rc
 
 
-def main(repo: str) -> int:
+def main(repo: str, outdir: Optional[str]) -> int:
     IS_GETSENTRY = repo == "getsentry"
 
     base_path = abspath(gitroot())
+    if outdir is None:
+        outdir = base_path
+
     base_cmd = (
         "pip-compile",
         "--no-header",
@@ -69,7 +73,7 @@ def main(repo: str) -> int:
                 *base_cmd,
                 f"{base_path}/requirements-base.txt",
                 "-o",
-                f"{base_path}/requirements-frozen.txt",
+                f"{outdir}/requirements-frozen.txt",
             ),
         ),
         executor.submit(
@@ -79,7 +83,7 @@ def main(repo: str) -> int:
                 f"{base_path}/requirements-base.txt",
                 f"{base_path}/requirements-dev.txt",
                 "-o",
-                f"{base_path}/requirements-dev-frozen.txt",
+                f"{outdir}/requirements-dev-frozen.txt",
             ),
         ),
     )
@@ -93,7 +97,7 @@ def main(repo: str) -> int:
                     *base_cmd,
                     f"{base_path}/requirements-dev.txt",
                     "-o",
-                    f"{base_path}/requirements-dev-only-frozen.txt",
+                    f"{outdir}/requirements-dev-only-frozen.txt",
                 ),
             ),
         )
@@ -114,7 +118,7 @@ def main(repo: str) -> int:
                         # This is downloaded with bin/bump-sentry.
                         f"{base_path}/sentry-requirements-frozen.txt",
                         "-o",
-                        f"{base_path}/requirements-frozen.txt",
+                        f"{outdir}/requirements-frozen.txt",
                     ),
                 ),
                 executor.submit(
@@ -126,7 +130,7 @@ def main(repo: str) -> int:
                         # This is downloaded with bin/bump-sentry.
                         f"{base_path}/sentry-requirements-dev-frozen.txt",
                         "-o",
-                        f"{base_path}/requirements-dev-frozen.txt",
+                        f"{outdir}/requirements-dev-frozen.txt",
                     ),
                 ),
             )
