@@ -50,7 +50,7 @@ repos:
       log_file: '.artifacts/flake8.pycodestyle.log'
     - id: lint-requirements
       name: lint-requirements
-      entry: python -m tools.lint_requirements
+      entry: python -m tools.lint_requirements sentry
       language: python
       files: ^requirements-*.txt
       pass_filenames: false

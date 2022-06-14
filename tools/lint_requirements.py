@@ -7,19 +7,23 @@ import packaging.requirements
 from tools import freeze_requirements
 
 
-def main() -> int:
+def main(repo: str) -> int:
+    IS_GETSENTRY = repo == "getsentry"
+
     with TemporaryDirectory() as tmpdir:
-        rc = freeze_requirements.main("sentry", tmpdir)
+        rc = freeze_requirements.main(repo, tmpdir)
         if rc != 0:
             print("There was an issue generating requirement lockfiles.")  # noqa
             return rc
 
         rc = 0
-        for lockfile in (
+        lockfiles = [
             "requirements-frozen.txt",
             "requirements-dev-frozen.txt",
-            "requirements-dev-only-frozen.txt",
-        ):
+        ]
+        if not IS_GETSENTRY:
+            lockfiles.append("requirements-dev-only-frozen.txt")
+        for lockfile in lockfiles:
             with open(lockfile) as f:
                 original = f.readlines()
             with open(f"{tmpdir}/{lockfile}") as f:
@@ -47,6 +51,9 @@ use `make freeze-requirements`.
             )
             return rc
 
+    if not IS_GETSENTRY:
+        return 0
+
     """
     We cannot have non-specifier requirements if we want to publish to PyPI
     due to security concerns. This check ensures we don't have/add any URL/VCS
@@ -72,4 +79,9 @@ use `make freeze-requirements`.
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("repo", type=str, help="Repository name.")
+    args = parser.parse_args()
+    raise SystemExit(main(args.repo))

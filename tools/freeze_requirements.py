@@ -69,7 +69,7 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
             "requirements-frozen.txt",
             "requirements-dev-frozen.txt",
         ]
-        if IS_GETSENTRY:
+        if not IS_GETSENTRY:
             lockfiles.append("requirements-dev-only-frozen.txt")
         for fn in lockfiles:
             copyfile(f"{base_path}/{fn}", f"{outdir}/{fn}")
