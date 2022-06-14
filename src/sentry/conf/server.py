@@ -1718,7 +1718,7 @@ SENTRY_DEFAULT_OPTIONS = {}
 
 # You should not change this setting after your database has been created
 # unless you have altered all schemas first
-SENTRY_USE_BIG_INTS = True
+SENTRY_USE_BIG_INTS = False
 
 # Encryption schemes available to Sentry. You should *never* remove from this
 # list until the key is no longer used in the database. The first listed
