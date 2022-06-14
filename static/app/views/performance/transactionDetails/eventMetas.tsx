@@ -46,7 +46,7 @@ type State = {
 /**
  * This should match the breakpoint chosen for the `EventDetailHeader` below
  */
-const BREAKPOINT_MEDIA_QUERY = `(min-width: ${theme.breakpoints[2]})`;
+const BREAKPOINT_MEDIA_QUERY = `(min-width: ${theme.breakpoints.large})`;
 
 class EventMetas extends Component<Props, State> {
   state: State = {
@@ -172,12 +172,12 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     margin-bottom: 0;
   }
 
   /* This should match the breakpoint chosen for BREAKPOINT_MEDIA_QUERY above. */
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     ${p =>
       p.type === 'transaction'
         ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;'
@@ -189,7 +189,7 @@ const EventDetailHeader = styled('div')<{type?: 'transaction' | 'event'}>`
 const QuickTraceContainer = styled('div')`
   grid-column: 1/4;
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     justify-self: flex-end;
     min-width: 325px;
     grid-column: unset;

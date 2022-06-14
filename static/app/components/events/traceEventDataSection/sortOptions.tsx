@@ -65,7 +65,7 @@ const Wrapper = styled(DropdownControl)`
     width: 100%;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 1/-1;
   }
 `;

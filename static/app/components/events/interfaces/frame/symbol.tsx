@@ -130,7 +130,7 @@ const Wrapper = styled('div')`
     padding-right: ${space(0.5)};
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     order: 0;
     grid-column-start: auto;
     grid-column-end: auto;
@@ -170,7 +170,7 @@ export const FunctionNameToggleIcon = styled(IconFilter, {
   cursor: pointer;
   visibility: hidden;
   display: none;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
   ${p => !p.hasFunctionNameHiddenDetails && 'opacity: 0; cursor: inherit;'};
@@ -180,7 +180,7 @@ const FunctionNameToggleTooltip = styled(Tooltip)`
   height: 16px;
   align-items: center;
   margin-right: ${space(0.75)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
