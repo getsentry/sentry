@@ -28,6 +28,11 @@ describe('SmartSearchBar', function () {
       key: 'firstRelease',
       name: 'firstRelease',
     };
+    supportedTags.is = {
+      key: 'is',
+      name: 'is',
+    };
+
     organization = TestStubs.Organization({id: '123'});
 
     location = {
@@ -992,6 +997,49 @@ describe('SmartSearchBar', function () {
           'is:unresolved sdk.name:sentry-cocoa has:key '
         );
       }
+    });
+  });
+
+  describe('Invalid field state', () => {
+    it('Shows invalid field state when invalid field is used', async () => {
+      const props = {
+        query: 'invalid:',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBarInst = searchBar.instance();
+
+      mockCursorPosition(searchBarInst, 8);
+
+      searchBarInst.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBarInst.state.searchGroups).toHaveLength(1);
+      expect(searchBarInst.state.searchGroups[0].title).toEqual('Tags');
+      expect(searchBarInst.state.searchGroups[0].type).toEqual('invalid-tag');
+      expect(searchBar.text()).toContain("The field invalid isn't supported here");
+    });
+
+    it('Does not show invalid field state when valid field is used', async () => {
+      const props = {
+        query: 'is:',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBarInst = searchBar.instance();
+
+      mockCursorPosition(searchBarInst, 3);
+
+      searchBarInst.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.text()).not.toContain("isn't supported here");
     });
   });
 });
