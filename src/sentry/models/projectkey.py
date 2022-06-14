@@ -39,9 +39,11 @@ class ProjectKeyManager(BaseManager):
         # task.
         #
         # If there is no transaction open, on_commit should run immediately.
-        transaction.on_commit(lambda: schedule_invalidate_project_config(
-            public_key=instance.public_key, trigger="projectkey.post_save"
-        ))
+        transaction.on_commit(
+            lambda: schedule_invalidate_project_config(
+                public_key=instance.public_key, trigger="projectkey.post_save"
+            )
+        )
 
     def post_delete(self, instance, **kwargs):
         # this hook may be called from model hooks during an
@@ -50,9 +52,11 @@ class ProjectKeyManager(BaseManager):
         # task.
         #
         # If there is no transaction open, on_commit should run immediately.
-        transaction.on_commit(lambda: schedule_invalidate_project_config(
-            public_key=instance.public_key, trigger="projectkey.post_delete"
-        ))
+        transaction.on_commit(
+            lambda: schedule_invalidate_project_config(
+                public_key=instance.public_key, trigger="projectkey.post_delete"
+            )
+        )
 
 
 class ProjectKey(Model):
