@@ -301,14 +301,14 @@ Sidebar.defaultProps = {
 
 const AdaptivePageCorners = styled(PageCorners)`
   --corner-scale: 1;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     --corner-scale: 0.5;
   }
 `;
 
 const StyledStepper = styled(Stepper)`
   justify-self: center;
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     display: none;
   }
 `;

@@ -181,7 +181,7 @@ const Container = styled('div')<{fullWidth: boolean}>`
   display: inline-block;
   position: relative;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     width: ${p => p.fullWidth && '100%'};
   }
 `;
