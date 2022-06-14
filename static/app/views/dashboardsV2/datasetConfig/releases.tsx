@@ -20,6 +20,7 @@ import {
 } from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
+  requiresCustomReleaseSorting,
   resolveDerivedStatusFields,
 } from '../widgetCard/releaseWidgetQueries';
 import {getSeriesName} from '../widgetCard/transformSessionsResponseToSeries';
@@ -188,6 +189,7 @@ function getTableRequest(
   // Only time we need to use sessions API is when session.status is requested
   // as a group by.
   const useSessionAPI = query.columns.includes('session.status');
+  const isCustomReleaseSorting = requiresCustomReleaseSorting(widget);
   const isDescending = query.orderby.startsWith('-');
   const rawOrderby = trimStart(query.orderby, '-');
   const unsupportedOrderby =
@@ -259,7 +261,7 @@ function getTableRequest(
       query: query.conditions,
       start,
       statsPeriod: period,
-      includeAllArgs,
+      includeAllArgs: true,
       cursor,
     };
     requester = doSessionsRequest;
@@ -278,10 +280,10 @@ function getTableRequest(
         : fieldsToDerivedMetrics(rawOrderby),
       interval,
       project: projects,
-      query: query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`),
+      query: query.conditions,
       start,
       statsPeriod: period,
-      includeAllArgs,
+      includeAllArgs: true,
       cursor,
       includeSeries,
       includeTotals,

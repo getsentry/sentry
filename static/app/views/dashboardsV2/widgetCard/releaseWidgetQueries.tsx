@@ -120,6 +120,12 @@ export function resolveDerivedStatusFields(
   return {aggregates, derivedStatusFields, injectedFields};
 }
 
+export function requiresCustomReleaseSorting(widget: Widget): boolean {
+  const useMetricsAPI = !!!widget.queries[0].columns.includes('session.status');
+  const rawOrderby = trimStart(widget.queries[0].orderby, '-');
+  return useMetricsAPI && rawOrderby === 'release';
+}
+
 class ReleaseWidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
@@ -134,7 +140,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   componentDidMount() {
     this._isMounted = true;
 
-    if (this.requiresCustomReleaseSorting()) {
+    if (requiresCustomReleaseSorting(this.props.widget)) {
       this.fetchReleasesAndData();
       return;
     }
@@ -157,7 +163,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
 
     if (
-      this.requiresCustomReleaseSorting() &&
+      requiresCustomReleaseSorting(widget) &&
       (!isEqual(
         widget.queries.map(q => q.orderby),
         prevProps.widget.queries.map(q => q.orderby)
@@ -242,13 +248,6 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     }
   }
 
-  requiresCustomReleaseSorting() {
-    const {widget} = this.props;
-    const useMetricsAPI = !!!widget.queries[0].columns.includes('session.status');
-    const rawOrderby = trimStart(widget.queries[0].orderby, '-');
-    return useMetricsAPI && rawOrderby === 'release';
-  }
-
   async fetchReleasesAndData() {
     const {selection, api, organization} = this.props;
     const {environments, projects} = selection;
@@ -279,11 +278,11 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   fetchData() {
-    const {selection, api, organization, widget, includeAllArgs, cursor, onDataFetched} =
-      this.props;
+    const {selection, api, organization, widget, cursor, onDataFetched} = this.props;
     const {releases} = this.state;
-    const isCustomReleaseSorting = this.requiresCustomReleaseSorting();
+    const isCustomReleaseSorting = requiresCustomReleaseSorting(widget);
     const isDescending = widget.queries[0].orderby.startsWith('-');
+    const useSessionAPI = widget.queries[0].columns.includes('session.status');
 
     if (widget.displayType === DisplayType.WORLD_MAP) {
       this.setState({errorMessage: t('World Map is not supported by metrics.')});
@@ -330,6 +329,13 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           releasesArray.reverse();
         }
       }
+    }
+
+    if (!useSessionAPI) {
+      widget.queries.forEach(query => {
+        query.conditions =
+          query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`);
+      });
     }
 
     const promises: Promise<
