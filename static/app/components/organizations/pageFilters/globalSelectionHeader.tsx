@@ -421,11 +421,11 @@ const Header = styled('div')`
 
   background: ${p => p.theme.headerBackground};
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  @media (min-width: ${p => p.theme.breakpoints[0]} and max-width: ${p =>
-      p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small} and max-width: ${p =>
+      p.theme.breakpoints.medium}) {
     margin-top: 54px;
   }
-  @media (max-width: calc(${p => p.theme.breakpoints[0]} - 1px)) {
+  @media (max-width: calc(${p => p.theme.breakpoints.small} - 1px)) {
     margin-top: 0;
   }
 `;
