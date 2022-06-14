@@ -23,7 +23,7 @@ const sortByOptions = {
   'recent-last': t('Recent last'),
 };
 
-const displayOptions = {
+export const displayOptions = {
   'absolute-addresses': t('Absolute addresses'),
   'absolute-file-paths': t('Absolute file paths'),
   minified: t('Unsymbolicated'),

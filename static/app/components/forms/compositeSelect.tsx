@@ -143,7 +143,6 @@ function CompositeSelect<OptionType extends GeneralSelectValue = GeneralSelectVa
     return newValues.flat();
   }
 
-  console.log({options});
   return (
     <CompactSelect<ExtendedOptionType>
       {...props}
