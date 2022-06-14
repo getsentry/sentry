@@ -166,12 +166,15 @@ def schedule_update_config_cache(
     )
 
 
+# Some projects have in the order of 150k ProjectKey entries.  We should compute these in
+# batches, but for now we just have a large timeout and don't compute at all for
+# organisations.
 @instrumented_task(
     name="sentry.tasks.relay.build_project_config",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=TASK_SOFT_LIMIT,
-    time_limit=TASK_HARD_LIMIT,
+    soft_time_limit=25 * 60,  # 25mins
+    time_limit=25 * 60 + 5,
 )
 def build_project_config(public_key=None, trigger=None, **kwargs):
     """Build a project config and put it in the Redis cache.
