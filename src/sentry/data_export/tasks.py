@@ -8,7 +8,7 @@ import celery
 import sentry_sdk
 
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
-if celery.version_info >= (5, 2) <= (6):
+if celery.version_info >= (5, 2):
     from celery import current_task
 else:
     from celery.task import current as current_task
