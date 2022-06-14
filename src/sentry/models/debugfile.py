@@ -44,6 +44,7 @@ from sentry.db.models import (
 )
 from sentry.models.file import File, clear_cached_files
 from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
+from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
 
 if TYPE_CHECKING:
@@ -191,6 +192,8 @@ class ProjectDebugFile(Model):  # type: ignore
             return ".bcsymbolmap"
         if self.file_format == "uuidmap":
             return ".plist"
+        if self.file_format == "il2cpp":
+            return ".json"
 
         return ""
 
@@ -268,6 +271,7 @@ def create_dif_from_id(
         "sourcebundle",
         "bcsymbolmap",
         "uuidmap",
+        "il2cpp",
     ):
         object_name = meta.name
     elif meta.file_format == "breakpad":
@@ -414,6 +418,7 @@ class DifKind(enum.Enum):
     Object = enum.auto()
     BcSymbolMap = enum.auto()
     UuidMap = enum.auto()
+    Il2Cpp = enum.auto()
     # TODO(flub): should we include proguard?  The tradeoff is that we'd be matching the
     # regex of it twice.  That cost is probably not too great to worry about.
 
@@ -429,6 +434,8 @@ def determine_dif_kind(path: str) -> DifKind:
             return DifKind.BcSymbolMap
         elif data.startswith(b"<?xml"):
             return DifKind.UuidMap
+        elif data.startswith(b"{"):  # lol
+            return DifKind.Il2Cpp
         else:
             return DifKind.Object
 
@@ -505,6 +512,20 @@ def detect_dif_from_path(
             logger.debug("File loaded as UUIDMap: %s", path)
             return [
                 DifMeta(file_format="uuidmap", arch="any", debug_id=debug_id, name=name, path=path)
+            ]
+    elif dif_kind == DifKind.Il2Cpp:
+        if debug_id is None:
+            raise BadDif("Missing debug_id for il2cpp")
+        try:
+            with open(path, "rb") as fp:
+                json.load(fp)
+        except json.JSONDecodeError as e:
+            logger.debug("File failed to load as il2cpp: %s", path)
+            raise BadDif("Invalid il2cpp: %s" % e)
+        else:
+            logger.debug("File loaded as il2cpp: %s", path)
+            return [
+                DifMeta(file_format="il2cpp", arch="any", debug_id=debug_id, name=name, path=path)
             ]
     else:
         # native debug information files (MachO, ELF or Breakpad)

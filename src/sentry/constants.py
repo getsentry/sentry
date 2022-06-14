@@ -289,6 +289,7 @@ KNOWN_DIF_FORMATS: Dict[str, str] = {
     "application/x-sentry-bundle+zip": "sourcebundle",
     "application/x-bcsymbolmap": "bcsymbolmap",
     "application/x-debugid-map": "uuidmap",
+    "application/x-il2cpp-json": "il2cpp",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"
