@@ -53,8 +53,6 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
     // Fix incident label font family, cannot use Rubik
     if (areaSeries.markLine?.label) {
       areaSeries.markLine.label.fontFamily = DEFAULT_FONT_FAMILY;
-      areaSeries.markLine.label.position = 'insideEndTop';
-      areaSeries.markLine.label.distance = 3;
     }
 
     return areaSeries;
