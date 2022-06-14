@@ -311,4 +311,18 @@ describe('TimeRangeSelector', function () {
       end: new Date('2017-10-17T23:59:59.000Z'),
     });
   });
+
+  it('uses the current absolute date if provided', async function () {
+    wrapper = createWrapper({
+      start: new Date('2022-06-12T00:00:00.000Z'),
+      end: new Date('2022-06-14T00:00:00.000Z'),
+    });
+
+    await wrapper.find('HeaderItem').simulate('click');
+    await wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
+
+    wrapper.find('AutoCompleteItem[data-test-id="absolute"]').simulate('click');
+    // On change should not be called because start/end did not change
+    expect(onChange).not.toHaveBeenCalled();
+  });
 });
