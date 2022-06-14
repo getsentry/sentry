@@ -5,7 +5,13 @@ from contextlib import contextmanager
 from functools import wraps
 from typing import Any, Callable, Sequence, Type
 
-from celery.task import current
+# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+import celery
+
+if celery.version_info >= (5, 2):
+    from celery import current_task
+else:
+    from celery.task import current as current_task
 
 from sentry.celery import app
 from sentry.utils import metrics
@@ -85,7 +91,7 @@ def retry(
                 raise
             except on as exc:
                 capture_exception()
-                current.retry(exc=exc)
+                current_task.retry(exc=exc)
 
         return wrapped
 
