@@ -319,6 +319,7 @@ function WidgetBuilder({
           : DataSet.EVENTS,
         limit: newLimit,
       });
+      setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
       setWidgetToBeUpdated(widgetFromDashboard);
     }
     // This should only run once on mount
@@ -419,27 +420,10 @@ function WidgetBuilder({
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const normalized = normalizeQueries({
-        displayType: newDisplayType,
-        queries: prevState.queries,
-        widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
-        widgetBuilderNewDesign,
-      });
 
-      if (newDisplayType === DisplayType.TOP_N) {
-        // TOP N display should only allow a single query
-        normalized.splice(1);
-      }
-
-      if (
-        (prevState.displayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType &&
-          WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES) ||
-        (prevState.dataSet === DataSet.RELEASES &&
-          newDisplayType === DisplayType.WORLD_MAP)
-      ) {
-        // World Map display type only supports Events Dataset
-        // so set state to default events query.
+      if (!!!datasetConfig.supportedDisplayTypes.includes(newDisplayType)) {
+        // Set to Events dataset if Display Type is not supported by
+        // current dataset
         set(
           newState,
           'queries',
@@ -455,18 +439,19 @@ function WidgetBuilder({
         return {...newState, errors: undefined};
       }
 
-      if (!prevState.userHasModified) {
-        // If the Widget is an issue widget,
-        if (
-          newDisplayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType === WidgetType.ISSUE
-        ) {
-          set(newState, 'queries', widgetToBeUpdated.queries);
-          set(newState, 'dataSet', DataSet.ISSUES);
-          setDataSetConfig(getDatasetConfig(WidgetType.ISSUE));
-          return {...newState, errors: undefined};
-        }
+      const normalized = normalizeQueries({
+        displayType: newDisplayType,
+        queries: prevState.queries,
+        widgetType: DATA_SET_TO_WIDGET_TYPE[prevState.dataSet],
+        widgetBuilderNewDesign,
+      });
 
+      if (newDisplayType === DisplayType.TOP_N) {
+        // TOP N display should only allow a single query
+        normalized.splice(1);
+      }
+
+      if (!prevState.userHasModified) {
         // Default widget provided by Add to Dashboard from Discover
         if (defaultWidgetQuery && defaultTableColumns) {
           // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
@@ -499,11 +484,6 @@ function WidgetBuilder({
             });
           }
         }
-      }
-
-      if (prevState.dataSet === DataSet.ISSUES) {
-        set(newState, 'dataSet', DataSet.EVENTS);
-        setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
       }
 
       set(newState, 'queries', normalized);
@@ -1266,11 +1246,11 @@ const Body = styled(Layout.Body)`
 
   grid-template-rows: 1fr;
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(100px, auto) 400px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 1fr;
   }
 `;
@@ -1285,11 +1265,11 @@ const Main = styled(Layout.Main)`
 
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(4)};
   }
 
-  @media (max-width: calc(${p => p.theme.breakpoints[2]} + ${space(4)})) {
+  @media (max-width: calc(${p => p.theme.breakpoints.large} + ${space(4)})) {
     ${ListItem} {
       width: calc(100% - ${space(4)});
     }
@@ -1299,14 +1279,14 @@ const Main = styled(Layout.Main)`
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     border-top: 1px solid ${p => p.theme.gray200};
     grid-row: 2/2;
     grid-column: 1/-1;
     max-width: 100%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
@@ -1319,7 +1299,7 @@ const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-column: 1/-1;
   }
 `;

@@ -280,7 +280,7 @@ class ResultsChartContainer extends Component<ContainerProps> {
 export default withApi(ResultsChartContainer);
 
 const StyledPanel = styled(Panel)`
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     margin: 0;
   }
 `;

@@ -1557,6 +1557,13 @@ class HistogramQueryBuilder(QueryBuilder):
         return base_groupby
 
 
+class SessionsQueryBuilder(QueryBuilder):
+    def resolve_params(self) -> List[WhereType]:
+        conditions = super().resolve_params()
+        conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
+        return conditions
+
+
 class MetricsQueryBuilder(QueryBuilder):
     def __init__(
         self,
