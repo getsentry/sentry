@@ -13,7 +13,6 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -233,7 +232,7 @@ const StyledPanelTable = styled(PanelTable)`
 `;
 
 const AlertNameContainer = styled('div')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const AlignRight = styled('div')`

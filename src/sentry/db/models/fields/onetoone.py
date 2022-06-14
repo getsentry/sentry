@@ -1,9 +1,9 @@
+from typing import Any
+
 from django.db import models
 from django.db.models import OneToOneField
 
 __all__ = ("OneToOneCascadeDeletes",)
-
-from sentry.utils.types import Any
 
 
 class OneToOneCascadeDeletes(OneToOneField):  # type: ignore

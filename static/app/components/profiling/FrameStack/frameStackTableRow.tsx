@@ -28,6 +28,7 @@ interface FrameStackTableRowProps {
     opts?: {expandChildren: boolean}
   ) => void;
   onKeyDown: React.KeyboardEventHandler<HTMLDivElement>;
+  onMouseEnter: React.MouseEventHandler<HTMLDivElement>;
   referenceNode: FlamegraphFrame;
   style: React.CSSProperties;
   tabIndex: number;
@@ -44,6 +45,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
       tabIndex,
       onKeyDown,
       onClick,
+      onMouseEnter,
       style,
     },
     ref
@@ -69,6 +71,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
         isSelected={tabIndex === 0}
         onKeyDown={onKeyDown}
         onClick={onClick}
+        onMouseEnter={onMouseEnter}
       >
         <FrameCallersTableCell textAlign="right">
           {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
@@ -106,7 +109,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
           style={{paddingLeft: node.depth * 14 + 8, width: '100%'}}
         >
           <FrameNameContainer>
-            <FrameColorIndicator backgroundColor={colorString} />
+            <FrameColorIndicator style={{backgroundColor: colorString}} />
             <FrameChildrenIndicator
               tabIndex={-1}
               onClick={handleExpanding}
@@ -123,7 +126,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
 );
 
 const Weight = styled((props: {isSelected: boolean; weight: number}) => {
-  const {weight, ...rest} = props;
+  const {weight, isSelected: _, ...rest} = props;
   return (
     <div {...rest}>
       {weight.toFixed(1)}%
@@ -178,13 +181,7 @@ const BackgroundWeightBar = styled('div')`
 const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: 100%;
-
-  background-color: ${p => (p.isSelected ? p.theme.blue300 : 'transparent')};
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
-
-  &:hover {
-    background-color: ${p => (p.isSelected ? p.theme.blue300 : p.theme.blue100)};
-  }
 
   &:focus {
     outline: none;
@@ -197,8 +194,8 @@ const FrameNameContainer = styled('div')`
 `;
 
 const FrameChildrenIndicator = styled('button')<{open: boolean}>`
-  width: 1ch;
-  height: 1ch;
+  width: 10px;
+  height: 10px;
   display: flex;
   padding: 0;
   border: none;
@@ -213,14 +210,11 @@ const FrameName = styled('span')`
   margin-left: ${space(0.5)};
 `;
 
-const FrameColorIndicator = styled('div')<{
-  backgroundColor: React.CSSProperties['backgroundColor'];
-}>`
+const FrameColorIndicator = styled('div')`
   width: 12px;
   height: 12px;
   border-radius: 2px;
   display: inline-block;
   flex-shrink: 0;
-  background-color: ${p => p.backgroundColor};
-  margin-right: ${space(1)};
+  margin-right: ${space(0.5)};
 `;

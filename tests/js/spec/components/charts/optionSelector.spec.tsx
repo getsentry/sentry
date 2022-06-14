@@ -105,7 +105,7 @@ describe('EventsV2 > OptionSelector (Multiple)', function () {
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',
-      'avg(transaction.duration)',
+      'count_unique(user)',
     ]);
   });
 });

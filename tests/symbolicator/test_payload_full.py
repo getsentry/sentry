@@ -10,8 +10,9 @@ from django.urls import reverse
 from sentry import eventstore
 from sentry.models import File, ProjectDebugFile
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.symbolicator import get_fixture_path, insta_snapshot_stacktrace_data
+from tests.symbolicator import insta_snapshot_stacktrace_data
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -89,7 +90,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
 
         out = BytesIO()
         f = zipfile.ZipFile(out, "w")
-        f.write(get_fixture_path("hello.dsym"), "dSYM/hello")
+        f.write(get_fixture_path("native", "hello.dsym"), "dSYM/hello")
         f.close()
 
         response = self.client.post(
@@ -115,7 +116,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
         )
 
-        path = get_fixture_path("windows.sym")
+        path = get_fixture_path("native", "windows.sym")
         with open(path, "rb") as f:
             file.putfile(f)
 
@@ -194,7 +195,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
             name="crash.pdb", type="default", headers={"Content-Type": "text/x-breakpad"}
         )
 
-        path = get_fixture_path("windows.sym")
+        path = get_fixture_path("native", "windows.sym")
         with open(path, "rb") as f:
             file.putfile(f)
 

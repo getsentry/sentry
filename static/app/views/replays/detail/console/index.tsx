@@ -35,16 +35,25 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
   );
 
   const activeConsoleBounds = useMemo(() => {
-    if (filteredBreadcrumbs.length <= 0) {
+    if (filteredBreadcrumbs.length <= 0 || currentHoverTime === undefined) {
       return [-1, -1];
     }
 
-    const indexUpperBound =
-      filteredBreadcrumbs.findIndex(
-        breadcrumb =>
-          relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp) >=
-          (currentHoverTime || -1)
-      ) - 1;
+    let indexUpperBound = 0;
+    const finalBreadCrumbIndex = filteredBreadcrumbs.length - 1;
+    const finalBreadcrumbTimestamp =
+      filteredBreadcrumbs[finalBreadCrumbIndex].timestamp || '';
+
+    if (currentHoverTime >= relativeTimeInMs(finalBreadcrumbTimestamp, startTimestamp)) {
+      indexUpperBound = finalBreadCrumbIndex;
+    } else {
+      indexUpperBound =
+        filteredBreadcrumbs.findIndex(
+          breadcrumb =>
+            relativeTimeInMs(breadcrumb.timestamp || '', startTimestamp) >=
+            (currentHoverTime || 0)
+        ) - 1;
+    }
 
     const activeMessageBoundary = showPlayerTime(
       filteredBreadcrumbs[indexUpperBound]?.timestamp || '',

@@ -8,7 +8,9 @@ import {
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ItemType, SearchGroup, SearchItem} from './types';
+import HotkeysLabel from '../hotkeysLabel';
+
+import {ItemType, QuickAction, QuickActionType, SearchGroup, SearchItem} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -113,11 +115,13 @@ export function createSearchGroups(
 
   if (queryCharsLeft || queryCharsLeft === 0) {
     searchItems = searchItems.filter(
-      (value: SearchItem) => value.value.length <= queryCharsLeft
+      (value: SearchItem) =>
+        typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
     );
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
-        (value: SearchItem) => value.value.length <= queryCharsLeft
+        (value: SearchItem) =>
+          typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
       );
     }
   }
@@ -246,4 +250,79 @@ export function getValidOps(
   );
 
   return [...validOps];
+}
+
+export const quickActions: QuickAction[] = [
+  {
+    text: 'Delete',
+    actionType: QuickActionType.Delete,
+    hotkeys: {
+      actual: 'option+backspace',
+      display: 'option+backspace',
+    },
+    canRunAction: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Negate',
+    actionType: QuickActionType.Negate,
+    hotkeys: {
+      actual: ['option+1', 'cmd+1'],
+      display: 'option+!',
+    },
+    canRunAction: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Previous',
+    actionType: QuickActionType.Previous,
+    hotkeys: {
+      actual: ['option+left'],
+      display: 'option+left',
+    },
+    canRunAction: (tok, count) => {
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    },
+  },
+  {
+    text: 'Next',
+    actionType: QuickActionType.Next,
+    hotkeys: {
+      actual: ['option+right'],
+      display: 'option+right',
+    },
+    canRunAction: (tok, count) => {
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    },
+  },
+];
+
+export function getQuickActionsSearchGroup(
+  runTokenActionOnCursorToken: (action: QuickAction) => void,
+  filterTokenCount: number,
+  activeToken?: TokenResult<any>
+): {searchGroup: SearchGroup; searchItems: SearchItem[]} | undefined {
+  const searchItems = quickActions
+    .filter(
+      action => !action.canRunAction || action.canRunAction(activeToken, filterTokenCount)
+    )
+    .map(action => ({
+      title: action.text,
+      callback: () => runTokenActionOnCursorToken(action),
+      documentation: action.hotkeys && <HotkeysLabel value={action.hotkeys.display} />,
+    }));
+
+  return searchItems.length > 0 && filterTokenCount > 0
+    ? {
+        searchGroup: {
+          title: t('Quick Actions'),
+          type: 'header',
+          icon: <IconStar size="xs" />,
+          children: searchItems,
+        },
+        searchItems,
+      }
+    : undefined;
 }
