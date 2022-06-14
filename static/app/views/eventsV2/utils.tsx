@@ -437,7 +437,7 @@ function generateExpandedConditions(
 }
 
 type FieldGeneratorOpts = {
-  organization: Organization | OrganizationSummary;
+  organization: OrganizationSummary;
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
   measurementKeys?: string[] | null;

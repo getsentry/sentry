@@ -17,10 +17,7 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {
-  MOBILE_MEASUREMENTS,
-  WEB_MEASUREMENTS,
-} from 'sentry/utils/measurements/measurements';
+import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -69,7 +66,7 @@ function getEventsTableFieldOptions(
   tags?: TagCollection
 ) {
   const organization = contextualProps?.organization!;
-  const measurements = {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
+  const measurements = getMeasurements();
 
   return generateFieldOptions({
     organization,
