@@ -14,7 +14,7 @@ import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
 import {settingsEventMap, SettingsEventParameters} from './settingsAnalyticsEvents';
 import {TeamInsightsEventParameters, workflowEventMap} from './workflowAnalyticsEvents';
 
-interface EventParameters
+export interface AnalyticsEventParameters
   extends GrowthEventParameters,
     CoreUIEventParameters,
     DashboardsEventParameters,
@@ -24,10 +24,9 @@ interface EventParameters
     SearchEventParameters,
     SettingsEventParameters,
     SamplingEventParameters,
-    TeamInsightsEventParameters,
-    Record<string, Record<string, any>> {}
+    TeamInsightsEventParameters {}
 
-const allEventMap: Record<string, string | null> = {
+const allEventMap: Record<keyof AnalyticsEventParameters, string | null> = {
   ...coreUIEventMap,
   ...dashboardsEventMap,
   ...discoverEventMap,
@@ -45,6 +44,6 @@ const allEventMap: Record<string, string | null> = {
  * Generic typed analytics function for growth, issue, and performance events.
  * Can split up analytics functions to a smaller set of events like we do for trackIntegrationAnalytics
  */
-const trackAdvancedAnalyticsEvent = makeAnalyticsFunction<EventParameters>(allEventMap);
+const trackAdvancedAnalyticsEvent = makeAnalyticsFunction(allEventMap);
 
 export default trackAdvancedAnalyticsEvent;
