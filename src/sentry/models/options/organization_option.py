@@ -69,9 +69,11 @@ class OrganizationOptionManager(OptionManager["Organization"]):
             # task.
             #
             # If there is no transaction open, on_commit should run immediately.
-            transaction.on_commit(lambda: schedule_invalidate_project_config( 
-                organization_id=organization_id, trigger=update_reason
-            ))
+            transaction.on_commit(
+                lambda: schedule_invalidate_project_config(
+                    organization_id=organization_id, trigger=update_reason
+                )
+            )
 
         cache_key = self._make_key(organization_id)
         result = {i.key: i.value for i in self.filter(organization=organization_id)}
