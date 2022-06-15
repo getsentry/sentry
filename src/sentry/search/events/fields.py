@@ -2293,13 +2293,15 @@ class MetricArg(FunctionArg):
         self,
         name: str,
         allowed_columns: Optional[Sequence[str]] = None,
-        allow_custom_measurements: Optional[bool] = False,
+        allow_custom_measurements: Optional[bool] = True,
         validate_only: Optional[bool] = True,
     ):
         """
         :param name: The name of the function, this refers to the name to invoke.
         :param allowed_columns: Optional list of columns to allowlist, an empty sequence
         or None means allow all columns
+        :param allow_custom_measurements: Optional boolean to allow any columns that start
+        with measurements.*
         :param validate_only: Run normalize, and raise any errors involved but don't change
         the value in any way and return it as-is
         """

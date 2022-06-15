@@ -82,7 +82,6 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.MetricArg(
                             "column",
                             allowed_columns=constants.METRIC_DURATION_COLUMNS,
-                            allow_custom_measurements=True,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
@@ -104,7 +103,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_miserable",
-                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
+                    required_args=[
+                        fields.MetricArg(
+                            "column", allowed_columns=["user"], allow_custom_measurements=False
+                        )
+                    ],
                     calculated_args=[resolve_metric_id],
                     snql_set=self._resolve_count_miserable_function,
                     default_result_type="integer",
@@ -122,9 +125,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=True,
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
                             ),
                         ),
                     ],
@@ -140,9 +141,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=True,
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
                             ),
                         ),
                     ],
@@ -158,9 +157,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=True,
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
                             ),
                         ),
                     ],
@@ -176,9 +173,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=True,
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
                             ),
                         ),
                     ],
@@ -194,9 +189,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=True,
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
                             ),
                         ),
                     ],
@@ -212,9 +205,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=True,
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
                             ),
                         ),
                     ],
@@ -273,9 +264,7 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column",
-                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
-                                allow_custom_measurements=True,
+                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
                             ),
                         ),
                         fields.NumberRange("percentile", 0, 1),
@@ -286,7 +275,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_unique",
-                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
+                    required_args=[
+                        fields.MetricArg(
+                            "column", allowed_columns=["user"], allow_custom_measurements=False
+                        )
+                    ],
                     calculated_args=[resolve_metric_id],
                     snql_set=lambda args, alias: Function(
                         "uniqIf",
@@ -328,6 +321,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.fid",
                                 "measurements.cls",
                             ],
+                            allow_custom_measurements=False,
                         ),
                         fields.SnQLStringArg(
                             "quality", allowed_strings=["good", "meh", "poor", "any"]
