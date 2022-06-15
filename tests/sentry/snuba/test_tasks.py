@@ -20,7 +20,7 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
-    build_snql_query,
+    build_query_builder,
     build_snuba_filter,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
@@ -681,7 +681,7 @@ class BuildSnqlQueryTest(TestCase):
             time_window=time_window,
             extra_fields=entity_extra_fields,
         )
-        snql_query = build_snql_query(
+        snql_query = build_query_builder(
             entity_subscription,
             query,
             (self.project.id,),
@@ -690,7 +690,7 @@ class BuildSnqlQueryTest(TestCase):
                 "organization_id": self.organization.id,
                 "project_id": [self.project.id],
             },
-        )
+        ).get_snql_query()
         select = [self.string_aggregate_to_snql(dataset, aggregate)]
         if dataset == QueryDatasets.SESSIONS:
             col_name = "sessions" if "sessions" in aggregate else "users"
