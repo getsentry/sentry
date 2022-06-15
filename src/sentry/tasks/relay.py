@@ -2,7 +2,6 @@ import logging
 
 import sentry_sdk
 from django.conf import settings
-from django.db import transaction
 
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.tasks.base import instrumented_task
