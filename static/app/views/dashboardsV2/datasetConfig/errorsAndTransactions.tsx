@@ -207,11 +207,7 @@ function getTableRequest(
   const isMEPEnabled =
     contextualProps?.organization?.features.includes('dashboards-mep') ?? false;
 
-  const eventView = eventViewFromWidget(
-    widget.title,
-    query,
-    contextualProps?.pageFilters!
-  );
+  const eventView = eventViewFromWidget('', query, contextualProps?.pageFilters!);
 
   const params: DiscoverQueryRequestParams = {
     per_page: limit ?? DEFAULT_TABLE_LIMIT,
