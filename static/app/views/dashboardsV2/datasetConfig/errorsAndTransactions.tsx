@@ -27,7 +27,7 @@ import {
   transformSeries,
 } from '../widgetCard/widgetQueries';
 
-import {ContextualProps, DatasetConfig} from './base';
+import {ContextualProps, DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -48,6 +48,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   getTableFieldOptions: getEventsTableFieldOptions,
+  handleOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,

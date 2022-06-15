@@ -30,7 +30,6 @@ import {
   Organization,
   PageFilters,
   SelectValue,
-  SessionField,
   TagCollection,
 } from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
@@ -43,8 +42,6 @@ import {
   getColumnsAndAggregatesAsStrings,
   isEquation,
   QueryFieldValue,
-  stripDerivedMetricsPrefix,
-  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
@@ -611,50 +608,38 @@ function WidgetBuilder({
     });
   }
 
-  function handleYAxisOrColumnFieldChange(
-    newFields: QueryFieldValue[],
-    isColumn = false
-  ) {
-    const fieldStrings = newFields
-      .map(generateFieldAsString)
-      .map(field =>
-        state.dataSet === DataSet.RELEASES ? stripDerivedMetricsPrefix(field) : field
-      );
+  function handleColumnFieldChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
+    const splitFields = getColumnsAndAggregatesAsStrings(newFields);
+    const newState = cloneDeep(state);
+    let newQuery = cloneDeep(newState.queries[0]);
 
-    const columnsAndAggregates = isColumn
-      ? getColumnsAndAggregatesAsStrings(newFields)
-      : undefined;
+    newQuery.fields = fieldStrings;
+    newQuery.aggregates = splitFields.aggregates;
+    newQuery.columns = splitFields.columns;
+    newQuery.fieldAliases = splitFields.fieldAliases;
 
+    if (datasetConfig.handleColumnFieldChangeOverride) {
+      newQuery = datasetConfig.handleColumnFieldChangeOverride(newQuery);
+    }
+
+    if (datasetConfig.handleOrderByReset) {
+      newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
+    }
+
+    set(newState, 'queries', [newQuery]);
+    set(newState, 'userHasModified', true);
+    setState(newState);
+  }
+
+  function handleYAxisChange(newFields: QueryFieldValue[]) {
+    const fieldStrings = newFields.map(generateFieldAsString);
     const newState = cloneDeep(state);
 
-    const disableSortBy =
-      widgetType === WidgetType.RELEASE && fieldStrings.includes('session.status');
-
     const newQueries = state.queries.map(query => {
-      const isDescending = query.orderby.startsWith('-');
-      const orderbyPrefix = isDescending ? '-' : '';
-      const rawOrderby = trimStart(query.orderby, '-');
-      const prevAggregateFieldStrings = query.aggregates.map(aggregate =>
-        state.dataSet === DataSet.RELEASES
-          ? stripDerivedMetricsPrefix(aggregate)
-          : aggregate
-      );
-      const newQuery = cloneDeep(query);
+      let newQuery = cloneDeep(query);
 
-      if (disableSortBy) {
-        newQuery.orderby = '';
-      }
-
-      if (isColumn) {
-        newQuery.fields = fieldStrings;
-        newQuery.aggregates = columnsAndAggregates?.aggregates ?? [];
-        if (state.dataSet === DataSet.RELEASES && newQuery.aggregates.length === 0) {
-          // Release Health widgets require an aggregate in tables
-          const defaultReleaseHealthAggregate = `crash_free_rate(${SessionField.SESSION})`;
-          newQuery.aggregates = [defaultReleaseHealthAggregate];
-          newQuery.fields = [...newQuery.fields, defaultReleaseHealthAggregate];
-        }
-      } else if (state.displayType === DisplayType.TOP_N) {
+      if (state.displayType === DisplayType.TOP_N) {
         // Top N queries use n-1 fields for columns and the nth field for y-axis
         newQuery.fields = [
           ...(newQuery.fields?.slice(0, newQuery.fields.length - 1) ?? []),
@@ -669,46 +654,8 @@ function WidgetBuilder({
         newQuery.aggregates = fieldStrings;
       }
 
-      // Prevent overwriting columns when setting y-axis for time series
-      if (!(widgetBuilderNewDesign && isTimeseriesChart) && isColumn) {
-        newQuery.columns = columnsAndAggregates?.columns ?? [];
-      }
-
-      if (!fieldStrings.includes(rawOrderby) && query.orderby !== '') {
-        if (
-          !widgetBuilderNewDesign &&
-          prevAggregateFieldStrings.length === newFields.length &&
-          prevAggregateFieldStrings.includes(rawOrderby)
-        ) {
-          // The aggregate that was used in orderby has changed. Get the new field.
-          let newOrderByValue =
-            fieldStrings[prevAggregateFieldStrings.indexOf(rawOrderby)];
-
-          if (!stripEquationPrefix(newOrderByValue ?? '')) {
-            newOrderByValue = '';
-          }
-
-          newQuery.orderby = `${orderbyPrefix}${newOrderByValue}`;
-        } else {
-          const isFromAggregates = newQuery.aggregates.includes(rawOrderby);
-          const isCustomEquation = isEquation(rawOrderby);
-          const isUsedInGrouping = newQuery.columns.includes(rawOrderby);
-
-          const keepCurrentOrderby =
-            isFromAggregates || isCustomEquation || isUsedInGrouping;
-          const firstAggregateAlias = isEquation(newQuery.aggregates[0] ?? '')
-            ? `equation[${getNumEquations(newQuery.aggregates) - 1}]`
-            : fieldStrings[0];
-
-          newQuery.orderby = widgetBuilderNewDesign
-            ? (keepCurrentOrderby && newQuery.orderby) ||
-              `${orderbyPrefix}${firstAggregateAlias}`
-            : '';
-        }
-      }
-
-      if (widgetBuilderNewDesign) {
-        newQuery.fieldAliases = columnsAndAggregates?.fieldAliases ?? [];
+      if (datasetConfig.handleOrderByReset) {
+        newQuery = datasetConfig.handleOrderByReset(newQuery, fieldStrings);
       }
 
       return newQuery;
@@ -717,22 +664,20 @@ function WidgetBuilder({
     set(newState, 'queries', newQueries);
     set(newState, 'userHasModified', true);
 
-    if (widgetBuilderNewDesign && isTimeseriesChart) {
-      const groupByFields = newState.queries[0].columns.filter(
-        field => !(field === 'equation|')
+    const groupByFields = newState.queries[0].columns.filter(
+      field => !(field === 'equation|')
+    );
+    if (groupByFields.length === 0) {
+      set(newState, 'limit', undefined);
+    } else {
+      set(
+        newState,
+        'limit',
+        Math.min(
+          newState.limit ?? DEFAULT_RESULTS_LIMIT,
+          getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
+        )
       );
-      if (groupByFields.length === 0) {
-        set(newState, 'limit', undefined);
-      } else {
-        set(
-          newState,
-          'limit',
-          Math.min(
-            newState.limit ?? DEFAULT_RESULTS_LIMIT,
-            getResultsLimit(newQueries.length, newQueries[0].aggregates.length)
-          )
-        );
-      }
     }
 
     setState(newState);
@@ -1123,9 +1068,7 @@ function WidgetBuilder({
                       widgetType={widgetType}
                       queryErrors={state.errors?.queries}
                       onQueryChange={handleQueryChange}
-                      onYAxisOrColumnFieldChange={newFields => {
-                        handleYAxisOrColumnFieldChange(newFields, true);
-                      }}
+                      handleColumnFieldChange={handleColumnFieldChange}
                       explodedFields={explodedFields}
                       tags={tags}
                       organization={organization}
@@ -1138,7 +1081,7 @@ function WidgetBuilder({
                       widgetType={widgetType}
                       queryErrors={state.errors?.queries}
                       onYAxisChange={newFields => {
-                        handleYAxisOrColumnFieldChange(newFields);
+                        handleYAxisChange(newFields);
                       }}
                       aggregates={explodedAggregates}
                       tags={tags}
