@@ -65,6 +65,11 @@ export type PerformanceEventParameters = {
   'performance_views.tour.advance': PerformanceTourParams;
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
+  'performance_views.trace_view.open_in_discover': {};
+  'performance_views.trace_view.open_transaction_details': {
+    operation: string;
+    transaction: string;
+  };
   'performance_views.trace_view.view': {};
   'performance_views.transaction_summary.change_chart_display': {
     from_chart: string;
@@ -83,6 +88,10 @@ export type PerformanceEventParameters = {
   'performance_views.trends.widget_pagination': {
     direction: string;
     widget_type: string;
+  };
+  'performance_views.vital_detail.switch_vital': {
+    from_vital: string;
+    to_vital: string;
   };
   'performance_views.vital_detail.view': {};
 };
@@ -115,7 +124,13 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.overview.view': 'Performance Views: Transaction overview view',
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
+  'performance_views.vital_detail.switch_vital':
+    'Performance Views: Vital Detail vital type switched',
   'performance_views.trace_view.view': 'Performance Views: Trace View viewed',
+  'performance_views.trace_view.open_in_discover':
+    'Performance Views: Trace View open in Discover button clicked',
+  'performance_views.trace_view.open_transaction_details':
+    'Performance Views: Trace View transaction details opened',
   'performance_views.transaction_summary.change_chart_display':
     'Performance Views: Transaction Summary chart display changed',
   'performance_views.transaction_summary.status_breakdown_click':
