@@ -26,7 +26,11 @@ from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.query import Groupable, MetricsQuery
-from sentry.snuba.metrics.query_builder import SnubaQueryBuilder, SnubaResultConverter
+from sentry.snuba.metrics.query_builder import (
+    SnubaQueryBuilder,
+    SnubaResultConverter,
+    translate_meta_results,
+)
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
     FIELD_ALIAS_MAPPINGS,
@@ -554,7 +558,9 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
             queries[key]["data"] = filtered
 
 
-def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict:
+def get_series(
+    projects: Sequence[Project], metrics_query: MetricsQuery, include_meta: bool = False
+) -> dict:
     """Get time series for the given query"""
     intervals = list(
         get_intervals(metrics_query.start, metrics_query.end, metrics_query.granularity.granularity)
@@ -704,7 +710,7 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
 
     assert projects
     converter = SnubaResultConverter(
-        projects[0].organization_id, metrics_query, fields_in_entities, intervals, results, meta
+        projects[0].organization_id, metrics_query, fields_in_entities, intervals, results
     )
 
     # Translate applies only on ["data"]
@@ -718,8 +724,8 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
 
     # Translate result meta
     result_meta = []
-    if metrics_query.include_meta:
-        result_meta = converter.merge_result_meta()
+    if include_meta:
+        result_meta = translate_meta_results(meta)
 
     return {
         "start": metrics_query.start,

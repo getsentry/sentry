@@ -542,12 +542,10 @@ class SnubaResultConverter:
         fields_in_entities: dict,
         intervals: List[datetime],
         results,
-        meta,
     ):
         self._organization_id = organization_id
         self._intervals = intervals
         self._results = results
-        self._meta = meta
         self._metrics_query = metrics_query
 
         # This is a set of all the `(op, metric_mri)` combinations passed in the metrics_query

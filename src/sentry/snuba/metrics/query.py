@@ -73,7 +73,6 @@ class MetricsQuery(MetricsQueryValidationRunner):
     offset: Optional[Offset] = None
     include_totals: bool = True
     include_series: bool = True
-    include_meta: bool = False
 
     # TODO(ahmed): These should be properties of the Histogram field. We need to extend MetricField
     #  to accept params and we should pass histogram fields as params on a specific instance of

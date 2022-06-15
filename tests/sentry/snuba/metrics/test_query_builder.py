@@ -751,10 +751,9 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
             },
         },
     }
-    meta = []
 
     assert SnubaResultConverter(
-        1, query_definition.to_metrics_query(), fields_in_entities, intervals, results, meta
+        1, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_result_groups() == [
         {
             "by": {},
@@ -826,9 +825,8 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
     intervals = list(
         get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
     )
-    meta = []
     assert SnubaResultConverter(
-        org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results, meta
+        org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
     ).translate_result_groups() == [
         {
             "by": {},
@@ -848,32 +846,32 @@ def test_get_intervals():
         list(get_intervals(MOCK_NOW - timedelta(days=1), MOCK_NOW, -3600))
 
 
-def test_merge_result_meta():
-    org_id = 1
-    query_params = MultiValueDict(
-        {
-            "field": [
-                "sum(sentry.sessions.session)",
-            ],
-            "interval": ["1d"],
-            "statsPeriod": ["3d"],
-        }
-    )
-    query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities = {}
-    results = {}
-    intervals = []
+# def test_merge_result_meta():
+#     org_id = 1
+#     query_params = MultiValueDict(
+#         {
+#             "field": [
+#                 "sum(sentry.sessions.session)",
+#             ],
+#             "interval": ["1d"],
+#             "statsPeriod": ["3d"],
+#         }
+#     )
+#     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
+#     fields_in_entities = {}
+#     results = {}
+#     intervals = []
 
-    meta = [
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
-        {"name": "tags[9223372036854776020]", "type": "UInt64"},
-        {"name": "tags[9223372036854776020]", "type": "UInt64"},
-        {"name": "project_id", "type": "UInt64"},
-    ]
-    assert SnubaResultConverter(
-        org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results, meta
-    ).merge_result_meta() == [
-        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
-        {"name": "transaction", "type": "UInt64"},
-        {"name": "project_id", "type": "UInt64"},
-    ]
+#     meta = [
+#         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+#         {"name": "tags[9223372036854776020]", "type": "UInt64"},
+#         {"name": "tags[9223372036854776020]", "type": "UInt64"},
+#         {"name": "project_id", "type": "UInt64"},
+#     ]
+#     assert SnubaResultConverter(
+#         org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
+#     ).merge_result_meta() == [
+#         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+#         {"name": "transaction", "type": "UInt64"},
+#         {"name": "project_id", "type": "UInt64"},
+#     ]
