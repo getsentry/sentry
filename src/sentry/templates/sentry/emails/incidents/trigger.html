@@ -6,12 +6,24 @@
 
 {% block activity %}
   <div class="alert-title">
-    <h3>
-      <a class="alert-title-link" href="{{ link }}">{{ status }}: {{ incident_name }}</a>
-    </h3>
-    <p class="alert-subtitle-{{ status_key }}">
-      Triggered {{ triggered_at }}
-    </p>
+    <div class="alert-badge">
+      {% if status_key == "resolved" %}
+      <!-- IconCheckmark -->
+      <img src="{% absolute_asset_url 'sentry' 'images/email/alert-badge-resolved.png' %}" width="36" height="36" alt="Alert Status: Resolved" />
+      {% elif status_key == "warning" %}
+      <!-- IconExclamation -->
+      <img src="{% absolute_asset_url 'sentry' 'images/email/alert-badge-warning.png' %}" width="36" height="36" alt="Alert Status: Warning" />
+      {% elif status_key == "critical" %}
+      <!-- IconFire -->
+      <img src="{% absolute_asset_url 'sentry' 'images/email/alert-badge-critical.png' %}" width="36" height="36" alt="Alert Status: Critical" />
+      {% endif %}
+    </div>
+    <div style="display: inline-block;">
+      <h3>
+        <a class="alert-title-link" href="{{ link }}">{{ status }}: {{ incident_name }}</a>
+      </h3>
+      <p>Triggered {{ triggered_at }}</p>
+    </div>
   </div>
 
   {% if enhanced_privacy %}
