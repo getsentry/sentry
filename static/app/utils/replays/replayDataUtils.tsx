@@ -2,7 +2,12 @@ import first from 'lodash/first';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {t} from 'sentry/locale';
-import type {BreadcrumbTypeDefault, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import type {
+  BreadcrumbTypeDefault,
+  BreadcrumbTypeNavigation,
+  Crumb,
+  RawCrumb,
+} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import type {
@@ -53,7 +58,8 @@ export function breadcrumbFactory(
   startTimestamp: number,
   rootEvent: Event,
   errors: ReplayError[],
-  rawCrumbs: ReplayCrumb[]
+  rawCrumbs: ReplayCrumb[],
+  spans: ReplaySpan[]
 ): Crumb[] {
   const {tags} = rootEvent;
   const initBreadcrumb = {
@@ -78,6 +84,38 @@ export function breadcrumbFactory(
     timestamp: error.timestamp,
   }));
 
+  const spanCrumbs: (BreadcrumbTypeDefault | BreadcrumbTypeNavigation)[] = spans
+    .filter(span =>
+      ['navigate.navigate', 'navigate.reload', 'largest-contentful-paint'].includes(
+        span.op
+      )
+    )
+    .map(span => {
+      if (span.op.startsWith('navigate')) {
+        const [, action] = span.op.split('.');
+        return {
+          category: 'default',
+          type: BreadcrumbType.NAVIGATION,
+          timestamp: new Date(span.startTimestamp * 1000).toISOString(),
+          // timestamp: new Date(span.startTimestamp).toISOString(),
+          level: BreadcrumbLevelType.INFO,
+          action,
+          message: action === 'reload' ? t('Reload') : t('Page load'),
+          data: span.data,
+        };
+      }
+
+      return {
+        type: BreadcrumbType.DEFAULT,
+        timestamp: new Date(span.startTimestamp * 1000).toISOString(),
+        level: BreadcrumbLevelType.INFO,
+        category: 'default',
+        action: span.op,
+        message: t('LCP'),
+        data: span.data,
+      };
+    });
+
   const result = transformCrumbs([
     initBreadcrumb,
     ...(rawCrumbs.map(({timestamp, ...crumb}) => ({
@@ -86,6 +124,7 @@ export function breadcrumbFactory(
       timestamp: new Date(timestamp * 1000).toISOString(),
     })) as RawCrumb[]),
     ...errorCrumbs,
+    ...spanCrumbs,
   ]);
 
   return result.sort((a, b) => +new Date(a.timestamp || 0) - +new Date(b.timestamp || 0));

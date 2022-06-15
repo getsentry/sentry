@@ -85,7 +85,7 @@ function ReplayDetails() {
           </Layout.Main>
 
           <Layout.Side>
-            <ErrorBoundary>
+            <ErrorBoundary mini>
               <UserActionsNavigator
                 crumbs={replay?.getRawCrumbs()}
                 event={replay?.getEvent()}
@@ -94,14 +94,14 @@ function ReplayDetails() {
           </Layout.Side>
 
           <StickyMain fullWidth>
-            <ErrorBoundary>
+            <ErrorBoundary mini>
               <ReplayTimeline />
             </ErrorBoundary>
             <FocusTabs />
           </StickyMain>
 
           <StyledLayoutMain fullWidth>
-            <ErrorBoundary>
+            <ErrorBoundary mini>
               <FocusArea replay={replay} />
             </ErrorBoundary>
           </StyledLayoutMain>

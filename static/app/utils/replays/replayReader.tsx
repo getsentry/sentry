@@ -59,7 +59,13 @@ export default class ReplayReader {
     );
 
     this.spans = spansFactory(spans);
-    this.breadcrumbs = breadcrumbFactory(startTimestampMS, event, errors, breadcrumbs);
+    this.breadcrumbs = breadcrumbFactory(
+      startTimestampMS,
+      event,
+      errors,
+      breadcrumbs,
+      this.spans
+    );
 
     this.rrwebEvents = rrwebEventListFactory(
       startTimestampMS,

@@ -45,14 +45,6 @@ type ContainerProps = {
   isSelected: boolean;
 };
 
-const USER_ACTIONS = [
-  BreadcrumbType.ERROR,
-  BreadcrumbType.INIT,
-  BreadcrumbType.NAVIGATION,
-  BreadcrumbType.UI,
-  BreadcrumbType.USER,
-];
-
 function UserActionsNavigator({event, crumbs}: Props) {
   const {
     setCurrentTime,
@@ -65,13 +57,11 @@ function UserActionsNavigator({event, crumbs}: Props) {
   } = useReplayContext();
 
   const startTimestamp = event?.startTimestamp || 0;
-  const userActionCrumbs =
-    crumbs?.filter(crumb => USER_ACTIONS.includes(crumb.type)) || [];
 
   const isLoaded = Boolean(event);
 
   const currentUserAction = getPrevBreadcrumb({
-    crumbs: userActionCrumbs,
+    crumbs: crumbs || [],
     targetTimestampMs: startTimestamp * 1000 + currentTime,
     allowExact: true,
   });
@@ -79,7 +69,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
   const closestUserAction =
     currentHoverTime !== undefined
       ? getPrevBreadcrumb({
-          crumbs: userActionCrumbs,
+          crumbs: crumbs || [],
           targetTimestampMs: startTimestamp * 1000 + (currentHoverTime ?? 0),
           allowExact: true,
         })
@@ -119,7 +109,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
       <PanelBody>
         {!isLoaded && <CrumbPlaceholder number={4} />}
         {isLoaded &&
-          userActionCrumbs.map(item => (
+          crumbs.map(item => (
             <PanelItemCenter
               key={item.id}
               onMouseEnter={() => onMouseEnter(item)}
