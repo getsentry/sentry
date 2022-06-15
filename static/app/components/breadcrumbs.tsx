@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
@@ -136,8 +137,8 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
   );
 };
 
-const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
-  ${p.theme.overflowEllipsis};
+const getBreadcrumbListItemStyles = (p: {theme: Theme}) => css`
+  ${p.theme.overflowEllipsis}
   color: ${p.theme.gray300};
   width: auto;
 

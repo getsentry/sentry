@@ -436,7 +436,6 @@ export class UsageChart extends Component<Props, State> {
                 show: true,
                 type: 'category',
                 name: 'Date',
-                boundaryGap: true,
                 data: xAxisData,
                 axisTick: {
                   interval: xAxisTickInterval,

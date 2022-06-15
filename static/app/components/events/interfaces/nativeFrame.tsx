@@ -366,7 +366,7 @@ const Cell = styled('div')`
 `;
 
 const StatusCell = styled(Cell)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 1/1;
     grid-row: 1/1;
   }
@@ -374,7 +374,7 @@ const StatusCell = styled(Cell)`
 
 const PackageCell = styled(Cell)`
   color: ${p => p.theme.subText};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/2;
     grid-row: 1/1;
     display: grid;
@@ -385,14 +385,14 @@ const PackageCell = styled(Cell)`
 
 const AddressCell = styled(Cell)`
   font-family: ${p => p.theme.text.familyMono};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 3/3;
     grid-row: 1/1;
   }
 `;
 
 const GroupingCell = styled(Cell)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 1/1;
     grid-row: 2/2;
   }
@@ -400,7 +400,7 @@ const GroupingCell = styled(Cell)`
 
 const FunctionNameCell = styled(Cell)`
   color: ${p => p.theme.textColor};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-column: 2/-1;
     grid-row: 2/2;
   }
@@ -471,7 +471,7 @@ const GridRow = styled('div')<{expandable: boolean; expanded: boolean; inApp: bo
   grid-template-columns: 24px 132px 138px 24px 1fr 24px;
   grid-template-rows: 1fr;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 24px auto minmax(138px, 1fr) 24px;
     grid-template-rows: repeat(2, auto);
   }
