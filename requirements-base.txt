@@ -1,6 +1,6 @@
 beautifulsoup4==4.7.1
-boto3==1.13.16
-botocore==1.16.16
+boto3==1.22.12
+botocore==1.25.12
 celery==4.4.7
 click==8.0.4
 # See if we can remove CPATH from lib.sh
@@ -19,7 +19,7 @@ google-api-core==1.25.1
 google-auth==1.24.0
 google-cloud-bigtable==1.6.1
 google-cloud-core==1.5.0
-googleapis-common-protos==1.56.0
+googleapis-common-protos==1.56.2
 google-cloud-pubsub==2.2.0
 google-cloud-storage==1.35.0
 # Only necessary to prevent installing the latest version

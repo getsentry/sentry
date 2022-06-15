@@ -153,7 +153,7 @@ const SelectionWrapper = styled(motion.div)`
   justify-content: center;
   align-items: center;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: none;
   }
 `;
