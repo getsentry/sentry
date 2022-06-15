@@ -118,7 +118,7 @@ class SpansInterface extends PureComponent<Props, State> {
 
     return (
       <AlertContainer>
-        <Alert type="error" showIcon>
+        <Alert type="performanceError" showIcon>
           <ErrorLabel>{label}</ErrorLabel>
           <AnchorLinkManager.Consumer>
             {({scrollToHash}) => (

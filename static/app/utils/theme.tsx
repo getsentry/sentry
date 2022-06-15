@@ -388,6 +388,15 @@ const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
     iconHoverColor: colors.red400,
     textLight: colors.red200,
   },
+  performanceError: {
+    background: colors.red300,
+    backgroundLight: colors.red100,
+    border: colors.red200,
+    borderHover: colors.red300,
+    iconColor: colors.red300,
+    iconHoverColor: colors.red400,
+    textLight: colors.red200,
+  },
 });
 
 const generateBadgeTheme = (colors: BaseColors) => ({
