@@ -42,6 +42,7 @@ from json import loads, load
 from simplejson import JSONDecoder, JSONDecodeError, _default_encoder
 import sentry.utils.json as good_json
 from sentry.utils.json import JSONDecoder, JSONDecodeError
+from .json import Validator
 
 
 def bad_code():
