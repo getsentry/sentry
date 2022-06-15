@@ -1,10 +1,11 @@
-import {OrganizationSummary, PageFilters} from 'sentry/types';
+import {OrganizationSummary, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
-import {WidgetQuery, WidgetType} from '../types';
+import {DisplayType, WidgetQuery, WidgetType} from '../types';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
@@ -17,8 +18,25 @@ export type ContextualProps = {
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
+   * Default query to display when dataset is selected in the
+   * Widget Builder.
+   */
+  defaultWidgetQuery: WidgetQuery;
+  /**
+   * Field options to display in the Column selectors for
+   * Table display type.
+   */
+  getTableFieldOptions: (
+    contextualProps?: ContextualProps,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
+  /**
+   * List of supported display types for dataset.
+   */
+  supportedDisplayTypes: DisplayType[];
+  /**
    * Transforms table API results into format that is used by
-   * table and big number components
+   * table and big number components.
    */
   transformTable: (
     data: TableResponse,
