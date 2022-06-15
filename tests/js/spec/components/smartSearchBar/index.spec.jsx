@@ -2,8 +2,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {SmartSearchBar} from 'sentry/components/smartSearchBar';
-import {QuickActionType} from 'sentry/components/smartSearchBar/types';
-import {quickActions} from 'sentry/components/smartSearchBar/utils';
+import {ShortcutType} from 'sentry/components/smartSearchBar/types';
+import {shortcuts} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
 
 describe('SmartSearchBar', function () {
@@ -892,13 +892,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = quickActions.find(
-        a => a.actionType === QuickActionType.Delete
-      );
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Delete);
 
       expect(deleteAction).toBeDefined();
       if (deleteAction) {
-        searchBar.runQuickAction(deleteAction);
+        searchBar.runShortcut(deleteAction);
 
         await tick();
 
@@ -920,13 +918,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = quickActions.find(
-        a => a.actionType === QuickActionType.Delete
-      );
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Delete);
 
       expect(deleteAction).toBeDefined();
       if (deleteAction) {
-        searchBar.runQuickAction(deleteAction);
+        searchBar.runShortcut(deleteAction);
 
         await tick();
 
@@ -948,13 +944,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = quickActions.find(
-        a => a.actionType === QuickActionType.Negate
-      );
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Negate);
 
       expect(deleteAction).toBeDefined();
       if (deleteAction) {
-        searchBar.runQuickAction(deleteAction);
+        searchBar.runShortcut(deleteAction);
 
         await tick();
 
@@ -978,13 +972,11 @@ describe('SmartSearchBar', function () {
 
       await tick();
 
-      const deleteAction = quickActions.find(
-        a => a.actionType === QuickActionType.Negate
-      );
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Negate);
 
       expect(deleteAction).toBeDefined();
       if (deleteAction) {
-        searchBar.runQuickAction(deleteAction);
+        searchBar.runShortcut(deleteAction);
 
         await tick();
 

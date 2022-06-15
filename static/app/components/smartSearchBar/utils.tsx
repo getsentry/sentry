@@ -19,7 +19,7 @@ import {t} from 'sentry/locale';
 
 import HotkeysLabel from '../hotkeysLabel';
 
-import {ItemType, QuickAction, QuickActionType, SearchGroup, SearchItem} from './types';
+import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -261,65 +261,66 @@ export function getValidOps(
   return [...validOps];
 }
 
-export const quickActions: QuickAction[] = [
+export const shortcuts: Shortcut[] = [
   {
     text: 'Delete',
-    actionType: QuickActionType.Delete,
+    shortcutType: ShortcutType.Delete,
     hotkeys: {
       actual: 'option+backspace',
       display: 'option+backspace',
     },
     icon: <IconDelete size="xs" color="gray300" />,
-    canRunAction: tok => {
+    canRunShortcut: tok => {
       return tok?.type === Token.Filter;
     },
   },
   {
     text: 'Negate',
-    actionType: QuickActionType.Negate,
+    shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: ['option+1', 'cmd+1'],
+      actual: ['option+1'],
       display: 'option+!',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
-    canRunAction: tok => {
+    canRunShortcut: tok => {
       return tok?.type === Token.Filter;
     },
   },
   {
     text: 'Previous',
-    actionType: QuickActionType.Previous,
+    shortcutType: ShortcutType.Previous,
     hotkeys: {
       actual: ['option+left'],
       display: 'option+left',
     },
     icon: <IconArrow direction="left" size="xs" color="gray300" />,
-    canRunAction: (tok, count) => {
+    canRunShortcut: (tok, count) => {
       return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
   },
   {
     text: 'Next',
-    actionType: QuickActionType.Next,
+    shortcutType: ShortcutType.Next,
     hotkeys: {
       actual: ['option+right'],
       display: 'option+right',
     },
     icon: <IconArrow direction="right" size="xs" color="gray300" />,
-    canRunAction: (tok, count) => {
+    canRunShortcut: (tok, count) => {
       return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
   },
 ];
 
 export function getQuickActionsSearchGroup(
-  runTokenActionOnCursorToken: (action: QuickAction) => void,
+  runTokenActionOnCursorToken: (action: Shortcut) => void,
   filterTokenCount: number,
   activeToken?: TokenResult<any>
 ): {searchGroup: SearchGroup; searchItems: SearchItem[]} | undefined {
-  const searchItems = quickActions
+  const searchItems = shortcuts
     .filter(
-      action => !action.canRunAction || action.canRunAction(activeToken, filterTokenCount)
+      action =>
+        !action.canRunShortcut || action.canRunShortcut(activeToken, filterTokenCount)
     )
     .map(action => ({
       title: action.text,

@@ -9,7 +9,7 @@ import space from 'sentry/styles/space';
 import Button from '../button';
 import HotkeysLabel from '../hotkeysLabel';
 
-import {ItemType, QuickAction, SearchGroup, SearchItem} from './types';
+import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
 type Props = {
   items: SearchGroup[];
@@ -18,8 +18,8 @@ type Props = {
   searchSubstring: string;
   className?: string;
   maxMenuHeight?: number;
-  runQuickAction?: (action: QuickAction) => void;
-  visibleActions?: QuickAction[];
+  runShortcut?: (action: Shortcut) => void;
+  visibleShortcuts?: Shortcut[];
 };
 
 class SearchDropdown extends PureComponent<Props> {
@@ -82,7 +82,7 @@ class SearchDropdown extends PureComponent<Props> {
   );
 
   render() {
-    const {className, loading, items, runQuickAction, visibleActions, maxMenuHeight} =
+    const {className, loading, items, runShortcut, visibleShortcuts, maxMenuHeight} =
       this.props;
     return (
       <StyledSearchDropdown className={className}>
@@ -109,23 +109,23 @@ class SearchDropdown extends PureComponent<Props> {
           </SearchItemsList>
         )}
         <DropdownFooter>
-          <ActionsRow>
-            {runQuickAction &&
-              visibleActions?.map(action => {
+          <ShortcutsRow>
+            {runShortcut &&
+              visibleShortcuts?.map(shortcut => {
                 return (
-                  <ActionButtonContainer
-                    key={action.text}
-                    onClick={() => runQuickAction(action)}
+                  <ShortcutButtonContainer
+                    key={shortcut.text}
+                    onClick={() => runShortcut(shortcut)}
                   >
                     <HotkeyGlyphWrapper>
-                      <HotkeysLabel value={action.hotkeys?.display ?? []} />
+                      <HotkeysLabel value={shortcut.hotkeys?.display ?? []} />
                     </HotkeyGlyphWrapper>
-                    <IconWrapper>{action.icon}</IconWrapper>
-                    <HotkeyTitle>{action.text}</HotkeyTitle>
-                  </ActionButtonContainer>
+                    <IconWrapper>{shortcut.icon}</IconWrapper>
+                    <HotkeyTitle>{shortcut.text}</HotkeyTitle>
+                  </ShortcutButtonContainer>
                 );
               })}
-          </ActionsRow>
+          </ShortcutsRow>
           <Button
             size="xsmall"
             href="https://docs.sentry.io/product/sentry-basics/search/"
@@ -262,13 +262,13 @@ const DropdownFooter = styled(`div`)`
   gap: ${space(1)};
 `;
 
-const ActionsRow = styled('div')`
+const ShortcutsRow = styled('div')`
   flex-direction: row;
   display: flex;
   align-items: center;
 `;
 
-const ActionButtonContainer = styled('div')`
+const ShortcutButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;

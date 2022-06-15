@@ -42,18 +42,18 @@ export type Tag = {
   values: string[];
 };
 
-export enum QuickActionType {
+export enum ShortcutType {
   Delete = 'delete',
   Negate = 'negate',
   Next = 'next',
   Previous = 'previous',
 }
 
-export type QuickAction = {
-  actionType: QuickActionType;
+export type Shortcut = {
   icon: React.ReactNode;
+  shortcutType: ShortcutType;
   text: string;
-  canRunAction?: (
+  canRunShortcut?: (
     token: TokenResult<any> | null | undefined,
     filterTokenCount: number
   ) => boolean;
