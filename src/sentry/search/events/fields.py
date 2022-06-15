@@ -18,6 +18,7 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events.constants import (
     ALIAS_PATTERN,
     ARRAY_FIELDS,
+    CUSTOM_MEASUREMENT_PATTERN,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     DURATION_PATTERN,
@@ -2292,6 +2293,7 @@ class MetricArg(FunctionArg):
         self,
         name: str,
         allowed_columns: Optional[Sequence[str]] = None,
+        allow_custom_measurements: Optional[bool] = False,
         validate_only: Optional[bool] = True,
     ):
         """
@@ -2304,12 +2306,15 @@ class MetricArg(FunctionArg):
         super().__init__(name)
         # make sure to map the allowed columns to their snuba names
         self.allowed_columns = allowed_columns
+        self.allow_custom_measurements = allow_custom_measurements
         # Normalize the value to check if it is valid, but return the value as-is
         self.validate_only = validate_only
 
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if self.allowed_columns is not None and len(self.allowed_columns) > 0:
-            if value in self.allowed_columns:
+            if value in self.allowed_columns or (
+                self.allow_custom_measurements and CUSTOM_MEASUREMENT_PATTERN.match(value)
+            ):
                 return value
             else:
                 raise IncompatibleMetricsQuery(f"{value} is not an allowed column")

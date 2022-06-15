@@ -80,7 +80,9 @@ class MetricsDatasetConfig(DatasetConfig):
                     "avg",
                     required_args=[
                         fields.MetricArg(
-                            "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                            allow_custom_measurements=True,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
@@ -120,7 +122,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                                "column",
+                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=True,
                             ),
                         ),
                     ],
@@ -136,7 +140,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                                "column",
+                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=True,
                             ),
                         ),
                     ],
@@ -152,7 +158,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                                "column",
+                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=True,
                             ),
                         ),
                     ],
@@ -168,7 +176,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                                "column",
+                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=True,
                             ),
                         ),
                     ],
@@ -184,7 +194,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                                "column",
+                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=True,
                             ),
                         ),
                     ],
@@ -200,7 +212,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                                "column",
+                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=True,
                             ),
                         ),
                     ],
@@ -259,7 +273,9 @@ class MetricsDatasetConfig(DatasetConfig):
                         fields.with_default(
                             "transaction.duration",
                             fields.MetricArg(
-                                "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                                "column",
+                                allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                                allow_custom_measurements=True,
                             ),
                         ),
                         fields.NumberRange("percentile", 0, 1),
