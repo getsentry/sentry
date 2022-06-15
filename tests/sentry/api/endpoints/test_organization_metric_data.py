@@ -118,7 +118,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="environment",
             query=query,
         )
-        assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
+        assert response.data.keys() == {"start", "end", "query", "intervals", "groups", "meta"}
 
     def test_orderby_unknown(self):
         response = self.get_response(

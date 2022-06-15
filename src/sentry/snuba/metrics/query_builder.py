@@ -296,6 +296,49 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     return start, end, interval
 
 
+def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> str:
+    if operation is None:
+        return get_public_name_from_mri(metric_mri)
+    return f"{operation}({get_public_name_from_mri(metric_mri)})"
+
+
+def parse_operation_and_metric_mri(name: str) -> Tuple[Optional[str], str]:
+    matches = MRI_EXPRESSION_REGEX.match(name)
+    if matches:
+        # operation, metric_mri
+        return matches[1], matches[2]
+    # TODO: @andriisoldatenko
+    # add
+    return None, name
+
+
+def parse_tag(tag_string: str) -> str:
+    tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
+    return reverse_resolve(tag_key)
+
+
+def translate_meta_results(meta):
+    """
+    Translate meta results:
+    it makes all merics are public and resolve tag names
+    E.g.:
+    p50(d:transactions/measurements.lcp@millisecond) -> p50(transaction.measurements.lcp)
+    tags[9223372036854776020] -> transaction
+    """
+    result = []
+    for record in meta:
+        operation, metric_mri = parse_operation_and_metric_mri(record["name"])
+        try:
+            record["name"] = get_operation_with_public_name(operation, metric_mri)
+        except InvalidParams:
+            pass
+        if metric_mri.startswith("tags["):
+            record["name"] = parse_tag(record["name"])
+        if record not in result:
+            result.append(record)
+    return result
+
+
 class SnubaQueryBuilder:
 
     #: Datasets actually implemented in snuba:
@@ -532,10 +575,6 @@ class SnubaResultConverter:
 
         self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
 
-    def _parse_tag(self, tag_string: str) -> str:
-        tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
-        return reverse_resolve(tag_key)
-
     def _extract_data(self, data, groups):
         tags = tuple(
             (key, data[key])
@@ -589,18 +628,6 @@ class SnubaResultConverter:
                         if series[series_index] == default_null_value:
                             series[series_index] = cleaned_value
 
-    def _get_operation_with_public_name(self, operation: Optional[str], metric_mri: str) -> str:
-        if operation is None:
-            return get_public_name_from_mri(metric_mri)
-        return f"{operation}({get_public_name_from_mri(metric_mri)})"
-
-    def _parse_operation_and_metric_mri(self, name: str) -> Tuple[Optional[str], str]:
-        matches = MRI_EXPRESSION_REGEX.match(name)
-        if matches:
-            # operation, metric_mri
-            return matches[1], matches[2]
-        return None, name
-
     def translate_result_groups(self):
         groups = {}
         for _, subresults in self._results.items():
@@ -612,7 +639,7 @@ class SnubaResultConverter:
         groups = [
             dict(
                 by=dict(
-                    (self._parse_tag(key), reverse_resolve_weak(value))
+                    (parse_tag(key), reverse_resolve_weak(value))
                     if key not in FIELD_ALIAS_MAPPINGS.values()
                     else (key, value)
                     for key, value in tags
@@ -656,37 +683,17 @@ class SnubaResultConverter:
             series = group.get("series")
 
             for key in set(totals or ()) | set(series or ()):
-                operation, metric_mri = self._parse_operation_and_metric_mri(key)
+                operation, metric_mri = parse_operation_and_metric_mri(key)
                 if (operation, metric_mri) not in self._metrics_query_fields_set:
                     if totals is not None:
                         del totals[key]
                     if series is not None:
                         del series[key]
                 else:
-                    public_metric_key = self._get_operation_with_public_name(operation, metric_mri)
+                    public_metric_key = get_operation_with_public_name(operation, metric_mri)
                     if totals is not None:
                         totals[public_metric_key] = totals.pop(key)
                     if series is not None:
                         series[public_metric_key] = series.pop(key)
 
         return groups
-
-    def merge_result_meta(self):
-        """
-        Translate meta results:
-        it makes all merics are public and resolve tag names
-        E.g.:
-        p50(d:transactions/measurements.lcp@millisecond) -> p50(transaction.measurements.lcp)
-        tags[9223372036854776020] -> transaction
-        """
-        result = []
-        for record in self._meta:
-            operation, metric_mri = self._parse_operation_and_metric_mri(record["name"])
-            if (operation, metric_mri) in self._metrics_query_fields_set:
-                # convert to public name
-                record["name"] = self._get_operation_with_public_name(operation, metric_mri)
-            elif metric_mri.startswith("tags["):
-                record["name"] = self._parse_tag(record["name"])
-            if record not in result:
-                result.append(record)
-        return result
