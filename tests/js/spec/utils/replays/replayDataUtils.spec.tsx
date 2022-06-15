@@ -8,7 +8,11 @@ import {
 } from 'sentry/utils/replays/replayDataUtils';
 
 describe('breadcrumbFactory', () => {
-  function createSpan(extra: {op: string; data?: Record<string, any>}) {
+  function createSpan(extra: {
+    op: string;
+    data?: Record<string, any>;
+    description?: string;
+  }) {
     return {
       startTimestamp: 1,
       endTimestamp: 2,
@@ -30,7 +34,7 @@ describe('breadcrumbFactory', () => {
       }),
     ];
 
-    const results = breadcrumbFactory(0, {tags: []}, [], [], rawSpans);
+    const results = breadcrumbFactory(0, TestStubs.Event(), [], [], rawSpans);
 
     expect(results).toMatchInlineSnapshot(`
       Array [
@@ -78,7 +82,7 @@ describe('breadcrumbFactory', () => {
       }),
     ];
 
-    const results = breadcrumbFactory(0, {tags: []}, [], [], rawSpans);
+    const results = breadcrumbFactory(0, TestStubs.Event(), [], [], rawSpans);
 
     expect(results).toMatchInlineSnapshot(`
       Array [
