@@ -260,9 +260,9 @@ class WidgetQueries extends Component<Props, State> {
           ? this.config.getWorldMapRequest
           : this.config.getTableRequest;
       return requestGenerator!(
+        api,
         query,
         {
-          api,
           organization,
           pageFilters: selection,
         },

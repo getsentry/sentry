@@ -1,3 +1,4 @@
+import {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
@@ -63,6 +64,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     DisplayType.WORLD_MAP,
   ],
   getTableRequest: (
+    api: Client,
     query: WidgetQuery,
     contextualProps?: ContextualProps,
     limit?: number,
@@ -75,9 +77,10 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     const url = shouldUseEvents
       ? `/organizations/${contextualProps?.organization?.slug}/events/`
       : `/organizations/${contextualProps?.organization?.slug}/eventsv2/`;
-    return getEventsRequest(url, query, contextualProps, limit, cursor, referrer);
+    return getEventsRequest(url, api, query, contextualProps, limit, cursor, referrer);
   },
   getWorldMapRequest: (
+    api: Client,
     query: WidgetQuery,
     contextualProps?: ContextualProps,
     limit?: number,
@@ -86,6 +89,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   ) => {
     return getEventsRequest(
       `/organizations/${contextualProps?.organization?.slug}/events-geo/`,
+      api,
       query,
       contextualProps,
       limit,
@@ -245,6 +249,7 @@ export function getCustomEventsFieldRenderer(
 
 function getEventsRequest(
   url: string,
+  api: Client,
   query: WidgetQuery,
   contextualProps?: ContextualProps,
   limit?: number,
@@ -268,7 +273,7 @@ function getEventsRequest(
   }
 
   // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
-  return doDiscoverQuery<TableData | EventsTableData>(contextualProps?.api!, url, {
+  return doDiscoverQuery<TableData | EventsTableData>(api!, url, {
     ...eventView.generateQueryStringObject(),
     ...params,
   });

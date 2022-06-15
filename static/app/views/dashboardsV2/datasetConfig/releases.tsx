@@ -3,6 +3,7 @@ import trimStart from 'lodash/trimStart';
 
 import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {MetricsApiResponse, SessionApiResponse, SessionField} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -51,19 +52,21 @@ export const ReleasesConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequest: (
+    api: Client,
     query: WidgetQuery,
     contextualProps?: ContextualProps,
     limit?: number,
     cursor?: string
-  ) => getRequest(0, 1, query, contextualProps, limit, cursor),
+  ) => getRequest(0, 1, api, query, contextualProps, limit, cursor),
   getSeriesRequest: (
+    api: Client,
     query: WidgetQuery,
     contextualProps?: ContextualProps,
     limit?: number,
     cursor?: string
   ) => {
     const includeTotals = query.columns.length > 0 ? 1 : 0;
-    return getRequest(1, includeTotals, query, contextualProps, limit, cursor);
+    return getRequest(1, includeTotals, api, query, contextualProps, limit, cursor);
   },
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   getTableFieldOptions: getReleasesTableFieldOptions,
@@ -201,6 +204,7 @@ function fieldsToDerivedMetrics(field: string): string {
 function getRequest(
   includeSeries: number,
   includeTotals: number,
+  api: Client,
   query: WidgetQuery,
   contextualProps?: ContextualProps,
   limit?: number,
@@ -321,5 +325,5 @@ function getRequest(
     }
   }
 
-  return requester(contextualProps!.api, requestData);
+  return requester(api, requestData);
 }

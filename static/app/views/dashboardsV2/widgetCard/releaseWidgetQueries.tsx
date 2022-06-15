@@ -364,9 +364,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         ? this.config.getTableRequest
         : this.config.getSeriesRequest;
       return requestGenerator!(
+        api,
         query,
         {
-          api,
           organization,
           pageFilters: selection,
         },

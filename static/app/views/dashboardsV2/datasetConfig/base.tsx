@@ -13,7 +13,6 @@ import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type ContextualProps = {
-  api?: Client;
   organization?: OrganizationSummary;
   pageFilters?: PageFilters;
 };
@@ -63,6 +62,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * series data.
    */
   getSeriesRequest?: (
+    api: Client,
     query: WidgetQuery,
     contextualProps?: ContextualProps,
     limit?: number,
@@ -74,6 +74,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * tabular data.
    */
   getTableRequest?: (
+    api: Client,
     query: WidgetQuery,
     contextualProps?: ContextualProps,
     limit?: number,
@@ -85,6 +86,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * world map data.
    */
   getWorldMapRequest?: (
+    api: Client,
     query: WidgetQuery,
     contextualProps?: ContextualProps,
     limit?: number,

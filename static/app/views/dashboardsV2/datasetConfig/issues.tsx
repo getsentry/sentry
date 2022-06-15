@@ -1,3 +1,4 @@
+import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
@@ -134,6 +135,7 @@ export function transformIssuesResponseToTable(
 }
 
 function getTableRequest(
+  api: Client,
   query: WidgetQuery,
   contextualProps?: ContextualProps,
   limit?: number,
@@ -164,7 +166,7 @@ function getTableRequest(
     params.utc = contextualProps?.pageFilters?.datetime.utc;
   }
 
-  return contextualProps!.api!.requestPromise(groupListUrl, {
+  return api!.requestPromise(groupListUrl, {
     includeAllArgs: true,
     method: 'GET',
     data: {
