@@ -993,6 +993,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Use SNQL to create metric alerts, and perform other snuba queries related to metric alerts
+    "organizations:metric-alert-snql": True,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable the new widget builder experience on Dashboards
