@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {setTag} from '@sentry/react';
 import {Location} from 'history';
@@ -8,6 +8,7 @@ import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import SpanExamplesQuery, {
@@ -43,6 +44,12 @@ export default function SpanDetailsContentWrapper(props: Props) {
   const {location, organization, eventView, project, transactionName, spanSlug} = props;
   const minExclusiveTime = decodeScalar(location.query[ZoomKeys.MIN]);
   const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('performance_views.span_summary.view', {
+      organization,
+    });
+  }, [organization]);
 
   return (
     <Fragment>
