@@ -1,11 +1,11 @@
-import json
 import os
 import shutil
 from collections import defaultdict
 
-from sentry.utils.numbers import base32_encode
 from fixtures.integrations import FIXTURE_DIRECTORY
 from fixtures.integrations.stub_service import StubService
+from sentry.utils import json
+from sentry.utils.numbers import base32_encode
 
 
 class MockService(StubService):

@@ -1,8 +1,8 @@
 import os
 from copy import deepcopy
 
-from sentry.utils import json
 from fixtures.integrations import FIXTURE_DIRECTORY
+from sentry.utils import json
 
 
 class StubService:
