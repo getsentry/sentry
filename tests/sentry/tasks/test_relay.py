@@ -47,7 +47,7 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
                 # hook has scheduled the update_config_cache task prematurely.
                 #
                 # Remove any other jobs from the queue that may have been triggered via model hooks
-                assert not any('relay' in task.__name__ for task, _, _ in burst.queue)
+                assert not any("relay" in task.__name__ for task, _, _ in burst.queue)
                 burst.queue.clear()
 
             # for some reason, the callbacks array is only populated by
