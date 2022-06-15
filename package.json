@@ -75,7 +75,7 @@
     "crypto-js": "4.0.0",
     "css-loader": "^5.2.6",
     "css-minimizer-webpack-plugin": "^4.0.0",
-    "diff": "5.0.0",
+    "diff": "5.1.0",
     "dompurify": "^2.3.8",
     "downsample": "1.4.0",
     "echarts": "5.3.3",
