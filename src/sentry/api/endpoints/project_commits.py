@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import Commit
 
@@ -24,12 +25,14 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
         """
 
         queryset = Commit.objects.filter(
-            organization_id=project.organization_id, releasecommit__project_id=project.id
+            organization_id=project.organization_id,
+            releasecommit__release__releaseproject__project_id=project.id,
         ).distinct("id")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="id",
+            order_by=("-id", "-date_added"),
             on_results=lambda x: serialize(x, request.user),
+            paginator_cls=OffsetPaginator,
         )
