@@ -1,10 +1,10 @@
-from django.urls import reverse
-
 from sentry.models import Commit, Release, ReleaseCommit, ReleaseProject, Repository
 from sentry.testutils import APITestCase
 
 
 class ProjectCommitListTest(APITestCase):
+    endpoint = "sentry-api-0-project-commits"
+
     def test_simple(self):
         project = self.create_project(name="komal")
         version = "1.1"
@@ -13,17 +13,10 @@ class ProjectCommitListTest(APITestCase):
         commit = self.create_commit(repo=repo, project=project, key="a" * 40, release=release)
         ReleaseProject.objects.create(project=project, release=release)
 
-        url = reverse(
-            "sentry-api-0-project-commits",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
         self.login_as(user=self.user)
-        response = self.client.get(url, format="json")
 
-        assert response.status_code == 200, response.content
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == commit.key
+        response = self.get_success_response(project.organization.slug, project.slug)
+        assert [r["id"] for r in response.data] == [commit.key]
 
     def test_duplicate_released_commits(self):
         project = self.create_project(name="komal")
@@ -52,13 +45,7 @@ class ProjectCommitListTest(APITestCase):
             project_id=project.id,
         )
 
-        url = reverse(
-            "sentry-api-0-project-commits",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
         self.login_as(user=self.user)
-        response = self.client.get(url, format="json")
 
-        assert response.status_code == 200, response.content
+        response = self.get_success_response(project.organization.slug, project.slug)
         assert len(response.data) == 1
