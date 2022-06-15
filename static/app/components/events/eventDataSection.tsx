@@ -102,6 +102,7 @@ function EventDataSection({
 
 const Title = styled('div')`
   display: flex;
+  width: 100%;
 `;
 
 const Permalink = styled('span')`
