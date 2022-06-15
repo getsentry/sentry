@@ -1,6 +1,5 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import TeamStore from 'sentry/stores/teamStore';
@@ -14,22 +13,15 @@ jest.mock('sentry/actionCreators/modal', () => ({
 }));
 
 describe('OrganizationTeams', function () {
-  beforeEach(function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/stats/',
-      body: [],
-    });
-  });
-
   describe('Open Membership', function () {
-    const {organization, project, routerContext} = initializeOrg({
+    const {organization, project} = initializeOrg({
       organization: {
         openMembership: true,
       },
     });
 
     const createWrapper = props =>
-      mountWithTheme(
+      render(
         <OrganizationTeams
           params={{orgId: organization.slug, projectId: project.slug}}
           routes={[]}
@@ -37,15 +29,14 @@ describe('OrganizationTeams', function () {
           access={new Set(['project:admin'])}
           organization={organization}
           {...props}
-        />,
-        routerContext
+        />
       );
 
     it('opens "create team modal" when creating a new team from header', function () {
-      const wrapper = createWrapper();
+      createWrapper();
 
       // Click "Create Team" in Panel Header
-      wrapper.find('SettingsPageHeader Button').simulate('click');
+      userEvent.click(screen.getByLabelText('Create Team'));
 
       // action creator to open "create team modal" is called
       expect(openCreateTeamModal).toHaveBeenCalledWith(
@@ -60,13 +51,13 @@ describe('OrganizationTeams', function () {
     it('can join team and have link to details', function () {
       const mockTeams = [TestStubs.Team({hasAccess: true, isMember: false})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
-      const wrapper = createWrapper({
+      createWrapper({
         access: new Set([]),
       });
-      expect(wrapper.find('button[aria-label="Join Team"]')).toHaveLength(1);
+      expect(screen.getByLabelText('Join Team')).toBeInTheDocument();
 
       // Should also link to details
-      expect(wrapper.find('Link')).not.toHaveLength(0);
+      expect(screen.getByTestId('team-link')).toBeInTheDocument();
     });
 
     it('reloads projects after joining a team', async function () {
@@ -94,13 +85,13 @@ describe('OrganizationTeams', function () {
   });
 
   describe('Closed Membership', function () {
-    const {organization, project, routerContext} = initializeOrg({
+    const {organization, project} = initializeOrg({
       organization: {
         openMembership: false,
       },
     });
     const createWrapper = props =>
-      mountWithTheme(
+      render(
         <OrganizationTeams
           params={{orgId: organization.slug, projectId: project.slug}}
           routes={[]}
@@ -110,35 +101,34 @@ describe('OrganizationTeams', function () {
           activeTeams={[]}
           organization={organization}
           {...props}
-        />,
-        routerContext
+        />
       );
 
     it('can request access to team and does not have link to details', function () {
       const mockTeams = [TestStubs.Team({hasAccess: false, isMember: false})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
-      const wrapper = createWrapper({
-        access: new Set([]),
-      });
-      expect(wrapper.find('button[aria-label="Request Access"]')).toHaveLength(1);
+      createWrapper({access: new Set([])});
+
+      expect(screen.getByLabelText('Request Access')).toBeInTheDocument();
 
       // Should also not link to details because of lack of access
-      expect(wrapper.find('Link')).toHaveLength(0);
+      expect(screen.queryByTestId('team-link')).not.toBeInTheDocument();
     });
 
     it('can leave team when you are a member', function () {
       const mockTeams = [TestStubs.Team({hasAccess: true, isMember: true})];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
-      const wrapper = createWrapper({
+      createWrapper({
         access: new Set([]),
       });
-      expect(wrapper.find('button[aria-label="Leave Team"]')).toHaveLength(1);
+
+      expect(screen.getByLabelText('Leave Team')).toBeInTheDocument();
     });
   });
 
   describe('Team Requests', function () {
     const orgId = 'org-slug';
-    const {organization, project, routerContext} = initializeOrg({
+    const {organization, project} = initializeOrg({
       organization: {
         openMembership: false,
       },
@@ -153,7 +143,7 @@ describe('OrganizationTeams', function () {
     const requestList = [accessRequest, TestStubs.AccessRequest({id: '4', requester})];
 
     const createWrapper = props =>
-      mountWithTheme(
+      render(
         <OrganizationTeams
           params={{orgId: organization.slug, projectId: project.slug}}
           routes={[]}
@@ -164,39 +154,17 @@ describe('OrganizationTeams', function () {
           organization={organization}
           requestList={requestList}
           {...props}
-        />,
-        routerContext
+        />
       );
 
-    it('renders empty', function () {
-      const wrapper = createWrapper({
-        requestList: [],
-      });
-
-      expect(wrapper.find('OrganizationAccessRequests').exists()).toBe(true);
-    });
     it('renders team request panel', function () {
-      const wrapper = createWrapper({});
+      createWrapper();
 
-      expect(wrapper.find('PanelHeader').first().text()).toBe('Pending Team Requests');
-      expect(
-        wrapper
-          .find('StyledPanelItem')
-          .first()
-          .text()
-          .includes(
-            `${accessRequest.member.user.name} requests access to the #${accessRequest.team.slug} team`
-          )
-      ).toBe(true);
-      expect(
-        wrapper
-          .find('StyledPanelItem')
-          .last()
-          .text()
-          .includes(
-            `${requester.name} requests to add ${accessRequest.member.user.name} to the #${accessRequest.team.slug} team`
-          )
-      ).toBe(true);
+      expect(screen.getByText('Pending Team Requests')).toBeInTheDocument();
+      expect(screen.queryAllByTestId('request-message')).toHaveLength(2);
+      expect(screen.queryAllByTestId('request-message')[0]).toHaveTextContent(
+        `${accessRequest.member.user.name} requests access to the #${accessRequest.team.slug} team`
+      );
     });
 
     it('can approve', async function () {
@@ -206,10 +174,11 @@ describe('OrganizationTeams', function () {
         method: 'PUT',
       });
 
-      const wrapper = createWrapper({
+      createWrapper({
         onRemoveAccessRequest: onUpdateRequestListMock,
       });
-      wrapper.find('button[aria-label="Approve"]').first().simulate('click');
+      userEvent.click(screen.getAllByLabelText('Approve')[0]);
+      // wrapper.find('button[aria-label="Approve"]').first().simulate('click');
 
       await tick();
 
@@ -231,11 +200,11 @@ describe('OrganizationTeams', function () {
         method: 'PUT',
       });
 
-      const wrapper = createWrapper({
+      createWrapper({
         onRemoveAccessRequest: onUpdateRequestListMock,
       });
 
-      wrapper.find('button[aria-label="Deny"]').first().simulate('click');
+      userEvent.click(screen.getAllByLabelText('Deny')[0]);
 
       await tick();
 
@@ -248,6 +217,56 @@ describe('OrganizationTeams', function () {
         })
       );
       expect(onUpdateRequestListMock).toHaveBeenCalledWith(accessRequest.id, false);
+    });
+  });
+
+  describe('Team Roles', function () {
+    const features = new Set(['team-roles']);
+    const access = new Set();
+
+    it('does not render alert without feature flag', function () {
+      const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
+      render(
+        <OrganizationTeams
+          params={{orgId: organization.slug, projectId: project.slug}}
+          routes={[]}
+          features={new Set()}
+          access={access}
+          organization={organization}
+        />
+      );
+
+      expect(screen.queryByText('a minimum team-level role of')).not.toBeInTheDocument();
+    });
+
+    it('renders alert with elevated org role', function () {
+      const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
+      render(
+        <OrganizationTeams
+          params={{orgId: organization.slug, projectId: project.slug}}
+          routes={[]}
+          features={features}
+          access={access}
+          organization={organization}
+        />
+      );
+
+      expect(screen.getByText('a minimum team-level role of')).toBeInTheDocument();
+    });
+
+    it('does not render alert with lowest org role', function () {
+      const {organization, project} = initializeOrg({organization: {orgRole: 'member'}});
+      render(
+        <OrganizationTeams
+          params={{orgId: organization.slug, projectId: project.slug}}
+          routes={[]}
+          features={features}
+          access={access}
+          organization={organization}
+        />
+      );
+
+      expect(screen.queryByText('a minimum team-level role of')).not.toBeInTheDocument();
     });
   });
 });
