@@ -263,6 +263,7 @@ class OnboardingTasksSerializer(Serializer):  # type: ignore
 
 class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
     role: Any  # TODO replace with enum/literal
+    orgRole: str
 
 
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
@@ -402,7 +403,8 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         context["access"] = access.scopes
         if access.role is not None:
-            context["role"] = access.role
+            context["role"] = access.role  # Deprecated
+            context["orgRole"] = access.role
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()

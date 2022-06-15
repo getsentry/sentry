@@ -109,6 +109,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
 
         assert resp.status_code == 200
         assert resp.data["role"] == "admin"
+        assert resp.data["orgRole"] == "admin"
         assert resp.data["inviteStatus"] == "requested_to_be_invited"
 
         assert OrganizationMember.objects.filter(id=self.invite_request.id, role="admin").exists()
@@ -135,6 +136,7 @@ class OrganizationInviteRequestUpdateTest(InviteRequestBase):
 
         assert resp.status_code == 200
         assert resp.data["role"] == "manager"
+        assert resp.data["orgRole"] == "manager"
         assert resp.data["inviteStatus"] == "requested_to_be_invited"
 
         assert OrganizationMemberTeam.objects.filter(
@@ -252,6 +254,7 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
 
         assert resp.status_code == 200
         assert resp.data["role"] == "admin"
+        assert resp.data["orgRole"] == "admin"
         assert resp.data["inviteStatus"] == "approved"
 
         assert OrganizationMember.objects.filter(

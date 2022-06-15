@@ -57,11 +57,12 @@ class OrganizationMemberWithRolesSerializer(OrganizationMemberWithTeamsSerialize
         organization_role_list = [
             role for role in organization_roles.get_all() if not _is_retired_role_hidden(role, obj)
         ]
-        context["roles"] = serialize(
+        context["orgRoleList"] = serialize(
             organization_role_list,
             serializer=OrganizationRoleSerializer(),
             allowed_roles=self.allowed_roles,
         )
-        context["teamRoles"] = serialize(team_roles.get_all(), serializer=TeamRoleSerializer())
+        context["roles"] = context["orgRoleList"]  # deprecated
+        context["teamRoleList"] = serialize(team_roles.get_all(), serializer=TeamRoleSerializer())
 
         return context
