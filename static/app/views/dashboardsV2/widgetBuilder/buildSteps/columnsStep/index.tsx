@@ -9,7 +9,6 @@ import {DataSet} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {ColumnFields} from './columnFields';
-import {ReleaseColumnFields} from './releaseColumnFields';
 
 interface Props {
   dataSet: DataSet;
@@ -73,26 +72,17 @@ export function ColumnsStep({
             )
       }
     >
-      {[DataSet.EVENTS, DataSet.ISSUES].includes(dataSet) ? (
-        <ColumnFields
-          displayType={displayType}
-          organization={organization}
-          widgetType={widgetType}
-          fields={explodedFields}
-          errors={queryErrors}
-          fieldOptions={datasetConfig.getTableFieldOptions({organization}, tags)}
-          onChange={handleColumnFieldChange}
-        />
-      ) : (
-        <ReleaseColumnFields
-          displayType={displayType}
-          organization={organization}
-          widgetType={widgetType}
-          explodedFields={explodedFields}
-          queryErrors={queryErrors}
-          onYAxisOrColumnFieldChange={handleColumnFieldChange}
-        />
-      )}
+      <ColumnFields
+        displayType={displayType}
+        organization={organization}
+        widgetType={widgetType}
+        fields={explodedFields}
+        errors={queryErrors}
+        fieldOptions={datasetConfig.getTableFieldOptions({organization}, tags)}
+        filterAggregateParameters={datasetConfig.filterTableAggregateParams}
+        filterPrimaryOptions={datasetConfig.filterTableOptions}
+        onChange={handleColumnFieldChange}
+      />
     </BuildStep>
   );
 }

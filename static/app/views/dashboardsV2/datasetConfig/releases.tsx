@@ -6,6 +6,8 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, WidgetQuery} from '../types';
 import {
@@ -42,6 +44,8 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  filterTableOptions: filterPrimaryReleaseTableOptions,
+  filterTableAggregateParams: filterAggregateParams,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   getTableFieldOptions: getReleasesTableFieldOptions,
   handleColumnFieldChangeOverride,
@@ -57,6 +61,18 @@ export const ReleasesConfig: DatasetConfig<
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
+
+function filterPrimaryReleaseTableOptions(option: FieldValueOption) {
+  return [
+    FieldValueKind.FUNCTION,
+    FieldValueKind.FIELD,
+    FieldValueKind.NUMERIC_METRICS,
+  ].includes(option.value.kind);
+}
+
+function filterAggregateParams(option: FieldValueOption) {
+  return option.value.kind === FieldValueKind.METRICS;
+}
 
 function handleReleasesTableOrderByReset(widgetQuery: WidgetQuery, newFields: string[]) {
   const disableSortBy = widgetQuery.columns.includes('session.status');

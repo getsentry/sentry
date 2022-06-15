@@ -6,6 +6,7 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {isEquation} from 'sentry/utils/discover/fields';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, WidgetQuery, WidgetType} from '../types';
@@ -52,6 +53,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * values in tables.
    */
   fieldHeaderMap?: Record<string, string>;
+  filterTableAggregateParams?: (option: FieldValueOption) => boolean;
+  filterTableOptions?: (option: FieldValueOption) => boolean;
   /**
    * Used to select custom renderers for field types.
    */
