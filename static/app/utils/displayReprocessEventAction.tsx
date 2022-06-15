@@ -56,7 +56,7 @@ function getStackTracePlatforms(event: Event, exceptionEntry: EntryException) {
   ]);
 }
 
-// Checks whether an event indicates that it has an apple crash report.
+// Checks whether an event indicates that it is a native event.
 function isNativeEvent(event: Event, exceptionEntry: EntryException) {
   const {platform} = event;
 

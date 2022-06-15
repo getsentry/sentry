@@ -1,3 +1,1 @@
-from sentry.utils.imports import import_submodules
-
-import_submodules(globals(), __name__, __path__)
+from .provider import *  # noqa: F401,F403
