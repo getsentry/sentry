@@ -21,7 +21,7 @@ class SentryVisitor(ast.NodeVisitor):
         self.errors: list[tuple[int, int, str]] = []
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        if node.module and node.module.split(".")[0] in S003_modules:
+        if node.module and not node.level and node.module.split(".")[0] in S003_modules:
             self.errors.append((node.lineno, node.col_offset, S003_msg))
 
         self.generic_visit(node)
