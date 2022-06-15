@@ -30,8 +30,8 @@ function measurementsFromDetails(
   );
 }
 
-export const MOBILE_MEASUREMENTS = measurementsFromDetails(MOBILE_VITAL_DETAILS);
-export const WEB_MEASUREMENTS = measurementsFromDetails(WEB_VITAL_DETAILS);
+const MOBILE_MEASUREMENTS = measurementsFromDetails(MOBILE_VITAL_DETAILS);
+const WEB_MEASUREMENTS = measurementsFromDetails(WEB_VITAL_DETAILS);
 
 export function getMeasurements() {
   return {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
