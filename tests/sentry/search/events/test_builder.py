@@ -1916,6 +1916,31 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_custom_measurement_allowed(self):
+        MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "avg(measurements.custom.measurement)",
+                "p50(measurements.custom.measurement)",
+                "p75(measurements.custom.measurement)",
+                "p90(measurements.custom.measurement)",
+                "p95(measurements.custom.measurement)",
+                "p99(measurements.custom.measurement)",
+                "p100(measurements.custom.measurement)",
+                "percentile(measurements.custom.measurement, 0.95)",
+                "sum(measurements.custom.measurement)",
+                "max(measurements.custom.measurement)",
+                "min(measurements.custom.measurement)",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+            # Use dry run for now to not hit indexer
+            dry_run=True,
+        )
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):
