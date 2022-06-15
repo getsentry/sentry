@@ -338,11 +338,15 @@ class WidgetQueries extends Component<Props, State> {
 
     const {environments, projects} = selection;
     const {start, end, period: statsPeriod} = selection.datetime;
-    const interval = getWidgetInterval(widget, {
-      start,
-      end,
-      period: statsPeriod,
-    });
+    const interval = getWidgetInterval(
+      widget.displayType,
+      {
+        start,
+        end,
+        period: statsPeriod,
+      },
+      widget.interval
+    );
     const promises = widget.queries.map(query => {
       let requestData;
       if (widget.displayType === 'top_n') {

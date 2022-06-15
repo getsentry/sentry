@@ -11,6 +11,7 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
 import {DisplayType, WidgetQuery} from '../types';
+import {getWidgetInterval} from '../utils';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -193,11 +194,8 @@ function getTableRequest(
   const unsupportedOrderby =
     DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
   const columns = query.columns;
-
-  // todo
-  // const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
   const includeSeries = 0;
-  const includeTotals = columns.length > 0 ? 1 : 0;
+  const includeTotals = 1;
 
   // Temporary solution to support sorting on releases when querying the
   // Metrics API:
@@ -227,14 +225,13 @@ function getTableRequest(
   //      table/chart/
   //
 
-  // todo
-  // const interval = getWidgetInterval(
-  //   widget,
-  //   {start, end, period},
-  //   // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-  //   isCustomReleaseSorting ? 'low' : undefined
-  // );
-  const interval = '5m';
+  const interval = getWidgetInterval(
+    DisplayType.TABLE,
+    {start, end, period},
+    '5m',
+    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+    isCustomReleaseSorting ? 'low' : undefined
+  );
 
   const {aggregates, injectedFields} = resolveDerivedStatusFields(
     query.aggregates,
