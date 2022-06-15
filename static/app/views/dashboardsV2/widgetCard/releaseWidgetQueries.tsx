@@ -316,7 +316,6 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       tableResults: [],
       queryFetchID,
     });
-    const columns = widget.queries[0].columns;
 
     let releaseCondition = '';
     const releasesArray: string[] = [];
@@ -346,14 +345,6 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`);
       });
     }
-
-    const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
-    const includeTotals =
-      widget.displayType === DisplayType.TABLE ||
-      widget.displayType === DisplayType.BIG_NUMBER ||
-      columns.length > 0
-        ? 1
-        : 0;
 
     const promises: Promise<
       MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
@@ -405,9 +396,10 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             data.groups = data.groups.slice(0, this.limit);
           }
 
-          // Transform to fit the table format
           let tableResults: TableDataWithTitle[] | undefined;
-          if (includeTotals) {
+          const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
+          if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
+            // Transform to fit the table format
             const tableData = this.config.transformTable(
               data,
               widget.queries[0]
@@ -415,12 +407,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             tableData.title = widget.queries[requestIndex]?.name ?? '';
             tableResults = [...(prevState.tableResults ?? []), tableData];
           } else {
-            tableResults = undefined;
-          }
-
-          // Transform to fit the chart format
-          const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          if (includeSeries) {
+            // Transform to fit the chart format
             const transformedResult = this.config.transformSeries!(
               data,
               widget.queries[requestIndex]
