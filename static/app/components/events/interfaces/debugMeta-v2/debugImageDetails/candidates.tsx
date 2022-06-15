@@ -14,7 +14,7 @@ import {Organization, Project} from 'sentry/types';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';
 
-import SearchBarAction from '../../searchBarActionV2';
+import SearchBarAction from '../../searchBarAction';
 
 import Status from './candidate/status';
 import Candidate from './candidate';
@@ -379,7 +379,7 @@ const Wrapper = styled('div')`
 const Header = styled('div')`
   display: flex;
   flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     flex-wrap: wrap;
     flex-direction: row;
   }
@@ -396,7 +396,7 @@ const Title = styled('div')`
   height: 32px;
   flex: 1;
 
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     margin-bottom: ${space(1)};
   }
 `;
@@ -407,7 +407,7 @@ const StyledPanelTable = styled(PanelTable)`
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints[4]}) {
+  @media (min-width: ${props => props.theme.breakpoints.xxlarge}) {
     overflow: visible;
   }
 `;

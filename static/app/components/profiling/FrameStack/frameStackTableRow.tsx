@@ -50,6 +50,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
     },
     ref
   ) => {
+    const isSelected = tabIndex === 0;
     const colorString = useMemo(() => {
       return formatColorForFrame(node.node, flamegraphRenderer);
     }, [node, flamegraphRenderer]);
@@ -68,34 +69,34 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
         style={style}
         onContextMenu={onContextMenu}
         tabIndex={tabIndex}
-        isSelected={tabIndex === 0}
+        isSelected={isSelected}
         onKeyDown={onKeyDown}
         onClick={onClick}
         onMouseEnter={onMouseEnter}
       >
-        <FrameCallersTableCell textAlign="right">
+        <FrameCallersTableCell isSelected={isSelected} textAlign="right">
           {flamegraphRenderer.flamegraph.formatter(node.node.node.selfWeight)}
           <Weight
-            isSelected={tabIndex === 0}
+            isSelected={isSelected}
             weight={computeRelativeWeight(
               referenceNode.node.totalWeight,
               node.node.node.selfWeight
             )}
           />
         </FrameCallersTableCell>
-        <FrameCallersTableCell noPadding textAlign="right">
+        <FrameCallersTableCell isSelected={isSelected} noPadding textAlign="right">
           <FrameWeightTypeContainer>
             <FrameWeightContainer>
               {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
               <Weight
-                isSelected={tabIndex === 0}
+                isSelected={isSelected}
                 weight={computeRelativeWeight(
                   referenceNode.node.totalWeight,
                   node.node.node.totalWeight
                 )}
               />
             </FrameWeightContainer>
-            <FrameTypeIndicator isSelected={tabIndex === 0}>
+            <FrameTypeIndicator isSelected={isSelected}>
               {node.node.node.frame.is_application ? (
                 <IconUser size="xs" />
               ) : (
@@ -180,11 +181,18 @@ const BackgroundWeightBar = styled('div')`
 
 const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
-  width: 100%;
+  width: calc(100% + 400px);
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
 
   &:focus {
     outline: none;
+  }
+
+  &[data-hovered='true']:not([tabindex='0']) {
+    > div:first-child,
+    > div:nth-child(2) {
+      background-color: #edf2fc !important;
+    }
   }
 `;
 

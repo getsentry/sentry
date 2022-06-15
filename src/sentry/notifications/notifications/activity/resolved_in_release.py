@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+from html import escape
 from typing import Any, Mapping
 
-from sentry.utils.html import escape
 from sentry.utils.http import absolute_uri
 
 from .base import GroupActivityNotification

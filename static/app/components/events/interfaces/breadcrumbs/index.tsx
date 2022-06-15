@@ -13,7 +13,7 @@ import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import SearchBarAction from '../searchBarActionV2';
+import SearchBarAction from '../searchBarAction';
 
 import Level from './breadcrumb/level';
 import Type from './breadcrumb/type';
