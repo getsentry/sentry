@@ -318,14 +318,6 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     });
     const columns = widget.queries[0].columns;
 
-    const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
-    const includeTotals =
-      widget.displayType === DisplayType.TABLE ||
-      widget.displayType === DisplayType.BIG_NUMBER ||
-      columns.length > 0
-        ? 1
-        : 0;
-
     let releaseCondition = '';
     const releasesArray: string[] = [];
     if (isCustomReleaseSorting) {
@@ -354,6 +346,14 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           query.conditions + (releaseCondition === '' ? '' : ` ${releaseCondition}`);
       });
     }
+
+    const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
+    const includeTotals =
+      widget.displayType === DisplayType.TABLE ||
+      widget.displayType === DisplayType.BIG_NUMBER ||
+      columns.length > 0
+        ? 1
+        : 0;
 
     const promises: Promise<
       MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
