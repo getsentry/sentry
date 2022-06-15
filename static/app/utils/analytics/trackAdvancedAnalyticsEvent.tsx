@@ -8,33 +8,37 @@ import {
   performanceEventMap,
   PerformanceEventParameters,
 } from './performanceAnalyticsEvents';
+import {profilingEventMap} from './profilingAnalyticsEvents';
 import {samplingEventMap, SamplingEventParameters} from './samplingAnalyticsEvents';
 import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
 import {settingsEventMap, SettingsEventParameters} from './settingsAnalyticsEvents';
 import {TeamInsightsEventParameters, workflowEventMap} from './workflowAnalyticsEvents';
 
-type EventParameters = GrowthEventParameters &
-  IssueEventParameters &
-  PerformanceEventParameters &
-  DashboardsEventParameters &
-  DiscoverEventParameters &
-  TeamInsightsEventParameters &
-  SearchEventParameters &
-  SettingsEventParameters &
-  CoreUIEventParameters &
-  SamplingEventParameters;
+interface EventParameters
+  extends GrowthEventParameters,
+    CoreUIEventParameters,
+    DashboardsEventParameters,
+    DiscoverEventParameters,
+    IssueEventParameters,
+    PerformanceEventParameters,
+    SearchEventParameters,
+    SettingsEventParameters,
+    SamplingEventParameters,
+    TeamInsightsEventParameters,
+    Record<string, Record<string, any>> {}
 
-const allEventMap = {
+const allEventMap: Record<string, string | null> = {
+  ...coreUIEventMap,
+  ...dashboardsEventMap,
+  ...discoverEventMap,
   ...growthEventMap,
   ...issueEventMap,
   ...performanceEventMap,
-  ...dashboardsEventMap,
-  ...discoverEventMap,
-  ...workflowEventMap,
+  ...profilingEventMap,
+  ...samplingEventMap,
   ...searchEventMap,
   ...settingsEventMap,
-  ...coreUIEventMap,
-  ...samplingEventMap,
+  ...workflowEventMap,
 };
 
 /**
