@@ -17,7 +17,6 @@ import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/u
 import AnnotatedText from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
-import {DisplayOption} from 'sentry/components/events/traceEventDataSection/displayOptions';
 import {STACKTRACE_PREVIEW_TOOLTIP_DELAY} from 'sentry/components/stacktracePreview';
 import StrictClick from 'sentry/components/strictClick';
 import Tooltip from 'sentry/components/tooltip';
@@ -79,21 +78,16 @@ function NativeFrame({
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
 
-  const absolute = traceEventDataSectionContext?.activeDisplayOptions.includes(
-    DisplayOption.ABSOLUTE_ADDRESSES
+  const absolute = traceEventDataSectionContext?.display.includes('absolute-addresses');
+
+  const fullStackTrace = traceEventDataSectionContext?.fullStackTrace;
+
+  const fullFunctionName = traceEventDataSectionContext?.display.includes(
+    'verbose-function-names'
   );
 
-  const fullStackTrace = traceEventDataSectionContext?.activeDisplayOptions.includes(
-    DisplayOption.FULL_STACK_TRACE
-  );
-
-  const fullFunctionName = traceEventDataSectionContext?.activeDisplayOptions.includes(
-    DisplayOption.VERBOSE_FUNCTION_NAMES
-  );
-
-  const absoluteFilePaths = traceEventDataSectionContext?.activeDisplayOptions.includes(
-    DisplayOption.ABSOLUTE_FILE_PATHS
-  );
+  const absoluteFilePaths =
+    traceEventDataSectionContext?.display.includes('absolute-file-paths');
 
   const tooltipDelay = isHoverPreviewed ? STACKTRACE_PREVIEW_TOOLTIP_DELAY : undefined;
   const foundByStackScanning = frame.trust === 'scan' || frame.trust === 'cfi-scan';

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
-import {DisplayOption} from 'sentry/components/events/traceEventDataSection/displayOptions';
 import {t} from 'sentry/locale';
 import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
@@ -137,8 +136,8 @@ function Native({
           <TogglableAddress
             address={instructionAddr}
             startingAddress={image ? image.image_addr : null}
-            isAbsolute={traceEventDataSectionContext.activeDisplayOptions.includes(
-              DisplayOption.ABSOLUTE_ADDRESSES
+            isAbsolute={traceEventDataSectionContext.display.includes(
+              'absolute-addresses'
             )}
             isFoundByStackScanning={isFoundByStackScanning}
             isInlineFrame={!!isInlineFrame}
@@ -148,11 +147,11 @@ function Native({
         )}
         <Symbol
           frame={frame}
-          showCompleteFunctionName={traceEventDataSectionContext.activeDisplayOptions.includes(
-            DisplayOption.VERBOSE_FUNCTION_NAMES
+          showCompleteFunctionName={traceEventDataSectionContext.display.includes(
+            'verbose-function-names'
           )}
-          absoluteFilePaths={traceEventDataSectionContext.activeDisplayOptions.includes(
-            DisplayOption.ABSOLUTE_FILE_PATHS
+          absoluteFilePaths={traceEventDataSectionContext.display.includes(
+            'absolute-file-paths'
           )}
           isHoverPreviewed={isHoverPreviewed}
           isUsedForGrouping={isUsedForGrouping}
