@@ -1,15 +1,7 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
-<<<<<<< HEAD
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
-=======
-import {
-  generateFieldAsString,
-  getColumnsAndAggregatesAsStrings,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
->>>>>>> master
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 
