@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.models import OrganizationMember, UserEmail
 from sentry.testutils import TestCase
@@ -23,7 +25,7 @@ class EmailResolverTest(TestCase):
         for user in (self.user1, self.user2):
             UserEmail.objects.create(user=user, email="me@example.com")
 
-        with self.assertRaises(AmbiguousUserFromEmail) as context:
+        with pytest.raises(AmbiguousUserFromEmail) as context:
             resolve_email_to_user("me@example.com")
         assert set(context.exception.users) == {self.user1, self.user2}
         assert mock_metrics.incr.call_args.args == ("auth.email_resolution.no_resolution",)

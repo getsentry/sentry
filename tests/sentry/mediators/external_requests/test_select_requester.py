@@ -1,3 +1,4 @@
+import pytest
 import responses
 
 from sentry.coreapi import APIError
@@ -64,7 +65,7 @@ class TestSelectRequester(TestCase):
             content_type="application/json",
         )
 
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             SelectRequester.run(
                 install=self.install,
                 project=self.project,
@@ -82,7 +83,7 @@ class TestSelectRequester(TestCase):
             status=500,
         )
 
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             SelectRequester.run(
                 install=self.install,
                 project=self.project,

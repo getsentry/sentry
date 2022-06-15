@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.test import override_settings
 from exam import fixture
@@ -406,7 +407,7 @@ class TestAlertRuleSerializer(TestCase):
         )
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with self.assertRaises(serializers.ValidationError):
+        with pytest.raises(serializers.ValidationError):
             serializer.save()
 
         # Make sure the rule was not created.
@@ -477,7 +478,7 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         # error is raised during save
         assert serializer.is_valid()
-        with self.assertRaises(ChannelLookupTimeoutError) as err:
+        with pytest.raises(ChannelLookupTimeoutError) as err:
             serializer.save()
         assert (
             str(err.exception)
@@ -510,7 +511,7 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         # error is raised during save
         assert serializer.is_valid()
-        with self.assertRaises(serializers.ValidationError) as err:
+        with pytest.raises(serializers.ValidationError) as err:
             serializer.save()
         assert err.exception.detail == {"nonFieldErrors": ["Team does not exist"]}
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 10)
@@ -647,9 +648,9 @@ class TestAlertRuleSerializer(TestCase):
         serializer.save()
         serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
         assert serializer.is_valid(), serializer.errors
-        with self.assertRaises(serializers.ValidationError) as cm:
+        with pytest.raises(serializers.ValidationError) as excinfo:
             serializer.save()
-        assert cm.exception.detail[0] == "You may not exceed 1 metric alerts per organization"
+        assert excinfo.value.detail[0] == "You may not exceed 1 metric alerts per organization"
 
 
 class TestAlertRuleTriggerSerializer(TestCase):
@@ -850,7 +851,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with self.assertRaises(serializers.ValidationError):
+        with pytest.raises(serializers.ValidationError):
             serializer.save()
 
     @responses.activate

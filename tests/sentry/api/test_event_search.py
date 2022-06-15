@@ -174,7 +174,7 @@ class ParseSearchQueryTest(SimpleTestCase):
             expect_error = True
 
         if expect_error:
-            with self.assertRaises(InvalidSearchQuery, msg=failure_help):
+            with pytest.raises(InvalidSearchQuery, msg=failure_help):
                 parse_search_query(query)
             return
 
@@ -353,7 +353,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
         # malformed key
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             parse_search_query('has:"hi there"')
 
     def test_not_has_tag(self):
@@ -403,8 +403,8 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             parse_search_query("count_if(measurements.fcp, greater, 5s):3s")
 
     def test_is_query_unsupported(self):
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, ".*queries are not supported in this search.*"
+        with pytest.raises(
+            InvalidSearchQuery, match=".*queries are not supported in this search.*"
         ):
             parse_search_query("is:unassigned")
 

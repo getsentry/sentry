@@ -1368,13 +1368,13 @@ class ResolveFieldListTest(unittest.TestCase):
         }
 
     def test_to_other_validation(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             resolve_field_list(["to_other(release,a)"], eventstore.Filter())
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             resolve_field_list(['to_other(release,"a)'], eventstore.Filter())
 
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             resolve_field_list(['to_other(release,a")'], eventstore.Filter())
 
     def test_failure_count_function(self):
@@ -1559,7 +1559,7 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
     def test_invalid_count_if_fields(self):
-        with self.assertRaises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as query_error:
             resolve_field_list(
                 ["count_if(transaction.duration, equals, sentry)"], eventstore.Filter()
             )
@@ -1568,21 +1568,21 @@ class ResolveFieldListTest(unittest.TestCase):
             == "'sentry' is not a valid value to compare with transaction.duration"
         )
 
-        with self.assertRaises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as query_error:
             resolve_field_list(
                 ["count_if(transaction.duration, equals, 10wow)"], eventstore.Filter()
             )
         assert str(query_error.exception).startswith("wow is not a valid duration type")
 
-        with self.assertRaises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as query_error:
             resolve_field_list(["count_if(project, equals, sentry)"], eventstore.Filter())
         assert str(query_error.exception) == "project is not supported by count_if"
 
-        with self.assertRaises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as query_error:
             resolve_field_list(["count_if(stack.function, equals, test)"], eventstore.Filter())
         assert str(query_error.exception) == "stack.function is not supported by count_if"
 
-        with self.assertRaises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as query_error:
             resolve_field_list(
                 ["count_if(transaction.status, equals, fakestatus)"], eventstore.Filter()
             )
