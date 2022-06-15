@@ -14,6 +14,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -127,6 +128,12 @@ function Search(props: Props) {
     percentileValues
   );
 
+  const handleDiscoverButtonClick = () => {
+    trackAdvancedAnalyticsEvent('performance_views.all_events.open_in_discover', {
+      organization,
+    });
+  };
+
   return (
     <FilterActions>
       <Filter
@@ -163,7 +170,10 @@ function Search(props: Props) {
           );
         })}
       </DropdownControl>
-      <Button to={eventView.getResultsViewUrlTarget(organization.slug)}>
+      <Button
+        to={eventView.getResultsViewUrlTarget(organization.slug)}
+        onClick={handleDiscoverButtonClick}
+      >
         {t('Open in Discover')}
       </Button>
     </FilterActions>
@@ -175,22 +185,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(4, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: auto auto 1fr auto auto;
   }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/6;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     order: initial;
     grid-column: auto;
   }

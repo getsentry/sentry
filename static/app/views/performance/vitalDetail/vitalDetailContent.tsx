@@ -26,6 +26,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/discover/fields';
@@ -137,7 +138,7 @@ class VitalDetailContent extends Component<Props, State> {
   }
 
   renderVitalSwitcher() {
-    const {vitalName, location} = this.props;
+    const {vitalName, location, organization} = this.props;
 
     const position = FRONTEND_VITALS.indexOf(vitalName);
 
@@ -158,6 +159,12 @@ class VitalDetailContent extends Component<Props, State> {
                 vitalName: newVitalName,
                 cursor: undefined,
               },
+            });
+
+            trackAdvancedAnalyticsEvent('performance_views.vital_detail.switch_vital', {
+              organization,
+              from_vital: vitalAbbreviations[vitalName] ?? 'undefined',
+              to_vital: vitalAbbreviations[newVitalName] ?? 'undefined',
             });
           },
         };
@@ -368,7 +375,7 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: auto 1fr;
   }
 `;

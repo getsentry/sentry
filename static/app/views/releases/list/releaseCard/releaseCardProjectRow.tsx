@@ -235,7 +235,7 @@ export default ReleaseCardProjectRow;
 
 const ProjectRow = styled(PanelItem)`
   padding: ${space(1)} ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;

@@ -44,20 +44,34 @@ def raiseException():
     raise Exception
 
 
+class RequestMock:
+    def __init__(self):
+        self.body = "blah blah"
+
+
+headers = {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"}
+html_content = "a bunch of garbage HTML"
+json_content = '{"error": "bad request"}'
+
 MockResponse = namedtuple(
-    "MockResponse", ["headers", "content", "text", "ok", "status_code", "raise_for_status"]
+    "MockResponse",
+    ["headers", "content", "text", "ok", "status_code", "raise_for_status", "request"],
 )
-MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse)
-MockFailureResponseInstance = MockResponse({}, {}, "", False, 400, raiseStatusTrue)
-MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException)
+
+MockFailureHTMLContentResponseInstance = MockResponse(
+    headers, html_content, "", True, 400, raiseStatusFalse, RequestMock()
+)
+MockFailureJSONContentResponseInstance = MockResponse(
+    headers, json_content, "", True, 400, raiseStatusFalse, RequestMock()
+)
+MockFailureResponseInstance = MockResponse(
+    headers, html_content, "", True, 400, raiseStatusFalse, RequestMock()
+)
 MockResponseWithHeadersInstance = MockResponse(
-    {"Sentry-Hook-Error": "d5111da2c28645c5889d072017e3445d", "Sentry-Hook-Project": "1"},
-    {},
-    "",
-    False,
-    400,
-    raiseStatusTrue,
+    headers, html_content, "", True, 400, raiseStatusFalse, RequestMock()
 )
+MockResponseInstance = MockResponse({}, {}, "", True, 200, raiseStatusFalse, None)
+MockResponse404 = MockResponse({}, {}, "", False, 404, raiseException, None)
 
 
 class TestSendAlertEvent(TestCase):
@@ -547,6 +561,27 @@ class TestWebhookRequests(TestCase):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 400
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
+
+    @patch(
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
+        return_value=MockFailureHTMLContentResponseInstance,
+    )
+    def test_saves_error_if_webhook_request_with_html_content_fails(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+
+        with self.assertRaises(ClientError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
 
         requests = self.buffer.get_requests()
         requests_count = len(requests)
@@ -557,6 +592,30 @@ class TestWebhookRequests(TestCase):
         assert first_request["response_code"] == 400
         assert first_request["event_type"] == "issue.assigned"
         assert first_request["organization_id"] == self.install.organization.id
+        assert first_request["response_body"] == html_content
+
+    @patch(
+        "sentry.utils.sentry_apps.webhooks.safe_urlopen",
+        return_value=MockFailureJSONContentResponseInstance,
+    )
+    def test_saves_error_if_webhook_request_with_json_content_fails(self, safe_urlopen):
+        data = {"issue": serialize(self.issue)}
+
+        with self.assertRaises(ClientError):
+            send_webhooks(
+                installation=self.install, event="issue.assigned", data=data, actor=self.user
+            )
+
+        requests = self.buffer.get_requests()
+        requests_count = len(requests)
+        first_request = requests[0]
+
+        assert safe_urlopen.called
+        assert requests_count == 1
+        assert first_request["response_code"] == 400
+        assert first_request["event_type"] == "issue.assigned"
+        assert first_request["organization_id"] == self.install.organization.id
+        assert json.loads(first_request["response_body"]) == json_content
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     def test_saves_request_if_webhook_request_succeeds(self, safe_urlopen):

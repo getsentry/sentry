@@ -239,6 +239,21 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                 ),
                 fields.MetricsFunction(
+                    "sum",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(

@@ -21,6 +21,11 @@ DOC_FOLDER = os.environ.get("INTEGRATION_DOC_FOLDER") or os.path.abspath(
     os.path.join(os.path.dirname(sentry.__file__), "integration-docs")
 )
 
+
+class SuspiciousDocPathOperation(Exception):
+    """A suspicious operation was attempted while accessing the doc path"""
+
+
 """
 Looking to add a new framework/language to /settings/install?
 
@@ -46,23 +51,34 @@ def echo(what):
 
 
 def dump_doc(path, data):
-    fn = os.path.join(DOC_FOLDER, path + ".json")
-    directory = os.path.dirname(fn)
+    expected_commonpath = os.path.realpath(DOC_FOLDER)
+    doc_path = os.path.join(DOC_FOLDER, f"{path}.json")
+    doc_real_path = os.path.realpath(doc_path)
+
+    if expected_commonpath != os.path.commonpath([expected_commonpath, doc_real_path]):
+        raise SuspiciousDocPathOperation("illegal path access")
+
+    directory = os.path.dirname(doc_path)
     try:
         os.makedirs(directory)
     except OSError:
         pass
-    with open(fn, "wt", encoding="utf-8") as f:
+    with open(doc_path, "wt", encoding="utf-8") as f:
         f.write(json.dumps(data, indent=2))
         f.write("\n")
 
 
 def load_doc(path):
-    if "/" in path:
-        return None
-    fn = os.path.join(DOC_FOLDER, path + ".json")
+
+    expected_commonpath = os.path.realpath(DOC_FOLDER)
+    doc_path = os.path.join(DOC_FOLDER, f"{path}.json")
+    doc_real_path = os.path.realpath(doc_path)
+
+    if expected_commonpath != os.path.commonpath([expected_commonpath, doc_real_path]):
+        raise SuspiciousDocPathOperation("illegal path access")
+
     try:
-        with open(fn, encoding="utf-8") as f:
+        with open(doc_path, encoding="utf-8") as f:
             return json.load(f)
     except OSError:
         return None

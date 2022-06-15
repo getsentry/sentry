@@ -129,7 +129,7 @@ const Version = ({
     }
 
     return css`
-      @media (min-width: ${theme.breakpoints[0]}) {
+      @media (min-width: ${theme.breakpoints.small}) {
         max-width: 500px;
       }
     `;

@@ -8,7 +8,12 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
 import {DisplayType, WidgetQuery} from '../types';
-import {DERIVED_STATUS_METRICS_PATTERN} from '../widgetBuilder/releaseWidget/fields';
+import {
+  DERIVED_STATUS_METRICS_PATTERN,
+  generateReleaseWidgetFieldOptions,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
+} from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
   resolveDerivedStatusFields,
@@ -38,6 +43,7 @@ export const ReleasesConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  getTableFieldOptions: getReleasesTableFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -49,6 +55,10 @@ export const ReleasesConfig: DatasetConfig<
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
+
+function getReleasesTableFieldOptions() {
+  return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
+}
 
 export function transformSessionsResponseToTable(
   data: SessionApiResponse | MetricsApiResponse,

@@ -53,7 +53,7 @@ export type QuickAction = {
   actionType: QuickActionType;
   text: string;
   canRunAction?: (
-    token: TokenResult<any> | undefined,
+    token: TokenResult<any> | null | undefined,
     filterTokenCount: number
   ) => boolean;
   hotkeys?: {
