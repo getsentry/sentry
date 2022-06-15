@@ -15,3 +15,6 @@ class ProjectConfigCache(Service):
 
     def get(self, public_key):
         raise NotImplementedError()
+
+    def exists(self, public_key):
+        raise NotImplementedError()

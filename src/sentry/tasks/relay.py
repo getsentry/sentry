@@ -262,7 +262,10 @@ def validate_args(organization_id=None, project_id=None, public_key=None):
 
 
 def compute_configs(organization_id=None, project_id=None, public_key=None):
-    """Computes all configs for the org, project or single public key.
+    """(re)computes all configs for the org, project or single public key.
+
+    For bulk operations not everything is computed: organisations are simply deleted, for
+    projects only active keys are computed.
 
     You must only provide one single argument, not all.
 
@@ -284,7 +287,12 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
             configs[key.public_key] = None
     elif project_id:
         for key in ProjectKey.objects.filter(project_id=project_id):
-            configs[key.public_key] = compute_projectkey_config(key)
+            if projectconfig_cache.exists(key):
+                configs[key.public_key] = compute_projectkey_config(key)
+                active = True
+            else:
+                active = False
+            metrics.incr("tasks.relay.compute_configs", tags={"active": active})
     elif public_key:
         try:
             key = ProjectKey.objects.get(public_key=public_key)

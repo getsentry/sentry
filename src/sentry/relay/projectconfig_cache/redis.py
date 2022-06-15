@@ -45,3 +45,6 @@ class RedisProjectConfigCache(ProjectConfigCache):
         if rv is not None:
             return json.loads(rv)
         return None
+
+    def exists(self, public_key):
+        self.cluster.exists(public_key)
