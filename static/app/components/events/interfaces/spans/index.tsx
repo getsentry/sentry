@@ -61,7 +61,6 @@ class SpansInterface extends PureComponent<Props, State> {
 
     trackAdvancedAnalyticsEvent('performance_views.event_details.search_query', {
       organization,
-      query: searchQuery,
     });
   };
 

@@ -20,12 +20,9 @@ export type PerformanceEventParameters = {
 
   'performance_views.event_details.json_button_click': {};
   'performance_views.event_details.open_span_details': {
-    description: string;
     operation: string;
   };
-  'performance_views.event_details.search_query': {
-    query: string;
-  };
+  'performance_views.event_details.search_query': {};
   'performance_views.landingv2.transactions.sort': {
     direction?: string;
     field?: string;

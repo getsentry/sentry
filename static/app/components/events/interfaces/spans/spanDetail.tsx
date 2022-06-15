@@ -90,7 +90,6 @@ class SpanDetail extends Component<Props, State> {
     trackAdvancedAnalyticsEvent('performance_views.event_details.open_span_details', {
       organization,
       operation: span.op ?? 'undefined',
-      description: span.description ?? 'undefined',
     });
   }
 
