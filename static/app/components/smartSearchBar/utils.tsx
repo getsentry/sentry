@@ -5,7 +5,16 @@ import {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
+import {
+  IconArrow,
+  IconClock,
+  IconDelete,
+  IconExclamation,
+  IconStar,
+  IconTag,
+  IconToggle,
+  IconUser,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import HotkeysLabel from '../hotkeysLabel';
@@ -260,6 +269,7 @@ export const quickActions: QuickAction[] = [
       actual: 'option+backspace',
       display: 'option+backspace',
     },
+    icon: <IconDelete size="xs" />,
     canRunAction: tok => {
       return tok?.type === Token.Filter;
     },
@@ -271,6 +281,7 @@ export const quickActions: QuickAction[] = [
       actual: ['option+1', 'cmd+1'],
       display: 'option+!',
     },
+    icon: <IconExclamation size="xs" />,
     canRunAction: tok => {
       return tok?.type === Token.Filter;
     },
@@ -282,6 +293,7 @@ export const quickActions: QuickAction[] = [
       actual: ['option+left'],
       display: 'option+left',
     },
+    icon: <IconArrow direction="left" size="xs" />,
     canRunAction: (tok, count) => {
       return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
@@ -293,6 +305,7 @@ export const quickActions: QuickAction[] = [
       actual: ['option+right'],
       display: 'option+right',
     },
+    icon: <IconArrow direction="right" size="xs" />,
     canRunAction: (tok, count) => {
       return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
