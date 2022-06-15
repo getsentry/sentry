@@ -346,11 +346,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       });
     }
 
-    let responses: (
-      | MetricsApiResponse
-      | [MetricsApiResponse, string, ResponseMeta]
-      | SessionApiResponse
-    )[] = [];
+    let responses: [MetricsApiResponse | SessionApiResponse, string, ResponseMeta][] = [];
 
     try {
       responses = await Promise.all(
@@ -384,15 +380,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       }
     }
 
-    responses.forEach((res, requestIndex) => {
-      let data: SessionApiResponse | MetricsApiResponse;
-      let response: ResponseMeta;
-      if (Array.isArray(res)) {
-        data = res[0];
-        response = res[2];
-      } else {
-        data = res;
-      }
+    responses.forEach(([data, _textstatus, response], requestIndex) => {
       if (!this._isMounted) {
         return;
       }
