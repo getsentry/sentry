@@ -464,7 +464,7 @@ export function SamplingRuleModal({
             </StyledPanelHeader>
             <PanelBody>
               {ruleWithoutConditionExists && (
-                <PanelAlert type="warning">
+                <PanelAlert type="info">
                   {t(
                     'A rule with no conditions already exists. You can edit that existing rule or add a condition to this rule'
                   )}
