@@ -712,9 +712,6 @@ export function useVirtualizedTree<T extends TreeLike>(
     return {height, maxHeight: height, overflow: 'hidden'};
   }, [tree.flattened.length, props.rowHeight]);
 
-  // It is important that this is not executed from a map function because
-  // we are assigning the refs to each individual item. If we do that,
-  // we lose access to the refs and cannot call focus or scrollIntoView on them
   const renderRow = props.renderRow;
   const renderedItems: React.ReactNode[] = useMemo(() => {
     const renderered: React.ReactNode[] = [];
