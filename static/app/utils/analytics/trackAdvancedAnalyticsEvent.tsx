@@ -25,7 +25,7 @@ type EventParameters = GrowthEventParameters &
   SamplingEventParameters &
   TeamInsightsEventParameters;
 
-const allEventMap: Record<keyof AnalyticsEventParameters, string | null> = {
+const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
   ...dashboardsEventMap,
   ...discoverEventMap,
@@ -43,6 +43,6 @@ const allEventMap: Record<keyof AnalyticsEventParameters, string | null> = {
  * Generic typed analytics function for growth, issue, and performance events.
  * Can split up analytics functions to a smaller set of events like we do for trackIntegrationAnalytics
  */
-const trackAdvancedAnalyticsEvent = makeAnalyticsFunction(allEventMap);
+const trackAdvancedAnalyticsEvent = makeAnalyticsFunction<EventParameters>(allEventMap);
 
 export default trackAdvancedAnalyticsEvent;
