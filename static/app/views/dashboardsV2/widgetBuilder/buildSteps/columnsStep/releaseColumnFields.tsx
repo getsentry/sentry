@@ -1,11 +1,7 @@
 import {Organization} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {
-  generateReleaseWidgetFieldOptions,
-  SESSIONS_FIELDS,
-  SESSIONS_TAGS,
-} from 'sentry/views/dashboardsV2/widgetBuilder/releaseWidget/fields';
 import {filterPrimaryOptions} from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -29,6 +25,7 @@ export function ReleaseColumnFields({
   queryErrors,
   onYAxisOrColumnFieldChange,
 }: Props) {
+  const datasetConfig = getDatasetConfig(WidgetType.RELEASE);
   const filterAggregateParameters = (option: FieldValueOption) => {
     return option.value.kind === FieldValueKind.METRICS;
   };
@@ -39,10 +36,7 @@ export function ReleaseColumnFields({
       widgetType={widgetType}
       fields={explodedFields}
       errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
-      fieldOptions={generateReleaseWidgetFieldOptions(
-        Object.values(SESSIONS_FIELDS),
-        SESSIONS_TAGS
-      )}
+      fieldOptions={datasetConfig.getTableFieldOptions()}
       filterAggregateParameters={filterAggregateParameters}
       filterPrimaryOptions={option =>
         filterPrimaryOptions({
