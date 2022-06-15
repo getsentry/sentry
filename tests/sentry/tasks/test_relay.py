@@ -85,16 +85,10 @@ def test_debounce(
 
     monkeypatch.setattr("sentry.tasks.relay.build_project_config.apply_async", apply_async)
 
-    schedule_build_project_config(
-        public_key=default_projectkey.public_key, trigger="first_schedule"
-    )
-    schedule_build_project_config(
-        public_key=default_projectkey.public_key, trigger="second_schedule"
-    )
+    schedule_build_project_config(public_key=default_projectkey.public_key)
+    schedule_build_project_config(public_key=default_projectkey.public_key)
 
-    assert tasks == [
-        {"public_key": default_projectkey.public_key, "trigger": "first_schedule"},
-    ]
+    assert tasks == [{"public_key": default_projectkey.public_key}]
 
 
 @pytest.mark.django_db
