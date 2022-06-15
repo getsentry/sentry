@@ -58,7 +58,7 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
         resp["Content-Type"] = "text/plain"
         return resp
 
-    def permission_denied(self, request: Request, message=None):
+    def permission_denied(self, request: Request, **kwargs):
         resp = render_to_response("sentry/reprocessing-script.sh", {"token": None})
         resp["Content-Type"] = "text/plain"
         return resp
