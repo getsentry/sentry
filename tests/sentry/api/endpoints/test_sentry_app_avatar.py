@@ -5,12 +5,13 @@ from sentry.testutils import APITestCase
 
 
 class SentryAppAvatarTestBase(APITestCase):
+    endpoint = "sentry-api-0-sentry-app-avatar"
+
     def setUp(self):
         super().setUp()
         self.unpublished_app = self.create_sentry_app(name="Meow", organization=self.organization)
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app, color=True, avatar_type=0)
         SentryAppAvatar.objects.create(sentry_app=self.unpublished_app, color=False, avatar_type=0)
-        self.endpoint = "sentry-api-0-sentry-app-avatar"
         self.login_as(self.user)
 
     def get_avatar(self, resp, is_color=True):
