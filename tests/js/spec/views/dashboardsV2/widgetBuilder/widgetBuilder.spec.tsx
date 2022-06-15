@@ -2792,8 +2792,9 @@ describe('WidgetBuilder', function () {
           'session.status:'
         );
 
-        await tick();
-        expect(await screen.findByText('No items found')).toBeInTheDocument();
+        await waitFor(() => {
+          expect(screen.getByText('No items found')).toBeInTheDocument();
+        });
 
         userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
         userEvent.click(
