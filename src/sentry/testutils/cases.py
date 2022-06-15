@@ -166,6 +166,10 @@ class BaseTestCase(Fixtures, Exam):
         """
         self.capture_on_commit_callbacks = django_capture_on_commit_callbacks
 
+    @pytest.fixture(autouse=True)
+    def expose_bad_model_signal_handlers(self, bad_model_signal_handlers):
+        self.bad_model_signal_handlers = bad_model_signal_handlers
+
     def feature(self, names):
         """
         >>> with self.feature({'feature:name': True})
