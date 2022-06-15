@@ -30,7 +30,7 @@ jobs:
         with:
           labels: backend
 
-      - name: Find previous
+      - name: Find previous frontend/backend warning comment
         uses: peter-evans/find-comment@1769778a0c5bd330272d749d12c036d65e70d39d
         id: fc
         with:
