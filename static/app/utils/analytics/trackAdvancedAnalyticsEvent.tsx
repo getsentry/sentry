@@ -14,18 +14,16 @@ import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
 import {settingsEventMap, SettingsEventParameters} from './settingsAnalyticsEvents';
 import {TeamInsightsEventParameters, workflowEventMap} from './workflowAnalyticsEvents';
 
-interface EventParameters
-  extends GrowthEventParameters,
-    CoreUIEventParameters,
-    DashboardsEventParameters,
-    DiscoverEventParameters,
-    IssueEventParameters,
-    PerformanceEventParameters,
-    SearchEventParameters,
-    SettingsEventParameters,
-    SamplingEventParameters,
-    TeamInsightsEventParameters,
-    Record<string, Record<string, any>> {}
+type EventParameters = GrowthEventParameters &
+  CoreUIEventParameters &
+  DashboardsEventParameters &
+  DiscoverEventParameters &
+  IssueEventParameters &
+  PerformanceEventParameters &
+  SearchEventParameters &
+  SettingsEventParameters &
+  SamplingEventParameters &
+  TeamInsightsEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
