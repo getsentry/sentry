@@ -73,8 +73,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     contextualProps?: ContextualProps
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
-   * Apply dataset specifc overrides to the logic that handles
-   * column updates for tables in the Widget Buulder.
+   * Apply dataset specific overrides to the logic that handles
+   * column updates for tables in the Widget Builder.
    */
   handleColumnFieldChangeOverride?: (widgetQuery: WidgetQuery) => WidgetQuery;
   /**
