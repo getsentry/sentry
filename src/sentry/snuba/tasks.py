@@ -211,8 +211,6 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
         )
         metrics.incr("snuba.snql.subscription.parsing.error", tags={"dataset": snuba_query.dataset})
 
-    print("SUBSCRIPTION CREATION REQUEST", body)
-
     response = _snuba_pool.urlopen(
         "POST",
         f"/{snuba_query.dataset}/{entity_subscription.entity_key.value}/subscriptions",
