@@ -1,4 +1,4 @@
-import {createContext, useState} from 'react';
+import {createContext, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'sentry/components/button';
@@ -187,19 +187,21 @@ export function TraceEventDataSection({
     <EventDataSection
       type={type}
       title={
-        <Title>
-          {showPermalink ? (
-            <div>
-              <Permalink href={'#' + type} className="permalink">
-                <StyledIconAnchor />
-                {title}
-              </Permalink>
-            </div>
-          ) : (
-            title
-          )}
+        <Header>
+          <Title>
+            {showPermalink ? (
+              <div>
+                <Permalink href={'#' + type} className="permalink">
+                  <StyledIconAnchor />
+                  {title}
+                </Permalink>
+              </div>
+            ) : (
+              title
+            )}
+          </Title>
           {!stackTraceNotFound && (
-            <Actions>
+            <Fragment>
               {!state.display.includes('raw-stack-trace') && (
                 <Tooltip
                   title={!hasAppOnlyFrames ? t('Only full version available') : undefined}
@@ -261,9 +263,9 @@ export function TraceEventDataSection({
                   },
                 ]}
               />
-            </Actions>
+            </Fragment>
           )}
-        </Title>
+        </Header>
       }
       showPermalink={false}
       wrapTitle={wrapTitle}
@@ -307,29 +309,18 @@ const FullStackTraceToggler = styled(BooleanField)`
   }
 `;
 
-const Title = styled('div')`
+const Header = styled('div')`
   width: 100%;
   display: flex;
   flex-wrap: wrap;
   gap: ${space(1)};
   align-items: center;
   justify-content: space-between;
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    > *:first-child {
-      width: auto;
-    }
-  }
 `;
 
-const Actions = styled('div')`
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, max-content);
-  align-items: center;
-  gap: ${space(1)};
-
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+const Title = styled('div')`
+  flex: 1;
+  & > *:first-child {
     width: auto;
   }
 `;
