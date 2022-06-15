@@ -34,8 +34,13 @@ class SearchDropdown extends PureComponent<Props> {
       if (item.type === ItemType.INVALID_TAG) {
         return (
           <Invalid>
-            The field <strong>{item.desc}</strong> isn't supported here.{' '}
-            <Highlight>See all searchable properties in the docs.</Highlight>
+ {tct(
+              "The field [field] isn't supported here. [highlight:See all searchable properties in the docs.]",
+              {
+                field: <strong>{item.desc}</strong>,
+                highlight: <Highlight />,
+              }
+            )}
           </Invalid>
         );
       }
@@ -84,7 +89,7 @@ class SearchDropdown extends PureComponent<Props> {
         ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
       >
         <SearchItemTitleWrapper>
-          {item.title && item.title + (item.desc ? ' · ' : '')}
+  {item.title && `${item.title}${item.desc ? ' · ' : ''}`}
           <Description>{this.renderDescription(item)}</Description>
           <Documentation>{item.documentation}</Documentation>
         </SearchItemTitleWrapper>
