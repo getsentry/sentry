@@ -358,23 +358,15 @@ function useApiRequests({
     );
   }
 
-  function renderBody(elem: React.ReactElement) {
-    // Allow children to implement this
-    return elem;
-  }
-
-  function renderComponent(elem: React.ReactElement) {
+  function renderComponent(children: React.ReactElement) {
     return shouldRenderLoading()
       ? renderLoading()
       : state.hasError
       ? renderError(new Error('Unable to load all required endpoints'))
-      : renderBody(elem);
+      : children;
   }
 
-  return {
-    ...state,
-    renderComponent,
-  };
+  return {...state, renderComponent};
 }
 
 export default useApiRequests;
