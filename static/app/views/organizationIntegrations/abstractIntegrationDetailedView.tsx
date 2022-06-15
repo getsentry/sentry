@@ -31,6 +31,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import marked, {singleLineRenderer} from 'sentry/utils/marked';
 import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import RequestIntegrationButton from './integrationRequest/RequestIntegrationButton';
 import IntegrationStatus from './integrationStatus';
@@ -376,6 +377,7 @@ class AbstractIntegrationDetailedView<
   renderBody() {
     return (
       <Fragment>
+        <BreadcrumbTitle routes={this.props.routes} title={this.integrationName} />
         {this.renderAlert()}
         {this.renderTopSection()}
         {this.renderTabs()}
