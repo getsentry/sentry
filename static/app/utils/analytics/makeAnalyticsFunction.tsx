@@ -1,12 +1,12 @@
-import {Organization} from 'sentry/types';
-import {Hooks} from 'sentry/types/hooks';
+import type {Hooks} from 'sentry/types/hooks';
 import {trackAnalyticsEventV2} from 'sentry/utils/analytics';
+
+import {Organization} from '../../types/organization';
+
+import type {AnalyticsEventParameters} from './trackAdvancedAnalyticsEvent';
 
 const hasAnalyticsDebug = () => window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
 
-type OptionalOrg = {
-  organization: Organization | string | null;
-};
 type Options = Parameters<Hooks['analytics:track-event-v2']>[1];
 
 /**
@@ -16,11 +16,15 @@ type Options = Parameters<Hooks['analytics:track-event-v2']>[1];
  * Can specifcy default options with the defaultOptions argument as well.
  * Can make orgnization required with the second generic.
  */
-export default function makeAnalyticsFunction<
-  EventParameters extends Record<string, Record<string, any>>,
-  OrgRequirement extends OptionalOrg = OptionalOrg
->(
-  eventKeyToNameMap: Record<keyof EventParameters, string | null>,
+// type DistributiveOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
+
+type AnalyticsParams<K extends keyof AnalyticsEventParameters> = Omit<
+  AnalyticsEventParameters[K],
+  'eventName' | 'eventKey'
+> & {organization: string | null | Organization};
+
+export default function makeAnalyticsFunction(
+  eventKeyToNameMap: Record<keyof AnalyticsEventParameters, string | null>,
   defaultOptions?: Options
 ) {
   /**
@@ -29,15 +33,14 @@ export default function makeAnalyticsFunction<
    * An analytics session corresponds to a single action funnel such as installation.
    * Tracking by session allows us to track individual funnel attempts for a single user.
    */
-  return <EventKey extends keyof EventParameters & string>(
-    eventKey: EventKey,
-    analyticsParams: EventParameters[EventKey] & OrgRequirement,
+  return <K extends keyof AnalyticsEventParameters>(
+    eventKey: K,
+    analyticsParams: AnalyticsParams<K>,
     options?: Options
   ) => {
-    const eventName = eventKeyToNameMap[eventKey];
     const params = {
       eventKey,
-      eventName,
+      eventName: eventKeyToNameMap[eventKey],
       ...analyticsParams,
     };
 
