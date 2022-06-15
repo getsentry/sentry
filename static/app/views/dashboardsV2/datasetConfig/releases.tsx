@@ -17,6 +17,9 @@ import {
   DerivedStatusFields,
   DISABLED_SORT,
   FIELD_TO_METRICS_EXPRESSION,
+  generateReleaseWidgetFieldOptions,
+  SESSIONS_FIELDS,
+  SESSIONS_TAGS,
 } from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
@@ -49,6 +52,7 @@ export const ReleasesConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequest,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  getTableFieldOptions: getReleasesTableFieldOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -60,6 +64,10 @@ export const ReleasesConfig: DatasetConfig<
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
+
+function getReleasesTableFieldOptions() {
+  return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
+}
 
 export function transformSessionsResponseToTable(
   data: SessionApiResponse | MetricsApiResponse,

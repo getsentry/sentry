@@ -351,7 +351,7 @@ const EventHeader = ({event}: {event: Event}) => {
 };
 
 const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints[0]};
+  max-width: ${p => p.theme.breakpoints.small};
 `;
 
 const TitleWrapper = styled('div')`

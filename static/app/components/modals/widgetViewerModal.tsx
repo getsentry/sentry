@@ -1065,7 +1065,7 @@ const ResultsContainer = styled('div')`
   flex-direction: column;
   gap: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     align-items: center;
     flex-direction: row;
     justify-content: space-between;

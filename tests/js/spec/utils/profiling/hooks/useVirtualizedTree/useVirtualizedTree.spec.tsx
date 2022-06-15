@@ -40,6 +40,7 @@ const makeScrollContainerMock = ({height}: {height: number}) => {
       return {height};
     },
     addEventListener: () => {},
+    removeEventListener: () => {},
   } as unknown as HTMLElement;
 };
 

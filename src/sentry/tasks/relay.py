@@ -176,7 +176,7 @@ def schedule_update_config_cache(
     soft_time_limit=25 * 60,  # 25mins
     time_limit=25 * 60 + 5,
 )
-def build_project_config(public_key=None, trigger=None, **kwargs):
+def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
 
     This task is used to compute missing project configs, it is aggressively
@@ -192,7 +192,6 @@ def build_project_config(public_key=None, trigger=None, **kwargs):
         validate_args(public_key=public_key)
 
         sentry_sdk.set_tag("public_key", public_key)
-        sentry_sdk.set_tag("update_reason", trigger)
         sentry_sdk.set_context("kwargs", kwargs)
 
         from sentry.models import ProjectKey
@@ -217,7 +216,7 @@ def build_project_config(public_key=None, trigger=None, **kwargs):
         )
 
 
-def schedule_build_project_config(public_key=None, trigger="build"):
+def schedule_build_project_config(public_key=None):
     """Schedule the `build_project_config` with debouncing applied.
 
     See documentation of `build_project_config` for documentation of parameters.
@@ -230,16 +229,16 @@ def schedule_build_project_config(public_key=None, trigger="build"):
     ):
         metrics.incr(
             "relay.projectconfig_cache.skipped",
-            tags={"reason": "debounce", "update_reason": trigger},
+            tags={"reason": "debounce"},
         )
         # If this task is already in the queue, do not schedule another task.
         return
 
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
-        tags={"update_reason": trigger},
+        tags={"task": "build"},
     )
-    build_project_config.delay(public_key=public_key, trigger=trigger)
+    build_project_config.delay(public_key=public_key)
 
     # Checking if the project is debounced and debouncing it are two separate
     # actions that aren't atomic. If the process marks a project as debounced
@@ -284,8 +283,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         for key in ProjectKey.objects.filter(project__in=projects):
             configs[key.public_key] = None
     elif project_id:
-        projects = [Project.objects.get(id=project_id)]
-        for key in ProjectKey.objects.filter(project__in=projects):
+        for key in ProjectKey.objects.filter(project_id=project_id):
             configs[key.public_key] = compute_projectkey_config(key)
     elif public_key:
         try:

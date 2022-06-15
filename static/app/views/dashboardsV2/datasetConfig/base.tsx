@@ -1,9 +1,10 @@
 import {Client} from 'sentry/api';
-import {OrganizationSummary, PageFilters} from 'sentry/types';
+import {OrganizationSummary, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, WidgetQuery, WidgetType} from '../types';
 
@@ -23,6 +24,14 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  /**
+   * Field options to display in the Column selectors for
+   * Table display type.
+   */
+  getTableFieldOptions: (
+    contextualProps?: ContextualProps,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
   /**
    * List of supported display types for dataset.
    */

@@ -49,7 +49,7 @@ const SearchContainer = styled('div')`
   width: 100%;
   margin-bottom: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;
