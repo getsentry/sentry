@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import {BaseGroup, GroupTombstone, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getTitle} from 'sentry/utils/events';
@@ -89,12 +89,12 @@ const StyledStacktracePreview = styled(StackTracePreview)<{
 }>`
   ${p =>
     p.hasGroupingStacktraceUI &&
-    `
+    css`
       display: inline-flex;
       overflow: hidden;
       height: 100%;
       > span:first-child {
-        ${overflowEllipsis}
+        ${p.theme.overflowEllipsis}
       }
     `}
 `;
@@ -102,14 +102,14 @@ const StyledStacktracePreview = styled(StackTracePreview)<{
 const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
   ${p =>
     p.hasGroupingTreeUI &&
-    `
+    css`
       display: inline-grid;
       grid-template-columns: auto max-content 1fr max-content;
       align-items: flex-end;
       line-height: 100%;
 
       ${Subtitle} {
-        ${overflowEllipsis};
+        ${p.theme.overflowEllipsis};
         display: inline-block;
         height: 100%;
       }

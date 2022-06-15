@@ -18,7 +18,6 @@ import Placeholder from 'sentry/components/placeholder';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy, IconDelete, IconEdit, IconGrabbable} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -29,7 +28,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
-import {Widget, WidgetType} from '../types';
+import {DisplayType, Widget, WidgetType} from '../types';
+import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
 import WidgetCardChartContainer from './widgetCardChartContainer';
@@ -216,6 +216,7 @@ class WidgetCard extends Component<Props, State> {
       noLazyLoad,
       showStoredAlert,
     } = this.props;
+
     const {start, period} = selection.datetime;
     let showIncompleteDataAlert: boolean = false;
     if (widget.widgetType === WidgetType.RELEASE && showStoredAlert) {
@@ -233,6 +234,17 @@ class WidgetCard extends Component<Props, State> {
         const prior = new Date(new Date().setDate(current.getDate() - periodInDays));
         showIncompleteDataAlert = prior < METRICS_BACKED_SESSIONS_START_DATE;
       }
+    }
+    if (widget.displayType === DisplayType.TOP_N) {
+      const queries = widget.queries.map(query => ({
+        ...query,
+        // Use the last aggregate because that's where the y-axis is stored
+        aggregates: query.aggregates.length
+          ? [query.aggregates[query.aggregates.length - 1]]
+          : [],
+      }));
+      widget.queries = queries;
+      widget.limit = DEFAULT_RESULTS_LIMIT;
     }
     return (
       <ErrorBoundary
@@ -370,7 +382,7 @@ const GrabbableButton = styled(Button)`
 `;
 
 const WidgetTitle = styled(HeaderTitle)`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   font-weight: normal;
 `;
 

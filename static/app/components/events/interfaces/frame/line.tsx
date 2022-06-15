@@ -9,7 +9,6 @@ import StrictClick from 'sentry/components/strictClick';
 import {IconChevron, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -401,7 +400,7 @@ const PackageInfo = styled('div')`
   grid-template-columns: auto 1fr;
   order: 2;
   align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     order: 0;
   }
 `;
@@ -437,14 +436,14 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   align-items: center;
   justify-content: flex-start;
 
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} minmax(117px, auto)
       1fr;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
-      props.theme.breakpoints[3]}) {
+  @media (min-width: ${props => props.theme.breakpoints.large}) and (max-width: ${props =>
+      props.theme.breakpoints.xlarge}) {
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
       1fr;
@@ -462,7 +461,7 @@ const StyledIconRefresh = styled(IconRefresh)`
 `;
 
 const LeadHint = styled('div')<{width?: string}>`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
   max-width: ${p => (p.width ? p.width : '67px')}
 `;
 

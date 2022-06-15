@@ -1,5 +1,4 @@
-import '@emotion/react';
-
+import {css} from '@emotion/react';
 import color from 'color';
 
 import CHART_PALETTE from 'sentry/constants/chartPalette';
@@ -34,7 +33,7 @@ export const lightColors = {
   purple400: '#584AC0',
   purple300: '#6C5FC7',
   purple200: 'rgba(108, 95, 199, 0.5)',
-  purple100: 'rgba(108, 95, 199, 0.1)',
+  purple100: 'rgba(108, 95, 199, 0.08)',
 
   blue400: '#2562D4',
   blue300: '#3C74DD',
@@ -309,9 +308,9 @@ const generateAliases = (colors: BaseColors) => ({
    */
   searchTokenBackground: {
     valid: colors.blue100,
-    validActive: color(colors.blue100).opaquer(0.2).string(),
+    validActive: color(colors.blue100).opaquer(1.0).string(),
     invalid: colors.red100,
-    invalidActive: color(colors.red100).opaquer(0.2).string(),
+    invalidActive: color(colors.red100).opaquer(0.8).string(),
   },
 
   /**
@@ -319,9 +318,9 @@ const generateAliases = (colors: BaseColors) => ({
    */
   searchTokenBorder: {
     valid: colors.blue200,
-    validActive: color(colors.blue200).opaquer(0.4).string(),
+    validActive: color(colors.blue200).opaquer(1).string(),
     invalid: colors.red200,
-    invalidActive: color(colors.red200).opaquer(0.4).string(),
+    invalidActive: color(colors.red200).opaquer(1).string(),
   },
 
   /**
@@ -563,6 +562,13 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     textDecorationThickness: '0.75px',
     textUnderlineOffset: '1.25px',
   }),
+  overflowEllipsis: css({
+    display: 'block',
+    width: '100%',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  }),
 });
 
 const iconSizes = {
@@ -575,7 +581,13 @@ const iconSizes = {
 };
 
 const commonTheme = {
-  breakpoints: ['800px', '992px', '1200px', '1440px', '2560px'],
+  breakpoints: {
+    small: '800px',
+    medium: '992px',
+    large: '1200px',
+    xlarge: '1440px',
+    xxlarge: '2560px',
+  },
 
   ...lightColors,
 

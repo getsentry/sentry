@@ -15,6 +15,7 @@ import space from 'sentry/styles/space';
 import {NewQuery} from 'sentry/types';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
+import {getQueryParamAsString} from 'sentry/utils/replays/getQueryParamAsString';
 import theme from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -25,22 +26,13 @@ import ReplaysFilters from './filters';
 import ReplayTable from './replayTable';
 import {Replay} from './types';
 
-// certain query params can be either a string or an array of strings
-// so if we have an array we reduce it down to a string
-const getQueryParamAsString = query => {
-  if (!query) {
-    return '';
-  }
-  return Array.isArray(query) ? query.join(' ') : query;
-};
-
 const columns = [t('Session'), t('Project')];
 
 function Replays() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
+  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
   const [searchQuery, setSearchQuery] = useState<string>(
     getQueryParamAsString(location.query.query)
@@ -163,7 +155,11 @@ function Replays() {
                     ]}
                   >
                     {data.tableData ? (
-                      <ReplayTable replayList={data.tableData.data as Replay[]} />
+                      <ReplayTable
+                        idKey="id"
+                        showProjectColumn
+                        replayList={data.tableData.data as Replay[]}
+                      />
                     ) : null}
                   </StyledPanelTable>
                   <Pagination pageLinks={data.pageLinks} />
@@ -191,7 +187,7 @@ const StyledPageContent = styled(PageContent)`
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns: minmax(0, 1fr) max-content max-content max-content max-content;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr) max-content max-content max-content;
   }
 `;

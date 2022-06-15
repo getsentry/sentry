@@ -7,6 +7,7 @@ import GlobalModal from 'sentry/components/globalModal';
 import {Organization} from 'sentry/types';
 import {SamplingRuleType} from 'sentry/types/sampling';
 import {OrganizationContext} from 'sentry/views/organizationContext';
+import {RouteContext} from 'sentry/views/routeContext';
 import Sampling from 'sentry/views/settings/project/sampling';
 
 export function renderComponent({
@@ -26,7 +27,18 @@ export function renderComponent({
 
   const {container} = render(
     <Fragment>
-      {withModal && <GlobalModal />}
+      {withModal && (
+        <RouteContext.Provider
+          value={{
+            router,
+            location: router.location,
+            params: {},
+            routes: [],
+          }}
+        >
+          <GlobalModal />
+        </RouteContext.Provider>
+      )}
       <OrganizationContext.Provider value={organization}>
         <Sampling
           project={project}

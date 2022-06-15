@@ -2,7 +2,21 @@ import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, TypedDict, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypedDict,
+    Union,
+)
+
+from snuba_sdk import Request
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
@@ -126,6 +140,15 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         """
         raise NotImplementedError
 
+    def build_snql_query(
+        self,
+        query: str,
+        project_ids: Sequence[int],
+        environment: Optional[Environment],
+        params: Optional[MutableMapping[str, Any]] = None,
+    ) -> Request:
+        pass
+
 
 class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
     def __init__(
@@ -158,6 +181,34 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         if environment:
             snuba_filter.conditions.append(["environment", "=", environment.name])
         return snuba_filter
+
+    def build_snql_query(
+        self,
+        query: str,
+        project_ids: Sequence[int],
+        environment: Optional[Environment],
+        params: Optional[MutableMapping[str, Any]] = None,
+    ) -> Request:
+        from sentry.search.events.builder import QueryBuilder
+
+        if params is None:
+            params = {}
+
+        params["project_id"] = project_ids
+
+        query = apply_dataset_query_conditions(QueryDatasets(self.dataset), query, self.event_types)
+        if environment:
+            params["environment"] = environment.name
+
+        return QueryBuilder(
+            dataset=Dataset(self.dataset.value),
+            query=query,
+            selected_columns=[self.aggregate],
+            params=params,
+            offset=None,
+            limit=None,
+            skip_time_conditions=True,
+        ).get_snql_query()
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {}
@@ -240,6 +291,47 @@ class SessionsEntitySubscription(BaseEntitySubscription):
                 "incidents.entity_subscription.sessions.aggregate_query_results.no_session_data"
             )
         return data
+
+    def build_snql_query(
+        self,
+        query: str,
+        project_ids: Sequence[int],
+        environment: Optional[Environment],
+        params: Optional[MutableMapping[str, Any]] = None,
+    ) -> Request:
+        from sentry.search.events.builder import SessionsQueryBuilder
+
+        aggregations = [self.aggregate]
+        # This aggregation is added to return the total number of sessions in crash
+        # rate alerts that is used to identify if we are below a general minimum alert threshold
+        count_col = re.search(r"(sessions|users)", self.aggregate)
+        if not count_col:
+            raise UnsupportedQuerySubscription(
+                "Only crash free percentage queries are supported for subscriptions"
+                "over the sessions dataset"
+            )
+        count_col_matched = count_col.group()
+
+        aggregations += [f"identity({count_col_matched}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
+
+        if params is None:
+            params = {}
+
+        params["project_id"] = project_ids
+
+        if environment:
+            params["environment"] = environment.name
+
+        return SessionsQueryBuilder(
+            dataset=Dataset(self.dataset.value),
+            query=query,
+            selected_columns=aggregations,
+            params=params,
+            offset=None,
+            limit=None,
+            functions_acl=["identity"],
+            skip_time_conditions=True,
+        ).get_snql_query()
 
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
@@ -423,6 +515,15 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         col_name = alias if alias else CRASH_RATE_ALERT_AGGREGATE_ALIAS
         aggregated_results = [{col_name: crash_free_rate}]
         return aggregated_results
+
+    def build_snql_query(
+        self,
+        query: str,
+        project_ids: Sequence[int],
+        environment: Optional[Environment],
+        params: Optional[Mapping[str, Any]] = None,
+    ) -> Request:
+        raise NotImplementedError
 
 
 class MetricsCountersEntitySubscription(BaseMetricsEntitySubscription):

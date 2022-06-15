@@ -22,7 +22,8 @@ import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
+import {getDatasetConfig} from '../datasetConfig/base';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetType} from '../types';
 import {getWidgetInterval} from '../utils';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
@@ -31,9 +32,6 @@ import {
   FIELD_TO_METRICS_EXPRESSION,
   METRICS_EXPRESSION_TO_FIELD,
 } from '../widgetBuilder/releaseWidget/fields';
-
-import {transformSessionsResponseToSeries} from './transformSessionsResponseToSeries';
-import {transformSessionsResponseToTable} from './transformSessionsResponseToTable';
 
 type Props = {
   api: Client;
@@ -83,8 +81,9 @@ export function derivedMetricsToField(field: string): string {
  * requested but required to calculate the value of a derived
  * status field so will need to be stripped away in post processing.
  */
-function resolveDerivedStatusFields(
+export function resolveDerivedStatusFields(
   fields: string[],
+  orderby: string,
   useSessionAPI: boolean
 ): {
   aggregates: string[];
@@ -97,6 +96,16 @@ function resolveDerivedStatusFields(
   );
 
   const injectedFields: string[] = [];
+
+  const rawOrderby = trimStart(orderby, '-');
+  const unsupportedOrderby =
+    DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
+
+  if (rawOrderby && !!!unsupportedOrderby && !!!fields.includes(rawOrderby)) {
+    if (!!!injectedFields.includes(rawOrderby)) {
+      injectedFields.push(rawOrderby);
+    }
+  }
 
   if (!!!useSessionAPI) {
     return {aggregates, derivedStatusFields, injectedFields};
@@ -202,29 +211,17 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       this.fetchData();
       return;
     }
-
-    // If the query names have changed, then update timeseries labels
-    const useSessionAPI = widget.queries[0].columns.includes('session.status');
     if (
       !loading &&
       !isEqual(widgetQueryNames, prevWidgetQueryNames) &&
       rawResults?.length === widget.queries.length
     ) {
-      const {derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
-        widget.queries[0].aggregates,
-        useSessionAPI
-      );
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(prevState => {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            transformSessionsResponseToSeries(
-              rawResult,
-              derivedStatusFields,
-              injectedFields,
-              widget.queries[index].name
-            )
+            this.config.transformSeries!(rawResult, widget.queries[index])
           ),
         };
       });
@@ -236,6 +233,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   }
 
   private _isMounted: boolean = false;
+  config = getDatasetConfig(WidgetType.RELEASE);
 
   get limit() {
     const {limit} = this.props;
@@ -379,8 +377,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       }
     }
 
-    const {aggregates, derivedStatusFields, injectedFields} = resolveDerivedStatusFields(
+    const {aggregates, injectedFields} = resolveDerivedStatusFields(
       widget.queries[0].aggregates,
+      widget.queries[0].orderby,
       useSessionAPI
     );
     const columns = widget.queries[0].columns;
@@ -493,10 +492,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the table format
           let tableResults: TableDataWithTitle[] | undefined;
           if (includeTotals) {
-            const tableData = transformSessionsResponseToTable(
+            const tableData = this.config.transformTable(
               data,
-              derivedStatusFields,
-              injectedFields
+              widget.queries[0]
             ) as TableDataWithTitle; // Cast so we can add the title.
             tableData.title = widget.queries[requestIndex]?.name ?? '';
             tableResults = [...(prevState.tableResults ?? []), tableData];
@@ -507,11 +505,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the chart format
           const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
           if (includeSeries) {
-            const transformedResult = transformSessionsResponseToSeries(
+            const transformedResult = this.config.transformSeries!(
               data,
-              derivedStatusFields,
-              injectedFields,
-              widget.queries[requestIndex].name
+              widget.queries[requestIndex]
             );
 
             // When charting timeseriesData on echarts, color association to a timeseries result

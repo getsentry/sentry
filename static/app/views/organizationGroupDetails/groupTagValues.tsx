@@ -19,7 +19,6 @@ import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow, IconEllipsis, IconMail, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Group, Project, SavedQueryVersions, Tag, TagValue} from 'sentry/types';
 import {isUrl, percent} from 'sentry/utils';
@@ -300,7 +299,7 @@ const StyledPanelTable = styled(PanelTable)`
   font-size: ${p => p.theme.fontSizeMedium};
 
   overflow: auto;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     overflow: initial;
   }
 
@@ -332,13 +331,13 @@ const Column = styled('div')`
 `;
 
 const NameColumn = styled(Column)`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   display: flex;
   min-width: 320px;
 `;
 
 const NameWrapper = styled('span')`
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
   width: auto;
 `;
 

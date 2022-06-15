@@ -67,7 +67,6 @@ class DummyNewsletter(Newsletter):
 
     def __init__(self, enabled=False):
         self._subscriptions = defaultdict(dict)
-        self._optout = set()
         self._enabled = enabled
 
     def enable(self):
@@ -78,7 +77,6 @@ class DummyNewsletter(Newsletter):
 
     def clear(self):
         self._subscriptions = defaultdict(dict)
-        self._optout = set()
 
     def is_enabled(self):
         return self._enabled
@@ -108,4 +106,8 @@ class DummyNewsletter(Newsletter):
         return self._subscriptions[user]
 
     def optout_email(self, email, **kwargs):
-        self._optout.add(email)
+        unsubscribe_date = timezone.now()
+        for by_list in self._subscriptions.values():
+            for subscription in by_list.values():
+                if subscription.email == email:
+                    subscription.update(subscribed=False, unsubscribe_date=unsubscribe_date)
