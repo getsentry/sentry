@@ -96,7 +96,7 @@
     "less-loader": "^11.0.0",
     "lodash": "^4.17.19",
     "marked": "0.7.0",
-    "mini-css-extract-plugin": "^2.6.0",
+    "mini-css-extract-plugin": "^2.6.1",
     "mobx": "^6.6.0",
     "mobx-react": "~7.5.0",
     "mockdate": "3.0.5",
