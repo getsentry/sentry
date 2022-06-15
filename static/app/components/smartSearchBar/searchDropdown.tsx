@@ -120,6 +120,7 @@ class SearchDropdown extends PureComponent<Props> {
                     <HotkeyGlyphWrapper>
                       <HotkeysLabel value={action.hotkeys?.display ?? []} />
                     </HotkeyGlyphWrapper>
+                    <IconWrapper>{action.icon}</IconWrapper>
                     <HotkeyTitle>{action.text}</HotkeyTitle>
                   </ActionButtonContainer>
                 );
@@ -258,6 +259,7 @@ const DropdownFooter = styled(`div`)`
   justify-content: space-between;
   padding: ${space(1)};
   flex-wrap: wrap;
+  gap: ${space(1)};
 `;
 
 const ActionsRow = styled('div')`
@@ -284,6 +286,21 @@ const ActionButtonContainer = styled('div')`
 const HotkeyGlyphWrapper = styled('span')`
   color: ${p => p.theme.gray300};
   margin-right: ${space(0.5)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
+`;
+
+const IconWrapper = styled('span')`
+  display: none;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+    margin-right: ${space(0.5)};
+    align-items: center;
+    justify-content: center;
+  }
 `;
 
 const HotkeyTitle = styled(`span`)`
