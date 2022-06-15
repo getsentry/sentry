@@ -63,15 +63,7 @@ function DetailLayout({children, event, orgId, crumbs}: Props) {
             <Clipboard hideUnsupported value={urlToShare}>
               <Button icon={<IconLink />}>{t('Share')}</Button>
             </Clipboard>
-            <FeatureFeedback
-              featureName="replay"
-              feedbackTypes={[
-                t('Something is broken'),
-                t("I don't understand how to use this feature"),
-                t('I like this feature'),
-                t('Other reason'),
-              ]}
-            />
+            <FeatureFeedback featureName="replay" />
           </ButtonActionsWrapper>
           <React.Fragment>
             <Layout.HeaderContent>
