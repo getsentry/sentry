@@ -65,9 +65,9 @@ import {
   WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboardsV2/types';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_STATS_PERIOD} from '../data';
+import {getDatasetConfig} from '../datasetConfig/base';
 import {getNumEquations} from '../utils';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
@@ -90,38 +90,6 @@ import {
   normalizeQueries,
 } from './utils';
 import {WidgetLibrary} from './widgetLibrary';
-
-function getDataSetQuery(widgetBuilderNewDesign: boolean): Record<DataSet, WidgetQuery> {
-  return {
-    [DataSet.EVENTS]: {
-      name: '',
-      fields: ['count()'],
-      columns: [],
-      fieldAliases: [],
-      aggregates: ['count()'],
-      conditions: '',
-      orderby: widgetBuilderNewDesign ? '-count()' : '',
-    },
-    [DataSet.ISSUES]: {
-      name: '',
-      fields: ['issue', 'assignee', 'title'] as string[],
-      columns: ['issue', 'assignee', 'title'],
-      fieldAliases: [],
-      aggregates: [],
-      conditions: '',
-      orderby: widgetBuilderNewDesign ? IssueSortOptions.DATE : '',
-    },
-    [DataSet.RELEASES]: {
-      name: '',
-      fields: [`crash_free_rate(${SessionField.SESSION})`],
-      columns: [],
-      fieldAliases: [],
-      aggregates: [`crash_free_rate(${SessionField.SESSION})`],
-      conditions: '',
-      orderby: widgetBuilderNewDesign ? `-crash_free_rate(${SessionField.SESSION})` : '',
-    },
-  };
-}
 
 const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.DISCOVER]: DataSet.EVENTS,
@@ -233,6 +201,10 @@ function WidgetBuilder({
   const api = useApi();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [datasetConfig, setDataSetConfig] = useState<ReturnType<typeof getDatasetConfig>>(
+    getDatasetConfig(WidgetType.DISCOVER)
+  );
   const [state, setState] = useState<State>(() => {
     const defaultState: State = {
       title: defaultTitle ?? t('Custom Widget'),
@@ -279,9 +251,7 @@ function WidgetBuilder({
         defaultState.queries[0].orderby = '';
       }
     } else {
-      defaultState.queries = [
-        {...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]},
-      ];
+      defaultState.queries = [{...datasetConfig.defaultWidgetQuery}];
     }
 
     return defaultState;
@@ -349,6 +319,7 @@ function WidgetBuilder({
           : DataSet.EVENTS,
         limit: newLimit,
       });
+      setDataSetConfig(getDatasetConfig(widgetFromDashboard.widgetType));
       setWidgetToBeUpdated(widgetFromDashboard);
     }
     // This should only run once on mount
@@ -449,6 +420,25 @@ function WidgetBuilder({
   function updateFieldsAccordingToDisplayType(newDisplayType: DisplayType) {
     setState(prevState => {
       const newState = cloneDeep(prevState);
+
+      if (!!!datasetConfig.supportedDisplayTypes.includes(newDisplayType)) {
+        // Set to Events dataset if Display Type is not supported by
+        // current dataset
+        set(
+          newState,
+          'queries',
+          normalizeQueries({
+            displayType: newDisplayType,
+            queries: [{...getDatasetConfig(WidgetType.DISCOVER).defaultWidgetQuery}],
+            widgetType: WidgetType.DISCOVER,
+            widgetBuilderNewDesign,
+          })
+        );
+        set(newState, 'dataSet', DataSet.EVENTS);
+        setDataSetConfig(getDatasetConfig(WidgetType.DISCOVER));
+        return {...newState, errors: undefined};
+      }
+
       const normalized = normalizeQueries({
         displayType: newDisplayType,
         queries: prevState.queries,
@@ -461,40 +451,7 @@ function WidgetBuilder({
         normalized.splice(1);
       }
 
-      if (
-        (prevState.displayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType &&
-          WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === DataSet.ISSUES) ||
-        (prevState.dataSet === DataSet.RELEASES &&
-          newDisplayType === DisplayType.WORLD_MAP)
-      ) {
-        // World Map display type only supports Events Dataset
-        // so set state to default events query.
-        set(
-          newState,
-          'queries',
-          normalizeQueries({
-            displayType: newDisplayType,
-            queries: [{...getDataSetQuery(widgetBuilderNewDesign)[DataSet.EVENTS]}],
-            widgetType: WidgetType.DISCOVER,
-            widgetBuilderNewDesign,
-          })
-        );
-        set(newState, 'dataSet', DataSet.EVENTS);
-        return {...newState, errors: undefined};
-      }
-
       if (!prevState.userHasModified) {
-        // If the Widget is an issue widget,
-        if (
-          newDisplayType === DisplayType.TABLE &&
-          widgetToBeUpdated?.widgetType === WidgetType.ISSUE
-        ) {
-          set(newState, 'queries', widgetToBeUpdated.queries);
-          set(newState, 'dataSet', DataSet.ISSUES);
-          return {...newState, errors: undefined};
-        }
-
         // Default widget provided by Add to Dashboard from Discover
         if (defaultWidgetQuery && defaultTableColumns) {
           // If switching to Table visualization, use saved query fields for Y-Axis if user has not made query changes
@@ -527,10 +484,6 @@ function WidgetBuilder({
             });
           }
         }
-      }
-
-      if (prevState.dataSet === DataSet.ISSUES) {
-        set(newState, 'dataSet', DataSet.EVENTS);
       }
 
       set(newState, 'queries', normalized);
@@ -612,11 +565,14 @@ function WidgetBuilder({
         set(newState, 'displayType', DisplayType.TABLE);
       }
 
+      const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[newDataSet]);
+      setDataSetConfig(config);
+
       newState.queries.push(
         ...(widgetToBeUpdated?.widgetType &&
         WIDGET_TYPE_TO_DATA_SET[widgetToBeUpdated.widgetType] === newDataSet
           ? widgetToBeUpdated.queries
-          : [{...getDataSetQuery(widgetBuilderNewDesign)[newDataSet]}])
+          : [{...config.defaultWidgetQuery}])
       );
 
       set(newState, 'userHasModified', true);
@@ -627,7 +583,8 @@ function WidgetBuilder({
   function handleAddSearchConditions() {
     setState(prevState => {
       const newState = cloneDeep(prevState);
-      const query = cloneDeep(getDataSetQuery(widgetBuilderNewDesign)[prevState.dataSet]);
+      const config = getDatasetConfig(DATA_SET_TO_WIDGET_TYPE[prevState.dataSet]);
+      const query = cloneDeep(config.defaultWidgetQuery);
       query.fields = prevState.queries[0].fields;
       query.aggregates = prevState.queries[0].aggregates;
       query.columns = prevState.queries[0].columns;
@@ -1244,6 +1201,9 @@ function WidgetBuilder({
                 widgetBuilderNewDesign={widgetBuilderNewDesign}
                 onWidgetSelect={prebuiltWidget => {
                   setLatestLibrarySelectionTitle(prebuiltWidget.title);
+                  setDataSetConfig(
+                    getDatasetConfig(prebuiltWidget.widgetType || WidgetType.DISCOVER)
+                  );
                   setState({
                     ...state,
                     ...prebuiltWidget,
@@ -1286,11 +1246,11 @@ const Body = styled(Layout.Body)`
 
   grid-template-rows: 1fr;
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: minmax(100px, auto) 400px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: 1fr;
   }
 `;
@@ -1305,11 +1265,11 @@ const Main = styled(Layout.Main)`
 
   padding: ${space(4)} ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(4)};
   }
 
-  @media (max-width: calc(${p => p.theme.breakpoints[2]} + ${space(4)})) {
+  @media (max-width: calc(${p => p.theme.breakpoints.large} + ${space(4)})) {
     ${ListItem} {
       width: calc(100% - ${space(4)});
     }
@@ -1319,14 +1279,14 @@ const Main = styled(Layout.Main)`
 const Side = styled(Layout.Side)`
   padding: ${space(4)} ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     border-top: 1px solid ${p => p.theme.gray200};
     grid-row: 2/2;
     grid-column: 1/-1;
     max-width: 100%;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     border-left: 1px solid ${p => p.theme.gray200};
 
     /* to be consistent with Layout.Body in other verticals */
@@ -1339,7 +1299,7 @@ const MainWrapper = styled('div')`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-column: 1/-1;
   }
 `;

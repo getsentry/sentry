@@ -96,7 +96,7 @@ const Details = styled(PageHeader)`
   gap: ${space(3)};
   grid-auto-flow: column;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: auto;
     grid-auto-flow: row;
   }
