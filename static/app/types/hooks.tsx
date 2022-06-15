@@ -5,7 +5,6 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import type {AnalyticsEventParameters} from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -131,7 +130,7 @@ export type AnalyticsHooks = {
   'analytics:track-adhoc-event': AnalyticsTrackAdhocEvent;
 
   'analytics:track-event': AnalyticsTrackEvent;
-  'analytics:track-event-v2': AnalyticsTrackEventV2<keyof AnalyticsEventParameters>;
+  'analytics:track-event-v2': AnalyticsTrackEventV2;
   'metrics:event': MetricsEvent;
 };
 
@@ -296,12 +295,17 @@ type AnalyticsTrackEvent = (opts: {
 /**
  * Trigger analytics tracking in the hook store.
  */
-export type AnalyticsTrackEventV2<K extends keyof AnalyticsEventParameters> = (
+type AnalyticsTrackEventV2 = (
   data: {
+    /**
+     * Arbitrary data to track
+     */
+    [key: string]: any;
     /**
      * The Reload event key.
      */
-    eventKey: K;
+    eventKey: string;
+
     /**
      * The Amplitude event name. Set to null if event should not go to Amplitude.
      */
