@@ -10,6 +10,8 @@ import type {Color} from 'sentry/utils/theme';
 
 import {getCrumbsByColumn} from '../utils';
 
+import {getDescription} from './utils';
+
 const EVENT_STICK_MARKER_WIDTH = 4;
 
 type Props = {
@@ -58,15 +60,10 @@ const EventColumn = styled(Timeline.Col)<{column: number}>`
 
 function getCrumbDetail(crumb: Crumb) {
   switch (crumb.type) {
-    case BreadcrumbType.USER:
-    case BreadcrumbType.UI:
-      return crumb.message ?? crumb.description;
-    case BreadcrumbType.NAVIGATION:
-      return crumb.data?.to ?? crumb.description;
     case BreadcrumbType.ERROR:
-      return `${crumb.data?.type}: ${crumb.data?.value}`;
+      return `${crumb.data?.label}: ${crumb.message}`;
     default:
-      return crumb.message;
+      return getDescription(crumb);
   }
 }
 

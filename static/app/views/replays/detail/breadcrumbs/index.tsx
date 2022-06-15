@@ -1,16 +1,12 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
 import {
   Panel as BasePanel,
   PanelBody as BasePanelBody,
   PanelHeader as BasePanelHeader,
-  PanelItem,
 } from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
-import ActionCategory from 'sentry/components/replays/actionCategory';
-import PlayerRelativeTime from 'sentry/components/replays/playerRelativeTime';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
@@ -18,6 +14,8 @@ import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+
+import BreadcrumbItem from './breadcrumbItem';
 
 function CrumbPlaceholder({number}: {number: number}) {
   return (
@@ -40,12 +38,7 @@ type Props = {
   event: EventTransaction | undefined;
 };
 
-type ContainerProps = {
-  isHovered: boolean;
-  isSelected: boolean;
-};
-
-function UserActionsNavigator({event, crumbs}: Props) {
+function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
   const {
     setCurrentTime,
     setCurrentHoverTime,
@@ -60,8 +53,11 @@ function UserActionsNavigator({event, crumbs}: Props) {
 
   const isLoaded = Boolean(event);
 
+  const crumbs =
+    allCrumbs?.filter(crumb => !['console'].includes(crumb.category || '')) || [];
+
   const currentUserAction = getPrevBreadcrumb({
-    crumbs: crumbs || [],
+    crumbs,
     targetTimestampMs: startTimestamp * 1000 + currentTime,
     allowExact: true,
   });
@@ -69,13 +65,13 @@ function UserActionsNavigator({event, crumbs}: Props) {
   const closestUserAction =
     currentHoverTime !== undefined
       ? getPrevBreadcrumb({
-          crumbs: crumbs || [],
+          crumbs,
           targetTimestampMs: startTimestamp * 1000 + (currentHoverTime ?? 0),
           allowExact: true,
         })
       : undefined;
 
-  const onMouseEnter = useCallback(
+  const handleMouseEnter = useCallback(
     (item: Crumb) => {
       if (startTimestamp) {
         setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestamp));
@@ -91,7 +87,7 @@ function UserActionsNavigator({event, crumbs}: Props) {
     [setCurrentHoverTime, startTimestamp, highlight, clearAllHighlights]
   );
 
-  const onMouseLeave = useCallback(
+  const handleMouseLeave = useCallback(
     (item: Crumb) => {
       setCurrentHoverTime(undefined);
 
@@ -102,34 +98,33 @@ function UserActionsNavigator({event, crumbs}: Props) {
     [setCurrentHoverTime, removeHighlight]
   );
 
+  const handleClick = useCallback(
+    (crumb: Crumb) => {
+      crumb.timestamp !== undefined
+        ? setCurrentTime(relativeTimeInMs(crumb.timestamp, startTimestamp))
+        : null;
+    },
+    [setCurrentTime, startTimestamp]
+  );
+
   return (
     <Panel>
-      <PanelHeader>{t('Event Chapters')}</PanelHeader>
+      <PanelHeader>{t('Breadcrumbs')}</PanelHeader>
 
       <PanelBody>
         {!isLoaded && <CrumbPlaceholder number={4} />}
         {isLoaded &&
-          (crumbs || []).map(item => (
-            <CrumbItem
-              as="button"
-              key={item.id}
-              onMouseEnter={() => onMouseEnter(item)}
-              onMouseLeave={() => onMouseLeave(item)}
-              isHovered={closestUserAction?.id === item.id}
-              isSelected={currentUserAction?.id === item.id}
-              onClick={() =>
-                item.timestamp !== undefined
-                  ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
-                  : null
-              }
-            >
-              <Type type={item.type} color={item.color} description={item.description} />
-              <ActionCategory action={item} />
-              <PlayerRelativeTime
-                relativeTime={startTimestamp}
-                timestamp={item.timestamp}
-              />
-            </CrumbItem>
+          crumbs.map(crumb => (
+            <BreadcrumbItem
+              key={crumb.id}
+              crumb={crumb}
+              startTimestamp={startTimestamp}
+              isHovered={closestUserAction?.id === crumb.id}
+              isSelected={currentUserAction?.id === crumb.id}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              onClick={handleClick}
+            />
           ))}
       </PanelBody>
     </Panel>
@@ -166,33 +161,9 @@ const PanelBody = styled(BasePanelBody)`
   overflow-y: auto;
 `;
 
-const CrumbItem = styled(PanelItem)<ContainerProps>`
-  display: grid;
-  grid-template-columns: max-content auto max-content;
-  align-items: center;
-  gap: ${space(1)};
-  width: 100%;
-
-  font-size: ${p => p.theme.fontSizeMedium};
-  background: transparent;
-  padding: ${space(1)} ${space(1.5)};
-  text-align: left;
-
-  border: none;
-  border-left: 4px solid transparent;
-  ${p => p.isHovered && `background: ${p.theme.surface400};`}
-  ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
-
-  /* overrides PanelItem css */
-  &:last-child {
-    border-left: 4px solid transparent;
-    ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
-  }
-`;
-
 const PlaceholderMargin = styled(Placeholder)`
   margin: ${space(1)} ${space(1.5)};
   width: auto;
 `;
 
-export default UserActionsNavigator;
+export default Breadcrumbs;

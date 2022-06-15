@@ -70,7 +70,6 @@ export default class ReplayReader {
     this.rrwebEvents = rrwebEventListFactory(
       startTimestampMS,
       endTimestampMS,
-      spans,
       rrwebEvents
     );
 

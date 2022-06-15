@@ -8,56 +8,56 @@ import {
 } from 'sentry/utils/replays/replayDataUtils';
 
 describe('rrwebEventListFactory', () => {
-  function createSpan(extra: {op: string; data?: Record<string, any>}) {
-    return {
-      // span_id: 'spanid',
-      startTimestamp: 1,
-      endTimestamp: 2,
-      // trace_id: 'traceid',
-      data: {},
-      ...extra,
-    };
-  }
+  // function createSpan(extra: {op: string; data?: Record<string, any>}) {
+  // return {
+  // // span_id: 'spanid',
+  // startTimestamp: 1,
+  // endTimestamp: 2,
+  // // trace_id: 'traceid',
+  // data: {},
+  // ...extra,
+  // };
+  // }
 
   it('returns a list of replay events for highlights', function () {
-    const rawSpans = [
-      createSpan({
-        op: 'foo',
-        data: {},
-      }),
-      createSpan({
-        op: 'largest-contentful-paint',
-        data: {
-          nodeId: 2,
-        },
-      }),
-      createSpan({
-        op: 'largest-contentful-paint',
-        data: {
-          nodeId: null,
-        },
-      }),
-      createSpan({
-        op: 'largest-contentful-paint',
-        data: {
-          nodeId: 0,
-        },
-      }),
-      createSpan({
-        op: 'largest-contentful-paint',
-        data: {
-          nodeId: -1,
-        },
-      }),
-      createSpan({
-        op: 'largest-contentful-paint',
-        data: {
-          nodeId: 10,
-        },
-      }),
-    ];
+    // const rawSpans = [
+    // createSpan({
+    // op: 'foo',
+    // data: {},
+    // }),
+    // createSpan({
+    // op: 'largest-contentful-paint',
+    // data: {
+    // nodeId: 2,
+    // },
+    // }),
+    // createSpan({
+    // op: 'largest-contentful-paint',
+    // data: {
+    // nodeId: null,
+    // },
+    // }),
+    // createSpan({
+    // op: 'largest-contentful-paint',
+    // data: {
+    // nodeId: 0,
+    // },
+    // }),
+    // createSpan({
+    // op: 'largest-contentful-paint',
+    // data: {
+    // nodeId: -1,
+    // },
+    // }),
+    // createSpan({
+    // op: 'largest-contentful-paint',
+    // data: {
+    // nodeId: 10,
+    // },
+    // }),
+    // ];
 
-    const results = rrwebEventListFactory(0, 0, rawSpans, []);
+    const results = rrwebEventListFactory(0, 0, []);
 
     expect(results).toMatchInlineSnapshot(`
       Array [
@@ -96,14 +96,14 @@ describe('rrwebEventListFactory', () => {
       rrwebEventListFactory(
         startTimestampMS,
         endTimestampMS,
-        [
-          createSpan({
-            op: 'largest-contentful-paint',
-            data: {
-              nodeId: 2,
-            },
-          }),
-        ],
+        // [
+        // createSpan({
+        // op: 'largest-contentful-paint',
+        // data: {
+        // nodeId: 2,
+        // },
+        // }),
+        // ],
         [
           {type: 0, timestamp: 5_000, data: {}},
           {type: 1, timestamp: 1_000, data: {}},

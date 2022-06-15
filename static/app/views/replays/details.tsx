@@ -16,10 +16,10 @@ import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
+import Breadcrumbs from './detail/breadcrumbs';
 import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
 import FocusTabs from './detail/focusTabs';
-import UserActionsNavigator from './detail/userActionsNavigator';
 
 function ReplayDetails() {
   const {
@@ -86,10 +86,7 @@ function ReplayDetails() {
 
           <Layout.Side>
             <ErrorBoundary mini>
-              <UserActionsNavigator
-                crumbs={replay?.getRawCrumbs()}
-                event={replay?.getEvent()}
-              />
+              <Breadcrumbs crumbs={replay?.getRawCrumbs()} event={replay?.getEvent()} />
             </ErrorBoundary>
           </Layout.Side>
 
