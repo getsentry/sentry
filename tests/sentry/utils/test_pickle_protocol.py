@@ -20,10 +20,10 @@ class PickleProtocolTestCase(TestCase):
         data = b"iamsomedata"
 
         pickled_data = PickleBuffer(data)
-        with pytest.raises(PickleError) as context:
+        with pytest.raises(PickleError) as excinfo:
             result = pickle.dumps(pickled_data)
 
-        assert "PickleBuffer can only pickled with protocol >= 5" == str(context.exception)
+        assert "PickleBuffer can only pickled with protocol >= 5" == str(excinfo.value)
 
         result = pickle.dumps(pickled_data, protocol=5)
         assert result

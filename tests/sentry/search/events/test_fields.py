@@ -1559,36 +1559,34 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
     def test_invalid_count_if_fields(self):
-        with pytest.raises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as excinfo:
             resolve_field_list(
                 ["count_if(transaction.duration, equals, sentry)"], eventstore.Filter()
             )
         assert (
-            str(query_error.exception)
+            str(excinfo.value)
             == "'sentry' is not a valid value to compare with transaction.duration"
         )
 
-        with pytest.raises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as excinfo:
             resolve_field_list(
                 ["count_if(transaction.duration, equals, 10wow)"], eventstore.Filter()
             )
-        assert str(query_error.exception).startswith("wow is not a valid duration type")
+        assert str(excinfo.value).startswith("wow is not a valid duration type")
 
-        with pytest.raises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as excinfo:
             resolve_field_list(["count_if(project, equals, sentry)"], eventstore.Filter())
-        assert str(query_error.exception) == "project is not supported by count_if"
+        assert str(excinfo.value) == "project is not supported by count_if"
 
-        with pytest.raises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as excinfo:
             resolve_field_list(["count_if(stack.function, equals, test)"], eventstore.Filter())
-        assert str(query_error.exception) == "stack.function is not supported by count_if"
+        assert str(excinfo.value) == "stack.function is not supported by count_if"
 
-        with pytest.raises(InvalidSearchQuery) as query_error:
+        with pytest.raises(InvalidSearchQuery) as excinfo:
             resolve_field_list(
                 ["count_if(transaction.status, equals, fakestatus)"], eventstore.Filter()
             )
-        assert (
-            str(query_error.exception) == "'fakestatus' is not a valid value for transaction.status"
-        )
+        assert str(excinfo.value) == "'fakestatus' is not a valid value for transaction.status"
 
 
 def resolve_snql_fieldlist(fields):

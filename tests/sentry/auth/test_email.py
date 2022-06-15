@@ -25,9 +25,9 @@ class EmailResolverTest(TestCase):
         for user in (self.user1, self.user2):
             UserEmail.objects.create(user=user, email="me@example.com")
 
-        with pytest.raises(AmbiguousUserFromEmail) as context:
+        with pytest.raises(AmbiguousUserFromEmail) as excinfo:
             resolve_email_to_user("me@example.com")
-        assert set(context.exception.users) == {self.user1, self.user2}
+        assert set(excinfo.value.users) == {self.user1, self.user2}
         assert mock_metrics.incr.call_args.args == ("auth.email_resolution.no_resolution",)
 
     @mock.patch("sentry.auth.email.metrics")

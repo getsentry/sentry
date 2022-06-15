@@ -122,10 +122,10 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             flags=OrganizationMember.flags["member-limit:restricted"],
         )
 
-        with pytest.raises(MemberDisabledOverLimit) as err:
+        with pytest.raises(MemberDisabledOverLimit) as excinfo:
             self.has_object_perm("GET", self.org, user=user)
 
-        assert err.exception.detail == {
+        assert excinfo.value.detail == {
             "detail": {
                 "code": "member-disabled-over-limit",
                 "message": "Organization over member limit",

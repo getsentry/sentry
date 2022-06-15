@@ -174,7 +174,7 @@ class ParseSearchQueryTest(SimpleTestCase):
             expect_error = True
 
         if expect_error:
-            with pytest.raises(InvalidSearchQuery, msg=failure_help):
+            with pytest.raises(InvalidSearchQuery):
                 parse_search_query(query)
             return
 

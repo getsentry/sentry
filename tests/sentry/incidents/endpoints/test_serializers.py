@@ -478,10 +478,10 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         # error is raised during save
         assert serializer.is_valid()
-        with pytest.raises(ChannelLookupTimeoutError) as err:
+        with pytest.raises(ChannelLookupTimeoutError) as excinfo:
             serializer.save()
         assert (
-            str(err.exception)
+            str(excinfo.value)
             == "Could not find channel my-channel. We have timed out trying to look for it."
         )
 
@@ -511,9 +511,9 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         # error is raised during save
         assert serializer.is_valid()
-        with pytest.raises(serializers.ValidationError) as err:
+        with pytest.raises(serializers.ValidationError) as excinfo:
             serializer.save()
-        assert err.exception.detail == {"nonFieldErrors": ["Team does not exist"]}
+        assert excinfo.value.detail == {"nonFieldErrors": ["Team does not exist"]}
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 10)
 
     def test_event_types(self):
