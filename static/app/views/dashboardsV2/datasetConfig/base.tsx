@@ -53,7 +53,16 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * values in tables.
    */
   fieldHeaderMap?: Record<string, string>;
+  /**
+   * Filter the options available to the parameters list
+   * of an aggregate function in a table widget column on the
+   * Widget Builder.
+   */
   filterTableAggregateParams?: (option: FieldValueOption) => boolean;
+  /**
+   * Filter the primary options available in a table widget
+   * columns on the Widget Builder.
+   */
   filterTableOptions?: (option: FieldValueOption) => boolean;
   /**
    * Used to select custom renderers for field types.
