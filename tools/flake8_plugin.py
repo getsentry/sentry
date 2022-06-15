@@ -4,8 +4,6 @@ from functools import partial
 
 
 class SentryVisitor(ast.NodeVisitor):
-    NODE_WINDOW_SIZE = 4
-
     def __init__(self):
         self.errors = []
 
@@ -21,36 +19,13 @@ class SentryVisitor(ast.NodeVisitor):
             if alias.name.split(".", 1)[0] in S003.modules:
                 self.errors.append(S003(node.lineno, node.col_offset))
 
-    def visit_Call(self, node):
-        if isinstance(node.func, ast.Attribute):
-            for bug in (S004,):
-                if node.func.attr in bug.methods:
-                    call_path = ".".join(self.compose_call_path(node.func.value))
-                    if call_path in bug.invalid_paths:
-                        self.errors.append(bug(node.lineno, node.col_offset))
-                    break
-        self.generic_visit(node)
-
     def visit_Attribute(self, node):
         if node.attr in S001.methods:
             self.errors.append(S001(node.lineno, node.col_offset, vars=(node.attr,)))
 
     def visit_Name(self, node):
         if node.id == "print":
-            self.check_print(node)
-
-    def visit_Print(self, node):
-        self.check_print(node)
-
-    def check_print(self, node):
-        self.errors.append(S002(lineno=node.lineno, col=node.col_offset))
-
-    def compose_call_path(self, node):
-        if isinstance(node, ast.Attribute):
-            yield from self.compose_call_path(node.value)
-            yield node.attr
-        elif isinstance(node, ast.Name):
-            yield node.id
+            self.errors.append(S002(lineno=node.lineno, col=node.col_offset))
 
 
 class SentryCheck:
@@ -100,10 +75,3 @@ S003.names = {
     "JSONDecodeError",
     "_default_encoder",
 }
-
-S004 = Error(
-    message="S004: ``cgi.escape`` and ``html.escape`` should not be used. Use "
-    "sentry.utils.html.escape instead."
-)
-S004.methods = {"escape"}
-S004.invalid_paths = {"cgi", "html"}

@@ -138,10 +138,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if cached_config:
             return cached_config
 
-        schedule_build_project_config(
-            public_key=public_key,
-            trigger="project_config.post_v3",
-        )
+        schedule_build_project_config(public_key=public_key)
         return None
 
     def _post_by_key(self, request: Request, full_config_requested):

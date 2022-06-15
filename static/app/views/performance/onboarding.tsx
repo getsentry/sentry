@@ -180,7 +180,7 @@ function Onboarding({organization, project}: Props) {
 }
 
 const PerfImage = styled('img')`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     max-width: unset;
     user-select: none;
     position: absolute;
@@ -191,11 +191,11 @@ const PerfImage = styled('img')`
     margin-bottom: auto;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     width: 480px;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     width: 600px;
   }
 `;
