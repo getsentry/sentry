@@ -156,24 +156,15 @@ class BaseTestCase(Fixtures, Exam):
     def tasks(self):
         return TaskRunner()
 
-    @classmethod
-    @contextmanager
-    def capture_on_commit_callbacks(cls, using=DEFAULT_DB_ALIAS, execute=False):
+    @pytest.fixture(autouse=True)
+    def polyfill_capture_on_commit_callbacks(self, django_capture_on_commit_callbacks):
         """
-        Context manager to capture transaction.on_commit() callbacks.
-        Backported from Django:
-        https://github.com/django/django/pull/12944
+        https://pytest-django.readthedocs.io/en/latest/helpers.html#django_capture_on_commit_callbacks
+
+        pytest-django comes with its own polyfill of this Django helper for
+        older Django versions, so we're using that.
         """
-        callbacks = []
-        start_count = len(connections[using].run_on_commit)
-        try:
-            yield callbacks
-        finally:
-            run_on_commit = connections[using].run_on_commit[start_count:]
-            callbacks[:] = [func for sids, func in run_on_commit]
-            if execute:
-                for callback in callbacks:
-                    callback()
+        self.capture_on_commit_callbacks = django_capture_on_commit_callbacks
 
     def feature(self, names):
         """
