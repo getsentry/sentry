@@ -105,8 +105,8 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
         ),
     ]
     if not IS_GETSENTRY:
-        # requirements-dev-only-frozen.txt is only used in sentry as a
-        # fast path for some CI jobs.
+        # requirements-dev-only-frozen.txt is only used in sentry and getsentry
+        # as a fast path for some CI jobs.
         futures.append(
             executor.submit(
                 worker,
@@ -143,7 +143,6 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
                     (
                         *base_cmd,
                         f"{base_path}/requirements-base.txt",
-                        f"{base_path}/requirements-dev.txt",
                         # This is downloaded with bin/bump-sentry.
                         f"{base_path}/sentry-requirements-dev-frozen.txt",
                         "-o",
