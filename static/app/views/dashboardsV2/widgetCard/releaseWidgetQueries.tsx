@@ -21,7 +21,13 @@ import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetType} from '../types';
+import {
+  DEFAULT_TABLE_LIMIT,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from '../types';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -119,9 +125,9 @@ export function resolveDerivedStatusFields(
   return {aggregates, derivedStatusFields, injectedFields};
 }
 
-export function requiresCustomReleaseSorting(widget: Widget): boolean {
-  const useMetricsAPI = !!!widget.queries[0].columns.includes('session.status');
-  const rawOrderby = trimStart(widget.queries[0].orderby, '-');
+export function requiresCustomReleaseSorting(query: WidgetQuery): boolean {
+  const useMetricsAPI = !!!query.columns.includes('session.status');
+  const rawOrderby = trimStart(query.orderby, '-');
   return useMetricsAPI && rawOrderby === 'release';
 }
 
@@ -139,7 +145,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   componentDidMount() {
     this._isMounted = true;
 
-    if (requiresCustomReleaseSorting(this.props.widget)) {
+    if (requiresCustomReleaseSorting(this.props.widget.queries[0])) {
       this.fetchReleasesAndData();
       return;
     }
@@ -162,7 +168,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const prevWidgetQueryNames = prevProps.widget.queries.map(q => q.name);
 
     if (
-      requiresCustomReleaseSorting(widget) &&
+      requiresCustomReleaseSorting(widget.queries[0]) &&
       (!isEqual(
         widget.queries.map(q => q.orderby),
         prevProps.widget.queries.map(q => q.orderby)
@@ -291,7 +297,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     // to support sorting by release
     const widget = cloneDeep(initialWidget);
 
-    const isCustomReleaseSorting = requiresCustomReleaseSorting(widget);
+    const isCustomReleaseSorting = requiresCustomReleaseSorting(widget.queries[0]);
     const isDescending = widget.queries[0].orderby.startsWith('-');
     const useSessionAPI = widget.queries[0].columns.includes('session.status');
 
@@ -352,11 +358,16 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     const promises: Promise<
       MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
     >[] = widget.queries.map(query =>
-      this.config.getTableRequest!(widget, query, this.limit, cursor, {
-        api,
-        organization,
-        pageFilters: selection,
-      })
+      this.config.getTableRequest!(
+        query,
+        {
+          api,
+          organization,
+          pageFilters: selection,
+        },
+        this.limit,
+        cursor
+      )
     );
 
     let completed = 0;

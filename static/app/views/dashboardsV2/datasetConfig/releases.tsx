@@ -10,8 +10,7 @@ import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
-import {DisplayType, Widget, WidgetQuery} from '../types';
-import {getWidgetInterval} from '../utils';
+import {DisplayType, WidgetQuery} from '../types';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -177,11 +176,10 @@ function fieldsToDerivedMetrics(field: string): string {
 }
 
 function getTableRequest(
-  widget: Widget,
   query: WidgetQuery,
+  contextualProps?: ContextualProps,
   limit?: number,
-  cursor?: string,
-  contextualProps?: ContextualProps
+  cursor?: string
 ) {
   const {environments, projects, datetime} = contextualProps!.pageFilters!;
   const {start, end, period} = datetime;
@@ -189,19 +187,17 @@ function getTableRequest(
   // Only time we need to use sessions API is when session.status is requested
   // as a group by.
   const useSessionAPI = query.columns.includes('session.status');
-  const isCustomReleaseSorting = requiresCustomReleaseSorting(widget);
+  const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
   const isDescending = query.orderby.startsWith('-');
   const rawOrderby = trimStart(query.orderby, '-');
   const unsupportedOrderby =
     DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
   const columns = query.columns;
-  const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
-  const includeTotals =
-    widget.displayType === DisplayType.TABLE ||
-    widget.displayType === DisplayType.BIG_NUMBER ||
-    columns.length > 0
-      ? 1
-      : 0;
+
+  // todo
+  // const includeSeries = widget.displayType !== DisplayType.TABLE ? 1 : 0;
+  const includeSeries = 0;
+  const includeTotals = columns.length > 0 ? 1 : 0;
 
   // Temporary solution to support sorting on releases when querying the
   // Metrics API:
@@ -230,12 +226,15 @@ function getTableRequest(
   //      imposed on the metrics query the user won't see it on the
   //      table/chart/
   //
-  const interval = getWidgetInterval(
-    widget,
-    {start, end, period},
-    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-    isCustomReleaseSorting ? 'low' : undefined
-  );
+
+  // todo
+  // const interval = getWidgetInterval(
+  //   widget,
+  //   {start, end, period},
+  //   // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+  //   isCustomReleaseSorting ? 'low' : undefined
+  // );
+  const interval = '5m';
 
   const {aggregates, injectedFields} = resolveDerivedStatusFields(
     query.aggregates,
