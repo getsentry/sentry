@@ -158,7 +158,7 @@ const StyledPanel = styled(Panel)`
   height: 100%;
   border: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     max-width: 175px;
   }
 `;

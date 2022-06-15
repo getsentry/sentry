@@ -16,7 +16,7 @@ import {defined} from 'sentry/utils';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {
-  generateFlamegraphSummaryRoute,
+  generateProfileDetailsRoute,
   generateProfileSummaryRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
@@ -113,7 +113,7 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
         return <Container>{getShortEventId(dataRow.id)}</Container>;
       }
 
-      const flamegraphTarget = generateFlamegraphSummaryRoute({
+      const flamegraphTarget = generateProfileDetailsRoute({
         orgSlug: organization.slug,
         projectSlug: project.slug,
         profileId: dataRow.id,

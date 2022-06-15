@@ -7,6 +7,7 @@ from sentry.relay.projectconfig_cache.redis import RedisProjectConfigCache
 from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDebounceCache
 from sentry.tasks.relay import (
     build_project_config,
+    invalidate_project_config,
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
@@ -84,16 +85,10 @@ def test_debounce(
 
     monkeypatch.setattr("sentry.tasks.relay.build_project_config.apply_async", apply_async)
 
-    schedule_build_project_config(
-        public_key=default_projectkey.public_key, trigger="first_schedule"
-    )
-    schedule_build_project_config(
-        public_key=default_projectkey.public_key, trigger="second_schedule"
-    )
+    schedule_build_project_config(public_key=default_projectkey.public_key)
+    schedule_build_project_config(public_key=default_projectkey.public_key)
 
-    assert tasks == [
-        {"public_key": default_projectkey.public_key, "trigger": "first_schedule"},
-    ]
+    assert tasks == [{"public_key": default_projectkey.public_key}]
 
 
 @pytest.mark.django_db
@@ -164,6 +159,28 @@ def test_project_get_option_does_not_reload(default_project, task_runner, monkey
                 )
 
     assert not build_project_config.called
+
+
+@pytest.mark.django_db
+def test_invalidation_project_deleted(default_project, task_runner, redis_cache):
+    # Ensure we have a ProjectKey
+    project_key = next(_cache_keys_for_project(default_project))
+    assert project_key
+
+    # Ensure we have a config in the cache.
+    build_project_config(public_key=project_key)
+    assert redis_cache.get(project_key)["disabled"] is False
+
+    project_id = default_project.id
+
+    # Delete the project normally, this will delete it from the cache
+    with task_runner():
+        default_project.delete()
+    assert redis_cache.get(project_key) is None
+
+    # Duplicate invoke the invalidation task, this needs to be fine with the missing project.
+    invalidate_project_config(project_id=project_id, trigger="testing-double-delete")
+    assert redis_cache.get(project_key) is None
 
 
 @pytest.mark.django_db

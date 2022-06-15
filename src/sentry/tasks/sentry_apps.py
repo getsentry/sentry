@@ -3,7 +3,14 @@ from __future__ import annotations
 import logging
 from typing import Any, Mapping
 
-from celery.task import current
+# XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+import celery
+
+if celery.version_info >= (5, 2):
+    from celery import current_task
+else:
+    from celery.task import current as current_task
+
 from django.urls import reverse
 from requests.exceptions import RequestException
 
@@ -161,9 +168,9 @@ def _process_resource_change(action, sender, instance_id, retryer=None, *args, *
         # Looks up the human name for the model. Defaults to the model name.
         name = RESOURCE_RENAMES.get(model.__name__, model.__name__.lower())
 
-    # By default, use Celery's `current` but allow a value to be passed for the
+    # By default, use Celery's `current_task` but allow a value to be passed for the
     # bound Task.
-    retryer = retryer or current
+    retryer = retryer or current_task
 
     # We may run into a race condition where this task executes before the
     # transaction that creates the Group has committed.

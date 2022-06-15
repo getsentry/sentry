@@ -115,7 +115,7 @@ const ConsoleFilters = styled('div')`
   grid-template-columns: max-content 1fr;
   margin-bottom: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(1)};
   }
 `;
