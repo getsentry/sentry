@@ -108,18 +108,18 @@ class IssueWidgetQueries extends Component<Props, State> {
       this.props;
     this.setState({tableResults: []});
 
-    const request = this.config.getTableRequest!(
-      api,
-      widget.queries[0],
-      {
-        organization,
-        pageFilters: selection,
-      },
-      limit,
-      cursor
-    );
-
     try {
+      const request = this.config.getTableRequest!(
+        api,
+        widget.queries[0],
+        {
+          organization,
+          pageFilters: selection,
+        },
+        limit,
+        cursor
+      );
+
       const [data, _, resp] = await request;
       const tableResults = this.config.transformTable(data, widget.queries[0], {
         pageFilters: selection,

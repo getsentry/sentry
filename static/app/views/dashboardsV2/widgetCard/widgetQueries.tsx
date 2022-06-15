@@ -5,7 +5,7 @@ import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
+import {Client, ResponseMeta} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
@@ -16,7 +16,11 @@ import {
   PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {
+  EventsTableData,
+  TableData,
+  TableDataWithTitle,
+} from 'sentry/utils/discover/discoverQuery';
 import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
@@ -233,7 +237,7 @@ class WidgetQueries extends Component<Props, State> {
     return this.props.organization.features.includes('dashboards-mep');
   }
 
-  fetchTableData(queryFetchID: symbol) {
+  async fetchTableData(queryFetchID: symbol) {
     const {selection, api, organization, widget, limit, cursor, onDataFetched} =
       this.props;
 
@@ -254,81 +258,82 @@ class WidgetQueries extends Component<Props, State> {
       throw Error('Expected widget displayType to be either big_number or table');
     }
 
-    const promises = widget.queries.map(query => {
-      const requestGenerator =
-        widget.displayType === DisplayType.WORLD_MAP
-          ? this.config.getWorldMapRequest
-          : this.config.getTableRequest;
-      return requestGenerator!(
-        api,
-        query,
-        {
-          organization,
-          pageFilters: selection,
-        },
-        requestLimit,
-        cursor,
-        referrer
+    let responses: [TableData | EventsTableData, string, ResponseMeta][] = [];
+    try {
+      responses = await Promise.all(
+        widget.queries.map(query => {
+          const requestGenerator =
+            widget.displayType === DisplayType.WORLD_MAP
+              ? this.config.getWorldMapRequest
+              : this.config.getTableRequest;
+          return requestGenerator!(
+            api,
+            query,
+            {
+              organization,
+              pageFilters: selection,
+            },
+            requestLimit,
+            cursor,
+            referrer
+          );
+        })
       );
+    } catch (err) {
+      const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
+      this.setState({errorMessage});
+    } finally {
+      if (!this._isMounted) {
+        return;
+      }
+    }
+
+    let isMetricsData: boolean | undefined;
+    responses.forEach(([data, _textstatus, resp], i) => {
+      // If one of the queries is sampled, then mark the whole thing as sampled
+      isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
+
+      // Cast so we can add the title.
+      const tableData = this.config.transformTable(data, widget.queries[0], {
+        organization,
+      }) as TableDataWithTitle;
+      tableData.title = widget.queries[i]?.name ?? '';
+
+      // Overwrite the local var to work around state being stale in tests.
+      tableResults = [...tableResults, tableData];
+
+      if (!this._isMounted) {
+        return;
+      }
+      const pageLinks = resp?.getResponseHeader('Link');
+
+      onDataFetched?.({tableResults, pageLinks: pageLinks ?? undefined});
+
+      this.setState(prevState => {
+        if (prevState.queryFetchID !== queryFetchID) {
+          // invariant: a different request was initiated after this request
+          return prevState;
+        }
+
+        return {
+          ...prevState,
+          tableResults,
+          pageLinks,
+        };
+      });
     });
 
-    let completed = 0;
-    let isMetricsData: boolean | undefined;
-    promises.forEach(async (promise, i) => {
-      try {
-        const [data, _textstatus, resp] = await promise;
-        // If one of the queries is sampled, then mark the whole thing as sampled
-        isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
-
-        // Cast so we can add the title.
-        const tableData = this.config.transformTable(data, widget.queries[0], {
-          organization,
-        }) as TableDataWithTitle;
-        tableData.title = widget.queries[i]?.name ?? '';
-
-        // Overwrite the local var to work around state being stale in tests.
-        tableResults = [...tableResults, tableData];
-
-        if (!this._isMounted) {
-          return;
-        }
-        const pageLinks = resp?.getResponseHeader('Link');
-
-        onDataFetched?.({tableResults, pageLinks: pageLinks ?? undefined});
-
-        this.setState(prevState => {
-          if (prevState.queryFetchID !== queryFetchID) {
-            // invariant: a different request was initiated after this request
-            return prevState;
-          }
-
-          return {
-            ...prevState,
-            tableResults,
-            pageLinks,
-          };
-        });
-      } catch (err) {
-        const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
-        this.setState({errorMessage});
-      } finally {
-        completed++;
-        if (!this._isMounted) {
-          return;
-        }
-        this.context?.setIsMetricsData(isMetricsData);
-        this.setState(prevState => {
-          if (prevState.queryFetchID !== queryFetchID) {
-            // invariant: a different request was initiated after this request
-            return prevState;
-          }
-
-          return {
-            ...prevState,
-            loading: completed === promises.length ? false : true,
-          };
-        });
+    this.context?.setIsMetricsData(isMetricsData);
+    this.setState(prevState => {
+      if (prevState.queryFetchID !== queryFetchID) {
+        // invariant: a different request was initiated after this request
+        return prevState;
       }
+
+      return {
+        ...prevState,
+        loading: false,
+      };
     });
   }
 

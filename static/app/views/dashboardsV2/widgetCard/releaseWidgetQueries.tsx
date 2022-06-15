@@ -282,7 +282,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
     this.fetchData();
   }
 
-  fetchData() {
+  async fetchData() {
     const {
       selection,
       api,
@@ -346,129 +346,133 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       });
     }
 
-    const promises: Promise<
-      MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
-    >[] = widget.queries.map(query => {
-      const requestGenerator = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
-        widget.displayType
-      )
-        ? this.config.getTableRequest
-        : this.config.getSeriesRequest;
-      return requestGenerator!(
-        api,
-        query,
-        {
-          organization,
-          pageFilters: selection,
-        },
-        this.limit,
-        cursor
+    let responses: (
+      | MetricsApiResponse
+      | [MetricsApiResponse, string, ResponseMeta]
+      | SessionApiResponse
+    )[] = [];
+
+    try {
+      responses = await Promise.all(
+        widget.queries.map(query => {
+          const requestGenerator = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
+            widget.displayType
+          )
+            ? this.config.getTableRequest
+            : this.config.getSeriesRequest;
+          return requestGenerator!(
+            api,
+            query,
+            {
+              organization,
+              pageFilters: selection,
+            },
+            this.limit,
+            cursor
+          );
+        })
       );
-    });
+    } catch (err) {
+      const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
+      if (!this._isMounted) {
+        return;
+      }
+      this.setState({errorMessage});
+    } finally {
+      if (!this._isMounted) {
+        return;
+      }
+    }
 
-    let completed = 0;
-    promises.forEach(async (promise, requestIndex) => {
-      try {
-        const res = await promise;
-        let data: SessionApiResponse | MetricsApiResponse;
-        let response: ResponseMeta;
-        if (Array.isArray(res)) {
-          data = res[0];
-          response = res[2];
+    responses.forEach((res, requestIndex) => {
+      let data: SessionApiResponse | MetricsApiResponse;
+      let response: ResponseMeta;
+      if (Array.isArray(res)) {
+        data = res[0];
+        response = res[2];
+      } else {
+        data = res;
+      }
+      if (!this._isMounted) {
+        return;
+      }
+      this.setState(prevState => {
+        if (prevState.queryFetchID !== queryFetchID) {
+          // invariant: a different request was initiated after this request
+          return prevState;
+        }
+
+        if (releasesArray.length) {
+          data.groups.sort(function (group1, group2) {
+            const release1 = group1.by.release;
+            const release2 = group2.by.release;
+            return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
+          });
+          data.groups = data.groups.slice(0, this.limit);
+        }
+
+        let tableResults: TableDataWithTitle[] | undefined;
+        const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
+        if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
+          // Transform to fit the table format
+          const tableData = this.config.transformTable(
+            data,
+            widget.queries[0]
+          ) as TableDataWithTitle; // Cast so we can add the title.
+          tableData.title = widget.queries[requestIndex]?.name ?? '';
+          tableResults = [...(prevState.tableResults ?? []), tableData];
         } else {
-          data = res;
+          // Transform to fit the chart format
+          const transformedResult = this.config.transformSeries!(
+            data,
+            widget.queries[requestIndex]
+          );
+
+          // When charting timeseriesData on echarts, color association to a timeseries result
+          // is order sensitive, ie series at index i on the timeseries array will use color at
+          // index i on the color array. This means that on multi series results, we need to make
+          // sure that the order of series in our results do not change between fetches to avoid
+          // coloring inconsistencies between renders.
+          transformedResult.forEach((result, resultIndex) => {
+            timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
+              result;
+          });
         }
-        if (!this._isMounted) {
-          return;
-        }
-        this.setState(prevState => {
-          if (prevState.queryFetchID !== queryFetchID) {
-            // invariant: a different request was initiated after this request
-            return prevState;
-          }
 
-          if (releasesArray.length) {
-            data.groups.sort(function (group1, group2) {
-              const release1 = group1.by.release;
-              const release2 = group2.by.release;
-              return releasesArray.indexOf(release1) - releasesArray.indexOf(release2);
-            });
-            data.groups = data.groups.slice(0, this.limit);
-          }
+        onDataFetched?.({timeseriesResults, tableResults});
 
-          let tableResults: TableDataWithTitle[] | undefined;
-          const timeseriesResults = [...(prevState.timeseriesResults ?? [])];
-          if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-            // Transform to fit the table format
-            const tableData = this.config.transformTable(
-              data,
-              widget.queries[0]
-            ) as TableDataWithTitle; // Cast so we can add the title.
-            tableData.title = widget.queries[requestIndex]?.name ?? '';
-            tableResults = [...(prevState.tableResults ?? []), tableData];
-          } else {
-            // Transform to fit the chart format
-            const transformedResult = this.config.transformSeries!(
-              data,
-              widget.queries[requestIndex]
-            );
-
-            // When charting timeseriesData on echarts, color association to a timeseries result
-            // is order sensitive, ie series at index i on the timeseries array will use color at
-            // index i on the color array. This means that on multi series results, we need to make
-            // sure that the order of series in our results do not change between fetches to avoid
-            // coloring inconsistencies between renders.
-            transformedResult.forEach((result, resultIndex) => {
-              timeseriesResults[requestIndex * transformedResult.length + resultIndex] =
-                result;
-            });
-          }
-
-          onDataFetched?.({timeseriesResults, tableResults});
-
-          if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
-            return {
-              ...prevState,
-              errorMessage: undefined,
-              tableResults,
-              pageLinks: response?.getResponseHeader('link') ?? undefined,
-            };
-          }
-
-          const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
-          rawResultsClone[requestIndex] = data;
-
+        if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
           return {
             ...prevState,
             errorMessage: undefined,
-            timeseriesResults,
-            rawResults: rawResultsClone,
+            tableResults,
             pageLinks: response?.getResponseHeader('link') ?? undefined,
           };
-        });
-      } catch (err) {
-        const errorMessage = err?.responseJSON?.detail || t('An unknown error occurred.');
-        if (!this._isMounted) {
-          return;
         }
-        this.setState({errorMessage});
-      } finally {
-        completed++;
-        if (!this._isMounted) {
-          return;
-        }
-        this.setState(prevState => {
-          if (prevState.queryFetchID !== queryFetchID) {
-            // invariant: a different request was initiated after this request
-            return prevState;
-          }
 
-          return {
-            ...prevState,
-            loading: completed === promises.length ? false : true,
-          };
-        });
+        const rawResultsClone = cloneDeep(prevState.rawResults ?? []);
+        rawResultsClone[requestIndex] = data;
+
+        return {
+          ...prevState,
+          errorMessage: undefined,
+          timeseriesResults,
+          rawResults: rawResultsClone,
+          pageLinks: response?.getResponseHeader('link') ?? undefined,
+        };
+      });
+    });
+
+    this.setState(prevState => {
+      if (prevState.queryFetchID !== queryFetchID) {
+        // invariant: a different request was initiated after this request
+        return prevState;
       }
+
+      return {
+        ...prevState,
+        loading: false,
+      };
     });
   }
 

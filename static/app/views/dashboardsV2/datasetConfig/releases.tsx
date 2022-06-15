@@ -57,7 +57,7 @@ export const ReleasesConfig: DatasetConfig<
     contextualProps?: ContextualProps,
     limit?: number,
     cursor?: string
-  ) => getRequest(0, 1, api, query, contextualProps, limit, cursor),
+  ) => getReleasesRequest(0, 1, api, query, contextualProps, limit, cursor),
   getSeriesRequest: (
     api: Client,
     query: WidgetQuery,
@@ -66,7 +66,15 @@ export const ReleasesConfig: DatasetConfig<
     cursor?: string
   ) => {
     const includeTotals = query.columns.length > 0 ? 1 : 0;
-    return getRequest(1, includeTotals, api, query, contextualProps, limit, cursor);
+    return getReleasesRequest(
+      1,
+      includeTotals,
+      api,
+      query,
+      contextualProps,
+      limit,
+      cursor
+    );
   },
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   getTableFieldOptions: getReleasesTableFieldOptions,
@@ -201,7 +209,7 @@ function fieldsToDerivedMetrics(field: string): string {
   return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
 }
 
-function getRequest(
+function getReleasesRequest(
   includeSeries: number,
   includeTotals: number,
   api: Client,
