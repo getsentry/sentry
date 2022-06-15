@@ -104,11 +104,13 @@ class TeamManager(BaseManager):
     def process_resource_change(self, instance, **kwargs):
         from sentry.tasks.codeowners import update_code_owners_schema
 
-        update_code_owners_schema.apply_async(
-            kwargs={
-                "organization": instance.organization,
-                "projects": instance.get_projects(),
-            }
+        transaction.on_commit(
+            lambda: update_code_owners_schema.apply_async(
+                kwargs={
+                    "organization": instance.organization,
+                    "projects": instance.get_projects(),
+                }
+            )
         )
 
 
