@@ -109,15 +109,14 @@ class IssueWidgetQueries extends Component<Props, State> {
     this.setState({tableResults: []});
 
     const request = this.config.getTableRequest!(
-      widget,
       widget.queries[0],
-      limit,
-      cursor,
       {
         api,
         organization,
         pageFilters: selection,
-      }
+      },
+      limit,
+      cursor
     );
 
     try {

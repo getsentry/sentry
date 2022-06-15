@@ -5,7 +5,7 @@ import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 
-import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
+import {DisplayType, WidgetQuery, WidgetType} from '../types';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
@@ -54,11 +54,22 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * tabular data.
    */
   getTableRequest?: (
-    widget: Widget,
     query: WidgetQuery,
+    contextualProps?: ContextualProps,
     limit?: number,
     cursor?: string,
-    contextualProps?: ContextualProps
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the request promises for fetching
+   * tabular data.
+   */
+  getWorldMapRequest?: (
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
   ) => ReturnType<Client['requestPromise']>;
   /**
    * Transforms timeseries API results into series data that is

@@ -21,7 +21,13 @@ import {isEquation, isEquationAlias} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import {getDatasetConfig} from '../datasetConfig/base';
-import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
+import {
+  DEFAULT_TABLE_LIMIT,
+  DisplayType,
+  Widget,
+  WidgetQuery,
+  WidgetType,
+} from '../types';
 import {getDashboardsMEPQueryParams, getNumEquations, getWidgetInterval} from '../utils';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
@@ -234,14 +240,37 @@ class WidgetQueries extends Component<Props, State> {
     let tableResults: TableDataWithTitle[] = [];
     // Table, world map, and stat widgets use table results and need
     // to do a discover 'table' query instead of a 'timeseries' query.
+    let referrer: string = '';
+    let requestLimit: number | undefined;
+    if (widget.displayType === DisplayType.TABLE) {
+      requestLimit = limit ?? DEFAULT_TABLE_LIMIT;
+      referrer = 'api.dashboards.tablewidget';
+    } else if (widget.displayType === DisplayType.BIG_NUMBER) {
+      requestLimit = 1;
+      referrer = 'api.dashboards.bignumberwidget';
+    } else if (widget.displayType === DisplayType.WORLD_MAP) {
+      referrer = 'api.dashboards.worldmapwidget';
+    } else {
+      throw Error('Expected widget displayType to be either big_number or table');
+    }
 
-    const promises = widget.queries.map(query =>
-      this.config.getTableRequest!(widget, query, limit, cursor, {
-        api,
-        organization,
-        pageFilters: selection,
-      })
-    );
+    const promises = widget.queries.map(query => {
+      const requestGenerator =
+        widget.displayType === DisplayType.WORLD_MAP
+          ? this.config.getWorldMapRequest
+          : this.config.getTableRequest;
+      return requestGenerator!(
+        query,
+        {
+          api,
+          organization,
+          pageFilters: selection,
+        },
+        requestLimit,
+        cursor,
+        referrer
+      );
+    });
 
     let completed = 0;
     let isMetricsData: boolean | undefined;
@@ -474,7 +503,11 @@ class WidgetQueries extends Component<Props, State> {
     const queryFetchID = Symbol('queryFetchID');
     this.setState({loading: true, errorMessage: undefined, queryFetchID});
 
-    if (['table', 'world_map', 'big_number'].includes(widget.displayType)) {
+    if (
+      [DisplayType.TABLE, DisplayType.WORLD_MAP, DisplayType.BIG_NUMBER].includes(
+        widget.displayType
+      )
+    ) {
       this.fetchTableData(queryFetchID);
     } else {
       this.fetchTimeseriesData(queryFetchID, widget.displayType);

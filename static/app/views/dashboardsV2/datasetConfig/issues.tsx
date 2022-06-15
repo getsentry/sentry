@@ -6,7 +6,7 @@ import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {queryToObj} from 'sentry/utils/stream';
 import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 
 import {ContextualProps, DatasetConfig} from './base';
@@ -132,11 +132,10 @@ export function transformIssuesResponseToTable(
 }
 
 function getTableRequest(
-  _widget: Widget,
   query: WidgetQuery,
+  contextualProps?: ContextualProps,
   limit?: number,
-  cursor?: string,
-  contextualProps?: ContextualProps
+  cursor?: string
 ) {
   const groupListUrl = `/organizations/${contextualProps?.organization?.slug}/issues/`;
 
