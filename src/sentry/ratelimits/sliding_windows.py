@@ -14,7 +14,7 @@ quota, as checking quota and spending quota are two separate steps.
 
 from dataclasses import dataclass
 from time import time
-from typing import Iterator, Optional, Sequence, Tuple
+from typing import Any, Iterator, Optional, Sequence, Tuple
 
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
@@ -78,7 +78,7 @@ class GrantedQuota:
 
 
 class SlidingWindowRateLimiter(Service):
-    def __init__(self, **options):
+    def __init__(self, **options: Any) -> None:
         pass
 
     def check_within_quotas(
@@ -92,7 +92,7 @@ class SlidingWindowRateLimiter(Service):
 
     def use_quotas(
         self, requests: Sequence[RequestedQuota], grants: Sequence[GrantedQuota], timestamp: int
-    ):
+    ) -> None:
         """
         Given a set of requests and the corresponding return values from
         `check_within_quotas`, consume the quotas.
@@ -117,7 +117,7 @@ class SlidingWindowRateLimiter(Service):
 
 
 class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
-    def __init__(self, **options):
+    def __init__(self, **options: Any) -> None:
         cluster_key = options.get("cluster", "default")
         self.client = redis.redis_clusters.get(cluster_key)
         super().__init__(**options)
@@ -182,7 +182,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
 
     def use_quotas(
         self, requests: Sequence[RequestedQuota], grants: Sequence[GrantedQuota], timestamp: int
-    ):
+    ) -> None:
         assert len(requests) == len(grants)
 
         keys_to_incr = {}
