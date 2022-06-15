@@ -24,8 +24,8 @@ import DiscoverQuery, {
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {
   EventData,
-  EventsMetaType,
   isFieldSortable,
+  MetaType,
 } from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -287,10 +287,10 @@ class _Table extends Component<Props, State> {
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const field = {field: column.name, width: column.width};
-    const aggregateAliasTableMeta: EventsMetaType['fields'] = {};
+    const aggregateAliasTableMeta: MetaType = {};
     if (tableMeta) {
       Object.keys(tableMeta).forEach(key => {
-        aggregateAliasTableMeta![getAggregateAlias(key)] = tableMeta[key];
+        aggregateAliasTableMeta[getAggregateAlias(key)] = tableMeta[key];
       });
     }
 
