@@ -8,7 +8,7 @@ import TeamSelector from 'sentry/components/forms/teamSelector';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import {MemberRole, SelectValue} from 'sentry/types';
+import {OrgRole, SelectValue} from 'sentry/types';
 import {Theme} from 'sentry/utils/theme';
 
 import renderEmailValue from './renderEmailValue';
@@ -27,7 +27,7 @@ type Props = {
   onRemove: () => void;
   role: string;
   roleDisabledUnallowed: boolean;
-  roleOptions: MemberRole[];
+  roleOptions: OrgRole[];
 
   teams: string[];
   theme: Theme;

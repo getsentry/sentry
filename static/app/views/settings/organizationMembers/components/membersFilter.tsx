@@ -4,13 +4,13 @@ import Checkbox from 'sentry/components/checkbox';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {MemberRole} from 'sentry/types';
+import {OrgRole} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 type Props = {
   onChange: (query: string) => void;
   query: string;
-  roles: MemberRole[];
+  roles: OrgRole[];
   className?: string;
 };
 

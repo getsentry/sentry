@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
-import {MemberRole} from 'sentry/types';
+import {OrgRole} from 'sentry/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const Label = styled('label')`
@@ -18,7 +18,7 @@ type Props = {
   disabled: boolean;
   enforceAllowed: boolean;
   enforceRetired: boolean;
-  roleList: MemberRole[];
+  roleList: OrgRole[];
   roleSelected: string;
   setSelected: (id: string) => void;
 };
