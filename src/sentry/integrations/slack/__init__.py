@@ -1,5 +1,8 @@
+from sentry.rules import rules
+
 from .actions.form import *  # noqa: F401,F403
 from .actions.notification import *  # noqa: F401,F403
+from .actions.notification import SlackNotifyServiceAction
 from .analytics import *  # noqa: F401,F403
 from .client import *  # noqa: F401,F403
 from .integration import *  # noqa: F401,F403
@@ -39,3 +42,5 @@ from .webhooks.action import *  # noqa: F401,F403
 from .webhooks.base import *  # noqa: F401,F403
 from .webhooks.command import *  # noqa: F401,F403
 from .webhooks.event import *  # noqa: F401,F403
+
+rules.add(SlackNotifyServiceAction)
