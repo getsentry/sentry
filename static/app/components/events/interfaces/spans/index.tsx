@@ -14,6 +14,7 @@ import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {objectIsEmpty} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import * as QuickTraceContext from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -55,7 +56,12 @@ class SpansInterface extends PureComponent<Props, State> {
 
   handleSpanFilter = (searchQuery: string) => {
     const {waterfallModel} = this.state;
+    const {organization} = this.props;
     waterfallModel.querySpanSearch(searchQuery);
+
+    trackAdvancedAnalyticsEvent('performance_views.event_details.search_query', {
+      organization,
+    });
   };
 
   renderTraceErrorsAlert({
@@ -132,7 +138,8 @@ class SpansInterface extends PureComponent<Props, State> {
                           onClick={scrollToSpan(
                             spanId,
                             scrollToHash,
-                            this.props.location
+                            this.props.location,
+                            this.props.organization
                           )}
                         >
                           {operation}
@@ -222,7 +229,7 @@ const Container = styled('div')<{hasErrors: boolean}>`
     `
   padding: ${space(2)} 0;
 
-  @media (min-width: ${p.theme.breakpoints[0]}) {
+  @media (min-width: ${p.theme.breakpoints.small}) {
     padding: ${space(3)} 0 0 0;
   }
   `}

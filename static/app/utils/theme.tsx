@@ -590,7 +590,13 @@ const iconSizes = {
 };
 
 const commonTheme = {
-  breakpoints: ['800px', '992px', '1200px', '1440px', '2560px'],
+  breakpoints: {
+    small: '800px',
+    medium: '992px',
+    large: '1200px',
+    xlarge: '1440px',
+    xxlarge: '2560px',
+  },
 
   ...lightColors,
 

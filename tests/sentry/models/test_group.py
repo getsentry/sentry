@@ -167,13 +167,13 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert group2 == group
 
-        with self.assertRaises(Group.DoesNotExist):
+        with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(
                 group.organization.id, "server_name:my-server-with-dashes-0ac14dadda3b428cf"
             )
 
         group.update(status=GroupStatus.PENDING_DELETION)
-        with self.assertRaises(Group.DoesNotExist):
+        with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id(group.organization.id, short_id)
 
     def test_qualified_share_id_bulk(self):
@@ -193,7 +193,7 @@ class GroupTest(TestCase, SnubaTestCase):
         )
 
         group.update(status=GroupStatus.PENDING_DELETION)
-        with self.assertRaises(Group.DoesNotExist):
+        with pytest.raises(Group.DoesNotExist):
             Group.objects.by_qualified_short_id_bulk(
                 group.organization.id, [group_short_id, group_2_short_id]
             )

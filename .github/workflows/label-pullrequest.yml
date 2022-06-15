@@ -29,3 +29,36 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         with:
           labels: backend
+
+      - name: Find previous frontend/backend warning comment
+        uses: peter-evans/find-comment@1769778a0c5bd330272d749d12c036d65e70d39d
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: '<!-- FRONTEND_BACKEND_WARNING -->'
+
+      - name: Add frontend/backend warning comment
+        uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
+        if: >
+          steps.changes.outputs.frontend == 'true' &&
+          steps.changes.outputs.backend == 'true' &&
+          steps.fc.outputs.comment-id == 0
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: >
+            <!-- FRONTEND_BACKEND_WARNING -->
+
+            🚨 **Warning:** This pull request contains Frontend and Backend changes!
+
+
+            It's discouraged to make changes to Sentry's Frontend and Backend
+            in a single pull request. The Frontend and Backend are **not**
+            atomically deployed. If the changes are interdependent of each
+            other, they **must** be separated into two pull requests and be made
+            forward or backwards compatible, such that the Backend or Frontend
+            can be safely deployed independently.
+
+
+            Have questions? Please ask in the [`#discuss-dev-tooling`
+            channel](https://app.slack.com/client/T024ZCV9U/CTJL7358X).

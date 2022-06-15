@@ -198,7 +198,7 @@ const DashboardEditFeature = ({
 };
 
 const StyledButtonBar = styled(ButtonBar)`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};
     width: 100%;

@@ -1,6 +1,7 @@
+from html import escape
+
 from sentry.mediators import Mediator, Param
 from sentry.models import PlatformExternalIssue
-from sentry.utils.html import escape
 
 
 class Creator(Mediator):
