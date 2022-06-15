@@ -53,6 +53,8 @@ stderr:
 
 
 def main(repo: str, outdir: Optional[str] = None) -> int:
+    # TODO: This is used in a lot of ifelse, so will need to update
+    #       to accomodate things like snuba.
     IS_GETSENTRY = repo == "getsentry"
 
     base_path = abspath(gitroot())
@@ -83,6 +85,11 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
     )
 
     executor = ThreadPoolExecutor(max_workers=3)
+
+    if IS_GETSENTRY:
+        old_base_path = base_path
+        base_path = f"{base_path}/../sentry"
+
     futures = [
         executor.submit(
             worker,
@@ -93,6 +100,7 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
                 f"{outdir}/requirements-frozen.txt",
             ),
         ),
+        # sentry and getsentry share sentry's requirements-dev.
         executor.submit(
             worker,
             (
@@ -103,21 +111,18 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
                 f"{outdir}/requirements-dev-frozen.txt",
             ),
         ),
+        # requirements-dev-only-frozen.txt is only used in sentry
+        # and getsentry as a fast path for some CI jobs.
+        executor.submit(
+            worker,
+            (
+                *base_cmd,
+                f"{base_path}/requirements-dev.txt",
+                "-o",
+                f"{outdir}/requirements-dev-only-frozen.txt",
+            ),
+        ),
     ]
-    if not IS_GETSENTRY:
-        # requirements-dev-only-frozen.txt is only used in sentry and getsentry
-        # as a fast path for some CI jobs.
-        futures.append(
-            executor.submit(
-                worker,
-                (
-                    *base_cmd,
-                    f"{base_path}/requirements-dev.txt",
-                    "-o",
-                    f"{outdir}/requirements-dev-only-frozen.txt",
-                ),
-            )
-        )
 
     rc = check_futures(futures)
     if rc != 0:
@@ -125,6 +130,7 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
         return rc
 
     if IS_GETSENTRY:
+        base_path = old_base_path
         rc = check_futures(
             [
                 executor.submit(

@@ -50,7 +50,7 @@ pyparsing==3.0.9
 pyrsistent==0.18.1
 pytest==6.1.0
 pytest-cov==2.11.1
-pytest-django==3.10.0
+pytest-django==4.4.0
 pytest-rerunfailures==9.1.1
 pytest-sentry==0.1.9
 python-dateutil==2.8.2
