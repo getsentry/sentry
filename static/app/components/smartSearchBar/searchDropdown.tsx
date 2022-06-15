@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 import Button from '../button';
@@ -34,13 +34,12 @@ class SearchDropdown extends PureComponent<Props> {
       if (item.type === ItemType.INVALID_TAG) {
         return (
           <Invalid>
-            {tct(
-              "The field [field] isn't supported here. [highlight:See all searchable properties in the docs.]",
-              {
-                field: <strong>{item.desc}</strong>,
-                highlight: <Highlight />,
-              }
-            )}
+            {tct("The field [field] isn't supported here. ", {
+              field: <strong>{item.desc}</strong>,
+            })}
+            {tct('[highlight:See all searchable properties in the docs.]', {
+              highlight: <Highlight />,
+            })}
           </Invalid>
         );
       }
@@ -308,6 +307,13 @@ const Invalid = styled(`span`)`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.gray400};
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+
+  span {
+    white-space: pre;
+  }
 `;
 
 const Highlight = styled(`strong`)`
