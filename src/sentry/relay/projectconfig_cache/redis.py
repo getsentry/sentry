@@ -47,4 +47,4 @@ class RedisProjectConfigCache(ProjectConfigCache):
         return None
 
     def exists(self, public_key):
-        self.cluster.exists(public_key)
+        self.cluster.exists(self.__get_redis_key(public_key))
