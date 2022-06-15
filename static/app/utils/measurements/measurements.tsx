@@ -33,6 +33,10 @@ function measurementsFromDetails(
 const MOBILE_MEASUREMENTS = measurementsFromDetails(MOBILE_VITAL_DETAILS);
 const WEB_MEASUREMENTS = measurementsFromDetails(WEB_VITAL_DETAILS);
 
+export function getMeasurements() {
+  return {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
+}
+
 type ChildrenProps = {
   measurements: MeasurementCollection;
 };
@@ -42,7 +46,7 @@ type Props = {
 };
 
 function Measurements({children}: Props) {
-  const measurements = {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
+  const measurements = getMeasurements();
   return <Fragment>{children({measurements})}</Fragment>;
 }
 
