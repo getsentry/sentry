@@ -63,7 +63,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
         new_frame["lineno"] = symbolicated["lineno"]
     if symbolicated.get("colno"):
         new_frame["colno"] = symbolicated["colno"]
-    if symbolicated.get("package"):
+    # similarly as with `function` above, we do want to retain the original "package".
+    if platform != "csharp" and symbolicated.get("package"):
         new_frame["package"] = symbolicated["package"]
     if symbolicated.get("trust"):
         new_frame["trust"] = symbolicated["trust"]
