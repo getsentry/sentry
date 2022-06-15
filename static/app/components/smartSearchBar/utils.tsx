@@ -269,7 +269,7 @@ export const quickActions: QuickAction[] = [
       actual: 'option+backspace',
       display: 'option+backspace',
     },
-    icon: <IconDelete size="xs" />,
+    icon: <IconDelete size="xs" color="gray300" />,
     canRunAction: tok => {
       return tok?.type === Token.Filter;
     },
@@ -281,7 +281,7 @@ export const quickActions: QuickAction[] = [
       actual: ['option+1', 'cmd+1'],
       display: 'option+!',
     },
-    icon: <IconExclamation size="xs" />,
+    icon: <IconExclamation size="xs" color="gray300" />,
     canRunAction: tok => {
       return tok?.type === Token.Filter;
     },
@@ -293,7 +293,7 @@ export const quickActions: QuickAction[] = [
       actual: ['option+left'],
       display: 'option+left',
     },
-    icon: <IconArrow direction="left" size="xs" />,
+    icon: <IconArrow direction="left" size="xs" color="gray300" />,
     canRunAction: (tok, count) => {
       return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
@@ -305,7 +305,7 @@ export const quickActions: QuickAction[] = [
       actual: ['option+right'],
       display: 'option+right',
     },
-    icon: <IconArrow direction="right" size="xs" />,
+    icon: <IconArrow direction="right" size="xs" color="gray300" />,
     canRunAction: (tok, count) => {
       return count > 1 || (count > 0 && tok?.type !== Token.Filter);
     },
