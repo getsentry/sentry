@@ -448,22 +448,15 @@ class SmartSearchBar extends Component<Props, State> {
     token: TokenResult<any> | undefined,
     filterTokens: TokenResult<Token.Filter>[]
   ) => {
-    let offset = this.state.query.length;
-
     if (this.searchInput.current && filterTokens.length > 0) {
       this.searchInput.current.focus();
 
+      let offset = filterTokens[0].location.end.offset;
       if (token) {
         const tokenIndex = filterTokens.findIndex(tok => tok === token);
-        if (typeof tokenIndex !== 'undefined') {
-          if (tokenIndex + 1 < filterTokens.length) {
-            offset = filterTokens[tokenIndex + 1].location.end.offset;
-          }
+        if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
+          offset = filterTokens[tokenIndex + 1].location.end.offset;
         }
-      }
-
-      if (this.cursorPosition === this.state.query.length) {
-        offset = filterTokens[0].location.end.offset;
       }
 
       this.searchInput.current.selectionStart = offset;
