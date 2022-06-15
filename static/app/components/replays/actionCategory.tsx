@@ -52,15 +52,12 @@ const ActionCategory = memo(({action}: Props) => {
 
   return (
     <Tooltip title={description} disabled={!description} skipWrapper disableForVisualTest>
-      <Value>{title}</Value>
+      <Value>{action.type}</Value>
     </Tooltip>
   );
 });
 
 const Value = styled('div')`
-  color: ${p => p.theme.headingColor};
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 400;
   text-transform: capitalize;
 `;
 

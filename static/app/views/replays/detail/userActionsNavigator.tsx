@@ -15,7 +15,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
+import {Crumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
 
@@ -109,35 +109,27 @@ function UserActionsNavigator({event, crumbs}: Props) {
       <PanelBody>
         {!isLoaded && <CrumbPlaceholder number={4} />}
         {isLoaded &&
-          crumbs.map(item => (
-            <PanelItemCenter
+          (crumbs || []).map(item => (
+            <CrumbItem
+              as="button"
               key={item.id}
               onMouseEnter={() => onMouseEnter(item)}
               onMouseLeave={() => onMouseLeave(item)}
+              isHovered={closestUserAction?.id === item.id}
+              isSelected={currentUserAction?.id === item.id}
+              onClick={() =>
+                item.timestamp !== undefined
+                  ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
+                  : null
+              }
             >
-              <Container
-                isHovered={closestUserAction?.id === item.id}
-                isSelected={currentUserAction?.id === item.id}
-                onClick={() =>
-                  item.timestamp !== undefined
-                    ? setCurrentTime(relativeTimeInMs(item.timestamp, startTimestamp))
-                    : null
-                }
-              >
-                <Wrapper>
-                  <Type
-                    type={item.type}
-                    color={item.color}
-                    description={item.description}
-                  />
-                  <ActionCategory action={item} />
-                </Wrapper>
-                <PlayerRelativeTime
-                  relativeTime={startTimestamp}
-                  timestamp={item.timestamp}
-                />
-              </Container>
-            </PanelItemCenter>
+              <Type type={item.type} color={item.color} description={item.description} />
+              <ActionCategory action={item} />
+              <PlayerRelativeTime
+                relativeTime={startTimestamp}
+                timestamp={item.timestamp}
+              />
+            </CrumbItem>
           ))}
       </PanelBody>
     </Panel>
@@ -162,7 +154,7 @@ const Panel = styled(BasePanel)`
 `;
 
 const PanelHeader = styled(BasePanelHeader)`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   border-bottom: none;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
@@ -174,31 +166,28 @@ const PanelBody = styled(BasePanelBody)`
   overflow-y: auto;
 `;
 
-const PanelItemCenter = styled(PanelItem)`
-  display: block;
-  padding: ${space(0)};
-  cursor: pointer;
-`;
-
-const Container = styled('button')<ContainerProps>`
-  display: inline-flex;
-  width: 100%;
-  border: none;
-  background: transparent;
-  justify-content: space-between;
-  align-items: center;
-  border-left: 4px solid transparent;
-  padding: ${space(1)} ${space(1.5)};
-  ${p => p.isHovered && `background: ${p.theme.surface400};`}
-  ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
-`;
-
-const Wrapper = styled('div')`
-  display: flex;
+const CrumbItem = styled(PanelItem)<ContainerProps>`
+  display: grid;
+  grid-template-columns: max-content auto max-content;
   align-items: center;
   gap: ${space(1)};
+  width: 100%;
+
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray500};
+  background: transparent;
+  padding: ${space(1)} ${space(1.5)};
+  text-align: left;
+
+  border: none;
+  border-left: 4px solid transparent;
+  ${p => p.isHovered && `background: ${p.theme.surface400};`}
+  ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
+
+  /* overrides PanelItem css */
+  &:last-child {
+    border-left: 4px solid transparent;
+    ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
+  }
 `;
 
 const PlaceholderMargin = styled(Placeholder)`
