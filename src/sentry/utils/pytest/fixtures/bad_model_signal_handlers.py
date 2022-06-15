@@ -23,7 +23,8 @@ handler to use django.db.transaction.on_commit:
         transaction.on_commit(lambda: handle_model_changes.apply_async(...))
 
 For an example of a real-world fix, see
-https://github.com/getsentry/sentry/pull/35523
+https://github.com/getsentry/sentry/pull/35523, and for the PR that introduced
+this fixture see https://github.com/getsentry/sentry/pull/35671
 
 If you think this doesn't apply to this test, use the
 `bad_model_signal_handlers` fixture like so at the end of the test:
