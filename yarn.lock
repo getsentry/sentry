@@ -4487,10 +4487,10 @@
   resolved "https://registry.yarnpkg.com/@types/overlayscrollbars/-/overlayscrollbars-1.12.0.tgz#98456caceca8ad73bd5bb572632a585074e70764"
   integrity sha512-h/pScHNKi4mb+TrJGDon8Yb06ujFG0mSg12wIO0sWMUF3dQIe2ExRRdNRviaNt9IjxIiOfnRr7FsQAdHwK4sMg==
 
-"@types/papaparse@^5.2.6":
-  version "5.2.6"
-  resolved "https://registry.yarnpkg.com/@types/papaparse/-/papaparse-5.2.6.tgz#0bba18de4d15eff65883bc7c0794e0134de9e7c7"
-  integrity sha512-xGKSd0UTn58N1h0+zf8mW863Rv8BvXcGibEgKFtBIXZlcDXAmX/T4RdDO2mwmrmOypUDt5vRgo2v32a78JdqUA==
+"@types/papaparse@^5.3.2":
+  version "5.3.2"
+  resolved "https://registry.yarnpkg.com/@types/papaparse/-/papaparse-5.3.2.tgz#6ccace6eac8ddb03a6fd06883b84dd6c6561f69f"
+  integrity sha512-BNbCHJkTE4RwmAFkCxEalET4mDvGr/1ld7ZtQ4i/laWI/iiVt+GL07stdvufle4KfywyvloqqpIiJscXNCrKxA==
   dependencies:
     "@types/node" "*"
 
@@ -5312,10 +5312,10 @@ ansicolor@^1.1.100:
   resolved "https://registry.yarnpkg.com/ansicolor/-/ansicolor-1.1.100.tgz#811f1afbf726edca3aafb942a14df8351996304a"
   integrity sha512-Jl0pxRfa9WaQVUX57AB8/V2my6FJxrOR1Pp2qqFbig20QB4HzUoQ48THTKAgHlUCJeQm/s2WoOPcoIDhyCL/kw==
 
-ansis@^1.3.4:
-  version "1.3.4"
-  resolved "https://registry.yarnpkg.com/ansis/-/ansis-1.3.4.tgz#e94e32c6083c2eac9613ec6174c695a5bec9d9cb"
-  integrity sha512-BDXljGSG4gZXmWK64bQzXkI509i5fe8aAa9+eL29e3swaWUqxvxk/XlONjw9AUrNCpQWNdy++0GX7HAhWeR9BQ==
+ansis@^1.3.6:
+  version "1.3.6"
+  resolved "https://registry.yarnpkg.com/ansis/-/ansis-1.3.6.tgz#5370d9cc7b20d054967cc003cf051c2acf395b2c"
+  integrity sha512-TMXlWGGK5cOYT//DNX8V4zGnr824j95Oh888GV2J3eVFwKnolgdym9jje9MNLa3a8YNl0MnyX7C5tVj8dw5amA==
 
 anymatch@^2.0.0:
   version "2.0.0"
@@ -15654,12 +15654,12 @@ webpack-merge@^5.7.3:
     clone-deep "^4.0.1"
     wildcard "^2.0.0"
 
-webpack-remove-empty-scripts@^0.8.0:
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/webpack-remove-empty-scripts/-/webpack-remove-empty-scripts-0.8.0.tgz#204f9db03fb0fcf09843be51340cb0d12b706bc6"
-  integrity sha512-B8hRdGtwaCaZzJj8t838oNTtSi+wLJ//74X1HHqrKW+LP8WK2KzGEEkW662XWik/jqUeM6XQZMmXS/pFt64cvg==
+webpack-remove-empty-scripts@^0.8.1:
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/webpack-remove-empty-scripts/-/webpack-remove-empty-scripts-0.8.1.tgz#65cbad32fe8706cd139825261df4842ad0c89218"
+  integrity sha512-61hc2jfZOI6SAFDpIAQ910VFWc7ic+JWyjU0H/5A+1poKD9nOQRHnXaaixwsxXWI0+N1HUvmiREC3h9Dqn9xWw==
   dependencies:
-    ansis "^1.3.4"
+    ansis "^1.3.6"
 
 webpack-sources@^1.1.0:
   version "1.4.3"

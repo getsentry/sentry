@@ -1,49 +1,31 @@
-from __future__ import annotations
-
 import ast
-from typing import Any, Generator
-
-S001_fmt = (
-    "S001 Avoid using the {} mock call as it is "
-    "confusing and prone to causing invalid test "
-    "behavior."
-)
-S001_methods = frozenset(("not_called", "called_once", "called_once_with"))
-
-S002_msg = "S002 print functions or statements are not allowed."
-
-S003_msg = "S003 Use ``from sentry.utils import json`` instead."
-S003_modules = {"json", "simplejson"}
+from collections import namedtuple
+from functools import partial
 
 
 class SentryVisitor(ast.NodeVisitor):
-    def __init__(self) -> None:
-        self.errors: list[tuple[int, int, str]] = []
+    def __init__(self):
+        self.errors = []
 
-    def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        if node.module and node.module.split(".")[0] in S003_modules:
-            self.errors.append((node.lineno, node.col_offset, S003_msg))
+    def visit_ImportFrom(self, node):
+        if node.module in S003.modules:
+            for nameproxy in node.names:
+                if nameproxy.name in S003.names:
+                    self.errors.append(S003(node.lineno, node.col_offset))
+                    break
 
-        self.generic_visit(node)
-
-    def visit_Import(self, node: ast.Import) -> None:
+    def visit_Import(self, node):
         for alias in node.names:
-            if alias.name.split(".")[0] in S003_modules:
-                self.errors.append((node.lineno, node.col_offset, S003_msg))
+            if alias.name.split(".", 1)[0] in S003.modules:
+                self.errors.append(S003(node.lineno, node.col_offset))
 
-        self.generic_visit(node)
+    def visit_Attribute(self, node):
+        if node.attr in S001.methods:
+            self.errors.append(S001(node.lineno, node.col_offset, vars=(node.attr,)))
 
-    def visit_Attribute(self, node: ast.Attribute) -> None:
-        if node.attr in S001_methods:
-            self.errors.append((node.lineno, node.col_offset, S001_fmt.format(node.attr)))
-
-        self.generic_visit(node)
-
-    def visit_Name(self, node: ast.Name) -> None:
+    def visit_Name(self, node):
         if node.id == "print":
-            self.errors.append((node.lineno, node.col_offset, S002_msg))
-
-        self.generic_visit(node)
+            self.errors.append(S002(lineno=node.lineno, col=node.col_offset))
 
 
 class SentryCheck:
@@ -53,9 +35,43 @@ class SentryCheck:
     def __init__(self, tree: ast.AST) -> None:
         self.tree = tree
 
-    def run(self) -> Generator[tuple[int, int, str, type[Any]], None, None]:
+    def run(self):
         visitor = SentryVisitor()
         visitor.visit(self.tree)
 
         for e in visitor.errors:
-            yield (*e, type(self))
+            yield self.adapt_error(e)
+
+    @classmethod
+    def adapt_error(cls, e):
+        """Adapts the extended error namedtuple to be compatible with Flake8."""
+        return e._replace(message=e.message.format(*e.vars))[:4]
+
+
+error = namedtuple("error", "lineno col message type vars")
+Error = partial(partial, error, message="", type=SentryCheck, vars=())
+
+S001 = Error(
+    message="S001: Avoid using the {} mock call as it is "
+    "confusing and prone to causing invalid test "
+    "behavior."
+)
+S001.methods = {
+    "not_called",
+    "called_once",
+    "called_once_with",
+}
+
+S002 = Error(message="S002: print functions or statements are not allowed.")
+
+S003 = Error(message="S003: Use ``from sentry.utils import json`` instead.")
+S003.modules = {"json", "simplejson"}
+S003.names = {
+    "load",
+    "loads",
+    "dump",
+    "dumps",
+    "JSONEncoder",
+    "JSONDecodeError",
+    "_default_encoder",
+}
