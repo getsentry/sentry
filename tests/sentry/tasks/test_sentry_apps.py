@@ -557,7 +557,7 @@ class TestWebhookRequests(TestCase):
     def test_saves_error_if_webhook_request_fails(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
 
-        with self.assertRaises(ClientError):
+        with pytest.raises(ClientError):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
@@ -578,7 +578,7 @@ class TestWebhookRequests(TestCase):
     def test_saves_error_if_webhook_request_with_html_content_fails(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
 
-        with self.assertRaises(ClientError):
+        with pytest.raises(ClientError):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
@@ -601,7 +601,7 @@ class TestWebhookRequests(TestCase):
     def test_saves_error_if_webhook_request_with_json_content_fails(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
 
-        with self.assertRaises(ClientError):
+        with pytest.raises(ClientError):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
@@ -636,7 +636,7 @@ class TestWebhookRequests(TestCase):
     def test_saves_error_for_request_timeout(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
         # we don't log errors for unpublished and internal apps
-        with self.assertRaises(Timeout):
+        with pytest.raises(Timeout):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )
@@ -657,7 +657,7 @@ class TestWebhookRequests(TestCase):
     )
     def test_saves_error_event_id_if_in_header(self, safe_urlopen):
         data = {"issue": serialize(self.issue)}
-        with self.assertRaises(ClientError):
+        with pytest.raises(ClientError):
             send_webhooks(
                 installation=self.install, event="issue.assigned", data=data, actor=self.user
             )

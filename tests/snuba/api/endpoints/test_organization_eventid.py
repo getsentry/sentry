@@ -1,3 +1,4 @@
+import pytest
 from django.test import override_settings
 from django.urls import NoReverseMatch, reverse
 from freezegun import freeze_time
@@ -62,7 +63,7 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
             assert resp.status_code == 429
 
     def test_invalid_event_id(self):
-        with self.assertRaises(NoReverseMatch):
+        with pytest.raises(NoReverseMatch):
             reverse(
                 "sentry-api-0-event-id-lookup",
                 kwargs={

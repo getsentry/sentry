@@ -67,7 +67,7 @@ class DependencyTest(TestCase):
         import_string.side_effect = self.raise_import_error(package)
 
         with self.settings(**{key: setting_value}):
-            with self.assertRaises(ConfigurationError):
+            with pytest.raises(ConfigurationError):
                 validate_settings(settings)
 
     def test_validate_fails_on_postgres(self):

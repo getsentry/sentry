@@ -87,10 +87,10 @@ class ParseSearchQueryTest(unittest.TestCase):
             ]
 
     def test_is_query_invalid(self):
-        with self.assertRaises(InvalidSearchQuery) as cm:
+        with pytest.raises(InvalidSearchQuery) as excinfo:
             parse_search_query("is:wrong")
 
-        assert str(cm.exception).startswith('Invalid value for "is" search, valid values are')
+        assert str(excinfo.value).startswith('Invalid value for "is" search, valid values are')
 
     def test_is_query_inbox(self):
         assert parse_search_query("is:for_review") == [

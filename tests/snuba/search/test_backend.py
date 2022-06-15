@@ -2092,7 +2092,7 @@ class CdcEventsSnubaSearchTest(TestCase, SnubaTestCase):
         self.run_test("is:unresolved", [self.group1, self.group2], None)
 
     def test_invalid(self):
-        with self.assertRaises(InvalidQueryForExecutor):
+        with pytest.raises(InvalidQueryForExecutor):
             self.make_query(search_filter_query="is:unresolved abc:123")
 
     def test_resolved_group(self):

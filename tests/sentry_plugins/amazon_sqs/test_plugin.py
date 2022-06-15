@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 from botocore.client import ClientError
 from exam import fixture
 
@@ -61,7 +62,7 @@ class AmazonSQSPluginTest(PluginTestCase):
         mock_client.return_value.send_message.side_effect = ClientError(
             {"Error": {"Code": "Hello", "Message": "hello"}}, "SendMessage"
         )
-        with self.assertRaises(ClientError):
+        with pytest.raises(ClientError):
             self.run_test()
         assert len(logger.info.call_args_list) == 0
 

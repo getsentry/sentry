@@ -2,6 +2,7 @@ import os
 from io import BytesIO
 from unittest.mock import patch
 
+import pytest
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
 
@@ -46,7 +47,7 @@ class FileBlobTest(TestCase):
 
         with patch("sentry.models.file.super") as mock_super:
             mock_super.side_effect = DatabaseError("server closed connection")
-            with self.tasks(), self.assertRaises(DatabaseError):
+            with self.tasks(), pytest.raises(DatabaseError):
                 blob.delete()
         # Even those postgres failed we should stil queue
         # a task to delete the filestore object.
@@ -114,16 +115,16 @@ class FileTest(TestCase):
             fp.seek(1000)
             assert fp.tell() == 1000
 
-            with self.assertRaises(IOError):
+            with pytest.raises(IOError):
                 fp.seek(-1)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             fp.seek(0)
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             fp.tell()
 
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             fp.read()
 
     def test_seek(self):
@@ -151,7 +152,7 @@ class FileTest(TestCase):
             assert fp.tell() == bytes.tell() == 16
             assert fp.read() == bytes.read() == b"qrstuvwxyz"
 
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError):
                 fp.seek(0, 666)
 
     def test_multi_chunk_prefetch(self):

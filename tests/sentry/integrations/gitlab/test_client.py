@@ -157,7 +157,7 @@ class GitlabRefreshAuthTest(GitLabTestCase):
             f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
             status=404,
         )
-        with self.assertRaises(ApiError):
+        with pytest.raises(ApiError):
             self.client.check_file(self.repo, path, ref)
         assert responses.calls[0].response.status_code == 404
 

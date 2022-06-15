@@ -53,7 +53,7 @@ class OptionsStoreTest(TestCase):
         store, key = self.store, self.key
         with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable
-            with self.assertRaises(RuntimeError):
+            with pytest.raises(RuntimeError):
                 store.set(key, "bar")
 
         # Assert nothing was written to the local_cache

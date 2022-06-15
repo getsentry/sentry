@@ -1,6 +1,7 @@
 from datetime import timedelta
 from uuid import uuid4
 
+import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -251,7 +252,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assert response.status_code == 404, response.content
 
         # Invalid trace id
-        with self.assertRaises(NoReverseMatch):
+        with pytest.raises(NoReverseMatch):
             self.url = reverse(
                 "sentry-api-0-organization-events-trace-light",
                 kwargs={
@@ -1181,7 +1182,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["errors"] == 0
 
         # Invalid trace id
-        with self.assertRaises(NoReverseMatch):
+        with pytest.raises(NoReverseMatch):
             self.url = reverse(
                 self.url_name,
                 kwargs={

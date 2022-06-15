@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.constants import SentryAppStatus
@@ -73,7 +74,7 @@ class TestUpdater(TestCase):
         updater = Updater(sentry_app=sentry_app, user=self.user)
         updater.scopes = ("project:read", "project:write")
 
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             updater.call()
 
     def test_update_webhook_published_app(self):
@@ -93,7 +94,7 @@ class TestUpdater(TestCase):
         )
         updater = Updater(sentry_app=sentry_app, user=self.user)
         updater.events = ("issue",)
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             updater.call()
 
     def test_doesnt_update_verify_install_if_internal(self):
@@ -101,7 +102,7 @@ class TestUpdater(TestCase):
         sentry_app = self.create_internal_integration(name="Internal", organization=self.org)
         updater = Updater(sentry_app=sentry_app, user=self.user)
         updater.verify_install = True
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             updater.call()
 
     def test_updates_service_hook_events(self):

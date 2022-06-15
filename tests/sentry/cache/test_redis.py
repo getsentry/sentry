@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.cache.redis import RedisCache, ValueTooLarge
 from sentry.testutils import TestCase
 
@@ -17,5 +19,5 @@ class RedisCacheTest(TestCase):
         result = self.backend.get("foo")
         assert result is None
 
-        with self.assertRaises(ValueTooLarge):
+        with pytest.raises(ValueTooLarge):
             self.backend.set("foo", "x" * (RedisCache.max_size + 1), 0)

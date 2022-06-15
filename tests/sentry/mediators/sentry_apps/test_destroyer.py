@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.db import connection
 
@@ -62,7 +63,7 @@ class TestDestroyer(TestCase):
     def test_soft_deletes_sentry_app(self):
         self.destroyer.call()
 
-        with self.assertRaises(SentryApp.DoesNotExist):
+        with pytest.raises(SentryApp.DoesNotExist):
             SentryApp.objects.get(pk=self.sentry_app.id)
 
         # The QuerySet will automatically NOT include deleted installs, so we

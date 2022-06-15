@@ -461,7 +461,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.include_all_projects == include_all_projects
 
     def test_invalid_query(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             create_alert_rule(
                 self.organization,
                 [self.project],
@@ -636,7 +636,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.snuba_query.query == ""
 
     def test_invalid_query(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             update_alert_rule(self.alert_rule, query="has:")
 
     def test_delete_projects(self):
@@ -966,13 +966,13 @@ class CreateAlertRuleTriggerTest(TestCase):
     def test_excluded_projects_not_associated_with_rule(self):
         other_project = self.create_project(fire_project_created=True)
         alert_rule = self.create_alert_rule(projects=[self.project])
-        with self.assertRaises(ProjectsNotAssociatedWithAlertRuleError):
+        with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
             create_alert_rule_trigger(alert_rule, "hi", 100, excluded_projects=[other_project])
 
     def test_existing_label(self):
         name = "uh oh"
         create_alert_rule_trigger(self.alert_rule, name, 100)
-        with self.assertRaises(AlertRuleTriggerLabelAlreadyUsedError):
+        with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             create_alert_rule_trigger(self.alert_rule, name, 100)
 
 
@@ -994,7 +994,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
         label = "uh oh"
         create_alert_rule_trigger(self.alert_rule, label, 1000)
         trigger = create_alert_rule_trigger(self.alert_rule, "something else", 1000)
-        with self.assertRaises(AlertRuleTriggerLabelAlreadyUsedError):
+        with pytest.raises(AlertRuleTriggerLabelAlreadyUsedError):
             update_alert_rule_trigger(trigger, label=label)
 
     def test_exclude_projects(self):
@@ -1026,7 +1026,7 @@ class UpdateAlertRuleTriggerTest(TestCase):
         alert_rule = self.create_alert_rule(projects=[self.project])
         trigger = create_alert_rule_trigger(alert_rule, "hi", 1000)
 
-        with self.assertRaises(ProjectsNotAssociatedWithAlertRuleError):
+        with pytest.raises(ProjectsNotAssociatedWithAlertRuleError):
             update_alert_rule_trigger(trigger, excluded_projects=[other_project])
 
 
@@ -1123,7 +1123,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1155,7 +1155,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
             content_type="application/json",
             body=json.dumps({"ok": "false", "error": "ratelimited"}),
         )
-        with self.assertRaises(ApiRateLimitedError):
+        with pytest.raises(ApiRateLimitedError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1195,7 +1195,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "some_channel"
 
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1253,7 +1253,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         target_identifier = 1
 
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             create_alert_rule_trigger_action(
                 self.trigger,
                 type,
@@ -1329,7 +1329,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         type = AlertRuleTriggerAction.Type.SLACK
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "#some_channel_that_doesnt_exist"
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1361,7 +1361,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
             content_type="application/json",
             body=json.dumps({"ok": "false", "error": "ratelimited"}),
         )
-        with self.assertRaises(ApiRateLimitedError):
+        with pytest.raises(ApiRateLimitedError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1401,7 +1401,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         channel_name = "some_channel"
 
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1460,7 +1460,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
         target_identifier = 1
 
-        with self.assertRaises(InvalidTriggerActionError):
+        with pytest.raises(InvalidTriggerActionError):
             update_alert_rule_trigger_action(
                 self.action,
                 type,
@@ -1483,7 +1483,7 @@ class DeleteAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
     def test(self):
         action_id = self.action.id
         delete_alert_rule_trigger_action(self.action)
-        with self.assertRaises(AlertRuleTriggerAction.DoesNotExist):
+        with pytest.raises(AlertRuleTriggerAction.DoesNotExist):
             AlertRuleTriggerAction.objects.get(id=action_id)
 
 

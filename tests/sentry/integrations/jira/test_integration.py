@@ -664,7 +664,7 @@ class JiraIntegrationTest(APITestCase):
             "sync_status_forward": {10100: {"on_resolve": "", "on_unresolve": "3"}},
         }
 
-        with self.assertRaises(IntegrationError):
+        with pytest.raises(IntegrationError):
             installation.update_organization_config(data)
 
         data = {

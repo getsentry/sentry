@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 from exam import before
 from rest_framework import serializers
 
@@ -102,14 +103,14 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
 
         # Test no Sentry App Installation uuid
         rule = self.get_rule(data={"hasSchemaFormConfig": True})
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             rule.self_validate()
 
         # Test invalid Sentry App Installation uuid
         rule = self.get_rule(
             data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": "not_a_real_uuid"}
         )
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             rule.self_validate()
 
         # Test deleted Sentry App Installation uuid
@@ -120,7 +121,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         rule = self.get_rule(
             data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": test_install.uuid}
         )
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             rule.self_validate()
 
         # Test Sentry Apps without alert rules configured in their schema
@@ -131,14 +132,14 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         rule = self.get_rule(
             data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": test_install.uuid}
         )
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             rule.self_validate()
 
         # Test without providing settings in rule data
         rule = self.get_rule(
             data={"hasSchemaFormConfig": True, "sentryAppInstallationUuid": self.install.uuid}
         )
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             rule.self_validate()
 
         # Test without providing required field values
@@ -149,7 +150,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
                 "settings": [{"name": "title", "value": "Lamy"}],
             }
         )
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             rule.self_validate()
 
         # Test with additional fields not on the app's schema
@@ -164,7 +165,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
                 ],
             }
         )
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             rule.self_validate()
 
         # Test with invalid value on Select field
@@ -179,5 +180,5 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
                 ],
             }
         )
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             rule.self_validate()

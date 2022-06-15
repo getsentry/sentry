@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.notifications.class_manager import (
     NotificationClassAlreadySetException,
     get,
@@ -18,5 +20,5 @@ class ClassManagerTest(TestCase):
 
     def test_duplicate_register(self):
         register()(AnotherDummyNotification)
-        with self.assertRaises(NotificationClassAlreadySetException):
+        with pytest.raises(NotificationClassAlreadySetException):
             register()(AnotherDummyNotification)
