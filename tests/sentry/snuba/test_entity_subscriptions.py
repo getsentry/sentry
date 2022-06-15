@@ -74,7 +74,9 @@ class EntitySubscriptionTestCase(TestCase):
             ],
             ["identity", "sessions", "_total_count"],
         ]
-        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        snql_query = entity_subscription.build_query_builder(
+            "", [self.project.id], None
+        ).get_snql_query()
         snql_query.query.select.sort(key=lambda q: q.function)
         assert snql_query.query.select == [
             Function(
@@ -214,7 +216,9 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter.aggregations == [
             ["quantile(0.95)", "duration", "percentile_transaction_duration__95"]
         ]
-        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        snql_query = entity_subscription.build_query_builder(
+            "", [self.project.id], None
+        ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 "quantile(0.95)",
@@ -243,7 +247,9 @@ class EntitySubscriptionTestCase(TestCase):
         ]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
-        snql_query = entity_subscription.build_snql_query("release:latest", [self.project.id], None)
+        snql_query = entity_subscription.build_query_builder(
+            "release:latest", [self.project.id], None
+        ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 function="uniq",

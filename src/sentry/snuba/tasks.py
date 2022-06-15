@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import logging
 from datetime import timedelta
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import sentry_sdk
 from django.utils import timezone
-from snuba_sdk import Request
 from snuba_sdk.legacy import json_to_snql
 
 from sentry import features
@@ -20,6 +21,9 @@ from sentry.snuba.models import QueryDatasets, QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, metrics
 from sentry.utils.snuba import SnubaError, _snuba_pool
+
+if TYPE_CHECKING:
+    from sentry.search.events.builder import QueryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -161,14 +165,14 @@ def build_snuba_filter(
     return entity_subscription.build_snuba_filter(query, environment, params)
 
 
-def build_snql_query(
+def build_query_builder(
     entity_subscription: BaseEntitySubscription,
     query: str,
     project_ids: Sequence[int],
     environment: Optional[Environment],
     params: Optional[Mapping[str, Any]] = None,
-) -> Request:
-    return entity_subscription.build_snql_query(query, project_ids, environment, params)
+) -> QueryBuilder:
+    return entity_subscription.build_query_builder(query, project_ids, environment, params)
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
@@ -189,7 +193,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
         features.has("organizations:metric-alert-snql", subscription.project.organization)
         and dataset != QueryDatasets.METRICS
     ):
-        snql_query = build_snql_query(
+        snql_query = build_query_builder(
             entity_subscription,
             snuba_query.query,
             [subscription.project_id],
@@ -198,7 +202,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
                 "organization_id": subscription.project.organization_id,
                 "project_id": [subscription.project_id],
             },
-        )
+        ).get_snql_query()
         body = {
             "project_id": subscription.project_id,
             "query": str(snql_query.query),

@@ -198,10 +198,12 @@ class TestAlertRuleSerializer(TestCase):
         assert alert_rule.snuba_query.aggregate == "count()"
 
     def test_query_project(self):
-        self.run_fail_validation_test(
-            {"query": f"project:{self.project.slug}"},
-            {"query": ["Project is an invalid search term"]},
-        )
+        # `project:` works using `QueryBuilder` so this test can go away once we're using it
+        with self.feature({"organizations:metric-alert-snql": False}):
+            self.run_fail_validation_test(
+                {"query": f"project:{self.project.slug}"},
+                {"query": ["Project is an invalid search term"]},
+            )
 
     def test_decimal(self):
         params = self.valid_transaction_params.copy()
