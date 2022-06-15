@@ -89,6 +89,8 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert result["role"] == "owner"
         assert result["access"] == settings.SENTRY_SCOPES
         assert result["relayPiiConfig"] is None
+        assert isinstance(result["orgRoleList"], list)
+        assert isinstance(result["teamRoleList"], list)
 
 
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
