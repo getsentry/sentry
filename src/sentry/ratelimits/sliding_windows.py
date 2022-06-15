@@ -40,6 +40,11 @@ class Quota:
     #: How many units are allowed within the given window.
     limit: int
 
+    # Override the prefix given by RequestedQuota such that one can implement
+    # global limits + per-organization limits. The GrantedQuota will still only
+    # contain the prefix of the RequestedQuota
+    prefix_override: Optional[str] = None
+
     def iter_granules(self, request_timestamp: int) -> Iterator[int]:
         assert self.window % self.granularity == 0
         for granule_i in range(int(self.window / self.granularity)):
@@ -128,7 +133,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
 
     def _build_redis_key(self, request: RequestedQuota, quota: Quota, granule: int) -> str:
         return self._build_redis_key_raw(
-            prefix=request.prefix,
+            prefix=quota.prefix_override or request.prefix,
             window=quota.window,
             granularity=quota.granularity,
             granule=granule,
