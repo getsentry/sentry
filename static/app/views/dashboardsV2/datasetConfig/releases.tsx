@@ -50,7 +50,21 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
-  getTableRequest,
+  getTableRequest: (
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string
+  ) => getRequest(0, 1, query, contextualProps, limit, cursor),
+  getSeriesRequest: (
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string
+  ) => {
+    const includeTotals = query.columns.length > 0 ? 1 : 0;
+    return getRequest(1, includeTotals, query, contextualProps, limit, cursor);
+  },
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   getTableFieldOptions: getReleasesTableFieldOptions,
   supportedDisplayTypes: [
@@ -184,7 +198,9 @@ function fieldsToDerivedMetrics(field: string): string {
   return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
 }
 
-function getTableRequest(
+function getRequest(
+  includeSeries: number,
+  includeTotals: number,
   query: WidgetQuery,
   contextualProps?: ContextualProps,
   limit?: number,
@@ -202,8 +218,6 @@ function getTableRequest(
   const unsupportedOrderby =
     DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
   const columns = query.columns;
-  const includeSeries = 0;
-  const includeTotals = 1;
 
   // Temporary solution to support sorting on releases when querying the
   // Metrics API:

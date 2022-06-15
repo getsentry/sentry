@@ -357,8 +357,21 @@ class ReleaseWidgetQueries extends Component<Props, State> {
 
     const promises: Promise<
       MetricsApiResponse | [MetricsApiResponse, string, ResponseMeta] | SessionApiResponse
-    >[] = widget.queries.map(query =>
-      this.config.getTableRequest!(
+    >[] = widget.queries.map(query => {
+      if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
+        return this.config.getTableRequest!(
+          query,
+          {
+            api,
+            organization,
+            pageFilters: selection,
+          },
+          this.limit,
+          cursor
+        );
+      }
+
+      return this.config.getSeriesRequest!(
         query,
         {
           api,
@@ -367,8 +380,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         },
         this.limit,
         cursor
-      )
-    );
+      );
+    });
 
     let completed = 0;
     promises.forEach(async (promise, requestIndex) => {

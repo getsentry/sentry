@@ -60,6 +60,17 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
    * Generate the request promises for fetching
+   * series data.
+   */
+  getSeriesRequest?: (
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the request promises for fetching
    * tabular data.
    */
   getTableRequest?: (
@@ -71,7 +82,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   ) => ReturnType<Client['requestPromise']>;
   /**
    * Generate the request promises for fetching
-   * tabular data.
+   * world map data.
    */
   getWorldMapRequest?: (
     query: WidgetQuery,
