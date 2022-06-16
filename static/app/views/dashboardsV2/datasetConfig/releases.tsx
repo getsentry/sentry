@@ -1,7 +1,12 @@
 import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, SessionApiResponse, SessionField} from 'sentry/types';
+import {
+  MetricsApiResponse,
+  Organization,
+  SessionApiResponse,
+  SessionField,
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -94,7 +99,7 @@ function handleColumnFieldChangeOverride(widgetQuery: WidgetQuery): WidgetQuery 
   return widgetQuery;
 }
 
-function getReleasesTableFieldOptions() {
+function getReleasesTableFieldOptions(_organization: Organization) {
   return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
 }
 

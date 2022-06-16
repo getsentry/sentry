@@ -218,9 +218,11 @@ class WidgetQueries extends Component<Props, State> {
       this.setState(prevState => {
         const timeseriesResults = widget.queries.reduce((acc: Series[], query, index) => {
           return acc.concat(
-            this.config.transformSeries!(prevState.rawResults![index], query, {
-              organization,
-            })
+            this.config.transformSeries!(
+              prevState.rawResults![index],
+              query,
+              organization
+            )
           );
         }, []);
 
@@ -308,9 +310,12 @@ class WidgetQueries extends Component<Props, State> {
         isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
 
         // Cast so we can add the title.
-        const tableData = this.config.transformTable(data, widget.queries[0], {
+        const tableData = this.config.transformTable(
+          data,
+          widget.queries[0],
           organization,
-        }) as TableDataWithTitle;
+          selection
+        ) as TableDataWithTitle;
         tableData.title = widget.queries[i]?.name ?? '';
 
         // Overwrite the local var to work around state being stale in tests.
@@ -477,7 +482,7 @@ class WidgetQueries extends Component<Props, State> {
           const transformedResult = this.config.transformSeries!(
             rawResults,
             widget.queries[requestIndex],
-            {organization}
+            organization
           );
           // When charting timeseriesData on echarts, color association to a timeseries result
           // is order sensitive, ie series at index i on the timeseries array will use color at

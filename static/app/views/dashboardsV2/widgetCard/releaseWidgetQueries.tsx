@@ -12,7 +12,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import {
   MetricsApiResponse,
-  OrganizationSummary,
+  Organization,
   PageFilters,
   Release,
   SessionApiResponse,
@@ -41,7 +41,7 @@ type Props = {
       'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage' | 'pageLinks'
     >
   ) => React.ReactNode;
-  organization: OrganizationSummary;
+  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
@@ -221,7 +221,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            this.config.transformSeries!(rawResult, widget.queries[index])
+            this.config.transformSeries!(rawResult, widget.queries[index], organization)
           ),
         };
       });
@@ -494,7 +494,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           if (includeTotals) {
             const tableData = this.config.transformTable(
               data,
-              widget.queries[0]
+              widget.queries[0],
+              organization,
+              selection
             ) as TableDataWithTitle; // Cast so we can add the title.
             tableData.title = widget.queries[requestIndex]?.name ?? '';
             tableResults = [...(prevState.tableResults ?? []), tableData];
@@ -507,7 +509,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           if (includeSeries) {
             const transformedResult = this.config.transformSeries!(
               data,
-              widget.queries[requestIndex]
+              widget.queries[requestIndex],
+              organization
             );
 
             // When charting timeseriesData on echarts, color association to a timeseries result

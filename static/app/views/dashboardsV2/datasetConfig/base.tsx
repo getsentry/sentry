@@ -16,11 +16,6 @@ import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
-export type ContextualProps = {
-  organization?: Organization;
-  pageFilters?: PageFilters;
-};
-
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
    * Default query to display when dataset is selected in the
@@ -32,7 +27,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Table display type.
    */
   getTableFieldOptions: (
-    contextualProps?: ContextualProps,
+    organization: Organization,
     tags?: TagCollection
   ) => Record<string, SelectValue<FieldValue>>;
   /**
@@ -46,7 +41,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   transformTable: (
     data: TableResponse,
     widgetQuery: WidgetQuery,
-    contextualProps?: ContextualProps
+    organization: Organization,
+    pageFilters: PageFilters
   ) => TableData;
   /**
    * Used for mapping column names to more desirable
@@ -70,7 +66,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getCustomFieldRenderer?: (
     field: string,
     meta: MetaType,
-    contextualProps?: ContextualProps
+    organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
    * Apply dataset specific overrides to the logic that handles
@@ -89,7 +85,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   transformSeries?: (
     data: SeriesResponse,
     widgetQuery: WidgetQuery,
-    contextualProps?: ContextualProps
+    organization: Organization
   ) => Series[];
 }
 

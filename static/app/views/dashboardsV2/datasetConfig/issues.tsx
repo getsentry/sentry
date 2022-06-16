@@ -1,5 +1,5 @@
 import GroupStore from 'sentry/stores/groupStore';
-import {Group} from 'sentry/types';
+import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -10,7 +10,7 @@ import {DisplayType, WidgetQuery} from '../types';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
 
-import {ContextualProps, DatasetConfig} from './base';
+import {DatasetConfig} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -25,7 +25,8 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getIssueFieldRenderer,
-  getTableFieldOptions: () => generateIssueWidgetFieldOptions(),
+  getTableFieldOptions: (_organization: Organization) =>
+    generateIssueWidgetFieldOptions(),
   fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
   supportedDisplayTypes: [DisplayType.TABLE],
   transformTable: transformIssuesResponseToTable,
@@ -34,7 +35,8 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
 export function transformIssuesResponseToTable(
   data: Group[],
   widgetQuery: WidgetQuery,
-  contextualProps?: ContextualProps
+  _organization: Organization,
+  pageFilters: PageFilters
 ): TableData {
   GroupStore.add(data);
   const transformedTableResults: TableDataRow[] = [];
@@ -103,7 +105,7 @@ export function transformIssuesResponseToTable(
         (queryTerms.length ? ' ' : '') + queryTerms.join(' ');
       transformedTableResult.projectId = project.id;
 
-      const {period, start, end} = contextualProps?.pageFilters?.datetime || {};
+      const {period, start, end} = pageFilters.datetime || {};
       if (start && end) {
         transformedTableResult.start = getUtcDateString(start);
         transformedTableResult.end = getUtcDateString(end);

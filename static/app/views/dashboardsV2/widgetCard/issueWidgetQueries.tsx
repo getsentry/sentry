@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {OrganizationSummary, PageFilters} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -40,7 +40,7 @@ type Props = {
     pageLinks?: null | string;
     totalCount?: string;
   }) => React.ReactNode;
-  organization: OrganizationSummary;
+  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
@@ -160,9 +160,12 @@ class IssueWidgetQueries extends Component<Props, State> {
           ...params,
         },
       });
-      const tableResults = this.config.transformTable(data, widget.queries[0], {
-        pageFilters: selection,
-      });
+      const tableResults = this.config.transformTable(
+        data,
+        widget.queries[0],
+        organization,
+        selection
+      );
       const totalCount = resp?.getResponseHeader('X-Hits') ?? null;
       const pageLinks = resp?.getResponseHeader('Link') ?? null;
       this.setState({
