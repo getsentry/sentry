@@ -733,7 +733,6 @@ function WidgetViewerModal(props: Props) {
                 ? FULL_TABLE_ITEM_LIMIT
                 : HALF_TABLE_ITEM_LIMIT
             }
-            includeAllArgs
             cursor={cursor}
           >
             {renderReleaseTable}

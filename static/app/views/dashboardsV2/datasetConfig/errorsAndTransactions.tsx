@@ -1,3 +1,4 @@
+import {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
@@ -11,6 +12,10 @@ import {
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import {
+  DiscoverQueryRequestParams,
+  doDiscoverQuery,
+} from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
 import {
   eventDetailsRouteWithEventView,
@@ -22,6 +27,7 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {DisplayType, WidgetQuery} from '../types';
+import {eventViewFromWidget, getDashboardsMEPQueryParams} from '../utils';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -58,6 +64,40 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     DisplayType.TOP_N,
     DisplayType.WORLD_MAP,
   ],
+  getTableRequest: (
+    api: Client,
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => {
+    const shouldUseEvents = contextualProps?.organization?.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
+    const url = shouldUseEvents
+      ? `/organizations/${contextualProps?.organization?.slug}/events/`
+      : `/organizations/${contextualProps?.organization?.slug}/eventsv2/`;
+    return getEventsRequest(url, api, query, contextualProps, limit, cursor, referrer);
+  },
+  getWorldMapRequest: (
+    api: Client,
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => {
+    return getEventsRequest(
+      `/organizations/${contextualProps?.organization?.slug}/events-geo/`,
+      api,
+      query,
+      contextualProps,
+      limit,
+      cursor,
+      referrer
+    );
+  },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
 };
@@ -206,4 +246,36 @@ export function getCustomEventsFieldRenderer(
   }
 
   return getFieldRenderer(field, meta, isAlias);
+}
+
+function getEventsRequest(
+  url: string,
+  api: Client,
+  query: WidgetQuery,
+  contextualProps?: ContextualProps,
+  limit?: number,
+  cursor?: string,
+  referrer?: string
+) {
+  const isMEPEnabled =
+    contextualProps?.organization?.features.includes('dashboards-mep') ?? false;
+
+  const eventView = eventViewFromWidget('', query, contextualProps?.pageFilters!);
+
+  const params: DiscoverQueryRequestParams = {
+    per_page: limit,
+    cursor,
+    referrer,
+    ...getDashboardsMEPQueryParams(isMEPEnabled),
+  };
+
+  if (query.orderby) {
+    params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
+  }
+
+  // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
+  return doDiscoverQuery<TableData | EventsTableData>(api, url, {
+    ...eventView.generateQueryStringObject(),
+    ...params,
+  });
 }

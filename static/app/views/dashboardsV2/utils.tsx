@@ -155,8 +155,9 @@ export function miniWidget(displayType: DisplayType): string {
 }
 
 export function getWidgetInterval(
-  widget: Widget,
+  displayType: DisplayType,
   datetimeObj: Partial<PageFilters['datetime']>,
+  widgetInterval?: string,
   fidelity?: Fidelity
 ): string {
   // Don't fetch more than 66 bins as we're plotting on a small area.
@@ -164,7 +165,7 @@ export function getWidgetInterval(
 
   // Bars charts are daily totals to aligned with discover. It also makes them
   // usefully different from line/area charts until we expose the interval control, or remove it.
-  let interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  let interval = displayType === 'bar' ? '1d' : widgetInterval;
   if (!interval) {
     // Default to 5 minutes
     interval = '5m';
@@ -179,7 +180,7 @@ export function getWidgetInterval(
     if (selectedRange > SIX_HOURS && selectedRange <= TWENTY_FOUR_HOURS) {
       interval = '1h';
     }
-    return widget.displayType === 'bar' ? '1d' : interval;
+    return displayType === 'bar' ? '1d' : interval;
   }
 
   // selectedRange is in minutes, desiredPeriod is in hours
