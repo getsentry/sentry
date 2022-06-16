@@ -132,6 +132,10 @@ type MetricsState = {
   hasMeasured: boolean;
 };
 
+function renderLoading() {
+  return <LoadingIndicator />;
+}
+
 function useApiRequests({
   endpoints = [],
   reloadOnVisible = false,
@@ -354,10 +358,6 @@ function useApiRequests({
 
   function shouldRenderLoading() {
     return state.isLoading && (!shouldReload || !state.isReloading);
-  }
-
-  function renderLoading() {
-    return <LoadingIndicator />;
   }
 
   function renderError(error?: Error, disableLog = false): React.ReactElement {
