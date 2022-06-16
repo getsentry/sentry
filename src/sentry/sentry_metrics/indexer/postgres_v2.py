@@ -31,7 +31,7 @@ TABLE_MAPPING: Mapping[ProfileKey, IndexerTable] = {
 
 class PGStringIndexerV2(StringIndexer):
     def __init__(self) -> None:
-        ingest_profile = get_ingest_config()
+        ingest_profile = get_ingest_config(ProfileKey.RELEASE_HEALTH)
         self.table: IndexerTable = TABLE_MAPPING[ingest_profile.db_model]
 
     """

@@ -1,4 +1,3 @@
-import os
 from dataclasses import dataclass
 from enum import Enum
 from typing import Mapping, Optional
@@ -28,10 +27,7 @@ _METRICS_INGEST_CONFIG: Mapping[ProfileKey, MetricsIngestConfiguration] = {
         db_model=ProfileKey.RELEASE_HEALTH,
         input_topic=settings.KAFKA_INGEST_METRICS,
         output_topic=settings.KAFKA_SNUBA_METRICS,
-        # For non-SaaS deploys one may want a different use_case_id here
-        # This keeps our internal schema consistent with the launch
-        # of performance metrics
-        use_case_id=None,
+        use_case_id="release-health",
         internal_metrics_tag="release-health",
     ),
     ProfileKey.PERFORMANCE: MetricsIngestConfiguration(
@@ -44,8 +40,5 @@ _METRICS_INGEST_CONFIG: Mapping[ProfileKey, MetricsIngestConfiguration] = {
 }
 
 
-def get_ingest_config(
-    environment_key: str = "SENTRY_METRICS_INGEST_PROFILE",
-) -> MetricsIngestConfiguration:
-    env_value = os.environ.get(environment_key)
-    return _METRICS_INGEST_CONFIG[ProfileKey(env_value) if env_value else DEFAULT_PROFILE_KEY]
+def get_ingest_config(profile_key: ProfileKey) -> MetricsIngestConfiguration:
+    return _METRICS_INGEST_CONFIG[profile_key]
