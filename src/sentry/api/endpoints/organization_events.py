@@ -198,7 +198,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         """
         Retrieves discover (also known as events) data for a given organization.
 
-        **Note**: Users who may be using the `eventsv2` endpoint should update their requests to the `events` endpoint outline in this document.
+        **Eventsv2 Deprecation Note**: Users who may be using the `eventsv2` endpoint should update their requests to the `events` endpoint outline in this document.
         The `eventsv2` endpoint is not a public endpoint and has no guaranteed availability. If you are not making any API calls to `eventsv2`, you can safely ignore this.
         Changes between `eventsv2` and `events` include:
         - Field keys in the response now match the keys in the requested `field` param exactly.
