@@ -94,7 +94,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
       trackAdvancedAnalyticsEvent('performance_views.overview.view', {
         organization,
         show_onboarding: onboardingProject !== undefined,
-        selected_projects: selectedProjects,
+        project_platforms: selectedProjects,
       });
 
       loadOrganizationTags(api, organization.slug, selection);
@@ -165,7 +165,13 @@ function PerformanceContent({selection, location, demoMode}: Props) {
               eventView={eventView}
               setError={setError}
               handleSearch={handleSearch}
-              handleTrendsClick={() => handleTrendsClick({location, organization})}
+              handleTrendsClick={() =>
+                handleTrendsClick({
+                  location,
+                  organization,
+                  projectPlatforms: getSelectedProjectPlatforms(location, projects),
+                })
+              }
               onboardingProject={onboardingProject}
               organization={organization}
               location={location}

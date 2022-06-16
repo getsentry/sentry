@@ -144,15 +144,18 @@ export function getTransactionSearchQuery(location: Location, query: string = ''
 export function handleTrendsClick({
   location,
   organization,
+  projectPlatforms,
 }: {
   location: Location;
   organization: Organization;
+  projectPlatforms: string;
 }) {
   trackAnalyticsEvent({
     eventKey: 'performance_views.change_view',
     eventName: 'Performance Views: Change View',
     organization_id: parseInt(organization.id, 10),
     view_name: 'TRENDS',
+    project_platforms: projectPlatforms,
   });
 
   const target = trendsTargetRoute({location, organization});
