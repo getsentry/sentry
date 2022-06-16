@@ -123,7 +123,6 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                                   email: subscription.email,
                                   date: (
                                     <DateTime
-                                      shortDate
                                       date={moment(subscription.subscribedDate!)}
                                     />
                                   ),

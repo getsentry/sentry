@@ -130,6 +130,9 @@ class AlertRuleIssuesList extends AsyncComponent<Props, State> {
                       value: lastTriggered,
                       fixed: 'Mar 16, 2020 9:10:13 AM UTC',
                     })}
+                    year
+                    seconds
+                    timeZone
                   />
                 </div>
               </Fragment>

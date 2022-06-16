@@ -42,7 +42,7 @@ const CardHeader = ({
         {description && <QuestionTooltip position="top" size="sm" title={description} />}
       </KeyName>
       <DateCreated>
-        {tct('Created on [date]', {date: <DateTime date={created} timeAndDate />})}
+        {tct('Created on [date]', {date: <DateTime date={created} />})}
       </DateCreated>
       <StyledButtonBar gap={1}>
         <Clipboard value={publicKey}>

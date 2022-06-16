@@ -172,7 +172,7 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
     case 'timestamp':
       return (
         <Container>
-          <DateTime date={value * 1000} />
+          <DateTime date={value * 1000} year seconds timeZone />
         </Container>
       );
     case 'trace_duration_ms':
