@@ -360,10 +360,6 @@ function useApiRequests({
     );
   }
 
-  function shouldRenderLoading() {
-    return state.isLoading && (!shouldReload || !state.isReloading);
-  }
-
   function renderError(error?: Error, disableLog = false): React.ReactElement {
     const {errors} = state;
 
@@ -409,8 +405,10 @@ function useApiRequests({
     );
   }
 
+  const shouldRenderLoading = state.isLoading && (!shouldReload || !state.isReloading);
+
   function renderComponent(children: React.ReactElement) {
-    return shouldRenderLoading()
+    return shouldRenderLoading
       ? renderLoading()
       : state.hasError
       ? renderError(new Error('Unable to load all required endpoints'))
