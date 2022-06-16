@@ -10,7 +10,7 @@ import type {Color} from 'sentry/utils/theme';
 
 import {getCrumbsByColumn} from '../utils';
 
-import {getDescription} from './utils';
+import {getDescription, getTitle} from './utils';
 
 const EVENT_STICK_MARKER_WIDTH = 4;
 
@@ -84,7 +84,7 @@ function Event({crumbs}: {crumbs: Crumb[]; className?: string}) {
       {crumbs.map(crumb => (
         <HoverListItem key={crumb.id}>
           <Type type={crumb.type} color={crumb.color} description={crumb.description} />
-          <small>{getCrumbDetail(crumb)}</small>
+          <small>{getCrumbDetail(crumb) || getTitle(crumb)}</small>
         </HoverListItem>
       ))}
     </HoverList>
