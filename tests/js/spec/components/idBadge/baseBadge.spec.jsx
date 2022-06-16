@@ -1,34 +1,35 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import BaseBadge from 'sentry/components/idBadge/baseBadge';
 
 describe('BadgeBadge', function () {
   it('has a display name', function () {
-    const wrapper = mountWithTheme(
+    render(
       <BaseBadge
         organization={TestStubs.Organization()}
-        displayName={<span id="test">display name</span>}
+        displayName={<span data-test-id="test">display name</span>}
       />
     );
-    expect(wrapper.find('#test')).toHaveLength(1);
-    expect(wrapper.find('#test').text()).toBe('display name');
+    expect(screen.getByTestId('test')).toHaveTextContent('display name');
   });
 
   it('can hide avatar', function () {
-    const wrapper = mountWithTheme(
-      <BaseBadge organization={TestStubs.Organization()} hideAvatar />
+    render(
+      <BaseBadge organization={TestStubs.Organization()} displayName="hello" hideAvatar />
     );
-    expect(wrapper.find('StyledAvatar')).toHaveLength(0);
+
+    expect(screen.queryByTestId('badge-styled-avatar')).not.toBeInTheDocument(0);
+    expect(screen.getByTestId('badge-display-name')).toHaveTextContent('hello');
   });
 
   it('can hide name', function () {
-    const wrapper = mountWithTheme(
+    render(
       <BaseBadge
         organization={TestStubs.Organization()}
         hideName
-        displayName={<span id="test">display name</span>}
+        displayName={<span data-test-id="test">display name</span>}
       />
     );
-    expect(wrapper.find('#test')).toHaveLength(0);
+    expect(screen.queryByTestId('test')).not.toBeInTheDocument('display name');
   });
 });
