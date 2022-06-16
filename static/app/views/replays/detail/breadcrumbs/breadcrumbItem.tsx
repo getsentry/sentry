@@ -70,7 +70,8 @@ const CrumbDetails = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  line-height: 1.1;
+  line-height: 1.2;
+  padding: ${space(1)} 0;
 `;
 
 const Title = styled('span')`
@@ -91,25 +92,32 @@ type CrumbItemProps = {
 
 const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   display: grid;
-  grid-template-columns: max-content auto max-content;
+  grid-template-columns: max-content max-content auto max-content;
   align-items: center;
   gap: ${space(1)};
   width: 100%;
 
   font-size: ${p => p.theme.fontSizeMedium};
   background: transparent;
-  padding: ${space(1)} ${space(1.5)};
+  padding: 0;
+  padding-right: ${space(1)};
   text-align: left;
 
   border: none;
-  border-left: 4px solid transparent;
+  border-bottom: 1px solid ${p => p.theme.innerBorder};
   ${p => p.isHovered && `background: ${p.theme.surface400};`}
-  ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
 
   /* overrides PanelItem css */
   &:last-child {
-    border-left: 4px solid transparent;
-    ${p => p.isSelected && `border-left: 4px solid ${p.theme.purple300};`}
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
+
+  /* Selected state */
+  ::before {
+    content: '';
+    width: 4px;
+    height: 100%;
+    ${p => p.isSelected && `background-color: ${p.theme.purple300};`}
   }
 `;
 
