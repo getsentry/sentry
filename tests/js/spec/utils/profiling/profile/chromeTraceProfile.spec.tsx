@@ -1,5 +1,6 @@
 import {
   ChromeTraceProfile,
+  collapseSamples,
   parseChromeTraceArrayFormat,
   splitEventsByProcessAndTraceId,
 } from 'sentry/utils/profiling/profile/chromeTraceProfile';
@@ -340,5 +341,45 @@ describe('parseChromeTraceArrayFormat', () => {
     );
 
     expect(trace.profiles[0].duration).toBe(100);
+  });
+});
+
+describe('collapseSamples', () => {
+  it.each([
+    {
+      samples: [1, 1],
+      timeDeltas: [0, 1],
+      expectedSamples: [1, 1],
+      expectedTimeDeltas: [0, 1],
+    },
+    {
+      samples: [1, 1, 1],
+      timeDeltas: [0, 1, 1],
+      expectedSamples: [1, 1],
+      expectedTimeDeltas: [0, 2],
+    },
+    {
+      samples: [1, 2, 1],
+      timeDeltas: [0, 1, 2],
+      expectedSamples: [1, 2, 1],
+      expectedTimeDeltas: [0, 1, 3],
+    },
+    {
+      samples: [1, 2, 3, 4],
+      timeDeltas: [0, 1, 1, 1],
+      expectedSamples: [1, 2, 3, 4],
+      expectedTimeDeltas: [0, 1, 2, 3],
+    },
+  ])('collapses sample', test => {
+    const result = collapseSamples({
+      startTime: 0,
+      endTime: 100,
+      samples: test.samples,
+      timeDeltas: test.timeDeltas,
+      nodes: [],
+    });
+
+    expect(result.samples).toEqual(test.expectedSamples);
+    expect(result.sampleTimes).toEqual(test.expectedTimeDeltas);
   });
 });

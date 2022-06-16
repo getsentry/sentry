@@ -450,12 +450,12 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
 
   // If we have no samples, then we can't collapse anything
   if (!profile.samples || !profile.samples.length) {
-    return {samples, sampleTimes};
+    throw new Error('Profile is missing samples');
   }
 
   // If we have no time deltas then the format may be corrupt
-  if (!profile.timeDeltas || profile.timeDeltas.length) {
-    return {samples, sampleTimes};
+  if (!profile.timeDeltas || !profile.timeDeltas.length) {
+    throw new Error('Profile is missing timeDeltas');
   }
 
   // If timedeltas does not match samples, then the format may be corrupt
@@ -463,54 +463,50 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
     throw new Error("Profile's samples and timeDeltas don't match");
   }
 
-  let lastSampleId: number | undefined;
+  if (profile.samples.length === 1 && profile.timeDeltas.length === 1) {
+    return {samples: [profile.samples[0]], sampleTimes: [profile.timeDeltas[0]]};
+  }
 
   // First delta is relative to profile start
   // https://github.com/v8/v8/blob/44bd8fd7/src/inspector/js_protocol.json#L1485
-  let elapsed: number | undefined = profile.timeDeltas[0];
+  let elapsed: number = profile.timeDeltas[0];
 
-  // Prevents negative time deltas from causing bad data. See
-  // https://github.com/jlfwong/speedscope/pull/305 for details.
-  let lastValidElapsed: number = elapsed;
-
-  // this is taken from speedscope, I've slightly reordered the logical flow and added
-  // more comments so that it is hopefully easier to understand what is happening
+  // This is quite significantly changed from speedscope's implementation.
+  // We iterate over all samples and check if we can collapse them or not.
+  // A sample should be collapsed when there are more that 2 consecutive samples
+  // that are pointing to the same stack.
   for (let i = 0; i < profile.samples.length; i++) {
     const nodeId = profile.samples[i];
 
-    // If sample is not the same as the last one, then we shouldnt collapse it.
-    // We take the time delta of the current sample and append it to the last elapsed duration
-    if (nodeId === lastSampleId) {
-      const timeDelta = profile.timeDeltas[i + 1];
-      elapsed += timeDelta;
-      lastSampleId = nodeId;
-      continue;
+    // Initialize the delta to 0, so we can accumulate the deltas of any collapsed samples
+    let delta = 0;
+    // Start at i
+    let j = i;
+    // While we are not at the end and next sample is the same as current
+    while (j < profile.samples.length && profile.samples[j + 1] === nodeId) {
+      // Update the delta and advance j
+      delta += profile.timeDeltas[j + 1];
+      j++;
     }
 
-    // If the sample is different than the last one, then we should not collapse it.
-    // - Push the sample into the samples array.
-    samples.push(nodeId);
-    if (elapsed < lastValidElapsed) {
-      sampleTimes.push(lastValidElapsed);
-    } else {
+    // Check if we skipped more than 1 element
+    if (j - i > 1) {
+      // We skipped more than 1 element, so we should collapse the samples,
+      // push the first element where we started with the elapsed time
+      // and last element where we started with the elapsed time + delta
+      samples.push(nodeId);
       sampleTimes.push(elapsed);
-      lastValidElapsed = elapsed;
-    }
-    // If we are at the end, we need to handle the last sample
-    if (i === profile.samples.length - 1) {
-      if (lastSampleId !== undefined) {
-        samples.push(lastSampleId);
-
-        if (elapsed < lastValidElapsed) {
-          sampleTimes.push(lastValidElapsed);
-        } else {
-          sampleTimes.push(elapsed);
-          lastValidElapsed = elapsed;
-        }
-      }
+      samples.push(nodeId);
+      sampleTimes.push(elapsed + delta);
+      elapsed += delta;
+      i = j;
+    } else {
+      // If we have not skipped samples, then we just push the sample and the delta to the list
+      samples.push(nodeId);
+      sampleTimes.push(elapsed);
+      elapsed += profile.timeDeltas[i + 1];
     }
   }
-
   return {samples, sampleTimes};
 }
 
