@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import argparse
 from concurrent.futures import Future, ThreadPoolExecutor
 from os.path import abspath
 from shutil import copyfile
 from subprocess import CalledProcessError, run
-from typing import Optional
+from typing import Sequence
 
 from tools.lib import gitroot
 
@@ -51,7 +52,16 @@ stderr:
     return rc
 
 
-def main(repo: str, outdir: Optional[str] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("repo", type=str, help="Repository name.")
+    parser.add_argument(
+        "outdir", nargs="?", default=None, help="Used only by check_frozen_requirements."
+    )
+    args = parser.parse_args(argv)
+    repo = args.repo
+    outdir = args.outdir
+
     base_path = abspath(gitroot())
 
     if outdir is None:
@@ -156,9 +166,4 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
 
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("repo", type=str, help="Repository name.")
-    args = parser.parse_args()
-    raise SystemExit(main(args.repo))
+    raise SystemExit(main())

@@ -1,20 +1,22 @@
+from __future__ import annotations
+
 import argparse
 import sys
 from difflib import unified_diff
 from tempfile import TemporaryDirectory
-from typing import Optional, Sequence
+from typing import Sequence
 
 from tools import freeze_requirements
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("repo", type=str, help="Repository name.")
     args = parser.parse_args(argv)
     repo = args.repo
 
     with TemporaryDirectory() as tmpdir:
-        rc = freeze_requirements.main(repo, tmpdir)
+        rc = freeze_requirements.main((repo, tmpdir))
         if rc != 0:
             print("There was an issue generating requirement lockfiles.")  # noqa
             return rc
