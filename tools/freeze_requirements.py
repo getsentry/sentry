@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from os.path import abspath
 from shutil import copyfile
 from subprocess import CalledProcessError, run
-from typing import Any, Optional
+from typing import Optional
 
 from tools.lib import gitroot
 
@@ -31,8 +31,7 @@ def worker(args: tuple[str, ...]) -> None:
         )
 
 
-# XXX(typing): it's supposed to be list[Future]
-def check_futures(futures: list[Any]) -> int:
+def check_futures(futures: list[Future[None]]) -> int:
     rc = 0
     for future in futures:
         try:
