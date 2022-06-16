@@ -84,8 +84,9 @@ function transformEventsResponseToTable(
   organization: Organization
 ): TableData {
   let tableData = data;
-  const shouldUseEvents =
-    organization.features.includes('discover-frontend-use-events-endpoint') || false;
+  const shouldUseEvents = organization.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
   // events api uses a different response format so we need to construct tableData differently
   if (shouldUseEvents) {
     const fieldsMeta = (data as EventsTableData).meta?.fields;
@@ -188,9 +189,9 @@ function renderTraceAsLinkable(
 export function getCustomEventsFieldRenderer(
   field: string,
   meta: MetaType,
-  organization: Organization
+  organization?: Organization
 ) {
-  const isAlias = !organization.features.includes(
+  const isAlias = !organization?.features.includes(
     'discover-frontend-use-events-endpoint'
   );
 
