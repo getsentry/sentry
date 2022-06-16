@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ResponseMeta} from 'sentry/api';
@@ -158,14 +158,18 @@ function useApiRequests({
     error: false,
   });
 
-  const initialState = {
-    data: {},
-    isLoading: false,
-    hasError: false,
-    isReloading: false,
-    errors: {},
-    remainingRequests: endpoints.length,
-  };
+  const initialState = useMemo<State>(
+    () => ({
+      data: {},
+      isLoading: false,
+      hasError: false,
+      isReloading: false,
+      errors: {},
+      remainingRequests: endpoints.length,
+    }),
+    [endpoints.length]
+  );
+
   const [state, setState] = useState<State>({...initialState});
 
   useEffect(() => {
