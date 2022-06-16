@@ -1210,12 +1210,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params, "", selected_columns=["p90(transaction.duration)", "count_unique(user)"]
         )
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             query.get_snql_query()
 
     def test_get_snql_query_errors_with_no_functions(self):
         query = MetricsQueryBuilder(self.params, "", selected_columns=["project"])
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query.get_snql_query()
 
     def test_run_query(self):
