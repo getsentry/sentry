@@ -3,6 +3,7 @@ from datetime import timedelta
 from unittest.mock import Mock
 from uuid import uuid4
 
+import pytest
 from django.utils import timezone
 
 from sentry.models import Commit, CommitAuthor, CommitFileChange, GroupRelease, Release, Repository
@@ -837,7 +838,7 @@ class GetEventFileCommitters(CommitTestCase):
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
-        with self.assertRaises(Commit.DoesNotExist):
+        with pytest.raises(Commit.DoesNotExist):
             get_serialized_event_file_committers(self.project, event)
 
 

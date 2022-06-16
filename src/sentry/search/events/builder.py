@@ -1827,10 +1827,43 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
-    def get_snql_query(self) -> List[Query]:
-        """Because metrics table queries need to make multiple requests per metric type this function cannot be
-        inmplemented see run_query"""
-        raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
+    def get_snql_query(self) -> Request:
+        self.validate_having_clause()
+        self.validate_orderby_clause()
+        # Need to split orderby between the 3 possible tables
+        primary, query_framework = self._create_query_framework()
+        primary_framework = query_framework.pop(primary)
+        if len(primary_framework.functions) == 0:
+            raise IncompatibleMetricsQuery("Need at least one function")
+        for query_details in query_framework.values():
+            if len(query_details.functions) > 0:
+                # More than 1 dataset means multiple queries so we can't return them here
+                raise NotImplementedError(
+                    "get_snql_query cannot be implemented for MetricsQueryBuilder"
+                )
+
+        return Request(
+            dataset=self.dataset.value,
+            app_id="default",
+            query=Query(
+                match=primary_framework.entity,
+                select=[
+                    column
+                    for column in self.columns
+                    if not isinstance(column, CurriedFunction)
+                    or column in primary_framework.functions
+                ],
+                array_join=self.array_join,
+                where=self.where,
+                having=primary_framework.having,
+                groupby=self.groupby,
+                orderby=primary_framework.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                limitby=self.limitby,
+            ),
+            flags=Flags(turbo=self.turbo),
+        )
 
     def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
         query_framework: Dict[str, QueryFramework] = {
@@ -1907,7 +1940,16 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Pick one arbitrarily, there's no orderby on functions
         if primary is None:
-            primary = "distribution" if having_entity is None else having_entity
+            if having_entity is not None:
+                primary = having_entity
+            elif len(self.distributions) > 0:
+                primary = "distribution"
+            elif len(self.counters) > 0:
+                primary = "counter"
+            elif len(self.sets) > 0:
+                primary = "set"
+            else:
+                raise IncompatibleMetricsQuery("Need at least one function")
 
         query_framework[primary].having = self.having
 
