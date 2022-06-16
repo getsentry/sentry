@@ -1940,7 +1940,16 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Pick one arbitrarily, there's no orderby on functions
         if primary is None:
-            primary = "distribution" if having_entity is None else having_entity
+            if having_entity is not None:
+                primary = having_entity
+            elif len(self.distributions) > 0:
+                primary = "distribution"
+            elif len(self.counters) > 0:
+                primary = "counter"
+            elif len(self.sets) > 0:
+                primary = "set"
+            else:
+                raise IncompatibleMetricsQuery("Need at least one function")
 
         query_framework[primary].having = self.having
 

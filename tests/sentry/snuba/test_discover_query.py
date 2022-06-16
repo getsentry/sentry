@@ -3089,7 +3089,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         assert result["equation[2]"] == 1500 + result["transaction.duration"]
 
     def test_invalid_field(self):
-        with self.assertRaises(ArithmeticValidationError):
+        with pytest.raises(ArithmeticValidationError):
             discover.query(
                 selected_columns=[
                     "spans.http",
@@ -3102,7 +3102,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             )
 
     def test_invalid_function(self):
-        with self.assertRaises(ArithmeticValidationError):
+        with pytest.raises(ArithmeticValidationError):
             discover.query(
                 selected_columns=[
                     "p50(transaction.duration)",
@@ -3114,7 +3114,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             )
 
     def test_unselected_field(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=[
                     "spans.http",
@@ -3125,7 +3125,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             )
 
     def test_unselected_function(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=[
                     "p50(transaction.duration)",
@@ -3172,7 +3172,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         assert [result["equation[0]"] for result in results["data"]] == [0.5, 0.2, 0.1]
 
     def test_orderby_nonexistent_equation(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=[
                     "spans.http",
@@ -3184,7 +3184,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             )
 
     def test_equation_without_field_or_function(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             discover.query(
                 selected_columns=[
                     "spans.http",
