@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
     List,
@@ -15,8 +18,6 @@ from typing import (
     TypedDict,
     Union,
 )
-
-from snuba_sdk import Request
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
@@ -36,6 +37,10 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases
+
+if TYPE_CHECKING:
+    from sentry.search.events.builder import QueryBuilder
+
 
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
@@ -140,13 +145,13 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         """
         raise NotImplementedError
 
-    def build_snql_query(
+    def build_query_builder(
         self,
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-    ) -> Request:
+    ) -> QueryBuilder:
         pass
 
 
@@ -182,13 +187,13 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             snuba_filter.conditions.append(["environment", "=", environment.name])
         return snuba_filter
 
-    def build_snql_query(
+    def build_query_builder(
         self,
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-    ) -> Request:
+    ) -> QueryBuilder:
         from sentry.search.events.builder import QueryBuilder
 
         if params is None:
@@ -208,7 +213,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             offset=None,
             limit=None,
             skip_time_conditions=True,
-        ).get_snql_query()
+        )
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {}
@@ -292,13 +297,13 @@ class SessionsEntitySubscription(BaseEntitySubscription):
             )
         return data
 
-    def build_snql_query(
+    def build_query_builder(
         self,
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-    ) -> Request:
+    ) -> QueryBuilder:
         from sentry.search.events.builder import SessionsQueryBuilder
 
         aggregations = [self.aggregate]
@@ -331,7 +336,7 @@ class SessionsEntitySubscription(BaseEntitySubscription):
             limit=None,
             functions_acl=["identity"],
             skip_time_conditions=True,
-        ).get_snql_query()
+        )
 
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
@@ -516,13 +521,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         aggregated_results = [{col_name: crash_free_rate}]
         return aggregated_results
 
-    def build_snql_query(
+    def build_query_builder(
         self,
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[Mapping[str, Any]] = None,
-    ) -> Request:
+    ) -> QueryBuilder:
         raise NotImplementedError
 
 

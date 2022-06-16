@@ -115,7 +115,6 @@ export interface Config {
   demoMode: boolean;
   distPrefix: string;
   dsn: string;
-  dsn_requests: string;
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;

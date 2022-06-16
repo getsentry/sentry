@@ -1555,6 +1555,24 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["failure_rate"] == 0.5
         assert data["failure_count"] == 3
 
+    def test_run_function_without_having_or_groupby(self):
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "transaction",
+                "count_unique(user)",
+            ],
+        )
+        primary, result = query._create_query_framework()
+        assert primary == "set"
+
     def test_run_query_with_multiple_groupby_orderby_null_values_in_second_entity(self):
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions
         first which will have it, and then just not find a unique count in the second"""

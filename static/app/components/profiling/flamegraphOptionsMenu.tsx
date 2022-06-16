@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
 import Button from 'sentry/components/button';
 import CompositeSelect from 'sentry/components/forms/compositeSelect';
@@ -17,6 +17,42 @@ function FlamegraphOptionsMenu({
 }: FlamegraphOptionsMenuProps): React.ReactElement {
   const [{colorCoding, xAxis}, dispatch] = useFlamegraphPreferences();
 
+  const options = useMemo(() => {
+    return [
+      {
+        label: t('X Axis'),
+        value: 'x axis',
+        defaultValue: xAxis,
+        options: Object.entries(X_AXIS).map(([value, label]) => ({
+          label,
+          value,
+        })),
+        onChange: value =>
+          dispatch({
+            type: 'set xAxis',
+            payload: value,
+          }),
+      },
+      {
+        label: t('Color Coding'),
+        value: 'by symbol name',
+        defaultValue: colorCoding,
+        options: Object.entries(COLOR_CODINGS).map(([value, label]) => ({
+          label,
+          value,
+        })),
+        onChange: value =>
+          dispatch({
+            type: 'set color coding',
+            payload: value,
+          }),
+      },
+    ];
+    // If we add color and xAxis it updates the memo and the component is re-rendered (losing hovered state)
+    // Not ideal, but since we are only passing default value I guess we can live with it
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
+
   return (
     <Fragment>
       <Button size="xsmall" onClick={() => canvasPoolManager.dispatch('resetZoom', [])}>
@@ -29,36 +65,7 @@ function FlamegraphOptionsMenu({
           size: 'xsmall',
         }}
         placement="bottom right"
-        sections={[
-          {
-            label: t('X Axis'),
-            value: 'x axis',
-            defaultValue: xAxis,
-            options: Object.entries(X_AXIS).map(([value, label]) => ({
-              label,
-              value,
-            })),
-            onChange: value =>
-              dispatch({
-                type: 'set xAxis',
-                payload: value,
-              }),
-          },
-          {
-            label: t('Color Coding'),
-            value: 'by symbol name',
-            defaultValue: colorCoding,
-            options: Object.entries(COLOR_CODINGS).map(([value, label]) => ({
-              label,
-              value,
-            })),
-            onChange: value =>
-              dispatch({
-                type: 'set color coding',
-                payload: value,
-              }),
-          },
-        ]}
+        sections={options}
       />
     </Fragment>
   );

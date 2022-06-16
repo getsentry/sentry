@@ -1,7 +1,7 @@
 /* global process */
 
 import {t} from 'sentry/locale';
-import {DataCategory, PermissionResource, Scope} from 'sentry/types';
+import {DataCategory, OrgRole, PermissionResource, Scope} from 'sentry/types';
 
 /**
  * Common constants here
@@ -52,30 +52,34 @@ export const DEFAULT_API_ACCESS_SCOPES = [
 // These should only be used in the case where we cannot obtain roles through
 // the members endpoint (primarily in cases where a user is admining a
 // different organization they are not a OrganizationMember of ).
-export const MEMBER_ROLES = [
+export const ORG_ROLES: OrgRole[] = [
   {
     id: 'member',
     name: 'Member',
     allowed: true,
     desc: 'Members can view and act on events, as well as view most other data within the organization.',
+    minimumTeamRole: 'contributor',
   },
   {
     id: 'admin',
     name: 'Admin',
     allowed: true,
     desc: "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
+    minimumTeamRole: 'admin',
   },
   {
     id: 'manager',
     name: 'Manager',
     allowed: true,
     desc: 'Gains admin access on all teams as well as the ability to add and remove members.',
+    minimumTeamRole: 'admin',
   },
   {
     id: 'owner',
     name: 'Organization Owner',
     allowed: true,
     desc: 'Unrestricted access to the organization, its data, and its settings. Can add, modify, and delete projects and members, as well as make billing and plan changes.',
+    minimumTeamRole: 'admin',
   },
 ];
 

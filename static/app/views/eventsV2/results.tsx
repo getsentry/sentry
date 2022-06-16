@@ -314,10 +314,7 @@ class Results extends Component<Props, State> {
 
     router.push({
       pathname: location.pathname,
-      query: {
-        ...searchQueryParams,
-        userModified: true,
-      },
+      query: searchQueryParams,
     });
   };
 
