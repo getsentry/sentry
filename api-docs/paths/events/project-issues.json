@@ -172,7 +172,7 @@
       {
         "name": "status",
         "in": "query",
-        "description": "Optionally limits the query to issues of the specified status. Valid values are `\"resolved\"`, `\"unresolved\"` and `\"ignored\"`.",
+        "description": "Optionally limits the query to issues of the specified status. Valid values are `\"resolved\"`, `\"unresolved\"`, and `\"ignored\"`.",
         "required": false,
         "schema": {
           "type": "string"
