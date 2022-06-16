@@ -1,4 +1,4 @@
-import type {LineSeriesOption} from 'echarts';
+import type {LineSeriesOption, YAXisComponentOption} from 'echarts';
 
 import type {AreaChartSeries} from 'sentry/components/charts/areaChart';
 import XAxis from 'sentry/components/charts/components/xAxis';
@@ -20,6 +20,15 @@ const metricAlertXaxis = XAxis({
   isGroupedByDate: true,
   axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
 });
+const metricAlertYaxis: YAXisComponentOption = {
+  axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},
+  splitLine: {
+    lineStyle: {
+      color: theme.chartLineColor,
+      opacity: 0.3,
+    },
+  },
+};
 
 function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
   return series.map(({seriesName, data, ...otherSeriesProps}) => {
@@ -40,7 +49,7 @@ function transformAreaSeries(series: AreaChartSeries[]): LineSeriesOption[] {
     });
 
     // Fix incident label font family, cannot use Rubik
-    if (areaSeries.markLine?.label?.fontFamily) {
+    if (areaSeries.markLine?.label) {
       areaSeries.markLine.label.fontFamily = DEFAULT_FONT_FAMILY;
     }
 
@@ -60,6 +69,14 @@ metricAlertCharts.push({
       backgroundColor: theme.background,
       series: transformAreaSeries(chartOption.series),
       xAxis: metricAlertXaxis,
+      yAxis: {
+        ...chartOption.yAxis,
+        ...metricAlertYaxis,
+        axisLabel: {
+          ...chartOption.yAxis!.axisLabel,
+          ...metricAlertYaxis.axisLabel,
+        },
+      },
       grid: slackChartDefaults.grid,
     };
   },
@@ -85,6 +102,14 @@ metricAlertCharts.push({
       backgroundColor: theme.background,
       series: transformAreaSeries(chartOption.series),
       xAxis: metricAlertXaxis,
+      yAxis: {
+        ...chartOption.yAxis,
+        ...metricAlertYaxis,
+        axisLabel: {
+          ...chartOption.yAxis!.axisLabel,
+          ...metricAlertYaxis.axisLabel,
+        },
+      },
       grid: slackChartDefaults.grid,
     };
   },
