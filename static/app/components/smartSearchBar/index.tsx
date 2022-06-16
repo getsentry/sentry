@@ -472,13 +472,13 @@ class SmartSearchBar extends Component<Props, State> {
     }
   };
 
-  runShortcut = (action: Shortcut) => {
+  runShortcut = (shortcut: Shortcut) => {
     const {query} = this.state;
     const token = this.cursorToken ?? undefined;
 
     const filterTokens = this.filterTokens;
 
-    const {shortcutType, canRunShortcut} = action;
+    const {shortcutType, canRunShortcut} = shortcut;
 
     if (!canRunShortcut || canRunShortcut(token, this.filterTokens.length)) {
       switch (shortcutType) {
@@ -1515,10 +1515,10 @@ class SmartSearchBar extends Component<Props, State> {
     const cursor = this.cursorPosition;
 
     const visibleShortcuts = shortcuts.filter(
-      action =>
-        action.hotkeys &&
-        (!action.canRunShortcut ||
-          action.canRunShortcut(this.cursorToken, this.filterTokens.length))
+      shortcut =>
+        shortcut.hotkeys &&
+        (!shortcut.canRunShortcut ||
+          shortcut.canRunShortcut(this.cursorToken, this.filterTokens.length))
     );
 
     return (

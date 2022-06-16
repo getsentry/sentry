@@ -6,7 +6,7 @@ const SearchHotkeysListener = ({
   visibleShortcuts,
   runShortcut,
 }: {
-  runShortcut: (action: Shortcut) => void;
+  runShortcut: (shortcut: Shortcut) => void;
   visibleShortcuts: Shortcut[];
 }) => {
   useHotkeys(

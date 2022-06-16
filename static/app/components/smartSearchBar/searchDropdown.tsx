@@ -18,7 +18,7 @@ type Props = {
   searchSubstring: string;
   className?: string;
   maxMenuHeight?: number;
-  runShortcut?: (action: Shortcut) => void;
+  runShortcut?: (shortcut: Shortcut) => void;
   visibleShortcuts?: Shortcut[];
 };
 

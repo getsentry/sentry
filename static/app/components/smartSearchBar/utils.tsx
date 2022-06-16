@@ -17,8 +17,6 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import HotkeysLabel from '../hotkeysLabel';
-
 import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 
 export function addSpace(query = '') {
@@ -311,32 +309,3 @@ export const shortcuts: Shortcut[] = [
     },
   },
 ];
-
-export function getQuickActionsSearchGroup(
-  runTokenActionOnCursorToken: (action: Shortcut) => void,
-  filterTokenCount: number,
-  activeToken?: TokenResult<any>
-): {searchGroup: SearchGroup; searchItems: SearchItem[]} | undefined {
-  const searchItems = shortcuts
-    .filter(
-      action =>
-        !action.canRunShortcut || action.canRunShortcut(activeToken, filterTokenCount)
-    )
-    .map(action => ({
-      title: action.text,
-      callback: () => runTokenActionOnCursorToken(action),
-      documentation: action.hotkeys && <HotkeysLabel value={action.hotkeys.display} />,
-    }));
-
-  return searchItems.length > 0 && filterTokenCount > 0
-    ? {
-        searchGroup: {
-          title: t('Quick Actions'),
-          type: 'header',
-          icon: <IconStar size="xs" />,
-          children: searchItems,
-        },
-        searchItems,
-      }
-    : undefined;
-}
