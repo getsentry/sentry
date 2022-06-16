@@ -19,8 +19,6 @@ _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
 # only used to compare to the older version of the PGIndexer
 _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
-DEFAULT_INDEXER_TYPE = "release-health"
-
 IndexerTable = Type[BaseIndexer]
 
 TABLE_MAPPING: Mapping[ProfileKey, IndexerTable] = {
