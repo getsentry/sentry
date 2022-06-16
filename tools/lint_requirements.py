@@ -8,8 +8,6 @@ from tools import freeze_requirements
 
 
 def main(repo: str) -> int:
-    IS_GETSENTRY = repo == "getsentry"
-
     with TemporaryDirectory() as tmpdir:
         rc = freeze_requirements.main(repo, tmpdir)
         if rc != 0:
@@ -21,19 +19,22 @@ def main(repo: str) -> int:
             "requirements-frozen.txt",
             "requirements-dev-frozen.txt",
         ]
-        if not IS_GETSENTRY:
+        if repo == "sentry":
+            # requirements-dev-only-frozen.txt is only used in sentry
+            # (and reused in getsentry) as a fast path for some CI jobs.
             lockfiles.append("requirements-dev-only-frozen.txt")
+
         for lockfile in lockfiles:
             with open(lockfile) as f:
-                original = f.readlines()
+                current = f.readlines()
             with open(f"{tmpdir}/{lockfile}") as f:
                 new = f.readlines()
             diff = tuple(
                 unified_diff(
-                    original,
+                    current,
                     new,
-                    fromfile=lockfile,
-                    tofile="newly generated lockfile",
+                    fromfile=f"current {lockfile}",
+                    tofile=f"new {lockfile}",
                 )
             )
             if not diff:
@@ -51,11 +52,11 @@ use `make freeze-requirements`.
             )
             return rc
 
-    if not IS_GETSENTRY:
+    if repo != "sentry":
         return 0
 
     """
-    We cannot have non-specifier requirements if we want to publish to PyPI
+    For sentry, we cannot have non-specifier requirements if we want to publish to PyPI
     due to security concerns. This check ensures we don't have/add any URL/VCS
     dependencies in the base requirements file.
     """
