@@ -480,7 +480,7 @@ class SmartSearchBar extends Component<Props, State> {
 
     const {shortcutType, canRunShortcut} = shortcut;
 
-    if (!canRunShortcut || canRunShortcut(token, this.filterTokens.length)) {
+    if (canRunShortcut(token, this.filterTokens.length)) {
       switch (shortcutType) {
         case ShortcutType.Delete: {
           if (token && filterTokens.length > 0) {
@@ -1517,8 +1517,7 @@ class SmartSearchBar extends Component<Props, State> {
     const visibleShortcuts = shortcuts.filter(
       shortcut =>
         shortcut.hotkeys &&
-        (!shortcut.canRunShortcut ||
-          shortcut.canRunShortcut(this.cursorToken, this.filterTokens.length))
+        shortcut.canRunShortcut(this.cursorToken, this.filterTokens.length)
     );
 
     return (

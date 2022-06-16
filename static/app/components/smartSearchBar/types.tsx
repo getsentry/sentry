@@ -50,13 +50,13 @@ export enum ShortcutType {
 }
 
 export type Shortcut = {
-  icon: React.ReactNode;
-  shortcutType: ShortcutType;
-  text: string;
-  canRunShortcut?: (
+  canRunShortcut: (
     token: TokenResult<any> | null | undefined,
     filterTokenCount: number
   ) => boolean;
+  icon: React.ReactNode;
+  shortcutType: ShortcutType;
+  text: string;
   hotkeys?: {
     actual: string[] | string;
     display: string[] | string;
