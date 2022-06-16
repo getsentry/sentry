@@ -299,6 +299,7 @@ export function useVirtualizedTree<T extends TreeLike>(
   });
 
   const cleanupAllHoveredRows = useCallback(() => {
+    previousHoveredRow.current = null;
     for (const row of latestItemsRef.current) {
       if (row.ref && row.ref.dataset.hovered) {
         delete row.ref.dataset.hovered;
@@ -467,7 +468,7 @@ export function useVirtualizedTree<T extends TreeLike>(
         element.ref.dataset.hovered = 'true';
       }
 
-      // If a node exists at the index, select it
+      // If a node exists at the index, select it, else clear whatever is selected
       if (tree.flattened[index] && index !== latestStateRef.current.tabIndexKey) {
         updateGhostRow({
           ref: hoveredGhostRowRef,
@@ -475,6 +476,10 @@ export function useVirtualizedTree<T extends TreeLike>(
           scrollTop: latestStateRef.current.scrollTop,
           rowHeight: props.rowHeight,
           interaction: 'hover',
+        });
+      } else {
+        hideGhostRow({
+          ref: hoveredGhostRowRef,
         });
       }
     };
