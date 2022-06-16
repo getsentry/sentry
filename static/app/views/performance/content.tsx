@@ -131,7 +131,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
         isDefaultQuery: false,
-        userModified: true,
       },
     });
   }

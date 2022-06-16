@@ -194,10 +194,6 @@ type EventsRequestPartialProps = {
    */
   topEvents?: number;
   /**
-   * Tracks whether the query was modified by a user in the search bar
-   */
-  userModified?: string;
-  /**
    * Whether or not to zerofill results
    */
   withoutZerofill?: boolean;

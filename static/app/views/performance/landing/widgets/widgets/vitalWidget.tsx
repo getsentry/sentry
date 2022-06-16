@@ -14,7 +14,7 @@ import {getAggregateAlias, WebVital} from 'sentry/utils/discover/fields';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
 import {VitalData} from 'sentry/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import {vitalDetailRouteWithQuery} from 'sentry/views/performance/vitalDetail/utils';
@@ -173,19 +173,13 @@ export function VitalWidget(props: PerformanceWidgetProps) {
               hideError
               onError={pageError.setPageError}
               queryExtras={getMEPQueryParams(mepSetting)}
-              userModified={decodeScalar(props.location.query.userModified)}
             />
           );
         },
         transform: transformEventsRequestToVitals,
       }),
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      [
-        props.chartSetting,
-        selectedListIndex,
-        mepSetting.memoizationKey,
-        props.location.query.userModified,
-      ]
+      [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
     ),
   };
 

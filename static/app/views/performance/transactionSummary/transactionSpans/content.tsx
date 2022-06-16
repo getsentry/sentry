@@ -78,10 +78,7 @@ function SpansContent(props: Props) {
 
       browserHistory.push({
         ...location,
-        query: {
-          ...searchQueryParams,
-          userModified: key === 'query',
-        },
+        query: searchQueryParams,
       });
     };
   }

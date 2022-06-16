@@ -308,8 +308,6 @@ describe('Results', function () {
           ...generateFields(),
           query: 'geo:canada',
           statsPeriod: '14d',
-          // userModified added on new search for the search bar experiment
-          userModified: true,
         },
       });
       wrapper.unmount();
@@ -986,8 +984,6 @@ describe('Results', function () {
           ...generateFields(),
           query: 'geo:canada',
           statsPeriod: '14d',
-          // userModified added on new search for the search bar experiment
-          userModified: true,
         },
       });
       wrapper.unmount();
