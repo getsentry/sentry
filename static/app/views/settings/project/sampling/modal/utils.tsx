@@ -27,7 +27,7 @@ export const modalCss = css`
     overflow: initial;
   }
 
-  @media (min-width: ${theme.breakpoints[0]}) {
+  @media (min-width: ${theme.breakpoints.small}) {
     width: 100%;
     max-width: 700px;
   }

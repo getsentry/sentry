@@ -23,8 +23,6 @@ import {ChartType, RenderDescriptor} from './types';
 
 const discoverxAxis = XAxis({
   theme,
-  // @ts-expect-error Not sure whats wrong with boundryGap type
-  boundaryGap: true,
   splitNumber: 3,
   isGroupedByDate: true,
   axisLabel: {fontSize: 11, fontFamily: DEFAULT_FONT_FAMILY},

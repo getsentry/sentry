@@ -5,13 +5,17 @@ import {t} from 'sentry/locale';
 
 import {FeedBackModalProps} from './feedbackModal';
 
-interface Props extends FeedBackModalProps {
+export interface FeatureFeedbackProps extends FeedBackModalProps {
   buttonProps?: Partial<ButtonProps>;
 }
 
 // Provides a button that, when clicked, opens a modal with a form that,
 // when filled and submitted, will send feedback to Sentry (feedbacks project).
-export function FeatureFeedback({feedbackTypes, featureName, buttonProps = {}}: Props) {
+export function FeatureFeedback({
+  feedbackTypes,
+  featureName,
+  buttonProps = {},
+}: FeatureFeedbackProps) {
   async function handleClick() {
     const mod = await import('sentry/components/featureFeedback/feedbackModal');
 

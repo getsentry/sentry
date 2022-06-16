@@ -24,7 +24,9 @@ import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
 import type {Color} from 'sentry/utils/theme';
+import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
 import {
+  AlertRuleComparisonType,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
 } from 'sentry/views/alerts/rules/metric/types';
@@ -156,6 +158,12 @@ function RuleListRow({
               ? trigger?.alertThreshold?.toLocaleString()
               : resolvedTrigger?.toLocaleString()
           }`}
+          {getThresholdUnits(
+            rule.aggregate,
+            rule.comparisonDelta
+              ? AlertRuleComparisonType.CHANGE
+              : AlertRuleComparisonType.COUNT
+          )}
         </TriggerText>
       </FlexCenter>
     );
@@ -427,13 +435,13 @@ const AlertName = styled('div')`
   ${p => p.theme.overflowEllipsis}
   font-size: ${p => p.theme.fontSizeLarge};
 
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
     max-width: 300px;
   }
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     max-width: 165px;
   }
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     max-width: 100px;
   }
 `;

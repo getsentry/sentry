@@ -232,7 +232,7 @@ const BorderlessHeader = styled(Layout.Header)`
 const TabLayoutHeader = styled(Layout.Header)`
   padding-top: 0;
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     padding-top: 0;
   }
 `;
