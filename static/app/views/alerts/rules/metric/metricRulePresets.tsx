@@ -1,8 +1,9 @@
 import type {LinkProps} from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types';
 import {DisplayModes} from 'sentry/utils/discover/types';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {getMetricRuleDiscoverUrl} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
 
 interface PresetCta {
@@ -14,20 +15,14 @@ interface PresetCta {
    * The location to direct to upon clicking the CTA.
    */
   to: LinkProps['to'];
-  /**
-   * The tooltip title for the CTA button, may be empty.
-   */
-  title?: string;
 }
 
 interface PresetCtaOpts {
   orgSlug: string;
   projects: Project[];
-  end?: string;
-  eventType?: string;
-  fields?: string[];
+  timePeriod: TimePeriodType;
+  query?: string;
   rule?: MetricRule;
-  start?: string;
 }
 
 /**
@@ -37,10 +32,8 @@ export function makeDefaultCta({
   orgSlug,
   projects,
   rule,
-  eventType,
-  start,
-  end,
-  fields,
+  timePeriod,
+  query,
 }: PresetCtaOpts): PresetCta {
   if (!rule) {
     return {
@@ -58,13 +51,10 @@ export function makeDefaultCta({
     to: getMetricRuleDiscoverUrl({
       orgSlug,
       projects,
-      environment: rule.environment,
       rule,
-      eventType,
-      start,
-      end,
+      timePeriod,
+      query,
       extraQueryParams,
-      fields,
     }),
   };
 }

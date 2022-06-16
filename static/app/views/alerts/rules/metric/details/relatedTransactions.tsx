@@ -1,24 +1,24 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
 } from 'sentry/components/gridEditable';
-import {Alignments} from 'sentry/components/gridEditable/sortLink';
+import type {Alignments} from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import {NewQuery, Organization, Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
-import {MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
-import {DEFAULT_PROJECT_THRESHOLD} from 'sentry/views/performance/data';
+import {fieldAlignment} from 'sentry/utils/discover/fields';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {getMetricRuleDiscoverQuery} from 'sentry/views/alerts/utils/getMetricRuleDiscoverUrl';
+import type {TableColumn} from 'sentry/views/eventsV2/table/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TimePeriodType} from './constants';
@@ -191,36 +191,15 @@ function RelatedTransactions({
   organization,
   timePeriod,
 }: Props) {
-  const aggregateAlias = getAggregateAlias(rule.aggregate);
+  const eventView = getMetricRuleDiscoverQuery({
+    rule,
+    timePeriod,
+    projects,
+  });
 
-  const timePeriodFields = timePeriod.usingPeriod
-    ? {range: timePeriod.period}
-    : {start: timePeriod.start, end: timePeriod.end};
-
-  if (timePeriodFields.range && timePeriodFields.range === TimePeriod.SEVEN_DAYS) {
-    timePeriodFields.range = '7d';
+  if (!eventView) {
+    return null;
   }
-
-  const eventQuery: NewQuery = {
-    id: undefined,
-    name: 'Transactions',
-    fields: [
-      'transaction',
-      'project',
-      `${rule.aggregate}`,
-      'count_unique(user)',
-      `user_misery(${DEFAULT_PROJECT_THRESHOLD})`,
-    ],
-    orderby: `-${aggregateAlias}`,
-
-    query: `${rule.query}`,
-    version: 2,
-    projects: projects.map(project => Number(project.id)),
-    environment: rule.environment ? [rule.environment] : undefined,
-    ...timePeriodFields,
-  };
-
-  const eventView = EventView.fromSavedQuery(eventQuery);
 
   return (
     <Table
