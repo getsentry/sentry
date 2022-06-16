@@ -12,6 +12,18 @@ type PerformanceTourParams = {
 export type PerformanceEventParameters = {
   'performance_views.all_events.open_in_discover': {};
   'performance_views.create_sample_transaction': SampleTransactionParam;
+  'performance_views.event_details.anchor_span': {
+    span_id: string;
+  };
+  'performance_views.event_details.filter_by_op': {
+    operation: string;
+  };
+
+  'performance_views.event_details.json_button_click': {};
+  'performance_views.event_details.open_span_details': {
+    operation: string;
+  };
+  'performance_views.event_details.search_query': {};
   'performance_views.landingv2.transactions.sort': {
     direction?: string;
     field?: string;
@@ -47,6 +59,7 @@ export type PerformanceEventParameters = {
   'performance_views.span_summary.change_chart': {
     change_to_display: string;
   };
+  'performance_views.span_summary.view': {};
   'performance_views.spans.change_op': {
     operation_name?: string;
   };
@@ -119,6 +132,7 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Landing Page Transactions Table Page Changed',
   'performance_views.span_summary.change_chart':
     'Performance Views: Span Summary displayed chart changed',
+  'performance_views.span_summary.view': 'Performance Views: Span Summary page viewed',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',
   'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
   'performance_views.overview.view': 'Performance Views: Transaction overview view',
@@ -149,4 +163,14 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Trends Widget Page Changed',
   'performance_views.trends.change_duration':
     'Performance Views: Trends Widget Duration Changed',
+  'performance_views.event_details.filter_by_op':
+    'Performance Views: Event Details page operation filter applied',
+  'performance_views.event_details.search_query':
+    'Performance Views: Event Details search query',
+  'performance_views.event_details.open_span_details':
+    'Performance Views: Event Details span details opened',
+  'performance_views.event_details.anchor_span':
+    'Performance Views: Event Details span anchored',
+  'performance_views.event_details.json_button_click':
+    'Performance Views: Event Details JSON button clicked',
 };
