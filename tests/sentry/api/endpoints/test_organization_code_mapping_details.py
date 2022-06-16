@@ -6,6 +6,8 @@ from sentry.testutils import APITestCase
 
 
 class OrganizationCodeMappingDetailsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-code-mapping-details"
+
     def setUp(self):
         super().setUp()
 
@@ -29,7 +31,6 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
             default_branch="master",
         )
 
-        self.endpoint = "sentry-api-0-organization-code-mapping-details"
         self.url = reverse(
             self.endpoint,
             args=[self.org.slug, self.config.id],

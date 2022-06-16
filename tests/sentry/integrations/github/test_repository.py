@@ -9,7 +9,7 @@ from fixtures.github import COMPARE_COMMITS_EXAMPLE, GET_COMMIT_EXAMPLE, GET_LAS
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.models import Integration, PullRequest, Repository
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import PluginTestCase
+from sentry.testutils import TestCase
 from sentry.testutils.asserts import assert_commit_shape
 from sentry.utils import json
 
@@ -23,7 +23,7 @@ def stub_installation_token():
     )
 
 
-class GitHubAppsProviderTest(PluginTestCase):
+class GitHubAppsProviderTest(TestCase):
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization()
