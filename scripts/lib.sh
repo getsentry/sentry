@@ -149,7 +149,7 @@ setup-git() {
         exit 1
     )
     if ! require pre-commit; then
-        pip install -r requirements-dev.txt
+        pip install -r requirements-dev-only-frozen.txt
     fi
     pre-commit install --install-hooks
     echo ""
