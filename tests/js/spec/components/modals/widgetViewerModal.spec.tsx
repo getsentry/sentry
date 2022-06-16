@@ -1364,6 +1364,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('renders Release widget viewer', async function () {
       const {container} = await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
       expect(container).toSnapshot();
     });
 
