@@ -3,7 +3,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import TimeSince from 'sentry/components/timeSince';
 
 describe('TimeSince', function () {
-  const tenMinAgo = new Date(new Date().getTime() - 60000 * 10);
+  const tenMinAgo = new Date(new Date().getTime() - 10 * 60 * 1000);
+
   it('renders a relative date', () => {
     const {rerender} = render(<TimeSince date={new Date()} />);
     expect(screen.getByText('a few seconds ago')).toBeInTheDocument();
