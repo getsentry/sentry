@@ -68,7 +68,7 @@ jobs:
           cp tests/apidocs/openapi-derefed.json sentry-api-schema
 
       - name: Git Commit & Push
-        uses: stefanzweifel/git-auto-commit-action@5804e42f86b1891093b151b6c4e78e759c746c4d
+        uses: getsentry/git-auto-commit-action
         if: steps.changes.outputs.api_docs == 'true'
         with:
           repository: sentry-api-schema
