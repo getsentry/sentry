@@ -99,7 +99,7 @@ sudo-askpass() {
 }
 
 upgrade-pip() {
-    pip install --upgrade 'pip>=21.2'
+    pip install --upgrade 'pip==21.2' 'wheel==0.36.2'
 }
 
 install-py-dev() {
