@@ -62,7 +62,7 @@ class TransactionDetail extends Component<Props> {
       <Alert
         system
         showIcon
-        type="error"
+        type="performanceError"
         expand={errors.map(error => (
           <ErrorMessageContent key={error.event_id}>
             <ErrorDot level={error.level} />
