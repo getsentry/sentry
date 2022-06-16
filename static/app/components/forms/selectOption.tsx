@@ -9,8 +9,20 @@ import {defined} from 'sentry/utils';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
 
+// We still have some tests that find select options by the display name "Option".
+MenuListItem.displayName = 'Option';
+
 function SelectOption(props: Props) {
-  const {label, data, selectProps, isMulti, isSelected, isFocused, isDisabled} = props;
+  const {
+    label,
+    data,
+    selectProps,
+    isMulti,
+    isSelected,
+    isFocused,
+    isDisabled,
+    innerProps,
+  } = props;
   const {showDividers} = selectProps;
   const {
     value,
@@ -28,34 +40,35 @@ function SelectOption(props: Props) {
   const itemPriority = priority ?? (isSelected && !isMultiple ? 'primary' : 'default');
 
   return (
-    <selectComponents.Option className="select-option" {...props}>
-      <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
-        <MenuListItem
-          {...itemProps}
-          as="div"
-          label={label}
-          isDisabled={isDisabled}
-          isFocused={isFocused}
-          showDivider={showDividers}
-          priority={itemPriority}
-          innerWrapProps={{'data-test-id': value}}
-          labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
-          leadingItems={
-            <Fragment>
-              <CheckWrap isMultiple={isMultiple} isSelected={isSelected}>
-                {isSelected && (
-                  <IconCheckmark
-                    size={isMultiple ? 'xs' : 'sm'}
-                    color={isMultiple ? 'white' : undefined}
-                  />
-                )}
-              </CheckWrap>
-              {data.leadingItems}
-            </Fragment>
-          }
-        />
-      </Tooltip>
-    </selectComponents.Option>
+    <Tooltip skipWrapper title={tooltip} {...tooltipOptions}>
+      <MenuListItem
+        {...itemProps}
+        {...innerProps}
+        as="div"
+        className="option"
+        value={value}
+        label={label}
+        isDisabled={isDisabled}
+        isFocused={isFocused}
+        showDivider={showDividers}
+        priority={itemPriority}
+        innerWrapProps={{'data-test-id': value}}
+        labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
+        leadingItems={
+          <Fragment>
+            <CheckWrap isMultiple={isMultiple} isSelected={isSelected}>
+              {isSelected && (
+                <IconCheckmark
+                  size={isMultiple ? 'xs' : 'sm'}
+                  color={isMultiple ? 'white' : undefined}
+                />
+              )}
+            </CheckWrap>
+            {data.leadingItems}
+          </Fragment>
+        }
+      />
+    </Tooltip>
   );
 }
 
