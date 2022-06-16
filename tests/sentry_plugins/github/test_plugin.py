@@ -1,3 +1,4 @@
+import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
@@ -53,7 +54,7 @@ class GitHubPluginTest(PluginTestCase):
         request = self.request.get("/")
         request.user = AnonymousUser()
         form_data = {"title": "Hello", "description": "Fix this."}
-        with self.assertRaises(PluginError):
+        with pytest.raises(PluginError):
             self.plugin.create_issue(request, group, form_data)
 
         request.user = self.user
@@ -87,7 +88,7 @@ class GitHubPluginTest(PluginTestCase):
         request = self.request.get("/")
         request.user = AnonymousUser()
         form_data = {"comment": "Hello", "issue_id": "1"}
-        with self.assertRaises(PluginError):
+        with pytest.raises(PluginError):
             self.plugin.link_issue(request, group, form_data)
 
         request.user = self.user

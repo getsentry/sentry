@@ -1,3 +1,4 @@
+import pytest
 from snuba_sdk import And, Column, Condition, Function, Op
 
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
@@ -32,7 +33,7 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
-        with self.assertRaises(UnsupportedQuerySubscription):
+        with pytest.raises(UnsupportedQuerySubscription):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.SESSIONS,
                 aggregate=aggregate,
@@ -42,7 +43,7 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscriptions_for_sessions_dataset_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
-        with self.assertRaises(InvalidQuerySubscription):
+        with pytest.raises(InvalidQuerySubscription):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.SESSIONS, aggregate=aggregate, time_window=3600
             )
@@ -73,7 +74,9 @@ class EntitySubscriptionTestCase(TestCase):
             ],
             ["identity", "sessions", "_total_count"],
         ]
-        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        snql_query = entity_subscription.build_query_builder(
+            "", [self.project.id], None
+        ).get_snql_query()
         snql_query.query.select.sort(key=lambda q: q.function)
         assert snql_query.query.select == [
             Function(
@@ -99,7 +102,7 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscription_for_metrics_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
-        with self.assertRaises(UnsupportedQuerySubscription):
+        with pytest.raises(UnsupportedQuerySubscription):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.METRICS,
                 aggregate=aggregate,
@@ -109,7 +112,7 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscription_for_metrics_dataset_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
-        with self.assertRaises(InvalidQuerySubscription):
+        with pytest.raises(InvalidQuerySubscription):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.METRICS, aggregate=aggregate, time_window=3600
             )
@@ -213,7 +216,9 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter.aggregations == [
             ["quantile(0.95)", "duration", "percentile_transaction_duration__95"]
         ]
-        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        snql_query = entity_subscription.build_query_builder(
+            "", [self.project.id], None
+        ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 "quantile(0.95)",
@@ -242,7 +247,9 @@ class EntitySubscriptionTestCase(TestCase):
         ]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
-        snql_query = entity_subscription.build_snql_query("release:latest", [self.project.id], None)
+        snql_query = entity_subscription.build_query_builder(
+            "release:latest", [self.project.id], None
+        ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 function="uniq",
