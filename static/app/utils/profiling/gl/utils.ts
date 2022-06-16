@@ -559,16 +559,14 @@ function isBetween(num: number, low: number, high: number) {
   return num >= low && num <= high;
 }
 
-function computeHighlightedBounds(
-  bounds: number[],
-  trim: TrimTextCenter
-): [number, number] {
+type Bounds = [number, number];
+function computeHighlightedBounds(bounds: Bounds, trim: TrimTextCenter): Bounds {
   let next = bounds;
   const [boundStart, boundEnd] = next;
-  const {start, end, length} = trim;
+  const {start, end, length, text} = trim;
 
-  if (start === 0 && end === length && trim.text.length > 1) {
-    return next as [number, number];
+  if (start === 0 && end === length && text.length > 1) {
+    return next;
   }
   // check if matched word now falls within an ellipsis at the head or tail of the word
   // "display" in "...play"
@@ -594,7 +592,7 @@ function computeHighlightedBounds(
       return delta + 1;
     }
     return v;
-  }) as [number, number];
+  }) as Bounds;
 }
 
 export function matchHighlightedBounds(
@@ -608,7 +606,7 @@ export function matchHighlightedBounds(
       continue;
     }
     const bounds = [match.index, match[0].length + match.index];
-    const computedBounds = computeHighlightedBounds(bounds, trim);
+    const computedBounds = computeHighlightedBounds(bounds as Bounds, trim);
     const lastBound = boundaries[boundaries.length - 1];
     const isContinuous = lastBound && isBetween(computedBounds[0], ...lastBound);
     if (isContinuous) {
