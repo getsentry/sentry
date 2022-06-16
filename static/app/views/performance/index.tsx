@@ -12,7 +12,6 @@ type Props = {
 };
 
 function PerformanceContainer({organization, children}: Props) {
-
   function renderNoAccess() {
     return (
       <PageContent>
