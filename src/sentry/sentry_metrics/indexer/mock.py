@@ -18,7 +18,7 @@ class SimpleIndexer(StringIndexer):
         )
         self._reverse: Dict[int, str] = {}
 
-    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
+    def bulk_record(self, use_case_id: str, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         acc = KeyResults()
         for org_id, strs in org_strings.items():
             strings_to_ints = {}
@@ -31,19 +31,19 @@ class SimpleIndexer(StringIndexer):
 
         return acc
 
-    def record(self, org_id: int, string: str) -> int:
+    def record(self, use_case_id: str, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self._record(org_id, string)
 
-    def resolve(self, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: str, org_id: int, string: str) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
 
         strs = self._strings[org_id]
         return strs.get(string)
 
-    def reverse_resolve(self, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: str, id: int) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
         return self._reverse.get(id)

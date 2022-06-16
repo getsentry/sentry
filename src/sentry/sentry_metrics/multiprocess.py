@@ -364,6 +364,7 @@ class PartitionIdxOffset(NamedTuple):
 
 
 def process_messages(
+    use_case_id: str,
     outer_message: Message[MessageBatch],
 ) -> MessageBatch:
     """
@@ -458,7 +459,7 @@ def process_messages(
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
-        record_result = indexer.bulk_record(org_strings)
+        record_result = indexer.bulk_record(use_case_id, org_strings)
 
     mapping = record_result.get_mapped_results()
     bulk_record_meta = record_result.get_fetch_metadata()
@@ -554,7 +555,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
-            process_messages,
+            partial(process_messages, use_case_id=self.__config.use_case_id),
             ProduceStep(output_topic=self.__config.output_topic, commit_function=commit),
             self.__processes,
             max_batch_size=self.__max_batch_size,
@@ -598,7 +599,8 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
                 # convert to seconds
                 commit_max_batch_time=self.__commit_max_batch_time / 1000,
                 output_topic=self.__config.output_topic,
-            )
+            ),
+            config=self.__config,
         )
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
         return strategy
@@ -610,10 +612,9 @@ class TransformStep(ProcessingStep[MessageBatch]):  # type: ignore
     """
 
     def __init__(
-        self,
-        next_step: ProcessingStep[KafkaPayload],
+        self, next_step: ProcessingStep[KafkaPayload], config: MetricsIngestConfiguration
     ) -> None:
-        self.__process_messages = process_messages
+        self.__process_messages = partial(process_messages, use_case_id=config.use_case_id)
         self.__next_step = next_step
         self.__closed = False
         self.__metrics = get_metrics()

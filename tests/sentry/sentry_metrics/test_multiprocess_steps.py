@@ -243,9 +243,10 @@ def __translated_payload(
     org_id = payload["org_id"]
 
     new_tags = {
-        indexer.resolve(org_id, k): indexer.resolve(org_id, v) for k, v in payload["tags"].items()
+        indexer.resolve("release-health", org_id, k): indexer.resolve("release-health", org_id, v)
+        for k, v in payload["tags"].items()
     }
-    payload["metric_id"] = indexer.resolve(org_id, payload["name"])
+    payload["metric_id"] = indexer.resolve("release-health", org_id, payload["name"])
     payload["retention_days"] = 90
     payload["tags"] = new_tags
 
@@ -269,7 +270,7 @@ def test_process_messages(mock_indexer) -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    new_batch = process_messages(outer_message=outer_message)
+    new_batch = process_messages(use_case_id="release-health", outer_message=outer_message)
     expected_new_batch = [
         Message(
             m.partition,
@@ -369,7 +370,7 @@ def test_process_messages_invalid_messages(
     with caplog.at_level(logging.ERROR), mock.patch(
         "sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer()
     ):
-        new_batch = process_messages(outer_message=outer_message)
+        new_batch = process_messages(use_case_id="release-health", outer_message=outer_message)
 
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
