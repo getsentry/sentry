@@ -22,7 +22,11 @@ import DiscoverQuery, {
   TableData,
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
-import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {
+  EventData,
+  isFieldSortable,
+  MetaType,
+} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
@@ -283,13 +287,19 @@ class _Table extends Component<Props, State> {
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const field = {field: column.name, width: column.width};
+    const aggregateAliasTableMeta: MetaType = {};
+    if (tableMeta) {
+      Object.keys(tableMeta).forEach(key => {
+        aggregateAliasTableMeta[getAggregateAlias(key)] = tableMeta[key];
+      });
+    }
 
     function generateSortLink(): LocationDescriptorObject | undefined {
       if (!tableMeta) {
         return undefined;
       }
 
-      const nextEventView = eventView.sortOnField(field, tableMeta);
+      const nextEventView = eventView.sortOnField(field, aggregateAliasTableMeta);
       const queryStringObject = nextEventView.generateQueryStringObject();
 
       return {
@@ -297,8 +307,8 @@ class _Table extends Component<Props, State> {
         query: {...location.query, sort: queryStringObject.sort},
       };
     }
-    const currentSort = eventView.sortForField(field, tableMeta);
-    const canSort = isFieldSortable(field, tableMeta);
+    const currentSort = eventView.sortForField(field, aggregateAliasTableMeta);
+    const canSort = isFieldSortable(field, aggregateAliasTableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
     const currentSortField = currentSort ? currentSort.field : undefined;
