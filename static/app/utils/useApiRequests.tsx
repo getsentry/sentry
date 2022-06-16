@@ -250,7 +250,7 @@ function useApiRequests({
   }
 
   function reloadData() {
-    return fetchData({reloading: true});
+    return fetchData({isReloading: true});
   }
 
   function handleRequestSuccess(
@@ -281,37 +281,44 @@ function useApiRequests({
     onRequestSuccess({stateKey, data, resp});
   }
 
-  function handleError(error: RequestError, args: Options['endpoints'][0]) {
-    const [stateKey] = args;
-    if (error && error.responseText) {
-      Sentry.addBreadcrumb({
-        message: error.responseText,
-        category: 'xhr',
-        level: 'error',
+  const handleError = useCallback(
+    (error: RequestError, args: EndpointDefinition) => {
+      const [stateKey] = args;
+
+      if (error && error.responseText) {
+        Sentry.addBreadcrumb({
+          message: error.responseText,
+          category: 'xhr',
+          level: 'error',
+        });
+      }
+
+      setState(prevState => {
+        const isLoading = prevState.remainingRequests! > 1;
+        const newState = {
+          errors: {
+            ...prevState.errors,
+            [stateKey]: error,
+          },
+          data: {
+            ...prevState.data,
+            [stateKey]: null,
+          },
+          hasError: prevState.hasError || !!error,
+          remainingRequests: prevState.remainingRequests! - 1,
+          isLoading,
+          isReloading: prevState.isReloading && isLoading,
+        };
+        markShouldMeasure({remainingRequests: newState.remainingRequests, error: true});
+        return newState;
       });
-    }
-    setState(prevState => {
-      const isLoading = prevState.remainingRequests! > 1;
-      const newState = {
-        errors: {
-          ...prevState.errors,
-          [stateKey]: error,
-        },
-        data: {
-          ...prevState.data,
-          [stateKey]: null,
-        },
-        hasError: prevState.hasError || !!error,
-        remainingRequests: prevState.remainingRequests! - 1,
-        isLoading,
-        isReloading: prevState.isReloading && isLoading,
-      };
-      markShouldMeasure({remainingRequests: newState.remainingRequests, error: true});
-      return newState;
-    });
-    onRequestError(error, args);
-  }
-  async function fetchData(extraState = {}) {
+
+      onRequestError(error, args);
+    },
+    [markShouldMeasure, onRequestError]
+  );
+
+  async function fetchData(extraState: Partial<State> = {}) {
     if (!endpoints.length) {
       setState(prevState => ({
         ...prevState,
