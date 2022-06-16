@@ -276,14 +276,27 @@ export const shortcuts: Shortcut[] = [
     text: 'Exclude',
     shortcutType: ShortcutType.Negate,
     hotkeys: {
-      actual: ['option+1'],
-      display: 'option+!',
+      actual: 'option+1',
+      display: 'option+1',
     },
     icon: <IconExclamation size="xs" color="gray300" />,
     canRunShortcut: tok => {
-      return tok?.type === Token.Filter;
+      return !!(tok && tok.text[0] !== '!' && tok.type === Token.Filter);
     },
   },
+  {
+    text: 'Include',
+    shortcutType: ShortcutType.Negate,
+    hotkeys: {
+      actual: 'option+1',
+      display: 'option+1',
+    },
+    icon: <IconExclamation size="xs" color="gray300" />,
+    canRunShortcut: tok => {
+      return !!(tok && tok.text[0] === '!' && tok.type === Token.Filter);
+    },
+  },
+
   {
     text: 'Previous',
     shortcutType: ShortcutType.Previous,
