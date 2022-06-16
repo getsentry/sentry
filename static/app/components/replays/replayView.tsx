@@ -43,15 +43,17 @@ function ReplayView({
   });
 
   const handlePictureInPicture = () => {
-    setPlayerPosition({
-      x: window.visualViewport.width - (playerRef?.current?.clientWidth ?? 0),
-      y: window.visualViewport.height - (playerRef?.current?.clientHeight ?? 0),
-    });
+    // setPlayerPosition({
+    //   x: window.visualViewport.width - (playerRef?.current?.clientWidth ?? 0),
+    //   y: window.visualViewport.height - (playerRef?.current?.clientHeight ?? 0),
+    // });
     togglePictureInPicture();
   };
 
   useEffect(() => {
-    setPlayerPosition({x: transform?.x ?? 0, y: transform?.y ?? 0});
+    if (transform?.x && transform?.y) {
+      setPlayerPosition({x: transform?.x, y: transform?.y});
+    }
   }, [transform?.x, transform?.y]);
 
   useEffect(() => {
