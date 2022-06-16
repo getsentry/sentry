@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {
   EventsStats,
   MultiSeriesEventsStats,
-  OrganizationSummary,
+  Organization,
   PageFilters,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -111,7 +111,7 @@ type Props = {
       'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage' | 'pageLinks'
     >
   ) => React.ReactNode;
-  organization: OrganizationSummary;
+  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
