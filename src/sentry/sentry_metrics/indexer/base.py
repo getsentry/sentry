@@ -23,6 +23,11 @@ class FetchType(Enum):
     FIRST_SEEN = "f"
 
 
+# todo we should probably get rid of this and the use_case_id default, but there were too
+# many callers to quickly deprecate. After addressing this, it also probably makes sense for
+# use_case_id to come earlier in the parameter list.
+DEFAULT_USE_CASE = "release-health"
+
 KR = TypeVar("KR", bound="KeyResult")
 
 
@@ -168,10 +173,12 @@ class StringIndexer(Service):
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def bulk_record(self, use_case_id: str, org_strings: Mapping[int, Set[str]]) -> KeyResults:
+    def bulk_record(
+        self, org_strings: Mapping[int, Set[str]], use_case_id: str = DEFAULT_USE_CASE
+    ) -> KeyResults:
         raise NotImplementedError()
 
-    def record(self, use_case_id: str, org_id: int, string: str) -> int:
+    def record(self, org_id: int, string: str, use_case_id: str = DEFAULT_USE_CASE) -> int:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
@@ -179,7 +186,9 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def resolve(self, use_case_id: str, org_id: int, string: str) -> Optional[int]:
+    def resolve(
+        self, org_id: int, string: str, use_case_id: str = DEFAULT_USE_CASE
+    ) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -188,7 +197,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, use_case_id: str, id: int) -> Optional[str]:
+    def reverse_resolve(self, id: int, use_case_id: str = DEFAULT_USE_CASE) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.

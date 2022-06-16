@@ -145,16 +145,25 @@ class PostgresIndexerV2Test(TestCase):
 
         # test resolve and reverse_resolve
         obj = StringIndexer.objects.get(string="hello")
-        assert self.indexer.resolve(self.use_case_id, org1_id, "hello") == obj.id
-        assert self.indexer.reverse_resolve(self.use_case_id, obj.id) == obj.string
+        assert (
+            self.indexer.resolve(use_case_id=self.use_case_id, org_id=org1_id, string="hello")
+            == obj.id
+        )
+        assert self.indexer.reverse_resolve(use_case_id=self.use_case_id, id=obj.id) == obj.string
 
         # test record on a string that already exists
-        self.indexer.record(self.use_case_id, org1_id, "hello")
-        assert self.indexer.resolve(self.use_case_id, org1_id, "hello") == obj.id
+        self.indexer.record(use_case_id=self.use_case_id, org_id=org1_id, string="hello")
+        assert (
+            self.indexer.resolve(use_case_id=self.use_case_id, org_id=org1_id, string="hello")
+            == obj.id
+        )
 
         # test invalid values
-        assert self.indexer.resolve(self.use_case_id, org1_id, "beep") is None
-        assert self.indexer.reverse_resolve(self.use_case_id, 1234) is None
+        assert (
+            self.indexer.resolve(use_case_id=self.use_case_id, org_id=org1_id, string="beep")
+            is None
+        )
+        assert self.indexer.reverse_resolve(use_case_id=self.use_case_id, id=1234) is None
 
     def test_already_created_plus_written_results(self) -> None:
         """
