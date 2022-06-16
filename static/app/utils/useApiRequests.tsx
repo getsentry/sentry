@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ResponseMeta} from 'sentry/api';
@@ -360,62 +360,65 @@ function useApiRequests({
     );
   }
 
-  function shouldRenderLoading() {
-    return state.isLoading && (!shouldReload || !state.isReloading);
-  }
+  const shouldRenderLoading = state.isLoading && (!shouldReload || !state.isReloading);
 
-  function renderError(error?: Error, disableLog = false): React.ReactElement {
-    const {errors} = state;
+  const renderError = useCallback(
+    (error?: Error, disableLog = false): React.ReactElement => {
+      const errors = state.errors;
 
-    // 401s are captured by SudoModal, but may be passed back to AsyncComponent
-    // if they close the modal without identifying
-    const unauthorizedErrors = Object.values(errors).some(resp => resp?.status === 401);
+      // 401s are captured by SudoModal, but may be passed back to AsyncComponent
+      // if they close the modal without identifying
+      const unauthorizedErrors = Object.values(errors).some(resp => resp?.status === 401);
 
-    // Look through endpoint results to see if we had any 403s, means their
-    // role can not access resource
-    const permissionErrors = Object.values(errors).some(resp => resp?.status === 403);
+      // Look through endpoint results to see if we had any 403s, means their
+      // role can not access resource
+      const permissionErrors = Object.values(errors).some(resp => resp?.status === 403);
 
-    // If all error responses have status code === 0, then show error message
-    // but don't log it to sentry
-    const shouldLogSentry =
-      !!Object.values(errors).some(resp => resp?.status !== 0) || disableLog;
+      // If all error responses have status code === 0, then show error message
+      // but don't log it to sentry
+      const shouldLogSentry =
+        !!Object.values(errors).some(resp => resp?.status !== 0) || disableLog;
 
-    if (unauthorizedErrors) {
-      return (
-        <LoadingError message={t('You are not authorized to access this resource.')} />
-      );
-    }
-
-    if (permissionErrors) {
-      return <PermissionDenied />;
-    }
-
-    if (shouldRenderBadRequests) {
-      const badRequests = Object.values(errors)
-        .filter(resp => resp?.status === 400 && resp?.responseJSON?.detail)
-        .map(resp => resp.responseJSON.detail);
-
-      if (badRequests.length) {
-        return <LoadingError message={[...new Set(badRequests)].join('\n')} />;
+      if (unauthorizedErrors) {
+        return (
+          <LoadingError message={t('You are not authorized to access this resource.')} />
+        );
       }
-    }
 
-    return (
-      <RouteError
-        error={error}
-        disableLogSentry={!shouldLogSentry}
-        disableReport={disableErrorReport}
-      />
-    );
-  }
+      if (permissionErrors) {
+        return <PermissionDenied />;
+      }
 
-  function renderComponent(children: React.ReactElement) {
-    return shouldRenderLoading()
-      ? renderLoading()
-      : state.hasError
-      ? renderError(new Error('Unable to load all required endpoints'))
-      : children;
-  }
+      if (shouldRenderBadRequests) {
+        const badRequests = Object.values(errors)
+          .filter(resp => resp?.status === 400 && resp?.responseJSON?.detail)
+          .map(resp => resp.responseJSON.detail);
+
+        if (badRequests.length) {
+          return <LoadingError message={[...new Set(badRequests)].join('\n')} />;
+        }
+      }
+
+      return (
+        <RouteError
+          error={error}
+          disableLogSentry={!shouldLogSentry}
+          disableReport={disableErrorReport}
+        />
+      );
+    },
+    [state.errors, disableErrorReport, shouldRenderBadRequests]
+  );
+
+  const renderComponent = useCallback(
+    (children: React.ReactElement) =>
+      shouldRenderLoading
+        ? renderLoading()
+        : state.hasError
+        ? renderError(new Error('Unable to load all required endpoints'))
+        : children,
+    [shouldRenderLoading, state.hasError, renderError]
+  );
 
   return {...state, renderComponent};
 }
