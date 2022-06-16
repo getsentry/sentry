@@ -1095,6 +1095,5 @@ def parse_search_query(
         )
 
     if config_overrides:
-        for param, value in config_overrides.items():
-            setattr(config, param, value)
+        config = SearchConfig.create_from(config, **config_overrides)
     return SearchVisitor(config, params=params, builder=builder).visit(tree)
