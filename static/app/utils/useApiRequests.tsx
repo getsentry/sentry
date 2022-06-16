@@ -363,16 +363,18 @@ function useApiRequests({
   function renderError(error?: Error, disableLog = false): React.ReactElement {
     const {errors} = state;
 
-    // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
-    const unauthorizedErrors = Object.values(errors).find(resp => resp?.status === 401);
+    // 401s are captured by SudoModal, but may be passed back to AsyncComponent
+    // if they close the modal without identifying
+    const unauthorizedErrors = Object.values(errors).some(resp => resp?.status === 401);
 
-    // Look through endpoint results to see if we had any 403s, means their role can not access resource
-    const permissionErrors = Object.values(errors).find(resp => resp?.status === 403);
+    // Look through endpoint results to see if we had any 403s, means their
+    // role can not access resource
+    const permissionErrors = Object.values(errors).some(resp => resp?.status === 403);
 
-    // If all error responses have status code === 0, then show error message but don't
-    // log it to sentry
+    // If all error responses have status code === 0, then show error message
+    // but don't log it to sentry
     const shouldLogSentry =
-      !!Object.values(errors).find(resp => resp?.status !== 0) || disableLog;
+      !!Object.values(errors).some(resp => resp?.status !== 0) || disableLog;
 
     if (unauthorizedErrors) {
       return (
