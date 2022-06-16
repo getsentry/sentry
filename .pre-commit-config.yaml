@@ -50,7 +50,7 @@ repos:
       name: lint-requirements
       entry: python -m tools.lint_requirements sentry
       language: python
-      files: ^requirements-*.txt
+      files: ^requirements-.*.txt
       pass_filenames: false
       additional_dependencies: [packaging==21.3]
     - id: pyright
