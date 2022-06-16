@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {Organization, SavedSearchType} from 'sentry/types';
+import {ContextualProps} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
@@ -10,26 +11,22 @@ import {
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 
 interface Props {
+  contextualProps: ContextualProps;
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
-  organization: Organization;
-  projectIds: SearchBarProps['projectIds'];
-  query: WidgetQuery;
+  widgetQuery: WidgetQuery;
 }
 
-export function EventsSearchBar({
-  projectIds,
-  onSearch,
-  onBlur,
-  organization,
-  query,
-}: Props) {
+export function EventsSearchBar({contextualProps, onSearch, onBlur, widgetQuery}: Props) {
+  const organization = contextualProps.organization;
+  const projectIds = contextualProps.pageFilters?.projects;
+
   return (
     <Search
       searchSource="widget_builder"
       organization={organization}
       projectIds={projectIds}
-      query={query.conditions}
+      query={widgetQuery.conditions}
       fields={[]}
       onSearch={onSearch}
       onBlur={onBlur}

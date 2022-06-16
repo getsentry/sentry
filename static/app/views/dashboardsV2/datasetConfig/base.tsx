@@ -1,5 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
+import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {OrganizationSummary, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -21,12 +22,20 @@ export type ContextualProps = {
   pageFilters?: PageFilters;
 };
 
+export type WidgetBuilderSearchBarProps = {
+  contextualProps: ContextualProps;
+  onBlur: SearchBarProps['onBlur'];
+  onSearch: SearchBarProps['onSearch'];
+  widgetQuery: WidgetQuery;
+};
+
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
    * Default query to display when dataset is selected in the
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  getSearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
   /**
    * Field options to display in the Column selectors for
    * Table display type.

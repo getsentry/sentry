@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
+import {OrganizationSummary, SavedSearchType, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
   Field,
@@ -29,7 +29,7 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 );
 
 export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, 'tags'> & {
-  organization: Organization;
+  organization: OrganizationSummary;
   tags: TagCollection;
   fields?: Readonly<Field[]>;
   includeSessionTagsValues?: boolean;

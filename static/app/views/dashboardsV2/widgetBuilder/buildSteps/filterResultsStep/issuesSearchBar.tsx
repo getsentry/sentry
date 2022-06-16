@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, SavedSearchType, TagCollection} from 'sentry/types';
+import {SavedSearchType, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
+import {ContextualProps} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
@@ -16,32 +17,29 @@ import {
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
+  contextualProps: ContextualProps;
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
-  organization: Organization;
-  query: WidgetQuery;
-  selection: PageFilters;
   tags: TagCollection;
-  searchSource?: string;
+  widgetQuery: WidgetQuery;
 }
 
 function IssuesSearchBarContainer({
   tags,
   onSearch,
   onBlur,
-  organization,
-  query,
-  selection,
-  searchSource,
+  widgetQuery,
+  contextualProps,
 }: Props) {
   const api = useApi();
+  const {organization, pageFilters} = contextualProps;
   function tagValueLoader(key: string, search: string) {
-    const orgId = organization.slug;
-    const projectIds = selection.projects.map(id => id.toString());
+    const orgId = organization!.slug;
+    const projectIds = pageFilters?.projects.map(id => id.toString());
     const endpointParams = {
-      start: getUtcDateString(selection.datetime.start),
-      end: getUtcDateString(selection.datetime.end),
-      statsPeriod: selection.datetime.period,
+      start: getUtcDateString(pageFilters?.datetime.start),
+      end: getUtcDateString(pageFilters?.datetime.end),
+      statsPeriod: pageFilters?.datetime.period,
     };
 
     return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
@@ -51,9 +49,8 @@ function IssuesSearchBarContainer({
     <ClassNames>
       {({css}) => (
         <StyledIssueListSearchBar
-          searchSource={searchSource}
-          organization={organization}
-          query={query.conditions || ''}
+          searchSource="widget_builder"
+          query={widgetQuery.conditions || ''}
           sort=""
           onSearch={onSearch}
           onBlur={onBlur}
