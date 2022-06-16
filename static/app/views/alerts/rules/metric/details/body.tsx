@@ -243,7 +243,7 @@ const DetailWrapper = styled('div')`
   display: flex;
   flex: 1;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     flex-direction: column-reverse;
   }
 `;
@@ -251,7 +251,7 @@ const DetailWrapper = styled('div')`
 const StyledLayoutBody = styled(Layout.Body)`
   flex-grow: 0;
   padding-bottom: 0 !important;
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: auto;
   }
 `;

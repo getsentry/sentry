@@ -42,7 +42,7 @@ function Value({meta, value}: Props) {
   }
 
   return (
-    <InlinePre data-test-id="frame-registers-value">
+    <InlinePre>
       <AnnotatedText value={formatValue()} meta={meta} />
       <StyledTooltip
         title={REGISTER_VIEWS[state.view]}
@@ -53,6 +53,7 @@ function Value({meta, value}: Props) {
             setState({view: (state.view + 1) % REGISTER_VIEWS.length});
           }}
           size="xs"
+          aria-label={t('Toggle register value format')}
         />
       </StyledTooltip>
     </InlinePre>

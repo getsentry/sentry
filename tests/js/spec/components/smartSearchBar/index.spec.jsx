@@ -2,6 +2,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'sentry/api';
 import {SmartSearchBar} from 'sentry/components/smartSearchBar';
+import {ShortcutType} from 'sentry/components/smartSearchBar/types';
+import {shortcuts} from 'sentry/components/smartSearchBar/utils';
 import TagStore from 'sentry/stores/tagStore';
 
 describe('SmartSearchBar', function () {
@@ -26,6 +28,11 @@ describe('SmartSearchBar', function () {
       key: 'firstRelease',
       name: 'firstRelease',
     };
+    supportedTags.is = {
+      key: 'is',
+      name: 'is',
+    };
+
     organization = TestStubs.Organization({id: '123'});
 
     location = {
@@ -567,7 +574,7 @@ describe('SmartSearchBar', function () {
       await tick();
       wrapper.update();
       expect(searchBar.state.searchTerm).toEqual('fu');
-      // 1 items because of headers ("Tags")
+      // 2 items because of headers ("Tags")
       expect(searchBar.state.searchGroups).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
@@ -682,7 +689,7 @@ describe('SmartSearchBar', function () {
       searchBar.updateAutoCompleteItems();
       await tick();
       wrapper.update();
-      // one search group because only showing tags now
+      // one search group because showing tags
       expect(searchBar.state.searchGroups).toHaveLength(1);
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
@@ -873,5 +880,158 @@ describe('SmartSearchBar', function () {
     expect(searchBar.find('textarea').props().value).toEqual(
       'predefined:"\\"predefined\\" \\"tag\\" \\"with\\" \\"quotes\\"" '
     );
+  });
+
+  describe('quick actions', () => {
+    it('delete first token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 1);
+
+      await tick();
+
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Delete);
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runShortcut(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual('sdk.name:sentry-cocoa has:key');
+      }
+    });
+
+    it('delete middle token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Delete);
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runShortcut(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual('is:unresolved has:key');
+      }
+    });
+
+    it('negate token', async () => {
+      const props = {
+        query: 'is:unresolved sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Negate);
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runShortcut(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual(
+          'is:unresolved !sdk.name:sentry-cocoa has:key '
+        );
+      }
+    });
+
+    it('un-negate token', async () => {
+      const props = {
+        query: 'is:unresolved !sdk.name:sentry-cocoa has:key',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options).instance();
+      searchBar.updateAutoCompleteItems();
+
+      mockCursorPosition(searchBar, 18);
+
+      await tick();
+
+      const deleteAction = shortcuts.find(a => a.shortcutType === ShortcutType.Negate);
+
+      expect(deleteAction).toBeDefined();
+      if (deleteAction) {
+        searchBar.runShortcut(deleteAction);
+
+        await tick();
+
+        expect(searchBar.state.query).toEqual(
+          'is:unresolved sdk.name:sentry-cocoa has:key '
+        );
+      }
+    });
+  });
+
+  describe('Invalid field state', () => {
+    it('Shows invalid field state when invalid field is used', async () => {
+      const props = {
+        query: 'invalid:',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBarInst = searchBar.instance();
+
+      mockCursorPosition(searchBarInst, 8);
+
+      searchBarInst.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBarInst.state.searchGroups).toHaveLength(1);
+      expect(searchBarInst.state.searchGroups[0].title).toEqual('Tags');
+      expect(searchBarInst.state.searchGroups[0].type).toEqual('invalid-tag');
+      expect(searchBar.text()).toContain("The field invalid isn't supported here");
+    });
+
+    it('Does not show invalid field state when valid field is used', async () => {
+      const props = {
+        query: 'is:',
+        organization,
+        location,
+        supportedTags,
+      };
+      const searchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
+      const searchBarInst = searchBar.instance();
+
+      mockCursorPosition(searchBarInst, 3);
+
+      searchBarInst.updateAutoCompleteItems();
+
+      await tick();
+
+      expect(searchBar.text()).not.toContain("isn't supported here");
+    });
   });
 });

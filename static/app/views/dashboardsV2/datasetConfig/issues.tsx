@@ -1,15 +1,52 @@
+import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group} from 'sentry/types';
+import {Group, PageFilters} from 'sentry/types';
+import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {queryToObj} from 'sentry/utils/stream';
-import {DISCOVER_EXCLUSION_FIELDS} from 'sentry/views/issueList/utils';
+import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
+import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
+import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
 
 import {ContextualProps, DatasetConfig} from './base';
 
+const DEFAULT_WIDGET_QUERY: WidgetQuery = {
+  name: '',
+  fields: ['issue', 'assignee', 'title'] as string[],
+  columns: ['issue', 'assignee', 'title'],
+  fieldAliases: [],
+  aggregates: [],
+  conditions: '',
+  orderby: IssueSortOptions.DATE,
+};
+
+const DEFAULT_SORT = IssueSortOptions.DATE;
+const DEFAULT_EXPAND = ['owners'];
+
+type EndpointParams = Partial<PageFilters['datetime']> & {
+  environment: string[];
+  project: number[];
+  collapse?: string[];
+  cursor?: string;
+  expand?: string[];
+  groupStatsPeriod?: string | null;
+  limit?: number;
+  page?: number | string;
+  query?: string;
+  sort?: string;
+  statsPeriod?: string | null;
+};
+
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
+  defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  getTableRequest,
+  getCustomFieldRenderer: getIssueFieldRenderer,
+  getTableFieldOptions: () => generateIssueWidgetFieldOptions(),
+  fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
+  supportedDisplayTypes: [DisplayType.TABLE],
   transformTable: transformIssuesResponseToTable,
 };
 
@@ -95,4 +132,45 @@ export function transformIssuesResponseToTable(
     }
   );
   return {data: transformedTableResults} as TableData;
+}
+
+function getTableRequest(
+  api: Client,
+  query: WidgetQuery,
+  contextualProps?: ContextualProps,
+  limit?: number,
+  cursor?: string
+) {
+  const groupListUrl = `/organizations/${contextualProps?.organization?.slug}/issues/`;
+
+  const params: EndpointParams = {
+    project: contextualProps?.pageFilters?.projects ?? [],
+    environment: contextualProps?.pageFilters?.environments ?? [],
+    query: query.conditions,
+    sort: query.orderby || DEFAULT_SORT,
+    expand: DEFAULT_EXPAND,
+    limit: limit ?? DEFAULT_TABLE_LIMIT,
+    cursor,
+  };
+
+  if (contextualProps?.pageFilters?.datetime.period) {
+    params.statsPeriod = contextualProps?.pageFilters?.datetime.period;
+  }
+  if (contextualProps?.pageFilters?.datetime.end) {
+    params.end = getUtcDateString(contextualProps?.pageFilters?.datetime.end);
+  }
+  if (contextualProps?.pageFilters?.datetime.start) {
+    params.start = getUtcDateString(contextualProps?.pageFilters?.datetime.start);
+  }
+  if (contextualProps?.pageFilters?.datetime.utc) {
+    params.utc = contextualProps?.pageFilters?.datetime.utc;
+  }
+
+  return api.requestPromise(groupListUrl, {
+    includeAllArgs: true,
+    method: 'GET',
+    data: {
+      ...params,
+    },
+  });
 }

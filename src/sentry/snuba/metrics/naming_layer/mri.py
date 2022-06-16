@@ -16,9 +16,21 @@ and so it is a private metric, whereas `SessionMRI.CRASH_FREE_RATE` has a corres
 `SessionMetricKey` with the same name i.e. `SessionMetricKey.CRASH_FREE_RATE` and hence is a public
 metric that is queryable by the API.
 """
-__all__ = ("SessionMRI", "TransactionMRI")
+__all__ = ("SessionMRI", "TransactionMRI", "MRI_SCHEMA_REGEX", "MRI_EXPRESSION_REGEX")
 
+import re
 from enum import Enum
+
+from sentry.snuba.metrics.utils import OP_REGEX
+
+NAMESPACE_REGEX = r"(transactions|errors|issues|sessions|alerts|custom)"
+ENTITY_TYPE_REGEX = r"(c|s|d|g|e)"
+# This regex allows for a string of words composed of small letters alphabet characters with
+# allowed the underscore character, optionally separated by a single dot
+MRI_NAME_REGEX = r"([a-z_]+(?:\.[a-z_]+)*)"
+# ToDo(ahmed): Add a better regex for unit portion for MRI
+MRI_SCHEMA_REGEX = rf"{ENTITY_TYPE_REGEX}:{NAMESPACE_REGEX}/{MRI_NAME_REGEX}@([\w.]*)"
+MRI_EXPRESSION_REGEX = re.compile(rf"^{OP_REGEX}\(({MRI_SCHEMA_REGEX})\)$")
 
 
 class SessionMRI(Enum):

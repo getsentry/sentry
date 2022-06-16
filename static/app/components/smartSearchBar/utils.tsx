@@ -5,10 +5,19 @@ import {
   Token,
   TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'sentry/icons';
+import {
+  IconArrow,
+  IconClock,
+  IconDelete,
+  IconExclamation,
+  IconStar,
+  IconTag,
+  IconToggle,
+  IconUser,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {ItemType, SearchGroup, SearchItem} from './types';
+import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -113,11 +122,13 @@ export function createSearchGroups(
 
   if (queryCharsLeft || queryCharsLeft === 0) {
     searchItems = searchItems.filter(
-      (value: SearchItem) => value.value.length <= queryCharsLeft
+      (value: SearchItem) =>
+        typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
     );
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
-        (value: SearchItem) => value.value.length <= queryCharsLeft
+        (value: SearchItem) =>
+          typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
       );
     }
   }
@@ -247,3 +258,54 @@ export function getValidOps(
 
   return [...validOps];
 }
+
+export const shortcuts: Shortcut[] = [
+  {
+    text: 'Delete',
+    shortcutType: ShortcutType.Delete,
+    hotkeys: {
+      actual: 'option+backspace',
+      display: 'option+backspace',
+    },
+    icon: <IconDelete size="xs" color="gray300" />,
+    canRunShortcut: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Exclude',
+    shortcutType: ShortcutType.Negate,
+    hotkeys: {
+      actual: ['option+1'],
+      display: 'option+!',
+    },
+    icon: <IconExclamation size="xs" color="gray300" />,
+    canRunShortcut: tok => {
+      return tok?.type === Token.Filter;
+    },
+  },
+  {
+    text: 'Previous',
+    shortcutType: ShortcutType.Previous,
+    hotkeys: {
+      actual: ['option+left'],
+      display: 'option+left',
+    },
+    icon: <IconArrow direction="left" size="xs" color="gray300" />,
+    canRunShortcut: (tok, count) => {
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    },
+  },
+  {
+    text: 'Next',
+    shortcutType: ShortcutType.Next,
+    hotkeys: {
+      actual: ['option+right'],
+      display: 'option+right',
+    },
+    icon: <IconArrow direction="right" size="xs" color="gray300" />,
+    canRunShortcut: (tok, count) => {
+      return count > 1 || (count > 0 && tok?.type !== Token.Filter);
+    },
+  },
+];

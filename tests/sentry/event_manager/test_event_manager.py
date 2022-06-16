@@ -36,6 +36,8 @@ from sentry.models import (
     GroupTombstone,
     Integration,
     OrganizationIntegration,
+    PullRequest,
+    PullRequestCommit,
     Release,
     ReleaseCommit,
     ReleaseProjectEnvironment,
@@ -569,8 +571,7 @@ class EventManagerTest(TestCase):
 
         group = event.group
         assert group.first_release.version == "1.0"
-        pending = has_pending_commit_resolution(group)
-        assert pending is False
+        assert not has_pending_commit_resolution(group)
 
         # Add a commit with no associated release
         repo = self.create_repo(project=group.project)
@@ -585,8 +586,7 @@ class EventManagerTest(TestCase):
             relationship=GroupLink.Relationship.resolves,
         )
 
-        pending = has_pending_commit_resolution(group)
-        assert pending
+        assert has_pending_commit_resolution(group)
 
     def test_multiple_pending_commit_resolution(self):
         project_id = 1
@@ -629,6 +629,118 @@ class EventManagerTest(TestCase):
             commit=latest_commit,
             order=0,
         )
+
+        pending = has_pending_commit_resolution(group)
+        assert pending is False
+
+    def test_has_pending_commit_resolution_issue_regression(self):
+        project_id = 1
+        event = self.make_release_event("1.0", project_id)
+        group = event.group
+        repo = self.create_repo(project=group.project)
+
+        # commit that resolved the issue is part of a PR, but all commits within the PR are unreleased
+        commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 40
+        )
+
+        second_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="b" * 40
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        pr = PullRequest.objects.create(
+            organization_id=group.project.organization_id,
+            repository_id=repo.id,
+            key="1",
+        )
+
+        PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=commit.id)
+        PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=second_commit.id)
+
+        assert PullRequestCommit.objects.filter(pull_request_id=pr.id, commit_id=commit.id).exists()
+        assert PullRequestCommit.objects.filter(
+            pull_request_id=pr.id, commit_id=second_commit.id
+        ).exists()
+
+        assert not ReleaseCommit.objects.filter(commit__pullrequestcommit__id=commit.id).exists()
+        assert not ReleaseCommit.objects.filter(
+            commit__pullrequestcommit__id=second_commit.id
+        ).exists()
+
+        pending = has_pending_commit_resolution(group)
+        assert pending
+
+    def test_has_pending_commit_resolution_issue_regression_released_commits(self):
+        project_id = 1
+        event = self.make_release_event("1.0", project_id)
+        group = event.group
+        release = self.create_release(project=self.project, version="1.1")
+
+        repo = self.create_repo(project=group.project)
+
+        # commit 1 is part of the PR, it resolves the issue in the commit message, and is unreleased
+        commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="a" * 38
+        )
+
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.commit,
+            linked_id=commit.id,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        # commit 2 is part of the PR, but does not resolve the issue, and is released
+        released_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="b" * 38
+        )
+
+        # commit 3 is part of the PR, but does not resolve the issue, and is unreleased
+        unreleased_commit = Commit.objects.create(
+            organization_id=group.project.organization_id, repository_id=repo.id, key="c" * 38
+        )
+
+        pr = PullRequest.objects.create(
+            organization_id=group.project.organization_id,
+            repository_id=repo.id,
+            key="19",
+        )
+
+        PullRequestCommit.objects.create(pull_request_id=pr.id, commit_id=commit.id)
+
+        released_pr_commit = PullRequestCommit.objects.create(
+            pull_request_id=pr.id, commit_id=released_commit.id
+        )
+
+        unreleased_pr_commit = PullRequestCommit.objects.create(
+            pull_request_id=pr.id, commit_id=unreleased_commit.id
+        )
+
+        ReleaseCommit.objects.create(
+            organization_id=group.project.organization_id,
+            release=release,
+            commit=released_commit,
+            order=1,
+        )
+
+        assert Commit.objects.all().count() == 3
+        assert PullRequestCommit.objects.filter(pull_request_id=pr.id, commit_id=commit.id).exists()
+        assert PullRequestCommit.objects.filter(
+            pull_request_id=pr.id, commit_id=released_commit.id
+        ).exists()
+        assert PullRequestCommit.objects.filter(commit__id=unreleased_pr_commit.commit.id).exists()
+        assert ReleaseCommit.objects.filter(
+            commit__pullrequestcommit__id=released_pr_commit.id
+        ).exists()
 
         pending = has_pending_commit_resolution(group)
         assert pending is False
@@ -1492,7 +1604,7 @@ class EventManagerTest(TestCase):
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    with self.assertRaises(HashDiscarded):
+                    with pytest.raises(HashDiscarded):
                         event = manager.save(1, cache_key=cache_key)
 
         assert mock_track_outcome.call_count == 3
