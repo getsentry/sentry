@@ -6,6 +6,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import {Organization} from 'sentry/types';
+import useProjects from 'sentry/utils/useProjects';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import EventDetailsContent from './content';
@@ -15,6 +16,8 @@ type Props = RouteComponentProps<{eventSlug: string}, {}> & {
 };
 
 function EventDetails(props: Props) {
+  const {projects} = useProjects();
+
   const getEventSlug = (): string => {
     const {eventSlug} = props.params;
     return typeof eventSlug === 'string' ? eventSlug.trim() : '';
@@ -40,6 +43,7 @@ function EventDetails(props: Props) {
             eventSlug={eventSlug}
             router={router}
             route={route}
+            projects={projects}
           />
         </NoProjectMessage>
       </StyledPageContent>
