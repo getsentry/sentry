@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -20,6 +20,7 @@ import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {useProfiles} from 'sentry/utils/profiling/hooks/useProfiles';
 import {useProfileTransactions} from 'sentry/utils/profiling/hooks/useProfileTransactions';
@@ -41,6 +42,12 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const profileFilters = useProfileFilters({query: '', selection});
   const profiles = useProfiles({cursor, query, selection});
   const transactions = useProfileTransactions({cursor, query, selection});
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.landing', {
+      organization,
+    });
+  }, [organization]);
 
   const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
     (searchQuery: string) => {

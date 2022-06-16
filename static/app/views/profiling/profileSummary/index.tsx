@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -40,6 +41,12 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const {projects} = useProjects({
     slugs: defined(props.params.projectId) ? [props.params.projectId] : [],
   });
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.transaction_summary', {
+      organization,
+    });
+  }, [organization]);
 
   // Extract the project matching the provided project slug,
   // if it doesn't exist, set this to null and handle it accordingly.
