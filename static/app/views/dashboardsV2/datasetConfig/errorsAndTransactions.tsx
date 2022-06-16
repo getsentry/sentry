@@ -273,7 +273,7 @@ function getEventsRequest(
   }
 
   // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
-  return doDiscoverQuery<TableData | EventsTableData>(api!, url, {
+  return doDiscoverQuery<TableData | EventsTableData>(api, url, {
     ...eventView.generateQueryStringObject(),
     ...params,
   });

@@ -166,7 +166,7 @@ function getTableRequest(
     params.utc = contextualProps?.pageFilters?.datetime.utc;
   }
 
-  return api!.requestPromise(groupListUrl, {
+  return api.requestPromise(groupListUrl, {
     includeAllArgs: true,
     method: 'GET',
     data: {
