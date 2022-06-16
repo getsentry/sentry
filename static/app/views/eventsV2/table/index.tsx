@@ -16,7 +16,6 @@ import EventView, {
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/performance/spanOperationBreakdowns/constants';
-import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 
 import TableView from './tableView';
@@ -104,11 +103,6 @@ class Table extends PureComponent<TableProps, TableState> {
     const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
       EventQuery & {user_modified?: string};
     apiPayload.referrer = 'api.discover.query-table';
-
-    const queryUserModified = decodeScalar(location.query.userModified);
-    if (queryUserModified !== undefined) {
-      apiPayload.user_modified = queryUserModified;
-    }
 
     setError('', 200);
 
