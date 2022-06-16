@@ -10,7 +10,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import {
   MetricsApiResponse,
-  OrganizationSummary,
+  Organization,
   PageFilters,
   Release,
   SessionApiResponse,
@@ -43,7 +43,7 @@ type Props = {
       'loading' | 'timeseriesResults' | 'tableResults' | 'errorMessage' | 'pageLinks'
     >
   ) => React.ReactNode;
-  organization: OrganizationSummary;
+  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;

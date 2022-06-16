@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import {OrganizationSummary, PageFilters} from 'sentry/types';
+import {Organization, PageFilters} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
@@ -21,7 +21,7 @@ type Props = {
     pageLinks?: null | string;
     totalCount?: string;
   }) => React.ReactNode;
-  organization: OrganizationSummary;
+  organization: Organization;
   selection: PageFilters;
   widget: Widget;
   cursor?: string;
