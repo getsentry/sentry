@@ -1,3 +1,4 @@
+import {Client} from 'sentry/api';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
@@ -6,7 +7,7 @@ import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {queryToObj} from 'sentry/utils/stream';
 import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {DisplayType, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
 
@@ -22,8 +23,26 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   orderby: IssueSortOptions.DATE,
 };
 
+const DEFAULT_SORT = IssueSortOptions.DATE;
+const DEFAULT_EXPAND = ['owners'];
+
+type EndpointParams = Partial<PageFilters['datetime']> & {
+  environment: string[];
+  project: number[];
+  collapse?: string[];
+  cursor?: string;
+  expand?: string[];
+  groupStatsPeriod?: string | null;
+  limit?: number;
+  page?: number | string;
+  query?: string;
+  sort?: string;
+  statsPeriod?: string | null;
+};
+
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
   getTableFieldOptions: (_organization: Organization) =>
     generateIssueWidgetFieldOptions(),
@@ -115,4 +134,45 @@ export function transformIssuesResponseToTable(
     }
   );
   return {data: transformedTableResults} as TableData;
+}
+
+function getTableRequest(
+  api: Client,
+  query: WidgetQuery,
+  contextualProps?: ContextualProps,
+  limit?: number,
+  cursor?: string
+) {
+  const groupListUrl = `/organizations/${contextualProps?.organization?.slug}/issues/`;
+
+  const params: EndpointParams = {
+    project: contextualProps?.pageFilters?.projects ?? [],
+    environment: contextualProps?.pageFilters?.environments ?? [],
+    query: query.conditions,
+    sort: query.orderby || DEFAULT_SORT,
+    expand: DEFAULT_EXPAND,
+    limit: limit ?? DEFAULT_TABLE_LIMIT,
+    cursor,
+  };
+
+  if (contextualProps?.pageFilters?.datetime.period) {
+    params.statsPeriod = contextualProps?.pageFilters?.datetime.period;
+  }
+  if (contextualProps?.pageFilters?.datetime.end) {
+    params.end = getUtcDateString(contextualProps?.pageFilters?.datetime.end);
+  }
+  if (contextualProps?.pageFilters?.datetime.start) {
+    params.start = getUtcDateString(contextualProps?.pageFilters?.datetime.start);
+  }
+  if (contextualProps?.pageFilters?.datetime.utc) {
+    params.utc = contextualProps?.pageFilters?.datetime.utc;
+  }
+
+  return api.requestPromise(groupListUrl, {
+    includeAllArgs: true,
+    method: 'GET',
+    data: {
+      ...params,
+    },
+  });
 }
