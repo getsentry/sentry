@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 import Button from '../button';
 import HotkeysLabel from '../hotkeysLabel';
 
-import {ItemType, QuickAction, SearchGroup, SearchItem} from './types';
+import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
 type Props = {
   items: SearchGroup[];
@@ -18,8 +18,8 @@ type Props = {
   searchSubstring: string;
   className?: string;
   maxMenuHeight?: number;
-  runQuickAction?: (action: QuickAction) => void;
-  visibleActions?: QuickAction[];
+  runShortcut?: (shortcut: Shortcut) => void;
+  visibleShortcuts?: Shortcut[];
 };
 
 class SearchDropdown extends PureComponent<Props> {
@@ -31,6 +31,19 @@ class SearchDropdown extends PureComponent<Props> {
   renderDescription = (item: SearchItem) => {
     const searchSubstring = this.props.searchSubstring;
     if (!searchSubstring) {
+      if (item.type === ItemType.INVALID_TAG) {
+        return (
+          <Invalid>
+            {tct("The field [field] isn't supported here. ", {
+              field: <strong>{item.desc}</strong>,
+            })}
+            {tct('[highlight:See all searchable properties in the docs.]', {
+              highlight: <Highlight />,
+            })}
+          </Invalid>
+        );
+      }
+
       return item.desc;
     }
 
@@ -74,7 +87,7 @@ class SearchDropdown extends PureComponent<Props> {
       ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
     >
       <SearchItemTitleWrapper>
-        {item.title && item.title + (item.desc ? ' · ' : '')}
+        {item.title && `${item.title}${item.desc ? ' · ' : ''}`}
         <Description>{this.renderDescription(item)}</Description>
         <Documentation>{item.documentation}</Documentation>
       </SearchItemTitleWrapper>
@@ -82,7 +95,7 @@ class SearchDropdown extends PureComponent<Props> {
   );
 
   render() {
-    const {className, loading, items, runQuickAction, visibleActions, maxMenuHeight} =
+    const {className, loading, items, runShortcut, visibleShortcuts, maxMenuHeight} =
       this.props;
     return (
       <StyledSearchDropdown className={className}>
@@ -94,37 +107,36 @@ class SearchDropdown extends PureComponent<Props> {
           <SearchItemsList maxMenuHeight={maxMenuHeight}>
             {items.map(item => {
               const isEmpty = item.children && !item.children.length;
-              const invalidTag = item.type === ItemType.INVALID_TAG;
 
               // Hide header if `item.children` is defined, an array, and is empty
               return (
                 <Fragment key={item.title}>
-                  {invalidTag && <Info>{t('Invalid tag')}</Info>}
                   {item.type === 'header' && this.renderHeaderItem(item)}
                   {item.children && item.children.map(this.renderItem)}
-                  {isEmpty && !invalidTag && <Info>{t('No items found')}</Info>}
+                  {isEmpty && <Info>{t('No items found')}</Info>}
                 </Fragment>
               );
             })}
           </SearchItemsList>
         )}
         <DropdownFooter>
-          <ActionsRow>
-            {runQuickAction &&
-              visibleActions?.map(action => {
+          <ShortcutsRow>
+            {runShortcut &&
+              visibleShortcuts?.map(shortcut => {
                 return (
-                  <ActionButtonContainer
-                    key={action.text}
-                    onClick={() => runQuickAction(action)}
+                  <ShortcutButtonContainer
+                    key={shortcut.text}
+                    onClick={() => runShortcut(shortcut)}
                   >
                     <HotkeyGlyphWrapper>
-                      <HotkeysLabel value={action.hotkeys?.display ?? []} />
+                      <HotkeysLabel value={shortcut.hotkeys?.display ?? []} />
                     </HotkeyGlyphWrapper>
-                    <HotkeyTitle>{action.text}</HotkeyTitle>
-                  </ActionButtonContainer>
+                    <IconWrapper>{shortcut.icon}</IconWrapper>
+                    <HotkeyTitle>{shortcut.text}</HotkeyTitle>
+                  </ShortcutButtonContainer>
                 );
               })}
-          </ActionsRow>
+          </ShortcutsRow>
           <Button
             size="xsmall"
             href="https://docs.sentry.io/product/sentry-basics/search/"
@@ -258,15 +270,16 @@ const DropdownFooter = styled(`div`)`
   justify-content: space-between;
   padding: ${space(1)};
   flex-wrap: wrap;
+  gap: ${space(1)};
 `;
 
-const ActionsRow = styled('div')`
+const ShortcutsRow = styled('div')`
   flex-direction: row;
   display: flex;
   align-items: center;
 `;
 
-const ActionButtonContainer = styled('div')`
+const ShortcutButtonContainer = styled('div')`
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -284,8 +297,40 @@ const ActionButtonContainer = styled('div')`
 const HotkeyGlyphWrapper = styled('span')`
   color: ${p => p.theme.gray300};
   margin-right: ${space(0.5)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
+`;
+
+const IconWrapper = styled('span')`
+  display: none;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+    margin-right: ${space(0.5)};
+    align-items: center;
+    justify-content: center;
+  }
 `;
 
 const HotkeyTitle = styled(`span`)`
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Invalid = styled(`span`)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.gray400};
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+
+  span {
+    white-space: pre;
+  }
+`;
+
+const Highlight = styled(`strong`)`
+  color: ${p => p.theme.linkColor};
 `;

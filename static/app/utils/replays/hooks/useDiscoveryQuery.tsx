@@ -31,12 +31,12 @@ interface State<T> {
   pageLinks: string | undefined;
 }
 
-const INITIAL_STATE: State<any> = {
+const INITIAL_STATE: Readonly<State<any>> = {
   isLoading: true,
   error: undefined,
   data: undefined,
   pageLinks: undefined,
-} as const;
+};
 
 const FAKE_LOCATION = {
   query: {},

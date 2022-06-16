@@ -1187,6 +1187,37 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             get_granularity(start, end) == 60
         ), "12h at boundary, but 15 min after the boundary for start"
 
+    def test_get_snql_query(self):
+        query = MetricsQueryBuilder(self.params, "", selected_columns=["p90(transaction.duration)"])
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "metrics"
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                _metric_percentile_definition(self.organization.id, "90"),
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(self.organization.id, ["transaction.duration"]),
+            ],
+        )
+
+    def test_get_snql_query_errors_with_multiple_dataset(self):
+        query = MetricsQueryBuilder(
+            self.params, "", selected_columns=["p90(transaction.duration)", "count_unique(user)"]
+        )
+        with self.assertRaises(NotImplementedError):
+            query.get_snql_query()
+
+    def test_get_snql_query_errors_with_no_functions(self):
+        query = MetricsQueryBuilder(self.params, "", selected_columns=["project"])
+        with self.assertRaises(IncompatibleMetricsQuery):
+            query.get_snql_query()
+
     def test_run_query(self):
         self.store_metric(
             100,
@@ -1523,6 +1554,24 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         data = result["data"][0]
         assert data["failure_rate"] == 0.5
         assert data["failure_count"] == 3
+
+    def test_run_function_without_having_or_groupby(self):
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "transaction",
+                "count_unique(user)",
+            ],
+        )
+        primary, result = query._create_query_framework()
+        assert primary == "set"
 
     def test_run_query_with_multiple_groupby_orderby_null_values_in_second_entity(self):
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions

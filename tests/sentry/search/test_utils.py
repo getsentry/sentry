@@ -64,10 +64,10 @@ class TestParseDuration(TestCase):
         assert parse_duration(890, "w") == 890 * 7 * 24 * 60 * 60 * 1000
 
     def test_errors(self):
-        with self.assertRaises(InvalidQuery):
+        with pytest.raises(InvalidQuery):
             parse_duration("test", "ms")
 
-        with self.assertRaises(InvalidQuery):
+        with pytest.raises(InvalidQuery):
             parse_duration(123, "test")
 
     def test_large_durations(self):
@@ -79,19 +79,19 @@ class TestParseDuration(TestCase):
         assert parse_duration(999999999 * 24 * 60 * 60 * 1000, "ms") == max_duration
 
     def test_overflow_durations(self):
-        with self.assertRaises(InvalidQuery):
+        with pytest.raises(InvalidQuery):
             assert parse_duration(999999999 + 1, "d")
 
-        with self.assertRaises(InvalidQuery):
+        with pytest.raises(InvalidQuery):
             assert parse_duration((999999999 + 1) * 24, "h")
 
-        with self.assertRaises(InvalidQuery):
+        with pytest.raises(InvalidQuery):
             assert parse_duration((999999999 + 1) * 24 * 60 + 1, "m")
 
-        with self.assertRaises(InvalidQuery):
+        with pytest.raises(InvalidQuery):
             assert parse_duration((999999999 + 1) * 24 * 60 * 60 + 1, "s")
 
-        with self.assertRaises(InvalidQuery):
+        with pytest.raises(InvalidQuery):
             assert parse_duration((999999999 + 1) * 24 * 60 * 60 * 1000 + 1, "ms")
 
 

@@ -9,8 +9,10 @@ import {
   TOGGLE_BORDER_BOX,
   TOGGLE_BUTTON_MAX_WIDTH,
 } from 'sentry/components/performance/waterfall/treeConnector';
+import {Organization} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
@@ -659,7 +661,8 @@ export function getMeasurementBounds(
 export function scrollToSpan(
   spanId: string,
   scrollToHash: (hash: string) => void,
-  location: Location
+  location: Location,
+  organization: Organization
 ) {
   return (e: React.MouseEvent<Element>) => {
     // do not use the default anchor behaviour
@@ -677,6 +680,11 @@ export function scrollToSpan(
     browserHistory.push({
       ...location,
       hash,
+    });
+
+    trackAdvancedAnalyticsEvent('performance_views.event_details.anchor_span', {
+      organization,
+      span_id: spanId,
     });
   };
 }

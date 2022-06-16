@@ -1,3 +1,4 @@
+import pytest
 from django.http import HttpResponse
 
 from fixtures.sudo_testutils import BaseTestCase
@@ -15,7 +16,7 @@ class SudoMiddlewareTestCase(BaseTestCase):
 
     def test_process_request_raises_without_session(self):
         del self.request.session
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             self.middleware.process_request(self.request)
 
     def test_process_request_adds_is_sudo(self):

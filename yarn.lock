@@ -5017,22 +5017,22 @@
     "@webassemblyjs/ast" "1.11.1"
     "@xtuc/long" "4.2.2"
 
-"@webpack-cli/configtest@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@webpack-cli/configtest/-/configtest-1.1.1.tgz#9f53b1b7946a6efc2a749095a4f450e2932e8356"
-  integrity sha512-1FBc1f9G4P/AxMqIgfZgeOTuRnwZMten8E7zap5zgpPInnCrP8D4Q81+4CWIch8i/Nf7nXjP0v6CjjbHOrXhKg==
+"@webpack-cli/configtest@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@webpack-cli/configtest/-/configtest-1.2.0.tgz#7b20ce1c12533912c3b217ea68262365fa29a6f5"
+  integrity sha512-4FB8Tj6xyVkyqjj1OaTqCjXYULB9FMkqQ8yGrZjRDrYh0nOE+7Lhs45WioWQQMV+ceFlE368Ukhe6xdvJM9Egg==
 
-"@webpack-cli/info@^1.4.1":
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/@webpack-cli/info/-/info-1.4.1.tgz#2360ea1710cbbb97ff156a3f0f24556e0fc1ebea"
-  integrity sha512-PKVGmazEq3oAo46Q63tpMr4HipI3OPfP7LiNOEJg963RMgT0rqheag28NCML0o3GIzA3DmxP1ZIAv9oTX1CUIA==
+"@webpack-cli/info@^1.5.0":
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/@webpack-cli/info/-/info-1.5.0.tgz#6c78c13c5874852d6e2dd17f08a41f3fe4c261b1"
+  integrity sha512-e8tSXZpw2hPl2uMJY6fsMswaok5FdlGNRTktvFk2sD8RjH0hE2+XistawJx1vmKteh4NmGmNUrp+Tb2w+udPcQ==
   dependencies:
     envinfo "^7.7.3"
 
-"@webpack-cli/serve@^1.6.1":
-  version "1.6.1"
-  resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.6.1.tgz#0de2875ac31b46b6c5bb1ae0a7d7f0ba5678dffe"
-  integrity sha512-gNGTiTrjEVQ0OcVnzsRSqTxaBSr+dmTfm+qJsCDluky8uhdLWep7Gcr62QsAKHTMxjCS/8nEITsmFAhfIx+QSw==
+"@webpack-cli/serve@^1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@webpack-cli/serve/-/serve-1.7.0.tgz#e1993689ac42d2b16e9194376cfb6753f6254db1"
+  integrity sha512-oxnCNGj88fL+xzV+dacXs44HcDwf1ovs3AuEzvP7mqXw7fQntqIhQ1BRmynh4qEKQSSSRSWVyXRjmTbZIX9V2Q==
 
 "@wojtekmaj/enzyme-adapter-react-17@0.6.1":
   version "0.6.1"
@@ -7197,10 +7197,10 @@ diff-sequences@^28.1.1:
   resolved "https://registry.yarnpkg.com/diff-sequences/-/diff-sequences-28.1.1.tgz#9989dc731266dc2903457a70e996f3a041913ac6"
   integrity sha512-FU0iFaH/E23a+a718l8Qa/19bF9p06kgE0KipMOMadwa3SjnaElKzPaUC0vnibs6/B/9ni97s61mcejk8W1fQw==
 
-diff@5.0.0:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/diff/-/diff-5.0.0.tgz#7ed6ad76d859d030787ec35855f5b1daf31d852b"
-  integrity sha512-/VTCrvm5Z0JGty/BWHljh+BAiw3IK+2j87NGMu8Nwc/f48WoDAC395uomO9ZD117ZOBaHmkX1oyLvkVM/aIT3w==
+diff@5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/diff/-/diff-5.1.0.tgz#bc52d298c5ea8df9194800224445ed43ffc87e40"
+  integrity sha512-D+mk+qE8VC/PAUrlAU34N+VfXev0ghe5ywmpqrawphmVZc1bEfn56uo9qpyGp1p4xpzOHkSW4ztBd6L7Xx4ACw==
 
 diff@^4.0.1:
   version "4.0.2"
@@ -11306,10 +11306,10 @@ min-indent@^1.0.0:
   resolved "https://registry.yarnpkg.com/min-indent/-/min-indent-1.0.0.tgz#cfc45c37e9ec0d8f0a0ec3dd4ef7f7c3abe39256"
   integrity sha1-z8RcN+nsDY8KDsPdTvf3w6vjklY=
 
-mini-css-extract-plugin@*, mini-css-extract-plugin@^2.6.0:
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/mini-css-extract-plugin/-/mini-css-extract-plugin-2.6.0.tgz#578aebc7fc14d32c0ad304c2c34f08af44673f5e"
-  integrity sha512-ndG8nxCEnAemsg4FSgS+yNyHKgkTB4nPKqCOgh65j3/30qqC5RaSQQXMm++Y6sb6E1zRSxPkztj9fqxhS1Eo6w==
+mini-css-extract-plugin@*, mini-css-extract-plugin@^2.6.1:
+  version "2.6.1"
+  resolved "https://registry.yarnpkg.com/mini-css-extract-plugin/-/mini-css-extract-plugin-2.6.1.tgz#9a1251d15f2035c342d99a468ab9da7a0451b71e"
+  integrity sha512-wd+SD57/K6DiV7jIR34P+s3uckTRuQvx0tKPcvjFlrEylk6P4mQ2KSWk1hblj1Kxaqok7LogKOieygXqBczNlg==
   dependencies:
     schema-utils "^4.0.0"
 
@@ -14959,10 +14959,10 @@ ts-essentials@^2.0.3:
   resolved "https://registry.yarnpkg.com/ts-essentials/-/ts-essentials-2.0.12.tgz#c9303f3d74f75fa7528c3d49b80e089ab09d8745"
   integrity sha512-3IVX4nI6B5cc31/GFFE+i8ey/N2eA0CZDbo6n0yrz0zDX8ZJ8djmU1p+XRz7G3is0F3bB3pu2pAroFdAWQKU3w==
 
-ts-node@^10.8.0:
-  version "10.8.0"
-  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-10.8.0.tgz#3ceb5ac3e67ae8025c1950626aafbdecb55d82ce"
-  integrity sha512-/fNd5Qh+zTt8Vt1KbYZjRHCE9sI5i7nqfD/dzBBRDeVXZXS6kToW6R7tTU6Nd4XavFs0mAVCg29Q//ML7WsZYA==
+ts-node@^10.8.1:
+  version "10.8.1"
+  resolved "https://registry.yarnpkg.com/ts-node/-/ts-node-10.8.1.tgz#ea2bd3459011b52699d7e88daa55a45a1af4f066"
+  integrity sha512-Wwsnao4DQoJsN034wePSg5nZiw4YKXf56mPIAeD6wVmiv+RytNSWqc2f3fKvcUoV+Yn2+yocD71VOfQHbmVX4g==
   dependencies:
     "@cspotcode/source-map-support" "^0.8.0"
     "@tsconfig/node10" "^1.0.7"
@@ -15536,18 +15536,18 @@ webpack-bundle-analyzer@^4.4.2:
     sirv "^1.0.7"
     ws "^7.3.1"
 
-webpack-cli@4.9.2:
-  version "4.9.2"
-  resolved "https://registry.yarnpkg.com/webpack-cli/-/webpack-cli-4.9.2.tgz#77c1adaea020c3f9e2db8aad8ea78d235c83659d"
-  integrity sha512-m3/AACnBBzK/kMTcxWHcZFPrw/eQuY4Df1TxvIWfWM2x7mRqBQCqKEd96oCUa9jkapLBaFfRce33eGDb4Pr7YQ==
+webpack-cli@4.10.0:
+  version "4.10.0"
+  resolved "https://registry.yarnpkg.com/webpack-cli/-/webpack-cli-4.10.0.tgz#37c1d69c8d85214c5a65e589378f53aec64dab31"
+  integrity sha512-NLhDfH/h4O6UOy+0LSso42xvYypClINuMNBVVzX4vX98TmTaTUxwRbXdhucbFMd2qLaCTcLq/PdYrvi8onw90w==
   dependencies:
     "@discoveryjs/json-ext" "^0.5.0"
-    "@webpack-cli/configtest" "^1.1.1"
-    "@webpack-cli/info" "^1.4.1"
-    "@webpack-cli/serve" "^1.6.1"
+    "@webpack-cli/configtest" "^1.2.0"
+    "@webpack-cli/info" "^1.5.0"
+    "@webpack-cli/serve" "^1.7.0"
     colorette "^2.0.14"
     commander "^7.0.0"
-    execa "^5.0.0"
+    cross-spawn "^7.0.3"
     fastest-levenshtein "^1.0.12"
     import-local "^3.0.2"
     interpret "^2.2.0"
