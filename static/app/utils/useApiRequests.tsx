@@ -250,7 +250,7 @@ function useApiRequests({
   }
 
   function reloadData() {
-    return fetchData({reloading: true});
+    return fetchData({isReloading: true});
   }
 
   function handleRequestSuccess(
@@ -318,7 +318,7 @@ function useApiRequests({
     [markShouldMeasure, onRequestError]
   );
 
-  async function fetchData(extraState = {}) {
+  async function fetchData(extraState: Partial<State> = {}) {
     if (!endpoints.length) {
       setState(prevState => ({
         ...prevState,
