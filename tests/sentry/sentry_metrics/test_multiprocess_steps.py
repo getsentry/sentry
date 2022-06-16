@@ -243,10 +243,14 @@ def __translated_payload(
     org_id = payload["org_id"]
 
     new_tags = {
-        indexer.resolve("release-health", org_id, k): indexer.resolve("release-health", org_id, v)
+        indexer.resolve(use_case_id="release-health", org_id=org_id, string=k): indexer.resolve(
+            use_case_id="release-health", org_id=org_id, string=v
+        )
         for k, v in payload["tags"].items()
     }
-    payload["metric_id"] = indexer.resolve("release-health", org_id, payload["name"])
+    payload["metric_id"] = indexer.resolve(
+        use_case_id="release-health", org_id=org_id, string=payload["name"]
+    )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
 

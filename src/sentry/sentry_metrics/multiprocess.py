@@ -459,7 +459,7 @@ def process_messages(
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
-        record_result = indexer.bulk_record(use_case_id, org_strings)
+        record_result = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
 
     mapping = record_result.get_mapped_results()
     bulk_record_meta = record_result.get_fetch_metadata()
