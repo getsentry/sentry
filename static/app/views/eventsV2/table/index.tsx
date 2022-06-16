@@ -99,9 +99,8 @@ class Table extends PureComponent<TableProps, TableState> {
       : `/organizations/${organization.slug}/eventsv2/`;
     const tableFetchID = Symbol('tableFetchID');
 
-    // adding user_modified property. this property will be removed once search bar experiment is complete
     const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
-      EventQuery & {user_modified?: string};
+      EventQuery;
     apiPayload.referrer = 'api.discover.query-table';
 
     setError('', 200);
