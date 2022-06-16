@@ -273,7 +273,7 @@ export const shortcuts: Shortcut[] = [
     },
   },
   {
-    text: 'Negate',
+    text: 'Exclude',
     shortcutType: ShortcutType.Negate,
     hotkeys: {
       actual: ['option+1'],
