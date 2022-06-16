@@ -4,14 +4,7 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
-import {
-  IconCheckmark,
-  IconChevron,
-  IconFire,
-  IconInfo,
-  IconNot,
-  IconWarning,
-} from 'sentry/icons';
+import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {Theme} from 'sentry/utils/theme';
@@ -59,8 +52,6 @@ function Alert({
         return <IconCheckmark />;
       case 'error':
         return <IconNot />;
-      case 'performanceError':
-        return <IconFire />;
       case 'info':
       default:
         return <IconInfo />;

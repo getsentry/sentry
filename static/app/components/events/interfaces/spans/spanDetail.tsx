@@ -284,7 +284,7 @@ class SpanDetail extends Component<Props, State> {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert type="performanceError" showIcon system>
+      <Alert type="error" system>
         <ErrorMessageTitle>
           {tn(
             'An error event occurred in this transaction.',
