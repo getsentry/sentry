@@ -1,6 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
-import {OrganizationSummary, PageFilters, SelectValue, TagCollection} from 'sentry/types';
+import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
@@ -17,7 +17,7 @@ import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type ContextualProps = {
-  organization?: OrganizationSummary;
+  organization?: Organization;
   pageFilters?: PageFilters;
 };
 
