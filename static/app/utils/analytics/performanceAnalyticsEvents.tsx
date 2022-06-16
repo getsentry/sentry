@@ -111,7 +111,9 @@ export type PerformanceEventParameters = {
     from_vital: string;
     to_vital: string;
   };
-  'performance_views.vital_detail.view': {};
+  'performance_views.vital_detail.view': {
+    project_platforms: string;
+  };
 };
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
