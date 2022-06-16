@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import threading
 import weakref
@@ -438,3 +440,74 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         if hasattr(self, "_hints"):
             return self._queryset_class(self.model, using=self._db, hints=self._hints)
         return self._queryset_class(self.model, using=self._db)
+
+    def _copy_state_into(self, other: BaseManager[M]) -> None:
+        other.model = self.model
+        other.cache_fields = self.cache_fields
+        other.cache_ttl = self.cache_ttl
+        other._cache_version = self._cache_version
+        other.__local_cache = threading.local()
+
+    def create_disabled_copy(self) -> BaseManager[M]:
+        """Create a copy of this manager object that disallows all operations."""
+        from sentry.db.models.base import ServerModeDataError
+
+        cls = type(self)
+        override = ServerModeDataError.create_override(
+            f"{self.model.__name__} is unavailable in this server mode"
+        )
+        disabled_subclass = type(f"Disabled{cls.__name__}", (cls,), {"get_queryset": override})
+        disabled_instance = disabled_subclass()
+        self._copy_state_into(disabled_instance)
+        return disabled_instance  # type: ignore
+
+    def create_read_only_copy(self) -> BaseManager[M]:
+        """Create a copy of this manager object that disallows destructive operations."""
+        from sentry.db.models.base import ServerModeDataError
+
+        manager_method_overrides = {
+            method_name: ServerModeDataError.create_override(
+                f"Cannot call {self.model.__name__}.objects.{method_name} "
+                f"while {self.model.__name__} is read-only in this server mode"
+            )
+            for method_name in (
+                "bulk_create",
+                "bulk_update",
+                "create",
+                "create_or_update",
+                "get_or_create",
+                "post_delete",
+                "select_for_update",
+                "update",
+                "update_or_create",
+            )
+        }
+
+        cls = type(self)
+        read_only_subclass = type(f"ReadOnly{cls.__name__}", (cls,), manager_method_overrides)
+        read_only_instance = read_only_subclass()
+        self._copy_state_into(read_only_instance)
+
+        queryset_method_overrides = {
+            method_name: ServerModeDataError.create_override(
+                f"Cannot call `{method_name}` on a {self.model.__name__} queryset "
+                f"while {self.model.__name__} is read-only in this server mode"
+            )
+            for method_name in (
+                "bulk_create",
+                "bulk_update",
+                "create",
+                "delete",
+                "get_or_create",
+                "update",
+                "update_or_create",
+            )
+        }
+        read_only_queryset_class = type(
+            f"ReadOnly{self._queryset_class.__name__}",
+            (self._queryset_class,),
+            queryset_method_overrides,
+        )
+        read_only_instance._queryset_class = read_only_queryset_class
+
+        return read_only_instance  # type: ignore
