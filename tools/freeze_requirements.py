@@ -53,10 +53,6 @@ stderr:
 
 
 def main(repo: str, outdir: Optional[str] = None) -> int:
-    # TODO: This is used in a lot of ifelse, so will need to update
-    #       to accomodate things like snuba.
-    IS_GETSENTRY = repo == "getsentry"
-
     base_path = abspath(gitroot())
 
     if outdir is None:
@@ -71,7 +67,7 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
             "requirements-frozen.txt",
             "requirements-dev-frozen.txt",
         ]
-        if not IS_GETSENTRY:
+        if repo == "sentry":
             lockfiles.append("requirements-dev-only-frozen.txt")
         for fn in lockfiles:
             copyfile(f"{base_path}/{fn}", f"{outdir}/{fn}")
@@ -85,79 +81,77 @@ def main(repo: str, outdir: Optional[str] = None) -> int:
     )
 
     executor = ThreadPoolExecutor(max_workers=3)
+    futures = []
 
-    if IS_GETSENTRY:
-        old_base_path = base_path
-        base_path = f"{base_path}/../sentry"
-
-    futures = [
-        executor.submit(
-            worker,
-            (
-                *base_cmd,
-                f"{base_path}/requirements-base.txt",
-                "-o",
-                f"{outdir}/requirements-frozen.txt",
-            ),
-        ),
-        # sentry and getsentry share sentry's requirements-dev.
-        executor.submit(
-            worker,
-            (
-                *base_cmd,
-                f"{base_path}/requirements-base.txt",
-                f"{base_path}/requirements-dev.txt",
-                "-o",
-                f"{outdir}/requirements-dev-frozen.txt",
-            ),
-        ),
-        # requirements-dev-only-frozen.txt is only used in sentry
-        # and getsentry as a fast path for some CI jobs.
-        executor.submit(
-            worker,
-            (
-                *base_cmd,
-                f"{base_path}/requirements-dev.txt",
-                "-o",
-                f"{outdir}/requirements-dev-only-frozen.txt",
-            ),
-        ),
-    ]
-
-    rc = check_futures(futures)
-    if rc != 0:
-        executor.shutdown()
-        return rc
-
-    if IS_GETSENTRY:
-        base_path = old_base_path
-        rc = check_futures(
-            [
-                executor.submit(
-                    worker,
-                    (
-                        *base_cmd,
-                        f"{base_path}/requirements-base.txt",
-                        # This is downloaded with bin/bump-sentry.
-                        f"{base_path}/sentry-requirements-frozen.txt",
-                        "-o",
-                        f"{outdir}/requirements-frozen.txt",
-                    ),
+    if repo != "getsentry":
+        futures.append(
+            executor.submit(
+                worker,
+                (
+                    *base_cmd,
+                    f"{base_path}/requirements-base.txt",
+                    "-o",
+                    f"{outdir}/requirements-frozen.txt",
                 ),
-                executor.submit(
-                    worker,
-                    (
-                        *base_cmd,
-                        f"{base_path}/requirements-base.txt",
-                        # This is downloaded with bin/bump-sentry.
-                        f"{base_path}/sentry-requirements-dev-frozen.txt",
-                        "-o",
-                        f"{outdir}/requirements-dev-frozen.txt",
-                    ),
+            )
+        )
+        futures.append(
+            executor.submit(
+                worker,
+                (
+                    *base_cmd,
+                    f"{base_path}/requirements-base.txt",
+                    f"{base_path}/requirements-dev.txt",
+                    "-o",
+                    f"{outdir}/requirements-dev-frozen.txt",
                 ),
-            ]
+            )
+        )
+    else:
+        futures.append(
+            executor.submit(
+                worker,
+                (
+                    *base_cmd,
+                    f"{base_path}/requirements-base.txt",
+                    # This is downloaded with bin/bump-sentry.
+                    f"{base_path}/sentry-requirements-frozen.txt",
+                    "-o",
+                    f"{outdir}/requirements-frozen.txt",
+                ),
+            )
+        )
+        # getsentry shares sentry's requirements-dev.
+        futures.append(
+            executor.submit(
+                worker,
+                (
+                    *base_cmd,
+                    f"{base_path}/requirements-base.txt",
+                    # This is downloaded with bin/bump-sentry.
+                    f"{base_path}/sentry-requirements-dev-frozen.txt",
+                    "-o",
+                    f"{outdir}/requirements-dev-frozen.txt",
+                ),
+            )
         )
 
+    if repo == "sentry":
+        # requirements-dev-only-frozen.txt is only used in sentry
+        # (and reused in getsentry) as a fast path for some CI jobs.
+        futures.append(
+            executor.submit(
+                worker,
+                (
+                    *base_cmd,
+                    f"{base_path}/requirements-dev.txt",
+                    "-o",
+                    f"{outdir}/requirements-dev-only-frozen.txt",
+                ),
+            )
+        )
+
+    rc = check_futures(futures)
     executor.shutdown()
     return rc
 
