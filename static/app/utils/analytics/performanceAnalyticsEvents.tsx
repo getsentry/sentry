@@ -54,6 +54,7 @@ export type PerformanceEventParameters = {
   'performance_views.overview.navigate.summary': {};
   'performance_views.overview.search': {};
   'performance_views.overview.view': {
+    selected_projects: string;
     show_onboarding: boolean;
   };
   'performance_views.span_summary.change_chart': {

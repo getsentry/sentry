@@ -265,3 +265,20 @@ export function getTransactionName(location: Location): string | undefined {
 export function getPerformanceDuration(milliseconds: number) {
   return getDuration(milliseconds / 1000, milliseconds > 1000 ? 2 : 0, true);
 }
+
+export function getSelectedProjectPlatforms(location: Location, projects: Project[]) {
+  const projectQuery = location.query.project;
+  const selectedProjectIdSet = Array.isArray(projectQuery)
+    ? new Set(projectQuery)
+    : new Set([projectQuery]);
+
+  const selectedProjectPlatforms = projects.reduce((acc: string[], project) => {
+    if (selectedProjectIdSet.has(project.id)) {
+      acc.push(project.platform ?? 'undefined');
+    }
+
+    return acc;
+  }, []);
+
+  return selectedProjectPlatforms.join(', ');
+}
