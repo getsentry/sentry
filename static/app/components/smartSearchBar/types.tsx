@@ -51,6 +51,7 @@ export enum QuickActionType {
 
 export type QuickAction = {
   actionType: QuickActionType;
+  icon: React.ReactNode;
   text: string;
   canRunAction?: (
     token: TokenResult<any> | null | undefined,

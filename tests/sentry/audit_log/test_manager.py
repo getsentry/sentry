@@ -1,3 +1,4 @@
+import pytest
 from django.utils import timezone
 
 from sentry import audit_log
@@ -51,7 +52,7 @@ class AuditLogEventManagerTest(TestCase):
                 template="test member {email} is {role}",
             )
         )
-        with self.assertRaises(DuplicateAuditLogEvent):
+        with pytest.raises(DuplicateAuditLogEvent):
             test_manager.add(
                 AuditLogEvent(
                     event_id=500,
@@ -62,7 +63,7 @@ class AuditLogEventManagerTest(TestCase):
             )
         assert test_manager.get_event_id(name="TEST_LOG_ENTRY") == 500
 
-        with self.assertRaises(AuditLogEventNotRegistered):
+        with pytest.raises(AuditLogEventNotRegistered):
             test_manager.get_event_id(name="TEST_DUPLICATE")
 
     def test_duplicate_event_name(self):
@@ -76,7 +77,7 @@ class AuditLogEventManagerTest(TestCase):
                 template="test member {email} is {role}",
             )
         )
-        with self.assertRaises(DuplicateAuditLogEvent):
+        with pytest.raises(DuplicateAuditLogEvent):
             test_manager.add(
                 AuditLogEvent(
                     event_id=501,
@@ -88,7 +89,7 @@ class AuditLogEventManagerTest(TestCase):
         assert test_manager.get_event_id(name="TEST_LOG_ENTRY") == 500
         assert "test.duplicate" not in test_manager.get_api_names()
 
-        with self.assertRaises(AuditLogEventNotRegistered):
+        with pytest.raises(AuditLogEventNotRegistered):
             test_manager.get(501)
 
     def test_duplicate_api_name(self):
@@ -102,7 +103,7 @@ class AuditLogEventManagerTest(TestCase):
                 template="test member {email} is {role}",
             )
         )
-        with self.assertRaises(DuplicateAuditLogEvent):
+        with pytest.raises(DuplicateAuditLogEvent):
             test_manager.add(
                 AuditLogEvent(
                     event_id=501,
@@ -113,5 +114,5 @@ class AuditLogEventManagerTest(TestCase):
             )
         assert test_manager.get_event_id_from_api_name(api_name="test-log.entry") == 500
 
-        with self.assertRaises(AuditLogEventNotRegistered):
+        with pytest.raises(AuditLogEventNotRegistered):
             test_manager.get(501)
