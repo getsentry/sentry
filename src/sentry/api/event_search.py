@@ -451,6 +451,9 @@ class SearchConfig:
     # If empty, allow all keys.
     allowed_keys: Set[str] = field(default_factory=set)
 
+    # Allows us to specify a list of keys we will not accept for this search.
+    blocked_keys: Set[str] = field(default_factory=set)
+
     # Which key we should return any free text under
     free_text_key = "message"
 
@@ -925,8 +928,12 @@ class SearchVisitor(NodeVisitor):
 
     def visit_search_key(self, node, children):
         key = children[0]
-        if self.config.allowed_keys and key not in self.config.allowed_keys:
-            raise InvalidSearchQuery("Invalid key for this search")
+        if (
+            self.config.allowed_keys
+            and key not in self.config.allowed_keys
+            or key in self.config.blocked_keys
+        ):
+            raise InvalidSearchQuery(f"Invalid key for this search: {key}")
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_text_key(self, node, children):
@@ -1068,7 +1075,9 @@ default_config = SearchConfig(
 )
 
 
-def parse_search_query(query, config=None, params=None, builder=None) -> Sequence[SearchFilter]:
+def parse_search_query(
+    query, config=None, params=None, builder=None, config_overrides=None
+) -> Sequence[SearchFilter]:
     if config is None:
         config = default_config
 
@@ -1084,4 +1093,8 @@ def parse_search_query(query, config=None, params=None, builder=None) -> Sequenc
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
+
+    if config_overrides:
+        for param, value in config_overrides.items():
+            setattr(config, param, value)
     return SearchVisitor(config, params=params, builder=builder).visit(tree)
