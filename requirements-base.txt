@@ -2,7 +2,7 @@ beautifulsoup4>=4.7.1
 boto3>=1.22.12
 botocore>=1.25.12
 celery>=4.4.7
-click>=8.0.4
+click>=8.1.2
 # See if we can remove CPATH from lib.sh
 # https://github.com/getsentry/sentry/pull/30094
 confluent-kafka>=1.7.0
