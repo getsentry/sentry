@@ -7,7 +7,7 @@ __all__ = (
 
 
 from django.db.models import CharField, TextField
-from picklefield.fields import PickledObjectField
+from django_picklefield import PickledObjectField
 
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.utils import Creator
