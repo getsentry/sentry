@@ -62,7 +62,9 @@ export type PerformanceEventParameters = {
   'performance_views.span_summary.change_chart': {
     change_to_display: string;
   };
-  'performance_views.span_summary.view': {};
+  'performance_views.span_summary.view': {
+    project_platforms: string;
+  };
   'performance_views.spans.change_op': {
     operation_name?: string;
   };
