@@ -232,3 +232,5 @@ METRIC_PERCENTILES = {
     0.99,
     1,
 }
+
+CUSTOM_MEASUREMENT_PATTERN = re.compile(r"^measurements\..+$")

@@ -1210,12 +1210,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params, "", selected_columns=["p90(transaction.duration)", "count_unique(user)"]
         )
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             query.get_snql_query()
 
     def test_get_snql_query_errors_with_no_functions(self):
         query = MetricsQueryBuilder(self.params, "", selected_columns=["project"])
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query.get_snql_query()
 
     def test_run_query(self):
@@ -1963,6 +1963,31 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 mock.call(self.organization.id, "measurement_rating"),
                 mock.call(self.organization.id, "good"),
             ],
+        )
+
+    def test_custom_measurement_allowed(self):
+        MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "avg(measurements.custom.measurement)",
+                "p50(measurements.custom.measurement)",
+                "p75(measurements.custom.measurement)",
+                "p90(measurements.custom.measurement)",
+                "p95(measurements.custom.measurement)",
+                "p99(measurements.custom.measurement)",
+                "p100(measurements.custom.measurement)",
+                "percentile(measurements.custom.measurement, 0.95)",
+                "sum(measurements.custom.measurement)",
+                "max(measurements.custom.measurement)",
+                "min(measurements.custom.measurement)",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+            # Use dry run for now to not hit indexer
+            dry_run=True,
         )
 
 
