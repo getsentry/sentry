@@ -1,33 +1,37 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import IdBadge from 'sentry/components/idBadge';
 
 describe('IdBadge', function () {
   it('renders the correct component when `user` property is passed', function () {
-    const wrapper = mountWithTheme(<IdBadge user={TestStubs.User()} />);
+    const user = TestStubs.User();
+    render(<IdBadge user={user} />);
 
-    expect(wrapper.find('UserBadge')).toHaveLength(1);
+    expect(screen.getByTestId('letter_avatar-avatar')).toHaveTextContent('FB');
+    expect(screen.getByText(user.email)).toBeInTheDocument();
   });
 
   it('renders the correct component when `team` property is passed', function () {
-    const wrapper = mountWithTheme(<IdBadge team={TestStubs.Team()} />);
+    render(<IdBadge team={TestStubs.Team()} />);
 
-    expect(wrapper.find('[data-test-id="team-badge"]')).toHaveLength(1);
+    expect(screen.getByTestId('badge-styled-avatar')).toHaveTextContent('TS');
+    expect(screen.getByTestId('badge-display-name')).toHaveTextContent('#team-slug');
   });
 
   it('renders the correct component when `project` property is passed', function () {
-    const wrapper = mountWithTheme(<IdBadge project={TestStubs.Project()} />);
+    render(<IdBadge project={TestStubs.Project()} />);
 
-    expect(wrapper.find('ProjectBadge')).toHaveLength(1);
+    expect(screen.getByTestId('badge-display-name')).toHaveTextContent('project-slug');
   });
 
   it('renders the correct component when `organization` property is passed', function () {
-    const wrapper = mountWithTheme(<IdBadge organization={TestStubs.Organization()} />);
+    render(<IdBadge organization={TestStubs.Organization()} />);
 
-    expect(wrapper.find('OrganizationBadge')).toHaveLength(1);
+    expect(screen.getByTestId('badge-styled-avatar')).toHaveTextContent('OS');
+    expect(screen.getByTestId('badge-display-name')).toHaveTextContent('org-slug');
   });
 
   it('throws when no valid properties are passed', function () {
-    expect(() => mountWithTheme(<IdBadge />)).toThrow();
+    expect(() => render(<IdBadge />)).toThrow();
   });
 });
