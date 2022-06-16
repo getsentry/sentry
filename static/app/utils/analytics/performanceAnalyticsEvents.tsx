@@ -51,7 +51,9 @@ export type PerformanceEventParameters = {
     to_widget?: string;
   };
   'performance_views.overview.cellaction': {action?: string};
-  'performance_views.overview.navigate.summary': {};
+  'performance_views.overview.navigate.summary': {
+    project_platforms: string;
+  };
   'performance_views.overview.search': {};
   'performance_views.overview.view': {
     project_platforms: string;

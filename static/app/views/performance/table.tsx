@@ -39,6 +39,7 @@ import {
   transactionSummaryRouteWithQuery,
 } from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
+import {getSelectedProjectPlatforms} from './utils';
 
 export function getProjectID(
   eventData: EventData,
@@ -355,9 +356,10 @@ class _Table extends Component<Props, State> {
   };
 
   handleSummaryClick = () => {
-    const {organization} = this.props;
+    const {organization, location, projects} = this.props;
     trackAdvancedAnalyticsEvent('performance_views.overview.navigate.summary', {
       organization,
+      project_platforms: getSelectedProjectPlatforms(location, projects),
     });
   };
 
