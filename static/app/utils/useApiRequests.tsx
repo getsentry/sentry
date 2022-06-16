@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {ResponseMeta} from 'sentry/api';
@@ -17,36 +17,79 @@ import RouteError from 'sentry/views/routeError';
 import RequestError from './requestError/requestError';
 
 type State = {
+  /**
+   * Mapping of results from the configured endpoints
+   */
   data: {[key: string]: any};
+  /**
+   * Errors from the configured endpoionts
+   */
   errors: {[key: string]: RequestError};
+  /**
+   * Did *any* of the endpoints fail?
+   */
   hasError: boolean;
+  /**
+   * Are the endpoints currently loading?
+   */
   isLoading: boolean;
+  /**
+   * Are we *reloading* data without the loading state being set to true?
+   */
   isReloading: boolean;
+  /**
+   * How many requests are still pending?
+   */
   remainingRequests: number;
 };
 
-type Result = {
-  renderComponent: (_child: React.ReactElement) => React.ReactElement;
-} & State;
+type Result = State & {
+  /**
+   * renderComponent is a helper function that is used to render loading and
+   * errors state for you, and will only render your component once all endpoints
+   * have resolved.
+   *
+   * Typically you would use this when returning react for your component.
+   *
+   *   return renderComponent(
+   *     <div>{data.someEndpoint.resultKey}</div>
+   *   )
+   *
+   * The react element will only be rendered once all endpoints have been loaded.
+   */
+  renderComponent: (children: React.ReactElement) => React.ReactElement;
+};
+
+type EndpointRequestOptions = {
+  /**
+   * Function to check if the error is allowed
+   */
+  allowError?: (error: any) => void;
+  /**
+   * Do not pass query parameters to the API
+   */
+  disableEntireQuery?: boolean;
+  /**
+   * If set then pass entire `query` object to API call
+   */
+  paginate?: boolean;
+};
+
+type EndpointDefinition = [
+  key: string,
+  url: string,
+  urlOptions?: {query?: string},
+  requestOptions?: EndpointRequestOptions
+];
 
 type Options = {
-  endpoints: Array<
-    [
-      key: string,
-      url: string,
-      urlOptions?: {query?: string},
-      requestOptions?: {
-        allowError?: (_err) => void;
-        disableEntireQuery?: boolean;
-        paginate?: boolean;
-      }
-    ]
-  >;
+  endpoints: EndpointDefinition[];
   /**
-   * If a request fails and is not a bad request, and if `disableErrorReport` is set to false,
-   * the UI will display an error modal.
+   * If a request fails and is not a bad request, and if `disableErrorReport`
+   * is set to false, the UI will display an error modal.
    *
-   * It is recommended to enable this property ideally only when the subclass is used by a top level route.
+   * It is recommended to enable this property ideally only when the subclass
+   * is used by a top level route.
    */
   disableErrorReport?: boolean;
   onLoadAllEndpointsSuccess?: () => void;
@@ -62,9 +105,11 @@ type Options = {
   reloadOnVisible?: boolean;
   /**
    * This affects how the component behaves when `remountComponent` is called
-   * By default, the component gets put back into a "loading" state when re-fetching data.
-   * If this is true, then when we fetch data, the original ready component remains mounted
-   * and it will need to handle any additional "reloading" states
+   *
+   * By default, the component gets put back into a "loading" state when
+   * re-fetching data. If this is true, then when we fetch data, the original
+   * ready component remains mounted and it will need to handle any additional
+   * "reloading" states
    */
   shouldReload?: boolean;
   /**
@@ -86,6 +131,10 @@ type MetricsState = {
   finished: boolean;
   hasMeasured: boolean;
 };
+
+function renderLoading() {
+  return <LoadingIndicator />;
+}
 
 function useApiRequests({
   endpoints = [],
@@ -109,14 +158,18 @@ function useApiRequests({
     error: false,
   });
 
-  const initialState = {
-    data: {},
-    isLoading: false,
-    hasError: false,
-    isReloading: false,
-    errors: {},
-    remainingRequests: endpoints.length,
-  };
+  const initialState = useMemo<State>(
+    () => ({
+      data: {},
+      isLoading: false,
+      hasError: false,
+      isReloading: false,
+      errors: {},
+      remainingRequests: endpoints.length,
+    }),
+    [endpoints.length]
+  );
+
   const [state, setState] = useState<State>({...initialState});
 
   useEffect(() => {
@@ -307,27 +360,21 @@ function useApiRequests({
     );
   }
 
-  function shouldRenderLoading() {
-    return state.isLoading && (!shouldReload || !state.isReloading);
-  }
-
-  function renderLoading() {
-    return <LoadingIndicator />;
-  }
-
   function renderError(error?: Error, disableLog = false): React.ReactElement {
     const {errors} = state;
 
-    // 401s are captured by SudoModal, but may be passed back to AsyncComponent if they close the modal without identifying
-    const unauthorizedErrors = Object.values(errors).find(resp => resp?.status === 401);
+    // 401s are captured by SudoModal, but may be passed back to AsyncComponent
+    // if they close the modal without identifying
+    const unauthorizedErrors = Object.values(errors).some(resp => resp?.status === 401);
 
-    // Look through endpoint results to see if we had any 403s, means their role can not access resource
-    const permissionErrors = Object.values(errors).find(resp => resp?.status === 403);
+    // Look through endpoint results to see if we had any 403s, means their
+    // role can not access resource
+    const permissionErrors = Object.values(errors).some(resp => resp?.status === 403);
 
-    // If all error responses have status code === 0, then show error message but don't
-    // log it to sentry
+    // If all error responses have status code === 0, then show error message
+    // but don't log it to sentry
     const shouldLogSentry =
-      !!Object.values(errors).find(resp => resp?.status !== 0) || disableLog;
+      !!Object.values(errors).some(resp => resp?.status !== 0) || disableLog;
 
     if (unauthorizedErrors) {
       return (
@@ -358,23 +405,17 @@ function useApiRequests({
     );
   }
 
-  function renderBody(elem: React.ReactElement) {
-    // Allow children to implement this
-    return elem;
-  }
+  const shouldRenderLoading = state.isLoading && (!shouldReload || !state.isReloading);
 
-  function renderComponent(elem: React.ReactElement) {
-    return shouldRenderLoading()
+  function renderComponent(children: React.ReactElement) {
+    return shouldRenderLoading
       ? renderLoading()
       : state.hasError
       ? renderError(new Error('Unable to load all required endpoints'))
-      : renderBody(elem);
+      : children;
   }
 
-  return {
-    ...state,
-    renderComponent,
-  };
+  return {...state, renderComponent};
 }
 
 export default useApiRequests;

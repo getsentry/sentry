@@ -172,7 +172,7 @@ const Panel = styled(BasePanel)`
 `;
 
 const PanelHeader = styled(BasePanelHeader)`
-  background-color: ${p => p.theme.white};
+  background-color: ${p => p.theme.background};
   border-bottom: none;
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};

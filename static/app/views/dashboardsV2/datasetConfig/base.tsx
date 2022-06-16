@@ -1,12 +1,17 @@
+import trimStart from 'lodash/trimStart';
+
 import {Client} from 'sentry/api';
 import {OrganizationSummary, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {isEquation} from 'sentry/utils/discover/fields';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, WidgetQuery, WidgetType} from '../types';
+import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
@@ -49,6 +54,17 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * values in tables.
    */
   fieldHeaderMap?: Record<string, string>;
+  /**
+   * Filter the options available to the parameters list
+   * of an aggregate function in a table widget column on the
+   * Widget Builder.
+   */
+  filterTableAggregateParams?: (option: FieldValueOption) => boolean;
+  /**
+   * Filter the primary options available in a table widget
+   * columns on the Widget Builder.
+   */
+  filterTableOptions?: (option: FieldValueOption) => boolean;
   /**
    * Used to select custom renderers for field types.
    */
@@ -94,6 +110,16 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     referrer?: string
   ) => ReturnType<Client['requestPromise']>;
   /**
+   * Apply dataset specific overrides to the logic that handles
+   * column updates for tables in the Widget Builder.
+   */
+  handleColumnFieldChangeOverride?: (widgetQuery: WidgetQuery) => WidgetQuery;
+  /**
+   * Called on column or y-axis change in the Widget Builder
+   * to reset the orderby of the widget query.
+   */
+  handleOrderByReset?: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
+  /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
    */
@@ -124,4 +150,33 @@ export function getDatasetConfig(
     default:
       return ErrorsAndTransactionsConfig;
   }
+}
+
+/**
+ * A generic orderby reset helper function that updates the query's
+ * orderby based on new selected fields.
+ */
+export function handleOrderByReset(
+  widgetQuery: WidgetQuery,
+  newFields: string[]
+): WidgetQuery {
+  const rawOrderby = trimStart(widgetQuery.orderby, '-');
+  const isDescending = widgetQuery.orderby.startsWith('-');
+  const orderbyPrefix = isDescending ? '-' : '';
+
+  if (!newFields.includes(rawOrderby) && widgetQuery.orderby !== '') {
+    const isFromAggregates = widgetQuery.aggregates.includes(rawOrderby);
+    const isCustomEquation = isEquation(rawOrderby);
+    const isUsedInGrouping = widgetQuery.columns.includes(rawOrderby);
+
+    const keepCurrentOrderby = isFromAggregates || isCustomEquation || isUsedInGrouping;
+    const firstAggregateAlias = isEquation(widgetQuery.aggregates[0] ?? '')
+      ? `equation[${getNumEquations(widgetQuery.aggregates) - 1}]`
+      : newFields[0];
+
+    widgetQuery.orderby =
+      (keepCurrentOrderby && widgetQuery.orderby) ||
+      `${orderbyPrefix}${firstAggregateAlias}`;
+  }
+  return widgetQuery;
 }

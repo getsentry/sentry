@@ -21,6 +21,7 @@ import {IconAnchor} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
@@ -39,6 +40,16 @@ type Props = {
 };
 
 class TransactionDetail extends Component<Props> {
+  componentDidMount() {
+    const {organization, transaction} = this.props;
+
+    trackAdvancedAnalyticsEvent('performance_views.trace_view.open_transaction_details', {
+      organization,
+      operation: transaction['transaction.op'],
+      transaction: transaction.transaction,
+    });
+  }
+
   renderTransactionErrors() {
     const {organization, transaction} = this.props;
     const {errors} = transaction;

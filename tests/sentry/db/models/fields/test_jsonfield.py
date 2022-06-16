@@ -1,3 +1,4 @@
+import pytest
 from django import forms
 from django.db import models
 from django.utils.encoding import force_text
@@ -136,7 +137,7 @@ class JSONFieldTest(TestCase):
         # self.assertEqual(1, JSONFieldTestModel.objects.filter(json__contains={'baz':'bing', 'foo':'bar'}).count())
         self.assertEqual(2, JSONFieldTestModel.objects.filter(json__contains="foo").count())
         # This code needs to be implemented!
-        self.assertRaises(
+        pytest.raises(
             TypeError, lambda: JSONFieldTestModel.objects.filter(json__contains=["baz", "foo"])
         )
 
@@ -179,11 +180,11 @@ class JSONFieldTest(TestCase):
         obj = JSONFieldTestModel()
         obj.json = '{"foo": 2}'
         assert "foo" in obj.json
-        with self.assertRaises(forms.ValidationError):
+        with pytest.raises(forms.ValidationError):
             obj.json = '{"foo"}'
 
     def test_invalid_json_default(self):
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             JSONField("test", default='{"foo"}')
 
 

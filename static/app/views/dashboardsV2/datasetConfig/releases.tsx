@@ -10,6 +10,8 @@ import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';
@@ -34,7 +36,7 @@ import {
   mapDerivedMetricsToFields,
 } from '../widgetCard/transformSessionsResponseToTable';
 
-import {ContextualProps, DatasetConfig} from './base';
+import {ContextualProps, DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -76,8 +78,12 @@ export const ReleasesConfig: DatasetConfig<
       cursor
     );
   },
+  filterTableOptions: filterPrimaryReleaseTableOptions,
+  filterTableAggregateParams: filterAggregateParams,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   getTableFieldOptions: getReleasesTableFieldOptions,
+  handleColumnFieldChangeOverride,
+  handleOrderByReset: handleReleasesTableOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -89,6 +95,38 @@ export const ReleasesConfig: DatasetConfig<
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
+
+function filterPrimaryReleaseTableOptions(option: FieldValueOption) {
+  return [
+    FieldValueKind.FUNCTION,
+    FieldValueKind.FIELD,
+    FieldValueKind.NUMERIC_METRICS,
+  ].includes(option.value.kind);
+}
+
+function filterAggregateParams(option: FieldValueOption) {
+  return option.value.kind === FieldValueKind.METRICS;
+}
+
+function handleReleasesTableOrderByReset(widgetQuery: WidgetQuery, newFields: string[]) {
+  const disableSortBy = widgetQuery.columns.includes('session.status');
+  if (disableSortBy) {
+    widgetQuery.orderby = '';
+  }
+  return handleOrderByReset(widgetQuery, newFields);
+}
+
+function handleColumnFieldChangeOverride(widgetQuery: WidgetQuery): WidgetQuery {
+  if (widgetQuery.aggregates.length === 0) {
+    // Release Health widgets require an aggregate in tables
+    const defaultReleaseHealthAggregate = `crash_free_rate(${SessionField.SESSION})`;
+    widgetQuery.aggregates = [defaultReleaseHealthAggregate];
+    widgetQuery.fields = widgetQuery.fields
+      ? [...widgetQuery.fields, defaultReleaseHealthAggregate]
+      : [defaultReleaseHealthAggregate];
+  }
+  return widgetQuery;
+}
 
 function getReleasesTableFieldOptions() {
   return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);

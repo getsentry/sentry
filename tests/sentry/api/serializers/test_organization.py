@@ -47,6 +47,7 @@ class OrganizationSerializerTest(TestCase):
             "integrations-ticket-rules",
             "invite-members",
             "invite-members-rate-limits",
+            "metric-alert-snql",
             "minute-resolution-sessions",
             "open-membership",
             "relay",
@@ -89,6 +90,8 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert result["role"] == "owner"
         assert result["access"] == settings.SENTRY_SCOPES
         assert result["relayPiiConfig"] is None
+        assert isinstance(result["orgRoleList"], list)
+        assert isinstance(result["teamRoleList"], list)
 
 
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):

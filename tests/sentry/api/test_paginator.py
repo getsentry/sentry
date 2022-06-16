@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest import TestCase as SimpleTestCase
 
+import pytest
 from django.utils import timezone
 
 from sentry.api.paginator import (
@@ -123,11 +124,11 @@ class OffsetPaginatorTest(TestCase):
         queryset = User.objects.all()
         paginator = OffsetPaginator(queryset)
         cursor = Cursor(10, -1)
-        with self.assertRaises(BadPaginationError):
+        with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
 
         cursor = Cursor(-10, 1)
-        with self.assertRaises(BadPaginationError):
+        with pytest.raises(BadPaginationError):
             paginator.get_result(cursor=cursor)
 
     def test_order_by_multiple(self):
@@ -171,7 +172,7 @@ class OffsetPaginatorTest(TestCase):
         assert len(result1) == 3, result1
 
         paginator = OffsetPaginator(queryset, max_offset=0)
-        with self.assertRaises(BadPaginationError):
+        with pytest.raises(BadPaginationError):
             paginator.get_result()
 
 
@@ -612,14 +613,14 @@ class CombinedQuerysetPaginatorTest(APITestCase):
         assert list(result) == page1_results
 
     def test_order_by_invalid_key(self):
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "dontexist")
             CombinedQuerysetPaginator(
                 intermediaries=[rule_intermediary],
             )
 
     def test_mix_date_and_not_date(self):
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             rule_intermediary = CombinedQuerysetIntermediary(Rule.objects.all(), "date_added")
             rule_intermediary2 = CombinedQuerysetIntermediary(Rule.objects.all(), "label")
             CombinedQuerysetPaginator(
