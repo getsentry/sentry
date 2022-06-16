@@ -22,7 +22,7 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {DisplayType, WidgetQuery} from '../types';
-import { EventsSearchBar } from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
+import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,

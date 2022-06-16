@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import SearchBar, {SearchBarProps} from 'sentry/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {Organization, SavedSearchType} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {ContextualProps} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
@@ -24,7 +24,7 @@ export function EventsSearchBar({contextualProps, onSearch, onBlur, widgetQuery}
   return (
     <Search
       searchSource="widget_builder"
-      organization={organization}
+      organization={organization!}
       projectIds={projectIds}
       query={widgetQuery.conditions}
       fields={[]}

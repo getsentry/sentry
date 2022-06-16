@@ -8,13 +8,10 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 
 import {BuildStep} from '../buildStep';
-
-import {EventsSearchBar} from './eventsSearchBar';
-import {IssuesSearchBar} from './issuesSearchBar';
-import {ReleaseSearchBar} from './releaseSearchBar';
 
 interface Props {
   canAddSearchConditions: boolean;
@@ -38,7 +35,6 @@ export function FilterResultsStep({
   onQueryChange,
   organization,
   hideLegendAlias,
-  projectIds,
   queryErrors,
   widgetType,
   selection,
@@ -91,6 +87,8 @@ export function FilterResultsStep({
     [queries]
   );
 
+  const datasetConfig = getDatasetConfig(widgetType);
+
   return (
     <BuildStep
       title={t('Filter your results')}
@@ -113,32 +111,12 @@ export function FilterResultsStep({
               error={queryErrors?.[queryIndex]?.conditions}
             >
               <SearchConditionsWrapper>
-                {widgetType === WidgetType.ISSUE ? (
-                  <IssuesSearchBar
-                    searchSource="widget_builder"
-                    organization={organization}
-                    query={query}
-                    onBlur={handleBlur(queryIndex)}
-                    onSearch={handleSearch(queryIndex)}
-                    selection={selection}
-                  />
-                ) : widgetType === WidgetType.DISCOVER ? (
-                  <EventsSearchBar
-                    organization={organization}
-                    query={query}
-                    projectIds={projectIds}
-                    onBlur={handleBlur(queryIndex)}
-                    onSearch={handleSearch(queryIndex)}
-                  />
-                ) : (
-                  <ReleaseSearchBar
-                    orgSlug={organization.slug}
-                    query={query}
-                    projectIds={projectIds}
-                    onBlur={handleBlur(queryIndex)}
-                    onSearch={handleSearch(queryIndex)}
-                  />
-                )}
+                {datasetConfig.getSearchBar({
+                  contextualProps: {organization, pageFilters: selection},
+                  onBlur: handleBlur(queryIndex),
+                  onSearch: handleSearch(queryIndex),
+                  widgetQuery: query,
+                })}
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"
