@@ -2,7 +2,12 @@ import first from 'lodash/first';
 
 import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {t} from 'sentry/locale';
-import type {BreadcrumbTypeDefault, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
+import type {
+  BreadcrumbTypeDefault,
+  BreadcrumbTypeNavigation,
+  Crumb,
+  RawCrumb,
+} from 'sentry/types/breadcrumbs';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {Event} from 'sentry/types/event';
 import type {
@@ -15,30 +20,15 @@ import type {
 export function rrwebEventListFactory(
   startTimestampMS: number,
   endTimestampMS: number,
-  rawSpanData: ReplaySpan[],
   rrwebEvents: RecordingEvent[]
 ) {
-  const highlights = rawSpanData
-    .filter(({op, data}) => op === 'largest-contentful-paint' && data?.nodeId > 0)
-    .map(({startTimestamp, data: {nodeId}}) => ({
-      type: 6, // plugin type
-      data: {
-        nodeId,
-        text: 'LCP',
-      },
-      timestamp: Math.floor(startTimestamp * 1000),
-    }));
-
-  const events = ([] as RecordingEvent[])
-    .concat(rrwebEvents)
-    .concat(highlights)
-    .concat({
-      type: 5, // EventType.Custom,
-      timestamp: endTimestampMS,
-      data: {
-        tag: 'replay-end',
-      },
-    });
+  const events = ([] as RecordingEvent[]).concat(rrwebEvents).concat({
+    type: 5, // EventType.Custom,
+    timestamp: endTimestampMS,
+    data: {
+      tag: 'replay-end',
+    },
+  });
   events.sort((a, b) => a.timestamp - b.timestamp);
 
   const firstRRWebEvent = first(events);
@@ -53,17 +43,20 @@ export function breadcrumbFactory(
   startTimestamp: number,
   rootEvent: Event,
   errors: ReplayError[],
-  rawCrumbs: ReplayCrumb[]
+  rawCrumbs: ReplayCrumb[],
+  spans: ReplaySpan[]
 ): Crumb[] {
   const {tags} = rootEvent;
+  const initialUrl = tags.find(tag => tag.key === 'url')?.value;
   const initBreadcrumb = {
     type: BreadcrumbType.INIT,
     timestamp: new Date(startTimestamp).toISOString(),
     level: BreadcrumbLevelType.INFO,
-    action: 'replay-init',
-    message: t('Start recording'),
+    message: initialUrl,
     data: {
-      url: tags.find(tag => tag.key === 'url')?.value,
+      action: 'replay-init',
+      label: t('Start recording'),
+      url: initialUrl,
     },
   } as BreadcrumbTypeDefault;
 
@@ -71,21 +64,66 @@ export function breadcrumbFactory(
     type: BreadcrumbType.ERROR,
     level: BreadcrumbLevelType.ERROR,
     category: 'exception',
+    message: error['error.value'],
     data: {
-      type: error['error.type'],
-      value: error['error.value'],
+      label: error['error.type'],
     },
     timestamp: error.timestamp,
   }));
 
+  const spanCrumbs: (BreadcrumbTypeDefault | BreadcrumbTypeNavigation)[] = spans
+    .filter(span =>
+      ['navigation.navigate', 'navigation.reload', 'largest-contentful-paint'].includes(
+        span.op
+      )
+    )
+    .map(span => {
+      if (span.op.startsWith('navigation')) {
+        const [, action] = span.op.split('.');
+        return {
+          category: 'default',
+          type: BreadcrumbType.NAVIGATION,
+          timestamp: new Date(span.startTimestamp * 1000).toISOString(),
+          level: BreadcrumbLevelType.INFO,
+          message: span.description,
+          action,
+          data: {
+            to: span.description,
+            label:
+              action === 'reload'
+                ? t('Reload')
+                : action === 'navigate'
+                ? t('Page load')
+                : t('Navigation'),
+            ...span.data,
+          },
+        };
+      }
+
+      return {
+        type: BreadcrumbType.DEBUG,
+        timestamp: new Date(span.startTimestamp * 1000).toISOString(),
+        level: BreadcrumbLevelType.INFO,
+        category: 'default',
+        data: {
+          action: span.op,
+          ...span.data,
+          label: span.op === 'largest-contentful-paint' ? t('LCP') : span.op,
+        },
+      };
+    });
+
+  const hasPageLoad = spans.find(span => span.op === 'navigation.navigate');
+
   const result = transformCrumbs([
-    initBreadcrumb,
+    ...(!hasPageLoad ? [initBreadcrumb] : []),
     ...(rawCrumbs.map(({timestamp, ...crumb}) => ({
       ...crumb,
       type: BreadcrumbType.DEFAULT,
       timestamp: new Date(timestamp * 1000).toISOString(),
     })) as RawCrumb[]),
     ...errorCrumbs,
+    ...spanCrumbs,
   ]);
 
   return result.sort((a, b) => +new Date(a.timestamp || 0) - +new Date(b.timestamp || 0));
