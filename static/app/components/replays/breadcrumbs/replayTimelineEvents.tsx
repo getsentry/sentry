@@ -2,8 +2,8 @@ import styled from '@emotion/styled';
 
 import Type from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type';
 import Icon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
-import {Hovercard} from 'sentry/components/hovercard';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
+import Tooltip from 'sentry/components/tooltip';
 import space from 'sentry/styles/space';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 import type {Color} from 'sentry/utils/theme';
@@ -101,9 +101,9 @@ function Event({crumbs}: {crumbs: Crumb[]; className?: string}) {
 
   return (
     <IconPosition>
-      <Hovercard key={mostInteresting.id} body={title}>
+      <Tooltip key={mostInteresting.id} title={title}>
         <IconNode color={mostInteresting.color}>{icon}</IconNode>
-      </Hovercard>
+      </Tooltip>
     </IconPosition>
   );
 }
@@ -112,8 +112,10 @@ const HoverList = styled('ul')`
   margin: 0;
   padding: 0;
 `;
-const HoverListItem = styled('li')`
-  display: flex;
+
+const HoverListItem = styled('ul')`
+  display: grid;
+  grid-template-columns: max-content 150px;
   gap: ${space(1)};
   padding: ${space(0.5)};
   border-bottom: 1px solid ${p => p.theme.innerBorder};
