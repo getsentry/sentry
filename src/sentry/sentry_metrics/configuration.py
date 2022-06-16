@@ -18,7 +18,7 @@ class MetricsIngestConfiguration:
     db_model: ProfileKey
     input_topic: str
     output_topic: str
-    use_case_id: Optional[str]
+    use_case_id: str
     internal_metrics_tag: Optional[str]
 
 

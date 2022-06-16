@@ -202,7 +202,7 @@ class PGStringIndexerV2(StringIndexer):
 
         return string
 
-    def _table(self, use_case_id: str):
+    def _table(self, use_case_id: str) -> IndexerTable:
         return TABLE_MAPPING[get_ingest_config_from_use_case_id(use_case_id).db_model]
 
 
