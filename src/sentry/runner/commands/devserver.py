@@ -226,7 +226,8 @@ and run `sentry devservices up kafka zookeeper`.
             }
         )
 
-    settings.SENTRY_USE_RELAY = ingest
+    if ingest:
+        settings.SENTRY_USE_RELAY = True
 
     os.environ["SENTRY_USE_RELAY"] = "1" if settings.SENTRY_USE_RELAY else ""
 
