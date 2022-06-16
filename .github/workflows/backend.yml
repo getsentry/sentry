@@ -134,6 +134,21 @@ jobs:
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
 
+  requirements:
+    if: needs.files-changed.outputs.backend_dependencies == 'true'
+    needs: files-changed
+    name: requirements check
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    strategy:
+      matrix:
+        python-version: [3.8.12]
+    steps:
+      - uses: actions/checkout@v3
+      - name: check requirements
+        run: |
+          python -S -m tools.check_frozen_requirements sentry
+
   lint:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
@@ -421,6 +436,7 @@ jobs:
         backend-test,
         cli,
         lint,
+        requirements,
         migration,
         plugins,
         relay,

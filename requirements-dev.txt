@@ -20,6 +20,7 @@ flake8-bugbear>=22.4.25
 pyupgrade>=2.32.0
 isort>=5.10.1
 
-# to be moved into redistributable dev environments
+# For tools/. To be moved into redistributable dev environments.
 # note: wheel is pulled in by pip-tools
 pip-tools>=6.6.1
+packaging>=21.3

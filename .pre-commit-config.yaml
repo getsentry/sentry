@@ -48,11 +48,10 @@ repos:
       log_file: '.artifacts/flake8.pycodestyle.log'
     - id: lint-requirements
       name: lint-requirements
-      entry: python -m tools.lint_requirements sentry
+      entry: python -m tools.lint_requirements
       language: python
-      files: ^requirements-.*.txt
+      files: requirements-frozen.txt
       pass_filenames: false
-      additional_dependencies: [packaging==21.3]
     - id: pyright
       name: pyright
       entry: pyright
