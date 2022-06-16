@@ -230,12 +230,12 @@ const StyledSettingsPageHeader = styled(SettingsPageHeader)`
     we can refactor this once we start making other settings more responsive
   */
   > div {
-    @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    @media (max-width: ${p => p.theme.breakpoints.large}) {
       display: block;
     }
     > div {
       min-width: 0;
-      @media (max-width: ${p => p.theme.breakpoints[2]}) {
+      @media (max-width: ${p => p.theme.breakpoints.large}) {
         margin-bottom: ${space(2)};
       }
     }

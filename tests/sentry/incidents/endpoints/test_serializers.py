@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.test import override_settings
 from exam import fixture
@@ -197,10 +198,12 @@ class TestAlertRuleSerializer(TestCase):
         assert alert_rule.snuba_query.aggregate == "count()"
 
     def test_query_project(self):
-        self.run_fail_validation_test(
-            {"query": f"project:{self.project.slug}"},
-            {"query": ["Project is an invalid search term"]},
-        )
+        # `project:` works using `QueryBuilder` so this test can go away once we're using it
+        with self.feature({"organizations:metric-alert-snql": False}):
+            self.run_fail_validation_test(
+                {"query": f"project:{self.project.slug}"},
+                {"query": ["Project is an invalid search term"]},
+            )
 
     def test_decimal(self):
         params = self.valid_transaction_params.copy()
@@ -406,7 +409,7 @@ class TestAlertRuleSerializer(TestCase):
         )
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with self.assertRaises(serializers.ValidationError):
+        with pytest.raises(serializers.ValidationError):
             serializer.save()
 
         # Make sure the rule was not created.
@@ -477,10 +480,10 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         # error is raised during save
         assert serializer.is_valid()
-        with self.assertRaises(ChannelLookupTimeoutError) as err:
+        with pytest.raises(ChannelLookupTimeoutError) as excinfo:
             serializer.save()
         assert (
-            str(err.exception)
+            str(excinfo.value)
             == "Could not find channel my-channel. We have timed out trying to look for it."
         )
 
@@ -510,9 +513,9 @@ class TestAlertRuleSerializer(TestCase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         # error is raised during save
         assert serializer.is_valid()
-        with self.assertRaises(serializers.ValidationError) as err:
+        with pytest.raises(serializers.ValidationError) as excinfo:
             serializer.save()
-        assert err.exception.detail == {"nonFieldErrors": ["Team does not exist"]}
+        assert excinfo.value.detail == {"nonFieldErrors": ["Team does not exist"]}
         mock_get_channel_id.assert_called_with(self.integration, "my-channel", 10)
 
     def test_event_types(self):
@@ -647,9 +650,9 @@ class TestAlertRuleSerializer(TestCase):
         serializer.save()
         serializer = AlertRuleSerializer(context=self.context, data=self.valid_params)
         assert serializer.is_valid(), serializer.errors
-        with self.assertRaises(serializers.ValidationError) as cm:
+        with pytest.raises(serializers.ValidationError) as excinfo:
             serializer.save()
-        assert cm.exception.detail[0] == "You may not exceed 1 metric alerts per organization"
+        assert excinfo.value.detail[0] == "You may not exceed 1 metric alerts per organization"
 
 
 class TestAlertRuleTriggerSerializer(TestCase):
@@ -850,7 +853,7 @@ class TestAlertRuleTriggerActionSerializer(TestCase):
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with self.assertRaises(serializers.ValidationError):
+        with pytest.raises(serializers.ValidationError):
             serializer.save()
 
     @responses.activate

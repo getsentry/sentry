@@ -56,7 +56,7 @@ const Actions = styled(ButtonBar)`
   /* to match Layout.Main padding + Field padding-right */
   padding-right: calc(${space(2)} + ${space(2)});
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     padding: ${space(4)};
 
     /* to match Layout.Main padding + Field padding-right */

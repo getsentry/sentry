@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import Mock, patch
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
 from django.utils import timezone
@@ -197,7 +198,7 @@ class SuperuserTestCase(TestCase):
         with self.settings(
             SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
-            with self.assertRaises(EmptySuperuserAccessForm):
+            with pytest.raises(EmptySuperuserAccessForm):
                 superuser.set_logged_in(request.user)
                 assert superuser.is_active is False
 
@@ -265,7 +266,7 @@ class SuperuserTestCase(TestCase):
         with self.settings(
             SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
-            with self.assertRaises(SuperuserAccessFormInvalidJson):
+            with pytest.raises(SuperuserAccessFormInvalidJson):
                 superuser.set_logged_in(request.user)
                 assert superuser.is_active is False
 

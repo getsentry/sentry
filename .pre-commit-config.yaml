@@ -4,8 +4,6 @@ exclude: >
         \.snap$|
         \.map$|
         \.map\.js$|
-        ^tests/sentry/lang/.*/fixtures/|
-        ^fixtures/|
         ^src/sentry/static/sentry/vendor/|
         ^tests/sentry/lang/javascript/example-project/|
         ^src/.*/locale/|
@@ -72,7 +70,7 @@ repos:
     - id: check-github-workflows
 
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v4.3.0
     hooks:
     - id: check-case-conflict
     - id: check-executables-have-shebangs
@@ -80,7 +78,10 @@ repos:
     - id: check-symlinks
     - id: end-of-file-fixer
       exclude_types: [svg]
+      exclude: ^fixtures/
     - id: trailing-whitespace
       exclude_types: [svg]
-      exclude: ^scripts/patches/
+      exclude: ^(fixtures/|scripts/patches/)
     - id: debug-statements
+    - id: name-tests-test
+      args: [--pytest-test-first]

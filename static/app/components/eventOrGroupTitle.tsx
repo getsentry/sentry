@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -88,7 +89,7 @@ const StyledStacktracePreview = styled(StackTracePreview)<{
 }>`
   ${p =>
     p.hasGroupingStacktraceUI &&
-    `
+    css`
       display: inline-flex;
       overflow: hidden;
       height: 100%;
@@ -101,7 +102,7 @@ const StyledStacktracePreview = styled(StackTracePreview)<{
 const Wrapper = styled('span')<{hasGroupingTreeUI: boolean}>`
   ${p =>
     p.hasGroupingTreeUI &&
-    `
+    css`
       display: inline-grid;
       grid-template-columns: auto max-content 1fr max-content;
       align-items: flex-end;

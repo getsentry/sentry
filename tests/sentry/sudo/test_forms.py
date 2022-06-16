@@ -1,16 +1,15 @@
+import pytest
 from django.forms import ValidationError
 from django.test import override_settings
 
+from fixtures.sudo_testutils import BaseTestCase, EmailUser
 from sudo.forms import SudoForm
-
-from .base import BaseTestCase
-from .models import EmailUser
 
 
 @override_settings(
     AUTHENTICATION_BACKENDS=[
-        "tests.sentry.sudo.base.FooPasswordBackend",
-        "tests.sentry.sudo.base.StubPasswordBackend",
+        "fixtures.sudo_testutils.FooPasswordBackend",
+        "fixtures.sudo_testutils.StubPasswordBackend",
     ]
 )
 class SudoFormTestCase(BaseTestCase):
@@ -31,7 +30,7 @@ class SudoFormTestCase(BaseTestCase):
         self.assertTrue(SudoForm(self.user, {"password": "stub"}).is_valid())
 
     def test_clean_password_invalid_password(self):
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             SudoForm(self.user, {"password": "lol"}).clean_password()
 
     def test_clean_password_valid_password(self):

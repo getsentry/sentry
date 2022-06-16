@@ -31,8 +31,8 @@ const PlayerRelativeTime = ({relativeTime, timestamp}: Props) => {
 
 const Value = styled('p')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: normal;
+  font-size: 0.7em;
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 export default PlayerRelativeTime;

@@ -2,6 +2,8 @@ import logging
 import types
 from unittest.mock import PropertyMock, patch
 
+import pytest
+
 from sentry.mediators import Mediator, Param
 from sentry.models import User
 from sentry.testutils import TestCase
@@ -32,13 +34,14 @@ class TestMediator(TestCase):
         self.mediator = MockMediator(user={"name": "Example"}, age=30, logger=self.logger)
 
     def test_must_implement_call(self):
-        del MockMediator.call
+        with patch.object(MockMediator, "call"):
+            del MockMediator.call
 
-        with self.assertRaises(NotImplementedError):
-            MockMediator.run(user={"name": "Example"})
+            with pytest.raises(NotImplementedError):
+                MockMediator.run(user={"name": "Example"})
 
     def test_validate_params(self):
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             MockMediator.run(user=False)
 
     def test_param_access(self):
@@ -49,7 +52,7 @@ class TestMediator(TestCase):
         assert self.mediator.name == "Example"
 
     def test_missing_params(self):
-        with self.assertRaises(AttributeError):
+        with pytest.raises(AttributeError):
             MockMediator.run(name="Pete", age=30)
 
     def test_log(self):
@@ -130,7 +133,7 @@ class TestMediator(TestCase):
                 User.objects.create(username="beep")
                 raise RuntimeError()
 
-        with self.assertRaises(RuntimeError):
+        with pytest.raises(RuntimeError):
             TransactionMediator.run()
 
         assert not User.objects.filter(username="beep").exists()
