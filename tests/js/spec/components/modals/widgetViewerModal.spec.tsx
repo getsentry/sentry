@@ -1357,7 +1357,7 @@ describe('Modals -> WidgetViewerModal', function () {
     it('renders table header and body', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('release')).toBeInTheDocument();
-      expect(screen.getByText('e102abb2c46e')).toBeInTheDocument();
+      expect(await screen.findByText('e102abb2c46e')).toBeInTheDocument();
       expect(screen.getByText('sum(session)')).toBeInTheDocument();
       expect(screen.getByText('6.3k')).toBeInTheDocument();
     });
@@ -1372,7 +1372,7 @@ describe('Modals -> WidgetViewerModal', function () {
         initialData,
         widget: mockWidget,
       });
-      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
 
