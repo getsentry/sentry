@@ -17,21 +17,30 @@ type Props = ModalRenderProps & {
 };
 
 type State = {
-  commit: Commit | null;
+  commit: Commit | undefined;
+  commits: Commit[] | undefined;
 };
 
 class CustomCommitsResolutionModal extends Component<Props, State> {
   state: State = {
-    commit: null,
+    commit: undefined,
+    commits: undefined,
   };
 
-  onChange = (value: Commit) => {
-    this.setState({commit: value}); // TODO(ts): Add select value type as generic to select controls
+  onChange = (value: string | number | boolean) => {
+    const commits = this.state.commits;
+    if (commits === undefined) {
+      return;
+    }
+    this.setState({
+      commit: commits.find(result => result.id === value),
+    });
   };
 
-  onAsyncFieldResults = (results: Commit[]) =>
-    results.map(commit => ({
-      value: commit,
+  onAsyncFieldResults = (results: Commit[]) => {
+    this.setState({commits: results});
+    return results.map(commit => ({
+      value: commit.id,
       label: <Version version={commit.id} anchor={false} />,
       details: (
         <span>
@@ -40,6 +49,7 @@ class CustomCommitsResolutionModal extends Component<Props, State> {
       ),
       commit,
     }));
+  };
 
   render() {
     const {orgSlug, projectSlug, closeModal, onSelected, Header, Body, Footer} =
