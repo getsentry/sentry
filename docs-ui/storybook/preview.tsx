@@ -3,14 +3,13 @@ import 'docs-ui/index.js';
 
 import {DocsContainer, Meta} from '@storybook/addon-docs';
 import {addDecorator, addParameters, DecoratorFn, Parameters} from '@storybook/react';
-import {themes} from '@storybook/theming';
+import {ThemeProvider, themes} from '@storybook/theming';
 import Code from 'docs-ui/components/code';
 import ColorChip from 'docs-ui/components/colorChip';
 import DocsLinks from 'docs-ui/components/docsLinks';
 import DoDont from 'docs-ui/components/doDont';
 import Sample from 'docs-ui/components/sample';
 import TableOfContents from 'docs-ui/components/tableOfContents';
-import {ThemeProvider} from 'emotion-theming';
 import {useDarkMode} from 'storybook-dark-mode';
 
 import GlobalStyles from 'sentry/styles/global';
