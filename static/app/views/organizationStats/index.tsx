@@ -233,7 +233,7 @@ export class OrganizationStats extends Component<Props> {
         <DropdownDataCategory
           label={
             <DropdownLabel>
-              <span>{t('Event Type: ')}</span>
+              <span>{t('Category: ')}</span>
               <span>{this.dataCategoryName}</span>
             </DropdownLabel>
           }
@@ -284,7 +284,7 @@ export class OrganizationStats extends Component<Props> {
                   </PageHeader>
                   <p>
                     {t(
-                      'We collect usage metrics on three types of events: errors, transactions, and attachments. The charts below reflect events that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
+                      'We collect usage metrics on three categories: errors, transactions, and attachments. The charts below reflect data that Sentry has received across your entire organization. You can also find them broken down by project in the table.'
                     )}
                   </p>
                 </Fragment>
