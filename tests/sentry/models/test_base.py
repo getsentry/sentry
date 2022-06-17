@@ -62,15 +62,15 @@ class AvailableOnTest(TestCase):
             self.ControlModel.objects.get(id=1)
         with raises(ServerModeDataError):
             self.ControlModel.objects.create()
-        with self.assertRaises(ServerModeDataError):
+        with raises(ServerModeDataError):
             self.ControlModel.objects.filter(id=1).delete()
 
     def test_available_for_read_only(self):
         assert list(self.ReadOnlyModel.objects.all()) == []
-        with self.assertRaises(self.ReadOnlyModel.DoesNotExist):
+        with raises(self.ReadOnlyModel.DoesNotExist):
             self.ReadOnlyModel.objects.get(id=1)
 
-        with self.assertRaises(ServerModeDataError):
+        with raises(ServerModeDataError):
             self.ReadOnlyModel.objects.create()
-        with self.assertRaises(ServerModeDataError):
+        with raises(ServerModeDataError):
             self.ReadOnlyModel.objects.filter(id=1).delete()
