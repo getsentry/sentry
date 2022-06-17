@@ -243,7 +243,7 @@ class StaticStringsIndexerDecorator(StringIndexer):
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, org_id: int, string: str, use_case_id: UseCaseKey) -> int:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)

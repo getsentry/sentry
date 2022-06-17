@@ -174,7 +174,7 @@ class StringIndexer(Service):
     ) -> KeyResults:
         raise NotImplementedError()
 
-    def record(self, org_id: int, string: str, use_case_id: UseCaseKey) -> int:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
