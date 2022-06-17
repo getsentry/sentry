@@ -267,7 +267,7 @@ class ProjectUpdateTest(APITestCase):
             user=user,
             organization=project.organization,
             teams=[project.teams.first()],
-            role="admin",
+            role="member",
         )
 
         token = ApiToken.objects.create(user=user, scope_list=["project:write"])
