@@ -8,21 +8,28 @@ from sentry.testutils import TestCase
 
 
 class AvailableOnTest(TestCase):
+    class TestModel(Model):
+        __include_in_export__ = False
+
+        class Meta:
+            abstract = True
+            app_label = "fixtures"
+
     with override_settings(SERVER_COMPONENT_MODE=ServerComponentMode.CUSTOMER):
 
         @available_on(ServerComponentMode.CONTROL)
-        class ControlModel(Model):
-            __include_in_export__ = False
+        class ControlModel(TestModel):
+            pass
 
         @available_on(ServerComponentMode.CUSTOMER)
-        class CustomerModel(Model):
-            __include_in_export__ = False
+        class CustomerModel(TestModel):
+            pass
 
     with override_settings(SERVER_COMPONENT_MODE=ServerComponentMode.MONOLITH):
 
         @available_on(ServerComponentMode.MONOLITH)
-        class ModelOnMonolith(Model):
-            __include_in_export__ = False
+        class ModelOnMonolith(TestModel):
+            pass
 
     def test_available_on_monolith_mode(self):
         assert list(self.ModelOnMonolith.objects.all()) == []
