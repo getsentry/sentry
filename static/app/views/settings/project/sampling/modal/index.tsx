@@ -423,6 +423,9 @@ export function SamplingRuleModal({
               {t('Conditions')}
               <StyledCompactSelect
                 placement="bottom right"
+                triggerProps={{
+                  size: 'small',
+                }}
                 triggerLabel={
                   <TriggerLabel>
                     <IconAdd isCircled />
