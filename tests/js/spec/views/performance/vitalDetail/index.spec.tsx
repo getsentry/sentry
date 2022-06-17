@@ -303,7 +303,6 @@ describe('Performance > VitalDetail', function () {
         project: 1,
         statsPeriod: '14d',
         query: 'user.email:uhoh*',
-        userModified: true,
       },
     });
   });

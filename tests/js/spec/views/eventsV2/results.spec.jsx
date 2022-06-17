@@ -308,8 +308,6 @@ describe('Results', function () {
           ...generateFields(),
           query: 'geo:canada',
           statsPeriod: '14d',
-          // userModified added on new search for the search bar experiment
-          userModified: true,
         },
       });
       wrapper.unmount();
@@ -349,7 +347,7 @@ describe('Results', function () {
       wrapper.update();
 
       // Click one of the options.
-      wrapper.find('SelectOption').first().simulate('click');
+      wrapper.find('Option').first().simulate('click');
       await tick();
       wrapper.update();
 
@@ -395,7 +393,7 @@ describe('Results', function () {
       wrapper.update();
 
       // Click the 'default' option.
-      wrapper.find('SelectOption').first().simulate('click');
+      wrapper.find('Option').first().simulate('click');
       await tick();
       wrapper.update();
 
@@ -440,7 +438,7 @@ describe('Results', function () {
 
       // Make sure the top5 option isn't present
       const options = wrapper
-        .find('SelectOption [data-test-id]')
+        .find('Option [data-test-id]')
         .map(item => item.prop('data-test-id'));
       expect(options).not.toContain('top5');
       expect(options).not.toContain('dailytop5');
@@ -986,8 +984,6 @@ describe('Results', function () {
           ...generateFields(),
           query: 'geo:canada',
           statsPeriod: '14d',
-          // userModified added on new search for the search bar experiment
-          userModified: true,
         },
       });
       wrapper.unmount();
@@ -1027,7 +1023,7 @@ describe('Results', function () {
       wrapper.update();
 
       // Click one of the options.
-      wrapper.find('SelectOption').first().simulate('click');
+      wrapper.find('Option').first().simulate('click');
       await tick();
       wrapper.update();
 
@@ -1073,7 +1069,7 @@ describe('Results', function () {
       wrapper.update();
 
       // Click the 'default' option.
-      wrapper.find('SelectOption').first().simulate('click');
+      wrapper.find('Option').first().simulate('click');
       await tick();
       wrapper.update();
 
@@ -1118,7 +1114,7 @@ describe('Results', function () {
 
       // Make sure the top5 option isn't present
       const options = wrapper
-        .find('SelectOption [data-test-id]')
+        .find('Option [data-test-id]')
         .map(item => item.prop('data-test-id'));
       expect(options).not.toContain('top5');
       expect(options).not.toContain('dailytop5');

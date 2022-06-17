@@ -60,6 +60,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["onboardingTasks"] == []
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
 
