@@ -3,7 +3,6 @@ import logging
 import time
 from collections import defaultdict, deque
 from concurrent.futures import Future
-from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from typing import (
@@ -156,6 +155,8 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__next_step = next_step
         self.__batch: Optional[MetricsBatchBuilder] = None
         self.__closed = False
+        self.__batch_start: Optional[float] = None
+        self.__metrics = get_metrics()
 
     def poll(self) -> None:
         assert not self.__closed
@@ -173,6 +174,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         if self.__batch is None:
+            self.__batch_start = time.time()
             self.__batch = MetricsBatchBuilder(self.__max_batch_size, self.__max_batch_time)
 
         try:
@@ -195,6 +197,10 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         last = self.__batch.messages[-1]
 
         new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
+        if self.__batch_start is not None:
+            elapsed_time = time.time() - self.__batch_start
+            self.__metrics.timing("batch_messages.build_time", elapsed_time)
+            self.__batch_start = None
 
         self.__next_step.submit(new_message)
         self.__batch = None
@@ -469,7 +475,7 @@ def process_messages(
     with metrics.timer("process_messages.reconstruct_messages"):
         for message in outer_message.payload:
             used_tags: Set[str] = set()
-            output_message_meta: Mapping[str, MutableMapping[int, str]] = defaultdict(dict)
+            output_message_meta: Mapping[str, MutableMapping[str, str]] = defaultdict(dict)
             partition_offset = PartitionIdxOffset(message.partition.index, message.offset)
             if partition_offset in skipped_offsets:
                 logger.info(
@@ -477,19 +483,18 @@ def process_messages(
                     extra={"offset": message.offset, "partition": message.partition.index},
                 )
                 continue
-            parsed_payload_value = parsed_payloads_by_offset[partition_offset]
-            new_payload_value = deepcopy(parsed_payload_value)
+            new_payload_value = parsed_payloads_by_offset.pop(partition_offset)
 
-            metric_name = parsed_payload_value["name"]
-            org_id = parsed_payload_value["org_id"]
-            tags = parsed_payload_value.get("tags", {})
+            metric_name = new_payload_value["name"]
+            org_id = new_payload_value["org_id"]
+            tags = new_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
-            new_tags: MutableMapping[int, int] = {}
+            new_tags: MutableMapping[str, int] = {}
             try:
                 for k, v in tags.items():
                     used_tags.update({k, v})
-                    new_tags[mapping[org_id][k]] = mapping[org_id][v]
+                    new_tags[str(mapping[org_id][k])] = mapping[org_id][v]
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
@@ -499,7 +504,7 @@ def process_messages(
                 if tag in bulk_record_meta:
                     int_id, fetch_type = bulk_record_meta.get(tag)
                     fetch_types_encountered.add(fetch_type)
-                    output_message_meta[fetch_type.value][int_id] = tag
+                    output_message_meta[fetch_type.value][str(int_id)] = tag
 
             mapping_header_content = bytes(
                 "".join([t.value for t in fetch_types_encountered]), "utf-8"
@@ -513,7 +518,7 @@ def process_messages(
 
             new_payload = KafkaPayload(
                 key=message.payload.key,
-                value=json.dumps(new_payload_value).encode(),
+                value=rapidjson.dumps(new_payload_value).encode(),
                 headers=[
                     *message.payload.headers,
                     ("mapping_sources", mapping_header_content),

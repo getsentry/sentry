@@ -13,7 +13,6 @@ import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePageError} from 'sentry/utils/performance/contexts/pageError';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
 import _DurationChart from 'sentry/views/performance/charts/chart';
@@ -186,7 +185,6 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
               hideError
               onError={pageError.setPageError}
               queryExtras={getMEPParamsIfApplicable(mepSetting, props.chartSetting)}
-              userModified={decodeScalar(props.location.query.userModified)}
             />
           );
         },
@@ -194,12 +192,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      props.chartSetting,
-      selectedListIndex,
-      mepSetting.memoizationKey,
-      props.location.query.userModified,
-    ]
+    [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
   );
 
   const Queries = {
@@ -293,10 +286,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             </Link>
                           </Tooltip>
                         </RightAlignedCell>
-                        <ListClose
-                          setSelectListIndex={setSelectListIndex}
-                          onClick={() => excludeTransaction(listItem.transaction, props)}
-                        />
+                        {!props.withStaticFilters && (
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        )}
                       </Fragment>
                     );
                   case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
@@ -310,10 +307,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                             count: <Count value={rightValue} />,
                           })}
                         </RightAlignedCell>
-                        <ListClose
-                          setSelectListIndex={setSelectListIndex}
-                          onClick={() => excludeTransaction(listItem.transaction, props)}
-                        />
+                        {!props.withStaticFilters && (
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        )}
                       </Fragment>
                     );
                   default:
@@ -326,12 +327,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <RightAlignedCell>
                             <Count value={rightValue} />
                           </RightAlignedCell>
-                          <ListClose
-                            setSelectListIndex={setSelectListIndex}
-                            onClick={() =>
-                              excludeTransaction(listItem.transaction, props)
-                            }
-                          />
+                          {!props.withStaticFilters && (
+                            <ListClose
+                              setSelectListIndex={setSelectListIndex}
+                              onClick={() =>
+                                excludeTransaction(listItem.transaction, props)
+                              }
+                            />
+                          )}
                         </Fragment>
                       );
                     }
@@ -341,10 +344,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
                           <Truncate value={transaction} maxLength={40} />
                         </GrowLink>
                         <RightAlignedCell>{rightValue}</RightAlignedCell>
-                        <ListClose
-                          setSelectListIndex={setSelectListIndex}
-                          onClick={() => excludeTransaction(listItem.transaction, props)}
-                        />
+                        {!props.withStaticFilters && (
+                          <ListClose
+                            setSelectListIndex={setSelectListIndex}
+                            onClick={() =>
+                              excludeTransaction(listItem.transaction, props)
+                            }
+                          />
+                        )}
                       </Fragment>
                     );
                 }

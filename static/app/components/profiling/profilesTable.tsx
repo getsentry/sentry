@@ -16,9 +16,10 @@ import {defined} from 'sentry/utils';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {getShortEventId} from 'sentry/utils/events';
 import {
-  generateFlamegraphSummaryRoute,
+  generateProfileDetailsRoute,
   generateProfileSummaryRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
+import {renderTableHead} from 'sentry/utils/profiling/tableRenderer';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -47,12 +48,17 @@ function ProfilesTable(props: ProfilesTableProps) {
         data={props.traces}
         columnOrder={(props.columnOrder ?? DEFAULT_COLUMN_ORDER).map(key => COLUMNS[key])}
         columnSortBy={[]}
-        grid={{renderBodyCell: renderProfilesTableCell}}
+        grid={{
+          renderHeadCell: renderTableHead(RIGHT_ALIGNED_COLUMNS),
+          renderBodyCell: renderProfilesTableCell,
+        }}
         location={location}
       />
     </Fragment>
   );
 }
+
+const RIGHT_ALIGNED_COLUMNS = new Set<TableColumnKey>(['trace_duration_ms']);
 
 function renderProfilesTableCell(
   column: TableColumn,
@@ -107,7 +113,7 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
         return <Container>{getShortEventId(dataRow.id)}</Container>;
       }
 
-      const flamegraphTarget = generateFlamegraphSummaryRoute({
+      const flamegraphTarget = generateProfileDetailsRoute({
         orgSlug: organization.slug,
         projectSlug: project.slug,
         profileId: dataRow.id,
@@ -166,7 +172,7 @@ function ProfilesTableCell({column, dataRow}: ProfilesTableCellProps) {
     case 'timestamp':
       return (
         <Container>
-          <DateTime date={value * 1000} />
+          <DateTime date={value * 1000} year seconds timeZone />
         </Container>
       );
     case 'trace_duration_ms':

@@ -18,6 +18,7 @@ from sentry.models.transaction_threshold import (
 from sentry.search.events.constants import (
     ALIAS_PATTERN,
     ARRAY_FIELDS,
+    CUSTOM_MEASUREMENT_PATTERN,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     DURATION_PATTERN,
@@ -889,7 +890,15 @@ def get_function_alias(field: str) -> str:
 
 
 def get_function_alias_with_columns(function_name, columns) -> str:
-    columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in columns))
+    columns = re.sub(
+        r"[^\w]",
+        "_",
+        "_".join(
+            # Encode to ascii with backslashreplace so unicode chars become \u1234, then decode cause encode gives bytes
+            str(col).encode("ascii", errors="backslashreplace").decode()
+            for col in columns
+        ),
+    )
     return f"{function_name}_{columns}".rstrip("_")
 
 
@@ -2292,24 +2301,30 @@ class MetricArg(FunctionArg):
         self,
         name: str,
         allowed_columns: Optional[Sequence[str]] = None,
+        allow_custom_measurements: Optional[bool] = True,
         validate_only: Optional[bool] = True,
     ):
         """
         :param name: The name of the function, this refers to the name to invoke.
         :param allowed_columns: Optional list of columns to allowlist, an empty sequence
         or None means allow all columns
+        :param allow_custom_measurements: Optional boolean to allow any columns that start
+        with measurements.*
         :param validate_only: Run normalize, and raise any errors involved but don't change
         the value in any way and return it as-is
         """
         super().__init__(name)
         # make sure to map the allowed columns to their snuba names
         self.allowed_columns = allowed_columns
+        self.allow_custom_measurements = allow_custom_measurements
         # Normalize the value to check if it is valid, but return the value as-is
         self.validate_only = validate_only
 
     def normalize(self, value: str, params: ParamsType, combinator: Optional[Combinator]) -> str:
         if self.allowed_columns is not None and len(self.allowed_columns) > 0:
-            if value in self.allowed_columns:
+            if value in self.allowed_columns or (
+                self.allow_custom_measurements and CUSTOM_MEASUREMENT_PATTERN.match(value)
+            ):
                 return value
             else:
                 raise IncompatibleMetricsQuery(f"{value} is not an allowed column")

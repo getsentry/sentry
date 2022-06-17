@@ -37,7 +37,7 @@ import {
   getEquation,
   isEquation,
 } from 'sentry/utils/discover/fields';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeList} from 'sentry/utils/queryString';
 import {Theme} from 'sentry/utils/theme';
 
 import EventsGeoRequest from './eventsGeoRequest';
@@ -667,7 +667,6 @@ class EventsChart extends React.Component<EventsChartProps> {
               partial
               // Cannot do interpolation when stacking series
               withoutZerofill={withoutZerofill && !this.isStacked()}
-              userModified={decodeScalar(router.location.query.userModified)}
             >
               {eventData => {
                 return chartImplementation({

@@ -104,10 +104,7 @@ function SummaryContent({
 
     browserHistory.push({
       pathname: location.pathname,
-      query: {
-        ...searchQueryParams,
-        userModified: true,
-      },
+      query: searchQueryParams,
     });
   }
 
@@ -487,22 +484,22 @@ const FilterActions = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, min-content);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     grid-template-columns: auto auto 1fr auto;
   }
 `;
 
 const StyledSearchBar = styled(SearchBar)`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     order: 1;
     grid-column: 1/4;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     order: initial;
     grid-column: auto;
   }

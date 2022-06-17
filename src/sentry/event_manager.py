@@ -67,6 +67,7 @@ from sentry.models import (
     Organization,
     Project,
     ProjectKey,
+    PullRequest,
     Release,
     ReleaseCommit,
     ReleaseEnvironment,
@@ -130,7 +131,7 @@ def has_pending_commit_resolution(group):
     """
     Checks that the most recent commit that fixes a group has had a chance to release
     """
-    recent_group_link = (
+    latest_issue_commit_resolution = (
         GroupLink.objects.filter(
             group_id=group.id,
             linked_type=GroupLink.LinkedType.commit,
@@ -139,10 +140,23 @@ def has_pending_commit_resolution(group):
         .order_by("-datetime")
         .first()
     )
-    if recent_group_link is None:
+    if latest_issue_commit_resolution is None:
         return False
 
-    return not ReleaseCommit.objects.filter(commit__id=recent_group_link.linked_id).exists()
+    # commit has been released and is not in pending commit state
+    if ReleaseCommit.objects.filter(commit__id=latest_issue_commit_resolution.linked_id).exists():
+        return False
+    else:
+        # check if this commit is a part of a PR
+        pr_ids = PullRequest.objects.filter(
+            pullrequestcommit__commit=latest_issue_commit_resolution.linked_id
+        ).values_list("id", flat=True)
+        # assume that this commit has been released if any commits in this PR have been released
+        if ReleaseCommit.objects.filter(
+            commit__pullrequestcommit__pull_request__in=pr_ids
+        ).exists():
+            return False
+        return True
 
 
 def get_max_crashreports(model, allow_none=False):

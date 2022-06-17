@@ -20,7 +20,7 @@ function ReplayCurrentUrl() {
 
 const UrlCopyInput = styled(TextCopyInput)`
   ${StyledInput} {
-    background: ${p => p.theme.white};
+    background: ${p => p.theme.background};
     border: none;
     padding: 0 ${space(0.75)};
     font-size: ${p => p.theme.fontSizeMedium};

@@ -7,6 +7,7 @@ import pytest
 import responses
 from django.utils import timezone
 from exam import patcher
+from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
 
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -14,11 +15,13 @@ from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
     get_entity_subscription_for_dataset,
+    map_aggregate_to_entity_key,
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QueryDatasets, QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
+    build_query_builder,
     build_snuba_filter,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
@@ -131,9 +134,8 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
         )
         with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
             create_subscription_in_snuba(sub.id)
-            assert ["group_id", "IN", [group_id]] in json.loads(urlopen.call_args[1]["body"])[
-                "conditions"
-            ]
+            request_body = json.loads(urlopen.call_args[1]["body"])
+            assert f"group_id = {group_id}" in request_body["query"]
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
@@ -158,7 +160,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
 
             create_subscription_in_snuba(sub.id)
             request_body = json.loads(pool.urlopen.call_args[1]["body"])
-            assert ["type", "=", "error"] in request_body["conditions"]
+            assert "type = 'error'" in request_body["query"]
 
     @responses.activate
     def test_granularity_on_metrics_crash_rate_alerts(self):
@@ -313,18 +315,22 @@ class BuildSnubaFilterTest(TestCase):
             environment=None,
         )
         session_status = resolve_tag_key(org_id, "session.status")
-        session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
+        crashed = resolve(org_id, "crashed")
+        init = resolve(org_id, "init")
         assert snuba_filter
-        assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
+        assert snuba_filter.aggregations == [
+            [f"sumIf(value, equals({session_status}, {init}))", None, "count"],
+            [f"sumIf(value, equals({session_status}, {crashed}))", None, "crashed"],
+        ]
         assert snuba_filter.conditions == [
             ["metric_id", "=", resolve(org_id, SessionMRI.SESSION.value)],
-            [session_status, "IN", session_status_tag_values],
+            [session_status, "IN", [crashed, init]],
         ]
-        assert snuba_filter.groupby == [session_status]
+        assert snuba_filter.groupby is None
 
     def test_simple_users_for_metrics(self):
         org_id = self.organization.id
-        for tag in [SessionMRI.USER.value, "session.status", "crashed", "init"]:
+        for tag in [SessionMRI.USER.value, "session.status", "crashed"]:
             _indexer_record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
@@ -338,14 +344,16 @@ class BuildSnubaFilterTest(TestCase):
             environment=None,
         )
         session_status = resolve_tag_key(org_id, "session.status")
-        session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
+        crashed = resolve(org_id, "crashed")
         assert snuba_filter
-        assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
+        assert snuba_filter.aggregations == [
+            ["uniq(value)", None, "count"],
+            [f"uniqIf(value, equals({session_status}, {crashed}))", None, "crashed"],
+        ]
         assert snuba_filter.conditions == [
             ["metric_id", "=", resolve(org_id, SessionMRI.USER.value)],
-            [session_status, "IN", session_status_tag_values],
         ]
-        assert snuba_filter.groupby == [session_status]
+        assert snuba_filter.groupby is None
 
     def test_aliased_query_events(self):
         entity_subscription = get_entity_subscription_for_dataset(
@@ -414,8 +422,19 @@ class BuildSnubaFilterTest(TestCase):
             environment=env,
         )
         assert snuba_filter
-        assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
-        assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
+        assert snuba_filter.aggregations == [
+            [
+                f"sumIf(value, equals({resolve_tag_key(org_id, 'session.status')}, {resolve_weak(org_id, 'init')}))",
+                None,
+                "count",
+            ],
+            [
+                f"sumIf(value, equals({resolve_tag_key(org_id, 'session.status')}, {resolve_weak(org_id, 'crashed')}))",
+                None,
+                "crashed",
+            ],
+        ]
+        assert snuba_filter.groupby is None
         assert snuba_filter.conditions == [
             ["metric_id", "=", resolve(org_id, SessionMRI.SESSION.value)],
             [
@@ -479,16 +498,16 @@ class BuildSnubaFilterTest(TestCase):
             query="release:ahmed@12.2",
             environment=env,
         )
+        session_status = resolve_tag_key(org_id, "session.status")
+        crashed = resolve(org_id, "crashed")
         assert snuba_filter
-        assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
-        assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
+        assert snuba_filter.aggregations == [
+            ["uniq(value)", None, "count"],
+            [f"uniqIf(value, equals({session_status}, {crashed}))", None, "crashed"],
+        ]
+        assert snuba_filter.groupby is None
         assert snuba_filter.conditions == [
             ["metric_id", "=", resolve(org_id, SessionMRI.USER.value)],
-            [
-                resolve_tag_key(org_id, "session.status"),
-                "IN",
-                resolve_many_weak(org_id, ["crashed", "init"]),
-            ],
             [resolve_tag_key(org_id, "environment"), "=", resolve_weak(org_id, "development")],
             [resolve_tag_key(org_id, "release"), "=", resolve_weak(org_id, "ahmed@12.2")],
         ]
@@ -598,6 +617,491 @@ class BuildSnubaFilterTest(TestCase):
             ],
         ]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
+
+
+class BuildSnqlQueryTest(TestCase):
+    aggregate_mappings = {
+        QueryDatasets.EVENTS: {
+            "count_unique(user)": Function(
+                function="uniq",
+                parameters=[Column(name="tags[sentry:user]")],
+                alias="count_unique_user",
+            ),
+        },
+        QueryDatasets.TRANSACTIONS: {
+            "count_unique(user)": Function(
+                function="uniq",
+                parameters=[Column(name="user")],
+                alias="count_unique_user",
+            ),
+            "percentile(transaction.duration,.95)": Function(
+                "quantile(0.95)",
+                parameters=[Column(name="duration")],
+                alias="percentile_transaction_duration__95",
+            ),
+            "p95()": Function("quantile(0.95)", parameters=[Column(name="duration")], alias="p95"),
+        },
+        QueryDatasets.SESSIONS: {
+            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate": Function(
+                function="if",
+                parameters=[
+                    Function(function="greater", parameters=[Column(name="sessions"), 0]),
+                    Function(
+                        function="divide",
+                        parameters=[Column(name="sessions_crashed"), Column(name="sessions")],
+                    ),
+                    None,
+                ],
+                alias="_crash_rate_alert_aggregate",
+            ),
+            "percentage(users_crashed, users) as _crash_rate_alert_aggregate": Function(
+                function="if",
+                parameters=[
+                    Function(function="greater", parameters=[Column(name="users"), 0]),
+                    Function(
+                        function="divide",
+                        parameters=[Column(name="users_crashed"), Column(name="users")],
+                    ),
+                    None,
+                ],
+                alias="_crash_rate_alert_aggregate",
+            ),
+        },
+        "count()": Function("count", parameters=[], alias="count"),
+    }
+
+    def run_test(
+        self,
+        dataset,
+        aggregate,
+        query,
+        expected_conditions,
+        entity_extra_fields=None,
+        environment=None,
+    ):
+        time_window = 3600
+        entity_subscription = get_entity_subscription_for_dataset(
+            dataset=dataset,
+            aggregate=aggregate,
+            time_window=time_window,
+            extra_fields=entity_extra_fields,
+        )
+        snql_query = build_query_builder(
+            entity_subscription,
+            query,
+            (self.project.id,),
+            environment=environment,
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+            },
+        ).get_snql_query()
+        select = [self.string_aggregate_to_snql(dataset, aggregate)]
+        if dataset == QueryDatasets.SESSIONS:
+            col_name = "sessions" if "sessions" in aggregate else "users"
+            select.insert(
+                0,
+                Function(
+                    function="identity", parameters=[Column(name=col_name)], alias="_total_count"
+                ),
+            )
+        # Select order seems to be unstable, so just arbitrarily sort by name so that it's consistent
+        snql_query.query.select.sort(key=lambda q: q.function)
+        assert snql_query.query == Query(
+            match=Entity(map_aggregate_to_entity_key(dataset, aggregate).value),
+            select=select,
+            where=expected_conditions,
+            groupby=[],
+            having=[],
+            orderby=[],
+        )
+
+    def string_aggregate_to_snql(self, dataset, aggregate):
+        return self.aggregate_mappings[dataset].get(
+            aggregate, self.aggregate_mappings.get(aggregate, "")
+        )
+
+    def test_simple_events(self):
+        self.run_test(
+            QueryDatasets.EVENTS,
+            "count_unique(user)",
+            "",
+            [
+                Condition(Column(name="type"), Op.EQ, "error"),
+                Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            ],
+        )
+
+    def test_simple_transactions(self):
+        self.run_test(
+            QueryDatasets.TRANSACTIONS,
+            "count_unique(user)",
+            "",
+            [
+                Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            ],
+        )
+
+    def test_aliased_query_events(self):
+        self.create_release(self.project, version="something")
+        expected_conditions = [
+            And(
+                conditions=[
+                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(
+                        Function(
+                            function="ifNull",
+                            parameters=[Column(name="tags[sentry:release]"), ""],
+                        ),
+                        Op.IN,
+                        ["something"],
+                    ),
+                ]
+            ),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+        ]
+        self.run_test(
+            QueryDatasets.EVENTS, "count_unique(user)", "release:latest", expected_conditions
+        )
+
+    def test_aliased_query_transactions(self):
+        self.create_release(self.project, version="something")
+        expected_conditions = [
+            Condition(Column("release"), Op.IN, ["something"]),
+            Condition(Column("project_id"), Op.IN, (self.project.id,)),
+        ]
+        self.run_test(
+            QueryDatasets.TRANSACTIONS,
+            "percentile(transaction.duration,.95)",
+            "release:latest",
+            expected_conditions,
+        )
+
+    def test_user_query(self):
+        expected_conditions = [
+            And(
+                conditions=[
+                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(
+                        Function(
+                            function="ifNull",
+                            parameters=[Column(name="tags[sentry:user]"), ""],
+                        ),
+                        Op.EQ,
+                        "anengineer@work.io",
+                    ),
+                ]
+            ),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+        ]
+        self.run_test(
+            QueryDatasets.EVENTS, "count()", "user:anengineer@work.io", expected_conditions
+        )
+
+    def test_user_query_transactions(self):
+        expected_conditions = [
+            Condition(Column("user"), Op.EQ, "anengineer@work.io"),
+            Condition(Column("project_id"), Op.IN, (self.project.id,)),
+        ]
+        self.run_test(
+            QueryDatasets.TRANSACTIONS,
+            "p95()",
+            "user:anengineer@work.io",
+            expected_conditions,
+        )
+
+    def test_boolean_query(self):
+        self.create_release(self.project, version="something")
+        expected_conditions = [
+            And(
+                [
+                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Or(
+                        [
+                            Condition(
+                                Function(
+                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                ),
+                                Op.IN,
+                                ["something"],
+                            ),
+                            Condition(
+                                Function(
+                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                ),
+                                Op.IN,
+                                ["123"],
+                            ),
+                        ]
+                    ),
+                ]
+            ),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+        ]
+        self.run_test(
+            QueryDatasets.EVENTS,
+            "count_unique(user)",
+            "release:latest OR release:123",
+            expected_conditions,
+        )
+
+    def test_event_types(self):
+        self.create_release(self.project, version="something")
+        expected_conditions = [
+            And(
+                [
+                    Or(
+                        [
+                            Condition(Column(name="type"), Op.EQ, "error"),
+                            Condition(Column(name="type"), Op.EQ, "default"),
+                        ]
+                    ),
+                    Or(
+                        [
+                            Condition(
+                                Function(
+                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                ),
+                                Op.IN,
+                                ["something"],
+                            ),
+                            Condition(
+                                Function(
+                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                ),
+                                Op.IN,
+                                ["123"],
+                            ),
+                        ]
+                    ),
+                ]
+            ),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+        ]
+        self.run_test(
+            QueryDatasets.EVENTS,
+            "count_unique(user)",
+            "release:latest OR release:123",
+            expected_conditions,
+            entity_extra_fields={
+                "event_types": [
+                    SnubaQueryEventType.EventType.ERROR,
+                    SnubaQueryEventType.EventType.DEFAULT,
+                ]
+            },
+        )
+
+    def test_issue_id_snql(self):
+        expected_conditions = [
+            And(
+                [
+                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(
+                        Column(name="group_id"),
+                        Op.IN,
+                        [self.group.id, 2],
+                    ),
+                ]
+            ),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+        ]
+        self.run_test(
+            QueryDatasets.EVENTS,
+            "count_unique(user)",
+            f"issue.id:[{self.group.id}, 2]",
+            expected_conditions,
+        )
+
+    def test_simple_sessions(self):
+        expected_conditions = [
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+        ]
+
+        self.run_test(
+            QueryDatasets.SESSIONS,
+            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+            "",
+            expected_conditions,
+            entity_extra_fields={"org_id": self.organization.id},
+        )
+
+    def test_simple_users(self):
+        expected_conditions = [
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+        ]
+        self.run_test(
+            QueryDatasets.SESSIONS,
+            "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
+            "",
+            expected_conditions,
+            entity_extra_fields={"org_id": self.organization.id},
+        )
+
+    def test_query_and_environment_sessions(self):
+        env = self.create_environment(self.project, name="development")
+        expected_conditions = [
+            Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            Condition(Column(name="environment"), Op.EQ, "development"),
+            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+        ]
+        self.run_test(
+            QueryDatasets.SESSIONS,
+            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
+            "release:ahmed@12.2",
+            expected_conditions,
+            entity_extra_fields={"org_id": self.organization.id},
+            environment=env,
+        )
+
+    def test_query_and_environment_users(self):
+        env = self.create_environment(self.project, name="development")
+        expected_conditions = [
+            Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
+            Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
+            Condition(Column(name="environment"), Op.EQ, "development"),
+            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
+        ]
+        self.run_test(
+            QueryDatasets.SESSIONS,
+            "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
+            "release:ahmed@12.2",
+            expected_conditions,
+            entity_extra_fields={"org_id": self.organization.id},
+            environment=env,
+        )
+
+    # TODO: Convert these tests once we implement `build_snql_query` for metrics
+    # def test_simple_sessions_for_metrics(self):
+    #     org_id = self.organization.id
+    #     for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
+    #         indexer.record(org_id, tag)
+    #     entity_subscription = get_entity_subscription_for_dataset(
+    #         dataset=QueryDatasets.METRICS,
+    #         time_window=3600,
+    #         aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+    #         extra_fields={"org_id": org_id},
+    #     )
+    #     snuba_filter = build_snuba_filter(
+    #         entity_subscription,
+    #         query="",
+    #         environment=None,
+    #     )
+    #     session_status = resolve_tag_key(org_id, "session.status")
+    #     session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
+    #     assert snuba_filter
+    #     assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
+    #     assert snuba_filter.conditions == [
+    #         ["metric_id", "=", resolve(org_id, SessionMRI.SESSION.value)],
+    #         [session_status, "IN", session_status_tag_values],
+    #     ]
+    #     assert snuba_filter.groupby == [session_status]
+    #
+    # def test_simple_users_for_metrics(self):
+    #     org_id = self.organization.id
+    #     for tag in [SessionMRI.USER.value, "session.status", "crashed", "init"]:
+    #         indexer.record(org_id, tag)
+    #     entity_subscription = get_entity_subscription_for_dataset(
+    #         dataset=QueryDatasets.METRICS,
+    #         time_window=3600,
+    #         aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+    #         extra_fields={"org_id": org_id},
+    #     )
+    #     snuba_filter = build_snuba_filter(
+    #         entity_subscription,
+    #         query="",
+    #         environment=None,
+    #     )
+    #     session_status = resolve_tag_key(org_id, "session.status")
+    #     session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
+    #     assert snuba_filter
+    #     assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
+    #     assert snuba_filter.conditions == [
+    #         ["metric_id", "=", resolve(org_id, SessionMRI.USER.value)],
+    #         [session_status, "IN", session_status_tag_values],
+    #     ]
+    #     assert snuba_filter.groupby == [session_status]
+    #
+    # def test_query_and_environment_sessions_metrics(self):
+    #     env = self.create_environment(self.project, name="development")
+    #     org_id = self.organization.id
+    #     for tag in [
+    #         SessionMRI.SESSION.value,
+    #         "session.status",
+    #         "environment",
+    #         "development",
+    #         "init",
+    #         "crashed",
+    #         "release",
+    #         "ahmed@12.2",
+    #     ]:
+    #         indexer.record(org_id, tag)
+    #     entity_subscription = get_entity_subscription_for_dataset(
+    #         dataset=QueryDatasets.METRICS,
+    #         time_window=3600,
+    #         aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+    #         extra_fields={"org_id": org_id},
+    #     )
+    #     snuba_filter = build_snuba_filter(
+    #         entity_subscription,
+    #         query="release:ahmed@12.2",
+    #         environment=env,
+    #     )
+    #     assert snuba_filter
+    #     assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
+    #     assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
+    #     assert snuba_filter.conditions == [
+    #         ["metric_id", "=", resolve(org_id, SessionMRI.SESSION.value)],
+    #         [
+    #             resolve_tag_key(org_id, "session.status"),
+    #             "IN",
+    #             resolve_many_weak(org_id, ["crashed", "init"]),
+    #         ],
+    #         [resolve_tag_key(org_id, "environment"), "=", resolve_weak(org_id, "development")],
+    #         [resolve_tag_key(org_id, "release"), "=", resolve_weak(org_id, "ahmed@12.2")],
+    #     ]
+    #
+    # def test_query_and_environment_users_metrics(self):
+    #     env = self.create_environment(self.project, name="development")
+    #     org_id = self.organization.id
+    #     for tag in [
+    #         SessionMRI.USER.value,
+    #         "session.status",
+    #         "environment",
+    #         "development",
+    #         "init",
+    #         "crashed",
+    #         "release",
+    #         "ahmed@12.2",
+    #     ]:
+    #         indexer.record(org_id, tag)
+    #     entity_subscription = get_entity_subscription_for_dataset(
+    #         dataset=QueryDatasets.METRICS,
+    #         time_window=3600,
+    #         aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+    #         extra_fields={"org_id": org_id},
+    #     )
+    #     snuba_filter = build_snuba_filter(
+    #         entity_subscription,
+    #         query="release:ahmed@12.2",
+    #         environment=env,
+    #     )
+    #     assert snuba_filter
+    #     assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
+    #     assert snuba_filter.groupby == [resolve_tag_key(org_id, "session.status")]
+    #     assert snuba_filter.conditions == [
+    #         ["metric_id", "=", resolve(org_id, SessionMRI.USER.value)],
+    #         [
+    #             resolve_tag_key(org_id, "session.status"),
+    #             "IN",
+    #             resolve_many_weak(org_id, ["crashed", "init"]),
+    #         ],
+    #         [resolve_tag_key(org_id, "environment"), "=", resolve_weak(org_id, "development")],
+    #         [resolve_tag_key(org_id, "release"), "=", resolve_weak(org_id, "ahmed@12.2")],
+    #     ]
+    #
 
 
 class TestApplyDatasetQueryConditions(TestCase):

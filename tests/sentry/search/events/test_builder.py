@@ -218,9 +218,9 @@ class QueryBuilderTest(TestCase):
         project2 = self.create_project()
         # params is assumed to be validated at this point, so this query should be invalid
         self.params["project_id"] = [project2.id]
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape(
+            match=re.escape(
                 f"Invalid query. Project(s) {str(project1.slug)} do not exist or are not actively selected."
             ),
         ):
@@ -382,7 +382,7 @@ class QueryBuilderTest(TestCase):
         old_end = datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
         old_params = {**self.params, "start": old_start, "end": old_end}
         with self.options({"system.event-retention-days": 10}):
-            with self.assertRaises(QueryOutsideRetentionError):
+            with pytest.raises(QueryOutsideRetentionError):
                 QueryBuilder(
                     Dataset.Discover,
                     old_params,
@@ -410,7 +410,7 @@ class QueryBuilderTest(TestCase):
         )
 
     def test_array_combinator_is_private(self):
-        with self.assertRaisesRegex(InvalidSearchQuery, "sum: no access to private function"):
+        with pytest.raises(InvalidSearchQuery, match="sum: no access to private function"):
             QueryBuilder(
                 Dataset.Discover,
                 self.params,
@@ -419,7 +419,7 @@ class QueryBuilderTest(TestCase):
             )
 
     def test_array_combinator_with_non_array_arg(self):
-        with self.assertRaisesRegex(InvalidSearchQuery, "stuff is not a valid array column"):
+        with pytest.raises(InvalidSearchQuery, match="stuff is not a valid array column"):
             QueryBuilder(
                 Dataset.Discover,
                 self.params,
@@ -581,7 +581,7 @@ class QueryBuilderTest(TestCase):
             use_aggregate_conditions=True,
         )
         # With count_unique only in a condition and no auto_aggregations this should raise a invalid search query
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             query.get_snql_query()
 
     def test_query_chained_or_tip(self):
@@ -821,7 +821,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_custom_percentile_throws_error(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(
                 self.params,
                 "",
@@ -1022,9 +1022,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_missing_transaction_index(self):
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape("Tag value was not found"),
+            match=re.escape("Tag value was not found"),
         ):
             MetricsQueryBuilder(
                 self.params,
@@ -1033,9 +1033,9 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_missing_transaction_index_in_filter(self):
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape("Tag value was not found"),
+            match=re.escape("Tag value was not found"),
         ):
             MetricsQueryBuilder(
                 self.params,
@@ -1044,7 +1044,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_incorrect_parameter_for_metrics(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(
                 self.params,
                 f"project:{self.project.slug}",
@@ -1073,7 +1073,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(self.params)
         assert query.limit.limit == 50
         # anything higher should throw an error
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             MetricsQueryBuilder(self.params, limit=10_000)
 
     def test_granularity(self):
@@ -1191,6 +1191,37 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert (
             get_granularity(start, end) == 60
         ), "12h at boundary, but 15 min after the boundary for start"
+
+    def test_get_snql_query(self):
+        query = MetricsQueryBuilder(self.params, "", selected_columns=["p90(transaction.duration)"])
+        snql_request = query.get_snql_query()
+        assert snql_request.dataset == "metrics"
+        snql_query = snql_request.query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                _metric_percentile_definition(self.organization.id, "90"),
+            ],
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                *self.default_conditions,
+                *_metric_conditions(self.organization.id, ["transaction.duration"]),
+            ],
+        )
+
+    def test_get_snql_query_errors_with_multiple_dataset(self):
+        query = MetricsQueryBuilder(
+            self.params, "", selected_columns=["p90(transaction.duration)", "count_unique(user)"]
+        )
+        with pytest.raises(NotImplementedError):
+            query.get_snql_query()
+
+    def test_get_snql_query_errors_with_no_functions(self):
+        query = MetricsQueryBuilder(self.params, "", selected_columns=["project"])
+        with pytest.raises(IncompatibleMetricsQuery):
+            query.get_snql_query()
 
     def test_run_query(self):
         self.store_metric(
@@ -1403,7 +1434,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
 
     def test_run_query_with_tag_orderby(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 selected_columns=[
@@ -1529,6 +1560,24 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         assert data["failure_rate"] == 0.5
         assert data["failure_count"] == 3
 
+    def test_run_function_without_having_or_groupby(self):
+        self.store_metric(
+            1,
+            metric="user",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.start + datetime.timedelta(minutes=5),
+        )
+        query = MetricsQueryBuilder(
+            self.params,
+            "",
+            selected_columns=[
+                "transaction",
+                "count_unique(user)",
+            ],
+        )
+        primary, result = query._create_query_framework()
+        assert primary == "set"
+
     def test_run_query_with_multiple_groupby_orderby_null_values_in_second_entity(self):
         """Since the null value is on count_unique(user) we will still get baz_transaction since we query distributions
         first which will have it, and then just not find a unique count in the second"""
@@ -1619,7 +1668,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         }
 
     def test_multiple_entity_orderby_fails(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 f"project:{self.project.slug}",
@@ -1634,7 +1683,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.run_query("test_query")
 
     def test_multiple_entity_query_fails(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 "p95(transaction.duration):>5s AND count_unique(user):>0",
@@ -1649,7 +1698,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             query.run_query("test_query")
 
     def test_query_entity_does_not_match_orderby(self):
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query = MetricsQueryBuilder(
                 self.params,
                 "count_unique(user):>0",
@@ -1776,7 +1825,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             "p75(user)",
             "count_web_vitals(user, poor)",
         ]:
-            with self.assertRaises(IncompatibleMetricsQuery):
+            with pytest.raises(IncompatibleMetricsQuery):
                 MetricsQueryBuilder(
                     self.params,
                     "",
@@ -1812,7 +1861,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_error_if_aggregates_disallowed(self):
         def run_query(query, use_aggregate_conditions):
-            with self.assertRaises(IncompatibleMetricsQuery):
+            with pytest.raises(IncompatibleMetricsQuery):
                 MetricsQueryBuilder(
                     self.params,
                     selected_columns=[
@@ -1921,6 +1970,31 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
             ],
         )
 
+    def test_custom_measurement_allowed(self):
+        MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "avg(measurements.custom.measurement)",
+                "p50(measurements.custom.measurement)",
+                "p75(measurements.custom.measurement)",
+                "p90(measurements.custom.measurement)",
+                "p95(measurements.custom.measurement)",
+                "p99(measurements.custom.measurement)",
+                "p100(measurements.custom.measurement)",
+                "percentile(measurements.custom.measurement, 0.95)",
+                "sum(measurements.custom.measurement)",
+                "max(measurements.custom.measurement)",
+                "min(measurements.custom.measurement)",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+            # Use dry run for now to not hit indexer
+            dry_run=True,
+        )
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):
@@ -2016,9 +2090,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_missing_transaction_index(self):
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape("Tag value was not found"),
+            match=re.escape("Tag value was not found"),
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,
@@ -2028,9 +2102,9 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
             )
 
     def test_missing_transaction_index_in_filter(self):
-        with self.assertRaisesRegex(
+        with pytest.raises(
             InvalidSearchQuery,
-            re.escape("Tag value was not found"),
+            match=re.escape("Tag value was not found"),
         ):
             TimeseriesMetricQueryBuilder(
                 self.params,
@@ -2261,7 +2335,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_error_if_aggregates_disallowed(self):
         def run_query(query):
-            with self.assertRaises(IncompatibleMetricsQuery):
+            with pytest.raises(IncompatibleMetricsQuery):
                 TimeseriesMetricQueryBuilder(
                     self.params,
                     interval=900,
@@ -2288,7 +2362,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
         )
 
     def test_invalid_semver_filter(self):
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             QueryBuilder(
                 Dataset.Discover,
                 self.params,

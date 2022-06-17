@@ -85,9 +85,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
-        query_modified_by_user = request.GET.get("user_modified")
-        if query_modified_by_user in ["true", "false"]:
-            sentry_sdk.set_tag("query.user_modified", query_modified_by_user)
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_REFERRERS else "api.organization-events-v2"
         )
@@ -198,6 +195,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         """
         Retrieves discover (also known as events) data for a given organization.
 
+        **Eventsv2 Deprecation Note**: Users who may be using the `eventsv2` endpoint should update their requests to the `events` endpoint outline in this document.
+        The `eventsv2` endpoint is not a public endpoint and has no guaranteed availability. If you are not making any API calls to `eventsv2`, you can safely ignore this.
+        Changes between `eventsv2` and `events` include:
+        - Field keys in the response now match the keys in the requested `field` param exactly.
+        - The `meta` object in the response now shows types in the nested `field` object.
+
+        Aside from the url change, there are no changes to the request payload itself.
+
         **Note**: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
         Sentry.
 
@@ -240,10 +245,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = "api.organization-events"
-
-        query_modified_by_user = request.GET.get("user_modified")
-        if query_modified_by_user in ["true", "false"]:
-            sentry_sdk.set_tag("query.user_modified", query_modified_by_user)
 
         def data_fn(offset, limit):
             query_details = {

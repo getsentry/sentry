@@ -32,6 +32,7 @@ type Props = {
   organization: Organization;
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
+  withStaticFilters: boolean;
   chartColor?: string;
   forceDefaultChartSetting?: boolean;
 } & ChartRowProps;
@@ -116,6 +117,7 @@ const _WidgetContainer = (props: Props) => {
     'location',
     'organization',
     'chartHeight',
+    'withStaticFilters',
   ]);
 
   switch (widgetProps.dataType) {

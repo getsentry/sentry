@@ -259,7 +259,6 @@ describe('Dashboards > WidgetQueries', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'event.type:error',
-          name: 'SDK',
           field: ['sdk.name'],
           statsPeriod: '14d',
           environment: ['prod'],
@@ -392,7 +391,6 @@ describe('Dashboards > WidgetQueries', function () {
         query: expect.objectContaining({
           referrer: 'api.dashboards.bignumberwidget',
           query: 'event.type:error',
-          name: 'SDK',
           field: ['sdk.name'],
           statsPeriod: '14d',
           environment: ['prod'],
@@ -455,7 +453,6 @@ describe('Dashboards > WidgetQueries', function () {
         query: expect.objectContaining({
           referrer: 'api.dashboards.worldmapwidget',
           query: 'event.type:error',
-          name: 'SDK',
           field: ['count()'],
           statsPeriod: '14d',
           environment: ['prod'],

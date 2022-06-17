@@ -42,8 +42,13 @@ function PerformanceContent({selection, location, demoMode}: Props) {
   const previousDateTime = usePrevious(selection.datetime);
 
   const [state, setState] = useState<State>({error: undefined});
+  const withStaticFilters = organization.features.includes(
+    'performance-transaction-name-only-search'
+  );
 
-  const eventView = generatePerformanceEventView(location, projects);
+  const eventView = generatePerformanceEventView(location, projects, {
+    withStaticFilters,
+  });
 
   function getOnboardingProject(): Project | undefined {
     // XXX used by getsentry to bypass onboarding for the upsell demo state.
@@ -126,7 +131,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
         cursor: undefined,
         query: String(searchQuery).trim() || undefined,
         isDefaultQuery: false,
-        userModified: true,
       },
     });
   }
@@ -156,6 +160,7 @@ function PerformanceContent({selection, location, demoMode}: Props) {
               location={location}
               projects={projects}
               selection={selection}
+              withStaticFilters={withStaticFilters}
             />
           </PageFiltersContainer>
         </MEPSettingProvider>

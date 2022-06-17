@@ -80,7 +80,8 @@ class MetricsDatasetConfig(DatasetConfig):
                     "avg",
                     required_args=[
                         fields.MetricArg(
-                            "column", allowed_columns=constants.METRIC_DURATION_COLUMNS
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
                         )
                     ],
                     calculated_args=[resolve_metric_id],
@@ -102,7 +103,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_miserable",
-                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
+                    required_args=[
+                        fields.MetricArg(
+                            "column", allowed_columns=["user"], allow_custom_measurements=False
+                        )
+                    ],
                     calculated_args=[resolve_metric_id],
                     snql_set=self._resolve_count_miserable_function,
                     default_result_type="integer",
@@ -239,6 +244,21 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                 ),
                 fields.MetricsFunction(
+                    "sum",
+                    required_args=[
+                        fields.MetricArg("column"),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function("equals", [Column("metric_id"), args["metric_id"]]),
+                        ],
+                        alias,
+                    ),
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
@@ -255,7 +275,11 @@ class MetricsDatasetConfig(DatasetConfig):
                 ),
                 fields.MetricsFunction(
                     "count_unique",
-                    required_args=[fields.MetricArg("column", allowed_columns=["user"])],
+                    required_args=[
+                        fields.MetricArg(
+                            "column", allowed_columns=["user"], allow_custom_measurements=False
+                        )
+                    ],
                     calculated_args=[resolve_metric_id],
                     snql_set=lambda args, alias: Function(
                         "uniqIf",
@@ -297,6 +321,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.fid",
                                 "measurements.cls",
                             ],
+                            allow_custom_measurements=False,
                         ),
                         fields.SnQLStringArg(
                             "quality", allowed_strings=["good", "meh", "poor", "any"]
