@@ -49,9 +49,7 @@ class PGStringIndexerV2(StringIndexer):
 
         return self._table(use_case_id).objects.filter(query_statement)
 
-    def bulk_record(
-        self, org_strings: Mapping[int, Set[str]], use_case_id: str = DEFAULT_USE_CASE
-    ) -> KeyResults:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]], use_case_id: str) -> KeyResults:
         """
         Takes in a mapping with org_ids to sets of strings.
 
@@ -169,7 +167,7 @@ class PGStringIndexerV2(StringIndexer):
 
         return cache_key_results.merge(db_read_key_results).merge(db_write_key_results)
 
-    def record(self, org_id: int, string: str, use_case_id: str = DEFAULT_USE_CASE) -> int:
+    def record(self, org_id: int, string: str, use_case_id: str) -> int:
         """Store a string and return the integer ID generated for it"""
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
         return result[org_id][string]
@@ -224,9 +222,7 @@ class StaticStringsIndexerDecorator(StringIndexer):
     def __init__(self) -> None:
         self.indexer = PGStringIndexerV2()
 
-    def bulk_record(
-        self, org_strings: Mapping[int, Set[str]], use_case_id: str = DEFAULT_USE_CASE
-    ) -> KeyResults:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]], use_case_id: str) -> KeyResults:
         static_keys = KeyCollection(org_strings)
         static_key_results = KeyResults()
         for org_id, string in static_keys.as_tuples():
@@ -247,7 +243,7 @@ class StaticStringsIndexerDecorator(StringIndexer):
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, org_id: int, string: str, use_case_id: str = DEFAULT_USE_CASE) -> int:
+    def record(self, org_id: int, string: str, use_case_id: str) -> int:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
