@@ -142,7 +142,7 @@ def available_on(mode: ServerComponentMode) -> Callable[[type], type]:
     from . import BaseQuerySet
 
     def decorator(decorated_class: Type[BaseModel]) -> Type[BaseModel]:
-        def queryset_override(obj) -> BaseQuerySet:
+        def queryset_override(obj: Any) -> BaseQuerySet:
             raise ServerModeDataError(
                 f"{decorated_class.__name__} is available only in the {mode.value} server mode"
             )
