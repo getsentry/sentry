@@ -359,10 +359,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           return requestGenerator!(
             api,
             query,
-            {
-              organization,
-              pageFilters: selection,
-            },
+            organization,
+            selection,
             this.limit,
             cursor
           );

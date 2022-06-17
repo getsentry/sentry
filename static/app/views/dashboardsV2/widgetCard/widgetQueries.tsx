@@ -271,10 +271,8 @@ class WidgetQueries extends Component<Props, State> {
           return requestGenerator!(
             api,
             query,
-            {
-              organization,
-              pageFilters: selection,
-            },
+            organization,
+            selection,
             requestLimit,
             cursor,
             referrer

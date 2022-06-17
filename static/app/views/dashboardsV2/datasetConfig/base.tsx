@@ -76,7 +76,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getSeriesRequest?: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string
@@ -88,7 +89,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getTableRequest?: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string
@@ -100,7 +102,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getWorldMapRequest?: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string

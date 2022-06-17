@@ -7,6 +7,7 @@ import {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
+  PageFilters,
   TagCollection,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -72,32 +73,44 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   getTableRequest: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string
   ) => {
-    const shouldUseEvents = contextualProps?.organization?.features.includes(
+    const shouldUseEvents = organization.features.includes(
       'discover-frontend-use-events-endpoint'
     );
     const url = shouldUseEvents
-      ? `/organizations/${contextualProps?.organization?.slug}/events/`
-      : `/organizations/${contextualProps?.organization?.slug}/eventsv2/`;
-    return getEventsRequest(url, api, query, contextualProps, limit, cursor, referrer);
+      ? `/organizations/${organization.slug}/events/`
+      : `/organizations/${organization.slug}/eventsv2/`;
+    return getEventsRequest(
+      url,
+      api,
+      query,
+      organization,
+      pageFilters,
+      limit,
+      cursor,
+      referrer
+    );
   },
   getWorldMapRequest: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string
   ) => {
     return getEventsRequest(
-      `/organizations/${contextualProps?.organization?.slug}/events-geo/`,
+      `/organizations/${organization.slug}/events-geo/`,
       api,
       query,
-      contextualProps,
+      organization,
+      pageFilters,
       limit,
       cursor,
       referrer
@@ -250,15 +263,15 @@ function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,
-  contextualProps?: ContextualProps,
+  organization: Organization,
+  pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
   referrer?: string
 ) {
-  const isMEPEnabled =
-    contextualProps?.organization?.features.includes('dashboards-mep') ?? false;
+  const isMEPEnabled = organization.features.includes('dashboards-mep');
 
-  const eventView = eventViewFromWidget('', query, contextualProps?.pageFilters!);
+  const eventView = eventViewFromWidget('', query, pageFilters);
 
   const params: DiscoverQueryRequestParams = {
     per_page: limit,

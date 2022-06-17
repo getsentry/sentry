@@ -139,15 +139,16 @@ export function transformIssuesResponseToTable(
 function getTableRequest(
   api: Client,
   query: WidgetQuery,
-  contextualProps?: ContextualProps,
+  organization: Organization,
+  pageFilters: PageFilters,
   limit?: number,
   cursor?: string
 ) {
-  const groupListUrl = `/organizations/${contextualProps?.organization?.slug}/issues/`;
+  const groupListUrl = `/organizations/${organization.slug}/issues/`;
 
   const params: EndpointParams = {
-    project: contextualProps?.pageFilters?.projects ?? [],
-    environment: contextualProps?.pageFilters?.environments ?? [],
+    project: pageFilters.projects ?? [],
+    environment: pageFilters.environments ?? [],
     query: query.conditions,
     sort: query.orderby || DEFAULT_SORT,
     expand: DEFAULT_EXPAND,
@@ -155,17 +156,17 @@ function getTableRequest(
     cursor,
   };
 
-  if (contextualProps?.pageFilters?.datetime.period) {
-    params.statsPeriod = contextualProps?.pageFilters?.datetime.period;
+  if (pageFilters.datetime.period) {
+    params.statsPeriod = pageFilters.datetime.period;
   }
-  if (contextualProps?.pageFilters?.datetime.end) {
-    params.end = getUtcDateString(contextualProps?.pageFilters?.datetime.end);
+  if (pageFilters.datetime.end) {
+    params.end = getUtcDateString(pageFilters.datetime.end);
   }
-  if (contextualProps?.pageFilters?.datetime.start) {
-    params.start = getUtcDateString(contextualProps?.pageFilters?.datetime.start);
+  if (pageFilters.datetime.start) {
+    params.start = getUtcDateString(pageFilters.datetime.start);
   }
-  if (contextualProps?.pageFilters?.datetime.utc) {
-    params.utc = contextualProps?.pageFilters?.datetime.utc;
+  if (pageFilters.datetime.utc) {
+    params.utc = pageFilters.datetime.utc;
   }
 
   return api.requestPromise(groupListUrl, {
