@@ -111,8 +111,10 @@ class EventState:
         is_regression: bool,
         is_new_group_environment: bool,
         has_reappeared: bool,
+        is_in_active_release: bool = False,
     ) -> None:
         self.is_new = is_new
         self.is_regression = is_regression
         self.is_new_group_environment = is_new_group_environment
         self.has_reappeared = has_reappeared
+        self.is_in_active_release = is_in_active_release

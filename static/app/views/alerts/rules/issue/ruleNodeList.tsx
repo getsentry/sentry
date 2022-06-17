@@ -160,7 +160,11 @@ class RuleNodeList extends Component<Props> {
         if (node.id.includes('NotifyEmailAction')) {
           return {
             value: node.id,
-            label: t('Issue Owners, Team, or Member'),
+            label: organization.features?.includes?.(
+              'alert-release-notification-workflow'
+            )
+              ? t('Issue Owners, Team, Member, or Release Members')
+              : t('Issue Owners, Team, or Member'),
           };
         }
 

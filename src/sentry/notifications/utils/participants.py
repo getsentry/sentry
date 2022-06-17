@@ -230,10 +230,17 @@ def determine_eligible_recipients(
         if team:
             return {team}
 
+    elif target_type == ActionTargetType.RELEASE_MEMBERS:
+        return get_release_committers(project, event)
+
     else:
         return get_owners(project, event)
 
     return set()
+
+
+def get_release_committers(project, event) -> Sequence[User]:
+    return []
 
 
 def get_send_to(

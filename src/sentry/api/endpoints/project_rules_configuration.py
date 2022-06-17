@@ -21,6 +21,9 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
+        org_release_notifications = True or features.has(
+            "organizations:alert-release-notification-workflow", project.organization
+        )
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -60,7 +63,12 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 continue
 
             if rule_type.startswith("condition/"):
-                condition_list.append(context)
+                if (
+                    org_release_notifications
+                    or context["id"]
+                    != "sentry.rules.conditions.active_release.ActiveReleaseEventCondition"
+                ):
+                    condition_list.append(context)
             elif rule_type.startswith("filter/"):
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
