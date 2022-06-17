@@ -5,5 +5,5 @@ pytest_plugins = [
     "sentry.utils.pytest.unittest",
     "sentry.utils.pytest.kafka",
     "sentry.utils.pytest.relay",
-    "sentry.utils.pytest.bad_model_signal_handlers",
+    "sentry.utils.pytest.stale_database_reads",
 ]
