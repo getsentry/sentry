@@ -51,15 +51,20 @@ export type PerformanceEventParameters = {
     to_widget?: string;
   };
   'performance_views.overview.cellaction': {action?: string};
-  'performance_views.overview.navigate.summary': {};
+  'performance_views.overview.navigate.summary': {
+    project_platforms: string;
+  };
   'performance_views.overview.search': {};
   'performance_views.overview.view': {
+    project_platforms: string;
     show_onboarding: boolean;
   };
   'performance_views.span_summary.change_chart': {
     change_to_display: string;
   };
-  'performance_views.span_summary.view': {};
+  'performance_views.span_summary.view': {
+    project_platforms: string;
+  };
   'performance_views.spans.change_op': {
     operation_name?: string;
   };
@@ -106,7 +111,9 @@ export type PerformanceEventParameters = {
     from_vital: string;
     to_vital: string;
   };
-  'performance_views.vital_detail.view': {};
+  'performance_views.vital_detail.view': {
+    project_platforms: string;
+  };
 };
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
