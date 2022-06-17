@@ -150,6 +150,8 @@ class FeatureManager(RegisteredFeatureManager):
         >>> FeatureManager.has('my:feature', actor=request.user)
         """
         if entity_feature:
+            if name.startswith("users:"):
+                raise Exception("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
         self._feature_registry[name] = cls
 
@@ -282,3 +284,7 @@ class FeatureCheckBatch:
 
         cls = self._manager._get_feature_class(self.feature_name)
         return {obj: cls(self.feature_name, obj) for obj in self.objects}
+
+    @property
+    def main_entity(self):
+        return self.organization or self.actor

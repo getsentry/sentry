@@ -12,7 +12,7 @@ import abc
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project
+    from sentry.models import Organization, Project, User
 
 
 class Feature:
@@ -27,7 +27,7 @@ class Feature:
         self.name = name
 
     @abc.abstractmethod
-    def get_organization(self) -> Organization | None:
+    def get_main_entity(self) -> User | Organization:
         raise NotImplementedError
 
 
@@ -36,7 +36,7 @@ class OrganizationFeature(Feature):
         super().__init__(name)
         self.organization = organization
 
-    def get_organization(self) -> Organization:
+    def get_main_entity(self) -> Organization:
         return self.organization
 
 
@@ -45,7 +45,7 @@ class ProjectFeature(Feature):
         super().__init__(name)
         self.project = project
 
-    def get_organization(self) -> Organization:
+    def get_main_entity(self) -> Organization:
         return self.project.organization
 
 
@@ -56,7 +56,9 @@ class ProjectPluginFeature(ProjectFeature):
 
 
 class UserFeature(Feature):
-    # the Feature abstraction requires get_organization to return a result
-    # but it's not relevant for a user feature
-    def get_organization(self) -> None:
-        return None
+    def __init__(self, name: str, user: User) -> None:
+        super().__init__(name)
+        self.user = user
+
+    def get_main_entity(self) -> User:
+        return self.user
