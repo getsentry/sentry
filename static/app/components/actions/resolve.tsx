@@ -5,8 +5,8 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
+import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
-import CustomResolutionModalCommits from 'sentry/components/customResolutionModalCommits';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
@@ -44,6 +44,18 @@ type Props = {
 
 class ResolveActions extends Component<Props> {
   static defaultProps = defaultProps;
+
+  handleCommitResolution(statusDetails: ResolutionStatusDetails) {
+    const {organization, onUpdate} = this.props;
+    onUpdate({
+      status: ResolutionStatus.RESOLVED,
+      statusDetails,
+    });
+    trackAdvancedAnalyticsEvent('resolve_issue', {
+      organization,
+      release: 'anotherExisting',
+    });
+  }
 
   handleAnotherExistingReleaseResolution(statusDetails: ResolutionStatusDetails) {
     const {organization, onUpdate} = this.props;
@@ -201,10 +213,10 @@ class ResolveActions extends Component<Props> {
     const {orgSlug, projectSlug} = this.props;
 
     openModal(deps => (
-      <CustomResolutionModalCommits
+      <CustomCommitsResolutionModal
         {...deps}
         onSelected={(statusDetails: ResolutionStatusDetails) =>
-          this.handleAnotherExistingReleaseResolution(statusDetails)
+          this.handleCommitResolution(statusDetails)
         }
         orgSlug={orgSlug}
         projectSlug={projectSlug}

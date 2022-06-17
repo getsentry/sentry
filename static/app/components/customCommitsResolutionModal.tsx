@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {components as selectComponents} from 'react-select';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -8,63 +7,53 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Release} from 'sentry/types';
+import {Commit} from 'sentry/types';
 
 type Props = ModalRenderProps & {
-  onSelected: ({inRelease: string}) => void;
+  onSelected: ({inCommit: string}) => void;
   orgSlug: string;
   projectSlug?: string;
   version?: string;
 };
 
 type State = {
-  version: string;
+  commit: Commit | null;
 };
 
-function CommitOption({
-  data,
-  ...props
-}: React.ComponentProps<typeof selectComponents.Option>) {
-  const release = data.release as Release;
-  return (
-    <selectComponents.Option data={data} {...props}>
-      <strong>
-        <Version version={release.version} anchor={false} />
-      </strong>
-      <br />
-      <small>
-        {t('Created')} <TimeSince date={release.dateCreated} />
-      </small>
-    </selectComponents.Option>
-  );
-}
-
-class CustomResolutionModalCommits extends Component<Props, State> {
+class CustomCommitsResolutionModal extends Component<Props, State> {
   state: State = {
-    version: '',
+    commit: null,
   };
 
-  onChange = (value: string | number | boolean) => {
-    this.setState({version: value as string}); // TODO(ts): Add select value type as generic to select controls
+  onChange = (value: Commit) => {
+    this.setState({commit: value}); // TODO(ts): Add select value type as generic to select controls
   };
 
-  onAsyncFieldResults = (results: Release[]) =>
-    results.map(release => ({
-      value: release.version,
-      label: release.version,
-      release,
+  onAsyncFieldResults = (results: Commit[]) =>
+    results.map(commit => ({
+      value: commit,
+      label: <Version version={commit.id} anchor={false} />,
+      details: (
+        <span>
+          {t('Created')} <TimeSince date={commit.dateCreated} />
+        </span>
+      ),
+      commit,
     }));
 
   render() {
     const {orgSlug, projectSlug, closeModal, onSelected, Header, Body, Footer} =
       this.props;
-    const url = projectSlug
-      ? `/projects/${orgSlug}/${projectSlug}/releases/`
-      : `/organizations/${orgSlug}/releases/`;
+    const url = `/projects/${orgSlug}/${projectSlug}/commits/`;
 
     const onSubmit = (e: React.FormEvent) => {
       e.preventDefault();
-      onSelected({inRelease: this.state.version});
+      onSelected({
+        inCommit: {
+          commit: this.state.commit?.id,
+          repository: this.state.commit?.repository?.name,
+        },
+      });
       closeModal();
     };
 
@@ -81,9 +70,6 @@ class CustomResolutionModalCommits extends Component<Props, State> {
             url={url}
             onResults={this.onAsyncFieldResults}
             onQuery={query => ({query})}
-            components={{
-              Option: CommitOption,
-            }}
           />
         </Body>
         <Footer>
@@ -99,4 +85,4 @@ class CustomResolutionModalCommits extends Component<Props, State> {
   }
 }
 
-export default CustomResolutionModalCommits;
+export default CustomCommitsResolutionModal;
