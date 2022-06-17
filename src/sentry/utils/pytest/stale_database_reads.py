@@ -1,5 +1,6 @@
+import dataclasses
 from threading import local
-from typing import Any, Sequence, Tuple
+from typing import Any, List, Tuple
 
 import pytest
 from celery.app.task import Task
@@ -9,16 +10,27 @@ from django.db.models.signals import ModelSignal
 _SEP_LINE = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 
 
-def _format_msg(
-    model_signal_handlers: Sequence[Tuple[Any, Any]], transaction_blocks: Sequence[Any]
-):
+@dataclasses.dataclass
+class StaleDatabaseReads:
+    model_signal_handlers: List[Tuple[Any, Any]]
+    transaction_blocks: List[Any]
+
+    def clear(self):
+        self.model_signal_handlers.clear()
+        self.transaction_blocks.clear()
+
+
+def _raise_reports(reports: StaleDatabaseReads):
+    if not reports.model_signal_handlers and not reports.transaction_blocks:
+        return
+
     msg = f"""\
 {_SEP_LINE}
 We have detected that you are spawning a celery task in the following situations:
 """
 
-    if model_signal_handlers:
-        for signal_sender, task_self in model_signal_handlers:
+    if reports.model_signal_handlers:
+        for signal_sender, task_self in reports.model_signal_handlers:
             msg += f"  - A change to model {signal_sender} spawning a task {task_self.__name__}\n"
 
         msg += """
@@ -35,21 +47,23 @@ Typically the fix is to spawn the task using django.db.transaction.on_commit:
     transaction.on_commit(lambda: handle_model_changes.apply_async(...))
 """
 
-    if model_signal_handlers and transaction_blocks:
+    if reports.model_signal_handlers and reports.transaction_blocks:
         msg += f"""
 {_SEP_LINE}
 Additionally we found:
 """
 
-    if transaction_blocks:
-        for task_self in transaction_blocks:
+    if reports.transaction_blocks:
+        for task_self in reports.transaction_blocks:
             msg += f"  - A task {task_self.__name__} being spawned inside of a transaction.atomic block\n"
 
         msg += """
 Those tasks can also observe outdated database state, and are better spawned
 after the transaction has finished (using `django.db.transaction.on_commit` or
 literally moving the code around).
+        """
 
+    msg += """
 For an example of a real-world fix, see
 https://github.com/getsentry/sentry/pull/35523, and for the PR that introduced
 this fixture see https://github.com/getsentry/sentry/pull/35671
@@ -69,13 +83,12 @@ Or like this in pytest-based tests:
         stale_database_reads.clear()
 {_SEP_LINE}"""
 
-    return msg
+    pytest.fail(msg)
 
 
 @pytest.fixture(autouse=True)
 def stale_database_reads(monkeypatch):
     _state = local()
-    reports = []
 
     old_send = ModelSignal.send
 
@@ -112,15 +125,14 @@ def stale_database_reads(monkeypatch):
 
     old_apply_async = Task.apply_async
 
-    model_signal_handlers = []
-    transaction_blocks = []
+    reports = StaleDatabaseReads(model_signal_handlers=[], transaction_blocks=[])
 
     def apply_async(self, args=(), kwargs=(), countdown=None):
         if getattr(_state, "in_signal_sender", None) and not getattr(_state, "in_on_commit", None):
-            model_signal_handlers.append((_state.in_signal_sender, self))
+            reports.model_signal_handlers.append((_state.in_signal_sender, self))
 
         elif getattr(_state, "in_atomic", None) and not getattr(_state, "in_on_commit", None):
-            transaction_blocks.append(self)
+            reports.transaction_blocks.append(self)
 
         return old_apply_async(self, args, kwargs, countdown)
 
@@ -128,7 +140,4 @@ def stale_database_reads(monkeypatch):
 
     yield reports
 
-    if not reports:
-        return
-
-    pytest.fail(_format_msg(model_signal_handlers, transaction_blocks))
+    _raise_reports(reports)
