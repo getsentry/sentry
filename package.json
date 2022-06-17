@@ -81,7 +81,6 @@
     "echarts": "5.3.3",
     "echarts-for-react": "3.0.2",
     "enzyme": "3.11.0",
-    "esbuild": "^0.14.45",
     "focus-trap": "^6.7.1",
     "focus-visible": "^5.2.0",
     "fork-ts-checker-webpack-plugin": "^7.2.11",
