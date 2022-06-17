@@ -80,6 +80,7 @@
     "downsample": "1.4.0",
     "echarts": "5.3.3",
     "echarts-for-react": "3.0.2",
+    "emotion-theming": "^11.0.0",
     "enzyme": "3.11.0",
     "focus-trap": "^6.7.1",
     "focus-visible": "^5.2.0",
