@@ -112,7 +112,8 @@ export function FilterResultsStep({
             >
               <SearchConditionsWrapper>
                 {datasetConfig.getSearchBar({
-                  contextualProps: {organization, pageFilters: selection},
+                  organization,
+                  pageFilters: selection,
                   onBlur: handleBlur(queryIndex),
                   onSearch: handleSearch(queryIndex),
                   widgetQuery: query,
