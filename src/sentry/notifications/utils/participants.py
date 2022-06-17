@@ -5,14 +5,17 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry import features
+from sentry.api.serializers import Author, UserSerializerResponse, get_users_for_commits
 from sentry.models import (
     ActorTuple,
+    Commit,
     Group,
     GroupSubscription,
     NotificationSetting,
     Organization,
     Project,
     ProjectOwnership,
+    Release,
     Team,
     User,
     UserOption,
@@ -32,6 +35,7 @@ from sentry.notifications.types import (
 )
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
+from sentry.utils.committers import _get_commits
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -239,8 +243,21 @@ def determine_eligible_recipients(
     return set()
 
 
-def get_release_committers(project, event) -> Sequence[User]:
-    return []
+def get_release_committers(project: Project, event: Event) -> Sequence[User]:
+    if not project or not event:
+        return []
+
+    last_release: Release = event.group.get_last_release()
+    commits: Sequence[Commit] = _get_commits([last_release])
+    if not commits:
+        return []
+
+    # commit_author_id : Author
+    author_users: Mapping[str, Author] = get_users_for_commits([c for c, _ in commits])
+    found_users: Sequence[UserSerializerResponse] = [
+        au for au in author_users.values() if isinstance(au, UserSerializerResponse)
+    ]
+    return list(User.objects.filter(id__in=list({f.id for f in found_users if f.id})))
 
 
 def get_send_to(

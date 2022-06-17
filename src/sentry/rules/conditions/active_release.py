@@ -14,7 +14,7 @@ class ActiveReleaseEventCondition(EventCondition):
     id = "sentry.rules.conditions.active_release.ActiveReleaseEventCondition"
     label = "A new issue is created within an active release (1 hour of deployment)"
 
-    def is_in_active_release(self, event: Event, state: EventState) -> bool:
+    def is_in_active_release(self, event: Event) -> bool:
         if not event.group:
             return False
 
@@ -53,6 +53,6 @@ class ActiveReleaseEventCondition(EventCondition):
 
     def passes(self, event: Event, state: EventState) -> bool:
         if self.rule.environment_id is None:  # type: ignore
-            return state.is_new and self.is_in_active_release(event, state)
+            return state.is_new and self.is_in_active_release(event)
         else:
-            return state.is_new_group_environment and self.is_in_active_release(event, state)
+            return state.is_new_group_environment and self.is_in_active_release(event)
