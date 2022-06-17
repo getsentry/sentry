@@ -163,7 +163,7 @@ class PGStringIndexerV2(StringIndexer):
 
         return cache_key_results.merge(db_read_key_results).merge(db_write_key_results)
 
-    def record(self, org_id: int, string: str, use_case_id: UseCaseKey) -> int:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it"""
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
         return result[org_id][string]

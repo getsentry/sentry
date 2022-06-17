@@ -34,7 +34,7 @@ class SimpleIndexer(StringIndexer):
 
         return acc
 
-    def record(self, org_id: int, string: str, use_case_id: UseCaseKey) -> int:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self._record(org_id, string)
