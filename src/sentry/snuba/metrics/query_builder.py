@@ -212,6 +212,7 @@ class QueryDefinition:
         self.histogram_to = float(histogram_to) if histogram_to is not None else None
         self.include_series = query_params.get("includeSeries", "1") == "1"
         self.include_totals = query_params.get("includeTotals", "1") == "1"
+        self.include_meta = query_params.get("includeMeta", "1") == "1"
 
     def to_metrics_query(self) -> MetricsQuery:
         return MetricsQuery(
@@ -332,6 +333,9 @@ def translate_meta_results(meta):
             pass
         if metric_mri.startswith("tags["):
             record["name"] = parse_tag(record["name"])
+            # since we changed value from int to str we need
+            # also want to change type
+            record["type"] = "string"
         if record not in result:
             result.append(record)
     return result

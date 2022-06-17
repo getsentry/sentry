@@ -120,7 +120,9 @@ class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
                 query = QueryDefinition(
                     projects, request.GET, paginator_kwargs={"limit": limit, "offset": offset}
                 )
-                data = get_series(projects, query.to_metrics_query())
+                data = get_series(
+                    projects, query.to_metrics_query(), include_meta=query.include_meta
+                )
                 data["query"] = query.query
             except (
                 InvalidParams,

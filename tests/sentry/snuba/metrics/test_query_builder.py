@@ -855,7 +855,7 @@ def test_translate_meta_results():
     ]
     assert translate_meta_results(meta) == [
         {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
-        {"name": "transaction", "type": "UInt64"},
+        {"name": "transaction", "type": "string"},
         {"name": "project_id", "type": "UInt64"},
     ]
 
@@ -871,6 +871,6 @@ def test_translate_meta_results_with_duplicates():
     ]
     assert translate_meta_results(meta) == [
         {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
-        {"name": "transaction", "type": "UInt64"},
+        {"name": "transaction", "type": "string"},
         {"name": "project_id", "type": "UInt64"},
     ]
