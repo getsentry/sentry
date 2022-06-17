@@ -312,7 +312,7 @@ jobs:
     if: always()
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
-    needs: [files-changed]
+    needs: [acceptance, frontend, chartcuterie, files-changed]
     name: triggers visual snapshot
     runs-on: ubuntu-20.04
     timeout-minutes: 20
