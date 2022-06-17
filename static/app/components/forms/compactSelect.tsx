@@ -104,7 +104,14 @@ export const CompactSelectControl = ({
           </MenuTitle>
           {isLoading && <StyledLoadingIndicator size={12} mini />}
           {hasValue && isClearable && !isLoading && (
-            <ClearButton size="zero" borderless onClick={() => props.clearValue()}>
+            <ClearButton
+              type="button"
+              size="zero"
+              borderless
+              onClick={() => props.clearValue()}
+              // set tabIndex -1 to autofocus search on open
+              tabIndex={isSearchable ? -1 : undefined}
+            >
               Clear
             </ClearButton>
           )}

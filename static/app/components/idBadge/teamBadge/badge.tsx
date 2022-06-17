@@ -13,7 +13,6 @@ export interface BadgeProps
 
 const Badge = ({hideOverflow = true, team, ...props}: BadgeProps): React.ReactElement => (
   <BaseBadge
-    data-test-id="team-badge"
     displayName={
       <BadgeDisplayName hideOverflow={hideOverflow}>{`#${team.slug}`}</BadgeDisplayName>
     }

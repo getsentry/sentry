@@ -94,7 +94,7 @@ function ContextSummary({event}: Props) {
 export default ContextSummary;
 
 const Wrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     gap: ${space(3)};
     margin-bottom: ${space(2)};

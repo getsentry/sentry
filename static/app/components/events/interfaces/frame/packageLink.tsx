@@ -82,8 +82,8 @@ export const Package = styled('a')<Partial<Props>>`
   ${p =>
     p.withLeadHint && (p.includeSystemFrames ? `max-width: 89px;` : `max-width: 76px;`)}
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) and (max-width: ${p =>
-    p.theme.breakpoints[3]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) and (max-width: ${p =>
+    p.theme.breakpoints.xlarge}) {
     ${p =>
       p.withLeadHint && (p.includeSystemFrames ? `max-width: 76px;` : `max-width: 63px;`)}
   }

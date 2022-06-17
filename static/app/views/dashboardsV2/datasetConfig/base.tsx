@@ -1,17 +1,24 @@
-import {OrganizationSummary, PageFilters} from 'sentry/types';
+import trimStart from 'lodash/trimStart';
+
+import {Client} from 'sentry/api';
+import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {isEquation} from 'sentry/utils/discover/fields';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
-import {WidgetQuery, WidgetType} from '../types';
+import {DisplayType, WidgetQuery, WidgetType} from '../types';
+import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type ContextualProps = {
-  organization?: OrganizationSummary;
+  organization?: Organization;
   pageFilters?: PageFilters;
 };
 
@@ -21,6 +28,18 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  /**
+   * Field options to display in the Column selectors for
+   * Table display type.
+   */
+  getTableFieldOptions: (
+    contextualProps?: ContextualProps,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
+  /**
+   * List of supported display types for dataset.
+   */
+  supportedDisplayTypes: DisplayType[];
   /**
    * Transforms table API results into format that is used by
    * table and big number components.
@@ -36,6 +55,17 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   fieldHeaderMap?: Record<string, string>;
   /**
+   * Filter the options available to the parameters list
+   * of an aggregate function in a table widget column on the
+   * Widget Builder.
+   */
+  filterTableAggregateParams?: (option: FieldValueOption) => boolean;
+  /**
+   * Filter the primary options available in a table widget
+   * columns on the Widget Builder.
+   */
+  filterTableOptions?: (option: FieldValueOption) => boolean;
+  /**
    * Used to select custom renderers for field types.
    */
   getCustomFieldRenderer?: (
@@ -43,6 +73,52 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     contextualProps?: ContextualProps
   ) => ReturnType<typeof getFieldRenderer> | null;
+  /**
+   * Generate the request promises for fetching
+   * series data.
+   */
+  getSeriesRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the request promises for fetching
+   * tabular data.
+   */
+  getTableRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the request promises for fetching
+   * world map data.
+   */
+  getWorldMapRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Apply dataset specific overrides to the logic that handles
+   * column updates for tables in the Widget Builder.
+   */
+  handleColumnFieldChangeOverride?: (widgetQuery: WidgetQuery) => WidgetQuery;
+  /**
+   * Called on column or y-axis change in the Widget Builder
+   * to reset the orderby of the widget query.
+   */
+  handleOrderByReset?: (widgetQuery: WidgetQuery, newFields: string[]) => WidgetQuery;
   /**
    * Transforms timeseries API results into series data that is
    * ingestable by echarts for timeseries visualizations.
@@ -74,4 +150,33 @@ export function getDatasetConfig(
     default:
       return ErrorsAndTransactionsConfig;
   }
+}
+
+/**
+ * A generic orderby reset helper function that updates the query's
+ * orderby based on new selected fields.
+ */
+export function handleOrderByReset(
+  widgetQuery: WidgetQuery,
+  newFields: string[]
+): WidgetQuery {
+  const rawOrderby = trimStart(widgetQuery.orderby, '-');
+  const isDescending = widgetQuery.orderby.startsWith('-');
+  const orderbyPrefix = isDescending ? '-' : '';
+
+  if (!newFields.includes(rawOrderby) && widgetQuery.orderby !== '') {
+    const isFromAggregates = widgetQuery.aggregates.includes(rawOrderby);
+    const isCustomEquation = isEquation(rawOrderby);
+    const isUsedInGrouping = widgetQuery.columns.includes(rawOrderby);
+
+    const keepCurrentOrderby = isFromAggregates || isCustomEquation || isUsedInGrouping;
+    const firstAggregateAlias = isEquation(widgetQuery.aggregates[0] ?? '')
+      ? `equation[${getNumEquations(widgetQuery.aggregates) - 1}]`
+      : newFields[0];
+
+    widgetQuery.orderby =
+      (keepCurrentOrderby && widgetQuery.orderby) ||
+      `${orderbyPrefix}${firstAggregateAlias}`;
+  }
+  return widgetQuery;
 }

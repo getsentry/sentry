@@ -1,4 +1,5 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 
 import {Client} from 'sentry/api';
 import SettingsLayout from 'sentry/views/settings/components/settingsLayout';
@@ -32,7 +33,9 @@ describe('SettingsLayout', function () {
 
   it('renders', function () {
     const wrapper = mountWithTheme(
-      <SettingsLayout router={TestStubs.router()} route={{}} routes={[]} />
+      <BreadcrumbContextProvider>
+        <SettingsLayout router={TestStubs.router()} route={{}} routes={[]} />
+      </BreadcrumbContextProvider>
     );
 
     expect(wrapper).toSnapshot();
@@ -41,12 +44,14 @@ describe('SettingsLayout', function () {
   it('can render navigation', function () {
     const Navigation = () => <div>Navigation</div>;
     const wrapper = mountWithTheme(
-      <SettingsLayout
-        router={TestStubs.router()}
-        route={{}}
-        routes={[]}
-        renderNavigation={() => <Navigation />}
-      />
+      <BreadcrumbContextProvider>
+        <SettingsLayout
+          router={TestStubs.router()}
+          route={{}}
+          routes={[]}
+          renderNavigation={() => <Navigation />}
+        />
+      </BreadcrumbContextProvider>
     );
 
     expect(wrapper.find('Navigation')).toHaveLength(1);
@@ -55,12 +60,14 @@ describe('SettingsLayout', function () {
   it('can toggle mobile navigation', function () {
     const Navigation = () => <div>Navigation</div>;
     const wrapper = mountWithTheme(
-      <SettingsLayout
-        router={TestStubs.router()}
-        route={{}}
-        routes={[]}
-        renderNavigation={() => <Navigation />}
-      />
+      <BreadcrumbContextProvider>
+        <SettingsLayout
+          router={TestStubs.router()}
+          route={{}}
+          routes={[]}
+          renderNavigation={() => <Navigation />}
+        />
+      </BreadcrumbContextProvider>
     );
 
     expect(wrapper.find('NavMask').prop('isVisible')).toBeFalsy();
