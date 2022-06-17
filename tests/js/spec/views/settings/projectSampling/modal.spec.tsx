@@ -622,9 +622,7 @@ describe('Sampling - Modal', function () {
     // A hint about an existing 'sample all' rule is displayed
     expect(
       screen.getByText(
-        textWithMarkupMatcher(
-          'A rule without conditions already exists. Add (+) a condition for creating a new rule'
-        )
+        'A rule with no conditions already exists. You can edit that existing rule or add a condition to this rule'
       )
     ).toBeInTheDocument();
 
@@ -677,9 +675,7 @@ describe('Sampling - Modal', function () {
     // A hint about an existing 'sample all' rule is displayed
     expect(
       screen.getByText(
-        textWithMarkupMatcher(
-          'A rule without conditions already exists. Add (+) a condition for creating a new rule'
-        )
+        'A rule with no conditions already exists. You can edit that existing rule or add a condition to this rule'
       )
     ).toBeInTheDocument();
 
