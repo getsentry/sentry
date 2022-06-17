@@ -1,3 +1,5 @@
+from unittest import mock
+
 from django.core import mail
 
 from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
@@ -140,7 +142,9 @@ class NotifyEmailTest(RuleTestCase):
         assert "uh oh" in sent.subject
 
     # XXX(gilbert): remove this later one
-    def test_release_note_target_type(self):
+    @mock.patch("sentry.mail.actions.determine_eligible_recipients")
+    def test_release_note_target_type(self, mock_eligible_recipients):
+        mock_eligible_recipients.return_value = [self.user]
         event = self.get_event()
         rule = self.get_rule(data={"targetType": ActionTargetType.RELEASE_MEMBERS.value})
 

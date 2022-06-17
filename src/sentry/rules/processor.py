@@ -3,26 +3,14 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from random import randrange
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-)
+from typing import Any, Callable, Iterable, List, Mapping, MutableMapping, Sequence, Set, Tuple
 
 from django.core.cache import cache
-from django.db.models import DateTimeField
 from django.utils import timezone
 
 from sentry import analytics
 from sentry.eventstore.models import Event
-from sentry.models import Deploy, Environment, GroupRuleStatus, Release, ReleaseEnvironment, Rule
+from sentry.models import GroupRuleStatus, Rule
 from sentry.rules import EventState, history, rules
 from sentry.types.rules import RuleFuture
 from sentry.utils.hashlib import hash_values
@@ -144,50 +132,12 @@ class RuleProcessor:
         rule_type: str = rule_cls.rule_type
         return rule_type
 
-    def get_is_in_active_release(self) -> bool:
-        if not self.group:
-            return False
-
-        now = timezone.now()
-        now_minus_1_hour = now - timedelta(hours=1.0)
-        last_release: Release = self.group.get_last_release()
-        if not last_release:
-            return False
-
-        def release_deploy_time(
-            release: Release, env: Environment | None
-        ) -> Optional[DateTimeField]:
-            # check deploy -> release first
-            # then Release.date_released
-            # then EnvironmentRelease.first_seen
-            last_deploy: Deploy = Deploy.objects.filter(id=release.last_deploy_id)
-            if last_deploy:
-                return last_deploy.date_finished
-            else:
-                if release.date_released:
-                    return release.date_released
-                else:
-                    if env:
-                        env_release = ReleaseEnvironment.objects.filter(
-                            release_id=release.id, environment_id=env.id
-                        ).first()
-                        if env_release:
-                            return env_release.first_seen
-            return None
-
-        deploy_time = release_deploy_time(last_release, self.event.get_environment())
-        if deploy_time:
-            return now_minus_1_hour.timestamp() <= deploy_time <= now
-
-        return False
-
     def get_state(self) -> EventState:
         return EventState(
             is_new=self.is_new,
             is_regression=self.is_regression,
             is_new_group_environment=self.is_new_group_environment,
             has_reappeared=self.has_reappeared,
-            is_in_active_release=self.get_is_in_active_release(),
         )
 
     def get_match_function(self, match_name: str) -> Callable[..., bool] | None:
