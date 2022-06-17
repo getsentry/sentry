@@ -170,7 +170,7 @@ class StringIndexer(Service):
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
     def bulk_record(
-        self, org_strings: Mapping[int, Set[str]], use_case_id: UseCaseKey
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
         raise NotImplementedError()
 

@@ -44,7 +44,7 @@ class PGStringIndexerV2(StringIndexer):
         return self._table(use_case_id).objects.filter(query_statement)
 
     def bulk_record(
-        self, org_strings: Mapping[int, Set[str]], use_case_id: UseCaseKey
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
         """
         Takes in a mapping with org_ids to sets of strings.
@@ -221,7 +221,7 @@ class StaticStringsIndexerDecorator(StringIndexer):
         self.indexer = PGStringIndexerV2()
 
     def bulk_record(
-        self, org_strings: Mapping[int, Set[str]], use_case_id: UseCaseKey
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
         static_keys = KeyCollection(org_strings)
         static_key_results = KeyResults()

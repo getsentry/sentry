@@ -20,9 +20,7 @@ class SimpleIndexer(StringIndexer):
         self._reverse: Dict[int, str] = {}
 
     def bulk_record(
-        self,
-        org_strings: Mapping[int, Set[str]],
-        use_case_id: UseCaseKey,
+        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
     ) -> KeyResults:
         acc = KeyResults()
         for org_id, strs in org_strings.items():
