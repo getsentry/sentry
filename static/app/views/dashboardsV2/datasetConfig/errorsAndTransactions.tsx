@@ -52,7 +52,7 @@ import {
   transformSeries,
 } from '../widgetCard/widgetQueries';
 
-import {ContextualProps, DatasetConfig, handleOrderByReset} from './base';
+import {DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -86,32 +86,44 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   getTableRequest: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string
   ) => {
-    const shouldUseEvents = contextualProps?.organization?.features.includes(
+    const shouldUseEvents = organization.features.includes(
       'discover-frontend-use-events-endpoint'
     );
     const url = shouldUseEvents
-      ? `/organizations/${contextualProps?.organization?.slug}/events/`
-      : `/organizations/${contextualProps?.organization?.slug}/eventsv2/`;
-    return getEventsRequest(url, api, query, contextualProps, limit, cursor, referrer);
+      ? `/organizations/${organization.slug}/events/`
+      : `/organizations/${organization.slug}/eventsv2/`;
+    return getEventsRequest(
+      url,
+      api,
+      query,
+      organization,
+      pageFilters,
+      limit,
+      cursor,
+      referrer
+    );
   },
   getWorldMapRequest: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string
   ) => {
     return getEventsRequest(
-      `/organizations/${contextualProps?.organization?.slug}/events-geo/`,
+      `/organizations/${organization.slug}/events-geo/`,
       api,
       query,
-      contextualProps,
+      organization,
+      pageFilters,
       limit,
       cursor,
       referrer
@@ -121,11 +133,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
 };
 
-function getEventsTableFieldOptions(
-  contextualProps?: ContextualProps,
-  tags?: TagCollection
-) {
-  const organization = contextualProps?.organization!;
+function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
   const measurements = getMeasurements();
 
   return generateFieldOptions({
@@ -139,13 +147,12 @@ function getEventsTableFieldOptions(
 function transformEventsResponseToTable(
   data: TableData | EventsTableData,
   _widgetQuery: WidgetQuery,
-  contextualProps?: ContextualProps
+  organization: Organization
 ): TableData {
   let tableData = data;
-  const shouldUseEvents =
-    contextualProps?.organization?.features.includes(
-      'discover-frontend-use-events-endpoint'
-    ) || false;
+  const shouldUseEvents = organization.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
   // events api uses a different response format so we need to construct tableData differently
   if (shouldUseEvents) {
     const fieldsMeta = (data as EventsTableData).meta?.fields;
@@ -160,15 +167,13 @@ function transformEventsResponseToTable(
 function transformEventsResponseToSeries(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery,
-  contextualProps?: ContextualProps
+  organization: Organization
 ): Series[] {
   let output: Series[] = [];
   const queryAlias = widgetQuery.name;
 
   const widgetBuilderNewDesign =
-    contextualProps?.organization?.features.includes(
-      'new-widget-builder-experience-design'
-    ) || false;
+    organization.features.includes('new-widget-builder-experience-design') || false;
 
   if (isMultiSeriesStats(data)) {
     let seriesWithOrdering: SeriesWithOrdering[] = [];
@@ -250,9 +255,9 @@ function renderTraceAsLinkable(
 export function getCustomEventsFieldRenderer(
   field: string,
   meta: MetaType,
-  contextualProps?: ContextualProps
+  organization?: Organization
 ) {
-  const isAlias = !contextualProps?.organization?.features.includes(
+  const isAlias = !organization?.features.includes(
     'discover-frontend-use-events-endpoint'
   );
 
@@ -271,15 +276,15 @@ function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,
-  contextualProps?: ContextualProps,
+  organization: Organization,
+  pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
   referrer?: string
 ) {
-  const isMEPEnabled =
-    contextualProps?.organization?.features.includes('dashboards-mep') ?? false;
+  const isMEPEnabled = organization.features.includes('dashboards-mep');
 
-  const eventView = eventViewFromWidget('', query, contextualProps?.pageFilters!);
+  const eventView = eventViewFromWidget('', query, pageFilters);
 
   const params: DiscoverQueryRequestParams = {
     per_page: limit,

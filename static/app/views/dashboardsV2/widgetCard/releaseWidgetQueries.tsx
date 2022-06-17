@@ -224,7 +224,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            this.config.transformSeries!(rawResult, widget.queries[index])
+            this.config.transformSeries!(rawResult, widget.queries[index], organization)
           ),
         };
       });
@@ -359,10 +359,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           return requestGenerator!(
             api,
             query,
-            {
-              organization,
-              pageFilters: selection,
-            },
+            organization,
+            selection,
             this.limit,
             cursor
           );
@@ -405,7 +403,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the table format
           const tableData = this.config.transformTable(
             data,
-            widget.queries[0]
+            widget.queries[0],
+            organization,
+            selection
           ) as TableDataWithTitle; // Cast so we can add the title.
           tableData.title = widget.queries[requestIndex]?.name ?? '';
           tableResults = [...(prevState.tableResults ?? []), tableData];
@@ -413,7 +413,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the chart format
           const transformedResult = this.config.transformSeries!(
             data,
-            widget.queries[requestIndex]
+            widget.queries[requestIndex],
+            organization
           );
 
           // When charting timeseriesData on echarts, color association to a timeseries result
