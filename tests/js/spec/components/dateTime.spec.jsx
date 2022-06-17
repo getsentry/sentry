@@ -17,37 +17,47 @@ describe('DateTime', () => {
 
   it('renders a date', () => {
     render(<DateTime date={new Date()} />);
-    expect(screen.getByText('Oct 16, 2017 7:41:20 PM PDT')).toBeInTheDocument();
+    expect(screen.getByText('Oct 16, 7:41 PM')).toBeInTheDocument();
   });
 
-  it('renders a date without seconds', () => {
-    render(<DateTime date={new Date()} seconds={false} />);
-    expect(screen.getByText('Oct 16, 2017 7:41 PM')).toBeInTheDocument();
+  it('renders a date and shows the year if it is outside the current year', () => {
+    const date = new Date();
+    date.setYear(2016);
+    date.setMonth(11);
+    date.setDate(31);
+
+    render(<DateTime date={date} />);
+    expect(screen.getByText('Dec 31, 2016 7:41 PM')).toBeInTheDocument();
   });
 
-  it('renders timeonly', () => {
+  it('renders only the time', () => {
     render(<DateTime date={new Date()} timeOnly />);
     expect(screen.getByText('7:41 PM')).toBeInTheDocument();
   });
 
-  it('renders dateOnly', () => {
+  it('renders only the date', () => {
     render(<DateTime date={new Date()} dateOnly />);
-    expect(screen.getByText('October 16, 2017')).toBeInTheDocument();
+    expect(screen.getByText('Oct 16')).toBeInTheDocument();
   });
 
-  it('renders shortDate', () => {
-    render(<DateTime date={new Date()} shortDate />);
-    expect(screen.getByText('10/16/2017')).toBeInTheDocument();
+  it('renders a date with year', () => {
+    render(<DateTime date={new Date()} year />);
+    expect(screen.getByText('Oct 16, 2017 7:41 PM')).toBeInTheDocument();
   });
 
-  it('renders timeAndDate', () => {
-    render(<DateTime date={new Date()} timeAndDate />);
-    expect(screen.getByText('Oct 16, 7:41 PM')).toBeInTheDocument();
+  it('renders a date with seconds', () => {
+    render(<DateTime date={new Date()} seconds />);
+    expect(screen.getByText('Oct 16, 7:41:20 PM')).toBeInTheDocument();
+  });
+
+  it('renders a date with the time zone', () => {
+    render(<DateTime date={new Date()} timeZone />);
+    expect(screen.getByText('Oct 16, 7:41 PM PDT')).toBeInTheDocument();
   });
 
   it('renders date with forced utc', () => {
     render(<DateTime date={new Date()} utc />);
-    expect(screen.getByText('Oct 17, 2017 2:41:20 AM UTC')).toBeInTheDocument();
+    expect(screen.getByText('Oct 17, 2:41 AM UTC')).toBeInTheDocument();
   });
 
   describe('24 Hours', () => {
@@ -63,22 +73,17 @@ describe('DateTime', () => {
 
     it('renders a date', () => {
       render(<DateTime date={new Date()} />);
-      expect(screen.getByText('Oct 16, 2017 19:41:20')).toBeInTheDocument();
+      expect(screen.getByText('Oct 16, 19:41')).toBeInTheDocument();
     });
 
-    it('renders timeonly', () => {
+    it('renders only the time', () => {
       render(<DateTime date={new Date()} timeOnly />);
       expect(screen.getByText('19:41')).toBeInTheDocument();
     });
 
-    it('renders timeAndDate', () => {
-      render(<DateTime date={new Date()} timeAndDate />);
-      expect(screen.getByText('Oct 16, 19:41')).toBeInTheDocument();
-    });
-
     it('renders date with forced utc', () => {
       render(<DateTime date={new Date()} utc />);
-      expect(screen.getByText('Oct 17, 2017 02:41:20')).toBeInTheDocument();
+      expect(screen.getByText('Oct 17, 02:41 UTC')).toBeInTheDocument();
     });
   });
 });

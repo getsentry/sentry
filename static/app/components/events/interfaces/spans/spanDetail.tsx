@@ -284,7 +284,7 @@ class SpanDetail extends Component<Props, State> {
       : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
-      <Alert type="error" showIcon system>
+      <Alert type="error" system>
         <ErrorMessageTitle>
           {tn(
             'An error event occurred in this transaction.',
@@ -405,7 +405,7 @@ class SpanDetail extends Component<Props, State> {
                   fixed: 'Mar 16, 2020 9:10:12 AM UTC',
                   value: (
                     <Fragment>
-                      <DateTime date={startTimestamp * 1000} />
+                      <DateTime date={startTimestamp * 1000} year seconds timeZone />
                       {` (${startTimestamp})`}
                     </Fragment>
                   ),
@@ -416,7 +416,7 @@ class SpanDetail extends Component<Props, State> {
                   fixed: 'Mar 16, 2020 9:10:13 AM UTC',
                   value: (
                     <Fragment>
-                      <DateTime date={endTimestamp * 1000} />
+                      <DateTime date={endTimestamp * 1000} year seconds timeZone />
                       {` (${endTimestamp})`}
                     </Fragment>
                   ),
