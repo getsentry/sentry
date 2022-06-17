@@ -112,6 +112,7 @@ class QueryBuilder:
         # This allows queries to be resolved without adding time constraints. Currently this is just
         # used to allow metric alerts to be built and validated before creation in snuba.
         skip_time_conditions: bool = False,
+        parser_config_overrides: Optional[Mapping[str, Any]] = None,
     ):
         self.dataset = dataset
 
@@ -144,6 +145,7 @@ class QueryBuilder:
         self.turbo = turbo
         self.sample_rate = sample_rate
         self.skip_time_conditions = skip_time_conditions
+        self.parser_config_overrides = parser_config_overrides
 
         (
             self.field_alias_converter,
@@ -907,7 +909,12 @@ class QueryBuilder:
             return []
 
         try:
-            parsed_terms = parse_search_query(query, params=self.params, builder=self)
+            parsed_terms = parse_search_query(
+                query,
+                params=self.params,
+                builder=self,
+                config_overrides=self.parser_config_overrides,
+            )
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
