@@ -21,7 +21,6 @@ import sentry
 # These chars cannot be used in Windows paths so replace them:
 # https://docs.microsoft.com/en-us/windows/desktop/FileIO/naming-a-file#naming-conventions
 from sentry.types.activity import ActivityType
-from sentry.utils.pytest.fixtures.bad_model_signal_handlers import bad_model_signal_handlers  # noqa
 
 UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
