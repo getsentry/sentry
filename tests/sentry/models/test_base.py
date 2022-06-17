@@ -1,4 +1,5 @@
 from django.test import override_settings
+from pytest import raises
 
 from sentry.db.models import Model, available_on
 from sentry.db.models.base import ServerModeDataError
@@ -25,7 +26,7 @@ class AvailableOnTest(TestCase):
 
     def test_available_on_monolith_mode(self):
         assert list(self.ModelOnMonolith.objects.all()) == []
-        with self.assertRaises(self.ModelOnMonolith.DoesNotExist):
+        with raises(self.ModelOnMonolith.DoesNotExist):
             self.ModelOnMonolith.objects.get(id=1)
 
         self.ModelOnMonolith.objects.create()
@@ -33,16 +34,16 @@ class AvailableOnTest(TestCase):
 
     def test_available_on_same_mode(self):
         assert list(self.CustomerModel.objects.all()) == []
-        with self.assertRaises(self.CustomerModel.DoesNotExist):
+        with raises(self.CustomerModel.DoesNotExist):
             self.CustomerModel.objects.get(id=1)
 
         self.CustomerModel.objects.create()
         assert self.CustomerModel.objects.count() == 1
 
     def test_unavailable_on_other_mode(self):
-        with self.assertRaises(ServerModeDataError):
+        with raises(ServerModeDataError):
             list(self.ControlModel.objects.all())
-        with self.assertRaises(ServerModeDataError):
+        with raises(ServerModeDataError):
             self.ControlModel.objects.get(id=1)
-        with self.assertRaises(ServerModeDataError):
+        with raises(ServerModeDataError):
             self.ControlModel.objects.create()
