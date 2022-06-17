@@ -1,9 +1,18 @@
+import trimStart from 'lodash/trimStart';
+
+import {doEventsRequest} from 'sentry/actionCreators/events';
 import {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {EventsStats, MultiSeriesEventsStats, TagCollection} from 'sentry/types';
+import {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+  PageFilters,
+  TagCollection,
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
@@ -11,12 +20,17 @@ import {
   getFieldRenderer,
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import {
+  isEquation,
+  isEquationAlias,
+  SPAN_OP_BREAKDOWN_FIELDS,
+} from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
   doDiscoverQuery,
 } from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
@@ -27,7 +41,12 @@ import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {DisplayType, WidgetQuery} from '../types';
-import {eventViewFromWidget, getDashboardsMEPQueryParams} from '../utils';
+import {
+  eventViewFromWidget,
+  getDashboardsMEPQueryParams,
+  getNumEquations,
+  getWidgetInterval,
+} from '../utils';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -278,4 +297,92 @@ function getEventsRequest(
     ...eventView.generateQueryStringObject(),
     ...params,
   });
+}
+
+export function getEventsSeriesRequest(
+  api: Client,
+  widgetQuery: WidgetQuery,
+  displayType: DisplayType,
+  organization: Organization,
+  pageFilters: PageFilters,
+  limit?: number,
+  referrer?: string
+) {
+  const {environments, projects} = pageFilters;
+  const {start, end, period: statsPeriod} = pageFilters.datetime;
+  const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
+  const isMEPEnabled = organization.features.includes('dashboards-mep');
+  let requestData;
+  if (displayType === DisplayType.TOP_N) {
+    requestData = {
+      organization,
+      interval,
+      start,
+      end,
+      project: projects,
+      environment: environments,
+      period: statsPeriod,
+      query: widgetQuery.conditions,
+      yAxis: widgetQuery.aggregates[widgetQuery.aggregates.length - 1],
+      includePrevious: false,
+      referrer,
+      partial: true,
+      field: [...widgetQuery.columns, ...widgetQuery.aggregates],
+      queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+    };
+  } else {
+    requestData = {
+      organization,
+      interval,
+      start,
+      end,
+      project: projects,
+      environment: environments,
+      period: statsPeriod,
+      query: widgetQuery.conditions,
+      yAxis: widgetQuery.aggregates,
+      orderby: widgetQuery.orderby,
+      includePrevious: false,
+      referrer,
+      partial: true,
+      queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+    };
+    if (widgetQuery.columns?.length !== 0) {
+      requestData.topEvents = limit ?? TOP_N;
+      requestData.field = [...widgetQuery.columns, ...widgetQuery.aggregates];
+
+      // Compare field and orderby as aliases to ensure requestData has
+      // the orderby selected
+      // If the orderby is an equation alias, do not inject it
+      const orderby = trimStart(widgetQuery.orderby, '-');
+      if (
+        widgetQuery.orderby &&
+        !isEquationAlias(orderby) &&
+        !requestData.field.includes(orderby)
+      ) {
+        requestData.field.push(orderby);
+      }
+
+      // The "Other" series is only included when there is one
+      // y-axis and one widgetQuery
+      // TODO: Figure out the condition: widget.queries.length !== 1
+      requestData.excludeOther = widgetQuery.aggregates.length !== 1;
+
+      if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
+        const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
+        const isDescending = widgetQuery.orderby.startsWith('-');
+        const prefix = isDescending ? '-' : '';
+
+        // Construct the alias form of the equation and inject it into the request
+        requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
+        requestData.field = [
+          ...widgetQuery.columns,
+          ...widgetQuery.aggregates,
+          trimStart(widgetQuery.orderby, '-'),
+        ];
+      }
+    }
+  }
+
+  return doEventsRequest(api, requestData);
 }
