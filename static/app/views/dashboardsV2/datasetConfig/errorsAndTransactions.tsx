@@ -109,6 +109,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
       referrer
     );
   },
+  getSeriesRequest: getEventsSeriesRequest,
   getWorldMapRequest: (
     api: Client,
     query: WidgetQuery,
@@ -304,7 +305,7 @@ function getEventsRequest(
   });
 }
 
-export function getEventsSeriesRequest(
+function getEventsSeriesRequest(
   api: Client,
   widgetQuery: WidgetQuery,
   displayType: DisplayType,
