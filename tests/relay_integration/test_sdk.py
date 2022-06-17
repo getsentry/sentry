@@ -3,7 +3,6 @@ from unittest import mock
 
 import pytest
 import sentry_sdk
-from django.conf import settings
 from sentry_sdk import Hub, push_scope
 
 from sentry import eventstore
@@ -35,7 +34,8 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
 
 
 @pytest.mark.django_db
-def test_simple(post_event_with_sdk):
+def test_simple(settings, post_event_with_sdk):
+    settings.SENTRY_PROJECT = 1
     event = post_event_with_sdk({"message": "internal client test"})
 
     assert event
@@ -47,6 +47,8 @@ def test_simple(post_event_with_sdk):
 def test_recursion_breaker(settings, post_event_with_sdk):
     # If this test terminates at all then we avoided recursion.
     settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING = 1.0
+    settings.SENTRY_PROJECT = 1
+
     event_id = uuid.uuid4().hex
     with mock.patch(
         "sentry.event_manager.EventManager.save", spec=Event, side_effect=ValueError("oh no!")
@@ -58,7 +60,9 @@ def test_recursion_breaker(settings, post_event_with_sdk):
 
 
 @pytest.mark.django_db
-def test_encoding(post_event_with_sdk):
+def test_encoding(settings, post_event_with_sdk):
+    settings.SENTRY_PROJECT = 1
+
     class NotJSONSerializable:
         pass
 
@@ -72,7 +76,9 @@ def test_encoding(post_event_with_sdk):
 
 
 @pytest.mark.django_db
-def test_bind_organization_context(default_organization):
+def test_bind_organization_context(settings, default_organization):
+    settings.SENTRY_PROJECT = 1
+
     configure_sdk()
 
     bind_organization_context(default_organization)
@@ -87,6 +93,8 @@ def test_bind_organization_context(default_organization):
 
 @pytest.mark.django_db
 def test_bind_organization_context_with_callback(settings, default_organization):
+    settings.SENTRY_PROJECT = 1
+
     configure_sdk()
 
     def add_context(scope, organization, **kwargs):
@@ -100,6 +108,8 @@ def test_bind_organization_context_with_callback(settings, default_organization)
 
 @pytest.mark.django_db
 def test_bind_organization_context_with_callback_error(settings, default_organization):
+    settings.SENTRY_PROJECT = 1
+
     configure_sdk()
 
     def add_context(scope, organization, **kwargs):
