@@ -110,7 +110,7 @@ const HoverList = styled('ul')`
   padding: 0;
 `;
 
-const HoverListItem = styled('ul')`
+const HoverListItem = styled('li')`
   display: grid;
   grid-template-columns: max-content 150px;
   gap: ${space(1)};
