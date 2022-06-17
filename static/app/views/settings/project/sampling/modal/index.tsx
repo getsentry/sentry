@@ -425,6 +425,7 @@ export function SamplingRuleModal({
                 placement="bottom right"
                 triggerProps={{
                   size: 'small',
+                  'aria-label': t('Add Condition'),
                 }}
                 triggerLabel={
                   <TriggerLabel>
@@ -432,10 +433,6 @@ export function SamplingRuleModal({
                     {t('Add Condition')}
                   </TriggerLabel>
                 }
-                triggerProps={{
-                  size: 'small',
-                  'aria-label': t('Add Condition'),
-                }}
                 placeholder={t('Filter conditions')}
                 isOptionDisabled={opt => opt.disabled}
                 options={[...customTagConditionsOptions, ...predefinedConditionsOptions]}

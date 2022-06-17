@@ -36,7 +36,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                                     "op": "eq",
                                     "name": "trace.environment",
                                     "value": ["production"],
-                                    "options": {"ignoreCase": "true"},
+                                    "options": {"ignoreCase": True},
                                 }
                             ],
                         },
@@ -60,6 +60,9 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 ],
             },
         )
+
+        dynamic_sampling = self.project.get_option("sentry:dynamic_sampling")
+        print(dynamic_sampling)
 
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
@@ -162,3 +165,9 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')
+
+    # TODO
+    # def test_add_rule_with_invalid_custom_tag(self):
+
+    # TODO
+    # def test_add_rule_with_valid_custom_tag(self):
