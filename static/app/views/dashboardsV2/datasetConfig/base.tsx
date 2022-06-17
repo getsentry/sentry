@@ -76,6 +76,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getSeriesRequest?: (
     api: Client,
     query: WidgetQuery,
+    displayType: DisplayType,
     organization: Organization,
     pageFilters: PageFilters,
     limit?: number,
