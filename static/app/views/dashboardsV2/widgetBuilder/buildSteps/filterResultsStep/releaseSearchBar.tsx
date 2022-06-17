@@ -7,9 +7,8 @@ import {SearchBarProps} from 'sentry/components/events/searchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {SavedSearchType, Tag, TagValue} from 'sentry/types';
+import {Organization, PageFilters, SavedSearchType, Tag, TagValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
-import {ContextualProps} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
@@ -23,20 +22,22 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 interface Props {
-  contextualProps: ContextualProps;
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
+  organization: Organization;
+  pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
 }
 
 export function ReleaseSearchBar({
-  contextualProps,
+  organization,
+  pageFilters,
   widgetQuery,
   onSearch,
   onBlur,
 }: Props) {
-  const orgSlug = contextualProps.organization!.slug;
-  const projectIds = contextualProps.pageFilters?.projects;
+  const orgSlug = organization.slug;
+  const projectIds = pageFilters.projects;
 
   const api = useApi();
 

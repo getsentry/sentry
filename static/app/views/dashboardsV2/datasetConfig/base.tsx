@@ -1,5 +1,6 @@
 import trimStart from 'lodash/trimStart';
 
+import {Client} from 'sentry/api';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -17,15 +18,11 @@ import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
-export type ContextualProps = {
-  organization?: Organization;
-  pageFilters?: PageFilters;
-};
-
 export type WidgetBuilderSearchBarProps = {
-  contextualProps: ContextualProps;
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
+  organization: Organization;
+  pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
 };
 
@@ -41,7 +38,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Table display type.
    */
   getTableFieldOptions: (
-    contextualProps?: ContextualProps,
+    organization: Organization,
     tags?: TagCollection
   ) => Record<string, SelectValue<FieldValue>>;
   /**
@@ -55,7 +52,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   transformTable: (
     data: TableResponse,
     widgetQuery: WidgetQuery,
-    contextualProps?: ContextualProps
+    organization: Organization,
+    pageFilters: PageFilters
   ) => TableData;
   /**
    * Used for mapping column names to more desirable
@@ -79,8 +77,47 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getCustomFieldRenderer?: (
     field: string,
     meta: MetaType,
-    contextualProps?: ContextualProps
+    organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
+  /**
+   * Generate the request promises for fetching
+   * series data.
+   */
+  getSeriesRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the request promises for fetching
+   * tabular data.
+   */
+  getTableRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the request promises for fetching
+   * world map data.
+   */
+  getWorldMapRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
   /**
    * Apply dataset specific overrides to the logic that handles
    * column updates for tables in the Widget Builder.
@@ -98,7 +135,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   transformSeries?: (
     data: SeriesResponse,
     widgetQuery: WidgetQuery,
-    contextualProps?: ContextualProps
+    organization: Organization
   ) => Series[];
 }
 

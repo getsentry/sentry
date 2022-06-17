@@ -4,11 +4,10 @@ import styled from '@emotion/styled';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {t} from 'sentry/locale';
-import {SavedSearchType, TagCollection} from 'sentry/types';
+import {Organization, PageFilters, SavedSearchType, TagCollection} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import withIssueTags from 'sentry/utils/withIssueTags';
-import {ContextualProps} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
   MAX_MENU_HEIGHT,
@@ -17,9 +16,10 @@ import {
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 interface Props {
-  contextualProps: ContextualProps;
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
+  organization: Organization;
+  pageFilters: PageFilters;
   tags: TagCollection;
   widgetQuery: WidgetQuery;
 }
@@ -29,10 +29,10 @@ function IssuesSearchBarContainer({
   onSearch,
   onBlur,
   widgetQuery,
-  contextualProps,
+  organization,
+  pageFilters,
 }: Props) {
   const api = useApi();
-  const {organization, pageFilters} = contextualProps;
   function tagValueLoader(key: string, search: string) {
     const orgId = organization!.slug;
     const projectIds = pageFilters?.projects.map(id => id.toString());
