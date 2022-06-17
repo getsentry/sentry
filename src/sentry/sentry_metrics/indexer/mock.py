@@ -2,9 +2,10 @@ import itertools
 from collections import defaultdict
 from typing import DefaultDict, Dict, Mapping, Optional, Set
 
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.strings import REVERSE_SHARED_STRINGS, SHARED_STRINGS
 
-from .base import DEFAULT_USE_CASE, KeyResult, KeyResults, StringIndexer
+from .base import KeyResult, KeyResults, StringIndexer
 
 
 class SimpleIndexer(StringIndexer):
@@ -19,7 +20,9 @@ class SimpleIndexer(StringIndexer):
         self._reverse: Dict[int, str] = {}
 
     def bulk_record(
-        self, org_strings: Mapping[int, Set[str]], use_case_id: str = DEFAULT_USE_CASE
+        self,
+        org_strings: Mapping[int, Set[str]],
+        use_case_id: UseCaseKey,
     ) -> KeyResults:
         acc = KeyResults()
         for org_id, strs in org_strings.items():
@@ -33,13 +36,13 @@ class SimpleIndexer(StringIndexer):
 
         return acc
 
-    def record(self, org_id: int, string: str, use_case_id: str = DEFAULT_USE_CASE) -> int:
+    def record(self, org_id: int, string: str, use_case_id: UseCaseKey) -> int:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self._record(org_id, string)
 
     def resolve(
-        self, org_id: int, string: str, use_case_id: str = DEFAULT_USE_CASE
+        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
@@ -47,7 +50,9 @@ class SimpleIndexer(StringIndexer):
         strs = self._strings[org_id]
         return strs.get(string)
 
-    def reverse_resolve(self, id: int, use_case_id: str = DEFAULT_USE_CASE) -> Optional[str]:
+    def reverse_resolve(
+        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
+    ) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
         return self._reverse.get(id)
