@@ -5,13 +5,7 @@ from typing import Any, Mapping, Optional, Set, Type
 from django.db.models import Q
 
 from sentry.sentry_metrics.configuration import DbKey, UseCaseKey, get_ingest_config
-from sentry.sentry_metrics.indexer.base import (
-    DEFAULT_USE_CASE,
-    KeyCollection,
-    KeyResult,
-    KeyResults,
-    StringIndexer,
-)
+from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults, StringIndexer
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import BaseIndexer, PerfStringIndexer
 from sentry.sentry_metrics.indexer.models import StringIndexer as StringIndexerTable
@@ -169,13 +163,13 @@ class PGStringIndexerV2(StringIndexer):
 
         return cache_key_results.merge(db_read_key_results).merge(db_write_key_results)
 
-    def record(self, org_id: int, string: str, use_case_id: str) -> int:
+    def record(self, org_id: int, string: str, use_case_id: UseCaseKey) -> int:
         """Store a string and return the integer ID generated for it"""
         result = self.bulk_record(use_case_id=use_case_id, org_strings={org_id: {string}})
         return result[org_id][string]
 
     def resolve(
-        self, org_id: int, string: str, use_case_id: str = DEFAULT_USE_CASE
+        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
         """Lookup the integer ID for a string.
 
@@ -199,7 +193,9 @@ class PGStringIndexerV2(StringIndexer):
 
         return id
 
-    def reverse_resolve(self, id: int, use_case_id: str = DEFAULT_USE_CASE) -> Optional[str]:
+    def reverse_resolve(
+        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
+    ) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
 
         Returns None if the entry cannot be found.
@@ -253,13 +249,15 @@ class StaticStringsIndexerDecorator(StringIndexer):
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
 
     def resolve(
-        self, org_id: int, string: str, use_case_id: str = DEFAULT_USE_CASE
+        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.resolve(use_case_id=use_case_id, org_id=org_id, string=string)
 
-    def reverse_resolve(self, id: int, use_case_id: str = DEFAULT_USE_CASE) -> Optional[str]:
+    def reverse_resolve(
+        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
+    ) -> Optional[str]:
         if id in REVERSE_SHARED_STRINGS:
             return REVERSE_SHARED_STRINGS[id]
         return self.indexer.reverse_resolve(use_case_id=use_case_id, id=id)

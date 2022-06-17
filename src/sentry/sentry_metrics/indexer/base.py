@@ -188,18 +188,26 @@ class StringIndexer(Service):
         raise NotImplementedError()
 
     def resolve(
-        self, org_id: int, string: str, use_case_id: str = DEFAULT_USE_CASE
+        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
     ) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
 
+        Callers should not rely on the default use_case_id -- it exists only
+        as a temporary workaround.
+
         Returns None if the entry cannot be found.
         """
         raise NotImplementedError()
 
-    def reverse_resolve(self, id: int, use_case_id: str = DEFAULT_USE_CASE) -> Optional[str]:
+    def reverse_resolve(
+        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
+    ) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
+
+        Callers should not rely on the default use_case_id -- it exists only
+        as a temporary workaround.
 
         Returns None if the entry cannot be found.
         """

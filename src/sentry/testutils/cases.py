@@ -110,6 +110,7 @@ from sentry.search.events.constants import (
     METRICS_MAP,
 )
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.tagstore.snuba import SnubaTagStorage
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import iso_format
@@ -1129,17 +1130,20 @@ class SessionMetricsTestCase(SnubaTestCase):
         org_id = session["org_id"]
 
         def metric_id(key: SessionMRI):
-            res = indexer.record(org_id, key.value)
+            res = indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=key.value
+            )
             assert res is not None, key
             return res
 
         def tag_key(name):
-            res = indexer.record(org_id, name)
+            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
             assert res is not None, name
+
             return res
 
         def tag_value(name):
-            res = indexer.record(org_id, name)
+            res = indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=name)
             assert res is not None, name
             return res
 
@@ -1223,7 +1227,8 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             *list(METRICS_MAP.values()),
         ]
         org_strings = {self.organization.id: set(strings)}
-        indexer.bulk_record(org_strings=org_strings)
+        # indexer.bulk_record(org_strings=org_strings)
+        indexer.bulk_record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_strings=org_strings)
 
     def store_metric(
         self,
@@ -1232,6 +1237,7 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[id] = None,
+        use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
     ):
         internal_metric = METRICS_MAP[metric]
         entity = self.ENTITY_MAP[metric]
@@ -1241,8 +1247,10 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
             tags = {}
         else:
             tags = {
-                indexer.record(self.organization.id, key): indexer.record(
-                    self.organization.id, value
+                indexer.record(
+                    use_case_id=use_case_id, org_id=self.organization.id, string=key
+                ): indexer.record(
+                    use_case_id=use_case_id, org_id=self.organization.id, string=value
                 )
                 for key, value in tags.items()
             }
