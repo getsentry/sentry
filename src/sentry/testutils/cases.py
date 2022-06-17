@@ -166,6 +166,10 @@ class BaseTestCase(Fixtures, Exam):
         """
         self.capture_on_commit_callbacks = django_capture_on_commit_callbacks
 
+    @pytest.fixture(autouse=True)
+    def expose_stale_database_reads(self, stale_database_reads):
+        self.stale_database_reads = stale_database_reads
+
     def feature(self, names):
         """
         >>> with self.feature({'feature:name': True})
@@ -454,8 +458,11 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     must set the string `endpoint`.
     """
 
-    endpoint = None
     method = "get"
+
+    @property
+    def endpoint(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def get_response(self, *args, **params):
         """
@@ -471,9 +478,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             * raw_data: (Optional) Sometimes we want to precompute the JSON body.
         :returns Response object
         """
-        if self.endpoint is None:
-            raise Exception("Implement self.endpoint to use this method.")
-
         url = reverse(self.endpoint, args=args)
         # In some cases we want to pass querystring params to put/post, handle
         # this here.
@@ -626,7 +630,9 @@ class AuthProviderTestCase(TestCase):
 
 
 class RuleTestCase(TestCase):
-    rule_cls = None
+    @property
+    def rule_cls(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def get_event(self):
         return self.event
@@ -744,7 +750,9 @@ class PermissionTestCase(TestCase):
 
 
 class PluginTestCase(TestCase):
-    plugin = None
+    @property
+    def plugin(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self):
         super().setUp()
@@ -783,7 +791,10 @@ class PluginTestCase(TestCase):
 
 class CliTestCase(TestCase):
     runner = fixture(CliRunner)
-    command = None
+
+    @property
+    def command(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     default_args = []
 
@@ -830,7 +841,9 @@ class AcceptanceTestCase(TransactionTestCase):
 
 
 class IntegrationTestCase(TestCase):
-    provider = None
+    @property
+    def provider(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self):
         from sentry.integrations.pipeline import IntegrationPipeline
@@ -1318,7 +1331,7 @@ class IntegrationRepositoryTestCase(APITestCase):
         self.login_as(self.user)
 
     def add_create_repository_responses(self, repository_config):
-        raise NotImplementedError
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
@@ -1362,7 +1375,7 @@ class ReleaseCommitPatchTest(APITestCase):
 
     @fixture
     def url(self):
-        raise NotImplementedError
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def assert_commit(self, commit, repo_id, key, author_id, message):
         assert commit.organization_id == self.org.id
@@ -1535,16 +1548,16 @@ class TestMigrations(TransactionTestCase):
     def app(self):
         return "sentry"
 
-    migrate_from = None
-    migrate_to = None
+    @property
+    def migrate_from(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    @property
+    def migrate_to(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self):
         super().setUp()
-        assert (
-            self.migrate_from and self.migrate_to
-        ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
-            type(self).__name__
-        )
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
 

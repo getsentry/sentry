@@ -1,6 +1,7 @@
 import trimStart from 'lodash/trimStart';
 
-import {OrganizationSummary, PageFilters, SelectValue, TagCollection} from 'sentry/types';
+import {Client} from 'sentry/api';
+import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
@@ -17,7 +18,7 @@ import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
 export type ContextualProps = {
-  organization?: OrganizationSummary;
+  organization?: Organization;
   pageFilters?: PageFilters;
 };
 
@@ -72,6 +73,42 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     contextualProps?: ContextualProps
   ) => ReturnType<typeof getFieldRenderer> | null;
+  /**
+   * Generate the request promises for fetching
+   * series data.
+   */
+  getSeriesRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the request promises for fetching
+   * tabular data.
+   */
+  getTableRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the request promises for fetching
+   * world map data.
+   */
+  getWorldMapRequest?: (
+    api: Client,
+    query: WidgetQuery,
+    contextualProps?: ContextualProps,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => ReturnType<Client['requestPromise']>;
   /**
    * Apply dataset specific overrides to the logic that handles
    * column updates for tables in the Widget Builder.

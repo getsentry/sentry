@@ -498,7 +498,7 @@ describe('IssueListActions', function () {
         await tick();
         wrapper.update();
       });
-      wrapper.find('SelectOption').at(3).simulate('click');
+      wrapper.find('Option').at(3).simulate('click');
 
       expect(onSortChange).toHaveBeenCalledWith('freq');
     });

@@ -384,6 +384,26 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
         ]
 
+    def test_blocked_keys(self):
+        config = SearchConfig(blocked_keys=["bad_key"])
+
+        assert parse_search_query("some_key:123 bad_key:123 text") == [
+            SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(key=SearchKey(name="bad_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+        ]
+
+        with pytest.raises(InvalidSearchQuery, match="Invalid key for this search: bad_key"):
+            assert parse_search_query("some_key:123 bad_key:123 text", config=config)
+
+        assert parse_search_query("some_key:123 some_other_key:456 text", config=config) == [
+            SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(
+                key=SearchKey(name="some_other_key"), operator="=", value=SearchValue("456")
+            ),
+            SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+        ]
+
     def test_invalid_aggregate_column_with_duration_filter(self):
         with self.assertRaisesMessage(
             InvalidSearchQuery,
