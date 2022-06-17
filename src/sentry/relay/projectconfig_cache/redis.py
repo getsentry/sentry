@@ -29,16 +29,15 @@ class RedisProjectConfigCache(ProjectConfigCache):
         p.execute()
 
     def delete_many(self, public_keys):
-        metrics.incr(
-            "relay.projectconfig_cache.write", amount=len(public_keys), tags={"action": "delete"}
-        )
-
         # Note: Those are multiple pipelines, one per cluster node
-        p = self.cluster.pipeline()
-        for public_key in public_keys:
-            p.delete(self.__get_redis_key(public_key))
+        with self.cluster.pipeline() as p:
+            for public_key in public_keys:
+                p.delete(self.__get_redis_key(public_key))
+            return_values = p.execute()
 
-        p.execute()
+        metrics.incr(
+            "relay.projectconfig_cache.write", amount=sum(return_values), tags={"action": "delete"}
+        )
 
     def get(self, public_key):
         rv = self.cluster.get(self.__get_redis_key(public_key))
