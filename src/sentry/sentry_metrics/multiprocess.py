@@ -35,7 +35,7 @@ from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -364,7 +364,7 @@ class PartitionIdxOffset(NamedTuple):
 
 
 def process_messages(
-    use_case_id: str,
+    use_case_id: UseCaseKey,
     outer_message: Message[MessageBatch],
 ) -> MessageBatch:
     """

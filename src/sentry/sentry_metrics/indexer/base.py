@@ -13,6 +13,7 @@ from typing import (
     TypeVar,
 )
 
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.utils.services import Service
 
 
@@ -173,10 +174,12 @@ class StringIndexer(Service):
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def bulk_record(self, org_strings: Mapping[int, Set[str]], use_case_id: str) -> KeyResults:
+    def bulk_record(
+        self, org_strings: Mapping[int, Set[str]], use_case_id: UseCaseKey
+    ) -> KeyResults:
         raise NotImplementedError()
 
-    def record(self, org_id: int, string: str, use_case_id: str) -> int:
+    def record(self, org_id: int, string: str, use_case_id: UseCaseKey) -> int:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be

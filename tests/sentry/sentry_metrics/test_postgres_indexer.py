@@ -1,5 +1,6 @@
 from typing import Mapping, Set, Tuple
 
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import KeyCollection, KeyResult, KeyResults
 from sentry.sentry_metrics.indexer.cache import indexer_cache
 from sentry.sentry_metrics.indexer.models import MetricsKeyIndexer, StringIndexer
@@ -50,7 +51,7 @@ class PostgresIndexerTest(TestCase):
 class StaticStringsIndexerTest(TestCase):
     def setUp(self) -> None:
         self.indexer = StaticStringsIndexerDecorator()
-        self.use_case_id = "release-health"
+        self.use_case_id = UseCaseKey("release-health")
 
     def test_static_strings_only(self) -> None:
         org_strings = {2: {"release"}, 3: {"production", "environment", "release"}}
@@ -91,7 +92,7 @@ class PostgresIndexerV2Test(TestCase):
         self.strings = {"hello", "hey", "hi"}
         self.indexer = PGStringIndexerV2()
         self.org2 = self.create_organization()
-        self.use_case_id = "release-health"
+        self.use_case_id = UseCaseKey("release-health")
 
     def tearDown(self) -> None:
         cache.clear()

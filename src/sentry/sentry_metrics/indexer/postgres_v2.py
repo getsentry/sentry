@@ -4,7 +4,7 @@ from typing import Any, Mapping, Optional, Set, Type
 
 from django.db.models import Q
 
-from sentry.sentry_metrics.configuration import ProfileKey, get_ingest_config_from_use_case_id
+from sentry.sentry_metrics.configuration import DbKey, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     DEFAULT_USE_CASE,
     KeyCollection,
@@ -27,9 +27,9 @@ _INDEXER_CACHE_FETCH_METRIC = "sentry_metrics.indexer.memcache.fetch"
 
 IndexerTable = Type[BaseIndexer]
 
-TABLE_MAPPING: Mapping[ProfileKey, IndexerTable] = {
-    ProfileKey.RELEASE_HEALTH: StringIndexerTable,
-    ProfileKey.PERFORMANCE: PerfStringIndexer,
+TABLE_MAPPING: Mapping[DbKey, IndexerTable] = {
+    DbKey.STRING_INDEXER: StringIndexerTable,
+    DbKey.PERF_STRING_INDEXER: PerfStringIndexer,
 }
 
 
@@ -39,7 +39,7 @@ class PGStringIndexerV2(StringIndexer):
     and the corresponding reverse lookup.
     """
 
-    def _get_db_records(self, use_case_id: str, db_keys: KeyCollection) -> Any:
+    def _get_db_records(self, use_case_id: UseCaseKey, db_keys: KeyCollection) -> Any:
         conditions = []
         for pair in db_keys.as_tuples():
             organization_id, string = pair
@@ -49,7 +49,9 @@ class PGStringIndexerV2(StringIndexer):
 
         return self._table(use_case_id).objects.filter(query_statement)
 
-    def bulk_record(self, org_strings: Mapping[int, Set[str]], use_case_id: str) -> KeyResults:
+    def bulk_record(
+        self, org_strings: Mapping[int, Set[str]], use_case_id: UseCaseKey
+    ) -> KeyResults:
         """
         Takes in a mapping with org_ids to sets of strings.
 
@@ -210,8 +212,8 @@ class PGStringIndexerV2(StringIndexer):
 
         return string
 
-    def _table(self, use_case_id: str) -> IndexerTable:
-        return TABLE_MAPPING[get_ingest_config_from_use_case_id(use_case_id).db_model]
+    def _table(self, use_case_id: UseCaseKey) -> IndexerTable:
+        return TABLE_MAPPING[get_ingest_config(use_case_id).db_model]
 
 
 class StaticStringsIndexerDecorator(StringIndexer):
@@ -222,7 +224,9 @@ class StaticStringsIndexerDecorator(StringIndexer):
     def __init__(self) -> None:
         self.indexer = PGStringIndexerV2()
 
-    def bulk_record(self, org_strings: Mapping[int, Set[str]], use_case_id: str) -> KeyResults:
+    def bulk_record(
+        self, org_strings: Mapping[int, Set[str]], use_case_id: UseCaseKey
+    ) -> KeyResults:
         static_keys = KeyCollection(org_strings)
         static_key_results = KeyResults()
         for org_id, string in static_keys.as_tuples():
@@ -243,7 +247,7 @@ class StaticStringsIndexerDecorator(StringIndexer):
 
         return static_key_results.merge(indexer_results)
 
-    def record(self, org_id: int, string: str, use_case_id: str) -> int:
+    def record(self, org_id: int, string: str, use_case_id: UseCaseKey) -> int:
         if string in SHARED_STRINGS:
             return SHARED_STRINGS[string]
         return self.indexer.record(use_case_id=use_case_id, org_id=org_id, string=string)
