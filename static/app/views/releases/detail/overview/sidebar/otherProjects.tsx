@@ -70,8 +70,8 @@ const Row = styled('div')`
   margin-bottom: ${space(0.75)};
   font-size: ${p => p.theme.fontSizeMedium};
 
-  @media (min-width: ${p => p.theme.breakpoints[1]}) and (max-width: ${p =>
-      p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) and (max-width: ${p =>
+      p.theme.breakpoints.large}) {
     grid-template-columns: 200px max-content;
   }
 `;

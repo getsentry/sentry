@@ -178,7 +178,7 @@ const ConditionWrapper = styled('div')`
     border-bottom: 1px solid ${p => p.theme.gray100};
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 0.6fr) minmax(0, 1fr) max-content;
   }
 `;
@@ -200,7 +200,7 @@ const CenterCell = styled(Cell)`
   grid-row: 2/2;
   ${p => !p.children && 'display: none'};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-column: auto;
     grid-row: auto;
     padding-top: 0;

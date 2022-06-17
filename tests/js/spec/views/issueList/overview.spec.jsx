@@ -511,7 +511,7 @@ describe('IssueList', function () {
         wrapper.update();
       });
 
-      wrapper.find('SelectOption').last().simulate('click');
+      wrapper.find('Option').last().simulate('click');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -697,7 +697,7 @@ describe('IssueList', function () {
         wrapper.update();
       });
 
-      wrapper.find('SelectOption').first().simulate('click');
+      wrapper.find('Option').first().simulate('click');
 
       await tick();
 
@@ -755,7 +755,7 @@ describe('IssueList', function () {
         wrapper.update();
       });
 
-      wrapper.find('SelectOption').last().simulate('click');
+      wrapper.find('Option').last().simulate('click');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({

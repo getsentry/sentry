@@ -1,12 +1,16 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 
 describe('ProjectBadge', function () {
   it('renders with Avatar and team name', function () {
-    const wrapper = mountWithTheme(<ProjectBadge project={TestStubs.Project()} />);
-    expect(wrapper.find('StyledAvatar')).toHaveLength(1);
-    expect(wrapper.find('PlatformList')).toHaveLength(1);
-    expect(wrapper.find('BadgeDisplayName').text()).toEqual('project-slug');
+    render(<ProjectBadge project={TestStubs.Project()} />);
+
+    expect(screen.getByRole('img')).toBeInTheDocument();
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/projects/project-slug/?project=2'
+    );
+    expect(screen.getByTestId('badge-display-name')).toHaveTextContent('project-slug');
   });
 });

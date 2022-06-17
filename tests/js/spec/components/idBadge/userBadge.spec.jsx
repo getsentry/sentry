@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
 
@@ -6,16 +6,14 @@ describe('UserBadge', function () {
   const user = TestStubs.User();
 
   it('renders with no link when user is supplied', function () {
-    const wrapper = mountWithTheme(<UserBadge user={user} />);
+    render(<UserBadge user={user} />);
 
-    expect(wrapper.find('StyledUserBadge')).toHaveLength(1);
-    expect(wrapper.find('StyledName').prop('children')).toBe('Foo Bar');
-    expect(wrapper.find('StyledEmail').prop('children')).toBe('foo@example.com');
-    expect(wrapper.find('StyledName Link')).toHaveLength(0);
+    expect(screen.getByText('Foo Bar')).toBeInTheDocument();
+    expect(screen.getByText('foo@example.com')).toBeInTheDocument();
   });
 
   it('can display alternate display names/emails', function () {
-    const wrapper = mountWithTheme(
+    render(
       <UserBadge
         user={user}
         displayName="Other Display Name"
@@ -23,8 +21,8 @@ describe('UserBadge', function () {
       />
     );
 
-    expect(wrapper.find('StyledName').prop('children')).toBe('Other Display Name');
-    expect(wrapper.find('StyledEmail').prop('children')).toBe('Other Display Email');
+    expect(screen.getByText('Other Display Name')).toBeInTheDocument();
+    expect(screen.getByText('Other Display Email')).toBeInTheDocument();
   });
 
   it('can coalesce using username', function () {
@@ -33,10 +31,9 @@ describe('UserBadge', function () {
       email: null,
       username: 'the-batman',
     });
-    const wrapper = mountWithTheme(<UserBadge user={username} />);
+    render(<UserBadge user={username} />);
 
-    expect(wrapper.find('StyledName').prop('children')).toBe(username.username);
-    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
+    expect(screen.getByText(username.username)).toBeInTheDocument();
   });
 
   it('can coalesce using ipaddress', function () {
@@ -46,10 +43,9 @@ describe('UserBadge', function () {
       username: null,
       ipAddress: '127.0.0.1',
     });
-    const wrapper = mountWithTheme(<UserBadge user={ipUser} />);
+    render(<UserBadge user={ipUser} />);
 
-    expect(wrapper.find('StyledName').prop('children')).toBe(ipUser.ipAddress);
-    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
+    expect(screen.getByText(ipUser.ipAddress)).toBeInTheDocument();
   });
 
   it('can coalesce using id', function () {
@@ -60,15 +56,15 @@ describe('UserBadge', function () {
       username: null,
       ipAddress: null,
     });
-    const wrapper = mountWithTheme(<UserBadge user={idUser} />);
+    render(<UserBadge user={idUser} />);
 
-    expect(wrapper.find('StyledName').prop('children')).toBe(idUser.id);
-    expect(wrapper.find('StyledEmail').prop('children')).toBe(null);
+    expect(screen.getByText(idUser.id)).toBeInTheDocument();
   });
 
   it('can hide email address', function () {
-    const wrapper = mountWithTheme(<UserBadge user={user} hideEmail />);
+    const email = 'email@example.com';
+    render(<UserBadge user={user} hideEmail email={email} />);
 
-    expect(wrapper.find('StyledEmail')).toHaveLength(0);
+    expect(screen.queryByText(email)).not.toBeInTheDocument();
   });
 });

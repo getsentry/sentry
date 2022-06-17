@@ -1,3 +1,4 @@
+import pytest
 from django.db import models
 
 from sentry.db.models import (
@@ -25,11 +26,11 @@ class DummyModel(Model):
 
 class ModelTest(TestCase):
     def test_large_int(self):
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             DummyModel.objects.create(normint=int(9223372036854775807), foo="bar")
 
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             DummyModel.objects.create(bigint=int(9223372036854775808), foo="bar")
 
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             DummyModel.objects.create(posint=int(9223372036854775808), foo="bar")
