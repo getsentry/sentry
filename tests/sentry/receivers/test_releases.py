@@ -32,11 +32,8 @@ from sentry.types.activity import ActivityType
 class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay):
-        with self.capture_on_commit_callbacks(execute=True):
-            release = Release.objects.create(
-                version="a", organization_id=self.project.organization_id
-            )
-            release.add_project(self.project)
+        release = Release.objects.create(version="a", organization_id=self.project.organization_id)
+        release.add_project(self.project)
 
         mock_delay.assert_called_once_with(release_id=release.id)
 
