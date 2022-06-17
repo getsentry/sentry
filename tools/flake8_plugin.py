@@ -13,7 +13,10 @@ S001_methods = frozenset(("not_called", "called_once", "called_once_with"))
 S002_msg = "S002 print functions or statements are not allowed."
 
 S003_msg = "S003 Use ``from sentry.utils import json`` instead."
-S003_modules = {"json", "simplejson"}
+S003_modules = frozenset(("json", "simplejson"))
+
+S004_msg = "S004 Use `pytest.raises` instead for better debuggability."
+S004_methods = frozenset(("assertRaises", "assertRaisesRegex"))
 
 
 class SentryVisitor(ast.NodeVisitor):
@@ -36,6 +39,8 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node: ast.Attribute) -> None:
         if node.attr in S001_methods:
             self.errors.append((node.lineno, node.col_offset, S001_fmt.format(node.attr)))
+        elif node.attr in S004_methods:
+            self.errors.append((node.lineno, node.col_offset, S004_msg))
 
         self.generic_visit(node)
 

@@ -16,10 +16,10 @@ import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
+import Breadcrumbs from './detail/breadcrumbs';
 import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
 import FocusTabs from './detail/focusTabs';
-import UserActionsNavigator from './detail/userActionsNavigator';
 
 function ReplayDetails() {
   const {
@@ -85,23 +85,20 @@ function ReplayDetails() {
           </Layout.Main>
 
           <Layout.Side>
-            <ErrorBoundary>
-              <UserActionsNavigator
-                crumbs={replay?.getRawCrumbs()}
-                event={replay?.getEvent()}
-              />
+            <ErrorBoundary mini>
+              <Breadcrumbs crumbs={replay?.getRawCrumbs()} event={replay?.getEvent()} />
             </ErrorBoundary>
           </Layout.Side>
 
           <StickyMain fullWidth>
-            <ErrorBoundary>
+            <ErrorBoundary mini>
               <ReplayTimeline />
             </ErrorBoundary>
             <FocusTabs />
           </StickyMain>
 
           <StyledLayoutMain fullWidth>
-            <ErrorBoundary>
+            <ErrorBoundary mini>
               <FocusArea replay={replay} />
             </ErrorBoundary>
           </StyledLayoutMain>

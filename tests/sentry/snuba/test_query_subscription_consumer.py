@@ -3,6 +3,7 @@ from copy import deepcopy
 from datetime import timedelta
 from unittest import mock
 
+import pytest
 import pytz
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -129,7 +130,7 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         self.consumer.parse_message_value(json.dumps(message))
 
     def run_invalid_schema_test(self, message):
-        with self.assertRaises(InvalidSchemaError):
+        with pytest.raises(InvalidSchemaError):
             self.run_test(message)
 
     def run_invalid_payload_test(self, remove_fields=None, update_fields=None):
@@ -153,9 +154,9 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         self.run_invalid_payload_test(update_fields={"entity": -1})
 
     def test_invalid_version(self):
-        with self.assertRaises(InvalidMessageError) as cm:
+        with pytest.raises(InvalidMessageError) as excinfo:
             self.run_test({"version": 50, "payload": {}})
-        assert str(cm.exception) == "Version specified in wrapper has no schema"
+        assert str(excinfo.value) == "Version specified in wrapper has no schema"
 
     def test_valid(self):
         self.run_test({"version": 3, "payload": self.valid_payload})
@@ -195,6 +196,6 @@ class RegisterSubscriberTest(unittest.TestCase):
         other_callback = object()
         register_subscriber("hello")(callback)
         assert subscriber_registry["hello"] == callback
-        with self.assertRaises(Exception) as cm:
+        with pytest.raises(Exception) as excinfo:
             register_subscriber("hello")(other_callback)
-        assert str(cm.exception) == "Handler already registered for hello"
+        assert str(excinfo.value) == "Handler already registered for hello"

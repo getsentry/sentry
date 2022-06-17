@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 from exam import around, fixture
@@ -56,27 +57,27 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get("foo") == ""
 
     def test_register(self):
-        with self.assertRaises(UnknownOption):
+        with pytest.raises(UnknownOption):
             self.manager.get("does-not-exit")
 
-        with self.assertRaises(UnknownOption):
+        with pytest.raises(UnknownOption):
             self.manager.set("does-not-exist", "bar")
 
         self.manager.register("does-not-exist")
         self.manager.get("does-not-exist")  # Just shouldn't raise
         self.manager.unregister("does-not-exist")
 
-        with self.assertRaises(UnknownOption):
+        with pytest.raises(UnknownOption):
             self.manager.get("does-not-exist")
 
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             # This key should already exist, and we can't re-register
             self.manager.register("foo")
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.manager.register("wrong-type", default=1, type=String)
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.manager.register("none-type", default=None, type=type(None))
 
     def test_coerce(self):
@@ -87,10 +88,10 @@ class OptionsManagerTest(TestCase):
         self.manager.set("some-int", "0")
         assert self.manager.get("some-int") == 0
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.manager.set("some-int", "foo")
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.manager.set("some-int", "0", coerce=False)
 
     def test_legacy_key(self):
@@ -106,7 +107,7 @@ class OptionsManagerTest(TestCase):
 
     def test_types(self):
         self.manager.register("some-int", type=Int, default=0)
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.manager.set("some-int", "foo")
         self.manager.set("some-int", 1)
         assert self.manager.get("some-int") == 1
@@ -135,14 +136,14 @@ class OptionsManagerTest(TestCase):
 
     def test_flag_immutable(self):
         self.manager.register("immutable", flags=FLAG_IMMUTABLE)
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             self.manager.set("immutable", "thing")
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             self.manager.delete("immutable")
 
     def test_flag_nostore(self):
         self.manager.register("nostore", flags=FLAG_NOSTORE)
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             self.manager.set("nostore", "thing")
 
         # Make sure that we don't touch either of the stores
@@ -155,21 +156,21 @@ class OptionsManagerTest(TestCase):
                     assert self.manager.get("nostore") == "foo"
                     self.store.flush_local_cache()
 
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             self.manager.delete("nostore")
 
     def test_validate(self):
-        with self.assertRaises(UnknownOption):
+        with pytest.raises(UnknownOption):
             self.manager.validate({"unknown": ""})
 
         self.manager.register("unknown")
         self.manager.register("storeonly", flags=FLAG_STOREONLY)
         self.manager.validate({"unknown": ""})
 
-        with self.assertRaises(AssertionError):
+        with pytest.raises(AssertionError):
             self.manager.validate({"storeonly": ""})
 
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             self.manager.validate({"unknown": True})
 
     def test_flag_storeonly(self):
@@ -184,7 +185,7 @@ class OptionsManagerTest(TestCase):
         assert self.manager.get("prioritize_disk") == ""
 
         with self.settings(SENTRY_OPTIONS={"prioritize_disk": "something-else!"}):
-            with self.assertRaises(AssertionError):
+            with pytest.raises(AssertionError):
                 assert self.manager.set("prioritize_disk", "foo")
             assert self.manager.get("prioritize_disk") == "something-else!"
 
@@ -206,7 +207,7 @@ class OptionsManagerTest(TestCase):
     def test_db_unavailable(self):
         with patch.object(Option.objects, "get_queryset", side_effect=RuntimeError()):
             # we can't update options if the db is unavailable
-            with self.assertRaises(RuntimeError):
+            with pytest.raises(RuntimeError):
                 self.manager.set("foo", "bar")
 
         self.manager.set("foo", "bar")
@@ -269,7 +270,7 @@ class OptionsManagerTest(TestCase):
                 self.store.flush_local_cache()
 
     def test_unregister(self):
-        with self.assertRaises(UnknownOption):
+        with pytest.raises(UnknownOption):
             self.manager.unregister("does-not-exist")
 
     def test_all(self):
