@@ -302,7 +302,7 @@ class ProjectUpdateTest(APITestCase):
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
         response = self.client.put(url, format="json", headers=headers, data=data)
-        assert response.status_code == 200, response.content
+        assert response.status_code == 403, response.content
 
     def test_empty_token_scopes_denied(self):
         project = self.create_project(platform="javascript")
