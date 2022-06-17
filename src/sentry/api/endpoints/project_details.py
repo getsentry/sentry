@@ -418,9 +418,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         :param int digestsMaxDelay:
         :auth: required
         """
-        has_project_write = (request.auth and request.auth.has_scope("project:write")) or (
-            request.access and request.access.has_scope("project:write")
-        )
+        has_project_write = request.access and request.access.has_scope("project:write")
 
         changed_proj_settings = {}
 
