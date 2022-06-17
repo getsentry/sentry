@@ -196,6 +196,89 @@ class ProjectDetailsTest(APITestCase):
         self.get_error_response(other_org.slug, "old_slug", status_code=403)
 
 
+class ProjectUpdateTestTokenAuthenticated(APITestCase):
+    endpoint = "sentry-api-0-project-details"
+    method = "put"
+
+    def setUp(self):
+        super().setUp()
+        self.org_slug = self.project.organization.slug
+        self.proj_slug = self.project.slug
+
+    def test_member_updates_denied_with_token(self):
+        project = self.create_project(platform="javascript")
+        user = self.create_user("bar@example.com")
+        self.create_member(
+            user=user,
+            organization=project.organization,
+            teams=[project.teams.first()],
+            role="member",
+        )
+
+        # self.login_as(self.user)
+        # token_url = reverse("sentry-api-0-api-tokens")
+        # response = self.client.post(token_url, data={"scopes": ["event:read"]})
+        #
+        # token = ApiToken.objects.get(user=self.user)
+        # headers = {"Authorization" f"Bearer {token.token}"}
+
+        token = ApiToken.objects.create(user=user, scope_list=["project:write"])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 403, response.content
+
+    def test_admin_updates_denied_with_token(self):
+        project = self.create_project(platform="javascript")
+        user = self.create_user("bar@example.com")
+        self.create_member(
+            user=user,
+            organization=project.organization,
+            teams=[project.teams.first()],
+            role="admin",
+        )
+
+        token = ApiToken.objects.create(user=user, scope_list=["event:read"])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 403, response.content
+
+    def test_empty_token_scopes_denied(self):
+        project = self.create_project(platform="javascript")
+        user = self.create_user("bar@example.com")
+        self.create_member(
+            user=user,
+            organization=project.organization,
+            teams=[project.teams.first()],
+            role="member",
+        )
+
+        token = ApiToken.objects.create(user=user, scope_list=[""])
+        authorization = f"Bearer {token.token}"
+
+        data = {"platform": "rust"}
+
+        url = reverse(
+            "sentry-api-0-project-details",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+        response = self.client.put(url, format="json", HTTP_AUTHORIZATION=authorization, data=data)
+        assert response.status_code == 403, response.content
+
+
 class ProjectUpdateTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
     method = "put"
@@ -259,72 +342,6 @@ class ProjectUpdateTest(APITestCase):
         assert Project.objects.get(id=project.id).slug != "zzz"
 
         assert not ProjectBookmark.objects.filter(user=user, project_id=project.id).exists()
-
-    def test_member_updates_denied_with_token(self):
-        project = self.create_project(platform="javascript")
-        user = self.create_user("bar@example.com")
-        self.create_member(
-            user=user,
-            organization=project.organization,
-            teams=[project.teams.first()],
-            role="member",
-        )
-
-        token = ApiToken.objects.create(user=user, scope_list=["project:write"])
-        headers = {"Authorization" f"Bearer {token.token}"}
-
-        data = {"platform": "rust"}
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.put(url, format="json", headers=headers, data=data)
-        assert response.status_code == 403, response.content
-
-    def test_admin_updates_denied_with_token(self):
-        project = self.create_project(platform="javascript")
-        user = self.create_user("bar@example.com")
-        self.create_member(
-            user=user,
-            organization=project.organization,
-            teams=[project.teams.first()],
-            role="admin",
-        )
-
-        token = ApiToken.objects.create(user=user, scope_list=["event:read"])
-        headers = {"Authorization" f"Bearer {token.token}"}
-
-        data = {"platform": "rust"}
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.put(url, format="json", headers=headers, data=data)
-        assert response.status_code == 403, response.content
-
-    def test_empty_token_scopes_denied(self):
-        project = self.create_project(platform="javascript")
-        user = self.create_user("bar@example.com")
-        self.create_member(
-            user=user,
-            organization=project.organization,
-            teams=[project.teams.first()],
-            role="member",
-        )
-
-        token = ApiToken.objects.create(user=user, scope_list=[""])
-        headers = {"Authorization" f"Bearer {token.token}"}
-
-        data = {"platform": "rust"}
-
-        url = reverse(
-            "sentry-api-0-project-details",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-        response = self.client.put(url, format="json", headers=headers, data=data)
-        assert response.status_code == 403, response.content
 
     def test_name(self):
         self.get_success_response(self.org_slug, self.proj_slug, name="hello world")
