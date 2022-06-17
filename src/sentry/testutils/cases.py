@@ -1716,6 +1716,9 @@ class MetricsAPIBaseTestCase(SessionMetricsTestCase, APITestCase):
 
 
 class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
+    def __indexer_record(self, org_id: int, value: str) -> int:
+        return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=value)
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -1728,11 +1731,15 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric1"),
+                    "metric_id": self.__indexer_record(org_id, "metric1"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value1"),
-                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value2"),
+                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
+                            org_id, "value1"
+                        ),
+                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
+                            org_id, "value2"
+                        ),
                     },
                     "type": "c",
                     "value": 1,
@@ -1741,10 +1748,12 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric1"),
+                    "metric_id": self.__indexer_record(org_id, "metric1"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record(org_id, "tag3"): indexer.record(org_id, "value3"),
+                        self.__indexer_record(org_id, "tag3"): self.__indexer_record(
+                            org_id, "value3"
+                        ),
                     },
                     "type": "c",
                     "value": 1,
@@ -1758,12 +1767,18 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric2"),
+                    "metric_id": self.__indexer_record(org_id, "metric2"),
                     "timestamp": now,
                     "tags": {
-                        indexer.record(org_id, "tag4"): indexer.record(org_id, "value3"),
-                        indexer.record(org_id, "tag1"): indexer.record(org_id, "value2"),
-                        indexer.record(org_id, "tag2"): indexer.record(org_id, "value1"),
+                        self.__indexer_record(org_id, "tag4"): self.__indexer_record(
+                            org_id, "value3"
+                        ),
+                        self.__indexer_record(org_id, "tag1"): self.__indexer_record(
+                            org_id, "value2"
+                        ),
+                        self.__indexer_record(org_id, "tag2"): self.__indexer_record(
+                            org_id, "value1"
+                        ),
                     },
                     "type": "s",
                     "value": [123],
@@ -1772,7 +1787,7 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
                 {
                     "org_id": org_id,
                     "project_id": self.project.id,
-                    "metric_id": indexer.record(org_id, "metric3"),
+                    "metric_id": self.__indexer_record(org_id, "metric3"),
                     "timestamp": now,
                     "tags": {},
                     "type": "s",
