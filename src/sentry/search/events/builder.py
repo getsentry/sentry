@@ -774,15 +774,20 @@ class QueryBuilder:
                 if groupby_columns
                 else []
             )
-            return [
-                column
-                for column in self.columns
-                if column not in self.aggregates and not self.is_equation_column(column)
-            ] + [
-                column
-                for column in groupby_columns
-                if column not in self.aggregates and not self.is_equation_column(column)
-            ]
+            return list(
+                set(
+                    [
+                        column
+                        for column in self.columns
+                        if column not in self.aggregates and not self.is_equation_column(column)
+                    ]
+                    + [
+                        column
+                        for column in groupby_columns
+                        if column not in self.aggregates and not self.is_equation_column(column)
+                    ]
+                )
+            )
         else:
             return []
 

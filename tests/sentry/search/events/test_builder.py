@@ -673,6 +673,34 @@ class QueryBuilderTest(TestCase):
             ],
         )
 
+    def test_group_by_duplicates_select(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            "",
+            selected_columns=[
+                "count()",
+                "transaction",
+            ],
+            groupby_columns=[
+                "transaction",
+            ],
+        )
+        snql_query = query.get_snql_query().query
+        self.assertCountEqual(
+            snql_query.select,
+            [
+                Function("count", [], "count"),
+                Column("transaction"),
+            ],
+        )
+        self.assertCountEqual(
+            snql_query.groupby,
+            [
+                Column("transaction"),
+            ],
+        )
+
 
 def _metric_percentile_definition(
     org_id, quantile, field="transaction.duration", alias=None
