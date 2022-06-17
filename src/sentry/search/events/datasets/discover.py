@@ -86,6 +86,7 @@ from sentry.search.events.filter import (
     translate_transaction_status,
 )
 from sentry.search.events.types import SelectType, WhereType
+from sentry.search.utils import parse_team_value
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -108,6 +109,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             "message": self._message_filter_converter,
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
+            "assignee": self._assignee_filter_converter,
             ISSUE_ALIAS: self._issue_filter_converter,
             ISSUE_ID_ALIAS: self._issue_id_filter_converter,
             RELEASE_ALIAS: self._release_filter_converter,
@@ -1325,6 +1327,40 @@ class DiscoverDatasetConfig(DatasetConfig):
             self.builder.resolve_field(search_filter.key.name),
             Op(search_filter.operator),
             internal_value,
+        )
+
+    def _assignee_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        value = search_filter.value.value
+
+        project_ids: Optional[List[int]] = self.builder.params.get("project_id")
+        # TODO: support user
+        try:
+            groups = Group.objects.filter_to_team(parse_team_value(project_ids, value, None))[:101]
+        except Exception:
+            # TODO: better error msg
+            raise InvalidSearchQuery("Was unable to filter to that assignee please try again")
+        else:
+            filter_values = sorted(g.id for g in groups)[:100]
+
+        if len(filter_values) > 100:
+            self.builder.tips["query"].add(
+                "Only up to 100 issues are supported for the assignee filter"
+            )
+
+        # Handle "has" queries
+        if (
+            search_filter.value.raw_value == ""
+            or search_filter.is_in_filter
+            and [v for v in value if not v]
+        ):
+            raise InvalidSearchQuery("has not supported for assignee yet")
+
+        return self.builder.convert_search_filter_to_condition(
+            SearchFilter(
+                SearchKey("issue.id"),
+                "IN",
+                SearchValue(filter_values),
+            )
         )
 
     def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
