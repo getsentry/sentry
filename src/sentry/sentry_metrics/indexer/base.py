@@ -24,11 +24,6 @@ class FetchType(Enum):
     FIRST_SEEN = "f"
 
 
-# todo we should probably get rid of this and the use_case_id default, but there were too
-# many callers to quickly deprecate. After addressing this, it also probably makes sense for
-# use_case_id to come earlier in the parameter list.
-DEFAULT_USE_CASE = "release-health"
-
 KR = TypeVar("KR", bound="KeyResult")
 
 

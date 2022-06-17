@@ -15,9 +15,6 @@ class DbKey(Enum):
     PERF_STRING_INDEXER = "PerfStringIndexer"
 
 
-DEFAULT_PROFILE_KEY = UseCaseKey.RELEASE_HEALTH
-
-
 @dataclass(frozen=True)
 class MetricsIngestConfiguration:
     db_model: DbKey
