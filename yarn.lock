@@ -7454,6 +7454,11 @@ emojis-list@^3.0.0:
   resolved "https://registry.yarnpkg.com/emojis-list/-/emojis-list-3.0.0.tgz#5570662046ad29e2e916e71aae260abdff4f6a78"
   integrity sha512-/kyM18EfinwXZbno9FyUGeFh87KC8HRQBQGildHZbEuRyWFOmv1U10o9BBp8XVZDVNNuQKyIGIu5ZYAAXJ0V2Q==
 
+emotion-theming@^11.0.0:
+  version "11.0.0"
+  resolved "https://registry.yarnpkg.com/emotion-theming/-/emotion-theming-11.0.0.tgz#821de3c9804cfe7bb5fda2dd12ad722a6c5bcff5"
+  integrity sha512-OhYpCGBjaLcD9c4ptwCr9SxHjfRTDqeqdzMobusJ+a/drlfnJ3AT9gmGKIhNHiXtr6626h6fsvLY22Or9CxUqw==
+
 encodeurl@~1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/encodeurl/-/encodeurl-1.0.2.tgz#ad3ff4c86ec2d029322f5a02c3a9a606c95b3f59"
