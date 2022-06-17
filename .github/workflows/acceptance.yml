@@ -100,11 +100,11 @@ jobs:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
-      - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@report-status
-        with:
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
+      # - name: Save snapshots
+      #   uses: getsentry/action-visual-snapshot@report-status
+      #   with:
+      #     save-only: true
+      #     snapshot-path: .artifacts/visual-snapshots
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
@@ -232,11 +232,11 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
           USE_SNUBA: 1
 
-      - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@report-status
-        with:
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
+      # - name: Save snapshots
+      #   uses: getsentry/action-visual-snapshot@report-status
+      #   with:
+      #     save-only: true
+      #     snapshot-path: .artifacts/visual-snapshots
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
@@ -298,11 +298,11 @@ jobs:
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
-      - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@report-status
-        with:
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
+      # - name: Save snapshots
+      #   uses: getsentry/action-visual-snapshot@report-status
+      #   with:
+      #     save-only: true
+      #     snapshot-path: .artifacts/visual-snapshots
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
