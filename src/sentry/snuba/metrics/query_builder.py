@@ -8,7 +8,6 @@ __all__ = (
     "resolve_tags",
     "translate_meta_results",
 )
-
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
 
@@ -308,8 +307,6 @@ def parse_operation_and_metric_mri(name: str) -> Tuple[Optional[str], str]:
     if matches:
         # operation, metric_mri
         return matches[1], matches[2]
-    # TODO: @andriisoldatenko
-    # add
     return None, name
 
 
