@@ -119,7 +119,7 @@ function TeamSelector(props: Props) {
 
   const createTeamOption = (team: Team): TeamOption => ({
     value: useId ? team.id : team.slug,
-    label: team.slug,
+    label: `#${team.slug}`,
     leadingItems: <IdBadge team={team} hideName />,
     searchKey: team.slug,
     actor: {
@@ -178,7 +178,7 @@ function TeamSelector(props: Props) {
     return {
       ...createTeamOption(team),
       disabled: true,
-      label: team.slug,
+      label: `#${team.slug}`,
       leadingItems: <IdBadge team={team} hideName />,
       trailingItems: (
         <Tooltip
