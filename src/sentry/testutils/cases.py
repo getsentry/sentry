@@ -166,10 +166,6 @@ class BaseTestCase(Fixtures, Exam):
         """
         self.capture_on_commit_callbacks = django_capture_on_commit_callbacks
 
-    @pytest.fixture(autouse=True)
-    def expose_stale_database_reads(self, stale_database_reads):
-        self.stale_database_reads = stale_database_reads
-
     def feature(self, names):
         """
         >>> with self.feature({'feature:name': True})
