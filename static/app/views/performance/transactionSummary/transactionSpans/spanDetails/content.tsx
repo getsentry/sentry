@@ -20,6 +20,7 @@ import SuspectSpansQuery, {
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
 import Tab from '../../tabs';
 import {SpanSortOthers} from '../types';
@@ -46,10 +47,13 @@ export default function SpanDetailsContentWrapper(props: Props) {
   const maxExclusiveTime = decodeScalar(location.query[ZoomKeys.MAX]);
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('performance_views.span_summary.view', {
-      organization,
-    });
-  }, [organization]);
+    if (project) {
+      trackAdvancedAnalyticsEvent('performance_views.span_summary.view', {
+        organization,
+        project_platforms: getSelectedProjectPlatforms(location, [project]),
+      });
+    }
+  }, [organization, project, location]);
 
   return (
     <Fragment>

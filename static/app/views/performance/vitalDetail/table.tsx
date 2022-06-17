@@ -41,6 +41,7 @@ import {
   TransactionFilterOptions,
   transactionSummaryRouteWithQuery,
 } from '../transactionSummary/utils';
+import {getSelectedProjectPlatforms} from '../utils';
 
 import {
   getVitalDetailTableMehStatusFunction,
@@ -322,11 +323,12 @@ class Table extends Component<Props, State> {
   };
 
   handleSummaryClick = () => {
-    const {organization} = this.props;
+    const {organization, projects, location} = this.props;
     trackAnalyticsEvent({
       eventKey: 'performance_views.overview.navigate.summary',
       eventName: 'Performance Views: Overview view summary',
       organization_id: parseInt(organization.id, 10),
+      project_platforms: getSelectedProjectPlatforms(location, projects),
     });
   };
 

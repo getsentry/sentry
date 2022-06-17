@@ -31,6 +31,7 @@ import {appendTagCondition, decodeScalar} from 'sentry/utils/queryString';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
+import {getSelectedProjectPlatforms} from '../utils';
 
 import EventMetas from './eventMetas';
 import FinishSetupAlert from './finishSetupAlert';
@@ -41,6 +42,7 @@ type Props = Pick<
 > & {
   eventSlug: string;
   organization: Organization;
+  projects: Project[];
 };
 
 type State = {
@@ -119,7 +121,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
   }
 
   renderContent(event: Event) {
-    const {organization, location, eventSlug, route, router} = this.props;
+    const {organization, location, eventSlug, route, router, projects} = this.props;
 
     // metrics
     trackAnalyticsEvent({
@@ -127,6 +129,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
       eventName: 'Performance: Opened Event Details',
       event_type: event.type,
       organization_id: parseInt(organization.id, 10),
+      project_platforms: getSelectedProjectPlatforms(location, projects),
     });
 
     const {isSidebarVisible} = this.state;
@@ -192,7 +195,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                   )}
                   <Layout.Main fullWidth={!isSidebarVisible}>
                     <Projects orgId={organization.slug} slugs={[this.projectId]}>
-                      {({projects}) => (
+                      {({projects: _projects}) => (
                         <SpanEntryContext.Provider
                           value={{
                             getViewChildTransactionTarget: childTransactionProps => {
@@ -209,7 +212,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                             <BorderlessEventEntries
                               organization={organization}
                               event={event}
-                              project={projects[0] as Project}
+                              project={_projects[0] as Project}
                               showExampleCommit={false}
                               showTagSummary={false}
                               location={location}
