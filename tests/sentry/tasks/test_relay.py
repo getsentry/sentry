@@ -218,7 +218,7 @@ def test_invalidation_project_deleted(default_project, emulate_transactions, red
     project_id = default_project.id
 
     # Delete the project normally, this will delete it from the cache
-    with emulate_transactions(assert_num_callbacks=4):
+    with emulate_transactions(assert_num_callbacks=5):
         default_project.delete()
     assert redis_cache.get(project_key) is None
 
