@@ -292,4 +292,4 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             )
             omt.delete()
 
-        return Response(status=200)
+        return Response(serialize(team, request.user, TeamWithProjectsSerializer()), status=200)
