@@ -24,7 +24,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
                 "type": "choice",
                 "choices": [(i.id, i.name) for i in self.get_integrations()],
             },
-            "channel": {"type": "string", "placeholder": "i.e. General"},
+            "channel": {"type": "string", "placeholder": "i.e. General, Jane Schmidt"},
         }
 
     def after(self, event, state):
