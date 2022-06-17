@@ -36,6 +36,7 @@ from sentry.snuba.metrics import (
     get_intervals,
     parse_query,
     resolve_tags,
+    translate_meta_results,
 )
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
@@ -846,32 +847,30 @@ def test_get_intervals():
         list(get_intervals(MOCK_NOW - timedelta(days=1), MOCK_NOW, -3600))
 
 
-# def test_merge_result_meta():
-#     org_id = 1
-#     query_params = MultiValueDict(
-#         {
-#             "field": [
-#                 "sum(sentry.sessions.session)",
-#             ],
-#             "interval": ["1d"],
-#             "statsPeriod": ["3d"],
-#         }
-#     )
-#     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-#     fields_in_entities = {}
-#     results = {}
-#     intervals = []
+def test_translate_meta_results():
+    meta = [
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+    ]
+    assert translate_meta_results(meta) == [
+        {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
+        {"name": "transaction", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+    ]
 
-#     meta = [
-#         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
-#         {"name": "tags[9223372036854776020]", "type": "UInt64"},
-#         {"name": "tags[9223372036854776020]", "type": "UInt64"},
-#         {"name": "project_id", "type": "UInt64"},
-#     ]
-#     assert SnubaResultConverter(
-#         org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
-#     ).merge_result_meta() == [
-#         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
-#         {"name": "transaction", "type": "UInt64"},
-#         {"name": "project_id", "type": "UInt64"},
-#     ]
+
+def test_translate_meta_results_with_duplicates():
+    meta = [
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+    ]
+    assert translate_meta_results(meta) == [
+        {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
+        {"name": "transaction", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+    ]

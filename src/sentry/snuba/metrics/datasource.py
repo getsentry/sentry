@@ -659,16 +659,17 @@ def get_series(
                         request, use_cache=False, referrer=f"api.metrics.{key}.second_query"
                     )
                     snuba_result_data = snuba_result["data"]
+                    # snuba_result_data = snuba_result["data"]
                     # Since we removed the orderBy from all subsequent queries,
                     # we need to sort the results manually. This is required for
                     # the paginator, since it always queries one additional row
                     # and removes it at the end.
                     if group_limit_filters:
-                        snuba_result = _sort_results_by_group_filters(
+                        snuba_result_data = _sort_results_by_group_filters(
                             snuba_result_data, group_limit_filters
                         )
-
                     results[entity][key] = {"data": snuba_result_data}
+                    meta.extend(snuba_result["meta"])
     else:
         snuba_queries, fields_in_entities = SnubaQueryBuilder(
             projects, metrics_query

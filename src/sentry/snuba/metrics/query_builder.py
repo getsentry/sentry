@@ -6,6 +6,7 @@ __all__ = (
     "parse_field",
     "parse_query",
     "resolve_tags",
+    "translate_meta_results",
 )
 
 from datetime import datetime, timedelta
