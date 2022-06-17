@@ -91,7 +91,7 @@ export const ReleasesConfig: DatasetConfig<
   filterTableOptions: filterPrimaryReleaseTableOptions,
   filterTableAggregateParams: filterAggregateParams,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
-  getSearchBar: ReleaseSearchBar,
+  getSearchBar: widgetProps => <ReleaseSearchBar {...widgetProps} />,
   getTableFieldOptions: getReleasesTableFieldOptions,
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,

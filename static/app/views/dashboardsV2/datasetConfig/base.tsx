@@ -32,6 +32,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Widget Builder.
    */
   defaultWidgetQuery: WidgetQuery;
+  /**
+   * Dataset specific search bar for the 'Filter' step in the
+   * widget builder.
+   */
   getSearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
   /**
    * Field options to display in the Column selectors for

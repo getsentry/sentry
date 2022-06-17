@@ -60,7 +60,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
-  getSearchBar: EventsSearchBar,
+  getSearchBar: widgetProps => <EventsSearchBar {...widgetProps} />,
   getTableFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
