@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, Optional
+from typing import Any, Callable, Mapping, Optional, Type
 
 import sentry_sdk
 from django.conf import settings
@@ -24,7 +24,7 @@ from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.servermode import ServerComponentMode
+from sentry.servermode import ModeLimited
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -472,32 +472,27 @@ class ReleaseAnalyticsMixin:
         )
 
 
-def active_on(mode: ServerComponentMode) -> Callable[[Any], Any]:
-    """Decorate an endpoint class that should be active only in one mode."""
+class ApiAvailableOn(ModeLimited):
+    @staticmethod
+    def respond_when_unavailable():
+        return HttpResponse(status=status.HTTP_404_NOT_FOUND)
 
-    def decorator(decorated_obj: Any) -> Any:
-        class InactiveEndpoint(Endpoint):
-            def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
-                logger.info(
-                    f"Received {request.method} request to {request.path!r}, "
-                    f"which is active only in {mode.value} mode."
-                )
-                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+    def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
+        dispatch_override = self.create_override(
+            decorated_class.dispatch, self.respond_when_unavailable
+        )
+        return type(decorated_class.__name__, (decorated_class,), {"dispatch": dispatch_override})
 
+    def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
+        return self.create_override(decorated_method, self.respond_when_unavailable)
+
+    def __call__(self, decorated_obj: Any) -> Any:
         if isinstance(decorated_obj, type):
             if not issubclass(decorated_obj, Endpoint):
-                raise ValueError("`@active_on` can decorate only Endpoint subclasses")
-            if mode.is_active():
-                return decorated_obj
-            else:
-                return type(decorated_obj.__name__, (InactiveEndpoint,), {})
+                raise ValueError("`@ApiAvailableOn` can decorate only Endpoint subclasses")
+            return self.modify_endpoint_class(decorated_obj)
 
         if callable(decorated_obj):
-            if mode.is_active():
-                return decorated_obj
-            else:
-                return InactiveEndpoint.dispatch
+            return self.modify_endpoint_method(decorated_obj)
 
-        raise TypeError("`@active_on` must decorate a class or method")
-
-    return decorator
+        raise TypeError("`@ApiAvailableOn` must decorate a class or method")

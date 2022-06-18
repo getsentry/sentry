@@ -13,7 +13,6 @@ from datetime import timedelta
 from urllib.parse import urlparse
 
 import sentry
-from sentry.servermode import ServerComponentMode
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -2658,6 +2657,4 @@ MAX_ISSUE_ALERTS_PER_PROJECT = 100
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
 
 
-SERVER_COMPONENT_MODE = ServerComponentMode.resolve(
-    os.environ.get("SENTRY_SERVER_COMPONENT_MODE", ServerComponentMode.MONOLITH.name)
-)
+SERVER_COMPONENT_MODE = None

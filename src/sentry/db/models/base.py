@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, Callable, Iterable, Mapping, Tuple, Type, cast
+from typing import Any, Callable, Iterable, Mapping, Tuple, cast
 
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
-from sentry.servermode import ServerComponentMode
+from sentry.servermode import ModeLimited, ServerComponentMode
 
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager, M
 from .query import update
 
-__all__ = ("BaseModel", "Model", "DefaultFieldsModel", "sane_repr", "available_on")
+__all__ = ("BaseModel", "Model", "DefaultFieldsModel", "sane_repr", "ModelAvailableOn")
 
 
 def sane_repr(*attrs: str) -> Callable[[models.Model], str]:
@@ -135,52 +135,35 @@ signals.post_save.connect(__model_post_save)
 signals.class_prepared.connect(__model_class_prepared)
 
 
-class ServerModeDataError(Exception):
-    @classmethod
-    def create_override(cls, message: str) -> Callable[..., Any]:
-        def override(*args: Any, **kwargs: Any) -> Any:
-            raise cls(message)
+class ModelAvailableOn(ModeLimited):
+    def __init__(
+        self,
+        *modes: ServerComponentMode,
+        read_only: ServerComponentMode | Iterable[ServerComponentMode] = (),
+    ) -> None:
+        super().__init__(*modes)
+        self.read_only = frozenset(
+            [read_only] if isinstance(read_only, ServerComponentMode) else read_only
+        )
 
-        return override
+    def __call__(self, model_class: Any) -> type:
+        if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
+            raise TypeError("`@available_on` must decorate a Model class")
+        assert isinstance(model_class.objects, BaseManager)
 
+        model_class.objects = model_class.objects.create_mode_limited_copy(self, self.read_only)
 
-def _disallow_access(model_class: Type[BaseModel], allow_read: bool) -> None:
-    """Modify a model class to raise an error if reading or writing is attempted."""
+        # On the model (not manager) class itself, find all methods that are tagged
+        # with the `alters_data` meta-attribute and replace them with overrides.
+        for model_attr_name in dir(model_class):
+            model_attr = getattr(model_class, model_attr_name)
+            if callable(model_attr) and getattr(model_attr, "alters_data", False):
+                override = self.create_override(model_attr)
+                override.alters_data = True  # type: ignore
 
-    model_class.objects = (
-        model_class.objects.create_read_only_copy()
-        if allow_read
-        else model_class.objects.create_disabled_copy()
-    )
+                # We have to resort to monkey-patching here. Dynamically extending
+                # and replacing the model class is not an option, because that would
+                # trigger hooks in Django's ModelBase metaclass a second time.
+                setattr(model_class, model_attr_name, override)
 
-    # On the model (not manager) class itself, monkey-patch any methods that are
-    # tagged with the `alters_data` meta-attribute.
-    for model_attr_name in dir(model_class):
-        model_attr = getattr(model_class, model_attr_name)
-        if callable(model_attr) and getattr(model_attr, "alters_data", False):
-            override = ServerModeDataError.create_override(
-                f"{model_class.__name__}.{model_attr_name} is unavailable in this server mode"
-            )
-            setattr(model_class, model_attr_name, override)
-
-
-def available_on(
-    mode: ServerComponentMode,
-    read_only: ServerComponentMode | Iterable[ServerComponentMode] = (),
-) -> Callable[[type], type]:
-    """Decorate a model class that should be active only in one mode."""
-
-    read_only = [read_only] if isinstance(read_only, ServerComponentMode) else read_only
-
-    def decorator(decorated_class: Type[BaseModel]) -> Type[BaseModel]:
-        if not issubclass(decorated_class, BaseModel):
-            raise ValueError("`@available_on` must decorate a Model class")
-        assert isinstance(decorated_class.objects, BaseManager)
-
-        if not mode.is_active():
-            allow_read = any(m.is_active() for m in read_only)
-            _disallow_access(decorated_class, allow_read)
-
-        return decorated_class
-
-    return decorator
+        return model_class
