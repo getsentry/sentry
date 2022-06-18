@@ -242,7 +242,7 @@ def determine_eligible_recipients(
 
 
 def get_release_committers(project: Project, event: Event) -> Sequence[User]:
-    from sentry.api.serializers import Author, UserSerializerResponse, get_users_for_commits
+    from sentry.api.serializers import Author, get_users_for_commits
     from sentry.utils.committers import _get_commits
 
     # get_participants_for_release seems to be the method called when deployments happen
@@ -265,10 +265,7 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
 
     # commit_author_id : Author
     author_users: Mapping[str, Author] = get_users_for_commits(commits)
-    found_users: Sequence[UserSerializerResponse] = [
-        au for au in author_users.values() if au.get("id")
-    ]
-    return list(User.objects.filter(id__in=list({f["id"] for f in found_users if f.get("id")})))
+    return User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
 
 
 def get_send_to(
