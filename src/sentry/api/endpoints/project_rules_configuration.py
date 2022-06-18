@@ -21,7 +21,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         can_create_tickets = features.has(
             "organizations:integrations-ticket-rules", project.organization
         )
-        org_release_notifications = True or features.has(
+        org_release_notifications = features.has(
             "organizations:alert-release-notification-workflow", project.organization
         )
 

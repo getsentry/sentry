@@ -20,7 +20,7 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
 
             return context
 
-        has_active_release_condition = True or features.has(
+        has_active_release_condition = features.has(
             "organizations:alert-release-notification-workflow", organization
         )
 
