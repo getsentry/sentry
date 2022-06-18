@@ -47,7 +47,7 @@ class ActiveReleaseEventCondition(EventCondition):
 
         deploy_time = release_deploy_time(last_release, event.get_environment())
         if deploy_time:
-            return now_minus_1_hour.timestamp() <= deploy_time <= now
+            return bool(now_minus_1_hour.timestamp() <= deploy_time <= now)
 
         return False
 

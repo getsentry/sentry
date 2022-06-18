@@ -265,7 +265,9 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
 
     # commit_author_id : Author
     author_users: Mapping[str, Author] = get_users_for_commits(commits)
-    return User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
+    return list(
+        User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
+    )
 
 
 def get_send_to(
