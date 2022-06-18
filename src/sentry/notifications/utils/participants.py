@@ -5,7 +5,6 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry import features
-from sentry.api.serializers import Author, UserSerializerResponse, get_users_for_commits
 from sentry.models import (
     ActorTuple,
     Commit,
@@ -35,7 +34,6 @@ from sentry.notifications.types import (
 )
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
-from sentry.utils.committers import _get_commits
 
 if TYPE_CHECKING:
     from sentry.eventstore.models import Event
@@ -244,23 +242,33 @@ def determine_eligible_recipients(
 
 
 def get_release_committers(project: Project, event: Event) -> Sequence[User]:
+    from sentry.api.serializers import Author, UserSerializerResponse, get_users_for_commits
+    from sentry.utils.committers import _get_commits
+
     # get_participants_for_release seems to be the method called when deployments happen
     # supposedly, this logic should be fairly, close ...
     # why is get_participants_for_release so much more complex???
     if not project or not event:
         return []
 
-    last_release: Release = event.group.get_last_release()
+    last_release_version: str | None = event.group.get_last_release()
+    if not last_release_version:
+        return []
+
+    last_release: Release = Release.get(project, last_release_version)
+    if not last_release:
+        return []
+
     commits: Sequence[Commit] = _get_commits([last_release])
     if not commits:
         return []
 
     # commit_author_id : Author
-    author_users: Mapping[str, Author] = get_users_for_commits([c for c, _ in commits])
+    author_users: Mapping[str, Author] = get_users_for_commits(commits)
     found_users: Sequence[UserSerializerResponse] = [
-        au for au in author_users.values() if isinstance(au, UserSerializerResponse)
+        au for au in author_users.values() if au.get("id")
     ]
-    return list(User.objects.filter(id__in=list({f.id for f in found_users if f.id})))
+    return list(User.objects.filter(id__in=list({f["id"] for f in found_users if f.get("id")})))
 
 
 def get_send_to(
