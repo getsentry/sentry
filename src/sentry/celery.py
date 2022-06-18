@@ -1,6 +1,9 @@
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
+from itertools import chain
+
 import celery
 from django.conf import settings
+from django.db import models
 
 from sentry.utils import metrics
 
@@ -57,10 +60,71 @@ def patch_thread_ident():
 patch_thread_ident()
 
 
+LEGACY_PICKLE_TASKS = frozenset(
+    [
+        "sentry.tasks.process_buffer.process_incr",
+        "sentry.tasks.process_resource_change_bound",
+        "sentry.tasks.sentry_apps.send_alert_event",
+        "sentry.tasks.store.symbolicate_event",
+        "sentry.tasks.store.symbolicate_event_low_priority",
+        "sentry.tasks.update_code_owners_schema",
+    ]
+)
+
+
+def holds_bad_pickle_object(value, memo=None):
+    if memo is None:
+        memo = {}
+
+    value_id = id(value)
+    if value_id in memo:
+        return
+    memo[value_id] = value
+
+    if isinstance(value, (tuple, list)):
+        for item in value:
+            bad_object = holds_bad_pickle_object(item)
+            if bad_object is not None:
+                return bad_object
+    elif isinstance(value, dict):
+        for item in value.values():
+            bad_object = holds_bad_pickle_object(item)
+            if bad_object is not None:
+                return bad_object
+
+    if isinstance(value, models.Model):
+        return (
+            value,
+            "django database model is huge and can be stale. Load from database in task instead",
+        )
+    if type(value).__module__.startswith(("sentry.", "getsentry.")):
+        return value, "do not pickle custom classes"
+
+    return None
+
+
+def good_use_of_pickle_or_bad_use_of_pickle(task, args, kwargs):
+    argiter = chain(enumerate(args), kwargs.items())
+
+    for name, value in argiter:
+        bad = holds_bad_pickle_object(value)
+        if bad is not None:
+            bad_object, reason = bad
+            raise TypeError(
+                "Task %r was invoked with an object that we do not want "
+                "to pass via pickle (%r, reason is %s) in argument %s"
+                % (task, bad_object, reason, name)
+            )
+
+
 class SentryTask(Task):
     Request = "sentry.celery:SentryRequest"
 
     def apply_async(self, *args, **kwargs):
+        # Only these tasks are allowed to use pickle
+        if self.name not in LEGACY_PICKLE_TASKS:
+            good_use_of_pickle_or_bad_use_of_pickle(self, args, kwargs)
+
         with metrics.timer("jobs.delay", instance=self.name):
             return Task.apply_async(self, *args, **kwargs)
 
