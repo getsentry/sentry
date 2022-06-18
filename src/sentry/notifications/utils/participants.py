@@ -244,6 +244,9 @@ def determine_eligible_recipients(
 
 
 def get_release_committers(project: Project, event: Event) -> Sequence[User]:
+    # get_participants_for_release seems to be the method called when deployments happen
+    # supposedly, this logic should be fairly, close ...
+    # why is get_participants_for_release so much more complex???
     if not project or not event:
         return []
 
