@@ -165,66 +165,10 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
     notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
     template_path = "sentry/emails/active-release"
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
-        return get_send_to(
-            project=self.project,
-            target_type=self.target_type,
-            target_identifier=self.target_identifier,
-            event=self.event,
-        )
-
-    def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
-        return str(self.event.get_email_subject())
-
-    @property
-    def reference(self) -> Model | None:
-        return self.group
-
-    def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
-    ) -> MutableMapping[str, Any]:
-        timezone = pytz.timezone("UTC")
-
-        if isinstance(recipient, User):
-            user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
-            try:
-                timezone = pytz.timezone(user_tz)
-            except pytz.UnknownTimeZoneError:
-                pass
-        return {
-            **super().get_recipient_context(recipient, extra_context),
-            "timezone": timezone,
-        }
-
-    def get_context(self) -> MutableMapping[str, Any]:
-        environment = self.event.get_tag("environment")
-        enhanced_privacy = self.organization.flags.enhanced_privacy
-        rule_details = get_rules(self.rules, self.organization, self.project)
-        context = {
-            "project_label": self.project.get_full_name(),
-            "group": self.group,
-            "event": self.event,
-            "link": get_group_settings_link(self.group, environment, rule_details),
-            "rules": rule_details,
-            "has_integrations": has_integrations(self.organization, self.project),
-            "enhanced_privacy": enhanced_privacy,
-            "commits": get_commits(self.project, self.event),
-            "environment": environment,
-            "slack_link": get_integration_link(self.organization, "slack"),
-            "has_alert_integration": has_alert_integration(self.project),
-        }
-
-        # if the organization has enabled enhanced privacy controls we don't send
-        # data which may show PII or source code
-        if not enhanced_privacy:
-            context.update({"tags": self.event.tags, "interfaces": get_interface_list(self.event)})
-
-        return context
-
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
 
-        title_str = "Alert triggered"
+        title_str = "Active Release alert triggered"
 
         if self.rules:
             rule_url = build_rule_url(self.rules[0], self.group, self.project)
