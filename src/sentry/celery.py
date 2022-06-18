@@ -62,12 +62,16 @@ patch_thread_ident()
 
 LEGACY_PICKLE_TASKS = frozenset(
     [
+        # basic tasks
         "sentry.tasks.process_buffer.process_incr",
         "sentry.tasks.process_resource_change_bound",
         "sentry.tasks.sentry_apps.send_alert_event",
         "sentry.tasks.store.symbolicate_event",
         "sentry.tasks.store.symbolicate_event_low_priority",
         "sentry.tasks.update_code_owners_schema",
+        # integrations
+        "sentry.integrations.slack.post_message",
+        "sentry.integrations.slack.link_users_identities",
     ]
 )
 
