@@ -77,6 +77,7 @@ class AllTeamsRow extends Component<Props, State> {
         team: `#${team.slug}`,
       }),
     });
+
     this.reloadProjects();
   };
 
