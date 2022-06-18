@@ -79,7 +79,9 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         backend = RedisBackend()
         digests.digest = backend.digest
         digests.enabled.return_value = True
-        timestamp = "2022-05-19T16:22:18"
+        timestamp_raw = before_now(days=1)
+        timestamp_secs = int(timestamp_raw.timestamp())
+        timestamp = iso_format(timestamp_raw)
         key = f"slack:p:{self.project.id}"
         rule = Rule.objects.create(project=self.project, label="my rule")
         event = self.store_event(
@@ -113,6 +115,6 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         attachments = json.loads(data["attachments"][0])
         assert (
             data["text"][0]
-            == f"<!date^1652977338^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"
+            == f"<!date^{timestamp_secs}^2 issues detected {{date_pretty}} in| Digest Report for> <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|{self.project.name}>"
         )
         assert len(attachments) == 2
