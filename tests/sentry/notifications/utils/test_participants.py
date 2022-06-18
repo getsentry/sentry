@@ -176,13 +176,7 @@ class GetSendToOwnersTest(TestCase):
         )
 
     def store_event(self, filename: str) -> Event:
-        evt = super().store_event(data=make_event_data(filename), project_id=self.project.id)
-        # rel = self.create_release(project=self.project, user=self.user)
-        # rel = Release.objects.create(
-        #     project_id=self.project_id,
-        #     group_id=self.id,
-
-        return evt
+        return super().store_event(data=make_event_data(filename), project_id=self.project.id)
 
     def setUp(self):
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
