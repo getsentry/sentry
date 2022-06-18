@@ -127,8 +127,12 @@ class SentryTask(Task):
     Request = "sentry.celery:SentryRequest"
 
     def apply_async(self, *args, **kwargs):
-        # Only these tasks are allowed to use pickle
-        if self.name not in LEGACY_PICKLE_TASKS:
+        # If intended detect bad uses of pickle and make the tasks fail in tests.  This should
+        # in theory pick up a lot of bad uses without accidentally failing tasks in prod.
+        if (
+            settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
+            and self.name not in LEGACY_PICKLE_TASKS
+        ):
             good_use_of_pickle_or_bad_use_of_pickle(self, args, kwargs)
 
         with metrics.timer("jobs.delay", instance=self.name):
