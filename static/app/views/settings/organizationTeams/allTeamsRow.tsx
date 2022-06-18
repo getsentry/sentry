@@ -2,6 +2,7 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import TeamActions from 'sentry/actions/teamActions';
 import {Client} from 'sentry/api';
@@ -33,6 +34,14 @@ class AllTeamsRow extends Component<Props, State> {
     error: false,
   };
 
+  reloadProjects() {
+    const {organization} = this.props;
+    // After a change in teams has happened, refresh the project store
+    fetchOrganizationDetails(organization.slug, {
+      loadProjects: true,
+    });
+  }
+
   handleRequestAccess = () => {
     const {team} = this.props;
 
@@ -57,10 +66,10 @@ class AllTeamsRow extends Component<Props, State> {
     }
   };
 
-  handleJoinTeam = () => {
+  handleJoinTeam = async () => {
     const {team} = this.props;
 
-    this.joinTeam({
+    await this.joinTeam({
       successMessage: tct('You have joined [team]', {
         team: `#${team.slug}`,
       }),
@@ -68,6 +77,7 @@ class AllTeamsRow extends Component<Props, State> {
         team: `#${team.slug}`,
       }),
     });
+    this.reloadProjects();
   };
 
   joinTeam = ({
@@ -136,6 +146,9 @@ class AllTeamsRow extends Component<Props, State> {
               team: `#${team.slug}`,
             })
           );
+
+          // Reload ProjectsStore
+          this.reloadProjects();
         },
         error: () => {
           this.setState({
