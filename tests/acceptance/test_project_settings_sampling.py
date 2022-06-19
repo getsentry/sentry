@@ -1,4 +1,5 @@
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 
 from sentry.testutils import AcceptanceTestCase
 
@@ -166,8 +167,52 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')
 
-    # TODO
-    # def test_add_rule_with_invalid_custom_tag(self):
+    def test_edit_rule_with_valid_custom_tag(self):
+        with self.feature(FEATURE_NAME):
+            self.wait_until_loaded()
 
-    # TODO
-    # def test_add_rule_with_valid_custom_tag(self):
+            # Open the edit modal
+            self.browser.elements('[aria-label="Edit Rule"]')[0].click()
+
+            # Update the form
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
+                Keys.BACKSPACE
+            )
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
+                "dev", Keys.ENTER
+            )
+            self.browser.element('[placeholder="%"]').send_keys(Keys.BACKSPACE, Keys.BACKSPACE, "5")
+
+            # Save rule
+            self.browser.element('[aria-label="Save Rule"]').click()
+
+            # Wait the success message to show up
+            self.browser.wait_until('[data-test-id="toast-success"]')
+
+    def test_add_rule_with_valid_custom_tag(self):
+        with self.feature(FEATURE_NAME):
+            self.wait_until_loaded()
+
+            # Go to individual transactions tab
+            self.browser.elements('[role="tab"]')[1].click()
+
+            # Open the modal
+            self.browser.element('[aria-label="Add Rule"]').click()
+
+            # Fill out the form
+            self.browser.element('[aria-label="Add Condition"]').click()
+            self.browser.element('[aria-autocomplete="list"]').send_keys("Add cus", Keys.ENTER)
+            self.browser.element('[aria-label="Add Condition"]').click()
+            self.browser.element('[aria-label="Search or add a tag"]').send_keys(
+                "custom.tag", Keys.ENTER
+            )
+            self.browser.element('[aria-label="Search or add tag values"]').send_keys(
+                "value", Keys.ENTER
+            )
+            self.browser.element('[placeholder="%"]').send_keys("10")
+
+            # Save rule
+            self.browser.element('[aria-label="Save Rule"]').click()
+
+            # Wait the success message to show up
+            self.browser.wait_until('[data-test-id="toast-success"]')
