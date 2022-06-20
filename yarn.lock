@@ -2904,10 +2904,10 @@
     "@react-types/overlays" "^3.5.1"
     "@react-types/shared" "^3.8.0"
 
-"@sentry-internal/global-search@^0.2.2":
-  version "0.2.2"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.2.2.tgz#4f57c2cf251df882b432e689ab029af1210095e0"
-  integrity sha512-BJUSPXA/MOx8WnfAa7AOfXInNl9Mu6OGz1V8TV9QkMRJZ6yMpV9RTBDaOdi77wS6aAt7rPFidw74KpKwex8ALw==
+"@sentry-internal/global-search@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.3.0.tgz#f0fda5ae9b19cf96a979dddbd0573dc894950c63"
+  integrity sha512-lu2yTNhGsCx5gJ3JS8wWY3m4Yz8ng/Lrd6qI+AKsCYpamESv+5xZgRVPpG56IfcGa/k92T3ukZCQMCzGz8X5+w==
   dependencies:
     "@types/dompurify" "^2.0.4"
     "@types/react" ">=16"
@@ -15094,10 +15094,10 @@ typescript-template-language-service-decorator@^2.2.0:
   resolved "https://registry.yarnpkg.com/typescript-template-language-service-decorator/-/typescript-template-language-service-decorator-2.2.0.tgz#4ee6d580f307fb9239978e69626f2775b8a59b2a"
   integrity sha512-xiolqt1i7e22rpqMaprPgSFVgU64u3b9n6EJlAaUYE61jumipKAdI1+O5khPlWslpTUj80YzjUKjJ2jxT0D74w==
 
-typescript@^4.6.4:
-  version "4.6.4"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.6.4.tgz#caa78bbc3a59e6a5c510d35703f6a09877ce45e9"
-  integrity sha512-9ia/jWHIEbo49HfjrLGfKbZSuWo9iTMwXO+Ca3pRsSpbsMbc7/IU8NKdCZVRRBafVPGnoJeFL76ZOAA84I9fEg==
+typescript@^4.7.4:
+  version "4.7.4"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.7.4.tgz#1a88596d1cf47d59507a1bcdfb5b9dfe4d488235"
+  integrity sha512-C0WQT0gezHuw6AdY1M2jxUO83Rjf0HP7Sk1DtXj6j1EwkQNZrHAg2XPWlq62oqEhYvONq5pkC2Y9oPljWToLmQ==
 
 u2f-api@1.0.10:
   version "1.0.10"

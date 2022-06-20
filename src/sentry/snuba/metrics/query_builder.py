@@ -129,8 +129,17 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             # converts it into a tags[project]:[<slug>] query, so we want to further process
             # the lhs to get to its translation of `project_id` but we don't go further resolve
             # rhs and we just want to extract the project ids from the slugs
-            rhs = [p.id for p in Project.objects.filter(slug__in=input_.rhs)]
-            return Condition(lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=rhs)
+            rhs_slugs = [input_.rhs] if isinstance(input_.rhs, str) else input_.rhs
+
+            try:
+                op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[
+                    input_.op
+                ]
+            except KeyError:
+                raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
+
+            rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
+            return Condition(lhs=resolve_tags(org_id, input_.lhs), op=op, rhs=rhs_ids)
         return Condition(
             lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
         )
