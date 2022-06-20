@@ -215,8 +215,9 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
             # Redis sharding key through the prefix`. This is currently an
             # arbitrary limitation, but the reason for this is that one day we
             # may want to rewrite the internals to run inside of a Lua script
-            # to allow for atomic check-and-use of rate limits, in which case
-            # the rate limiter would have to take control of sharding itself.
+            # to allow for (partially) atomic check-and-use of rate limits (or
+            # do that for performance reasons), in which case the rate limiter
+            # would have to take control of sharding itself.
             raise ValueError("Explicit sharding not allowed in RequestedQuota.prefix")
 
         return f"sliding-window-rate-limit:{prefix}:{window}:{granularity}:{granule}"
