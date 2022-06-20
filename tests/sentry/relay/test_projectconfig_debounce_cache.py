@@ -11,7 +11,7 @@ def test_key_lifecycle():
     }
 
     assert not cache.is_debounced(**kwargs)
-    cache.debounced(**kwargs)
+    cache.debounce(**kwargs)
 
     assert cache.is_debounced(**kwargs)
 
