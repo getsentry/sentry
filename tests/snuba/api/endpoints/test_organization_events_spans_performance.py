@@ -528,10 +528,6 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         }
 
     def test_sort_default(self):
-        # TODO: remove this and the @pytest.skip once the config
-        # is no longer necessary as this can add ~10s to the test
-        self.update_snuba_config_ensure({"write_span_columns_projects": f"[{self.project.id}]"})
-
         event = self.create_event()
 
         with self.feature(self.FEATURES):
