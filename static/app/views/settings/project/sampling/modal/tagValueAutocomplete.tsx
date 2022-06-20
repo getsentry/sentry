@@ -126,7 +126,7 @@ function TagValueAutocomplete({
         // https://github.com/getsentry/relay/blob/d8223d8d03ed4764063855eb3480f22684163d92/relay-general/src/store/normalize.rs#L230-L236
         // In addition to that, it cannot contain a line-feed (newline) character
         // https://github.com/getsentry/relay/blob/d8223d8d03ed4764063855eb3480f22684163d92/relay-general/src/protocol/tags.rs#L8
-        return !newOption.includes('\n') && newOption.length <= 200;
+        return !/\\n/.test(newOption) && newOption.length <= 200;
       }}
       placeholder={getMatchFieldPlaceholder(category)}
       inline={false}
