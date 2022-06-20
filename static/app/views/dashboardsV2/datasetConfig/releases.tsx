@@ -5,7 +5,13 @@ import {doMetricsRequest} from 'sentry/actionCreators/metrics';
 import {doSessionsRequest} from 'sentry/actionCreators/sessions';
 import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, SessionApiResponse, SessionField} from 'sentry/types';
+import {
+  MetricsApiResponse,
+  Organization,
+  PageFilters,
+  SessionApiResponse,
+  SessionField,
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -36,7 +42,7 @@ import {
   mapDerivedMetricsToFields,
 } from '../widgetCard/transformSessionsResponseToTable';
 
-import {ContextualProps, DatasetConfig, handleOrderByReset} from './base';
+import {DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -56,14 +62,16 @@ export const ReleasesConfig: DatasetConfig<
   getTableRequest: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string
-  ) => getReleasesRequest(0, 1, api, query, contextualProps, limit, cursor),
+  ) => getReleasesRequest(0, 1, api, query, organization, pageFilters, limit, cursor),
   getSeriesRequest: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string
   ) => {
@@ -73,7 +81,8 @@ export const ReleasesConfig: DatasetConfig<
       includeTotals,
       api,
       query,
-      contextualProps,
+      organization,
+      pageFilters,
       limit,
       cursor
     );
@@ -128,7 +137,7 @@ function handleColumnFieldChangeOverride(widgetQuery: WidgetQuery): WidgetQuery 
   return widgetQuery;
 }
 
-function getReleasesTableFieldOptions() {
+function getReleasesTableFieldOptions(_organization: Organization) {
   return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
 }
 
@@ -252,11 +261,12 @@ function getReleasesRequest(
   includeTotals: number,
   api: Client,
   query: WidgetQuery,
-  contextualProps?: ContextualProps,
+  organization: Organization,
+  pageFilters: PageFilters,
   limit?: number,
   cursor?: string
 ) {
-  const {environments, projects, datetime} = contextualProps!.pageFilters!;
+  const {environments, projects, datetime} = pageFilters;
   const {start, end, period} = datetime;
 
   // Only time we need to use sessions API is when session.status is requested
@@ -318,7 +328,7 @@ function getReleasesRequest(
     );
     requestData = {
       field: sessionAggregates,
-      orgSlug: contextualProps?.organization?.slug,
+      orgSlug: organization.slug,
       end,
       environment: environments,
       groupBy: columns,
@@ -336,7 +346,7 @@ function getReleasesRequest(
   } else {
     requestData = {
       field: aggregates.map(fieldsToDerivedMetrics),
-      orgSlug: contextualProps?.organization?.slug,
+      orgSlug: organization.slug,
       end,
       environment: environments,
       groupBy: columns.map(fieldsToDerivedMetrics),
