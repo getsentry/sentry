@@ -129,6 +129,15 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
             raise InvalidConfiguration(str(e))
 
     def _build_redis_key_raw(self, prefix: str, window: int, granularity: int, granule: int) -> str:
+        if "{" in prefix or "}" in prefix:
+            # The rate limiter currently does not allow you to control the
+            # Redis sharding key through the prefix`. This is currently an
+            # arbitrary limitation, but the reason for this is that one day we
+            # may want to rewrite the internals to run inside of a Lua script
+            # to allow for atomic check-and-use of rate limits, in which case
+            # the rate limiter would have to take control of sharding itself.
+            raise ValueError("Explicit sharding not allowed in RequestedQuota.prefix")
+
         return f"sliding-window-rate-limit:{prefix}:{window}:{granularity}:{granule}"
 
     def _build_redis_key(self, request: RequestedQuota, quota: Quota, granule: int) -> str:
