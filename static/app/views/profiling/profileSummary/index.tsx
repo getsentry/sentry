@@ -43,7 +43,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   });
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.transaction_summary', {
+    trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
       organization,
     });
   }, [organization]);
