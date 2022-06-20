@@ -343,6 +343,9 @@ function getEventsSeriesRequest(
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
     };
+    if (widgetQuery.orderby) {
+      requestData.orderby = widgetQuery.orderby;
+    }
   } else {
     requestData = {
       organization,
