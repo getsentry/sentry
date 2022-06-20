@@ -153,7 +153,7 @@ class FeatureManager(RegisteredFeatureManager):
         """
         if entity_feature:
             if name.startswith("users:"):
-                raise Exception("User flags not allowed with entity_feature=True")
+                raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
         self._feature_registry[name] = cls
 

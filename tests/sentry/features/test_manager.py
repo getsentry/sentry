@@ -235,5 +235,7 @@ class FeatureManagerTest(TestCase):
         other_user = self.create_user(name="neo")
         assert manager.has("users:feature", steve, actor=steve)
         assert not manager.has("users:feature", other_user, actor=steve)
-        with self.assertRaisesMessage(Exception, "User flags not allowed with entity_feature=True"):
+        with self.assertRaisesMessage(
+            NotImplementedError, "User flags not allowed with entity_feature=True"
+        ):
             manager.add("users:feature-2", features.UserFeature, True)
