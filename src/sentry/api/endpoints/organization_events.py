@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
@@ -8,6 +9,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
@@ -53,6 +55,7 @@ API_TOKEN_REFERRER = "api.auth-token.events"
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     """Deprecated in favour of OrganizationEventsEndpoint"""
 
+    @deprecated(datetime.fromisoformat("2022-07-21T00:00:00+00:00:00"), suggested_api="events")
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
