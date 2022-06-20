@@ -89,11 +89,6 @@ if settings.DEBUG:
     ]
 
 urlpatterns += [
-    url(
-        r"^api/(?P<project_id>[\w_-]+)/crossdomain\.xml$",
-        api.crossdomain_xml,
-        name="sentry-api-crossdomain-xml",
-    ),
     # Frontend client config
     url(r"^api/client-config/?$", api.ClientConfigView.as_view(), name="sentry-api-client-config"),
     # We do not want to have webpack assets served under a versioned URL, as these assets have
@@ -612,8 +607,6 @@ urlpatterns += [
     # since this gets stored in session as the last viewed page.
     # See: https://github.com/getsentry/sentry/issues/2195
     url(r"favicon\.ico$", lambda r: HttpResponse(status=404)),
-    # crossdomain.xml
-    url(r"^crossdomain\.xml$", lambda r: HttpResponse(status=404)),
     # plugins
     # XXX(dcramer): preferably we'd be able to use 'integrations' as the URL
     # prefix here, but unfortunately sentry.io has that mapped to marketing
