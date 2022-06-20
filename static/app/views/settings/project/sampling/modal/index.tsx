@@ -425,6 +425,7 @@ export function SamplingRuleModal({
                 placement="bottom right"
                 triggerProps={{
                   size: 'small',
+                  'aria-label': t('Add Condition'),
                 }}
                 triggerLabel={
                   <TriggerLabel>
