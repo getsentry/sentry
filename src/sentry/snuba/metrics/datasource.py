@@ -659,7 +659,7 @@ def get_series(
                         request, use_cache=False, referrer=f"api.metrics.{key}.second_query"
                     )
                     snuba_result_data = snuba_result["data"]
-                    # snuba_result_data = snuba_result["data"]
+                    meta.extend(snuba_result["meta"])
                     # Since we removed the orderBy from all subsequent queries,
                     # we need to sort the results manually. This is required for
                     # the paginator, since it always queries one additional row
@@ -669,7 +669,6 @@ def get_series(
                             snuba_result_data, group_limit_filters
                         )
                     results[entity][key] = {"data": snuba_result_data}
-                    meta.extend(snuba_result["meta"])
     else:
         snuba_queries, fields_in_entities = SnubaQueryBuilder(
             projects, metrics_query
@@ -691,6 +690,7 @@ def get_series(
                     referrer=f"api.metrics.{key}",
                 )
                 snuba_result_data = snuba_result["data"]
+                meta.extend(snuba_result["meta"])
 
                 snuba_limit = snuba_query.limit.limit if snuba_query.limit else None
                 if (
@@ -707,7 +707,6 @@ def get_series(
                         _prune_extra_groups(results, group_limit_filters)
 
                 results[entity][key] = {"data": snuba_result_data}
-                meta.extend(snuba_result["meta"])
 
     assert projects
     converter = SnubaResultConverter(
@@ -723,15 +722,10 @@ def get_series(
     if len(result_groups) > metrics_query.limit.limit:
         result_groups = result_groups[0 : metrics_query.limit.limit]
 
-    # Translate result meta
-    result_meta = []
-    if include_meta:
-        result_meta = translate_meta_results(meta)
-
     return {
         "start": metrics_query.start,
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": result_meta,
+        "meta": translate_meta_results(meta) if include_meta else [],
     }

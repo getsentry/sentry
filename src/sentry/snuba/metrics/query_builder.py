@@ -32,8 +32,11 @@ from sentry.snuba.metrics.fields.base import (
     generate_bottom_up_dependency_tree_for_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
-from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX
+from sentry.snuba.metrics.naming_layer.mapping import (
+    get_mri,
+    get_operation_with_public_name,
+    parse_expression,
+)
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
@@ -212,7 +215,6 @@ class QueryDefinition:
         self.histogram_to = float(histogram_to) if histogram_to is not None else None
         self.include_series = query_params.get("includeSeries", "1") == "1"
         self.include_totals = query_params.get("includeTotals", "1") == "1"
-        self.include_meta = query_params.get("includeMeta", "1") == "1"
 
     def to_metrics_query(self) -> MetricsQuery:
         return MetricsQuery(
@@ -297,20 +299,6 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     return start, end, interval
 
 
-def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> str:
-    if operation is None:
-        return get_public_name_from_mri(metric_mri)
-    return f"{operation}({get_public_name_from_mri(metric_mri)})"
-
-
-def parse_operation_and_metric_mri(name: str) -> Tuple[Optional[str], str]:
-    matches = MRI_EXPRESSION_REGEX.match(name)
-    if matches:
-        # operation, metric_mri
-        return matches[1], matches[2]
-    return None, name
-
-
 def parse_tag(tag_string: str) -> str:
     tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
     return reverse_resolve(tag_key)
@@ -319,26 +307,29 @@ def parse_tag(tag_string: str) -> str:
 def translate_meta_results(meta):
     """
     Translate meta results:
-    it makes all merics are public and resolve tag names
+    it makes all metrics are public and resolve tag names
     E.g.:
     p50(d:transactions/measurements.lcp@millisecond) -> p50(transaction.measurements.lcp)
     tags[9223372036854776020] -> transaction
     """
-    result = []
+    results = []
     for record in meta:
-        operation, metric_mri = parse_operation_and_metric_mri(record["name"])
-        try:
-            record["name"] = get_operation_with_public_name(operation, metric_mri)
-        except InvalidParams:
-            pass
-        if metric_mri.startswith("tags["):
-            record["name"] = parse_tag(record["name"])
-            # since we changed value from int to str we need
-            # also want to change type
-            record["type"] = "string"
-        if record not in result:
-            result.append(record)
-    return result
+        operation, column_name = parse_expression(record["name"])
+        # Column name could be either a mri, ["bucketed_time"] or a tag
+        if operation is None:
+            if column_name.startswith("tags["):
+                record["name"] = parse_tag(record["name"])
+                # since we changed value from int to str we need
+                # also want to change type
+                record["type"] = "string"
+            elif column_name in [TS_COL_GROUP]:
+                record["name"] = column_name
+        else:
+            record["name"] = get_operation_with_public_name(operation, column_name)
+
+        if record not in results:
+            results.append(record)
+    return sorted(results, key=lambda elem: elem["name"])
 
 
 class SnubaQueryBuilder:
@@ -683,7 +674,7 @@ class SnubaResultConverter:
             series = group.get("series")
 
             for key in set(totals or ()) | set(series or ()):
-                operation, metric_mri = parse_operation_and_metric_mri(key)
+                operation, metric_mri = parse_expression(key)
                 if (operation, metric_mri) not in self._metrics_query_fields_set:
                     if totals is not None:
                         del totals[key]

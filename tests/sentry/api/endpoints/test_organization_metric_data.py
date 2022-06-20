@@ -120,24 +120,18 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
         )
         assert response.data.keys() == {"start", "end", "query", "intervals", "groups", "meta"}
 
-    def test_valid_filter_include_meta(self):
+    def test_validate_include_meta_not_enabled_by_default(self):
         self.create_release(version="foo", project=self.project)
         for tag in ("release", "environment"):
             indexer.record(self.project.organization_id, tag)
-        query = "release:latest"
         response = self.get_success_response(
             self.project.organization.slug,
             project=self.project.id,
             field="sum(sentry.sessions.session)",
             groupBy="environment",
-            includeMeta="1",
-            query=query,
+            query="",
         )
-        assert response.data["meta"] == [
-            {"name": "environment", "type": "string"},
-            {"name": "sum(sentry.sessions.session)", "type": "Float64"},
-            {"name": "bucketed_time", "type": "DateTime('Universal')"},
-        ]
+        assert response.data["meta"] == []
 
     def test_orderby_unknown(self):
         response = self.get_response(
