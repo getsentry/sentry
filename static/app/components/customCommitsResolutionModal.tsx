@@ -13,7 +13,6 @@ type Props = ModalRenderProps & {
   onSelected: ({inCommit: string}) => void;
   orgSlug: string;
   projectSlug?: string;
-  version?: string;
 };
 
 type State = {

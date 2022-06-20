@@ -46,14 +46,10 @@ class ResolveActions extends Component<Props> {
   static defaultProps = defaultProps;
 
   handleCommitResolution(statusDetails: ResolutionStatusDetails) {
-    const {organization, onUpdate} = this.props;
+    const {onUpdate} = this.props;
     onUpdate({
       status: ResolutionStatus.RESOLVED,
       statusDetails,
-    });
-    trackAdvancedAnalyticsEvent('resolve_issue', {
-      organization,
-      release: 'anotherExisting',
     });
   }
 
