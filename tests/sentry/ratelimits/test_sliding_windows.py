@@ -13,6 +13,9 @@ def limiter():
     return RedisSlidingWindowRateLimiter()
 
 
+TIMESTAMP_OFFSET = 100
+
+
 def test_empty_quota(limiter):
     resp = limiter.check_and_use_quotas(
         [
@@ -43,24 +46,27 @@ def test_basic(limiter):
 
     for timestamp in range(10):
         resp = limiter.check_and_use_quotas(
-            [RequestedQuota(prefix="foo", requested=1, quotas=quotas)], timestamp=timestamp
+            [RequestedQuota(prefix="foo", requested=1, quotas=quotas)],
+            timestamp=TIMESTAMP_OFFSET + timestamp,
         )
         assert resp == [GrantedQuota(prefix="foo", granted=1)]
 
     resp = limiter.check_and_use_quotas(
-        [RequestedQuota(prefix="foo", requested=1, quotas=quotas)], timestamp=9
+        [RequestedQuota(prefix="foo", requested=1, quotas=quotas)], timestamp=TIMESTAMP_OFFSET + 9
     )
     assert resp == [GrantedQuota(prefix="foo", granted=0)]
 
     for timestamp in range(10, 20):
         resp = limiter.check_and_use_quotas(
-            [RequestedQuota(prefix="foo", requested=1, quotas=quotas)], timestamp=timestamp
+            [RequestedQuota(prefix="foo", requested=1, quotas=quotas)],
+            timestamp=TIMESTAMP_OFFSET + timestamp,
         )
 
         assert resp == [GrantedQuota(prefix="foo", granted=1)]
 
         resp = limiter.check_and_use_quotas(
-            [RequestedQuota(prefix="foo", requested=1, quotas=quotas)], timestamp=timestamp
+            [RequestedQuota(prefix="foo", requested=1, quotas=quotas)],
+            timestamp=TIMESTAMP_OFFSET + timestamp,
         )
 
         assert resp == [GrantedQuota(prefix="foo", granted=0)]
@@ -73,25 +79,25 @@ def test_multiple_windows(limiter):
     ]
 
     resp = limiter.check_and_use_quotas(
-        [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=0
+        [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=TIMESTAMP_OFFSET
     )
 
     assert resp == [GrantedQuota(prefix="foo", granted=5)]
 
     resp = limiter.check_and_use_quotas(
-        [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=0
+        [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=TIMESTAMP_OFFSET
     )
 
     assert resp == [GrantedQuota(prefix="foo", granted=0)]
 
     resp = limiter.check_and_use_quotas(
-        [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=2
+        [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=TIMESTAMP_OFFSET + 2
     )
 
     assert resp == [GrantedQuota(prefix="foo", granted=0)]
 
     resp = limiter.check_and_use_quotas(
-        [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=6
+        [RequestedQuota(prefix="foo", requested=6, quotas=quotas)], timestamp=TIMESTAMP_OFFSET + 6
     )
 
     assert resp == [GrantedQuota(prefix="foo", granted=5)]

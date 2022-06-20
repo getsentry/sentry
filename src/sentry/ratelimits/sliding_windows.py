@@ -10,6 +10,60 @@ Additionally this rate-limiter is not coupled to per-project/organization
 scopes, and can apply multiple sliding windows at once. On the flipside it is
 not strongly consistent and depending on usage it is very easy to over-spend
 quota, as checking quota and spending quota are two separate steps.
+
+Example
+=======
+
+We want to enforce the number of requests per organization both per-hour
+(100/hour) and per-minute (10/minute). On every request, our API endpoint
+calls:
+
+    check_and_use_quotas(RequestedQuota(
+        prefix=f"org-id:{org_id}"
+        quotas=[
+            Quota(
+                window_seconds=3600,
+                limit=100,
+
+                # can be arbitrary depending on how "sliding" the sliding
+                # window should be. This one configures per-second granularity
+                # to make the example simpler
+                granularity=1,
+            ),
+            Quota(
+                window_seconds=60,
+                limit=10,
+                granularity=10,
+            )
+        ]
+    ))
+
+For a request happening at time `900` for `org_id=123`, the redis backend
+checks the following keys::
+
+    sliding-window-rate-limit:123:60:900
+    sliding-window-rate-limit:123:60:899
+    sliding-window-rate-limit:123:60:898
+    ...
+
+    sliding-window-rate-limit:123:3600:90
+    sliding-window-rate-limit:123:3600:89
+    sliding-window-rate-limit:123:3600:88
+    ...
+
+...none of which exist, so the values are assumed 0 and the request goes
+through. It then sets the following keys:
+
+    sliding-window-rate-limit:123:3600:90 += 1
+    sliding-window-rate-limit:123:60:900 += 1
+
+After one minute, another request for the same org happens at time `902`, and
+the keys change as follows:
+
+    sliding-window-rate-limit:123:60:900 = 1
+    sliding-window-rate-limit:123:60:902 = 1
+    sliding-window-rate-limit:123:3600:90 = 2
+
 """
 
 from dataclasses import dataclass
@@ -68,7 +122,7 @@ class Quota:
 
         for granule_i in range(self.window_seconds // self.granularity_seconds):
             value -= 1
-            assert value >= 0
+            assert value >= 0, value
             yield value
 
 
@@ -240,6 +294,9 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
 
         keys_to_fetch = []
         for request in requests:
+            # We could potentially run this check inside of __post__init__ of
+            # RequestedQuota, but the list is actually mutable after
+            # construction.
             assert request.quotas
 
             for quota in request.quotas:
@@ -253,7 +310,17 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         results = []
 
         for request in requests:
+            # We start out with assuming the entire request can be granted in
+            # its entirety.
             granted_quota = request.requested
+
+            # A request succeeds (partially) if it fits (partially) into all
+            # quotas. For each quota, we calculate how much quota has been used
+            # up, and trim the granted_quota by the remaining quota.
+            #
+            # We need to explicitly handle the possibility that quotas have
+            # been overused, in those cases we want to truncate resulting
+            # negative "grants" to zero.
             for quota in request.quotas:
                 used_quota = sum(
                     int(
