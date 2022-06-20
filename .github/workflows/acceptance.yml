@@ -332,6 +332,9 @@ jobs:
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true'
         with:
+          # base-branch: 'master'
+          # XXX: Test against itself
+          base-branch: 'armenzg/ci/acceptance-split-up'
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
