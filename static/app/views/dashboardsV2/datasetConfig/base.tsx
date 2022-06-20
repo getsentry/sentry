@@ -81,7 +81,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
-    referrer?: string
+    referrer?: string,
+    numSeries?: number
   ) => ReturnType<Client['requestPromise']>;
   /**
    * Generate the request promises for fetching

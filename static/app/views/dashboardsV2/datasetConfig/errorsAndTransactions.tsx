@@ -312,7 +312,9 @@ function getEventsSeriesRequest(
   organization: Organization,
   pageFilters: PageFilters,
   limit?: number,
-  referrer?: string
+  _cursor?: string,
+  referrer?: string,
+  numSeries?: number
 ) {
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
@@ -371,8 +373,8 @@ function getEventsSeriesRequest(
 
       // The "Other" series is only included when there is one
       // y-axis and one widgetQuery
-      // TODO: Figure out the condition: widget.queries.length !== 1
-      requestData.excludeOther = widgetQuery.aggregates.length !== 1;
+      requestData.excludeOther =
+        (numSeries ?? 1) > 1 || widgetQuery.aggregates.length !== 1;
 
       if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
         const nextEquationIndex = getNumEquations(widgetQuery.aggregates);

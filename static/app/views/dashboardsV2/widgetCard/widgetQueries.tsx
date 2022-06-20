@@ -350,7 +350,9 @@ class WidgetQueries extends Component<Props, State> {
             organization,
             selection,
             widget.limit,
-            `api.dashboards.widget.${displayType}-chart`
+            undefined,
+            `api.dashboards.widget.${displayType}-chart`,
+            widget.queries.length
           );
         })
       );
