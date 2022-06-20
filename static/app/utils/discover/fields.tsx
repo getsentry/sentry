@@ -277,7 +277,7 @@ export const AGGREGATIONS = {
         required: true,
       },
     ],
-    documentation: t('web vitals threshold counts'),
+    documentation: t('events matching vital thresholds'),
     outputType: 'number',
     isSortable: true,
     multiPlotType: 'area',
