@@ -224,6 +224,126 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             }
         ]
 
+    def test_filter_by_project_slug_negation(self):
+        p = self.create_project(name="sentry2")
+        p2 = self.create_project(name="sentry3")
+
+        for minute in range(2):
+            self.store_session(
+                self.build_session(
+                    project_id=self.project.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+        for minute in range(3):
+            self.store_session(
+                self.build_session(
+                    project_id=p.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+        for minute in range(5):
+            self.store_session(
+                self.build_session(
+                    project_id=p2.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+
+        response = self.get_response(
+            self.project.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            project=[p.id, p2.id, self.project.id],
+            query="!project:[sentry2,sentry3]",
+            interval="24h",
+            statsPeriod="24h",
+        )
+        assert response.status_code == 200
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"sum(sentry.sessions.session)": 2},
+                "series": {"sum(sentry.sessions.session)": [2]},
+            }
+        ]
+
+    def test_filter_by_single_project_slug(self):
+        p = self.create_project(name="sentry2")
+
+        for minute in range(2):
+            self.store_session(
+                self.build_session(
+                    project_id=self.project.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+        for minute in range(3):
+            self.store_session(
+                self.build_session(
+                    project_id=p.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+
+        response = self.get_response(
+            self.project.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            project=[p.id, self.project.id],
+            query="project:sentry2",
+            interval="24h",
+            statsPeriod="24h",
+        )
+        assert response.status_code == 200
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"sum(sentry.sessions.session)": 3},
+                "series": {"sum(sentry.sessions.session)": [3]},
+            }
+        ]
+
+    def test_filter_by_single_project_slug_negation(self):
+        p = self.create_project(name="sentry2")
+
+        for minute in range(2):
+            self.store_session(
+                self.build_session(
+                    project_id=self.project.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+        for minute in range(3):
+            self.store_session(
+                self.build_session(
+                    project_id=p.id,
+                    started=(time.time() // 60 - minute) * 60,
+                    status="ok",
+                )
+            )
+
+        response = self.get_response(
+            self.project.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            project=[p.id, self.project.id],
+            query="!project:sentry2",
+            interval="24h",
+            statsPeriod="24h",
+        )
+        assert response.status_code == 200
+        assert response.data["groups"] == [
+            {
+                "by": {},
+                "totals": {"sum(sentry.sessions.session)": 2},
+                "series": {"sum(sentry.sessions.session)": [2]},
+            }
+        ]
+
     def test_group_by_project(self):
         prj_foo = self.create_project(name="foo")
         prj_boo = self.create_project(name="boo")

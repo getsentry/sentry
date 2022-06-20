@@ -1,24 +1,25 @@
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 
-import {QuickAction} from './types';
-import {quickActions} from './utils';
+import {Shortcut} from './types';
 
 const SearchHotkeysListener = ({
-  runQuickAction,
+  visibleShortcuts,
+  runShortcut,
 }: {
-  runQuickAction: (action: QuickAction) => void;
+  runShortcut: (shortcut: Shortcut) => void;
+  visibleShortcuts: Shortcut[];
 }) => {
   useHotkeys(
-    quickActions
-      .filter(action => typeof action.hotkeys !== 'undefined')
-      .map(action => ({
-        match: action.hotkeys?.actual ?? [],
+    visibleShortcuts
+      .filter(shortcut => typeof shortcut.hotkeys !== 'undefined')
+      .map(shortcut => ({
+        match: shortcut.hotkeys?.actual ?? [],
         callback: e => {
           e.preventDefault();
-          runQuickAction(action);
+          runShortcut(shortcut);
         },
       })),
-    [runQuickAction]
+    [visibleShortcuts]
   );
 
   return null;

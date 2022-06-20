@@ -193,23 +193,27 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             raw_event = event.get_raw_data()
 
             exclusive_times = [
-                pytest.approx(50),
-                pytest.approx(0),
-                pytest.approx(200),
-                pytest.approx(0),
-                pytest.approx(200),
+                pytest.approx(50, rel=1e3),
+                pytest.approx(0, rel=1e3),
+                pytest.approx(200, rel=1e3),
+                pytest.approx(0, rel=1e3),
+                pytest.approx(200, rel=1e3),
             ]
-            assert raw_event["spans"] == [
-                dict(span, exclusive_time=exclusive_time, hash=hash_values([span["description"]]))
-                for span, exclusive_time in zip(event_data["spans"], exclusive_times)
-            ]
+            for actual, expected, exclusive_time in zip(
+                raw_event["spans"], event_data["spans"], exclusive_times
+            ):
+                assert actual == dict(
+                    expected,
+                    exclusive_time=exclusive_time,
+                    hash=hash_values([expected["description"]]),
+                )
             assert raw_event["breakdowns"] == {
                 "span_ops": {
-                    "ops.browser": {"unit": "millisecond", "value": pytest.approx(200)},
-                    "ops.resource": {"unit": "millisecond", "value": pytest.approx(200)},
-                    "ops.http": {"unit": "millisecond", "value": pytest.approx(200)},
-                    "ops.db": {"unit": "millisecond", "value": pytest.approx(200)},
-                    "total.time": {"unit": "millisecond", "value": pytest.approx(1050)},
+                    "ops.browser": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
+                    "ops.resource": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
+                    "ops.http": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
+                    "ops.db": {"unit": "millisecond", "value": pytest.approx(200, rel=1e3)},
+                    "total.time": {"unit": "millisecond", "value": pytest.approx(1050, rel=1e3)},
                 }
             }
 

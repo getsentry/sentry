@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -8,6 +8,7 @@ import {ProfileDragDropImportProps} from 'sentry/components/profiling/profileDra
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DeepPartial} from 'sentry/types/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   decodeFlamegraphStateFromQueryParams,
   FlamegraphState,
@@ -29,10 +30,16 @@ const LoadingGroup: ProfileGroup = {
   profiles: [Profile.Empty()],
 };
 
-function FlamegraphView(): React.ReactElement {
+function ProfileFlamegraph(): React.ReactElement {
   const location = useLocation();
   const organization = useOrganization();
   const [profileGroup, setProfileGroup] = useProfileGroup();
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
+      organization,
+    });
+  }, [organization]);
 
   const onImport: ProfileDragDropImportProps['onImport'] = profiles => {
     setProfileGroup({type: 'resolved', data: profiles});
@@ -100,4 +107,4 @@ const FlamegraphContainer = styled('div')`
   }
 `;
 
-export default FlamegraphView;
+export default ProfileFlamegraph;

@@ -332,11 +332,11 @@ const VitalsContainer = styled('div')`
   grid-template-columns: 1fr;
   grid-column-gap: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 `;
@@ -542,7 +542,7 @@ function getColorStopsFromPercents(percents: Percent[]) {
 const BarDetail = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
     justify-content: space-between;
   }

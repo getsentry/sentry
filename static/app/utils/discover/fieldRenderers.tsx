@@ -123,7 +123,7 @@ export const FIELD_FORMATTERS: FieldFormatters = {
       <Container>
         {data[field]
           ? getDynamicText({
-              value: <FieldDateTime date={data[field]} />,
+              value: <FieldDateTime date={data[field]} year seconds timeZone />,
               fixed: 'timestamp',
             })
           : emptyValue}
@@ -437,7 +437,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_hour']} format="lll z" />,
+          value: <FieldDateTime date={data['timestamp.to_hour']} year timeZone />,
           fixed: 'timestamp.to_hour',
         })}
       </Container>
@@ -448,7 +448,7 @@ const SPECIAL_FIELDS: SpecialFields = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly utc />,
+          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly year utc />,
           fixed: 'timestamp.to_day',
         })}
       </Container>

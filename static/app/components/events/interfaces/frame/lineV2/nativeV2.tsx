@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
-import {DisplayOption} from 'sentry/components/events/traceEventDataSection/displayOptions';
 import {t} from 'sentry/locale';
 import {DebugMetaActions} from 'sentry/stores/debugMetaStore';
 import space from 'sentry/styles/space';
@@ -137,8 +136,8 @@ function Native({
           <TogglableAddress
             address={instructionAddr}
             startingAddress={image ? image.image_addr : null}
-            isAbsolute={traceEventDataSectionContext.activeDisplayOptions.includes(
-              DisplayOption.ABSOLUTE_ADDRESSES
+            isAbsolute={traceEventDataSectionContext.display.includes(
+              'absolute-addresses'
             )}
             isFoundByStackScanning={isFoundByStackScanning}
             isInlineFrame={!!isInlineFrame}
@@ -148,11 +147,11 @@ function Native({
         )}
         <Symbol
           frame={frame}
-          showCompleteFunctionName={traceEventDataSectionContext.activeDisplayOptions.includes(
-            DisplayOption.VERBOSE_FUNCTION_NAMES
+          showCompleteFunctionName={traceEventDataSectionContext.display.includes(
+            'verbose-function-names'
           )}
-          absoluteFilePaths={traceEventDataSectionContext.activeDisplayOptions.includes(
-            DisplayOption.ABSOLUTE_FILE_PATHS
+          absoluteFilePaths={traceEventDataSectionContext.display.includes(
+            'absolute-file-paths'
           )}
           isHoverPreviewed={isHoverPreviewed}
           isUsedForGrouping={isUsedForGrouping}
@@ -176,7 +175,7 @@ const PackageInfo = styled('span')`
   grid-template-columns: auto 1fr;
   order: 2;
   align-items: flex-start;
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     order: 0;
   }
 `;
@@ -189,14 +188,14 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   align-items: center;
   justify-content: flex-start;
 
-  @media (min-width: ${props => props.theme.breakpoints[0]}) {
+  @media (min-width: ${props => props.theme.breakpoints.small}) {
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} minmax(117px, auto)
       1fr;
   }
 
-  @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
-      props.theme.breakpoints[3]}) {
+  @media (min-width: ${props => props.theme.breakpoints.large}) and (max-width: ${props =>
+      props.theme.breakpoints.xlarge}) {
     grid-template-columns:
       ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
       1fr;

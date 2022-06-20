@@ -12,6 +12,10 @@ class IssueDetailsPage(BasePage):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/")
         self.wait_until_loaded()
 
+    def visit_issue_activity(self, org, groupid):
+        self.browser.get(f"/organizations/{org}/issues/{groupid}/activity/")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+
     def visit_issue_in_environment(self, org, groupid, environment):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/?environment={environment}")
         self.browser.wait_until(".group-detail")

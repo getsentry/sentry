@@ -1668,16 +1668,16 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/profileSummary'))}
       />
       <Route
-        path="flamegraph/:projectId/:eventId"
+        path="profile/:projectId/:eventId"
         component={make(() => import('sentry/views/profiling/profileGroupProvider'))}
       >
         <Route
-          path="summary/"
-          component={make(() => import('sentry/views/profiling/flamegraphSummary'))}
+          path="details/"
+          component={make(() => import('sentry/views/profiling/profileDetails'))}
         />
         <Route
           path="flamegraph/"
-          component={make(() => import('sentry/views/profiling/flamegraph'))}
+          component={make(() => import('sentry/views/profiling/profileFlamegraph'))}
         />
       </Route>
     </Route>

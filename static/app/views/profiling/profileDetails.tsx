@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
@@ -14,10 +14,11 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
-import {generateFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {generateProfileFlamegraphRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
@@ -58,10 +59,16 @@ function collectTopProfileFrames(profile: Profile) {
 
 const RESULTS_PER_PAGE = 50;
 
-function FlamegraphSummary() {
+function ProfileDetails() {
   const location = useLocation();
   const [state] = useProfileGroup();
   const organization = useOrganization();
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
+      organization,
+    });
+  }, [organization]);
 
   const cursor = useMemo<number>(() => {
     const cursorQuery = decodeScalar(location.query.cursor, '');
@@ -144,7 +151,7 @@ function FlamegraphSummary() {
   return (
     <Fragment>
       <SentryDocumentTitle
-        title={t('Profiling \u2014 Function')}
+        title={t('Profiling \u2014 Details')}
         orgSlug={organization.slug}
       >
         <Layout.Body>
@@ -224,7 +231,7 @@ function ProfilingFunctionsTableCell({
       return (
         <Container>
           <Link
-            to={generateFlamegraphRouteWithQuery({
+            to={generateProfileFlamegraphRouteWithQuery({
               orgSlug: orgId,
               projectSlug: projectId,
               profileId: eventId,
@@ -295,4 +302,4 @@ const COLUMNS: Record<TableColumnKey, TableColumn> = {
   },
 };
 
-export default FlamegraphSummary;
+export default ProfileDetails;

@@ -279,7 +279,7 @@ const StyledHovercard = styled(Hovercard)<{state: 'loading' | 'empty' | 'done'}>
     }
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     display: none;
   }
 `;

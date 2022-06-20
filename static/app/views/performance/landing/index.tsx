@@ -145,9 +145,11 @@ export function PerformanceLanding(props: Props) {
     pageFilters = <SearchContainerWithFilter>{pageFilters}</SearchContainerWithFilter>;
   }
 
-  const SearchFilterContainer = organization.features.includes('performance-use-metrics')
-    ? SearchContainerWithFilterAndMetrics
-    : SearchContainerWithFilter;
+  const SearchFilterContainer =
+    organization.features.includes('performance-use-metrics') &&
+    !organization.features.includes('performance-transaction-name-only-search')
+      ? SearchContainerWithFilterAndMetrics
+      : SearchContainerWithFilter;
 
   return (
     <StyledPageContent data-test-id="performance-landing-v3">
@@ -245,7 +247,7 @@ export function PerformanceLanding(props: Props) {
                   <Feature
                     features={['organizations:performance-transaction-name-only-search']}
                   >
-                    {({hasFeature}) => hasFeature && <MetricsEventsDropdown />}
+                    {({hasFeature}) => !hasFeature && <MetricsEventsDropdown />}
                   </Feature>
                 </SearchFilterContainer>
                 {initiallyLoaded ? (
@@ -285,7 +287,7 @@ const SearchContainerWithFilter = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr;
   }
@@ -297,7 +299,7 @@ const SearchContainerWithFilterAndMetrics = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
     grid-template-columns: auto 1fr auto;
   }

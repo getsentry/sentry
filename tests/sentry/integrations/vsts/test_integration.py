@@ -326,7 +326,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
         # test validation
         data = {"sync_status_forward": {1: {"on_resolve": "", "on_unresolve": "UnresolvedStatus1"}}}
-        with self.assertRaises(IntegrationError):
+        with pytest.raises(IntegrationError):
             integration.update_organization_config(data)
 
         data = {
