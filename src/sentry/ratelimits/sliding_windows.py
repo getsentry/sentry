@@ -64,9 +64,9 @@ class Quota:
         * `request_timestamp / self.granularity_seconds - 2`
         * ...
         """
-        value = int(request_timestamp / self.granularity_seconds)
+        value = request_timestamp // self.granularity_seconds
 
-        for granule_i in range(int(self.window_seconds / self.granularity_seconds)):
+        for granule_i in range(self.window_seconds // self.granularity_seconds):
             value -= 1
             assert value >= 0
             yield value
