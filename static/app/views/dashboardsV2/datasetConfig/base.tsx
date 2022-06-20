@@ -17,11 +17,6 @@ import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
-export type ContextualProps = {
-  organization?: Organization;
-  pageFilters?: PageFilters;
-};
-
 export interface DatasetConfig<SeriesResponse, TableResponse> {
   // TODO: Type props
   WidgetQueries: (props) => JSX.Element;
@@ -35,7 +30,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Table display type.
    */
   getTableFieldOptions: (
-    contextualProps?: ContextualProps,
+    organization: Organization,
     tags?: TagCollection
   ) => Record<string, SelectValue<FieldValue>>;
   /**
@@ -49,7 +44,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   transformTable: (
     data: TableResponse,
     widgetQuery: WidgetQuery,
-    contextualProps?: ContextualProps
+    organization: Organization,
+    pageFilters: PageFilters
   ) => TableData;
   /**
    * Used for mapping column names to more desirable
@@ -73,7 +69,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getCustomFieldRenderer?: (
     field: string,
     meta: MetaType,
-    contextualProps?: ContextualProps
+    organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
    * Generate the request promises for fetching
@@ -82,7 +78,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getSeriesRequest?: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string
@@ -94,7 +91,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getTableRequest?: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string
@@ -106,7 +104,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   getWorldMapRequest?: (
     api: Client,
     query: WidgetQuery,
-    contextualProps?: ContextualProps,
+    organization: Organization,
+    pageFilters: PageFilters,
     limit?: number,
     cursor?: string,
     referrer?: string
@@ -128,7 +127,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   transformSeries?: (
     data: SeriesResponse,
     widgetQuery: WidgetQuery,
-    contextualProps?: ContextualProps
+    organization: Organization
   ) => Series[];
 }
 

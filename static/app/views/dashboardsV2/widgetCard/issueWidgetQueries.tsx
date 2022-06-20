@@ -112,18 +112,19 @@ class IssueWidgetQueries extends Component<Props, State> {
       const request = this.config.getTableRequest!(
         api,
         widget.queries[0],
-        {
-          organization,
-          pageFilters: selection,
-        },
+        organization,
+        selection,
         limit,
         cursor
       );
 
       const [data, _, resp] = await request;
-      const tableResults = this.config.transformTable(data, widget.queries[0], {
-        pageFilters: selection,
-      });
+      const tableResults = this.config.transformTable(
+        data,
+        widget.queries[0],
+        organization,
+        selection
+      );
       const totalCount = resp?.getResponseHeader('X-Hits') ?? null;
       const pageLinks = resp?.getResponseHeader('Link') ?? null;
       this.setState({
