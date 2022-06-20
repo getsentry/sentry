@@ -57,8 +57,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
-  // @ts-ignore TODO: properly add types
-  WidgetQueries,
+  WidgetQueries: props => <WidgetQueries {...props} />,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   getTableFieldOptions: getEventsTableFieldOptions,

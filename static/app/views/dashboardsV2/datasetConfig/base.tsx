@@ -3,23 +3,44 @@ import trimStart from 'lodash/trimStart';
 import {Client} from 'sentry/api';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import {
+  TableData,
+  TableDataRow,
+  TableDataWithTitle,
+} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {isEquation} from 'sentry/utils/discover/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, WidgetQuery, WidgetType} from '../types';
+import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
 import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
+export type WidgetQueriesProps = {
+  api: Client;
+  organization: Organization;
+  selection: PageFilters;
+  widget: Widget;
+  limit?: number;
+  onDataFetched?: (results: {
+    issuesResults?: TableDataRow[];
+    pageLinks?: string;
+    tableResults?: TableDataWithTitle[];
+    timeseriesResults?: Series[];
+    totalIssuesCount?: string;
+  }) => void;
+};
+
 export interface DatasetConfig<SeriesResponse, TableResponse> {
-  // TODO: Type props
-  WidgetQueries: (props) => JSX.Element;
+  /**
+   * The component that requests data from a dataset's API endpoints.
+   */
+  WidgetQueries: (props: any) => JSX.Element;
   /**
    * Default query to display when dataset is selected in the
    * Widget Builder.

@@ -58,8 +58,7 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
-  // @ts-ignore TODO: properly add types
-  WidgetQueries: ReleaseWidgetQueries,
+  WidgetQueries: props => <ReleaseWidgetQueries {...props} />,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequest: (
     api: Client,

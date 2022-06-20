@@ -42,8 +42,7 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
 };
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
-  // @ts-ignore TODO: properly add types
-  WidgetQueries: IssueWidgetQueries,
+  WidgetQueries: props => <IssueWidgetQueries {...props} />,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
