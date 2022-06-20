@@ -3,6 +3,7 @@ from unittest import mock
 
 import pytest
 import sentry_sdk
+from django.test.utils import override_settings
 from sentry_sdk import Hub, push_scope
 
 from sentry import eventstore
@@ -16,6 +17,7 @@ from sentry.utils.sdk import bind_organization_context, configure_sdk
 def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
     adjust_settings_for_relay_tests(settings)
     settings.SENTRY_ENDPOINT = relay_server["url"]
+    settings.SENTRY_PROJECT = 1
 
     configure_sdk()
 
@@ -33,9 +35,9 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
     return inner
 
 
+@override_settings(SENTRY_PROJECT=1)
 @pytest.mark.django_db
 def test_simple(settings, post_event_with_sdk):
-    settings.SENTRY_PROJECT = 1
     event = post_event_with_sdk({"message": "internal client test"})
 
     assert event
@@ -43,6 +45,7 @@ def test_simple(settings, post_event_with_sdk):
     assert event.data["logentry"]["formatted"] == "internal client test"
 
 
+@override_settings(SENTRY_PROJECT=1)
 @pytest.mark.django_db
 def test_recursion_breaker(settings, post_event_with_sdk):
     # If this test terminates at all then we avoided recursion.
@@ -60,9 +63,8 @@ def test_recursion_breaker(settings, post_event_with_sdk):
 
 
 @pytest.mark.django_db
+@override_settings(SENTRY_PROJECT=1)
 def test_encoding(settings, post_event_with_sdk):
-    settings.SENTRY_PROJECT = 1
-
     class NotJSONSerializable:
         pass
 
@@ -75,9 +77,9 @@ def test_encoding(settings, post_event_with_sdk):
     assert "NotJSONSerializable" in event.data["extra"]["request"]
 
 
+@override_settings(SENTRY_PROJECT=1)
 @pytest.mark.django_db
-def test_bind_organization_context(settings, default_organization):
-    settings.SENTRY_PROJECT = 1
+def test_bind_organization_context(default_organization):
 
     configure_sdk()
 
@@ -91,10 +93,9 @@ def test_bind_organization_context(settings, default_organization):
     }
 
 
+@override_settings(SENTRY_PROJECT=1)
 @pytest.mark.django_db
 def test_bind_organization_context_with_callback(settings, default_organization):
-    settings.SENTRY_PROJECT = 1
-
     configure_sdk()
 
     def add_context(scope, organization, **kwargs):
@@ -106,10 +107,9 @@ def test_bind_organization_context_with_callback(settings, default_organization)
     assert Hub.current.scope._tags["organization.test"] == "1"
 
 
+@override_settings(SENTRY_PROJECT=1)
 @pytest.mark.django_db
 def test_bind_organization_context_with_callback_error(settings, default_organization):
-    settings.SENTRY_PROJECT = 1
-
     configure_sdk()
 
     def add_context(scope, organization, **kwargs):
