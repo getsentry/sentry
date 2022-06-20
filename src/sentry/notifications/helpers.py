@@ -46,7 +46,7 @@ def _get_notification_setting_default(
     from sentry.models import User
 
     if isinstance(recipient, User) and features.has(
-        "users:notification-slack-automatic", None, actor=recipient
+        "users:notification-slack-automatic", recipient, actor=recipient
     ):
         return NOTIFICATION_SETTINGS_ALL_SOMETIMES[type]
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
