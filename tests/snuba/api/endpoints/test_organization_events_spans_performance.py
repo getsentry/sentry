@@ -1555,8 +1555,6 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             for x in ["d", "e", "f"]
         ]
 
-        # create two events
-        self.create_event(spans=spans)
         event = self.create_event(spans=spans)
 
         with self.feature(self.FEATURES):
@@ -1631,8 +1629,6 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             for x in ["d", "e", "f"]
         ]
 
-        # create two events
-        self.create_event(spans=spans)
         event = self.create_event(spans=spans)
 
         with self.feature(self.FEATURES):
@@ -1707,8 +1703,6 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
             for x in ["d", "e", "f"]
         ]
 
-        # create two events
-        self.create_event(spans=spans)
         event = self.create_event(spans=spans)
 
         with self.feature(self.FEATURES):
