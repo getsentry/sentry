@@ -504,7 +504,7 @@ function WidgetViewerModal(props: Props) {
   };
 
   const renderIssuesTable: IssueWidgetQueries['props']['children'] = ({
-    transformedResults,
+    tableResults,
     loading,
     pageLinks,
     totalCount,
@@ -517,7 +517,7 @@ function WidgetViewerModal(props: Props) {
       <Fragment>
         <GridEditable
           isLoading={loading}
-          data={transformedResults}
+          data={tableResults}
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
@@ -691,7 +691,7 @@ function WidgetViewerModal(props: Props) {
       case WidgetType.ISSUE:
         if (issuesData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderIssuesTable({
-            transformedResults: issuesData,
+            tableResults: issuesData,
             loading: false,
             errorMessage: undefined,
             pageLinks: defaultPageLinks,
