@@ -80,7 +80,7 @@ describe('IssueWidgetQueries', function () {
     await tick();
     expect(mockFunction).toHaveBeenCalledWith(
       expect.objectContaining({
-        transformedResults: [
+        tableResults: [
           expect.objectContaining({
             id: '1',
             title: 'Error: Failed',
