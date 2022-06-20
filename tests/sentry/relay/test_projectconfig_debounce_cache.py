@@ -10,7 +10,8 @@ def test_key_lifecycle():
         "organization_id": None,
     }
 
-    assert not cache.check_is_debounced(**kwargs)
+    assert not cache.is_debounced(**kwargs)
+    cache.debounced(**kwargs)
 
     assert cache.is_debounced(**kwargs)
 
