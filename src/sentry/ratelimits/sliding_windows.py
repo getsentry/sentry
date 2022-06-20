@@ -24,18 +24,18 @@ from sentry.utils.services import Service
 @dataclass(frozen=True)
 class Quota:
     # The number of seconds to apply the limit to.
-    window: int
+    window_seconds: int
 
-    # A number between 1 and `window`. Since `window` is a sliding window,
-    # configure what the granularity of that window is.
+    # A number between 1 and `window_seconds`. Since `window_seconds` is a
+    # sliding window, configure what the granularity of that window is.
     #
-    # If this is equal to `window`, the quota resets to 0 every `window`
-    # seconds. If this is a very small number, the window slides "more
-    # smoothly" at the expense of having much more redis keys.
+    # If this is equal to `window_seconds`, the quota resets to 0 every
+    # `window_seconds`.  If this is a very small number, the window slides
+    # "more smoothly" at the expense of having much more redis keys.
     #
-    # The number of redis keys required to enforce a quota is `window /
-    # granularity`.
-    granularity: int
+    # The number of redis keys required to enforce a quota is `window_seconds /
+    # granularity_seconds`.
+    granularity_seconds: int
 
     #: How many units are allowed within the given window.
     limit: int
@@ -46,9 +46,11 @@ class Quota:
     prefix_override: Optional[str] = None
 
     def iter_granules(self, request_timestamp: int) -> Iterator[int]:
-        assert self.window % self.granularity == 0
-        for granule_i in range(int(self.window / self.granularity)):
-            yield int(request_timestamp / self.granularity) - granule_i * self.granularity
+        assert self.window_seconds % self.granularity_seconds == 0
+        for granule_i in range(int(self.window_seconds / self.granularity_seconds)):
+            yield int(
+                request_timestamp / self.granularity_seconds
+            ) - granule_i * self.granularity_seconds
 
 
 @dataclass(frozen=True)
@@ -143,8 +145,8 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
     def _build_redis_key(self, request: RequestedQuota, quota: Quota, granule: int) -> str:
         return self._build_redis_key_raw(
             prefix=quota.prefix_override or request.prefix,
-            window=quota.window,
-            granularity=quota.granularity,
+            window=quota.window_seconds,
+            granularity=quota.granularity_seconds,
             granule=granule,
         )
 
@@ -204,12 +206,12 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
                 granule = next(quota.iter_granules(timestamp))
                 key = self._build_redis_key(request=request, quota=quota, granule=granule)
                 assert key not in keys_to_incr, "conflicting quotas specified"
-                keys_to_incr[key] = grant.granted, quota.window
+                keys_to_incr[key] = grant.granted, quota.window_seconds
 
         with self.client.pipeline(transaction=False) as pipeline:
             for key, (value, ttl) in keys_to_incr.items():
                 pipeline.incrby(key, value)
-                # Expire the key in `window` seconds. Since the key has been
+                # Expire the key in `window_seconds`. Since the key has been
                 # recently incremented we know it represents a current
                 # timestamp. We could use expireat here, but in tests we use
                 # timestamps starting from 0 for convenience.

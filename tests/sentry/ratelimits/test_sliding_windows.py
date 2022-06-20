@@ -21,8 +21,8 @@ def test_empty_quota(limiter):
                 requested=1,
                 quotas=[
                     Quota(
-                        window=10,
-                        granularity=1,
+                        window_seconds=10,
+                        granularity_seconds=1,
                         limit=0,
                     )
                 ],
@@ -35,8 +35,8 @@ def test_empty_quota(limiter):
 def test_basic(limiter):
     quotas = [
         Quota(
-            window=10,
-            granularity=1,
+            window_seconds=10,
+            granularity_seconds=1,
             limit=10,
         )
     ]
@@ -68,8 +68,8 @@ def test_basic(limiter):
 
 def test_multiple_windows(limiter):
     quotas = [
-        Quota(window=10, granularity=1, limit=10),
-        Quota(window=5, granularity=1, limit=5),
+        Quota(window_seconds=10, granularity_seconds=1, limit=10),
+        Quota(window_seconds=5, granularity_seconds=1, limit=5),
     ]
 
     resp = limiter.check_and_use_quotas(
