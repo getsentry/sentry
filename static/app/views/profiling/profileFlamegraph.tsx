@@ -36,7 +36,7 @@ function ProfileFlamegraph(): React.ReactElement {
   const [profileGroup, setProfileGroup] = useProfileGroup();
 
   useEffect(() => {
-    trackAdvancedAnalyticsEvent('profiling_views.flamegraph', {
+    trackAdvancedAnalyticsEvent('profiling_views.profile_flamegraph', {
       organization,
     });
   }, [organization]);
