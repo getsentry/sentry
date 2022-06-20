@@ -311,6 +311,7 @@ function getEventsSeriesRequest(
   displayType: DisplayType,
   organization: Organization,
   pageFilters: PageFilters,
+  widgetInterval?: string,
   limit?: number,
   _cursor?: string,
   referrer?: string,
@@ -318,7 +319,11 @@ function getEventsSeriesRequest(
 ) {
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
-  const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
+  const interval = getWidgetInterval(
+    displayType,
+    {start, end, period: statsPeriod},
+    widgetInterval
+  );
   const isMEPEnabled = organization.features.includes('dashboards-mep');
   let requestData;
   if (displayType === DisplayType.TOP_N) {

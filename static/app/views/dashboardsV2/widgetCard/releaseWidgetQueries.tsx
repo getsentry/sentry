@@ -367,6 +367,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             widget.displayType,
             organization,
             selection,
+            widget.interval,
             this.limit,
             cursor
           );

@@ -349,6 +349,7 @@ class WidgetQueries extends Component<Props, State> {
             widget.displayType,
             organization,
             selection,
+            widget.interval,
             widget.limit,
             undefined,
             `api.dashboards.widget.${displayType}-chart`,

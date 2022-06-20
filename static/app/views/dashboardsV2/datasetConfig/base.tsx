@@ -79,6 +79,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     displayType: DisplayType,
     organization: Organization,
     pageFilters: PageFilters,
+    widgetInterval?: string,
     limit?: number,
     cursor?: string,
     referrer?: string,

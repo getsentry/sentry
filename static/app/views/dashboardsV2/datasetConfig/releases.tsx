@@ -103,6 +103,7 @@ function getReleasesSeriesRequest(
   displayType: DisplayType,
   organization: Organization,
   pageFilters: PageFilters,
+  _interval?: string,
   limit?: number,
   cursor?: string
 ) {
