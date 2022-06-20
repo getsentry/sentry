@@ -295,16 +295,16 @@ jobs:
 
       - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
+          mkdir -p .artifacts/visual-snapshots-chartcuterie
           make test-chartcuterie
         env:
-          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
+          PYTEST_SNAPSHOTS_DIR: .artifacts/visual-snapshots-chartcuterie
 
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@main
         with:
           save-only: true
-          snapshot-path: .artifacts/visual-snapshots
+          snapshot-path: .artifacts/visual-snapshots-chartcuterie
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
