@@ -17,7 +17,7 @@ type Props = {
   children: (props: {
     errorMessage: undefined | string;
     loading: boolean;
-    transformedResults: TableDataRow[];
+    tableResults: TableDataRow[];
     pageLinks?: null | string;
     totalCount?: string;
   }) => React.ReactNode;
@@ -166,7 +166,7 @@ class IssueWidgetQueries extends Component<Props, State> {
     return getDynamicText({
       value: children({
         loading: loading || !memberListStoreLoaded,
-        transformedResults: tableResults,
+        tableResults,
         errorMessage,
         pageLinks,
         totalCount: totalCount ?? undefined,

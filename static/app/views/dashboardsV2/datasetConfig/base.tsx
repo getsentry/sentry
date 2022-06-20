@@ -23,6 +23,8 @@ export type ContextualProps = {
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
+  // TODO: Type props
+  WidgetQueries: (props) => JSX.Element;
   /**
    * Default query to display when dataset is selected in the
    * Widget Builder.

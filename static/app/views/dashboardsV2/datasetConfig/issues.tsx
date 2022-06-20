@@ -10,6 +10,7 @@ import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueLis
 import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
+import IssueWidgetQueries from '../widgetCard/issueWidgetQueries';
 
 import {ContextualProps, DatasetConfig} from './base';
 
@@ -41,6 +42,8 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
 };
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
+  // @ts-ignore TODO: properly add types
+  WidgetQueries: IssueWidgetQueries,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,

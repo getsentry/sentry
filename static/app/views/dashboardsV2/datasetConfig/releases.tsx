@@ -24,7 +24,7 @@ import {
   SESSIONS_FIELDS,
   SESSIONS_TAGS,
 } from '../widgetBuilder/releaseWidget/fields';
-import {
+import ReleaseWidgetQueries, {
   derivedMetricsToField,
   requiresCustomReleaseSorting,
   resolveDerivedStatusFields,
@@ -52,6 +52,8 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse,
   SessionApiResponse | MetricsApiResponse
 > = {
+  // @ts-ignore TODO: properly add types
+  WidgetQueries: ReleaseWidgetQueries,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequest: (
     api: Client,

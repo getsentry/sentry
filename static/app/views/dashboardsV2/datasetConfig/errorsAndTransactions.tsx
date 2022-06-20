@@ -28,7 +28,7 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {DisplayType, WidgetQuery} from '../types';
 import {eventViewFromWidget, getDashboardsMEPQueryParams} from '../utils';
-import {
+import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
 } from '../widgetCard/widgetQueries';
@@ -51,6 +51,8 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
 > = {
+  // @ts-ignore TODO: properly add types
+  WidgetQueries,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   getTableFieldOptions: getEventsTableFieldOptions,
