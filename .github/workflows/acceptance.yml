@@ -332,6 +332,7 @@ jobs:
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true'
         with:
+          artifact-name: 'chartcuterie-snapshots'
           # base-branch: 'master'
           # XXX: Test against itself
           base-branch: 'armenzg/ci/acceptance-split-up'
