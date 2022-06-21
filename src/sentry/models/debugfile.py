@@ -220,6 +220,7 @@ def clean_redundant_difs(project: "Project", debug_id: str) -> None:
     all_features: Set[str] = set()
     bcsymbolmap_seen = False
     uuidmap_seen = False
+    il2cpp_seen = False
     for i, dif in enumerate(difs):
         mime_type = dif.file.headers.get("Content-Type")
         if mime_type == DIF_MIMETYPES["bcsymbolmap"]:
@@ -230,6 +231,11 @@ def clean_redundant_difs(project: "Project", debug_id: str) -> None:
         elif mime_type == DIF_MIMETYPES["uuidmap"]:
             if not uuidmap_seen:
                 uuidmap_seen = True
+            else:
+                dif.delete()
+        elif mime_type == DIF_MIMETYPES["il2cpp"]:
+            if not il2cpp_seen:
+                il2cpp_seen = True
             else:
                 dif.delete()
         else:
