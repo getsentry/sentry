@@ -91,7 +91,7 @@ const StyledChevron = styled(IconChevron, {
 }>`
   margin-left: 0.33em;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     position: ${p => p.rightAlignChevron && 'absolute'};
     right: ${p => p.rightAlignChevron && `${space(2)}`};
   }

@@ -27,7 +27,7 @@ export const modalCss = css`
     overflow: initial;
   }
 
-  @media (min-width: ${theme.breakpoints[0]}) {
+  @media (min-width: ${theme.breakpoints.small}) {
     width: 100%;
     max-width: 700px;
   }
@@ -70,8 +70,6 @@ export function getMatchFieldPlaceholder(category: SamplingInnerName | string) {
       return t('ex. 127.0.0.1 or 10.0.0.0/8 (Multiline)');
     case SamplingInnerName.EVENT_CSP:
       return t('ex. file://*, example.com (Multiline)');
-    case SamplingInnerName.EVENT_ERROR_MESSAGES:
-      return t('ex. TypeError* (Multiline)');
     case SamplingInnerName.TRACE_TRANSACTION:
     case SamplingInnerName.EVENT_TRANSACTION:
       return t('ex. page-load');
@@ -118,7 +116,6 @@ export function getNewCondition(condition: Condition): SamplingConditionLogicalI
 
   if (
     condition.category === SamplingInnerName.EVENT_IP_ADDRESSES ||
-    condition.category === SamplingInnerName.EVENT_ERROR_MESSAGES ||
     condition.category === SamplingInnerName.EVENT_CSP
   ) {
     return {
@@ -272,7 +269,6 @@ export const individualTransactionsConditions = [
   SamplingInnerName.EVENT_WEB_CRAWLERS,
   SamplingInnerName.EVENT_IP_ADDRESSES,
   SamplingInnerName.EVENT_CSP,
-  SamplingInnerName.EVENT_ERROR_MESSAGES,
   SamplingInnerName.EVENT_TRANSACTION,
   SamplingInnerName.EVENT_OS_NAME,
   SamplingInnerName.EVENT_OS_VERSION,

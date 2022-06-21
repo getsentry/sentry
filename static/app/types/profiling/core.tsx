@@ -80,5 +80,4 @@ export type ProfileTransaction = {
   name: string;
   profiles_count: number;
   project_id: string;
-  versions: string[];
 };

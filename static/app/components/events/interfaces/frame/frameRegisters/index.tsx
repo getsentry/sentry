@@ -12,7 +12,7 @@ import {getSortedRegisters} from './utils';
 import Value from './value';
 
 type Props = {
-  registers: Record<string, string>;
+  registers: Record<string, string | null>;
   deviceArch?: string;
 };
 
@@ -71,7 +71,7 @@ const Wrapper = styled('div')`
   margin-top: ${space(0.5)};
   border-top: 1px solid ${p => p.theme.innerBorder};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: 132px 1fr;
   }
 `;
@@ -80,7 +80,7 @@ const Title = styled('div')`
   padding-right: ${space(1)};
   padding-bottom: ${space(1)};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     padding-bottom: 0;
     padding-right: ${space(1)};
   }
@@ -99,7 +99,7 @@ const Register = styled('div')`
   align-items: center;
   color: ${p => p.theme.gray300};
 
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     text-align: right;
   }
 `;
@@ -120,7 +120,7 @@ const StyledClippedBox = styled(ClippedBox)<{
       /* the height of 2 frame rows + button height */
       max-height: calc(${CLIPPED_HEIGHT * 2}px + 28px);
 
-      @media (min-width: ${p.theme.breakpoints[0]}) {
+      @media (min-width: ${p.theme.breakpoints.small}) {
         /* the height of 1 frame row + button height */
         max-height: calc(${CLIPPED_HEIGHT}px + 28px);
       }

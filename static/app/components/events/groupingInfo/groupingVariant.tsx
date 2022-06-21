@@ -258,7 +258,7 @@ const Header = styled('div')`
   align-items: center;
   justify-content: space-between;
   margin-bottom: ${space(2)};
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     display: block;
   }
 `;
@@ -282,7 +282,7 @@ const ContributionIcon = styled(({isContributing, ...p}) =>
 
 const ContributingToggle = styled(ButtonBar)`
   justify-content: flex-end;
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(0.5)};
   }
 `;
@@ -299,7 +299,7 @@ const TextWithQuestionTooltip = styled('div')`
 `;
 
 const Hash = styled('span')`
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     ${p => p.theme.overflowEllipsis};
     width: 210px;
   }

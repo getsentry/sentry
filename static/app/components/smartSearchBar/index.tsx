@@ -46,15 +46,15 @@ import withOrganization from 'sentry/utils/withOrganization';
 import {ActionButton} from './actions';
 import SearchDropdown from './searchDropdown';
 import SearchHotkeysListener from './searchHotkeysListener';
-import {ItemType, QuickAction, QuickActionType, SearchGroup, SearchItem} from './types';
+import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
 import {
   addSpace,
   createSearchGroups,
   filterSearchGroupsByIndex,
   generateOperatorEntryMap,
-  getQuickActionsSearchGroup,
   getValidOps,
   removeSpace,
+  shortcuts,
 } from './utils';
 
 const DROPDOWN_BLUR_DURATION = 200;
@@ -172,6 +172,10 @@ type Props = WithRouterProps & {
    * Allows additional content to be played before the search bar and icon
    */
   inlineLabel?: React.ReactNode;
+  /**
+   * Maximum height for the search dropdown menu
+   */
+  maxMenuHeight?: number;
   /**
    * Used to enforce length on the query
    */
@@ -444,22 +448,15 @@ class SmartSearchBar extends Component<Props, State> {
     token: TokenResult<any> | undefined,
     filterTokens: TokenResult<Token.Filter>[]
   ) => {
-    let offset = this.state.query.length;
-
     if (this.searchInput.current && filterTokens.length > 0) {
       this.searchInput.current.focus();
 
+      let offset = filterTokens[0].location.end.offset;
       if (token) {
         const tokenIndex = filterTokens.findIndex(tok => tok === token);
-        if (typeof tokenIndex !== 'undefined') {
-          if (tokenIndex + 1 < filterTokens.length) {
-            offset = filterTokens[tokenIndex + 1].location.end.offset;
-          }
+        if (tokenIndex !== -1 && tokenIndex + 1 < filterTokens.length) {
+          offset = filterTokens[tokenIndex + 1].location.end.offset;
         }
-      }
-
-      if (this.cursorPosition === this.state.query.length) {
-        offset = filterTokens[0].location.end.offset;
       }
 
       this.searchInput.current.selectionStart = offset;
@@ -468,17 +465,17 @@ class SmartSearchBar extends Component<Props, State> {
     }
   };
 
-  runQuickAction = (action: QuickAction) => {
+  runShortcut = (shortcut: Shortcut) => {
     const {query} = this.state;
     const token = this.cursorToken ?? undefined;
 
     const filterTokens = this.filterTokens;
 
-    const {actionType, canRunAction} = action;
+    const {shortcutType, canRunShortcut} = shortcut;
 
-    if (!canRunAction || canRunAction(token, this.filterTokens.length)) {
-      switch (actionType) {
-        case QuickActionType.Delete: {
+    if (canRunShortcut(token, this.filterTokens.length)) {
+      switch (shortcutType) {
+        case ShortcutType.Delete: {
           if (token && filterTokens.length > 0) {
             const index = filterTokens.findIndex(tok => tok === token) ?? -1;
 
@@ -503,7 +500,7 @@ class SmartSearchBar extends Component<Props, State> {
 
           break;
         }
-        case QuickActionType.Negate: {
+        case ShortcutType.Negate: {
           if (token && token.type === Token.Filter) {
             if (token.negated) {
               if (
@@ -544,12 +541,12 @@ class SmartSearchBar extends Component<Props, State> {
           }
           break;
         }
-        case QuickActionType.Next: {
+        case ShortcutType.Next: {
           this.moveToNextToken(token, filterTokens);
 
           break;
         }
-        case QuickActionType.Previous: {
+        case ShortcutType.Previous: {
           this.moveToNextToken(token, filterTokens.reverse());
 
           break;
@@ -1122,7 +1119,16 @@ class SmartSearchBar extends Component<Props, State> {
 
     if (!tag) {
       return {
-        searchItems: [],
+        searchItems: [
+          {
+            type: ItemType.INVALID_TAG,
+            desc: tagName,
+            callback: () =>
+              window.open(
+                'https://docs.sentry.io/product/sentry-basics/search/searchable-properties/'
+              ),
+          },
+        ],
         recentSearchItems: [],
         tagName,
         type: ItemType.INVALID_TAG,
@@ -1208,7 +1214,9 @@ class SmartSearchBar extends Component<Props, State> {
         // show operator group if at beginning of value
         if (cursor === node.location.start.offset) {
           const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
-          autocompleteGroups.unshift(opGroup);
+          if (valueGroup?.type !== ItemType.INVALID_TAG) {
+            autocompleteGroups.unshift(opGroup);
+          }
         }
         this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
         return;
@@ -1279,19 +1287,6 @@ class SmartSearchBar extends Component<Props, State> {
       queryCharsLeft
     );
 
-    const quickActionsSearchResults = getQuickActionsSearchGroup(
-      this.runQuickAction,
-      this.filterTokens.length,
-      this.cursorToken ?? undefined
-    );
-    if (quickActionsSearchResults) {
-      searchGroups.searchGroups.push(quickActionsSearchResults.searchGroup);
-      searchGroups.flatSearchItems = [
-        ...searchGroups.flatSearchItems,
-        ...quickActionsSearchResults.searchItems,
-      ];
-    }
-
     this.setState(searchGroups);
   }
 
@@ -1305,12 +1300,6 @@ class SmartSearchBar extends Component<Props, State> {
     const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
-
-    const quickActionsSearchResults = getQuickActionsSearchGroup(
-      this.runQuickAction,
-      this.filterTokens.length,
-      this.cursorToken ?? undefined
-    );
 
     const searchGroups = groups
       .map(({searchItems, recentSearchItems, tagName, type}) =>
@@ -1335,14 +1324,6 @@ class SmartSearchBar extends Component<Props, State> {
           activeSearchItem: -1,
         }
       );
-
-    if (quickActionsSearchResults) {
-      searchGroups.searchGroups.push(quickActionsSearchResults.searchGroup);
-      searchGroups.flatSearchItems = [
-        ...searchGroups.flatSearchItems,
-        ...quickActionsSearchResults.searchItems,
-      ];
-    }
 
     this.setState(searchGroups);
   };
@@ -1482,6 +1463,7 @@ class SmartSearchBar extends Component<Props, State> {
       useFormWrapper,
       inlineLabel,
       maxQueryLength,
+      maxMenuHeight,
     } = this.props;
 
     const {
@@ -1536,13 +1518,22 @@ class SmartSearchBar extends Component<Props, State> {
 
     const cursor = this.cursorPosition;
 
+    const visibleShortcuts = shortcuts.filter(
+      shortcut =>
+        shortcut.hotkeys &&
+        shortcut.canRunShortcut(this.cursorToken, this.filterTokens.length)
+    );
+
     return (
       <Container
         ref={this.containerRef}
         className={className}
         inputHasFocus={inputHasFocus}
       >
-        <SearchHotkeysListener runQuickAction={this.runQuickAction} />
+        <SearchHotkeysListener
+          visibleShortcuts={visibleShortcuts}
+          runShortcut={this.runShortcut}
+        />
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
           {inlineLabel}
@@ -1596,6 +1587,9 @@ class SmartSearchBar extends Component<Props, State> {
             onClick={this.onAutoComplete}
             loading={loading}
             searchSubstring={searchTerm}
+            runShortcut={this.runShortcut}
+            visibleShortcuts={visibleShortcuts}
+            maxMenuHeight={maxMenuHeight}
           />
         )}
       </Container>

@@ -24,6 +24,7 @@ import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
 import {eventDetailsRoute} from 'sentry/utils/discover/urls';
@@ -165,7 +166,19 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               <Button onClick={this.toggleSidebar}>
                 {isSidebarVisible ? 'Hide Details' : 'Show Details'}
               </Button>
-              <Button icon={<IconOpen />} href={eventJsonUrl} external>
+              <Button
+                icon={<IconOpen />}
+                href={eventJsonUrl}
+                external
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent(
+                    'performance_views.event_details.json_button_click',
+                    {
+                      organization,
+                    }
+                  )
+                }
+              >
                 {t('JSON')} (<FileSize bytes={event.size} />)
               </Button>
               {transactionSummaryTarget && (
@@ -351,7 +364,7 @@ const EventHeader = ({event}: {event: Event}) => {
 };
 
 const EventHeaderContainer = styled('div')`
-  max-width: ${p => p.theme.breakpoints[0]};
+  max-width: ${p => p.theme.breakpoints.small};
 `;
 
 const TitleWrapper = styled('div')`

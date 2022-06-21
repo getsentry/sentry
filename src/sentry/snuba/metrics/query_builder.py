@@ -33,12 +33,13 @@ from sentry.snuba.metrics.fields.base import (
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX
+from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
     FIELD_ALIAS_MAPPINGS,
-    FIELD_REGEX,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
@@ -52,7 +53,7 @@ from sentry.utils.snuba import parse_snuba_datetime
 
 
 def parse_field(field: str) -> MetricField:
-    matches = FIELD_REGEX.match(field)
+    matches = PUBLIC_EXPRESSION_REGEX.match(field)
     try:
         if matches is None:
             raise TypeError
@@ -128,8 +129,17 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             # converts it into a tags[project]:[<slug>] query, so we want to further process
             # the lhs to get to its translation of `project_id` but we don't go further resolve
             # rhs and we just want to extract the project ids from the slugs
-            rhs = [p.id for p in Project.objects.filter(slug__in=input_.rhs)]
-            return Condition(lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=rhs)
+            rhs_slugs = [input_.rhs] if isinstance(input_.rhs, str) else input_.rhs
+
+            try:
+                op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[
+                    input_.op
+                ]
+            except KeyError:
+                raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
+
+            rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
+            return Condition(lhs=resolve_tags(org_id, input_.lhs), op=op, rhs=rhs_ids)
         return Condition(
             lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
         )
@@ -641,7 +651,7 @@ class SnubaResultConverter:
             series = group.get("series")
 
             for key in set(totals or ()) | set(series or ()):
-                matches = FIELD_REGEX.match(key)
+                matches = MRI_EXPRESSION_REGEX.match(key)
                 if matches:
                     operation = matches[1]
                     metric_mri = matches[2]
