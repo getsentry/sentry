@@ -17,16 +17,17 @@ from celery.worker.request import Request
 
 LEGACY_PICKLE_TASKS = frozenset(
     [
-        # basic tasks
+        # basic tasks that must be passed models still
         "sentry.tasks.process_buffer.process_incr",
         "sentry.tasks.process_resource_change_bound",
         "sentry.tasks.sentry_apps.send_alert_event",
         "sentry.tasks.store.symbolicate_event",
         "sentry.tasks.store.symbolicate_event_low_priority",
         "sentry.tasks.unmerge",
-        "sentry.tasks.update_code_owners_schema",
         "src.sentry.notifications.utils.async_send_notification",
-        # integrations
+        # basic tasks that can already deal with primary keys passed
+        "sentry.tasks.update_code_owners_schema",
+        # integration tasks that must be passed models still
         "sentry.integrations.slack.post_message",
         "sentry.integrations.slack.link_users_identities",
     ]
