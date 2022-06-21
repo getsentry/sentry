@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 import Fuse from 'fuse.js';
@@ -14,6 +14,7 @@ import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Profile} from 'sentry/utils/profiling/profile/profile';
@@ -62,6 +63,12 @@ function ProfileDetails() {
   const location = useLocation();
   const [state] = useProfileGroup();
   const organization = useOrganization();
+
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_views.profile_summary', {
+      organization,
+    });
+  }, [organization]);
 
   const cursor = useMemo<number>(() => {
     const cursorQuery = decodeScalar(location.query.cursor, '');
