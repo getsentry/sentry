@@ -5,3 +5,9 @@ project:
   # in duplicate projects.
 
   id: sentry
+
+# ignore a noisy warning produced by this file, it's a schema not a package.json
+targets:
+  exclude:
+    - type: projectjson
+      path: api-docs/components/schemas
