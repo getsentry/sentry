@@ -299,6 +299,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
                 data.get("environment"),
                 params={
                     "project_id": [p.id for p in project_id],
+                    "organization_id": self.context["organization"].id,
                     "start": timezone.now() - timedelta(minutes=10),
                     "end": timezone.now(),
                 },
