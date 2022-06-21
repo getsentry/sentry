@@ -10,7 +10,7 @@ from sentry.models import (
     OrganizationStatus,
 )
 from sentry.testutils import TestCase
-from sentry.utils.audit import create_audit_entry
+from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 
 username = "hello" * 20
 
@@ -239,3 +239,17 @@ class CreateAuditEntryTest(TestCase):
         assert entry3.actor == self.user
         assert entry3.target_object == self.project.id
         assert entry3.event == audit_log.get_event_id("INTEGRATION_REMOVE")
+
+    def test_create_system_audit_entry(self):
+        entry = create_system_audit_entry(
+            organization=self.org,
+            target_object=self.org.id,
+            event=audit_log.get_event_id("SSO_DISABLE"),
+            data={"provider": "GitHub"},
+        )
+
+        assert entry.event == audit_log.get_event_id("SSO_DISABLE")
+        assert entry.actor_label == "Sentry"
+        assert entry.organization == self.org
+        assert entry.target_object == self.org.id
+        assert audit_log.get(entry.event).render(entry) == "disabled sso (GitHub)"
