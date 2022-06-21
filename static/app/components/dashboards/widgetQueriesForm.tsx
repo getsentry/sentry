@@ -131,8 +131,8 @@ class WidgetQueriesForm extends Component<Props> {
 
     return widgetType === WidgetType.RELEASE ? (
       <ReleaseSearchBar
-        orgSlug={organization.slug}
-        query={widgetQuery}
+        organization={organization}
+        widgetQuery={widgetQuery}
         onSearch={field => {
           // SearchBar will call handlers for both onSearch and onBlur
           // when selecting a value from the autocomplete dropdown. This can
@@ -146,7 +146,12 @@ class WidgetQueriesForm extends Component<Props> {
           }, 200);
           return this.handleFieldChange(queryIndex, 'conditions')(field);
         }}
-        projectIds={selection.projects}
+        onBlur={field => {
+          if (!this.blurTimeout) {
+            this.handleFieldChange(queryIndex, 'conditions')(field);
+          }
+        }}
+        pageFilters={selection}
       />
     ) : (
       <StyledSearchBar

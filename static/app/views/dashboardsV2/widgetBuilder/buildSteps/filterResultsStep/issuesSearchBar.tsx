@@ -19,29 +19,27 @@ interface Props {
   onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
   organization: Organization;
-  query: WidgetQuery;
-  selection: PageFilters;
+  pageFilters: PageFilters;
   tags: TagCollection;
-  searchSource?: string;
+  widgetQuery: WidgetQuery;
 }
 
 function IssuesSearchBarContainer({
   tags,
   onSearch,
   onBlur,
+  widgetQuery,
   organization,
-  query,
-  selection,
-  searchSource,
+  pageFilters,
 }: Props) {
   const api = useApi();
   function tagValueLoader(key: string, search: string) {
     const orgId = organization.slug;
-    const projectIds = selection.projects.map(id => id.toString());
+    const projectIds = pageFilters.projects.map(id => id.toString());
     const endpointParams = {
-      start: getUtcDateString(selection.datetime.start),
-      end: getUtcDateString(selection.datetime.end),
-      statsPeriod: selection.datetime.period,
+      start: getUtcDateString(pageFilters.datetime.start),
+      end: getUtcDateString(pageFilters.datetime.end),
+      statsPeriod: pageFilters.datetime.period,
     };
 
     return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
@@ -51,9 +49,8 @@ function IssuesSearchBarContainer({
     <ClassNames>
       {({css}) => (
         <StyledIssueListSearchBar
-          searchSource={searchSource}
-          organization={organization}
-          query={query.conditions || ''}
+          searchSource="widget_builder"
+          query={widgetQuery.conditions || ''}
           sort=""
           onSearch={onSearch}
           onBlur={onBlur}

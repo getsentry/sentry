@@ -1,6 +1,7 @@
 import trimStart from 'lodash/trimStart';
 
 import {Client} from 'sentry/api';
+import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -17,7 +18,20 @@ import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
+export type WidgetBuilderSearchBarProps = {
+  onBlur: SearchBarProps['onBlur'];
+  onSearch: SearchBarProps['onSearch'];
+  organization: Organization;
+  pageFilters: PageFilters;
+  widgetQuery: WidgetQuery;
+};
+
 export interface DatasetConfig<SeriesResponse, TableResponse> {
+  /**
+   * Dataset specific search bar for the 'Filter' step in the
+   * widget builder.
+   */
+  SearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
   /**
    * Default query to display when dataset is selected in the
    * Widget Builder.

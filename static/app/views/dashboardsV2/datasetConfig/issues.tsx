@@ -8,6 +8,7 @@ import {queryToObj} from 'sentry/utils/stream';
 import {DISCOVER_EXCLUSION_FIELDS, IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {DEFAULT_TABLE_LIMIT, DisplayType, WidgetQuery} from '../types';
+import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
 
@@ -44,6 +45,7 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
+  SearchBar: IssuesSearchBar,
   getTableFieldOptions: (_organization: Organization) =>
     generateIssueWidgetFieldOptions(),
   fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,
