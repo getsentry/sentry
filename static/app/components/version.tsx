@@ -1,4 +1,3 @@
-import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,16 +7,12 @@ import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';
-import withOrganization from 'sentry/utils/withOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type Props = {
-  /**
-   *  Organization injected by withOrganization HOC
-   */
-  organization: Organization;
+interface Props {
   /**
    * Raw version (canonical release identifier)
    */
@@ -48,11 +43,10 @@ type Props = {
    * Should we also show package name
    */
   withPackage?: boolean;
-};
+}
 
 const Version = ({
   version,
-  organization,
   anchor = true,
   preservePageFilters,
   tooltipRawVersion,
@@ -60,8 +54,9 @@ const Version = ({
   projectId,
   truncate,
   className,
-  location,
-}: WithRouterProps & Props) => {
+}: Props) => {
+  const organization = useOrganization();
+  const location = useLocation();
   const versionToDisplay = formatVersion(version, withPackage);
 
   let releaseDetailProjectId: null | undefined | string | string[];
@@ -77,7 +72,7 @@ const Version = ({
     if (anchor && organization?.slug) {
       const props = {
         to: {
-          pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+          pathname: `/organizations/${organization.slug}/releases/${encodeURIComponent(
             version
           )}/`,
           query: releaseDetailProjectId ? {project: releaseDetailProjectId} : undefined,
@@ -186,8 +181,4 @@ const TooltipClipboardIconWrapper = styled('span')`
   }
 `;
 
-type PropsWithoutOrg = Omit<Props, 'organization'>;
-
-export default withOrganization(
-  withRouter(Version)
-) as React.ComponentClass<PropsWithoutOrg>;
+export default Version;
