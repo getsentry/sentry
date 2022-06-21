@@ -116,4 +116,5 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
 
             # Override the notification settings.
             data[n.type_str][n.scope_str][n.scope_identifier][n.provider_str] = n.value_str
+
         return data
