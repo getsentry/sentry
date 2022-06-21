@@ -6,8 +6,10 @@ import logging
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.snuba.dataset import EntityKey
+from sentry.snuba.entity_subscription import map_aggregate_to_entity_key
 from sentry.snuba.models import QueryDatasets
-from sentry.snuba.tasks import _create_in_snuba
+from sentry.snuba.tasks import _create_in_snuba, _delete_from_snuba
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
@@ -21,7 +23,7 @@ def event_types(self):
     return [type.event_type for type in self.snubaqueryeventtype_set.all()]
 
 
-def restore_metrics_subscriptions(apps, schema_editor):
+def update_metrics_subscriptions(apps, schema_editor):
     QuerySubscription = apps.get_model("sentry", "QuerySubscription")
     for subscription in RangeQuerySetWrapperWithProgressBar(
         QuerySubscription.objects.filter(
@@ -34,9 +36,19 @@ def restore_metrics_subscriptions(apps, schema_editor):
                 # The migration apps don't build this property, so patch it here:
                 subscription.snuba_query.event_types = event_types
                 create_subscription_in_snuba(subscription)
+                entity_key: EntityKey = map_aggregate_to_entity_key(
+                    QueryDatasets.METRICS, subscription.snuba_query.aggregate
+                )
+                # Delete the old subscription ID:
+                _delete_from_snuba(
+                    QueryDatasets.METRICS,
+                    old_subscription_id,
+                    entity_key,
+                )
+
             except Exception:
                 logging.exception(
-                    "Failed to create metrics subscription in snuba",
+                    "Failed to recreate metrics subscription in snuba",
                     extra={
                         "project": subscription.project.slug,
                         "subscription_id": subscription.id,
@@ -72,7 +84,7 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RunPython(
-            restore_metrics_subscriptions,
+            update_metrics_subscriptions,
             migrations.RunPython.noop,
             hints={"tables": ["sentry_querysubscription", "sentry_snubaquery"]},
         ),
