@@ -99,7 +99,7 @@ class Quota:
     # contain the prefix of the RequestedQuota
     prefix_override: Optional[str] = None
 
-    def __post__init__(self):
+    def __post__init__(self) -> None:
         assert self.window_seconds % self.granularity_seconds == 0
 
     def iter_window(self, request_timestamp: int) -> Iterator[int]:
