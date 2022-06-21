@@ -140,15 +140,15 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
         client = self.get_jira_client(group.project)
         try:
             meta = client.get_create_meta_for_project(jira_project_key)
-        except ApiError as e:
-            raise PluginError(
-                f"JIRA responded with an error. We received a status code of {e.code}"
-            )
         except ApiUnauthorized:
             raise PluginError(
                 "JIRA returned: Unauthorized. "
                 "Please check your username, password, "
                 "instance and project in your configuration settings."
+            )
+        except ApiError as e:
+            raise PluginError(
+                f"JIRA responded with an error. We received a status code of {e.code}"
             )
 
         if not meta:
