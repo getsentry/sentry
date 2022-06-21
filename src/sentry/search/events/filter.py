@@ -843,7 +843,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
     return condition, having, projects_to_filter, group_ids
 
 
-def get_filter(query=None, params=None):
+def get_filter(query=None, params=None, parser_config_overrides=None):
     """
     Returns an eventstore filter given the search text provided by the user and
     URL params
@@ -852,7 +852,9 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query, params=params)
+            parsed_terms = parse_search_query(
+                query, params=params, config_overrides=parser_config_overrides
+            )
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 

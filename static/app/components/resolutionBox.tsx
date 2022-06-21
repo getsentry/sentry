@@ -133,7 +133,7 @@ const StyledIconCheckmark = styled(IconCheckmark)`
   margin-top: 0 !important;
   align-self: center;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin-top: ${space(0.5)} !important;
     align-self: flex-start;
   }

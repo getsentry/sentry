@@ -12,6 +12,18 @@ type PerformanceTourParams = {
 export type PerformanceEventParameters = {
   'performance_views.all_events.open_in_discover': {};
   'performance_views.create_sample_transaction': SampleTransactionParam;
+  'performance_views.event_details.anchor_span': {
+    span_id: string;
+  };
+  'performance_views.event_details.filter_by_op': {
+    operation: string;
+  };
+
+  'performance_views.event_details.json_button_click': {};
+  'performance_views.event_details.open_span_details': {
+    operation: string;
+  };
+  'performance_views.event_details.search_query': {};
   'performance_views.landingv2.transactions.sort': {
     direction?: string;
     field?: string;
@@ -39,13 +51,19 @@ export type PerformanceEventParameters = {
     to_widget?: string;
   };
   'performance_views.overview.cellaction': {action?: string};
-  'performance_views.overview.navigate.summary': {};
+  'performance_views.overview.navigate.summary': {
+    project_platforms: string;
+  };
   'performance_views.overview.search': {};
   'performance_views.overview.view': {
+    project_platforms: string;
     show_onboarding: boolean;
   };
   'performance_views.span_summary.change_chart': {
     change_to_display: string;
+  };
+  'performance_views.span_summary.view': {
+    project_platforms: string;
   };
   'performance_views.spans.change_op': {
     operation_name?: string;
@@ -65,6 +83,11 @@ export type PerformanceEventParameters = {
   'performance_views.tour.advance': PerformanceTourParams;
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': {};
+  'performance_views.trace_view.open_in_discover': {};
+  'performance_views.trace_view.open_transaction_details': {
+    operation: string;
+    transaction: string;
+  };
   'performance_views.trace_view.view': {};
   'performance_views.transaction_summary.change_chart_display': {
     from_chart: string;
@@ -84,7 +107,13 @@ export type PerformanceEventParameters = {
     direction: string;
     widget_type: string;
   };
-  'performance_views.vital_detail.view': {};
+  'performance_views.vital_detail.switch_vital': {
+    from_vital: string;
+    to_vital: string;
+  };
+  'performance_views.vital_detail.view': {
+    project_platforms: string;
+  };
 };
 
 export type PerformanceEventKey = keyof PerformanceEventParameters;
@@ -110,12 +139,19 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Landing Page Transactions Table Page Changed',
   'performance_views.span_summary.change_chart':
     'Performance Views: Span Summary displayed chart changed',
+  'performance_views.span_summary.view': 'Performance Views: Span Summary page viewed',
   'performance_views.spans.change_op': 'Performance Views: Change span operation name',
   'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
   'performance_views.overview.view': 'Performance Views: Transaction overview view',
   'performance_views.overview.search': 'Performance Views: Transaction overview search',
   'performance_views.vital_detail.view': 'Performance Views: Vital Detail viewed',
+  'performance_views.vital_detail.switch_vital':
+    'Performance Views: Vital Detail vital type switched',
   'performance_views.trace_view.view': 'Performance Views: Trace View viewed',
+  'performance_views.trace_view.open_in_discover':
+    'Performance Views: Trace View open in Discover button clicked',
+  'performance_views.trace_view.open_transaction_details':
+    'Performance Views: Trace View transaction details opened',
   'performance_views.transaction_summary.change_chart_display':
     'Performance Views: Transaction Summary chart display changed',
   'performance_views.transaction_summary.status_breakdown_click':
@@ -134,4 +170,14 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Trends Widget Page Changed',
   'performance_views.trends.change_duration':
     'Performance Views: Trends Widget Duration Changed',
+  'performance_views.event_details.filter_by_op':
+    'Performance Views: Event Details page operation filter applied',
+  'performance_views.event_details.search_query':
+    'Performance Views: Event Details search query',
+  'performance_views.event_details.open_span_details':
+    'Performance Views: Event Details span details opened',
+  'performance_views.event_details.anchor_span':
+    'Performance Views: Event Details span anchored',
+  'performance_views.event_details.json_button_click':
+    'Performance Views: Event Details JSON button clicked',
 };

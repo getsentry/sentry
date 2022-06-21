@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 from sentry.notifications.class_manager import NotificationClassNotSetException, manager, register
 from sentry.notifications.utils.tasks import _send_notification, async_send_notification
 from sentry.testutils import TestCase
@@ -62,5 +64,5 @@ class NotificationTaskTests(TestCase):
         notification.return_value.send.assert_called_once_with()
 
     def test_invalid_notification(self):
-        with self.assertRaises(NotificationClassNotSetException):
+        with pytest.raises(NotificationClassNotSetException):
             async_send_notification(DummyNotification, self.organization, "some_value")

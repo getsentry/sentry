@@ -2,6 +2,7 @@ import unittest
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
+import pytest
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -102,7 +103,7 @@ class IncidentClearSubscriptionCacheTest(TestCase):
         self.subscription.delete()
         # Add the subscription id back in so we don't use `None` in the lookup check.
         self.subscription.id = subscription_id
-        with self.assertRaises(AlertRule.DoesNotExist):
+        with pytest.raises(AlertRule.DoesNotExist):
             AlertRule.objects.get_for_subscription(self.subscription)
 
     def test_deleted_alert_rule(self):
@@ -112,7 +113,7 @@ class IncidentClearSubscriptionCacheTest(TestCase):
             == self.alert_rule
         )
         delete_alert_rule(self.alert_rule)
-        with self.assertRaises(AlertRule.DoesNotExist):
+        with pytest.raises(AlertRule.DoesNotExist):
             AlertRule.objects.get_for_subscription(self.subscription)
 
 

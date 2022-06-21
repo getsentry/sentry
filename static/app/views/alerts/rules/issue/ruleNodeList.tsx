@@ -160,7 +160,9 @@ class RuleNodeList extends Component<Props> {
         if (node.id.includes('NotifyEmailAction')) {
           return {
             value: node.id,
-            label: t('Issue Owners, Team, or Member'),
+            label: organization.features?.includes('alert-release-notification-workflow')
+              ? t('Issue Owners, Team, Member, or Release Members')
+              : t('Issue Owners, Team, or Member'),
           };
         }
 
@@ -264,7 +266,7 @@ const RuleNodes = styled('div')`
   margin-bottom: ${space(1)};
   gap: ${space(1)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-auto-flow: row;
   }
 `;

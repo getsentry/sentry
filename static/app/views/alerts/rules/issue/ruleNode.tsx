@@ -125,6 +125,9 @@ function MailActionFields({
         {value: MailActionTargetType.IssueOwners, label: t('Issue Owners')},
         {value: MailActionTargetType.Team, label: t('Team')},
         {value: MailActionTargetType.Member, label: t('Member')},
+        ...(organization.features?.includes('alert-release-notification-workflow')
+          ? [{value: MailActionTargetType.ReleaseMembers, label: t('Release Members')}]
+          : []),
       ]}
       memberValue={MailActionTargetType.Member}
       teamValue={MailActionTargetType.Team}
@@ -335,7 +338,7 @@ function RuleNode({
               "This project doesn't support sessions. [link:View supported platforms]",
               {
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/product/releases/health/setup/" />
+                  <ExternalLink href="https://docs.sentry.io/product/releases/setup/#release-health" />
                 ),
               }
             )}
