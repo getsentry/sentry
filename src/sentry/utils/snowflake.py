@@ -8,7 +8,9 @@ from django.db import IntegrityError
 from sentry.utils import redis
 
 _TTL = timedelta(minutes=5)
-SENTRY_EPOCH_START = datetime(2022, 4, 26, 0, 0).timestamp()
+SENTRY_EPOCH_START = datetime(
+    2022, 6, 21, 0, 0
+).timestamp()  # need to change before snowflake id rollout
 
 
 class SnowflakeIdMixin:
@@ -67,9 +69,7 @@ def msb_0_ordering(value, width):
 def generate_snowflake_id(redis_key: str) -> int:
     segment_values = {
         VERSION_ID: msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length),
-        TIME_DIFFERENCE: 0,
         REGION_ID: settings.SNOWFLAKE_REGION_ID,
-        REGION_SEQUENCE: 0,
     }
 
     current_time = datetime.now().timestamp()
