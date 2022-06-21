@@ -140,9 +140,8 @@ jobs:
     name: requirements check
     runs-on: ubuntu-20.04
     timeout-minutes: 3
-    strategy:
-      matrix:
-        python-version: [3.8.12]
+    # Assuming Python 3.8 in GHA's ubuntu 20.04. If we run into any issues,
+    # this can just be pinned with setup-python.
     steps:
       - uses: actions/checkout@v3
       - name: check requirements
