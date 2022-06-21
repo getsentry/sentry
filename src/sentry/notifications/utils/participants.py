@@ -126,6 +126,7 @@ def get_participants_for_release(
             notification_settings_by_scope,
             notification_providers(),
             NotificationSettingTypes.DEPLOY,
+            user,
         )
         for provider, value in values_by_provider.items():
             reason_option = get_reason(user, value, user_ids)
