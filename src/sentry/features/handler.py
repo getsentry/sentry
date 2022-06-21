@@ -59,5 +59,5 @@ class BatchFeatureHandler(FeatureHandler):
         return self._check_for_batch(feature.name, feature.get_subject(), actor)
 
     def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool]:
-        flag = self._check_for_batch(batch.feature_name, batch.main_entity, batch.actor)
+        flag = self._check_for_batch(batch.feature_name, batch.subject, batch.actor)
         return {obj: flag for obj in batch.objects}

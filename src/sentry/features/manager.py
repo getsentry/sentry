@@ -288,5 +288,5 @@ class FeatureCheckBatch:
         return {obj: cls(self.feature_name, obj) for obj in self.objects}
 
     @property
-    def main_entity(self) -> Organization | User:
+    def subject(self) -> Organization | User:
         return self.organization or self.actor
