@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
-import {Organization, SavedSearchType, TagCollection} from 'sentry/types';
+import {Organization, SavedSearchType, Tag, TagCollection} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {
   Field,
@@ -118,7 +118,7 @@ function SearchBar(props: SearchBarProps) {
         )
       : {};
 
-    const field = Object.fromEntries(
+    const fieldTags = Object.fromEntries(
       Object.keys(FIELD_TAGS).map(key => [
         key,
         {
@@ -138,9 +138,11 @@ function SearchBar(props: SearchBarProps) {
       ])
     );
 
-    const fieldTags = organization.features.includes('performance-view')
-      ? Object.assign({}, measurementsWithKind, field, functionTags)
-      : omit(field, TRACING_FIELDS);
+    const combinedTags: Record<string, Tag> = organization.features.includes(
+      'performance-view'
+    )
+      ? Object.assign({}, measurementsWithKind, fieldTags, functionTags)
+      : omit(fieldTags, TRACING_FIELDS);
 
     const semverTags = Object.fromEntries(
       Object.keys(SEMVER_TAGS).map(key => [
@@ -152,16 +154,27 @@ function SearchBar(props: SearchBarProps) {
       ])
     );
 
-    const combined = assign({}, tags, fieldTags, semverTags);
-    combined.has = {
+    const tagsWithKind = Object.fromEntries(
+      Object.keys(tags).map(key => [
+        key,
+        {
+          ...tags[key],
+          kind: FieldValueKind.TAG,
+        },
+      ])
+    );
+
+    assign(combinedTags, tagsWithKind, fieldTags, semverTags);
+
+    combinedTags.has = {
       key: 'has',
       name: 'Has property',
-      values: Object.keys(combined),
+      values: Object.keys(combinedTags),
       predefined: true,
       kind: FieldValueKind.FIELD,
     };
 
-    return omit(combined, omitTags ?? []);
+    return omit(combinedTags, omitTags ?? []);
   };
 
   return (
