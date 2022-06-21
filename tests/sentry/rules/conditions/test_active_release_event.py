@@ -44,10 +44,9 @@ class ActiveReleaseEventConditionTest(SnubaTestCase, RuleTestCase):
         assert len(evts) == 2
 
         assert evt.event_id != evt2.event_id
-        assert evt.group_id == 1
-        assert list(Group.objects.filter(id__in=(1, 2)).values_list("id", flat=True)) == [1]
-        assert self.group.id == 2
-        # assert self.group.id == evt.group_id
+        assert list(
+            Group.objects.filter(id__in=(evt.group_id, evt2.group_id)).values_list("id", flat=True)
+        ) == [evt.group_id]
 
         rule = self.get_rule(rule=Rule(environment_id=1))
 
