@@ -142,7 +142,6 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
                     frame.pop("context_line", None)
                     frame.pop("post_context", None)
 
-                original["original_frames"] = original["frames"]
                 original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:
