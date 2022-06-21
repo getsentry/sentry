@@ -19,7 +19,7 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, WidgetQuery} from '../types';
+import {DisplayType, Widget, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';
 import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
@@ -101,13 +101,14 @@ export const ReleasesConfig: DatasetConfig<
 
 function getReleasesSeriesRequest(
   api: Client,
-  query: WidgetQuery,
-  displayType: DisplayType,
+  widget: Widget,
+  queryIndex: number,
   organization: Organization,
-  pageFilters: PageFilters,
-  limit?: number,
-  cursor?: string
+  pageFilters: PageFilters
 ) {
+  const query = widget.queries[queryIndex];
+  const {displayType, limit} = widget;
+
   const {datetime} = pageFilters;
   const {start, end, period} = datetime;
 
@@ -130,8 +131,7 @@ function getReleasesSeriesRequest(
     organization,
     pageFilters,
     interval,
-    limit,
-    cursor
+    limit
   );
 }
 

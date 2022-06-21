@@ -11,7 +11,7 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, WidgetQuery, WidgetType} from '../types';
+import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
 import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
@@ -89,12 +89,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    */
   getSeriesRequest?: (
     api: Client,
-    query: WidgetQuery,
-    displayType: DisplayType,
+    widget: Widget,
+    queryIndex: number,
     organization: Organization,
     pageFilters: PageFilters,
-    limit?: number,
-    cursor?: string,
     referrer?: string
   ) => ReturnType<Client['requestPromise']>;
   /**

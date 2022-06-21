@@ -350,7 +350,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
 
     try {
       responses = await Promise.all(
-        widget.queries.map(query => {
+        widget.queries.map((query, index) => {
           if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
             return this.config.getTableRequest!(
               api,
@@ -363,12 +363,10 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           }
           return this.config.getSeriesRequest!(
             api,
-            query,
-            widget.displayType,
+            widget,
+            index,
             organization,
-            selection,
-            this.limit,
-            cursor
+            selection
           );
         })
       );

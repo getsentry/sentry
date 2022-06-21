@@ -40,7 +40,7 @@ import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {DisplayType, WidgetQuery} from '../types';
+import {DisplayType, Widget, WidgetQuery} from '../types';
 import {
   eventViewFromWidget,
   getDashboardsMEPQueryParams,
@@ -309,13 +309,14 @@ function getEventsRequest(
 
 function getEventsSeriesRequest(
   api: Client,
-  widgetQuery: WidgetQuery,
-  displayType: DisplayType,
+  widget: Widget,
+  queryIndex: number,
   organization: Organization,
   pageFilters: PageFilters,
-  limit?: number,
   referrer?: string
 ) {
+  const widgetQuery = widget.queries[queryIndex];
+  const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
   const {start, end, period: statsPeriod} = pageFilters.datetime;
   const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
@@ -373,8 +374,8 @@ function getEventsSeriesRequest(
 
       // The "Other" series is only included when there is one
       // y-axis and one widgetQuery
-      // TODO: Figure out the condition: widget.queries.length !== 1
-      requestData.excludeOther = widgetQuery.aggregates.length !== 1;
+      requestData.excludeOther =
+        widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
 
       if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
         const nextEquationIndex = getNumEquations(widgetQuery.aggregates);

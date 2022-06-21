@@ -342,14 +342,13 @@ class WidgetQueries extends Component<Props, State> {
     let responses: Array<EventsStats | MultiSeriesEventsStats> = [];
     try {
       responses = await Promise.all(
-        widget.queries.map(query => {
+        widget.queries.map((_query, index) => {
           return this.config.getSeriesRequest!(
             api,
-            query,
-            widget.displayType,
+            widget,
+            index,
             organization,
             selection,
-            widget.limit,
             `api.dashboards.widget.${displayType}-chart`
           );
         })
