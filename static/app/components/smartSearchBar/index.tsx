@@ -42,6 +42,7 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {ActionButton} from './actions';
 import SearchDropdown from './searchDropdown';
@@ -869,7 +870,7 @@ class SmartSearchBar extends Component<Props, State> {
   /**
    * Returns array of possible key values that substring match `query`
    */
-  getTagKeys(query: string): [SearchItem[], ItemType] {
+  getTagGroups(query: string): [SearchItem[], ItemType] {
     const {prepareQuery, supportedTagType, getFieldDoc} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
@@ -889,16 +890,51 @@ class SmartSearchBar extends Component<Props, State> {
       tagKeys = tagKeys.filter(key => key !== 'environment:');
     }
 
-    return [
-      tagKeys
-        .map(value => ({
-          value,
-          desc: value,
-          documentation: getFieldDoc?.(value.slice(0, -1)) ?? '',
-        }))
-        .sort((a, b) => a.value.localeCompare(b.value)),
-      supportedTagType ?? ItemType.TAG_KEY,
-    ];
+    const accountedForSections = new Set<string>();
+
+    const tagGroups = tagKeys
+      .sort((a, b) => a.localeCompare(b))
+      .flatMap((key, _, arr) => {
+        const sections = key.split('.');
+        const kind = supportedTags[key.slice(0, -1)]?.kind;
+
+        if (
+          sections.length > 1 &&
+          kind !== FieldValueKind.FUNCTION &&
+          arr.filter(k => k.startsWith(sections[0])).length > 1
+        ) {
+          const [title, ...rest] = sections;
+
+          const item: SearchItem = {
+            value: key ?? '',
+            desc: `.${rest.join('.')}`,
+            documentation: getFieldDoc?.(key.slice(0, -1)) || '-',
+            kind,
+            isGrouped: arr.filter(k => k.startsWith(`${sections[0]}.`)).length > 1,
+            isChild: true,
+            title,
+          };
+
+          if (!accountedForSections.has(title)) {
+            accountedForSections.add(title);
+
+            item.isChild = false;
+          }
+
+          return [item];
+        }
+
+        return [
+          {
+            value: key,
+            desc: key,
+            documentation: getFieldDoc?.(key.slice(0, -1)) || '-',
+            kind,
+          },
+        ];
+      });
+
+    return [tagGroups, supportedTagType ?? ItemType.TAG_KEY];
   }
 
   /**
@@ -1081,7 +1117,7 @@ class SmartSearchBar extends Component<Props, State> {
   };
 
   async generateTagAutocompleteGroup(tagName: string): Promise<AutocompleteGroup> {
-    const [tagKeys, tagType] = this.getTagKeys(tagName);
+    const [tagKeys, tagType] = this.getTagGroups(tagName);
     const recentSearches = await this.getRecentSearches();
 
     return {
@@ -1171,7 +1207,7 @@ class SmartSearchBar extends Component<Props, State> {
       // does not get updated)
       this.setState({searchTerm: query});
 
-      const [tagKeys, tagType] = this.getTagKeys('');
+      const [tagKeys, tagType] = this.getTagGroups('');
       const recentSearches = await this.getRecentSearches();
 
       this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', tagType);
@@ -1284,7 +1320,8 @@ class SmartSearchBar extends Component<Props, State> {
       tagName,
       type,
       maxSearchItems,
-      queryCharsLeft
+      queryCharsLeft,
+      true
     );
 
     this.setState(searchGroups);
@@ -1309,7 +1346,8 @@ class SmartSearchBar extends Component<Props, State> {
           tagName,
           type,
           maxSearchItems,
-          queryCharsLeft
+          queryCharsLeft,
+          false
         )
       )
       .reduce(

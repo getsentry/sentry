@@ -11,8 +11,11 @@ import {
 import {ItemType, SearchItem} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import {Organization, SavedSearch, SavedSearchType, Tag} from 'sentry/types';
+import {getFieldDoc} from 'sentry/utils/discover/fields';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+
+import {FieldValueKind} from '../eventsV2/table/types';
 
 import {TagValueLoader} from './types';
 
@@ -54,6 +57,7 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
   onSidebarToggle: (e: React.MouseEvent) => void;
   organization: Organization;
   sort: string;
+  supportedTags: {[key: string]: Tag};
   tagValueLoader: TagValueLoader;
   /**
    * Used to define the max height of the menu in px.
@@ -66,18 +70,21 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
 type State = {
   defaultSearchItems: [SearchItem[], SearchItem[]];
   recentSearches: string[];
+  supportedTags: {[key: string]: Tag};
 };
 
 class IssueListSearchBar extends Component<Props, State> {
   state: State = {
     defaultSearchItems: [SEARCH_ITEMS, []],
     recentSearches: [],
+    supportedTags: {},
   };
 
   componentDidMount() {
     // Ideally, we would fetch on demand (e.g. when input gets focus)
     // but `<SmartSearchBar>` is a bit complicated and this is the easiest route
     this.fetchData();
+    this.getSupportedTags();
   }
 
   fetchData = async () => {
@@ -96,6 +103,24 @@ class IssueListSearchBar extends Component<Props, State> {
           : [],
       ],
       recentSearches: resp,
+    });
+  };
+
+  getSupportedTags = () => {
+    const {supportedTags} = this.props;
+
+    const newTags = Object.fromEntries(
+      Object.keys(supportedTags).map(key => [
+        key,
+        {
+          ...supportedTags[key],
+          kind: supportedTags[key].predefined ? FieldValueKind.TAG : FieldValueKind.FIELD,
+        },
+      ])
+    );
+
+    this.setState({
+      supportedTags: newTags,
     });
   };
 
@@ -133,17 +158,19 @@ class IssueListSearchBar extends Component<Props, State> {
       <SmartSearchBar
         searchSource="main_search"
         hasRecentSearches
-        maxSearchItems={5}
         savedSearchType={SavedSearchType.ISSUE}
         onGetTagValues={this.getTagValues}
-        defaultSearchItems={this.state.defaultSearchItems}
+        // defaultSearchItems={this.state.defaultSearchItems}
         onSavedRecentSearch={this.handleSavedRecentSearch}
         actionBarItems={[
           makePinSearchAction({sort, pinnedSearch}),
           makeSaveSearchAction({sort}),
           makeSearchBuilderAction({onSidebarToggle}),
         ]}
+        maxMenuHeight={500}
         {...props}
+        supportedTags={this.state.supportedTags}
+        getFieldDoc={getFieldDoc}
       />
     );
   }

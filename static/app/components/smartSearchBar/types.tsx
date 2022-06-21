@@ -1,3 +1,5 @@
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+
 import {TokenResult} from '../searchSyntax/parser';
 
 export enum ItemType {
@@ -30,6 +32,9 @@ export type SearchItem = {
   desc?: string;
   documentation?: React.ReactNode;
   ignoreMaxSearchItems?: boolean;
+  isChild?: boolean;
+  isGrouped?: boolean;
+  kind?: FieldValueKind;
   title?: string;
   type?: ItemType;
   value?: string;

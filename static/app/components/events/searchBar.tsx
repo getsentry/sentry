@@ -22,6 +22,7 @@ import {
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -110,20 +111,54 @@ function SearchBar(props: SearchBarProps) {
               item =>
                 !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
             )
-            .map(item => [item.field, {key: item.field, name: item.field}])
+            .map(item => [
+              item.field,
+              {key: item.field, name: item.field, kind: FieldValueKind.FUNCTION},
+            ])
         )
       : {};
 
-    const fieldTags = organization.features.includes('performance-view')
-      ? Object.assign({}, measurements, FIELD_TAGS, functionTags)
-      : omit(FIELD_TAGS, TRACING_FIELDS);
+    const field = Object.fromEntries(
+      Object.keys(FIELD_TAGS).map(key => [
+        key,
+        {
+          ...FIELD_TAGS[key],
+          kind: FieldValueKind.FIELD,
+        },
+      ])
+    );
 
-    const combined = assign({}, tags, fieldTags, SEMVER_TAGS);
+    const measurementsWithKind = Object.fromEntries(
+      Object.keys(measurements).map(key => [
+        key,
+        {
+          ...measurements[key],
+          kind: FieldValueKind.MEASUREMENT,
+        },
+      ])
+    );
+
+    const fieldTags = organization.features.includes('performance-view')
+      ? Object.assign({}, measurementsWithKind, field, functionTags)
+      : omit(field, TRACING_FIELDS);
+
+    const semverTags = Object.fromEntries(
+      Object.keys(SEMVER_TAGS).map(key => [
+        key,
+        {
+          ...SEMVER_TAGS[key],
+          kind: FieldValueKind.FIELD,
+        },
+      ])
+    );
+
+    const combined = assign({}, tags, fieldTags, semverTags);
     combined.has = {
       key: 'has',
       name: 'Has property',
       values: Object.keys(combined),
       predefined: true,
+      kind: FieldValueKind.FIELD,
     };
 
     return omit(combined, omitTags ?? []);

@@ -5,9 +5,11 @@ import color from 'color';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import Button from '../button';
 import HotkeysLabel from '../hotkeysLabel';
+import Tag from '../tag';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
@@ -78,21 +80,67 @@ class SearchDropdown extends PureComponent<Props> {
     </SearchDropdownGroup>
   );
 
-  renderItem = (item: SearchItem) => (
-    <SearchListItem
-      key={item.value || item.desc || item.title}
-      className={item.active ? 'active' : undefined}
-      data-test-id="search-autocomplete-item"
-      onClick={item.callback ?? this.props.onClick.bind(this, item.value, item)}
-      ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
-    >
-      <SearchItemTitleWrapper>
-        {item.title && `${item.title}${item.desc ? ' · ' : ''}`}
-        <Description>{this.renderDescription(item)}</Description>
+  renderItem = (item: SearchItem) => {
+    const description = this.renderDescription(item);
+    const hideTitle = item.isGrouped && item.isChild;
+
+    return (
+      <SearchListItem
+        key={item.value || item.desc || item.title}
+        className={`${item.isChild ? 'group-child' : ''} ${item.active ? 'active' : ''}`}
+        data-test-id="search-autocomplete-item"
+        onClick={item.callback ?? this.props.onClick.bind(this, item.value, item)}
+        ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
+        isGrouped={item.isGrouped}
+        isChild={item.isChild}
+      >
+        <SearchItemTitleWrapper>
+          {
+            <TitleWrapper hide={hideTitle} aria-hidden={hideTitle}>
+              {item.title}
+            </TitleWrapper>
+          }
+          {description && (
+            <ItemDescription hasTitle={!!item.title}>{description}</ItemDescription>
+          )}
+        </SearchItemTitleWrapper>
         <Documentation>{item.documentation}</Documentation>
-      </SearchItemTitleWrapper>
-    </SearchListItem>
-  );
+        <TagWrapper>
+          {item.kind && !item.isChild && this.renderKind(item.kind)}
+        </TagWrapper>
+      </SearchListItem>
+    );
+  };
+
+  renderKind(kind: FieldValueKind) {
+    let text, tagType;
+    switch (kind) {
+      case FieldValueKind.FUNCTION:
+        text = 'f(x)';
+        tagType = 'success';
+        break;
+      case FieldValueKind.MEASUREMENT:
+        text = 'field';
+        tagType = 'highlight';
+        break;
+      case FieldValueKind.BREAKDOWN:
+        text = 'field';
+        tagType = 'highlight';
+        break;
+      case FieldValueKind.TAG:
+        text = kind;
+        tagType = 'warning';
+        break;
+      case FieldValueKind.NUMERIC_METRICS:
+        text = 'f(x)';
+        tagType = 'success';
+        break;
+      case FieldValueKind.FIELD:
+      default:
+        text = kind;
+    }
+    return <Tag type={tagType}>{text}</Tag>;
+  }
 
   render() {
     const {className, loading, items, runShortcut, visibleShortcuts, maxMenuHeight} =
@@ -184,8 +232,8 @@ const Info = styled('div')`
 `;
 
 const ListItem = styled('li')`
-  &:not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  &:not(:first-child):not(.group-child) {
+    border-top: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 
@@ -226,16 +274,23 @@ const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
   }}
 `;
 
-const SearchListItem = styled(ListItem)`
+const SearchListItem = styled(ListItem)<{isChild?: boolean; isGrouped?: boolean}>`
   scroll-margin: 40px 0;
   font-size: ${p => p.theme.fontSizeLarge};
-  padding: ${space(1)} ${space(2)};
+  padding: 4px ${space(2)};
+
+  min-height: ${p => (p.isGrouped ? '30px' : '36px')};
   cursor: pointer;
 
   &:hover,
   &.active {
     background: ${p => p.theme.hover};
   }
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 `;
 
 const SearchItemTitleWrapper = styled('div')`
@@ -244,19 +299,43 @@ const SearchItemTitleWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};
+
+  display: flex;
+  flex-grow: 1;
+  flex-shrink: none;
+
+  max-width: 280px;
+
   ${p => p.theme.overflowEllipsis};
 `;
 
-const Description = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-family: ${p => p.theme.text.familyMono};
+const ItemDescription = styled('span')<{hasTitle?: boolean}>`
+  color: ${p => (p.hasTitle ? p.theme.blue400 : p.theme.textColor)};
+`;
+
+const TitleWrapper = styled('span')<{hide?: boolean}>`
+  opacity: ${p => (p.hide ? 0 : 1)};
+`;
+
+const TagWrapper = styled('span')`
+  width: 5%;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
 `;
 
 const Documentation = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-family: ${p => p.theme.text.familyMono};
-  float: right;
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.gray300};
+  display: flex;
+  flex: 2;
+  padding: 0 ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
 `;
 
 const DropdownFooter = styled(`div`)`
