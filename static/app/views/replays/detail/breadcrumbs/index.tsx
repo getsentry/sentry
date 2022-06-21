@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {
@@ -14,6 +14,7 @@ import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
 import {getPrevBreadcrumb} from 'sentry/utils/replays/getBreadcrumb';
+import {useCurrentItemScroller} from 'sentry/utils/replays/hooks/useCurrentItemScroller';
 
 import BreadcrumbItem from './breadcrumbItem';
 
@@ -48,6 +49,9 @@ function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
     removeHighlight,
     clearAllHighlights,
   } = useReplayContext();
+
+  const crumbListContainerRef = useRef<HTMLDivElement>(null);
+  useCurrentItemScroller(crumbListContainerRef);
 
   const startTimestamp = event?.startTimestamp || 0;
 
@@ -111,7 +115,7 @@ function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
     <Panel>
       <PanelHeader>{t('Breadcrumbs')}</PanelHeader>
 
-      <PanelBody>
+      <PanelBody ref={crumbListContainerRef}>
         {!isLoaded && <CrumbPlaceholder number={4} />}
         {isLoaded &&
           crumbs.map(crumb => (
