@@ -15,7 +15,7 @@ export function useCurrentItemScroller(containerRef: RefObject<HTMLDivElement>) 
             const element = mutation.target as Element;
             const isCurrent = element?.ariaCurrent === 'true';
             if (isCurrent) {
-              element.scrollIntoView({
+              element?.scrollIntoView({
                 behavior: 'smooth',
               });
             }
