@@ -34,7 +34,6 @@ from sentry.snuba.entity_subscription import BaseMetricsEntitySubscription
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import build_snuba_filter, get_entity_subscription_for_dataset
 from sentry.utils import metrics, redis
-from sentry.utils.compat import zip
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import raw_query
 

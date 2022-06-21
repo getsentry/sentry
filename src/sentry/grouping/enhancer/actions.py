@@ -1,6 +1,5 @@
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import set_in_app
-from sentry.utils.compat import zip
 from sentry.utils.safe import get_path, set_path
 
 from .exceptions import InvalidEnhancerConfig
@@ -99,7 +98,7 @@ class FlagAction(Action):
         if self.key == "group":
             return
         if self.key == "app":
-            for frame, match_frame in self._slice_to_range(zip(frames, match_frames), idx):
+            for frame, match_frame in self._slice_to_range(list(zip(frames, match_frames)), idx):
                 set_in_app(frame, self.flag)
                 match_frame["in_app"] = frame["in_app"]
 

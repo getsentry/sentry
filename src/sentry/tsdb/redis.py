@@ -13,7 +13,7 @@ from django.utils.encoding import force_bytes
 from pkg_resources import resource_string
 
 from sentry.tsdb.base import BaseTSDB
-from sentry.utils.compat import crc32, map, zip
+from sentry.utils.compat import crc32, map
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.redis import SentryScript, check_cluster_versions, get_cluster_from_options
 from sentry.utils.versioning import Version
@@ -782,7 +782,7 @@ class RedisTSDB(BaseTSDB):
         results = {}
         cluster, _ = self.get_cluster(environment_id)
         for key, responses in cluster.execute_commands(commands).items():
-            results[key] = zip(series, map(unpack_response, responses))
+            results[key] = list(zip(series, map(unpack_response, responses)))
 
         return results
 
