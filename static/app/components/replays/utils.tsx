@@ -33,7 +33,7 @@ export function showPlayerTime(timestamp: string, relativeTime: number): string 
 
 // TODO: move into 'sentry/utils/formatters'
 export function formatTime(ms: number): string {
-  if (ms <= 0) {
+  if (ms <= 0 || isNaN(ms)) {
     return '0:00';
   }
   const hour = Math.floor(ms / HOUR);
