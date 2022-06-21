@@ -116,7 +116,7 @@
     "qrcode.react": "^3.0.2",
     "query-string": "7.0.1",
     "react": "17.0.2",
-    "react-aria": "^3.12.0",
+    "react-aria": "^3.17.0",
     "react-autosize-textarea": "7.1.0",
     "react-date-range": "^1.3.0",
     "react-document-title": "2.0.3",
