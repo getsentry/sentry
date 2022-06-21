@@ -88,11 +88,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         `/projects/${orgId}/${projectId}/rules/${ruleId}/`,
         {query: {expand: 'lastTriggered'}},
       ],
-      [
-        'memberList',
-        `/organizations/${orgId}/users/`,
-        {query: {project: this.props.project.id}},
-      ],
+      ['memberList', `/organizations/${orgId}/users/`, {query: {projectSlug: projectId}}],
     ];
   }
 
