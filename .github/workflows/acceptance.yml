@@ -347,7 +347,7 @@ jobs:
       - name: Check for failures
         if: contains(needs.*.result, 'failure')
         run: |
-          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+          echo "One of the dependent jobs have failed. You may need to re-run it" && exit 1
 
   # Since Visual Snapshot is a required check we need to pretend to have run
   fake-visual-snapshot:
