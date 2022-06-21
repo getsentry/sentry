@@ -113,7 +113,7 @@ COPY ./docker/docker-entrypoint.sh /
 EXPOSE 9000
 VOLUME /data
 
-ENTRYPOINT exec /docker-entrypoint.sh $0 $@
+ENTRYPOINT exec /docker-entrypoint.sh "$0" "$@"
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT
