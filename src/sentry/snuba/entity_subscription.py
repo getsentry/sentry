@@ -629,7 +629,7 @@ def get_entity_subscription_for_dataset(
     )
 
 
-def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> Optional[EntityKey]:
+def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> EntityKey:
     if dataset == QueryDatasets.EVENTS:
         entity_key = EntityKey.Events
     elif dataset == QueryDatasets.TRANSACTIONS:
