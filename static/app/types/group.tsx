@@ -1,4 +1,5 @@
 import type {PlatformKey} from 'sentry/data/platformCategories';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
@@ -63,7 +64,11 @@ export type EventAttachment = Omit<IssueAttachment, 'event_id'>;
 export type Tag = {
   key: string;
   name: string;
+
+  documentation?: string;
   isInput?: boolean;
+
+  kind?: FieldValueKind;
   /**
    * How many values should be suggested in autocomplete.
    * Overrides SmartSearchBar's `maxSearchItems` prop.

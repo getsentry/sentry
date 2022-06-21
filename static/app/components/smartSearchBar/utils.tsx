@@ -109,7 +109,8 @@ export function createSearchGroups(
   tagName: string,
   type: ItemType,
   maxSearchItems: number | undefined,
-  queryCharsLeft?: number
+  queryCharsLeft?: number,
+  isDefaultState?: boolean
 ) {
   const activeSearchItem = 0;
 
@@ -153,6 +154,15 @@ export function createSearchGroups(
   if (searchGroup.children && !!searchGroup.children.length) {
     searchGroup.children[activeSearchItem] = {
       ...searchGroup.children[activeSearchItem],
+    };
+  }
+
+  if (isDefaultState) {
+    // Recent searches first in default state.
+    return {
+      searchGroups: [...(recentSearchGroup ? [recentSearchGroup] : []), searchGroup],
+      flatSearchItems: [...(recentSearchItems ? recentSearchItems : []), ...searchItems],
+      activeSearchItem: -1,
     };
   }
 
