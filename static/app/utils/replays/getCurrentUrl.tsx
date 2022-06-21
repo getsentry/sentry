@@ -1,22 +1,23 @@
 import last from 'lodash/last';
 
-import {transformCrumbs} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import type {Crumb} from 'sentry/types/breadcrumbs';
 import {BreadcrumbType, BreadcrumbTypeNavigation} from 'sentry/types/breadcrumbs';
+import type {EventTransaction} from 'sentry/types/event';
 import {EventTag} from 'sentry/types/event';
-import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 function findUrlTag(tags: EventTag[]) {
   return tags.find(tag => tag.key === 'url');
 }
 
-function getCurrentUrl(replay: ReplayReader, currentOffsetMS: number) {
-  const event = replay.getEvent();
-  const crumbs = replay.getRawCrumbs();
-
+function getCurrentUrl(
+  event: EventTransaction,
+  crumbs: Crumb[],
+  currentOffsetMS: number
+) {
   const startTimestampMs = event.startTimestamp * 1000;
   const currentTimeMs = startTimestampMs + Math.floor(currentOffsetMS);
 
-  const navigationCrumbs = transformCrumbs(crumbs).filter(
+  const navigationCrumbs = crumbs.filter(
     crumb => crumb.type === BreadcrumbType.NAVIGATION
   ) as BreadcrumbTypeNavigation[];
 
@@ -27,7 +28,18 @@ function getCurrentUrl(replay: ReplayReader, currentOffsetMS: number) {
     navigationCrumbs.filter(({timestamp}) => +new Date(timestamp || 0) < currentTimeMs)
   )?.data?.to;
 
-  return mostRecentNavigation ? origin + mostRecentNavigation : initialUrl;
+  if (!mostRecentNavigation) {
+    return initialUrl;
+  }
+
+  try {
+    // If `mostRecentNavigation` has the origin then we can parse it as a URL
+    const url = new URL(mostRecentNavigation);
+    return String(url);
+  } catch {
+    // Otherwise we need to add the origin manually and hope the suffix makes sense.
+    return origin + mostRecentNavigation;
+  }
 }
 
 export default getCurrentUrl;
