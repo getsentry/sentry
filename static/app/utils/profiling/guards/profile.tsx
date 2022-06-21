@@ -25,11 +25,11 @@ export function isChromeTraceObjectFormat(input: any): input is ChromeTrace.Obje
 
 export function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ProfileType {
   return (
-    Array.isArray(input) && !!input.find(p => p.ph === 'P' && p.name === 'ProfileChunk')
+    Array.isArray(input) && input.some(p => p.ph === 'P' && p.name === 'ProfileChunk')
   );
 }
 
-// Typescript uses only a subset of the event types, so we need to
+// Typescript uses only a subset of the event types (only B and E events), so we need to
 // inspect the contents of the trace to determine the type of the profile.
 export function isTypescriptChromeTraceArrayFormat(
   input: any
