@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import List, Mapping, Sequence, Set, Tuple
+from typing import Any, Dict, List, Mapping, Sequence, Set, Tuple
 
 from sentry.api.serializers import serialize
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus, User
@@ -10,9 +10,9 @@ def get_serialized_users_by_id(users_set: Set[User], user: User) -> Mapping[str,
     return {user["id"]: user for user in serialized_users}
 
 
-def get_team_slugs_by_organization_member_id(
+def get_teams_by_organization_member_id(
     organization_members: Sequence[OrganizationMember],
-) -> Mapping[int, Tuple[List[str], List[object]]]:
+) -> Tuple[Dict[Any, List[str]], Dict[Any, List[Dict[Any, Any]]]]:
     """@returns a map of member id -> team_slug[]"""
     organization_member_tuples = list(
         OrganizationMemberTeam.objects.filter(
@@ -23,12 +23,13 @@ def get_team_slugs_by_organization_member_id(
     teams = Team.objects.filter(id__in=team_ids)
     teams_by_id = {team.id: team for team in teams}
 
-    results: Mapping[int, Tuple[List[str], List[object]]] = defaultdict(lambda: ([], []))
+    result_teams = defaultdict(list)
+    result_teams_with_roles = defaultdict(list)
     for member_id, team_id, role in organization_member_tuples:
         teamSlug = teams_by_id[team_id].slug
-        results[member_id][0].append(teamSlug)  # Deprecated
-        results[member_id][1].append({"teamSlug": teamSlug, "role": role})
-    return results
+        result_teams[member_id].append(teamSlug)  # Deprecated
+        result_teams_with_roles[member_id].append({"teamSlug": teamSlug, "role": role})
+    return result_teams, result_teams_with_roles
 
 
 def get_organization_id(organization_members: Sequence[OrganizationMember]) -> int:

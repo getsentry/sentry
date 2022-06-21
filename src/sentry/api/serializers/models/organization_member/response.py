@@ -37,7 +37,7 @@ _OrganizationMemberFlags = TypedDict(
 
 
 class _TeamRole(TypedDict):
-    team: str
+    teamSlug: str
     role: str
 
 
