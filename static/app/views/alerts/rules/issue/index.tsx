@@ -165,12 +165,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   componentDidMount() {
     const {params, organization, experimentAssignment, logExperiment} = this.props;
     if (!params.ruleId) {
-      // let hook decide when we want to select a default alert ruel
+      // let hook decide when we want to select a default alert rule
       HookStore.get('callback:default-action-alert-rule').forEach(cb => {
-        cb(showDefaultAction => {
+        cb((showDefaultAction: boolean) => {
           if (showDefaultAction) {
             const user = ConfigStore.get('user');
             const {rule} = this.state;
+            // always log the experiment if we meet the basic requirements decided by the hook
             logExperiment();
             if (experimentAssignment) {
               // this will add a default alert rule action
