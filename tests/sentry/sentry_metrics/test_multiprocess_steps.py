@@ -14,13 +14,14 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.types import Message, Partition, Position, Topic
 from arroyo.utils.clock import TestingClock as Clock
 
-from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.multiprocess import (
     BatchMessages,
     DuplicateMessage,
     MetricsBatchBuilder,
     ProduceStep,
+    TransformStep,
     invalid_metric_tags,
     process_messages,
     valid_metric_name,
@@ -291,6 +292,49 @@ def test_process_messages(mock_indexer) -> None:
         for i, m in enumerate(message_batch)
     ]
     compare_message_batches_ignoring_metadata(new_batch, expected_new_batch)
+
+
+@patch("sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer())
+def test_transform_step(mock_indexer) -> None:
+    config = get_ingest_config(UseCaseKey.RELEASE_HEALTH)
+
+    message_payloads = [counter_payload, distribution_payload, set_payload]
+
+    produce_step = Mock()
+    transform_step = TransformStep(next_step=produce_step, config=config)
+
+    message_batch = [
+        Message(
+            Partition(Topic("topic"), 0),
+            i + 1,
+            KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+            datetime.now(),
+        )
+        for i, payload in enumerate(message_payloads)
+    ]
+    expected_new_batch = [
+        Message(
+            m.partition,
+            m.offset,
+            KafkaPayload(
+                None,
+                json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
+                [],
+            ),
+            m.timestamp,
+        )
+        for i, m in enumerate(message_batch)
+    ]
+    last = message_batch[-1]
+    outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
+
+    transform_step.submit(outer_message)
+
+    produce_step_calls = produce_step.submit.call_args_list
+    for i, _ in enumerate(message_batch):
+        compare_messages_ignoring_mapping_metadata(
+            produce_step_calls[i].args[0], expected_new_batch[i]
+        )
 
 
 invalid_payloads = [
