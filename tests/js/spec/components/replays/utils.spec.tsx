@@ -33,9 +33,9 @@ function createCrumb({timestamp}: Pick<Crumb, 'timestamp'>): Crumb {
 
 describe('formatTime', () => {
   it.each([
-    ['seconds', 15 * 1000, '0:15'],
-    ['minutes', 2.5 * 60 * 1000, '2:30'],
-    ['hours', 75 * 60 * 1000, '1:15:00'],
+    ['seconds', 15 * 1000, '00:15'],
+    ['minutes', 2.5 * 60 * 1000, '02:30'],
+    ['hours', 75 * 60 * 1000, '01:15:00'],
   ])('should format a %s long duration into a string', (_desc, duration, expected) => {
     expect(formatTime(duration)).toEqual(expected);
   });
@@ -271,14 +271,12 @@ describe('flattenSpans', () => {
   describe('showPlayerTime', () => {
     it('returns time formatted for player', () => {
       expect(showPlayerTime('2022-05-11T23:04:27.576000Z', 1652309918.676)).toEqual(
-        '00:05:48'
+        '05:48'
       );
     });
 
-    it('returns invalid date if timestamp is malformed', () => {
-      expect(showPlayerTime('20223:04:27.576000Z', 1652309918.676)).toEqual(
-        'Invalid date'
-      );
+    it('returns 0:00 if timestamp is malformed', () => {
+      expect(showPlayerTime('20223:04:27.576000Z', 1652309918.676)).toEqual('0:00');
     });
   });
 
