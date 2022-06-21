@@ -62,6 +62,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: EventsSearchBar,
   getTableFieldOptions: getEventsTableFieldOptions,
+  getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,

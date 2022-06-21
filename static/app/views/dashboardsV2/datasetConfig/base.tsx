@@ -87,6 +87,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * Generate the request promises for fetching
    * series data.
    */
+  getGroupByFieldOptions?: (
+    organization: Organization,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
   getSeriesRequest?: (
     api: Client,
     query: WidgetQuery,
