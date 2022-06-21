@@ -22,7 +22,6 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
@@ -717,13 +716,9 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         ]
 
         for string in self.METRIC_STRINGS:
-            indexer.record(
-                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=string
-            )
+            indexer.record(self.organization.id, string)
 
-        indexer.record(
-            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string="transaction"
-        )
+        indexer.record(self.organization.id, "transaction")
 
     def setup_orderby_data(self):
         self.store_metric(

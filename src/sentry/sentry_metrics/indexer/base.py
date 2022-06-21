@@ -13,7 +13,6 @@ from typing import (
     TypeVar,
 )
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.utils.services import Service
 
 
@@ -169,12 +168,10 @@ class StringIndexer(Service):
 
     __all__ = ("record", "resolve", "reverse_resolve", "bulk_record")
 
-    def bulk_record(
-        self, use_case_id: UseCaseKey, org_strings: Mapping[int, Set[str]]
-    ) -> KeyResults:
+    def bulk_record(self, org_strings: Mapping[int, Set[str]]) -> KeyResults:
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
+    def record(self, org_id: int, string: str) -> int:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be
@@ -182,27 +179,17 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def resolve(
-        self, org_id: int, string: str, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[int]:
+    def resolve(self, org_id: int, string: str) -> Optional[int]:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
-
-        Callers should not rely on the default use_case_id -- it exists only
-        as a temporary workaround.
 
         Returns None if the entry cannot be found.
         """
         raise NotImplementedError()
 
-    def reverse_resolve(
-        self, id: int, use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH
-    ) -> Optional[str]:
+    def reverse_resolve(self, id: int) -> Optional[str]:
         """Lookup the stored string for a given integer ID.
-
-        Callers should not rely on the default use_case_id -- it exists only
-        as a temporary workaround.
 
         Returns None if the entry cannot be found.
         """

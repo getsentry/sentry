@@ -2,7 +2,6 @@ import time
 from unittest.mock import patch
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.naming_layer import get_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey
@@ -77,11 +76,7 @@ class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTe
         assert response.data == []
 
     def test_metric_tags_metric_does_not_have_data(self):
-        indexer.record(
-            use_case_id=UseCaseKey.RELEASE_HEALTH,
-            org_id=self.organization.id,
-            string=SessionMRI.SESSION.value,
-        )
+        indexer.record(self.organization.id, SessionMRI.SESSION.value)
         assert (
             self.get_response(
                 self.organization.slug,

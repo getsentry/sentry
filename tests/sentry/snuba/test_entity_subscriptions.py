@@ -7,7 +7,6 @@ from sentry.exceptions import (
     UnsupportedQuerySubscription,
 )
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
@@ -34,9 +33,7 @@ class EntitySubscriptionTestCase(TestCase):
             "init",
             "crashed",
         ]:
-            indexer.record(
-                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=tag
-            )
+            indexer.record(self.organization.id, tag)
 
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"

@@ -10,7 +10,6 @@ from exam import patcher
 from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
 
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key, resolve_weak
 from sentry.snuba.entity_subscription import (
     apply_dataset_query_conditions,
@@ -31,10 +30,6 @@ from sentry.snuba.tasks import (
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.snuba import _snuba_pool
-
-
-def _indexer_record(org_id: int, string: str) -> int:
-    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
 
 
 class BaseSnubaTaskTest(metaclass=abc.ABCMeta):
@@ -165,7 +160,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
     @responses.activate
     def test_granularity_on_metrics_crash_rate_alerts(self):
         for tag in [SessionMRI.SESSION.value, SessionMRI.USER.value, "session.status"]:
-            _indexer_record(self.organization.id, tag)
+            indexer.record(self.organization.id, tag)
         for (time_window, expected_granularity) in [
             (30, 10),
             (90, 60),
@@ -302,7 +297,7 @@ class BuildSnubaFilterTest(TestCase):
     def test_simple_sessions_for_metrics(self):
         org_id = self.organization.id
         for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
-            _indexer_record(org_id, tag)
+            indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             time_window=3600,
@@ -331,7 +326,7 @@ class BuildSnubaFilterTest(TestCase):
     def test_simple_users_for_metrics(self):
         org_id = self.organization.id
         for tag in [SessionMRI.USER.value, "session.status", "crashed"]:
-            _indexer_record(org_id, tag)
+            indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             time_window=3600,
@@ -409,7 +404,7 @@ class BuildSnubaFilterTest(TestCase):
             "release",
             "ahmed@12.2",
         ]:
-            _indexer_record(org_id, tag)
+            indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             time_window=3600,
@@ -486,7 +481,7 @@ class BuildSnubaFilterTest(TestCase):
             "release",
             "ahmed@12.2",
         ]:
-            _indexer_record(org_id, tag)
+            indexer.record(org_id, tag)
         entity_subscription = get_entity_subscription_for_dataset(
             dataset=QueryDatasets.METRICS,
             time_window=3600,
