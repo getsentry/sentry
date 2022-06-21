@@ -11,9 +11,27 @@ on:
       - completed
 
 jobs:
+  files-changed:
+    name: detect what files changed
+    runs-on: ubuntu-20.04
+    timeout-minutes: 3
+    # Map a step output to a job output
+    outputs:
+      acceptance: ${{ steps.changes.outputs.acceptance }}
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check for files changed
+        uses: getsentry/paths-filter@v2
+        id: changes
+        with:
+          token: ${{ github.token }}
+          filters: .github/file-filters.yml
+
   visual-diff:
+    needs: files-changed
     # Only execute this check when a PR is opened from a fork rather than the upstream repo
-    if: github.event.workflow_run.head_repository.full_name != 'getsentry/sentry'
+    if: github.event.workflow_run.head_repository.full_name != 'getsentry/sentry' && needs.files-changed.outputs.acceptance == 'true'
     runs-on: ubuntu-20.04
     timeout-minutes: 20
 
