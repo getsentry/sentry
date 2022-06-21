@@ -1,9 +1,10 @@
+import type Fuse from 'fuse.js';
+
 import {FlamegraphFrame} from '../../flamegraphFrame';
-import {Bounds} from '../../gl/utils';
 
 export type FlamegraphSearchResult = {
   frame: FlamegraphFrame;
-  matchIndices: Bounds[];
+  matchIndices: Fuse.RangeTuple[];
 };
 
 export type FlamegraphSearch = {

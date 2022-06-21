@@ -13,7 +13,6 @@ import {
   FlamegraphFrame,
   getFlamegraphFrameSearchId,
 } from 'sentry/utils/profiling/flamegraphFrame';
-import {Bounds} from 'sentry/utils/profiling/gl/utils';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
@@ -66,7 +65,7 @@ function frameSearch(
               acc.push([match.index, match.index + match[0].length]);
 
               return acc;
-            }, [] as [number, number][]),
+            }, [] as Fuse.RangeTuple[]),
           };
           matches += 1;
         }
@@ -98,7 +97,7 @@ function frameSearch(
       matchIndices: fuseFrameResult.matches!.reduce((acc, val) => {
         acc.push(...val.indices);
         return acc;
-      }, [] as Bounds[]),
+      }, [] as Fuse.RangeTuple[]),
     };
   }
 
