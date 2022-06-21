@@ -147,7 +147,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: check requirements
         run: |
-          python -m pip install 'pip-tools==6.6.1'
+          python -m pip install 'pip-tools==6.6.2'
           python -S -m tools.check_frozen_requirements sentry
 
   lint:
