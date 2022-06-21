@@ -12,7 +12,7 @@ import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Tooltip from 'sentry/components/tooltip';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -28,6 +28,7 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
 import {TableColumn} from 'sentry/views/eventsV2/table/types';
 
@@ -285,6 +286,10 @@ class EventsTable extends Component<Props, State> {
   render() {
     const {eventView, organization, location, setError} = this.props;
 
+    const totalTransactionsView = eventView.clone();
+    totalTransactionsView.sorts = [];
+    totalTransactionsView.fields = [{field: 'count()', width: -1}];
+
     const {widths} = this.state;
     const containsSpanOpsBreakdown = eventView
       .getColumns()
@@ -304,7 +309,6 @@ class EventsTable extends Component<Props, State> {
         }
         return col;
       });
-
     return (
       <div>
         <DiscoverQuery
@@ -316,11 +320,13 @@ class EventsTable extends Component<Props, State> {
           useEvents
         >
           {({pageLinks, isLoading, tableData}) => {
+            const parsedPageLinks = parseLinkHeader(pageLinks);
+            const currentEvent = parsedPageLinks?.next?.cursor.split(':')[1] ?? 0;
             return (
               <Fragment>
                 <GridEditable
                   isLoading={isLoading}
-                  data={tableData ? tableData.data : []}
+                  data={tableData?.data ?? []}
                   columnOrder={columnOrder}
                   columnSortBy={eventView.getSorts()}
                   grid={{
@@ -330,7 +336,28 @@ class EventsTable extends Component<Props, State> {
                   }}
                   location={location}
                 />
-                <Pagination pageLinks={pageLinks} />
+                <DiscoverQuery
+                  eventView={totalTransactionsView}
+                  orgSlug={organization.slug}
+                  location={location}
+                  setError={error => setError(error?.message)}
+                  referrer="api.performance.transaction-summary"
+                  useEvents
+                >
+                  {({tableData: table}) => {
+                    const eventCount = table?.data[0]?.['count()'];
+                    return (
+                      <Pagination
+                        disabled={isLoading || !eventCount}
+                        caption={tct('Showing [current] of [eventCount] events', {
+                          current: currentEvent,
+                          eventCount,
+                        })}
+                        pageLinks={pageLinks}
+                      />
+                    );
+                  }}
+                </DiscoverQuery>
               </Fragment>
             );
           }}
