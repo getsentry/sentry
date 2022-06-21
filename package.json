@@ -162,7 +162,7 @@
     "@storybook/builder-webpack5": "6.3.13",
     "@storybook/manager-webpack5": "6.3.13",
     "@storybook/react": "6.3.13",
-    "@storybook/router": "6.5.8",
+    "@storybook/router": "6.5.9",
     "@storybook/theming": "6.3.13",
     "@types/node": "^17.0.42",
     "@visual-snapshot/jest": "6.0.2",
