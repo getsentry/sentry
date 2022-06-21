@@ -18,7 +18,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconEdit} from 'sentry/icons';
+import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Member, Organization, Project} from 'sentry/types';
@@ -255,7 +255,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <Button title={t('Duplicate')} to={duplicateLink}>
+              <Button icon={<IconCopy />} to={duplicateLink}>
                 {t('Duplicate')}
               </Button>
               <Button

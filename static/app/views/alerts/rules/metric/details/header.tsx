@@ -6,7 +6,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import PageHeading from 'sentry/components/pageHeading';
-import {IconEdit} from 'sentry/icons';
+import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {PageHeader} from 'sentry/styles/organization';
 import space from 'sentry/styles/space';
@@ -50,7 +50,7 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, params, project}: Props
           ]}
         />
         <Controls>
-          <Button title={t('Duplicate')} to={duplicateLink}>
+          <Button icon={<IconCopy />} to={duplicateLink}>
             {t('Duplicate')}
           </Button>
           <Button icon={<IconEdit />} to={settingsLink}>
