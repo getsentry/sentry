@@ -81,16 +81,21 @@ describe('IssueWidgetQueries', function () {
     expect(mockFunction).toHaveBeenCalledWith(
       expect.objectContaining({
         tableResults: [
-          expect.objectContaining({
-            id: '1',
-            title: 'Error: Failed',
-            status: 'unresolved',
-            lifetimeEvents: 10,
-            lifetimeUsers: 5,
-            events: 6,
-            users: 3,
-            firstSeen: '2022-01-01T13:04:02Z',
-          }),
+          {
+            title: '',
+            data: [
+              expect.objectContaining({
+                id: '1',
+                title: 'Error: Failed',
+                status: 'unresolved',
+                lifetimeEvents: 10,
+                lifetimeUsers: 5,
+                events: 6,
+                users: 3,
+                firstSeen: '2022-01-01T13:04:02Z',
+              }),
+            ],
+          },
         ],
       })
     );
