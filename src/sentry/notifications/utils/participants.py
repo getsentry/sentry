@@ -251,6 +251,9 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
     if not project or not event:
         return []
 
+    if not event.group:
+        return []
+
     last_release_version: str | None = event.group.get_last_release()
     if not last_release_version:
         return []

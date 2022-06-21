@@ -5,7 +5,13 @@ from django.db.models import DateTimeField
 from django.utils import timezone
 
 from sentry.eventstore.models import Event
-from sentry.models import Deploy, Environment, Release, ReleaseEnvironment
+from sentry.models import (
+    Deploy,
+    Environment,
+    Release,
+    ReleaseEnvironment,
+    ReleaseProjectEnvironment,
+)
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 
@@ -20,7 +26,15 @@ class ActiveReleaseEventCondition(EventCondition):
 
         now = timezone.now()
         now_minus_1_hour = now - timedelta(hours=1.0)
-        last_release: Release = event.group.get_last_release()
+
+        if not event.group or not event.project:
+            return False
+
+        last_release_version: Optional[str] = event.group.get_last_release()
+        if not last_release_version:
+            return False
+
+        last_release: Release = Release.get(project=event.project, version=last_release_version)
         if not last_release:
             return False
 
@@ -38,11 +52,19 @@ class ActiveReleaseEventCondition(EventCondition):
                     return release.date_released
                 else:
                     if env:
-                        env_release = ReleaseEnvironment.objects.filter(
+                        release_env_project = ReleaseProjectEnvironment.objects.filter(
+                            release_id=release.id, project=release.project_id, environment_id=env.id
+                        ).first()
+
+                        release_env = ReleaseEnvironment.objects.filter(
                             release_id=release.id, environment_id=env.id
                         ).first()
-                        if env_release:
-                            return env_release.first_seen
+
+                        if release_env_project and release_env_project.first_seen:
+                            return release_env_project.first_seen
+
+                        if release_env and release_env.first_seen:
+                            return release_env.first_seen
             return None
 
         deploy_time = release_deploy_time(last_release, event.get_environment())
