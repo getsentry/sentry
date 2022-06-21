@@ -30,6 +30,16 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, params, project}: Props
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
     }/${project?.slug ?? rule?.projects?.[0]}/${rule.id}/`;
 
+  const duplicateLink = {
+    pathname: `/organizations/${params.orgId}/alerts/new/metric/`,
+    query: {
+      project: project?.slug,
+      duplicateRuleId: rule?.id,
+      createFromDuplicate: true,
+      referrer: 'metric_rule_details',
+    },
+  };
+
   return (
     <Header>
       <BreadCrumbBar>
@@ -40,6 +50,9 @@ function DetailsHeader({hasMetricRuleDetailsError, rule, params, project}: Props
           ]}
         />
         <Controls>
+          <Button title={t('Duplicate')} to={duplicateLink}>
+            {t('Duplicate')}
+          </Button>
           <Button icon={<IconEdit />} to={settingsLink}>
             {t('Edit Rule')}
           </Button>
