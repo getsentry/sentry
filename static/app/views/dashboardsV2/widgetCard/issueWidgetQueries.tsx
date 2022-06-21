@@ -38,15 +38,15 @@ type State = {
   loading: boolean;
   memberListStoreLoaded: boolean;
   pageLinks: null | string;
+  tableResults: TableDataRow[];
   totalCount: null | string;
-  transformedData: TableDataRow[];
 };
 
 class IssueWidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
     errorMessage: undefined,
-    transformedData: [],
+    tableResults: [],
     memberListStoreLoaded: MemberListStore.isLoaded(),
     totalCount: null,
     pageLinks: null,
@@ -106,7 +106,7 @@ class IssueWidgetQueries extends Component<Props, State> {
   async fetchTableData() {
     const {api, organization, selection, widget, limit, cursor, onDataFetched} =
       this.props;
-    this.setState({transformedData: []});
+    this.setState({tableResults: []});
 
     try {
       const request = this.config.getTableRequest!(
@@ -130,7 +130,7 @@ class IssueWidgetQueries extends Component<Props, State> {
       this.setState({
         loading: false,
         errorMessage: undefined,
-        transformedData: tableResults.data,
+        tableResults: tableResults.data,
         totalCount,
         pageLinks,
       });
@@ -144,7 +144,7 @@ class IssueWidgetQueries extends Component<Props, State> {
       this.setState({
         loading: false,
         errorMessage: errorResponse ?? t('Unable to load Widget'),
-        transformedData: [],
+        tableResults: [],
       });
     }
   }
@@ -157,7 +157,7 @@ class IssueWidgetQueries extends Component<Props, State> {
   render() {
     const {children} = this.props;
     const {
-      transformedData,
+      tableResults,
       loading,
       errorMessage,
       memberListStoreLoaded,
@@ -167,7 +167,7 @@ class IssueWidgetQueries extends Component<Props, State> {
     return getDynamicText({
       value: children({
         loading: loading || !memberListStoreLoaded,
-        tableResults: [{data: transformedData, title: ''}],
+        tableResults: [{data: tableResults, title: ''}],
         errorMessage,
         pageLinks,
         totalCount: totalCount ?? undefined,
