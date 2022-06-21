@@ -30,43 +30,74 @@ class SearchDropdown extends PureComponent<Props> {
     onClick: function () {},
   };
 
-  renderDescription = (item: SearchItem) => {
+  renderItemTitle = (item: SearchItem) => {
+    const fullWord = item.title ?? '';
+
+    const words =
+      item.kind !== FieldValueKind.FUNCTION ? fullWord.split('.') : [fullWord];
+    const [firstWord, ...restWords] = words;
+    const hideFirstWord = item.isGrouped && item.isChild;
+
+    const combinedRestWords = restWords.length > 0 ? restWords.join('.') : null;
+
     const searchSubstring = this.props.searchSubstring;
-    if (!searchSubstring) {
-      if (item.type === ItemType.INVALID_TAG) {
+
+    if (searchSubstring) {
+      const idx = fullWord.toLowerCase().indexOf(searchSubstring);
+
+      if (idx !== -1) {
+        let renderedRest: React.ReactNode;
+        if (combinedRestWords) {
+          const remainingSubstr = searchSubstring.slice(firstWord.length + 1);
+          const descIdx = combinedRestWords.indexOf(remainingSubstr);
+          if (descIdx > -1) {
+            renderedRest = (
+              <RestOfWords hasSplit={words.length > 1}>
+                .{combinedRestWords.slice(0, descIdx)}
+                <strong>
+                  {combinedRestWords.slice(descIdx, remainingSubstr.length)}
+                </strong>
+                {combinedRestWords.slice(descIdx + remainingSubstr.length)}
+              </RestOfWords>
+            );
+          } else {
+            renderedRest = combinedRestWords;
+          }
+        }
+
         return (
-          <Invalid>
-            {tct("The field [field] isn't supported here. ", {
-              field: <strong>{item.desc}</strong>,
-            })}
-            {tct('[highlight:See all searchable properties in the docs.]', {
-              highlight: <Highlight />,
-            })}
-          </Invalid>
+          <Fragment>
+            <FirstWordWrapper hide={hideFirstWord} aria-hidden={hideFirstWord}>
+              {firstWord.slice(0, idx)}
+              <strong>{firstWord.slice(idx, searchSubstring.length)}</strong>
+              {firstWord.slice(idx + searchSubstring.length)}
+            </FirstWordWrapper>
+            {renderedRest}
+          </Fragment>
         );
       }
-
-      return item.desc;
-    }
-
-    const text = item.desc;
-
-    if (!text) {
-      return null;
-    }
-
-    const idx = text.toLowerCase().indexOf(searchSubstring.toLowerCase());
-
-    if (idx === -1) {
-      return item.desc;
+    } else if (item.type === ItemType.INVALID_TAG) {
+      return (
+        <Invalid>
+          {tct("The field [field] isn't supported here. ", {
+            field: <strong>{item.desc}</strong>,
+          })}
+          {tct('[highlight:See all searchable properties in the docs.]', {
+            highlight: <Highlight />,
+          })}
+        </Invalid>
+      );
     }
 
     return (
-      <span>
-        {text.substr(0, idx)}
-        <strong>{text.substr(idx, searchSubstring.length)}</strong>
-        {text.substr(idx + searchSubstring.length)}
-      </span>
+      <Fragment>
+        <FirstWordWrapper hide={hideFirstWord} aria-hidden={hideFirstWord}>
+          {firstWord}
+        </FirstWordWrapper>
+        {combinedRestWords && (
+          <RestOfWords hasSplit={words.length > 1}>.{combinedRestWords}</RestOfWords>
+        )}
+      </Fragment>
     );
   };
 
@@ -81,9 +112,6 @@ class SearchDropdown extends PureComponent<Props> {
   );
 
   renderItem = (item: SearchItem) => {
-    const description = this.renderDescription(item);
-    const hideTitle = item.isGrouped && item.isChild;
-
     return (
       <SearchListItem
         key={item.value || item.desc || item.title}
@@ -95,14 +123,8 @@ class SearchDropdown extends PureComponent<Props> {
         isChild={item.isChild}
       >
         <SearchItemTitleWrapper>
-          {
-            <TitleWrapper hide={hideTitle} aria-hidden={hideTitle}>
-              {item.title}
-            </TitleWrapper>
-          }
-          {description && (
-            <ItemDescription hasTitle={!!item.title}>{description}</ItemDescription>
-          )}
+          {this.renderItemTitle(item)}
+          {item.desc && <span>{item.desc}</span>}
         </SearchItemTitleWrapper>
         <Documentation>{item.documentation}</Documentation>
         <TagWrapper>
@@ -309,12 +331,13 @@ const SearchItemTitleWrapper = styled('div')`
   ${p => p.theme.overflowEllipsis};
 `;
 
-const ItemDescription = styled('span')<{hasTitle?: boolean}>`
-  color: ${p => (p.hasTitle ? p.theme.blue400 : p.theme.textColor)};
+const RestOfWords = styled('span')<{hasSplit?: boolean}>`
+  color: ${p => (p.hasSplit ? p.theme.blue400 : p.theme.textColor)};
 `;
 
-const TitleWrapper = styled('span')<{hide?: boolean}>`
+const FirstWordWrapper = styled('span')<{hide?: boolean}>`
   opacity: ${p => (p.hide ? 0 : 1)};
+  font-weight: medium;
 `;
 
 const TagWrapper = styled('span')`

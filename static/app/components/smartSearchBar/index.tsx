@@ -875,8 +875,7 @@ class SmartSearchBar extends Component<Props, State> {
 
     const supportedTags = this.props.supportedTags ?? {};
 
-    // Return all if query is empty
-    let tagKeys = Object.keys(supportedTags).map(key => `${key}:`);
+    let tagKeys = Object.keys(supportedTags);
 
     if (query) {
       const preparedQuery =
@@ -887,7 +886,7 @@ class SmartSearchBar extends Component<Props, State> {
     // If the environment feature is active and excludeEnvironment = true
     // then remove the environment key
     if (this.props.excludeEnvironment) {
-      tagKeys = tagKeys.filter(key => key !== 'environment:');
+      tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
     const accountedForSections = new Set<string>();
@@ -895,40 +894,40 @@ class SmartSearchBar extends Component<Props, State> {
     const tagGroups = tagKeys
       .sort((a, b) => a.localeCompare(b))
       .flatMap((key, _, arr) => {
+        const keyWithColon = `${key}:`;
         const sections = key.split('.');
-        const kind = supportedTags[key.slice(0, -1)]?.kind;
+        const kind = supportedTags[key]?.kind;
+        const documentation = getFieldDoc?.(key) || '-';
 
         if (
           sections.length > 1 &&
           kind !== FieldValueKind.FUNCTION &&
           arr.filter(k => k.startsWith(sections[0])).length > 1
         ) {
-          const [title, ...rest] = sections;
+          const [title] = sections;
+
+          const groupHasMoreThanOne =
+            arr.filter(k => k.startsWith(`${sections[0]}.`)).length > 1;
 
           const item: SearchItem = {
-            value: key ?? '',
-            desc: `.${rest.join('.')}`,
-            documentation: getFieldDoc?.(key.slice(0, -1)) || '-',
+            value: keyWithColon,
+            title: key,
+            documentation,
             kind,
-            isGrouped: arr.filter(k => k.startsWith(`${sections[0]}.`)).length > 1,
-            isChild: true,
-            title,
+            isGrouped: groupHasMoreThanOne,
+            isChild: accountedForSections.has(title),
           };
 
-          if (!accountedForSections.has(title)) {
-            accountedForSections.add(title);
-
-            item.isChild = false;
-          }
+          accountedForSections.add(title);
 
           return [item];
         }
 
         return [
           {
-            value: key,
-            desc: key,
-            documentation: getFieldDoc?.(key.slice(0, -1)) || '-',
+            value: keyWithColon,
+            title: key,
+            documentation,
             kind,
           },
         ];
