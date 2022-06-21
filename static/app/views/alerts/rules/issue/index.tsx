@@ -164,35 +164,40 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
   componentDidMount() {
     const {params, organization, experimentAssignment, logExperiment} = this.props;
-    if (!params.ruleId) {
-      // let hook decide when we want to select a default alert rule
-      HookStore.get('callback:default-action-alert-rule').forEach(cb => {
-        cb((showDefaultAction: boolean) => {
-          if (showDefaultAction) {
-            const user = ConfigStore.get('user');
-            const {rule} = this.state;
-            // always log the experiment if we meet the basic requirements decided by the hook
-            logExperiment();
-            if (experimentAssignment) {
-              // this will add a default alert rule action
-              // to send notifications in
-              this.setState({
-                rule: {
-                  ...rule,
-                  actions: [
-                    {
-                      id: 'sentry.mail.actions.NotifyEmailAction',
-                      targetIdentifier: user.id,
-                      targetType: 'Member',
-                    } as any, // Need to fix IssueAlertRuleAction typing
-                  ],
-                } as UnsavedIssueAlertRule,
-              });
-            }
-          }
-        }, organization);
-      });
+    // only new rules
+    if (params.ruleId) {
+      return;
     }
+    // check if there is a callback registered
+    const callback = HookStore.get('callback:default-action-alert-rule')[0];
+    if (!callback) {
+      return;
+    }
+    // let hook decide when we want to select a default alert rule
+    callback((showDefaultAction: boolean) => {
+      if (showDefaultAction) {
+        const user = ConfigStore.get('user');
+        const {rule} = this.state;
+        // always log the experiment if we meet the basic requirements decided by the hook
+        logExperiment();
+        if (experimentAssignment) {
+          // this will add a default alert rule action
+          // to send notifications in
+          this.setState({
+            rule: {
+              ...rule,
+              actions: [
+                {
+                  id: 'sentry.mail.actions.NotifyEmailAction',
+                  targetIdentifier: user.id,
+                  targetType: 'Member',
+                } as any, // Need to fix IssueAlertRuleAction typing
+              ],
+            } as UnsavedIssueAlertRule,
+          });
+        }
+      }
+    }, organization);
   }
 
   componentDidUpdate(_prevProps: Props, prevState: State) {
