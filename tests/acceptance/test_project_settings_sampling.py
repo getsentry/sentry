@@ -1,6 +1,8 @@
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
+from sentry.api.endpoints.project_details import DynamicSamplingSerializer
+from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase
 
 FEATURE_NAME = "organizations:filters-and-sampling"
@@ -61,10 +63,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 ],
             },
         )
-
-        dynamic_sampling = self.project.get_option("sentry:dynamic_sampling")
-        print(dynamic_sampling)
-
         self.create_member(user=self.user, organization=self.org, role="owner", teams=[self.team])
         self.login_as(self.user)
         self.path = f"/settings/{self.org.slug}/projects/{self.project.slug}/sampling/trace/"
@@ -147,49 +145,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                 len(self.browser.find_elements_by_css_selector('[data-test-id="empty-state"]')) == 0
             )
 
-    def test_add_trace_rule(self):
-        with self.feature(FEATURE_NAME):
-            self.wait_until_loaded()
-
-            # Open the modal
-            self.browser.element('[aria-label="Add Rule"]').click()
-
-            # Fill out the form
-            self.browser.element('[aria-label="Add Condition"]').click()
-            self.browser.element('[data-test-id="trace.user.id"]').click()
-            self.browser.element('[placeholder="ex. 4711 (Multiline)"]').click()
-            self.browser.element('[placeholder="ex. 4711 (Multiline)"]').send_keys("1234")
-            self.browser.element('[placeholder="%"]').send_keys("20")
-
-            # Save rule
-            self.browser.element('[aria-label="Save Rule"]').click()
-
-            # Wait the success message to show up
-            self.browser.wait_until('[data-test-id="toast-success"]')
-
-    def test_edit_rule_with_valid_custom_tag(self):
-        with self.feature(FEATURE_NAME):
-            self.wait_until_loaded()
-
-            # Open the edit modal
-            self.browser.elements('[aria-label="Edit Rule"]')[0].click()
-
-            # Update the form
-            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
-                Keys.BACKSPACE
-            )
-            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
-                "dev", Keys.ENTER
-            )
-            self.browser.element('[placeholder="%"]').send_keys(Keys.BACKSPACE, Keys.BACKSPACE, "5")
-
-            # Save rule
-            self.browser.element('[aria-label="Save Rule"]').click()
-
-            # Wait the success message to show up
-            self.browser.wait_until('[data-test-id="toast-success"]')
-
-    def test_add_rule_with_valid_custom_tag(self):
+    def test_add_individual_transaction_rule_with_all_possible_conditions(self):
         with self.feature(FEATURE_NAME):
             self.wait_until_loaded()
 
@@ -199,20 +155,115 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Open the modal
             self.browser.element('[aria-label="Add Rule"]').click()
 
-            # Fill out the form
+            # Open conditions dropdown
             self.browser.element('[aria-label="Add Condition"]').click()
+
+            # Add browser extensions
+            self.browser.element('[data-test-id="event.has_bad_browser_extensions"]').click()
+            # Add Content Security Policy
+            self.browser.element('[data-test-id="event.csp"]').click()
+            # Add Device Family
+            self.browser.element('[data-test-id="event.contexts.device.family"]').click()
+            # Add Device Name
+            self.browser.element('[data-test-id="event.contexts.device.name"]').click()
+            # Add Environment
+            self.browser.element('[data-test-id="event.environment"]').click()
+            # Add Error Message
+            self.browser.element('[data-test-id="event.error_messages"]').click()
+            # Add IP Address
+            self.browser.element('[data-test-id="event.client_ip"]').click()
+            # Add Legacy Browser
+            self.browser.element('[data-test-id="event.legacy_browser"]').click()
+            # Add Localhost
+            self.browser.element('[data-test-id="event.is_local_ip"]').click()
+            # Add OS Name
+            self.browser.element('[data-test-id="event.contexts.os.name"]').click()
+            # Add OS Version
+            self.browser.element('[data-test-id="event.contexts.os.version"]').click()
+            # Add Release
+            self.browser.element('[data-test-id="event.release"]').click()
+            # Add Transaction
+            self.browser.element('[data-test-id="event.transaction"]').click()
+            # Add User ID
+            self.browser.element('[data-test-id="event.user.id"]').click()
+            # Add User Segment
+            self.browser.element('[data-test-id="event.user.segment"]').click()
+            # Add Web Crawlers
+            self.browser.element('[data-test-id="event.web_crawlers"]').click()
+            # Add Custom Tag
             self.browser.element('[aria-autocomplete="list"]').send_keys("Add cus", Keys.ENTER)
-            self.browser.element('[aria-label="Add Condition"]').click()
+
+            # Fill in Content Security Policy
+            self.browser.element('[placeholder="ex. file://*, example.com (Multiline)"]').send_keys(
+                "sentry.io\nwhatever.com"
+            )
+            # Fill in Device Family
+            self.browser.element('[aria-label="Search or add a device family"]').send_keys(
+                "Mac", Keys.ENTER, "pixe*", Keys.ENTER
+            )
+            # Fill in Device Name
+            self.browser.element('[aria-label="Search or add a device name"]').send_keys(
+                "mac", Keys.ENTER, "ipho*", Keys.ENTER
+            )
+            # Fill in Environment
+            self.browser.element('[aria-label="Search or add an environment"]').send_keys(
+                "prod", Keys.ENTER, "production", Keys.ENTER
+            )
+            # Fill in Error Message
+            self.browser.element('[placeholder="ex. TypeError* (Multiline)"]').send_keys(
+                "TypeError*\nSomethingElse"
+            )
+            # Fill in IP Address
+            self.browser.element(
+                '[placeholder="ex. 127.0.0.1 or 10.0.0.0/8 (Multiline)"]'
+            ).send_keys("10.0.0.0/8\n127.0.0.1")
+            # Enable All Browsers
+            self.browser.elements('[data-test-id="switch"]')[0].click()
+            # Fill in OS Name
+            self.browser.element('[aria-label="Search or add an os name"]').send_keys(
+                "Mac OS X", Keys.ENTER, "Windo*", Keys.ENTER
+            )
+            # Fill in OS Version
+            self.browser.element('[placeholder="ex. 11, 9* (Multiline)"]').send_keys("11")
+            # Fill in Release
+            self.browser.element('[aria-label="Search or add a release"]').send_keys(
+                "frontend@22*", Keys.ENTER
+            )
+            # Fill in Transaction
+            self.browser.element('[aria-label="Search or add a transaction"]').send_keys(
+                "/organizations/:orgId/alerts/:projectId/wizard/",
+                Keys.ENTER,
+                "/organizations/:orgId/alerts/rules/",
+                Keys.ENTER,
+            )
+            # Fill in User ID
+            self.browser.element('[placeholder="ex. 4711 (Multiline)"]').send_keys("4711\n1")
+            # Fill in User Segment
+            self.browser.element('[placeholder="ex. paid, common (Multiline)"]').send_keys(
+                "paid\ncommon"
+            )
+            # Fill in Custom Tag
             self.browser.element('[aria-label="Search or add a tag"]').send_keys(
-                "custom.tag", Keys.ENTER
+                "DOMException.code", Keys.ENTER
             )
             self.browser.element('[aria-label="Search or add tag values"]').send_keys(
-                "value", Keys.ENTER
+                "20", Keys.ENTER
             )
-            self.browser.element('[placeholder="%"]').send_keys("10")
+            # Fill in sample rate
+            self.browser.element('[placeholder="%"]').send_keys("50")
 
             # Save rule
             self.browser.element('[aria-label="Save Rule"]').click()
 
             # Wait the success message to show up
             self.browser.wait_until('[data-test-id="toast-success"]')
+
+            # Take a screenshot
+            self.browser.snapshot("sampling settings rule with all possible conditions")
+
+            # Validate the payload
+            project = Project.objects.get(pk=self.project.id)
+            saved_sampling_setting = project.get_option("sentry:dynamic_sampling")
+            serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
+            assert serializer.is_valid()
+            assert saved_sampling_setting == serializer.validated_data
