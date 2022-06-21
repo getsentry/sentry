@@ -101,7 +101,8 @@ def holds_bad_pickle_object(value, memo=None):
     if isinstance(value, models.Model):
         return (
             value,
-            "django database model is huge and can be stale. Load from database in task instead",
+            "django database models are large and likely to be stale when your task is run. "
+            "Instead pass primary key values to the task and load records from the database within your task.",
         )
     if type(value).__module__.startswith(("sentry.", "getsentry.")):
         return value, "do not pickle custom classes"
