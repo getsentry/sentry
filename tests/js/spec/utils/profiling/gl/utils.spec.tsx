@@ -363,7 +363,7 @@ describe('trimTextCenter', () => {
   it('trims nothing if low > length', () => {
     expect(trimTextCenter('abc', 4)).toMatchObject({
       end: 3,
-      length: 3,
+      length: 0,
       start: 0,
       text: 'abc',
     });
@@ -446,6 +446,36 @@ describe('computeHighlightedBounds', () => {
         },
       },
       expected: [7, 8], // …
+    },
+    {
+      name: 'matched bounds fall before and after truncate',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [16, 28],
+        trim: {
+          // match bounds are shifted after truncate
+          text: '-[UIScrollView _sm…rollDisplayLink:]',
+          start: 18,
+          end: 24,
+          length: 6,
+        },
+      },
+      expected: [16, 23], // smoothScroll
+    },
+    {
+      name: 'matched bounds fall before  truncate',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [4, 14],
+        trim: {
+          // match bounds are shifted after truncate
+          text: '-[UIScrollView _sm…rollDisplayLink:]',
+          start: 18,
+          end: 24,
+          length: 6,
+        },
+      },
+      expected: [4, 14], // smoothScroll
     },
   ];
 

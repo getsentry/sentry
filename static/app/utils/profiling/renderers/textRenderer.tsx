@@ -150,6 +150,9 @@ class TextRenderer {
         if (frameSearchResult) {
           for (const matchIndices of frameSearchResult.matchIndices) {
             const highlightedBounds = computeHighlightedBounds(matchIndices, trim);
+            if (!highlightedBounds) {
+              continue;
+            }
             const [startIndex, endIndex] = highlightedBounds;
             const highlightTextSize = this.measureAndCacheText(
               trimText.substring(startIndex, endIndex)
@@ -168,7 +171,7 @@ class TextRenderer {
         }
       }
 
-      this.context.fillStyle = '#000000';
+      this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
       this.context.fillText(trimText, x, y);
 
       for (let i = 0; i < frame.children.length; i++) {

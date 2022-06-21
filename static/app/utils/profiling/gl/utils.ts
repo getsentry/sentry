@@ -515,7 +515,7 @@ export function trimTextCenter(text: string, low: number): TrimTextCenter {
       text,
       start: 0,
       end: text.length,
-      length: text.length,
+      length: 0,
     };
   }
   const prefixLength = Math.floor(low / 2);
@@ -565,79 +565,62 @@ export type Bounds = [number, number];
  * computeHighlightedBounds determines if a supplied boundary should be reduced in size
  * or shifted based on the results of a trim operation
  */
-export function computeHighlightedBounds(bounds: Bounds, trim: TrimTextCenter): Bounds {
-  const next = bounds;
-  const [boundStart, boundEnd] = next;
-  const {start: trimStart, end: trimEnd, length: trimLength, text} = trim;
+export function computeHighlightedBounds(
+  bounds: Bounds,
+  trim: TrimTextCenter
+): Bounds | null {
+  const [boundStart, boundEnd] = bounds;
+  const {start: trimStart, end: trimEnd, length: trimLength} = trim;
 
-  const isNotTrimmed = trimStart === 0 && trimEnd === trimLength && text.length > 1;
+  const isNotTrimmed = trimLength === 0;
   if (isNotTrimmed) {
-    return next;
+    return bounds;
   }
 
-  const isHeadEllipsis = isBetween(boundStart, trimStart, trimEnd);
-  const isTailEllipsis = isBetween(boundEnd, trimStart, trimEnd);
-  const isFullyTruncated = isHeadEllipsis && isTailEllipsis;
+  const isStartBetweenTrim = isBetween(boundStart, trimStart, trimEnd);
+  const isEndBetweenTrim = isBetween(boundEnd, trimStart, trimEnd);
+  const isFullyTruncated = isStartBetweenTrim && isEndBetweenTrim;
 
-  /**
-   * if a word is fully truncated we reduce the bounds to a single char
-   * where the ellipsis lies
-   *
-   * "dis" in "DrawDisplay":
-   *
-   * | D | r | a | w | … | p | l | a | y |
-   *                 4---5
-   */
+  // example:
+  // -[UIScrollView _smoothScrollDisplayLink:]
+
+  // "smooth" in "-[UIScrollView _…ScrollDisplayLink:]"
+  //                              ^^
   if (isFullyTruncated) {
     return [trimStart, trimStart + 1];
   }
 
-  /**
-   * check if matched bounds partially falls within a trim (ellipsis) at the head the word
-   * if our matched bounds falls within the trimmed boundaries (ellipsis)
-   * reduce our matched boundary to align with where the trim ends
-   *
-   * "Display" in "DrawDisplay":
-   *
-   * | D | r | a | w | D | i | s | p | l | a | y |
-   *                 4---match------------------11
-   * | D | r | a | w | . | . | . | p | l | a | y |
-   *                 4---trim----7
-   *                             7---match------11
-   */
-  if (isHeadEllipsis) {
-    next[0] = trimEnd;
-  }
-
-  if (isTailEllipsis) {
-    // +1 to be inclusive of ellipsis
-    next[1] = trimStart + 1;
-  }
-
-  /**
-   * if a matched boundary falls after an trim (ellipsis) we need
-   * to shift our indexes down by the length of n chars that are trimmed
-   *
-   * shiftedBound = bound - trimLength + 1?
-   *
-   * | D | r | a | w | . | . | . | p | l | a | y |
-   *                 4--trim(3)--7
-   *                             7---match------11
-   *
-   * | D | r | a | w | … | p | l | a | y |
-   *                 4---match-----------9
-   */
-  const maybeShiftBounds = (i: number) => {
-    if (i < trimEnd) {
-      return i;
-    }
-    const shiftedBound = i - trimLength;
-    // include ellipsis in boundary
-    if (shiftedBound === trimStart) {
-      return trimStart;
+  if (boundStart < trimStart) {
+    // "ScrollView" in '-[UIScrollView _sm…rollDisplayLink:]'
+    //                      ^--------^
+    if (boundEnd < trimStart) {
+      return bounds;
     }
 
-    return shiftedBound + 1;
-  };
-  return next.map(maybeShiftBounds) as Bounds;
+    // "smoothScroll" in -[UIScrollView _smooth…DisplayLink:]'
+    //                                   ^-----^
+    if (isEndBetweenTrim) {
+      return [boundStart, trimStart + 1];
+    }
+
+    // "smoothScroll" in -[UIScrollView _sm…llDisplayLink:]'
+    //                                   ^---^
+    if (boundEnd > trimEnd) {
+      return [boundStart, boundEnd - trimLength + 1];
+    }
+  }
+
+  // "smoothScroll" in -[UIScrollView _…scrollDisplayLink:]'
+  //                                   ^-----^
+  if (isStartBetweenTrim && boundEnd > trimEnd) {
+    return [trimStart, boundEnd - trimLength + 1];
+  }
+
+  // "display" in -[UIScrollView _…scrollDisplayLink:]'
+  //                                     ^-----^
+  if (boundStart > trimEnd) {
+    return [boundStart - trimLength + 1, boundEnd - trimLength + 1];
+  }
+
+  return null;
 }
