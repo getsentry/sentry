@@ -552,20 +552,17 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 @click.option("--input-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--output-block-size", type=int, default=DEFAULT_BLOCK_SIZE)
 @click.option("--factory-name", default="default")
-@click.option("--ingest-profile", default="release-health")
 @click.option("commit_max_batch_size", "--commit-max-batch-size", type=int, default=25000)
 @click.option("commit_max_batch_time", "--commit-max-batch-time-ms", type=int, default=10000)
 def metrics_streaming_consumer(**options):
-    from sentry.sentry_metrics.configuration import UseCaseKey, get_ingest_config
     from sentry.sentry_metrics.metrics_wrapper import MetricsWrapper
     from sentry.sentry_metrics.multiprocess import get_streaming_metrics_consumer
-    from sentry.utils.metrics import backend, global_tags
+    from sentry.utils.metrics import backend
 
-    ingest_config = get_ingest_config(UseCaseKey(options["ingest_profile"]))
-    metrics_wrapper = MetricsWrapper(backend, "sentry_metrics.indexer")
-    configure_metrics(metrics_wrapper)
+    metrics = MetricsWrapper(backend, "sentry_metrics.indexer")
+    configure_metrics(metrics)
 
-    streamer = get_streaming_metrics_consumer(indexer_profile=ingest_config, **options)
+    streamer = get_streaming_metrics_consumer(**options)
 
     def handler(signum, frame):
         streamer.signal_shutdown()
@@ -573,8 +570,7 @@ def metrics_streaming_consumer(**options):
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    with global_tags(tags={"pipeline": ingest_config.internal_metrics_tag}, _all_threads=True):
-        streamer.run()
+    streamer.run()
 
 
 @run.command("ingest-profiles")
