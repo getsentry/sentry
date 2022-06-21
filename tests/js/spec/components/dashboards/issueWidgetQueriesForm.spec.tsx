@@ -118,12 +118,12 @@ describe('IssueWidgetQueriesForm', function () {
 
   it('fetches tag values when when focused on a lhs tag condition', async function () {
     const {tagsMock} = renderComponent(organization, routerContext);
-
+    //
     userEvent.type(screen.getAllByText('assigned:')[1], 'event.type:');
     await tick();
     expect(tagsMock).toHaveBeenCalled();
     expect(screen.getByText('default')).toBeInTheDocument();
-    expect(screen.getByText('error')).toBeInTheDocument();
+    expect(screen.getAllByText('error')[0]).toBeInTheDocument();
   });
 
   it('only calls onChange once when selecting a value from the autocomplete dropdown', async function () {
@@ -132,8 +132,8 @@ describe('IssueWidgetQueriesForm', function () {
     userEvent.click(screen.getAllByText('assigned:')[1]);
     await tick();
     expect(screen.getByText('Recent Searches')).toBeInTheDocument();
-    expect(screen.getByText(':#visibility level:error')).toBeInTheDocument();
-    userEvent.click(screen.getByText(':#visibility level:error'));
+    expect(screen.getByText('#visibility')).toBeInTheDocument();
+    userEvent.click(screen.getByText('#visibility'));
     await tick();
     expect(onChangeHandler).toHaveBeenCalledTimes(1);
   });

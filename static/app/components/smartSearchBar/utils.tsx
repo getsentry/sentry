@@ -1,3 +1,4 @@
+// eslint-disable-next-line simple-import-sort/imports
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
@@ -16,8 +17,10 @@ import {
   IconUser,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types';
+import {Tag} from 'sentry/types';
 
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
@@ -56,7 +59,7 @@ export function getQueryTerms(query: string, cursor: number) {
 
 function getTitleForType(type: ItemType) {
   if (type === ItemType.TAG_VALUE) {
-    return t('Tag Values');
+    return t('Values');
   }
 
   if (type === ItemType.RECENT_SEARCH) {
@@ -75,7 +78,7 @@ function getTitleForType(type: ItemType) {
     return t('Properties');
   }
 
-  return t('Tags');
+  return t('Keys');
 }
 
 function getIconForTypeAndTag(type: ItemType, tagName: string) {
@@ -122,14 +125,34 @@ export function createSearchGroups(
   }
 
   if (queryCharsLeft || queryCharsLeft === 0) {
+    searchItems = searchItems.flatMap(item => {
+      if (!item.children) {
+        if (!item.value || item.value.length <= queryCharsLeft) {
+          return [item];
+        }
+        return [];
+      }
+
+      const newItem = {
+        ...item,
+        children: item.children.filter(
+          child => !child.value || child.value.length <= queryCharsLeft
+        ),
+      };
+
+      if (newItem.children.length === 0) {
+        return [];
+      }
+
+      return [newItem];
+    });
     searchItems = searchItems.filter(
-      (value: SearchItem) =>
-        typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
+      (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
     );
+
     if (recentSearchItems) {
       recentSearchItems = recentSearchItems.filter(
-        (value: SearchItem) =>
-          typeof value.value !== 'undefined' && value.value.length <= queryCharsLeft
+        (value: SearchItem) => !value.value || value.value.length <= queryCharsLeft
       );
     }
   }
@@ -157,47 +180,36 @@ export function createSearchGroups(
     };
   }
 
+  const flatSearchItems = searchItems.flatMap(item => {
+    if (item.children) {
+      if (!item.value) {
+        return [...item.children];
+      }
+      return [item, ...item.children];
+    }
+    return [item];
+  });
+
   if (isDefaultState) {
     // Recent searches first in default state.
     return {
       searchGroups: [...(recentSearchGroup ? [recentSearchGroup] : []), searchGroup],
-      flatSearchItems: [...(recentSearchItems ? recentSearchItems : []), ...searchItems],
+      flatSearchItems: [
+        ...(recentSearchItems ? recentSearchItems : []),
+        ...flatSearchItems,
+      ],
       activeSearchItem: -1,
     };
   }
 
   return {
     searchGroups: [searchGroup, ...(recentSearchGroup ? [recentSearchGroup] : [])],
-    flatSearchItems: [...searchItems, ...(recentSearchItems ? recentSearchItems : [])],
+    flatSearchItems: [
+      ...flatSearchItems,
+      ...(recentSearchItems ? recentSearchItems : []),
+    ],
     activeSearchItem: -1,
   };
-}
-
-/**
- * Items is a list of dropdown groups that have a `children` field. Only the
- * `children` are selectable, so we need to find which child is selected given
- * an index that is in range of the sum of all `children` lengths
- *
- * @return Returns a tuple of [groupIndex, childrenIndex]
- */
-export function filterSearchGroupsByIndex(items: SearchGroup[], index: number) {
-  let _index = index;
-  let foundSearchItem: [number?, number?] = [undefined, undefined];
-
-  items.find(({children}, i) => {
-    if (!children || !children.length) {
-      return false;
-    }
-    if (_index < children.length) {
-      foundSearchItem = [i, _index];
-      return true;
-    }
-
-    _index -= children.length;
-    return false;
-  });
-
-  return foundSearchItem;
 }
 
 export function generateOperatorEntryMap(tag: string) {
@@ -327,3 +339,106 @@ export const shortcuts: Shortcut[] = [
     },
   },
 ];
+
+/**
+ * Groups tag keys based on the "." character in their key.
+ * For example, "device.arch" and "device.name" will be grouped together as children of "device", a non-interactive parent.
+ * The parent will become interactive if there exists a key "device".
+ */
+export const getTagItemsFromKeys = (
+  tagKeys: string[],
+  supportedTags: {
+    [key: string]: Tag;
+  },
+  getFieldDoc?: (key: string) => React.ReactNode
+) => {
+  return [...tagKeys]
+    .sort((a, b) => a.localeCompare(b))
+    .reduce((groups, key) => {
+      const keyWithColon = `${key}:`;
+      const sections = key.split('.');
+      const kind = supportedTags[key]?.kind;
+      const documentation = getFieldDoc?.(key) || '-';
+
+      const item: SearchItem = {
+        value: keyWithColon,
+        title: key,
+        documentation,
+        kind,
+      };
+
+      const lastGroup = groups.at(-1);
+
+      const [title] = sections;
+
+      if (kind !== FieldValueKind.FUNCTION && lastGroup) {
+        if (lastGroup.children && lastGroup.title === title) {
+          lastGroup.children.push(item);
+          return groups;
+        }
+
+        if (lastGroup.title && lastGroup.title.split('.')[0] === title) {
+          if (lastGroup.title === title) {
+            return [
+              ...groups.slice(0, -1),
+              {
+                title,
+                value: lastGroup.value,
+                documentation: lastGroup.documentation,
+                kind: lastGroup.kind,
+                children: [item],
+              },
+            ];
+          }
+
+          // Add a blank parent if the last group's full key is not the same as the title
+          return [
+            ...groups.slice(0, -1),
+            {
+              title,
+              value: null,
+              documentation: '-',
+              kind: lastGroup.kind,
+              children: [lastGroup, item],
+            },
+          ];
+        }
+      }
+
+      return [...groups, item];
+    }, [] as SearchItem[]);
+};
+
+/**
+ * Sets an item as active within a search group array.
+ * Comparison using the value of the item, assuming each item has a unique value.
+ */
+export const setSearchGroupItemActive = (
+  searchGroups: SearchGroup[],
+  currentItem: SearchItem,
+  active: boolean
+) => {
+  searchGroups.find(group => {
+    return group.children?.find(item => {
+      if (item.value === currentItem.value) {
+        item.active = active;
+
+        return true;
+      }
+
+      if (item.children && item.children.length > 0) {
+        return item.children.find(child => {
+          if (child.value === currentItem.value) {
+            child.active = active;
+
+            return true;
+          }
+
+          return false;
+        });
+      }
+
+      return false;
+    });
+  });
+};

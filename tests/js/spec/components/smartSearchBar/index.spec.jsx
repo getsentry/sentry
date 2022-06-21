@@ -1089,7 +1089,7 @@ describe('SmartSearchBar', function () {
       await tick();
 
       expect(searchBarInst.state.searchGroups).toHaveLength(1);
-      expect(searchBarInst.state.searchGroups[0].title).toEqual('Tags');
+      expect(searchBarInst.state.searchGroups[0].title).toEqual('Keys');
       expect(searchBarInst.state.searchGroups[0].type).toEqual('invalid-tag');
       expect(searchBar.text()).toContain("The field invalid isn't supported here");
     });

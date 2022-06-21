@@ -43,7 +43,6 @@ import {callIfFunction} from 'sentry/utils/callIfFunction';
 import getDynamicComponent from 'sentry/utils/getDynamicComponent';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {ActionButton} from './actions';
 import SearchDropdown from './searchDropdown';
@@ -52,10 +51,11 @@ import {ItemType, SearchGroup, SearchItem, Shortcut, ShortcutType} from './types
 import {
   addSpace,
   createSearchGroups,
-  filterSearchGroupsByIndex,
   generateOperatorEntryMap,
+  getTagItemsFromKeys,
   getValidOps,
   removeSpace,
+  setSearchGroupItemActive,
   shortcuts,
 } from './utils';
 
@@ -681,20 +681,6 @@ class SmartSearchBar extends Component<Props, State> {
       const {flatSearchItems, activeSearchItem} = this.state;
       const searchGroups = [...this.state.searchGroups];
 
-      const [groupIndex, childrenIndex] = isSelectingDropdownItems
-        ? filterSearchGroupsByIndex(searchGroups, activeSearchItem)
-        : [];
-
-      // Remove the previous 'active' property
-      if (typeof groupIndex !== 'undefined') {
-        if (
-          childrenIndex !== undefined &&
-          searchGroups[groupIndex]?.children?.[childrenIndex]
-        ) {
-          delete searchGroups[groupIndex].children[childrenIndex].active;
-        }
-      }
-
       const currIndex = isSelectingDropdownItems ? activeSearchItem : 0;
       const totalItems = flatSearchItems.length;
 
@@ -706,23 +692,13 @@ class SmartSearchBar extends Component<Props, State> {
           ? (currIndex + 1) % totalItems
           : 0;
 
-      const [nextGroupIndex, nextChildrenIndex] = filterSearchGroupsByIndex(
-        searchGroups,
-        nextActiveSearchItem
-      );
+      // Clear previous selection
+      const prevItem = flatSearchItems[currIndex];
+      setSearchGroupItemActive(searchGroups, prevItem, false);
 
-      // Make sure search items exist (e.g. both groups could be empty) and
-      // attach the 'active' property to the item
-      if (
-        nextGroupIndex !== undefined &&
-        nextChildrenIndex !== undefined &&
-        searchGroups[nextGroupIndex]?.children
-      ) {
-        searchGroups[nextGroupIndex].children[nextChildrenIndex] = {
-          ...searchGroups[nextGroupIndex].children[nextChildrenIndex],
-          active: true,
-        };
-      }
+      // Set new selection
+      const activeItem = flatSearchItems[nextActiveSearchItem];
+      setSearchGroupItemActive(searchGroups, activeItem, true);
 
       this.setState({searchGroups, activeSearchItem: nextActiveSearchItem});
     }
@@ -734,15 +710,9 @@ class SmartSearchBar extends Component<Props, State> {
     ) {
       evt.preventDefault();
 
-      const {activeSearchItem, searchGroups} = this.state;
-      const [groupIndex, childrenIndex] = filterSearchGroupsByIndex(
-        searchGroups,
-        activeSearchItem
-      );
-      const item =
-        groupIndex !== undefined &&
-        childrenIndex !== undefined &&
-        searchGroups[groupIndex].children[childrenIndex];
+      const {activeSearchItem, flatSearchItems} = this.state;
+
+      const item = flatSearchItems[activeSearchItem];
 
       if (item) {
         if (item.callback) {
@@ -801,20 +771,17 @@ class SmartSearchBar extends Component<Props, State> {
     }
 
     evt.preventDefault();
-    const isSelectingDropdownItems = this.state.activeSearchItem > -1;
 
     if (!this.state.showDropdown) {
       this.blur();
       return;
     }
 
-    const {searchGroups, activeSearchItem} = this.state;
-    const [groupIndex, childrenIndex] = isSelectingDropdownItems
-      ? filterSearchGroupsByIndex(searchGroups, activeSearchItem)
-      : [];
+    const {searchGroups, flatSearchItems, activeSearchItem} = this.state;
+    const isSelectingDropdownItems = this.state.activeSearchItem > -1;
 
-    if (groupIndex !== undefined && childrenIndex !== undefined) {
-      delete searchGroups[groupIndex].children[childrenIndex].active;
+    if (isSelectingDropdownItems) {
+      setSearchGroupItemActive(searchGroups, flatSearchItems[activeSearchItem], false);
     }
 
     this.setState({
@@ -913,13 +880,12 @@ class SmartSearchBar extends Component<Props, State> {
   /**
    * Returns array of possible key values that substring match `query`
    */
-  getTagGroups(query: string): [SearchItem[], ItemType] {
+  getTagKeys(query: string): [SearchItem[], ItemType] {
     const {prepareQuery, supportedTagType, getFieldDoc} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
 
-    // Return all if query is empty
-    let tagKeys = Object.keys(supportedTags).map(key => `${key}:`);
+    let tagKeys = Object.keys(supportedTags);
 
     if (query) {
       const preparedQuery =
@@ -930,54 +896,12 @@ class SmartSearchBar extends Component<Props, State> {
     // If the environment feature is active and excludeEnvironment = true
     // then remove the environment key
     if (this.props.excludeEnvironment) {
-      tagKeys = tagKeys.filter(key => key !== 'environment:');
+      tagKeys = tagKeys.filter(key => key !== 'environment');
     }
 
-    const accountedForSections = new Set<string>();
+    const tagItems = getTagItemsFromKeys(tagKeys, supportedTags, getFieldDoc);
 
-    const tagGroups = tagKeys
-      .sort((a, b) => a.localeCompare(b))
-      .flatMap((key, _, arr) => {
-        const sections = key.split('.');
-        const kind = supportedTags[key.slice(0, -1)]?.kind;
-
-        if (
-          sections.length > 1 &&
-          kind !== FieldValueKind.FUNCTION &&
-          arr.filter(k => k.startsWith(sections[0])).length > 1
-        ) {
-          const [title, ...rest] = sections;
-
-          const item: SearchItem = {
-            value: key ?? '',
-            desc: `.${rest.join('.')}`,
-            documentation: getFieldDoc?.(key.slice(0, -1)) || '-',
-            kind,
-            isGrouped: arr.filter(k => k.startsWith(`${sections[0]}.`)).length > 1,
-            isChild: true,
-            title,
-          };
-
-          if (!accountedForSections.has(title)) {
-            accountedForSections.add(title);
-
-            item.isChild = false;
-          }
-
-          return [item];
-        }
-
-        return [
-          {
-            value: key,
-            desc: key,
-            documentation: getFieldDoc?.(key.slice(0, -1)) || '-',
-            kind,
-          },
-        ];
-      });
-
-    return [tagGroups, supportedTagType ?? ItemType.TAG_KEY];
+    return [tagItems, supportedTagType ?? ItemType.TAG_KEY];
   }
 
   /**
@@ -1160,7 +1084,7 @@ class SmartSearchBar extends Component<Props, State> {
   };
 
   async generateTagAutocompleteGroup(tagName: string): Promise<AutocompleteGroup> {
-    const [tagKeys, tagType] = this.getTagGroups(tagName);
+    const [tagKeys, tagType] = this.getTagKeys(tagName);
     const recentSearches = await this.getRecentSearches();
 
     return {
@@ -1241,16 +1165,17 @@ class SmartSearchBar extends Component<Props, State> {
   };
 
   showDefaultSearches = async () => {
-    const {query} = this.state;
     const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
+
+    // Always clear searchTerm on showing default state.
+    this.setState({searchTerm: ''});
 
     if (!defaultSearchItems.length) {
       // Update searchTerm, otherwise <SearchDropdown> will have wrong state
       // (e.g. if you delete a query, the last letter will be highlighted if `searchTerm`
       // does not get updated)
-      this.setState({searchTerm: query});
 
-      const [tagKeys, tagType] = this.getTagGroups('');
+      const [tagKeys, tagType] = this.getTagKeys('');
       const recentSearches = await this.getRecentSearches();
 
       if (this.state.query === query) {
@@ -1259,8 +1184,6 @@ class SmartSearchBar extends Component<Props, State> {
 
       return;
     }
-    // cursor on whitespace show default "help" search terms
-    this.setState({searchTerm: ''});
 
     this.updateAutoCompleteState(
       defaultSearchItems,

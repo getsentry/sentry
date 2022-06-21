@@ -65,7 +65,6 @@ export type Tag = {
   key: string;
   name: string;
 
-  documentation?: string;
   isInput?: boolean;
 
   kind?: FieldValueKind;
