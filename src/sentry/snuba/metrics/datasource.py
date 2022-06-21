@@ -722,10 +722,12 @@ def get_series(
     if len(result_groups) > metrics_query.limit.limit:
         result_groups = result_groups[0 : metrics_query.limit.limit]
 
+    metrics_query_fields = {str(metric_field) for metric_field in metrics_query.select}
+
     return {
         "start": metrics_query.start,
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
-        "meta": translate_meta_results(meta) if include_meta else [],
+        "meta": translate_meta_results(meta, metrics_query_fields) if include_meta else [],
     }

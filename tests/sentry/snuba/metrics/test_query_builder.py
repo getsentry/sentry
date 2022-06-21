@@ -852,12 +852,14 @@ def test_translate_meta_results():
         {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
         {"name": "tags[9223372036854776020]", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
+        {"name": "metric_id", "type": "UInt64"},
     ]
-    assert translate_meta_results(meta) == sorted(
+    assert translate_meta_results(meta, {"p50(transaction.measurements.lcp)"}) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
+            {"name": "metric_id", "type": "UInt64"},
         ],
         key=lambda elem: elem["name"],
     )
@@ -872,7 +874,7 @@ def test_translate_meta_results_with_duplicates():
         {"name": "project_id", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
     ]
-    assert translate_meta_results(meta) == sorted(
+    assert translate_meta_results(meta, {"p50(transaction.measurements.lcp)"}) == sorted(
         [
             {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
             {"name": "transaction", "type": "string"},

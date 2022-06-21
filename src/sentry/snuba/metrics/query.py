@@ -29,6 +29,9 @@ class MetricField:
     op: Optional[MetricOperationType]
     metric_name: str
 
+    def __str__(self):
+        return f"{self.op}({self.metric_name})" if self.op else self.metric_name
+
 
 Tag = str
 Groupable = Union[Tag, Literal["project_id"]]

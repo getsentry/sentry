@@ -38,3 +38,42 @@ class DataSourceTestCase(TestCase, SessionMetricsTestCase):
             ],
             key=lambda elem: elem["name"],
         )
+
+    def test_valid_filter_include_meta_for_transactions_derived_metrics(self):
+        query_params = MultiValueDict(
+            {
+                "field": [
+                    "transaction.user_misery",
+                    "transaction.apdex",
+                    "transaction.failure_rate",
+                    "transaction.failure_count",
+                    "transaction.miserable_user",
+                ],
+            }
+        )
+        query = QueryDefinition([self.project], query_params)
+        data = get_series([self.project], query.to_metrics_query(), include_meta=True)
+        assert data["meta"] == sorted(
+            [
+                {"name": "bucketed_time", "type": "DateTime('Universal')"},
+                {"name": "transaction.apdex", "type": "Float64"},
+                {"name": "transaction.failure_count", "type": "UInt64"},
+                {"name": "transaction.failure_rate", "type": "Float64"},
+                {"name": "transaction.miserable_user", "type": "UInt64"},
+                {"name": "transaction.user_misery", "type": "Float64"},
+            ],
+            key=lambda elem: elem["name"],
+        )
+
+    def test_validate_include_meta_only_non_composite_derived_metrics_and_in_select(self):
+        query_params = MultiValueDict(
+            {
+                "field": [
+                    "session.errored",
+                    "session.healthy",
+                ],
+                "includeSeries": "0",
+            }
+        )
+        query = QueryDefinition([self.project], query_params)
+        assert get_series([self.project], query.to_metrics_query(), include_meta=True)["meta"] == []

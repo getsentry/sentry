@@ -9,7 +9,7 @@ __all__ = (
     "translate_meta_results",
 )
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
@@ -42,6 +42,7 @@ from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
+    DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
@@ -304,7 +305,9 @@ def parse_tag(tag_string: str) -> str:
     return reverse_resolve(tag_key)
 
 
-def translate_meta_results(meta):
+def translate_meta_results(
+    meta: Sequence[Dict[str, str]], query_metric_fields: Set[str]
+) -> Sequence[Dict[str, str]]:
     """
     Translate meta results:
     it makes all metrics are public and resolve tag names
@@ -315,17 +318,39 @@ def translate_meta_results(meta):
     results = []
     for record in meta:
         operation, column_name = parse_expression(record["name"])
-        # Column name could be either a mri, ["bucketed_time"] or a tag
-        if operation is None:
-            if column_name.startswith("tags["):
+
+        # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
+        # "project_id" or "metric_id"
+        is_tag = column_name.startswith("tags[")
+        is_time_col = column_name in [TS_COL_GROUP]
+        is_dataset_col = column_name in DATASET_COLUMNS
+
+        if not (is_tag or is_time_col or is_dataset_col):
+            # This handles two cases where we have an expression with an operation and an mri,
+            # or a derived metric mri that has no associated operation
+            try:
+                record["name"] = get_operation_with_public_name(operation, column_name)
+                if record["name"] not in query_metric_fields:
+                    raise InvalidParams(f"Field {record['name']} was not in the select clause")
+            except InvalidParams:
+                # XXX(ahmed): We get into this branch when we are tying to generate inferred types
+                # for instances of `CompositeEntityDerivedMetric` as type needs to be inferred from
+                # its constituent instances of `SingularEntityDerivedMetric`, and we decide to skip
+                # trying to infer this type for the time being as there is no product requirement
+                # for it. However, if a product requirement arises for this, then we need to
+                # implement type inference logic that potentially infers types from the
+                # arithmetic operations applied on the constituent
+                # For example, If we have two constituents of types "UInt64" and "Float64",
+                # then there inferred type would be "Float64"
+                continue
+        else:
+            if is_tag:
                 record["name"] = parse_tag(record["name"])
                 # since we changed value from int to str we need
                 # also want to change type
                 record["type"] = "string"
-            elif column_name in [TS_COL_GROUP]:
+            elif is_time_col or is_dataset_col:
                 record["name"] = column_name
-        else:
-            record["name"] = get_operation_with_public_name(operation, column_name)
 
         if record not in results:
             results.append(record)
