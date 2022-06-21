@@ -163,7 +163,7 @@ class ActiveReleaseAlertNotification(AlertRuleNotification):
     message_builder = "ActiveReleaseIssueNotificationMessageBuilder"
     metrics_key = "release_issue_alert"
     notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
-    template_path = "sentry/emails/active-release"
+    template_path = "sentry/emails/error"
 
     def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
         from sentry.integrations.slack.message_builder.issues import build_rule_url
