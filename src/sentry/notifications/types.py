@@ -224,12 +224,14 @@ class ActionTargetType(Enum):
     ISSUE_OWNERS = "IssueOwners"
     TEAM = "Team"
     MEMBER = "Member"
+    RELEASE_MEMBERS = "ReleaseMembers"
 
 
 ACTION_CHOICES = [
     (ActionTargetType.ISSUE_OWNERS.value, "Issue Owners"),
     (ActionTargetType.TEAM.value, "Team"),
     (ActionTargetType.MEMBER.value, "Member"),
+    (ActionTargetType.RELEASE_MEMBERS.value, "Release Members"),
 ]
 
 

@@ -9,7 +9,10 @@ from sentry.digests.notifications import event_to_record, unsplit_key
 from sentry.models import NotificationSetting, Project, ProjectOption
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.digest import DigestNotification
-from sentry.notifications.notifications.rules import AlertRuleNotification
+from sentry.notifications.notifications.rules import (
+    ActiveReleaseAlertNotification,
+    AlertRuleNotification,
+)
 from sentry.notifications.notifications.user_report import UserReportNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.plugins.base.structs import Notification
@@ -103,7 +106,10 @@ class MailAdapter:
 
     @staticmethod
     def notify(notification, target_type, target_identifier=None, **kwargs):
-        AlertRuleNotification(notification, target_type, target_identifier).send()
+        if target_type == ActionTargetType.RELEASE_MEMBERS:
+            ActiveReleaseAlertNotification(notification, target_type, target_identifier).send()
+        else:
+            AlertRuleNotification(notification, target_type, target_identifier).send()
 
     @staticmethod
     def notify_digest(

@@ -99,6 +99,7 @@ export enum MailActionTargetType {
   IssueOwners = 'IssueOwners',
   Team = 'Team',
   Member = 'Member',
+  ReleaseMembers = 'ReleaseMembers',
 }
 
 export enum AssigneeTargetType {
