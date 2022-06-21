@@ -32,7 +32,11 @@ export function GroupByStep({
     >
       <GroupBySelector
         columns={columns}
-        fieldOptions={datasetConfig.getGroupByFieldOptions!(organization, tags)}
+        fieldOptions={
+          datasetConfig.getGroupByFieldOptions
+            ? datasetConfig.getGroupByFieldOptions(organization, tags)
+            : {}
+        }
         onChange={onGroupByChange}
       />
     </BuildStep>
