@@ -1,4 +1,10 @@
-from .base import Feature, OrganizationFeature, ProjectFeature, ProjectPluginFeature  # NOQA
+from .base import (  # NOQA
+    Feature,
+    OrganizationFeature,
+    ProjectFeature,
+    ProjectPluginFeature,
+    UserFeature,
+)
 from .handler import *  # NOQA
 from .manager import *  # NOQA
 
@@ -53,6 +59,7 @@ default_manager.add("organizations:create")
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
+default_manager.add("organizations:alert-release-notification-workflow", OrganizationFeature)
 default_manager.add("organizations:alert-wizard-v3", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:breadcrumb-linked-event", OrganizationFeature, True)
@@ -195,6 +202,8 @@ default_manager.add("projects:similarity-view-v2", ProjectFeature)
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)
+default_manager.add("users:notification-slack-automatic", UserFeature)
+
 
 # This is a gross hardcoded list, but there's no
 # other sensible way to manage this right now without augmenting
