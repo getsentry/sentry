@@ -43,7 +43,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
 from sentry.utils import json, redis
-from sentry.utils.compat import filter, map, zip
+from sentry.utils.compat import filter, map
 from sentry.utils.dates import floor_to_utc_day, to_datetime, to_timestamp
 from sentry.utils.email import MessageBuilder
 from sentry.utils.iterators import chunked

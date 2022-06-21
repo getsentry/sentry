@@ -1,7 +1,7 @@
 from typing import Iterable, Mapping, Optional, Sequence, Union
 
 from sentry.eventstore.models import Event
-from sentry.models import NotificationSetting, Project, ProjectOwnership, Team, User
+from sentry.models import GroupRelease, NotificationSetting, Project, ProjectOwnership, Team, User
 from sentry.notifications.types import (
     ActionTargetType,
     NotificationSettingOptionValues,
@@ -125,6 +125,43 @@ class GetSendToTeamTest(TestCase):
 
         assert self.get_send_to_team(project_2, team_2.id) == {ExternalProviders.EMAIL: {user_2}}
         assert self.get_send_to_team(self.project, team_2.id) == {}
+
+
+class GetSentToReleaseMembersTest(TestCase):
+    def get_send_to_release_members(
+        self, event: Event
+    ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
+        return get_send_to(
+            self.project,
+            target_type=ActionTargetType.RELEASE_MEMBERS,
+            target_identifier=None,
+            event=event,
+        )
+
+    def store_event(self, filename: str) -> Event:
+        return super().store_event(data=make_event_data(filename), project_id=self.project.id)
+
+    def setUp(self):
+        self.user2 = self.create_user(email="baz@example.com", is_active=True)
+        self.user3 = self.create_user(email="bar@example.com", is_active=True)
+
+        self.team2 = self.create_team(
+            organization=self.organization, members=[self.user, self.user2]
+        )
+        self.project.add_team(self.team2)
+        release = self.create_release(project=self.project, user=self.user)
+        GroupRelease.objects.create(
+            project_id=self.project.id,
+            group_id=self.group.id,
+            release_id=release.id,
+            environment=self.environment.name,
+        )
+
+    def test_default_committer(self):
+        event = self.store_event("empty.lol")
+        event.group = self.group
+
+        assert self.get_send_to_release_members(event) == {ExternalProviders.EMAIL: {self.user}}
 
 
 class GetSendToOwnersTest(TestCase):

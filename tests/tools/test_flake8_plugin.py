@@ -42,6 +42,7 @@ from json import loads, load
 from simplejson import JSONDecoder, JSONDecodeError, _default_encoder
 import sentry.utils.json as good_json
 from sentry.utils.json import JSONDecoder, JSONDecodeError
+from .json import Validator
 
 
 def bad_code():
@@ -57,4 +58,21 @@ def bad_code():
         "t.py:2:0: S003 Use ``from sentry.utils import json`` instead.",
         "t.py:3:0: S003 Use ``from sentry.utils import json`` instead.",
         "t.py:4:0: S003 Use ``from sentry.utils import json`` instead.",
+    ]
+
+
+def test_S004():
+    S004_py = """\
+import unittest
+from something import func
+
+
+class Test(unittest.TestCase):
+    def test(self):
+        with self.assertRaises(ValueError):
+            func()
+"""
+    errors = _run(S004_py)
+    assert errors == [
+        "t.py:7:13: S004 Use `pytest.raises` instead for better debuggability.",
     ]

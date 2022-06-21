@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import re
 from abc import ABC, abstractmethod
 from copy import copy
 from dataclasses import dataclass
 from typing import (
+    TYPE_CHECKING,
     Any,
     Dict,
     List,
@@ -15,8 +18,6 @@ from typing import (
     TypedDict,
     Union,
 )
-
-from snuba_sdk import Request
 
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, CRASH_RATE_ALERT_SESSION_COUNT_ALIAS
 from sentry.eventstore import Filter
@@ -37,6 +38,10 @@ from sentry.snuba.models import QueryDatasets, SnubaQueryEventType
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, resolve_column, resolve_snuba_aliases
 
+if TYPE_CHECKING:
+    from sentry.search.events.builder import QueryBuilder
+
+
 # TODO: If we want to support security events here we'll need a way to
 # differentiate within the dataset. For now we can just assume all subscriptions
 # created within this dataset are just for errors.
@@ -54,6 +59,15 @@ ENTITY_TIME_COLUMNS: Mapping[EntityKey, str] = {
 CRASH_RATE_ALERT_AGGREGATE_RE = (
     r"^percentage\([ ]*(sessions_crashed|users_crashed)[ ]*\,[ ]*(sessions|users)[ ]*\)"
 )
+ALERT_BLOCKED_FIELDS = {
+    "start",
+    "end",
+    "last_seen()",
+    "time",
+    "timestamp",
+    "timestamp.to_hour",
+    "timestamp.to_day",
+}
 
 
 def apply_dataset_query_conditions(
@@ -140,13 +154,13 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         """
         raise NotImplementedError
 
-    def build_snql_query(
+    def build_query_builder(
         self,
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-    ) -> Request:
+    ) -> QueryBuilder:
         pass
 
 
@@ -169,7 +183,9 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         resolve_func = resolve_column(Dataset(self.dataset.value))
 
         query = apply_dataset_query_conditions(QueryDatasets(self.dataset), query, self.event_types)
-        snuba_filter = get_filter(query, params=params)
+        snuba_filter = get_filter(
+            query, params=params, parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS}
+        )
         snuba_filter.update_with(
             resolve_field_list([self.aggregate], snuba_filter, auto_fields=False)
         )
@@ -182,13 +198,13 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             snuba_filter.conditions.append(["environment", "=", environment.name])
         return snuba_filter
 
-    def build_snql_query(
+    def build_query_builder(
         self,
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-    ) -> Request:
+    ) -> QueryBuilder:
         from sentry.search.events.builder import QueryBuilder
 
         if params is None:
@@ -208,7 +224,8 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             offset=None,
             limit=None,
             skip_time_conditions=True,
-        ).get_snql_query()
+            parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
+        )
 
     def get_entity_extra_params(self) -> Mapping[str, Any]:
         return {}
@@ -265,7 +282,9 @@ class SessionsEntitySubscription(BaseEntitySubscription):
 
         aggregations += [f"identity({count_col_matched}) AS {CRASH_RATE_ALERT_SESSION_COUNT_ALIAS}"]
         functions_acl = ["identity"]
-        snuba_filter = get_filter(query, params=params)
+        snuba_filter = get_filter(
+            query, params=params, parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS}
+        )
         snuba_filter.update_with(
             resolve_field_list(
                 aggregations, snuba_filter, auto_fields=False, functions_acl=functions_acl
@@ -292,13 +311,13 @@ class SessionsEntitySubscription(BaseEntitySubscription):
             )
         return data
 
-    def build_snql_query(
+    def build_query_builder(
         self,
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
-    ) -> Request:
+    ) -> QueryBuilder:
         from sentry.search.events.builder import SessionsQueryBuilder
 
         aggregations = [self.aggregate]
@@ -331,7 +350,8 @@ class SessionsEntitySubscription(BaseEntitySubscription):
             limit=None,
             functions_acl=["identity"],
             skip_time_conditions=True,
-        ).get_snql_query()
+            parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS},
+        )
 
 
 class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
@@ -383,7 +403,9 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         environment: Optional[Environment],
         params: Optional[Mapping[str, Any]] = None,
     ) -> Filter:
-        snuba_filter = get_filter(query, params=params)
+        snuba_filter = get_filter(
+            query, params=params, parser_config_overrides={"blocked_keys": ALERT_BLOCKED_FIELDS}
+        )
         conditions = copy(snuba_filter.conditions)
         snuba_filter.update_with(
             {
@@ -516,13 +538,13 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         aggregated_results = [{col_name: crash_free_rate}]
         return aggregated_results
 
-    def build_snql_query(
+    def build_query_builder(
         self,
         query: str,
         project_ids: Sequence[int],
         environment: Optional[Environment],
         params: Optional[Mapping[str, Any]] = None,
-    ) -> Request:
+    ) -> QueryBuilder:
         raise NotImplementedError
 
 
@@ -607,7 +629,7 @@ def get_entity_subscription_for_dataset(
     )
 
 
-def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> Optional[EntityKey]:
+def map_aggregate_to_entity_key(dataset: QueryDatasets, aggregate: str) -> EntityKey:
     if dataset == QueryDatasets.EVENTS:
         entity_key = EntityKey.Events
     elif dataset == QueryDatasets.TRANSACTIONS:
