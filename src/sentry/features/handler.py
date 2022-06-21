@@ -38,7 +38,7 @@ class FeatureHandler:
         actor: User,
         projects: Optional[Sequence[Project]] = None,
         organization: Optional[Organization] = None,
-        user: Optional[Organization] = None,
+        user: Optional[User] = None,
         batch: bool = True,
     ) -> Optional[Mapping[str, Mapping[str, bool]]]:
         raise NotImplementedError
@@ -56,7 +56,7 @@ class BatchFeatureHandler(FeatureHandler):
         raise NotImplementedError
 
     def has(self, feature: Feature, actor: User, skip_entity: Optional[bool] = False) -> bool:
-        return self._check_for_batch(feature.name, feature.get_main_entity(), actor)
+        return self._check_for_batch(feature.name, feature.get_subject(), actor)
 
     def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool]:
         flag = self._check_for_batch(batch.feature_name, batch.main_entity, batch.actor)
