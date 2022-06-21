@@ -34,6 +34,7 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {DisplayType, WidgetQuery} from '../types';
 import {eventViewFromWidget, getDashboardsMEPQueryParams} from '../utils';
+import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import WidgetQueries, {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -60,6 +61,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   WidgetQueries: props => <WidgetQueries {...props} />,
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
+  SearchBar: EventsSearchBar,
   getTableFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [

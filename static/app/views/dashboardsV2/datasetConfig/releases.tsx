@@ -21,6 +21,7 @@ import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';
+import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -91,6 +92,7 @@ export const ReleasesConfig: DatasetConfig<
   filterTableOptions: filterPrimaryReleaseTableOptions,
   filterTableAggregateParams: filterAggregateParams,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,

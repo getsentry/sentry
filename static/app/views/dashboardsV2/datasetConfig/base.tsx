@@ -1,6 +1,7 @@
 import trimStart from 'lodash/trimStart';
 
 import {Client} from 'sentry/api';
+import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {
@@ -36,7 +37,20 @@ export type WidgetQueriesProps = {
   }) => void;
 };
 
+export type WidgetBuilderSearchBarProps = {
+  onBlur: SearchBarProps['onBlur'];
+  onSearch: SearchBarProps['onSearch'];
+  organization: Organization;
+  pageFilters: PageFilters;
+  widgetQuery: WidgetQuery;
+};
+
 export interface DatasetConfig<SeriesResponse, TableResponse> {
+  /**
+   * Dataset specific search bar for the 'Filter' step in the
+   * widget builder.
+   */
+  SearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
   /**
    * The component that requests data from a dataset's API endpoints.
    */
