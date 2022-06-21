@@ -314,7 +314,7 @@ describe('Sampling - Modal', function () {
     userEvent.paste(screen.getByLabelText('Search or add a release'), '1.2.3');
 
     // Click on the suggested option
-    userEvent.click(screen.getByTestId('1.2.3'));
+    userEvent.click(await screen.findByText(textWithMarkupMatcher('Add "1.2.3"')));
 
     // Update sample rate field
     userEvent.clear(screen.getByPlaceholderText('\u0025'));
@@ -474,6 +474,7 @@ describe('Sampling - Modal', function () {
       method: 'GET',
       body: [{value: 'david'}],
     });
+
     const saveMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/',
       method: 'PUT',
@@ -536,6 +537,52 @@ describe('Sampling - Modal', function () {
         },
       })
     );
+  });
+
+  it('invalid custom tag condition', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/sentry.key/values/',
+      method: 'GET',
+      body: [],
+    });
+
+    renderComponent({ruleType: SamplingRuleType.TRANSACTION});
+
+    // Open Modal
+    await openSamplingRuleModal(screen.getByText('Add Rule'));
+
+    // Click on 'Add condition'
+    userEvent.click(screen.getByText('Add Condition'));
+
+    // Select Custom Tag
+    userEvent.click(screen.getByText('Add Custom Tag'));
+
+    // Type invalid value into tag field
+    userEvent.paste(screen.getByLabelText('Search or add a tag'), 'sentry.*');
+
+    // Dropdown display 'no options' because the tag is invalid
+    expect(await screen.findByText('No options')).toBeInTheDocument();
+
+    // Type valid value into tag field
+    userEvent.type(screen.getByLabelText('Search or add a tag'), '{backspace}key');
+
+    // Click on the suggested option
+    userEvent.click(screen.getByTestId('sentry.key'));
+
+    // Type invalid value into tag value field
+    userEvent.paste(screen.getByLabelText('Search or add tag values'), 'invalid\\nvalue');
+
+    // Dropdown display 'no options' because the tag value is invalid
+    expect(await screen.findByText('No options')).toBeInTheDocument();
+
+    // Clears tag value field
+    userEvent.clear(screen.getByLabelText('Search or add tag values'));
+
+    // Type valid value into tag value field
+    userEvent.paste(screen.getByLabelText('Search or add tag values'), 'valid');
+
+    // Click on the suggested option
+    userEvent.click(screen.getByTestId('valid'));
   });
 
   it('does not let you save without permissions', async function () {
