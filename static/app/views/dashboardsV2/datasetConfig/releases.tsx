@@ -1,7 +1,17 @@
 import omit from 'lodash/omit';
+import trimStart from 'lodash/trimStart';
 
+import {doMetricsRequest} from 'sentry/actionCreators/metrics';
+import {doSessionsRequest} from 'sentry/actionCreators/sessions';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {MetricsApiResponse, SessionApiResponse, SessionField} from 'sentry/types';
+import {
+  MetricsApiResponse,
+  Organization,
+  PageFilters,
+  SessionApiResponse,
+  SessionField,
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -10,14 +20,20 @@ import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, WidgetQuery} from '../types';
+import {getWidgetInterval} from '../utils';
+import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
+  DerivedStatusFields,
+  DISABLED_SORT,
+  FIELD_TO_METRICS_EXPRESSION,
   generateReleaseWidgetFieldOptions,
   SESSIONS_FIELDS,
   SESSIONS_TAGS,
 } from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
+  requiresCustomReleaseSorting,
   resolveDerivedStatusFields,
 } from '../widgetCard/releaseWidgetQueries';
 import {getSeriesName} from '../widgetCard/transformSessionsResponseToSeries';
@@ -44,9 +60,38 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  getTableRequest: (
+    api: Client,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    limit?: number,
+    cursor?: string
+  ) => getReleasesRequest(0, 1, api, query, organization, pageFilters, limit, cursor),
+  getSeriesRequest: (
+    api: Client,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    limit?: number,
+    cursor?: string
+  ) => {
+    const includeTotals = query.columns.length > 0 ? 1 : 0;
+    return getReleasesRequest(
+      1,
+      includeTotals,
+      api,
+      query,
+      organization,
+      pageFilters,
+      limit,
+      cursor
+    );
+  },
   filterTableOptions: filterPrimaryReleaseTableOptions,
   filterTableAggregateParams: filterAggregateParams,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,
@@ -94,7 +139,7 @@ function handleColumnFieldChangeOverride(widgetQuery: WidgetQuery): WidgetQuery 
   return widgetQuery;
 }
 
-function getReleasesTableFieldOptions() {
+function getReleasesTableFieldOptions(_organization: Organization) {
   return generateReleaseWidgetFieldOptions(Object.values(SESSIONS_FIELDS), SESSIONS_TAGS);
 }
 
@@ -207,4 +252,136 @@ export function transformSessionsResponseToSeries(
   });
 
   return results;
+}
+
+function fieldsToDerivedMetrics(field: string): string {
+  return FIELD_TO_METRICS_EXPRESSION[field] ?? field;
+}
+
+function getReleasesRequest(
+  includeSeries: number,
+  includeTotals: number,
+  api: Client,
+  query: WidgetQuery,
+  organization: Organization,
+  pageFilters: PageFilters,
+  limit?: number,
+  cursor?: string
+) {
+  const {environments, projects, datetime} = pageFilters;
+  const {start, end, period} = datetime;
+
+  // Only time we need to use sessions API is when session.status is requested
+  // as a group by.
+  const useSessionAPI = query.columns.includes('session.status');
+  const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
+  const isDescending = query.orderby.startsWith('-');
+  const rawOrderby = trimStart(query.orderby, '-');
+  const unsupportedOrderby =
+    DISABLED_SORT.includes(rawOrderby) || useSessionAPI || rawOrderby === 'release';
+  const columns = query.columns;
+
+  // Temporary solution to support sorting on releases when querying the
+  // Metrics API:
+  //
+  // We first request the top 50 recent releases from postgres. Note that the
+  // release request is based on the project and environment selected in the
+  // page filters.
+  //
+  // We then construct a massive OR condition and append it to any specified
+  // filter condition. We also maintain an ordered array of release versions
+  // to order the results returned from the metrics endpoint.
+  //
+  // Also note that we request a limit of 100 on the metrics endpoint, this
+  // is because in a query, the limit should be applied after the results are
+  // sorted based on the release version. The larger number of rows we
+  // request, the more accurate our results are going to be.
+  //
+  // After the results are sorted, we truncate the data to the requested
+  // limit. This will result in a few edge cases:
+  //
+  //   1. low to high sort may not show releases at the beginning of the
+  //      selected period if there are more than 50 releases in the selected
+  //      period.
+  //
+  //   2. if a recent release is not returned due to the 100 row limit
+  //      imposed on the metrics query the user won't see it on the
+  //      table/chart/
+  //
+
+  const interval = getWidgetInterval(
+    DisplayType.TABLE,
+    {start, end, period},
+    '5m',
+    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+    isCustomReleaseSorting ? 'low' : undefined
+  );
+
+  const {aggregates, injectedFields} = resolveDerivedStatusFields(
+    query.aggregates,
+    query.orderby,
+    useSessionAPI
+  );
+  let requestData;
+  let requester;
+  if (useSessionAPI) {
+    const sessionAggregates = aggregates.filter(
+      agg => !!!Object.values(DerivedStatusFields).includes(agg as DerivedStatusFields)
+    );
+    requestData = {
+      field: sessionAggregates,
+      orgSlug: organization.slug,
+      end,
+      environment: environments,
+      groupBy: columns,
+      limit: undefined,
+      orderBy: '', // Orderby not supported with session.status
+      interval,
+      project: projects,
+      query: query.conditions,
+      start,
+      statsPeriod: period,
+      includeAllArgs: true,
+      cursor,
+    };
+    requester = doSessionsRequest;
+  } else {
+    requestData = {
+      field: aggregates.map(fieldsToDerivedMetrics),
+      orgSlug: organization.slug,
+      end,
+      environment: environments,
+      groupBy: columns.map(fieldsToDerivedMetrics),
+      limit: columns.length === 0 ? 1 : isCustomReleaseSorting ? 100 : limit,
+      orderBy: unsupportedOrderby
+        ? ''
+        : isDescending
+        ? `-${fieldsToDerivedMetrics(rawOrderby)}`
+        : fieldsToDerivedMetrics(rawOrderby),
+      interval,
+      project: projects,
+      query: query.conditions,
+      start,
+      statsPeriod: period,
+      includeAllArgs: true,
+      cursor,
+      includeSeries,
+      includeTotals,
+    };
+    requester = doMetricsRequest;
+
+    if (
+      rawOrderby &&
+      !!!unsupportedOrderby &&
+      !!!aggregates.includes(rawOrderby) &&
+      !!!columns.includes(rawOrderby)
+    ) {
+      requestData.field = [...requestData.field, fieldsToDerivedMetrics(rawOrderby)];
+      if (!!!injectedFields.includes(rawOrderby)) {
+        injectedFields.push(rawOrderby);
+      }
+    }
+  }
+
+  return requester(api, requestData);
 }

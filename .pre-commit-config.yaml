@@ -62,8 +62,8 @@ repos:
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
 
--   repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.3.0
+-   repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.16.0
     hooks:
     - id: check-github-actions
     - id: check-github-workflows

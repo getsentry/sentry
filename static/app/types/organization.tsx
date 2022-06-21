@@ -6,8 +6,7 @@ import type {Relay} from './relay';
 import type {User} from './user';
 
 /**
- * Organization summaries are sent when you request a
- * list of all organizations
+ * Organization summaries are sent when you request a list of all organizations
  */
 export type OrganizationSummary = {
   avatar: Avatar;
@@ -59,7 +58,10 @@ export type Organization = OrganizationSummary & {
   storeCrashReports: number;
   trustedRelays: Relay[];
   orgRole?: string;
-  role?: string; // Deprecated, use orgRole
+  /**
+   * @deprecated use orgRole instead
+   */
+  role?: string;
 };
 
 export type Team = {

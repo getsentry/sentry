@@ -22,6 +22,7 @@ from sentry.search.events.builder import (
 )
 from sentry.search.events.types import HistogramParams
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase, TestCase
 from sentry.utils.snuba import Dataset, QueryOutsideRetentionError
 
@@ -716,9 +717,13 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
         ]
 
         for string in self.METRIC_STRINGS:
-            indexer.record(self.organization.id, string)
+            indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=string
+            )
 
-        indexer.record(self.organization.id, "transaction")
+        indexer.record(
+            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string="transaction"
+        )
 
     def setup_orderby_data(self):
         self.store_metric(
@@ -1210,12 +1215,12 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
         query = MetricsQueryBuilder(
             self.params, "", selected_columns=["p90(transaction.duration)", "count_unique(user)"]
         )
-        with self.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             query.get_snql_query()
 
     def test_get_snql_query_errors_with_no_functions(self):
         query = MetricsQueryBuilder(self.params, "", selected_columns=["project"])
-        with self.assertRaises(IncompatibleMetricsQuery):
+        with pytest.raises(IncompatibleMetricsQuery):
             query.get_snql_query()
 
     def test_run_query(self):
@@ -1963,6 +1968,31 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 mock.call(self.organization.id, "measurement_rating"),
                 mock.call(self.organization.id, "good"),
             ],
+        )
+
+    def test_custom_measurement_allowed(self):
+        MetricsQueryBuilder(
+            self.params,
+            selected_columns=[
+                "transaction",
+                "avg(measurements.custom.measurement)",
+                "p50(measurements.custom.measurement)",
+                "p75(measurements.custom.measurement)",
+                "p90(measurements.custom.measurement)",
+                "p95(measurements.custom.measurement)",
+                "p99(measurements.custom.measurement)",
+                "p100(measurements.custom.measurement)",
+                "percentile(measurements.custom.measurement, 0.95)",
+                "sum(measurements.custom.measurement)",
+                "max(measurements.custom.measurement)",
+                "min(measurements.custom.measurement)",
+                "count_unique(user)",
+            ],
+            query="transaction:foo_transaction",
+            allow_metric_aggregates=False,
+            use_aggregate_conditions=True,
+            # Use dry run for now to not hit indexer
+            dry_run=True,
         )
 
 
