@@ -14,6 +14,7 @@ from arroyo.processing.strategies import MessageRejected
 from arroyo.types import Message, Partition, Position, Topic
 from arroyo.utils.clock import TestingClock as Clock
 
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.multiprocess import (
     BatchMessages,
@@ -244,13 +245,13 @@ def __translated_payload(
     org_id = payload["org_id"]
 
     new_tags = {
-        indexer.resolve(use_case_id="release-health", org_id=org_id, string=k): indexer.resolve(
-            use_case_id="release-health", org_id=org_id, string=v
-        )
+        indexer.resolve(
+            use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=k
+        ): indexer.resolve(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=v)
         for k, v in payload["tags"].items()
     }
     payload["metric_id"] = indexer.resolve(
-        use_case_id="release-health", org_id=org_id, string=payload["name"]
+        use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=payload["name"]
     )
     payload["retention_days"] = 90
     payload["tags"] = new_tags
@@ -275,7 +276,7 @@ def test_process_messages(mock_indexer) -> None:
     last = message_batch[-1]
     outer_message = Message(last.partition, last.offset, message_batch, last.timestamp)
 
-    new_batch = process_messages(use_case_id="release-health", outer_message=outer_message)
+    new_batch = process_messages(use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message)
     expected_new_batch = [
         Message(
             m.partition,
@@ -375,7 +376,9 @@ def test_process_messages_invalid_messages(
     with caplog.at_level(logging.ERROR), mock.patch(
         "sentry.sentry_metrics.multiprocess.get_indexer", return_value=MockIndexer()
     ):
-        new_batch = process_messages(use_case_id="release-health", outer_message=outer_message)
+        new_batch = process_messages(
+            use_case_id=UseCaseKey.RELEASE_HEALTH, outer_message=outer_message
+        )
 
     # we expect just the valid counter_payload msg to be left
     expected_msg = message_batch[0]
