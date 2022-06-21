@@ -2,6 +2,7 @@ import React from 'react';
 import styled from '@emotion/styled';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
+import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/sliderAndInputWrapper';
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {divide} from 'sentry/components/replays/utils';
@@ -93,18 +94,26 @@ const Wrapper = styled('div')`
 `;
 
 export const TimelineScubber = styled(Scrubber)`
-  height: ${space(0.5)};
+  height: 100%;
 
-  :hover {
-    margin-block: -${space(0.25)};
-    height: ${space(1)};
+  ${Meter} {
+    background: transparent;
+  }
+
+  ${PlaybackTimeValue} {
+    opacity: 0.2;
   }
 
   ${RangeWrapper} {
-    height: ${space(0.5)};
+    height: 100%;
   }
-  :hover ${RangeWrapper} {
-    height: ${space(0.75)};
+
+  ${Range} {
+    height: 100%;
+  }
+
+  ${SliderAndInputWrapper} {
+    height: 100%;
   }
 `;
 

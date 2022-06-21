@@ -49,34 +49,32 @@ function ReplayTimeline({}: Props) {
             <Stacked>
               <MinorGridlines duration={duration || 0} width={width} />
               <MajorGridlines duration={duration || 0} width={width} />
-              <StackedUnderTimestamp>
+              <TimelineScubber />
+              <TimelinePosition
+                color={theme.purple300}
+                currentTime={currentTime}
+                duration={duration}
+              />
+              {currentHoverTime ? (
                 <TimelinePosition
-                  color={theme.purple300}
-                  currentTime={currentTime}
+                  color={theme.purple200}
+                  currentTime={currentHoverTime}
                   duration={duration}
                 />
-                {currentHoverTime ? (
-                  <TimelinePosition
-                    color={theme.purple200}
-                    currentTime={currentHoverTime}
-                    duration={duration}
-                  />
-                ) : null}
-                <div>
-                  <TimelineScubber />
-                  <ReplayTimelineEvents
-                    crumbs={userCrumbs}
-                    duration={duration || 0}
-                    startTimestamp={replay.getEvent().startTimestamp}
-                    width={width}
-                  />
-                  <ReplayTimelineSpans
-                    duration={duration || 0}
-                    spans={networkSpans}
-                    startTimestamp={replay.getEvent().startTimestamp}
-                  />
-                </div>
-              </StackedUnderTimestamp>
+              ) : null}
+              <UnderTimestamp>
+                <ReplayTimelineEvents
+                  crumbs={userCrumbs}
+                  duration={duration || 0}
+                  startTimestamp={replay.getEvent().startTimestamp}
+                  width={width}
+                />
+                <ReplayTimelineSpans
+                  duration={duration || 0}
+                  spans={networkSpans}
+                  startTimestamp={replay.getEvent().startTimestamp}
+                />
+              </UnderTimestamp>
             </Stacked>
           )}
         </Resizeable>
@@ -85,7 +83,7 @@ function ReplayTimeline({}: Props) {
   );
 }
 
-const StackedUnderTimestamp = styled(Stacked)`
+const UnderTimestamp = styled('div')`
   /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */
   padding-top: 24px;
 `;
