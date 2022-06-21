@@ -148,6 +148,10 @@ class TextRenderer {
         const frameSearchResult = flamegraphSearchResults[frameId];
 
         if (frameSearchResult) {
+          const highlightFillStyle = `rgb(${this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR.join(
+            ', '
+          )})`;
+
           for (const matchIndices of frameSearchResult.matchIndices) {
             const highlightedBounds = computeHighlightedBounds(matchIndices, trim);
             if (!highlightedBounds) {
@@ -159,7 +163,7 @@ class TextRenderer {
             );
             const frontMatter = trimText.slice(0, startIndex);
             const startHighlightX = this.measureAndCacheText(frontMatter).width;
-            this.context.fillStyle = '#FFFF00';
+            this.context.fillStyle = highlightFillStyle;
             this.context.fillRect(
               startHighlightX + x,
               y - highlightTextSize.fontBoundingBoxAscent,
