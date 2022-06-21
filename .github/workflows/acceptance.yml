@@ -137,6 +137,7 @@ jobs:
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
+          action-name: 'Frontend Visual Snapshot'
           artifact-name: 'frontend-snapshots'
           # If you want your PR to grab artifacts from this branch rather than the master branch
           # then change this to match your branch
@@ -301,6 +302,7 @@ jobs:
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
+          action-name: 'Acceptance Visual Snapshot'
           artifact-name: 'acceptance-snapshots'
           # If you want your PR to grab artifacts from this branch rather than the master branch
           # then change this to match your branch
@@ -383,6 +385,7 @@ jobs:
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@main
         with:
+          action-name: 'Chartcuterie Visual Snapshot'
           artifact-name: 'chartcuterie-snapshots'
           # If you want your PR to grab artifacts from this branch rather than the master branch
           # then change this to match your branch
