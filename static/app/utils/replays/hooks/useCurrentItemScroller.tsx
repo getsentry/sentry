@@ -1,6 +1,8 @@
 import type {RefObject} from 'react';
 import {useEffect} from 'react';
 
+const defer = (fn: () => void) => setTimeout(fn, 0);
+
 export function useCurrentItemScroller(containerRef: RefObject<HTMLDivElement>) {
   useEffect(() => {
     let observer: MutationObserver | undefined;
@@ -15,13 +17,13 @@ export function useCurrentItemScroller(containerRef: RefObject<HTMLDivElement>) 
             const element = mutation.target as Element;
             const isCurrent = element?.ariaCurrent === 'true';
             if (isCurrent) {
-              // Deferring the scroll helps to prevent it from not being executed
-              // in certain situation. (jumping to a time with the scrubber)
-              setTimeout(() => {
+              // Deferring the scroll helps prevent it from not being executed
+              // in certain situations. (jumping to a time with the scrubber)
+              defer(() => {
                 element?.scrollIntoView({
                   behavior: 'smooth',
                 });
-              }, 0);
+              });
             }
           }
         }
