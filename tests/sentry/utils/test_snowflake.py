@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import pytest
 from freezegun import freeze_time
 
 from sentry.testutils import TestCase
@@ -13,7 +14,7 @@ from sentry.utils.snowflake import (
 
 
 class SnowflakeUtilsTest(TestCase):
-    CURRENT_TIME = datetime(2022, 5, 1, 0, 0)
+    CURRENT_TIME = datetime(2022, 6, 21, 6, 0)
 
     @freeze_time(CURRENT_TIME)
     def test_generate_correct_ids(self):
@@ -52,7 +53,7 @@ class SnowflakeUtilsTest(TestCase):
             timestamp = current_timestamp - i
             cluster.set(str(timestamp), 16)
 
-        with self.assertRaises(Exception) as context:
+        with pytest.raises(Exception) as context:
             generate_snowflake_id("test_redis_key")
 
-        self.assertTrue("No available ID" in str(context.exception))
+        assert str(context.value) == "No available ID"
