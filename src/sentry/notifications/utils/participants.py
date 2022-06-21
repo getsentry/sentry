@@ -7,12 +7,14 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 from sentry import features
 from sentry.models import (
     ActorTuple,
+    Commit,
     Group,
     GroupSubscription,
     NotificationSetting,
     Organization,
     Project,
     ProjectOwnership,
+    Release,
     Team,
     User,
     UserOption,
@@ -230,10 +232,45 @@ def determine_eligible_recipients(
         if team:
             return {team}
 
+    elif target_type == ActionTargetType.RELEASE_MEMBERS:
+        return get_release_committers(project, event)
+
     else:
         return get_owners(project, event)
 
     return set()
+
+
+def get_release_committers(project: Project, event: Event) -> Sequence[User]:
+    from sentry.api.serializers import Author, get_users_for_commits
+    from sentry.utils.committers import _get_commits
+
+    # get_participants_for_release seems to be the method called when deployments happen
+    # supposedly, this logic should be fairly, close ...
+    # why is get_participants_for_release so much more complex???
+    if not project or not event:
+        return []
+
+    if not event.group:
+        return []
+
+    last_release_version: str | None = event.group.get_last_release()
+    if not last_release_version:
+        return []
+
+    last_release: Release = Release.get(project, last_release_version)
+    if not last_release:
+        return []
+
+    commits: Sequence[Commit] = _get_commits([last_release])
+    if not commits:
+        return []
+
+    # commit_author_id : Author
+    author_users: Mapping[str, Author] = get_users_for_commits(commits)
+    return list(
+        User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
+    )
 
 
 def get_send_to(
