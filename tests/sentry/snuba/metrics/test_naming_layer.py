@@ -2,7 +2,7 @@ import re
 
 import pytest
 
-from sentry.snuba.metrics.naming_layer.mri import MRI_SCHEMA_REGEX
+from sentry.snuba.metrics.naming_layer.mri import MRI_SCHEMA_REGEX, ParsedMRI, parse_mri
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_NAME_REGEX
 
 
@@ -62,7 +62,7 @@ def test_invalid_public_name_regex(name):
     ],
 )
 def test_valid_mri_schema_regex(name):
-    matches = re.compile(rf"^{MRI_SCHEMA_REGEX}$").match(name)
+    matches = MRI_SCHEMA_REGEX.match(name)
     assert matches
     assert matches[0] == name
 
@@ -82,4 +82,29 @@ def test_valid_mri_schema_regex(name):
     ],
 )
 def test_invalid_mri_schema_regex(name):
-    assert re.compile(rf"^{MRI_SCHEMA_REGEX}$").match(name) is None
+    assert MRI_SCHEMA_REGEX.match(name) is None
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        (
+            "d:transactions/measurements.stall_longest_time@millisecond",
+            ParsedMRI("d", "transactions", "measurements.stall_longest_time", "millisecond"),
+        ),
+        (
+            "d:transactions/breakdowns.span_ops.http@millisecond",
+            ParsedMRI("d", "transactions", "breakdowns.span_ops.http", "millisecond"),
+        ),
+        (
+            "c:transactions/measurements.db_calls@none",
+            ParsedMRI("c", "transactions", "measurements.db_calls", "none"),
+        ),
+        (
+            "s:sessions/error@none",
+            ParsedMRI("s", "sessions", "error", "none"),
+        ),
+    ],
+)
+def test_parse_mri(name, expected):
+    assert parse_mri(name) == expected
