@@ -407,7 +407,7 @@ class ReleasesList extends AsyncView<Props, State> {
                   )}
                 </div>
                 <ExternalLink
-                  href="https://docs.sentry.io/product/releases/health/setup/"
+                  href="https://docs.sentry.io/product/releases/setup/#release-health"
                   onClick={this.trackAddReleaseHealth}
                 >
                   {t('Add Release Health')}
