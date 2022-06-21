@@ -72,7 +72,6 @@ export enum SamplingInnerName {
   // Custom operators
   EVENT_IP_ADDRESSES = 'event.client_ip',
   EVENT_LEGACY_BROWSER = 'event.legacy_browser',
-  EVENT_ERROR_MESSAGES = 'event.error_messages',
   EVENT_CSP = 'event.csp',
   EVENT_CUSTOM_TAG = 'event.custom_tag', // used for the fresh new custom tag condition (gets replaced once you choose tag key)
 }
@@ -129,10 +128,7 @@ type SamplingConditionLogicalInnerEqBoolean = {
 };
 
 type SamplingConditionLogicalInnerCustom = {
-  name:
-    | SamplingInnerName.EVENT_CSP
-    | SamplingInnerName.EVENT_ERROR_MESSAGES
-    | SamplingInnerName.EVENT_IP_ADDRESSES;
+  name: SamplingInnerName.EVENT_CSP | SamplingInnerName.EVENT_IP_ADDRESSES;
   op: SamplingInnerOperator.CUSTOM;
   value: Array<string>;
 };

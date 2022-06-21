@@ -65,8 +65,6 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
     case SamplingInnerName.EVENT_TRANSACTION:
     case SamplingInnerName.TRACE_TRANSACTION:
       return t('Transaction');
-    case SamplingInnerName.EVENT_ERROR_MESSAGES:
-      return t('Error Message');
     case SamplingInnerName.EVENT_CSP:
       return t('Content Security Policy');
     case SamplingInnerName.EVENT_IP_ADDRESSES:
