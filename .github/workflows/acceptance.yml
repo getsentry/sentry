@@ -113,29 +113,29 @@ jobs:
           files: .artifacts/coverage/*
           type: frontend
 
-  # frontend-visual-diff:
-  #   if: always()
-  #   # This guarantees that we will only schedule Visual Snapshots if all
-  #   # workflows that generate artifacts succeed
-  #   needs: [frontend, files-changed]
-  #   name: trigger frontend visual snapshot
-  #   runs-on: ubuntu-20.04
-  #   timeout-minutes: 20
-  #   steps:
-  #     - name: Diff snapshots
-  #       id: visual-snapshots-diff
-  #       uses: getsentry/action-visual-snapshot@split_fe_and_be
-  #       # Run this step only if there are acceptance related code changes
-  #       # Forks are handled in visual-diff.yml
-  #       if: needs.files-changed.outputs.acceptance == 'true'
-  #       with:
-  #         artifact-name: 'frontend-snapshots'
-  #         # base-branch: 'master'
-  #         # XXX: Test against itself
-  #         base-branch: 'armenzg/ci/acceptance-split-up'
-  #         api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-  #         gcs-bucket: 'sentry-visual-snapshots'
-  #         gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+  frontend-visual-diff:
+    if: always()
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [frontend, files-changed]
+    name: trigger frontend visual snapshot
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@main
+        # Run this step only if there are acceptance related code changes
+        # Forks are handled in visual-diff.yml
+        if: needs.files-changed.outputs.acceptance == 'true'
+        with:
+          artifact-name: 'frontend-snapshots'
+          # base-branch: 'master'
+          # XXX: Test against itself
+          base-branch: 'armenzg/ci/acceptance-split-up'
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
   webpack:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -268,29 +268,29 @@ jobs:
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend == 'true'
 
-  # acceptance-visual-diff:
-  #   if: always()
-  #   # This guarantees that we will only schedule Visual Snapshots if all
-  #   # workflows that generate artifacts succeed
-  #   needs: [acceptance, files-changed]
-  #   name: trigger acceptance visual snapshot
-  #   runs-on: ubuntu-20.04
-  #   timeout-minutes: 20
-  #   steps:
-  #     - name: Diff snapshots
-  #       id: visual-snapshots-diff
-  #       uses: getsentry/action-visual-snapshot@split_fe_and_be
-  #       # Run this step only if there are acceptance related code changes
-  #       # Forks are handled in visual-diff.yml
-  #       if: needs.files-changed.outputs.acceptance == 'true'
-  #       with:
-  #         artifact-name: 'acceptance-snapshots'
-  #         # base-branch: 'master'
-  #         # XXX: Test against itself
-  #         base-branch: 'armenzg/ci/acceptance-split-up'
-  #         api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-  #         gcs-bucket: 'sentry-visual-snapshots'
-  #         gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+  acceptance-visual-diff:
+    if: always()
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [acceptance, files-changed]
+    name: trigger acceptance visual snapshot
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      - name: Diff snapshots
+        id: visual-snapshots-diff
+        uses: getsentry/action-visual-snapshot@main
+        # Run this step only if there are acceptance related code changes
+        # Forks are handled in visual-diff.yml
+        if: needs.files-changed.outputs.acceptance == 'true'
+        with:
+          artifact-name: 'acceptance-snapshots'
+          # base-branch: 'master'
+          # XXX: Test against itself
+          base-branch: 'armenzg/ci/acceptance-split-up'
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
   chartcuterie:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -349,7 +349,7 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: .artifacts/chartcuterie-snapshots
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@split_fe_and_be
+        uses: getsentry/action-visual-snapshot@main
         with:
           artifact-name: chartcuterie-snapshots
           save-only: true
@@ -370,7 +370,7 @@ jobs:
     steps:
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@split_fe_and_be
+        uses: getsentry/action-visual-snapshot@main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true'
@@ -383,20 +383,18 @@ jobs:
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
-  # top-level-required-check:
-  #   if: always()
-  #   # This guarantees that we will only schedule Visual Snapshots if all
-  #   # workflows that generate artifacts succeed
-  #   needs: [chartcuterie-visual-diff, files-changed]
-  #   name: Acceptance
-  #   runs-on: ubuntu-20.04
-  #   timeout-minutes: 20
-  #   steps:
-  #     # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
-  #     - name: Check for failures
-  #       if: contains(needs.*.result, 'failure')
-  #       run: |
-  #         echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+  top-level-required-check:
+    if: always()
+    needs: [frontend-visual-diff, acceptance-visual-diff, chartcuterie-visual-diff]
+    name: Acceptance
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      # If any jobs we depend on fail we will make this required check fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
   # Since Visual Snapshot is a required check we need to pretend to have run
   fake-visual-snapshot:
@@ -410,7 +408,7 @@ jobs:
         run: |
           echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"
 
-  # This is temporary until we make "Acceptance" as the required check
+  # This is temporary until we make "Acceptance" the required check
   fake-triggers-snapshot:
     name: triggers visual snapshot
     needs: [files-changed]
