@@ -73,7 +73,7 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 
     logMessage = [formattedMessage, ...restArgs].join(' ').trim();
   } else {
-    // Make sure there are not objects to print in order to not get a "[Object object]"
+    // Make sure there are no objects to print in order to not get a "[Object object]"
     const argValues: (string | number | boolean)[] = [];
 
     for (const arg of breadcrumb.data?.arguments) {
