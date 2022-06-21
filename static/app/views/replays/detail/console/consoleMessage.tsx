@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import isObject from 'lodash/isObject';
 import {sprintf, vsprintf} from 'sprintf-js';
 
 import DateTime from 'sentry/components/dateTime';
@@ -12,6 +13,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import {objectIsEmpty} from 'sentry/utils';
 
 interface MessageFormatterProps {
   breadcrumb: BreadcrumbTypeDefault;
@@ -36,6 +38,8 @@ function renderString(arg: string | number | boolean | Object) {
  * Attempt to emulate the browser console as much as possible
  */
 function MessageFormatter({breadcrumb}: MessageFormatterProps) {
+  let logMessage = breadcrumb.message;
+
   // Browser's console formatter only works on the first arg
   const [message, ...args] = breadcrumb.data?.arguments;
 
@@ -45,35 +49,45 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
     ? sprintf.parse(message).filter(parsed => Array.isArray(parsed))
     : [];
 
-  // TODO `%c` is console specific, it applies colors to messages
-  // for now we are stripping it as this is potentially risky to implement due to xss
-  const consoleColorPlaceholderIndexes = placeholders
-    .filter(([placeholder]) => placeholder === '%c')
-    .map((_, i) => i);
+  if (placeholders.length) {
+    // TODO `%c` is console specific, it applies colors to messages
+    // for now we are stripping it as this is potentially risky to implement due to xss
+    const consoleColorPlaceholderIndexes = placeholders
+      .filter(([placeholder]) => placeholder === '%c')
+      .map((_, i) => i);
 
-  // Retrieve message formatting args
-  const messageArgs = args.slice(0, placeholders.length);
+    // Retrieve message formatting args
+    const messageArgs = args.slice(0, placeholders.length);
 
-  // Filter out args that were for %c
-  for (const colorIndex of consoleColorPlaceholderIndexes) {
-    messageArgs.splice(colorIndex, 1);
+    // Filter out args that were for %c
+    for (const colorIndex of consoleColorPlaceholderIndexes) {
+      messageArgs.splice(colorIndex, 1);
+    }
+
+    // Attempt to stringify the rest of the args
+    const restArgs = args.slice(placeholders.length).map(renderString);
+
+    const formattedMessage = isMessageString
+      ? vsprintf(message.replaceAll('%c', ''), messageArgs)
+      : renderString(message);
+
+    logMessage = [formattedMessage, ...restArgs].join(' ').trim();
+  } else {
+    // Make sure there are not objects to print in order to not get a "[Object object]"
+    const argValues: (string | number | boolean)[] = [];
+
+    for (const arg of breadcrumb.data?.arguments) {
+      if (isObject(arg) && !objectIsEmpty(arg)) {
+        argValues.push(renderString(arg));
+      }
+    }
+
+    if (argValues.length) {
+      logMessage = argValues.join(' ').trim();
+    }
   }
 
-  // Attempt to stringify the rest of the args
-  const restArgs = args.slice(placeholders.length).map(renderString);
-
-  const formattedMessage = isMessageString
-    ? vsprintf(message.replaceAll('%c', ''), messageArgs)
-    : renderString(message);
-
-  // TODO(replays): Add better support for AnnotatedText (e.g. we use message
-  // args from breadcrumb.data.arguments and not breadcrumb.message directly)
-  return (
-    <AnnotatedText
-      meta={getMeta(breadcrumb, 'message')}
-      value={[formattedMessage, ...restArgs].join(' ')}
-    />
-  );
+  return <AnnotatedText meta={getMeta(breadcrumb, 'message')} value={logMessage} />;
 }
 
 interface ConsoleMessageProps extends MessageFormatterProps {
