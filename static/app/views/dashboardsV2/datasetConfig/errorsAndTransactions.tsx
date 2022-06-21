@@ -47,6 +47,7 @@ import {
   getNumEquations,
   getWidgetInterval,
 } from '../utils';
+import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -72,6 +73,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
+  SearchBar: EventsSearchBar,
   getTableFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
