@@ -124,12 +124,18 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
+      # If any jobs we depend on fail we will make this required check fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+
       - name: Diff snapshots
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
-        if: needs.files-changed.outputs.acceptance == 'true'
+        if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           artifact-name: 'frontend-snapshots'
           # If you want your PR to grab artifacts from this branch rather than the master branch
@@ -253,17 +259,18 @@ jobs:
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          mkdir -p .artifacts/visual-snapshots/acceptance
-          mkdir -p .artifacts/visual-snapshots/acceptance-mobile
-          mkdir -p .artifacts/visual-snapshots/acceptance-tooltips
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-mobile
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}-tooltips
           make run-acceptance
         env:
-          PYTEST_SNAPSHOTS_DIR: .artifacts/visual-snapshots/acceptance
+          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
           USE_SNUBA: 1
 
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@main
         with:
+          # This value has to match artifact-name in the visual-diff execution
           artifact-name: acceptance-snapshots
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -281,12 +288,18 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
+      # If any jobs we depend on fail we will make this required check fail
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+
       - name: Diff snapshots
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
-        if: needs.files-changed.outputs.acceptance == 'true'
+        if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           artifact-name: 'acceptance-snapshots'
           # If you want your PR to grab artifacts from this branch rather than the master branch
@@ -349,37 +362,26 @@ jobs:
 
       - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          mkdir -p .artifacts/chartcuterie-snapshots
+          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
           make test-chartcuterie
         env:
-          PYTEST_SNAPSHOTS_DIR: .artifacts/chartcuterie-snapshots
+          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@main
         with:
+          # This value has to match artifact-name in the visual-diff execution
           artifact-name: chartcuterie-snapshots
           save-only: true
-          snapshot-path: .artifacts/chartcuterie-snapshots
+          snapshot-path: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend == 'true'
 
-  chartcuterie-visual-diff:
-    if: always()
-    # This guarantees that we will only schedule Visual Snapshots if all
-    # workflows that generate artifacts succeed
-    needs: [chartcuterie, files-changed]
-    name: trigger chartcuterie visual snapshot
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    steps:
       - name: Diff snapshots
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@main
-        # Run this step only if there are acceptance related code changes
-        # Forks are handled in visual-diff.yml
-        if: needs.files-changed.outputs.acceptance == 'true'
         with:
           artifact-name: 'chartcuterie-snapshots'
           # If you want your PR to grab artifacts from this branch rather than the master branch
@@ -390,19 +392,6 @@ jobs:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
-
-  top-level-required-check:
-    if: always()
-    needs: [frontend-visual-diff, acceptance-visual-diff, chartcuterie-visual-diff]
-    name: Acceptance
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    steps:
-      # If any jobs we depend on fail we will make this required check fail
-      - name: Check for failures
-        if: contains(needs.*.result, 'failure')
-        run: |
-          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
   # Since Visual Snapshot is a required check we need to pretend to have run
   fake-visual-snapshot:
