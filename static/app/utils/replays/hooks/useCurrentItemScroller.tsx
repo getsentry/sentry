@@ -15,9 +15,13 @@ export function useCurrentItemScroller(containerRef: RefObject<HTMLDivElement>) 
             const element = mutation.target as Element;
             const isCurrent = element?.ariaCurrent === 'true';
             if (isCurrent) {
-              element?.scrollIntoView({
-                behavior: 'smooth',
-              });
+              // Deferring the scroll helps to prevent it from not being executed
+              // in certain situation. (jumping to a time with the scrubber)
+              setTimeout(() => {
+                element?.scrollIntoView({
+                  behavior: 'smooth',
+                });
+              }, 0);
             }
           }
         }
