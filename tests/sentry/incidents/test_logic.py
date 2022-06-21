@@ -446,6 +446,42 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.resolve_threshold == resolve_threshold
         assert alert_rule.threshold_period == threshold_period
 
+    def test_release_version(self):
+        name = "hello"
+        query = "release.version:1.2.3"
+        aggregate = "count(*)"
+        time_window = 10
+        threshold_type = AlertRuleThresholdType.ABOVE
+        resolve_threshold = 10
+        threshold_period = 1
+        event_types = [SnubaQueryEventType.EventType.ERROR]
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            name,
+            query,
+            aggregate,
+            time_window,
+            threshold_type,
+            threshold_period,
+            resolve_threshold=resolve_threshold,
+            event_types=event_types,
+        )
+        assert alert_rule.snuba_query.subscriptions.get().project == self.project
+        assert alert_rule.name == name
+        assert alert_rule.owner is None
+        assert alert_rule.status == AlertRuleStatus.PENDING.value
+        assert alert_rule.snuba_query.subscriptions.all().count() == 1
+        assert alert_rule.snuba_query.dataset == QueryDatasets.EVENTS.value
+        assert alert_rule.snuba_query.query == query
+        assert alert_rule.snuba_query.aggregate == aggregate
+        assert alert_rule.snuba_query.time_window == time_window * 60
+        assert alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
+        assert set(alert_rule.snuba_query.event_types) == set(event_types)
+        assert alert_rule.threshold_type == threshold_type.value
+        assert alert_rule.resolve_threshold == resolve_threshold
+        assert alert_rule.threshold_period == threshold_period
+
     def test_include_all_projects(self):
         include_all_projects = True
         self.project

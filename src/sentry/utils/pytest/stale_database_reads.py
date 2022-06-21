@@ -5,6 +5,7 @@ from typing import Any, List, Tuple
 import pytest
 from celery.app.task import Task
 from django.db import transaction
+from django.db.backends.base.base import BaseDatabaseWrapper
 from django.db.models.signals import ModelSignal
 
 _SEP_LINE = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -103,6 +104,7 @@ def stale_database_reads(monkeypatch):
 
     old_on_commit = transaction.on_commit
 
+    # Needs to be hooked for autocommit
     def on_commit(*args, **kwargs):
         _state.in_on_commit = True
         try:
@@ -123,15 +125,33 @@ def stale_database_reads(monkeypatch):
 
     monkeypatch.setattr(transaction, "atomic", atomic)
 
-    old_apply_async = Task.apply_async
+    old_run_and_clear_commit_hooks = BaseDatabaseWrapper.run_and_clear_commit_hooks
+
+    # Needs to be hooked for running commit hooks inside of TransactionTestCase
+    def run_and_clear_commit_hooks(*args, **kwargs):
+        _state.in_run_and_clear_commit_hooks = True
+        try:
+            return old_run_and_clear_commit_hooks(*args, **kwargs)
+        finally:
+            _state.in_run_and_clear_commit_hooks = False
+
+    monkeypatch.setattr(
+        BaseDatabaseWrapper, "run_and_clear_commit_hooks", run_and_clear_commit_hooks
+    )
 
     reports = StaleDatabaseReads(model_signal_handlers=[], transaction_blocks=[])
 
+    old_apply_async = Task.apply_async
+
     def apply_async(self, args=(), kwargs=(), countdown=None):
-        if getattr(_state, "in_signal_sender", None) and not getattr(_state, "in_on_commit", None):
+        in_commit_hook = getattr(_state, "in_on_commit", None) or getattr(
+            _state, "in_run_and_clear_commit_hooks", None
+        )
+
+        if getattr(_state, "in_signal_sender", None) and not in_commit_hook:
             reports.model_signal_handlers.append((_state.in_signal_sender, self))
 
-        elif getattr(_state, "in_atomic", None) and not getattr(_state, "in_on_commit", None):
+        elif getattr(_state, "in_atomic", None) and not in_commit_hook:
             reports.transaction_blocks.append(self)
 
         return old_apply_async(self, args, kwargs, countdown)
