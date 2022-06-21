@@ -1,9 +1,15 @@
 import {FlamegraphFrame} from '../../flamegraphFrame';
+import {Bounds} from '../../gl/utils';
+
+export type FlamegraphSearchResult = {
+  frame: FlamegraphFrame;
+  matchIndices: Bounds[];
+};
 
 export type FlamegraphSearch = {
   index: number | null;
   query: string;
-  results: Record<string, FlamegraphFrame> | null;
+  results: Record<string, FlamegraphSearchResult> | null;
 };
 
 type ClearFlamegraphSearchAction = {

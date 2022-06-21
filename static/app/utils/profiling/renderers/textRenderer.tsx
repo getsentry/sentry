@@ -5,10 +5,10 @@ import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/flamegraph
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {
+  computeHighlightedBounds,
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
-  matchHighlightedBounds,
   Rect,
   resizeCanvasToDisplaySize,
   trimTextCenter,
@@ -56,7 +56,7 @@ class TextRenderer {
   draw(
     configView: Rect,
     configViewToPhysicalSpace: mat3,
-    flamegraphSearch: FlamegraphSearch | null = null
+    flamegraphSearchResults: FlamegraphSearch['results'] | null = null
   ): void {
     this.maybeInvalidateCache();
 
@@ -143,16 +143,13 @@ class TextRenderer {
 
       const {text: trimText} = trim;
 
-      if (flamegraphSearch) {
-        const searchResults = flamegraphSearch.results ?? {};
-        const searchQuery = flamegraphSearch.query;
+      if (flamegraphSearchResults) {
         const frameId = getFlamegraphFrameSearchId(frame);
-        const isFrameInSearchResults = searchResults[frameId];
+        const frameSearchResult = flamegraphSearchResults[frameId];
 
-        if (isFrameInSearchResults && searchQuery) {
-          const re = new RegExp(searchQuery, 'ig');
-
-          for (const highlightedBounds of matchHighlightedBounds(frameName, re, trim)) {
+        if (frameSearchResult) {
+          for (const matchIndices of frameSearchResult.matchIndices) {
+            const highlightedBounds = computeHighlightedBounds(matchIndices, trim);
             const [startIndex, endIndex] = highlightedBounds;
             const highlightTextSize = this.measureAndCacheText(
               trimText.substring(startIndex, endIndex)

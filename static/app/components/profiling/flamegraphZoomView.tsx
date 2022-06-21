@@ -280,7 +280,7 @@ function FlamegraphZoomView({
       textRenderer.draw(
         flamegraphView.configView,
         flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
-        flamegraphSearch
+        flamegraphSearch.results
       );
     };
 

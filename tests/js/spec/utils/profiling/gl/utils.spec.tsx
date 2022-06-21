@@ -1,13 +1,14 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {
+  Bounds,
+  computeHighlightedBounds,
   createProgram,
   createShader,
   ELLIPSIS,
   findRangeBinarySearch,
   getContext,
   makeProjectionMatrix,
-  matchHighlightedBounds,
   Rect,
   Transform,
   trimTextCenter,
@@ -385,12 +386,13 @@ describe('trimTextCenter', () => {
   });
 });
 
-describe('matchHighlightedBounds', () => {
+describe('computeHighlightedBounds', () => {
   const testTable = [
     {
+      name: 'reduces bounds[1] if tail is truncated',
+      text: 'CA::Display::DisplayLink::dispatch_items(unsigned long long, unsigned long long, unsigned long long)',
       args: {
-        text: 'CA::Display::DisplayLink::dispatch_items(unsigned long long, unsigned long long, unsigned long long)',
-        searchRegex: /display/gi,
+        bounds: [4, 11],
         trim: {
           // match tail truncated
           text: 'CA::Dis…long)',
@@ -399,14 +401,27 @@ describe('matchHighlightedBounds', () => {
           length: 88,
         },
       },
-      expected: [
-        [4, 8], // Dis...
-      ],
+      expected: [4, 8], // Dis...
     },
     {
+      name: 'shifts bounds if truncated before bounds',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
       args: {
-        text: '-[UIScrollView _smoothScrollDisplayLink:]',
-        searchRegex: /display/gi,
+        bounds: [28, 35],
+        trim: {
+          text: '-[UIScrollView…playLink:]',
+          start: 14,
+          end: 31,
+          length: 17,
+        },
+      },
+      expected: [14, 19], // ...play
+    },
+    {
+      name: 'shifts bounds if truncated before bounds',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
+      args: {
+        bounds: [28, 35],
         trim: {
           // match bounds are shifted after truncate
           text: '-[UIScrollView _sm…rollDisplayLink:]',
@@ -415,32 +430,13 @@ describe('matchHighlightedBounds', () => {
           length: 6,
         },
       },
-      expected: [
-        [23, 30], // Display
-      ],
+      expected: [23, 30], // Display
     },
     {
+      name: 'reduces bounds if fully truncated',
+      text: '-[UIScrollView _smoothScrollDisplayLink:]',
       args: {
-        text: 'CA::Display::DisplayLink::dispatch_deferred_display_links()',
-        searchRegex: /display/gi,
-        trim: {
-          // match, match tail truncated, match shifted,
-          text: 'CA::Display::Displ…ed_display_links()',
-          start: 18,
-          end: 41,
-          length: 23,
-        },
-      },
-      expected: [
-        [4, 11], // Display
-        [13, 18], // Displ…
-        [22, 29], // display
-      ],
-    },
-    {
-      args: {
-        text: '-[UIScrollView _smoothScrollDisplayLink:]',
-        searchRegex: /display/gi,
+        bounds: [28, 35],
         trim: {
           // matched text is within truncated ellipsis ,
           text: '-[UIScr…Link:]',
@@ -449,73 +445,12 @@ describe('matchHighlightedBounds', () => {
           length: 28,
         },
       },
-      expected: [
-        [7, 8], // …
-      ],
-    },
-    {
-      args: {
-        text: 'CA::Layer::layout_and_display_if_needed(CA::Transaction*)',
-        searchRegex: /display/gi,
-        trim: {
-          // whole text is truncated
-          text: '…',
-          start: 0,
-          end: 57,
-          length: 57,
-        },
-      },
-      expected: [
-        [0, 1], // …
-      ],
-    },
-    {
-      args: {
-        text: '__CFRunLoopRun',
-        searchRegex: /runloop/gi,
-        trim: {
-          // nothing is truncated
-          text: '__CFRunLoopRun',
-          start: 0,
-          end: 14,
-          length: 14,
-        },
-      },
-      expected: [[4, 11]],
-    },
-    {
-      args: {
-        text: '__CFRunLoopRun',
-        searchRegex: /runloop/gi,
-        trim: {
-          text: '__CF…pRun',
-          start: 4,
-          end: 10,
-          length: 6,
-        },
-      },
-      expected: [[4, 6]],
-    },
-    {
-      args: {
-        text: '__CFRunLoopRun',
-        searchRegex: /looprun/gi,
-        trim: {
-          text: '__C…un',
-          start: 3,
-          end: 12,
-          length: 9,
-        },
-      },
-      expected: [[3, 6]],
+      expected: [7, 8], // …
     },
   ];
 
-  it.each(testTable)(
-    `when searching for "display" in "$args.text" truncated to "$args.trim.text" it matches $expected.length boundaries`,
-    ({args, expected}) => {
-      const value = matchHighlightedBounds(args.text, args.searchRegex, args.trim);
-      expect(value).toEqual(expected);
-    }
-  );
+  it.each(testTable)(`$name`, ({args, expected}) => {
+    const value = computeHighlightedBounds(args.bounds as Bounds, args.trim);
+    expect(value).toEqual(expected);
+  });
 });

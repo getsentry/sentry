@@ -559,61 +559,85 @@ function isBetween(num: number, low: number, high: number) {
   return num >= low && num <= high;
 }
 
-type Bounds = [number, number];
-function computeHighlightedBounds(bounds: Bounds, trim: TrimTextCenter): Bounds {
-  let next = bounds;
-  const [boundStart, boundEnd] = next;
-  const {start, end, length, text} = trim;
+export type Bounds = [number, number];
 
-  if (start === 0 && end === length && text.length > 1) {
+/**
+ * computeHighlightedBounds determines if a supplied boundary should be reduced in size
+ * or shifted based on the results of a trim operation
+ */
+export function computeHighlightedBounds(bounds: Bounds, trim: TrimTextCenter): Bounds {
+  const next = bounds;
+  const [boundStart, boundEnd] = next;
+  const {start: trimStart, end: trimEnd, length: trimLength, text} = trim;
+
+  const isNotTrimmed = trimStart === 0 && trimEnd === trimLength && text.length > 1;
+  if (isNotTrimmed) {
     return next;
   }
-  // check if matched word now falls within an ellipsis at the head or tail of the word
-  // "display" in "...play"
-  const isHeadEllipsis = isBetween(boundStart, start, end);
-  // "display" in "dis..."
-  const isTailEllipsis = isBetween(boundEnd, start, end);
-  const isFullyTruncated = isHeadEllipsis && isTailEllipsis;
-  if (isTailEllipsis) {
-    next[1] = start;
-  }
-  if (isHeadEllipsis) {
-    next[0] = end;
-  }
-  if (isFullyTruncated) {
-    next = [start, start + 1];
-  }
-  return next.map(v => {
-    if (v >= end) {
-      const delta = v - length;
-      if (delta === start) {
-        return start;
-      }
-      return delta + 1;
-    }
-    return v;
-  }) as Bounds;
-}
 
-export function matchHighlightedBounds(
-  text: string,
-  searchRegex: RegExp,
-  trim: TrimTextCenter
-) {
-  const boundaries: [number, number][] = [];
-  for (const match of text.matchAll(searchRegex)) {
-    if (typeof match.index === 'undefined') {
-      continue;
-    }
-    const bounds = [match.index, match[0].length + match.index];
-    const computedBounds = computeHighlightedBounds(bounds as Bounds, trim);
-    const lastBound = boundaries[boundaries.length - 1];
-    const isContinuous = lastBound && isBetween(computedBounds[0], ...lastBound);
-    if (isContinuous) {
-      lastBound[1] = computedBounds[1];
-      continue;
-    }
-    boundaries.push(computedBounds);
+  const isHeadEllipsis = isBetween(boundStart, trimStart, trimEnd);
+  const isTailEllipsis = isBetween(boundEnd, trimStart, trimEnd);
+  const isFullyTruncated = isHeadEllipsis && isTailEllipsis;
+
+  /**
+   * if a word is fully truncated we reduce the bounds to a single char
+   * where the ellipsis lies
+   *
+   * "dis" in "DrawDisplay":
+   *
+   * | D | r | a | w | … | p | l | a | y |
+   *                 4---5
+   */
+  if (isFullyTruncated) {
+    return [trimStart, trimStart + 1];
   }
-  return boundaries;
+
+  /**
+   * check if matched bounds partially falls within a trim (ellipsis) at the head the word
+   * if our matched bounds falls within the trimmed boundaries (ellipsis)
+   * reduce our matched boundary to align with where the trim ends
+   *
+   * "Display" in "DrawDisplay":
+   *
+   * | D | r | a | w | D | i | s | p | l | a | y |
+   *                 4---match------------------11
+   * | D | r | a | w | . | . | . | p | l | a | y |
+   *                 4---trim----7
+   *                             7---match------11
+   */
+  if (isHeadEllipsis) {
+    next[0] = trimEnd;
+  }
+
+  if (isTailEllipsis) {
+    // +1 to be inclusive of ellipsis
+    next[1] = trimStart + 1;
+  }
+
+  /**
+   * if a matched boundary falls after an trim (ellipsis) we need
+   * to shift our indexes down by the length of n chars that are trimmed
+   *
+   * shiftedBound = bound - trimLength + 1?
+   *
+   * | D | r | a | w | . | . | . | p | l | a | y |
+   *                 4--trim(3)--7
+   *                             7---match------11
+   *
+   * | D | r | a | w | … | p | l | a | y |
+   *                 4---match-----------9
+   */
+  const maybeShiftBounds = (i: number) => {
+    if (i < trimEnd) {
+      return i;
+    }
+    const shiftedBound = i - trimLength;
+    // include ellipsis in boundary
+    if (shiftedBound === trimStart) {
+      return trimStart;
+    }
+
+    return shiftedBound + 1;
+  };
+  return next.map(maybeShiftBounds) as Bounds;
 }

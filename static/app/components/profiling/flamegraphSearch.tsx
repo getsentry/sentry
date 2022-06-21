@@ -7,24 +7,28 @@ import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphSearchResult} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
 import {
   FlamegraphFrame,
   getFlamegraphFrameSearchId,
 } from 'sentry/utils/profiling/flamegraphFrame';
+import {Bounds} from 'sentry/utils/profiling/gl/utils';
 import {memoizeByReference} from 'sentry/utils/profiling/profile/utils';
 import {isRegExpString, parseRegExp} from 'sentry/utils/profiling/validators/regExp';
 
-function sortFrameResults(
-  frames: Record<string, FlamegraphFrame> | null
-): Array<FlamegraphFrame> {
+type FrameSearchResults = Record<string, FlamegraphSearchResult>;
+
+function sortFrameResults(frames: FrameSearchResults | null): Array<FlamegraphFrame> {
   // If frames have the same start times, move frames with lower stack depth first.
   // This results in top down and left to right iteration
-  return Object.values(frames ?? {}).sort((a, b) =>
-    a.start === b.start
-      ? numericSort(a.depth, b.depth, 'asc')
-      : numericSort(a.start, b.start, 'asc')
-  );
+  return Object.values(frames ?? {})
+    .map(f => f.frame)
+    .sort((a, b) =>
+      a.start === b.start
+        ? numericSort(a.depth, b.depth, 'asc')
+        : numericSort(a.start, b.start, 'asc')
+    );
 }
 
 const memoizedSortFrameResults = memoizeByReference(sortFrameResults);
@@ -33,8 +37,8 @@ function frameSearch(
   query: string,
   frames: ReadonlyArray<FlamegraphFrame>,
   index: Fuse<FlamegraphFrame>
-): Record<string, FlamegraphFrame> | null {
-  const results = {};
+): FrameSearchResults | null {
+  const results: FrameSearchResults = {};
   if (isRegExpString(query)) {
     const [_, lookup, flags] = parseRegExp(query) ?? [];
 
@@ -48,9 +52,22 @@ function frameSearch(
       for (let i = 0; i < frames.length; i++) {
         const frame = frames[i];
 
-        if (new RegExp(lookup, flags ?? 'g').test(frame.frame.name.trim())) {
+        const re = new RegExp(lookup, flags ?? 'g');
+        const reMatches = Array.from(frame.frame.name.trim().matchAll(re));
+        if (reMatches.length > 0) {
           const frameId = getFlamegraphFrameSearchId(frame);
-          results[frameId] = frame;
+          results[frameId] = {
+            frame,
+            matchIndices: reMatches.reduce((acc, match) => {
+              if (typeof match.index === 'undefined') {
+                return acc;
+              }
+
+              acc.push([match.index, match.index + match[0].length]);
+
+              return acc;
+            }, [] as [number, number][]),
+          };
           matches += 1;
         }
       }
@@ -72,15 +89,17 @@ function frameSearch(
   }
 
   for (let i = 0; i < fuseResults.length; i++) {
-    const frame = fuseResults[i];
-
-    results[
-      `${
-        frame.item.frame.name +
-        (frame.item.frame.file ? frame.item.frame.file : '') +
-        String(frame.item.start)
-      }`
-    ] = frame.item;
+    const fuseFrameResult = fuseResults[i];
+    const frame = fuseFrameResult.item;
+    const frameId = getFlamegraphFrameSearchId(frame);
+    results[frameId] = {
+      frame,
+      // matches will be defined when using 'includeMatches' in FuseOptions
+      matchIndices: fuseFrameResult.matches!.reduce((acc, val) => {
+        acc.push(...val.indices);
+        return acc;
+      }, [] as Bounds[]),
+    };
   }
 
   return results;

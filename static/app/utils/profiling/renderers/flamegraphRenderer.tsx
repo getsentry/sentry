@@ -1,6 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from '../flamegraph';
+import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/flamegraphSearch';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
 import {
@@ -391,7 +392,7 @@ class FlamegraphRenderer {
 
   draw(
     configViewToPhysicalSpace: mat3,
-    searchResults: Record<FlamegraphFrame['frame']['key'], FlamegraphFrame> | null = null
+    searchResults: FlamegraphSearch['results'] = null
   ): void {
     if (!this.gl) {
       throw new Error('Uninitialized WebGL context');
