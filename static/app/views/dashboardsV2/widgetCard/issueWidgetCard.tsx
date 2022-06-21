@@ -20,7 +20,7 @@ type Props = {
   location: Location;
   organization: Organization;
   selection: PageFilters;
-  transformedResults: TableDataRow[];
+  tableData: TableDataRow[];
   widget: Widget;
   errorMessage?: string;
 };
@@ -31,7 +31,7 @@ export function IssueWidgetCard({
   widget,
   errorMessage,
   loading,
-  transformedResults,
+  tableData,
   location,
 }: Props) {
   const datasetConfig = getDatasetConfig(WidgetType.ISSUE);
@@ -70,7 +70,7 @@ export function IssueWidgetCard({
       fieldAliases={fieldAliases}
       loading={loading}
       metadata={ISSUE_FIELDS}
-      data={transformedResults}
+      data={tableData}
       organization={organization}
       getCustomFieldRenderer={datasetConfig.getCustomFieldRenderer}
       fieldHeaderMap={datasetConfig.fieldHeaderMap}
