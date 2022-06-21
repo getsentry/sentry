@@ -22,7 +22,6 @@ jobs:
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
-      frontend: ${{ steps.changes.outputs.frontend }}
       backend: ${{ steps.changes.outputs.backend }}
     steps:
       - uses: actions/checkout@v2
@@ -295,36 +294,31 @@ jobs:
 
       - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
-          mkdir -p .artifacts/visual-snapshots-chartcuterie
+          mkdir -p .artifacts/chartcuterie-snapshots
           make test-chartcuterie
         env:
-          PYTEST_SNAPSHOTS_DIR: .artifacts/visual-snapshots-chartcuterie
+          PYTEST_SNAPSHOTS_DIR: .artifacts/chartcuterie-snapshots
 
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@split_fe_and_be
         with:
+          artifact-name: chartcuterie-snapshots
           save-only: true
-          snapshot-path: .artifacts/visual-snapshots-chartcuterie
+          snapshot-path: .artifacts/chartcuterie-snapshots
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
         if: needs.files-changed.outputs.backend == 'true'
 
-  visual-diff:
+  chartcuterie-visual-diff:
     if: always()
     # This guarantees that we will only schedule Visual Snapshots if all
     # workflows that generate artifacts succeed
     needs: [chartcuterie, files-changed]
-    name: triggers visual snapshot
+    name: trigger chartcuterie visual snapshot
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
-      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
-      - name: Check for failures
-        if: contains(needs.*.result, 'failure')
-        run: |
-          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
-
       - name: Diff snapshots
         id: visual-snapshots-diff
         uses: getsentry/action-visual-snapshot@split_fe_and_be
@@ -340,6 +334,21 @@ jobs:
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
+  top-level-required-check:
+    if: always()
+    # This guarantees that we will only schedule Visual Snapshots if all
+    # workflows that generate artifacts succeed
+    needs: [chartcuterie-visual-diff, files-changed]
+    name: Acceptance
+    runs-on: ubuntu-20.04
+    timeout-minutes: 20
+    steps:
+      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      - name: Check for failures
+        if: contains(needs.*.result, 'failure')
+        run: |
+          echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
+
   # Since Visual Snapshot is a required check we need to pretend to have run
   fake-visual-snapshot:
     name: Visual Snapshot
@@ -351,3 +360,15 @@ jobs:
       - name: Sentaur attack
         run: |
           echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"
+
+  # This is temporary until we make "Acceptance" as the required check
+  fake-triggers-snapshot:
+    name: triggers visual snapshot
+    needs: [files-changed]
+    # Opposite condition to "triggers visual snapshot" required check
+    if: needs.files-changed.outputs.acceptance != 'true'
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Sentaur defense
+        run: |
+          echo "This is the beginning of how the Sentaurs defended themselves from the empire."
