@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import React, {useState} from 'react';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
@@ -15,83 +15,88 @@ type Props = ModalRenderProps & {
   projectSlug?: string;
 };
 
-type State = {
-  commit: Commit | undefined;
-  commits: Commit[] | undefined;
-};
-
-class CustomCommitsResolutionModal extends Component<Props, State> {
-  state: State = {
+function CustomCommitsResolutionModal({
+  onSelected,
+  orgSlug,
+  projectSlug,
+  closeModal,
+  Header,
+  Body,
+  Footer,
+}: Props) {
+  const [state, setState] = useState<{
+    commit: Commit | undefined;
+    commits: Commit[] | undefined;
+  }>({
     commit: undefined,
     commits: undefined,
-  };
+  });
 
-  onChange = (value: string | number | boolean) => {
-    const commits = this.state.commits;
-    if (commits === undefined) {
+  const onChange = (value: string | number | boolean) => {
+    if (state.commits === undefined) {
       return;
     }
-    this.setState({
-      commit: commits.find(result => result.id === value),
+    setState({
+      ...state,
+      commit: state.commits.find(result => result.id === value),
     });
   };
 
-  onAsyncFieldResults = (results: Commit[]) => {
-    this.setState({commits: results});
-    return results.map(commit => ({
-      value: commit.id,
-      label: <Version version={commit.id} anchor={false} />,
+  const onAsyncFieldResults = (results: Commit[]) => {
+    setState({
+      ...state,
+      commits: results,
+    });
+    return results.map(c => ({
+      value: c.id,
+      label: <Version version={c.id} anchor={false} />,
       details: (
         <span>
-          {t('Created')} <TimeSince date={commit.dateCreated} />
+          {t('Created')} <TimeSince date={c.dateCreated} />
         </span>
       ),
-      commit,
+      c,
     }));
   };
 
-  render() {
-    const {orgSlug, projectSlug, closeModal, onSelected, Header, Body, Footer} =
-      this.props;
-    const url = `/projects/${orgSlug}/${projectSlug}/commits/`;
+  const url = `/projects/${orgSlug}/${projectSlug}/commits/`;
 
-    const onSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      onSelected({
-        inCommit: {
-          commit: this.state.commit?.id,
-          repository: this.state.commit?.repository?.name,
-        },
-      });
-      closeModal();
-    };
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSelected({
+      inCommit: {
+        commit: state.commit?.id,
+        repository: state.commit?.repository?.name,
+      },
+    });
+    closeModal();
+  };
 
-    return (
-      <form onSubmit={onSubmit}>
-        <Header>{t('Resolved In')}</Header>
-        <Body>
-          <SelectAsyncField
-            label={t('Commit')}
-            id="commit"
-            name="commit"
-            onChange={this.onChange}
-            placeholder={t('e.g. 1.0.4')}
-            url={url}
-            onResults={this.onAsyncFieldResults}
-            onQuery={query => ({query})}
-          />
-        </Body>
-        <Footer>
-          <Button type="button" css={{marginRight: space(1.5)}} onClick={closeModal}>
-            {t('Cancel')}
-          </Button>
-          <Button type="submit" priority="primary">
-            {t('Save Changes')}
-          </Button>
-        </Footer>
-      </form>
-    );
-  }
+  return (
+    <form onSubmit={onSubmit}>
+      <Header>{t('Resolved In')}</Header>
+      <Body>
+        <SelectAsyncField
+          label={t('Commit')}
+          id="commit"
+          name="commit"
+          onChange={onChange}
+          placeholder={t('e.g. 1.0.4')}
+          url={url}
+          onResults={onAsyncFieldResults}
+          onQuery={query => ({query})}
+        />
+      </Body>
+      <Footer>
+        <Button type="button" css={{marginRight: space(1.5)}} onClick={closeModal}>
+          {t('Cancel')}
+        </Button>
+        <Button type="submit" priority="primary">
+          {t('Save Changes')}
+        </Button>
+      </Footer>
+    </form>
+  );
 }
 
 export default CustomCommitsResolutionModal;
