@@ -11,6 +11,7 @@ import logging
 from collections import OrderedDict, defaultdict, deque
 from copy import copy
 from dataclasses import dataclass, replace
+from datetime import datetime
 from operator import itemgetter
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
@@ -18,17 +19,19 @@ from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Project
+from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.query import Groupable, MetricsQuery
 from sentry.snuba.metrics.query_builder import SnubaQueryBuilder, SnubaResultConverter
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
+    CUSTOM_MEASUREMENT_DATASETS,
     FIELD_ALIAS_MAPPINGS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
@@ -47,7 +50,13 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
-def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[str, Any]:
+def _get_metrics_for_entity(
+    entity_key: EntityKey,
+    projects: Sequence[Project],
+    org_id: int,
+    start: Optional[datetime],
+    end: Optional[datetime],
+) -> Mapping[str, Any]:
     return run_metrics_query(
         entity_key=entity_key,
         select=[Column("metric_id")],
@@ -56,6 +65,8 @@ def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[
         referrer="snuba.metrics.get_metrics_names_for_entity",
         projects=projects,
         org_id=org_id,
+        start=start,
+        end=end,
     )
 
 
@@ -122,18 +133,18 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             projects=projects,
             org_id=projects[0].organization_id,
         ):
-            try:
+            mri = reverse_resolve(row["metric_id"])
+            public_name = get_public_name_from_mri(mri)
+            if public_name is not None:
                 metrics_meta.append(
                     MetricMeta(
-                        name=get_public_name_from_mri(reverse_resolve(row["metric_id"])),
+                        name=public_name,
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                         unit=None,  # snuba does not know the unit
                     )
                 )
-            except InvalidParams:
-                # An instance of `InvalidParams` exception is raised here when there is no reverse
-                # mapping from MRI to public name because of the naming change
+            else:
                 logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
                 continue
             metric_ids_in_entities[metric_type].add(row["metric_id"])
@@ -149,15 +160,51 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
 
     for derived_metric_mri in found_derived_metrics:
         derived_metric_obj = public_derived_metrics[derived_metric_mri]
-        metrics_meta.append(
-            MetricMeta(
-                name=get_public_name_from_mri(derived_metric_obj.metric_mri),
-                type=derived_metric_obj.result_type,
-                operations=derived_metric_obj.generate_available_operations(),
-                unit=derived_metric_obj.unit,
+        public_name = get_public_name_from_mri(derived_metric_obj.metric_mri)
+        if public_name is not None:
+            metrics_meta.append(
+                MetricMeta(
+                    name=public_name,
+                    type=derived_metric_obj.result_type,
+                    operations=derived_metric_obj.generate_available_operations(),
+                    unit=derived_metric_obj.unit,
+                )
             )
-        )
     return sorted(metrics_meta, key=itemgetter("name"))
+
+
+def get_custom_measurements(
+    projects: Sequence[Project],
+    organization: Optional[Organization] = None,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+) -> Sequence[MetricMeta]:
+    assert projects
+
+    metrics_meta = []
+    for metric_type in CUSTOM_MEASUREMENT_DATASETS:
+        for row in _get_metrics_for_entity(
+            entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
+            projects=projects,
+            org_id=projects[0].organization_id if organization is None else organization.id,
+            start=start,
+            end=end,
+        ):
+            mri = reverse_resolve(row["metric_id"])
+            public_name = get_public_name_from_mri(mri)
+            # Custom measurements will get None from this function
+            if public_name is None:
+                parsed_mri = parse_mri(mri)
+                metrics_meta.append(
+                    MetricMeta(
+                        name=parsed_mri.name,
+                        type=metric_type,
+                        operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
+                        unit=parsed_mri.unit,
+                    )
+                )
+
+    return metrics_meta
 
 
 def _get_metrics_filter_ids(projects: Sequence[Project], metric_mris: Sequence[str]) -> Set[int]:

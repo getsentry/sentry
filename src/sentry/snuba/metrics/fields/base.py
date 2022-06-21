@@ -109,9 +109,18 @@ def run_metrics_query(
     projects: Sequence[Project],
     org_id: int,
     referrer: str,
+    start: Optional[datetime],
+    end: Optional[datetime],
 ) -> List[SnubaDataType]:
+    if end is None:
+        end = datetime.now()
+    if start is None:
+        start = end - timedelta(hours=24)
+
     # Round timestamp to minute to get cache efficiency:
-    now = datetime.now().replace(second=0, microsecond=0)
+    # Also floor start to match the daily granularity
+    end = end.replace(second=0, microsecond=0)
+    start = start.replace(hour=0, minute=0, second=0, microsecond=0)
 
     query = Query(
         match=Entity(entity_key.value),
@@ -120,8 +129,8 @@ def run_metrics_query(
         where=[
             Condition(Column("org_id"), Op.EQ, org_id),
             Condition(Column("project_id"), Op.IN, [p.id for p in projects]),
-            Condition(Column(TS_COL_QUERY), Op.GTE, now - timedelta(hours=24)),
-            Condition(Column(TS_COL_QUERY), Op.LT, now),
+            Condition(Column(TS_COL_QUERY), Op.GTE, start),
+            Condition(Column(TS_COL_QUERY), Op.LT, end),
         ]
         + where,
         granularity=Granularity(GRANULARITY),

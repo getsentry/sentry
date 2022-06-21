@@ -2,7 +2,7 @@ __all__ = ("create_name_mapping_layers", "get_mri", "get_public_name_from_mri")
 
 
 from enum import Enum
-from typing import Dict, Union, cast
+from typing import Dict, Optional, Union, cast
 
 from sentry.api.utils import InvalidParams
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -54,7 +54,10 @@ def get_mri(external_name: Union[Enum, str]) -> str:
         )
 
 
-def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> str:
+def get_public_name_from_mri(
+    internal_name: Union[TransactionMRI, SessionMRI, str]
+) -> Optional[str]:
+    """Returns the public name from a MRI if its a builtin metric, None otherwise"""
     if not len(MRI_TO_NAME):
         create_name_mapping_layers()
 
@@ -62,7 +65,4 @@ def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, st
         internal_name = internal_name.value
     assert isinstance(internal_name, str)
 
-    try:
-        return MRI_TO_NAME[internal_name]
-    except KeyError:
-        raise InvalidParams(f"Unable to find a mri reverse mapping for '{internal_name}'.")
+    return MRI_TO_NAME.get(internal_name)
