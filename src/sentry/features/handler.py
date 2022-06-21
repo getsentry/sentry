@@ -38,7 +38,6 @@ class FeatureHandler:
         actor: User,
         projects: Optional[Sequence[Project]] = None,
         organization: Optional[Organization] = None,
-        user: Optional[User] = None,
         batch: bool = True,
     ) -> Optional[Mapping[str, Mapping[str, bool]]]:
         raise NotImplementedError
