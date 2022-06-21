@@ -6,7 +6,7 @@ import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/util
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {Organization, PageFilters} from 'sentry/types';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 import {getDatasetConfig} from '../datasetConfig/base';
@@ -15,9 +15,9 @@ import {Widget, WidgetQuery, WidgetType} from '../types';
 type Props = {
   api: Client;
   children: (props: {
-    errorMessage: undefined | string;
     loading: boolean;
-    tableResults: TableDataRow[];
+    tableResults: TableDataWithTitle[];
+    errorMessage?: string;
     pageLinks?: null | string;
     totalCount?: string;
   }) => React.ReactNode;
@@ -38,15 +38,15 @@ type State = {
   loading: boolean;
   memberListStoreLoaded: boolean;
   pageLinks: null | string;
-  tableResults: TableDataRow[];
   totalCount: null | string;
+  transformedData: TableDataRow[];
 };
 
 class IssueWidgetQueries extends Component<Props, State> {
   state: State = {
     loading: true,
     errorMessage: undefined,
-    tableResults: [],
+    transformedData: [],
     memberListStoreLoaded: MemberListStore.isLoaded(),
     totalCount: null,
     pageLinks: null,
@@ -106,7 +106,7 @@ class IssueWidgetQueries extends Component<Props, State> {
   async fetchTableData() {
     const {api, organization, selection, widget, limit, cursor, onDataFetched} =
       this.props;
-    this.setState({tableResults: []});
+    this.setState({transformedData: []});
 
     try {
       const request = this.config.getTableRequest!(
@@ -130,7 +130,7 @@ class IssueWidgetQueries extends Component<Props, State> {
       this.setState({
         loading: false,
         errorMessage: undefined,
-        tableResults: tableResults.data,
+        transformedData: tableResults.data,
         totalCount,
         pageLinks,
       });
@@ -144,7 +144,7 @@ class IssueWidgetQueries extends Component<Props, State> {
       this.setState({
         loading: false,
         errorMessage: errorResponse ?? t('Unable to load Widget'),
-        tableResults: [],
+        transformedData: [],
       });
     }
   }
@@ -157,7 +157,7 @@ class IssueWidgetQueries extends Component<Props, State> {
   render() {
     const {children} = this.props;
     const {
-      tableResults,
+      transformedData,
       loading,
       errorMessage,
       memberListStoreLoaded,
@@ -167,7 +167,7 @@ class IssueWidgetQueries extends Component<Props, State> {
     return getDynamicText({
       value: children({
         loading: loading || !memberListStoreLoaded,
-        tableResults,
+        tableResults: [{data: transformedData, title: ''}],
         errorMessage,
         pageLinks,
         totalCount: totalCount ?? undefined,

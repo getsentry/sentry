@@ -24,6 +24,14 @@ import {ReleasesConfig} from './releases';
 
 export type WidgetQueriesProps = {
   api: Client;
+  children: (props: {
+    loading: boolean;
+    errorMessage?: string;
+    pageLinks?: null | string;
+    tableResults?: TableDataWithTitle[];
+    timeseriesResults?: Series[];
+    totalCount?: string;
+  }) => React.ReactNode;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -54,7 +62,7 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
   /**
    * The component that requests data from a dataset's API endpoints.
    */
-  WidgetQueries: (props: any) => JSX.Element;
+  WidgetQueries: (props: WidgetQueriesProps) => JSX.Element;
   /**
    * Default query to display when dataset is selected in the
    * Widget Builder.

@@ -517,7 +517,7 @@ function WidgetViewerModal(props: Props) {
       <Fragment>
         <GridEditable
           isLoading={loading}
-          data={tableResults}
+          data={tableResults[0].data}
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
@@ -691,7 +691,7 @@ function WidgetViewerModal(props: Props) {
       case WidgetType.ISSUE:
         if (issuesData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderIssuesTable({
-            tableResults: issuesData,
+            tableResults: [{data: issuesData, title: ''}],
             loading: false,
             errorMessage: undefined,
             pageLinks: defaultPageLinks,
