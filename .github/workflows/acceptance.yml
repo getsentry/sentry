@@ -11,7 +11,7 @@ on:
     branches:
       - master
       - releases/**
-      - armenzg/**
+      - armenzg/** # XXX Remove this
   pull_request:
 
 jobs:
@@ -104,6 +104,7 @@ jobs:
       - name: Save snapshots
         uses: getsentry/action-visual-snapshot@main
         with:
+          # This value has to match artifact-name in the visual-diff execution
           artifact-name: frontend-snapshots
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
@@ -131,6 +132,8 @@ jobs:
         if: needs.files-changed.outputs.acceptance == 'true'
         with:
           artifact-name: 'frontend-snapshots'
+          # If you want your PR to grab artifacts from this branch rather than the master branch
+          # then change this to match your branch
           # base-branch: 'master'
           # XXX: Test against itself
           base-branch: 'armenzg/ci/acceptance-split-up'
@@ -286,6 +289,8 @@ jobs:
         if: needs.files-changed.outputs.acceptance == 'true'
         with:
           artifact-name: 'acceptance-snapshots'
+          # If you want your PR to grab artifacts from this branch rather than the master branch
+          # then change this to match your branch
           # base-branch: 'master'
           # XXX: Test against itself
           base-branch: 'armenzg/ci/acceptance-split-up'
@@ -377,6 +382,8 @@ jobs:
         if: needs.files-changed.outputs.acceptance == 'true'
         with:
           artifact-name: 'chartcuterie-snapshots'
+          # If you want your PR to grab artifacts from this branch rather than the master branch
+          # then change this to match your branch
           # base-branch: 'master'
           # XXX: Test against itself
           base-branch: 'armenzg/ci/acceptance-split-up'
