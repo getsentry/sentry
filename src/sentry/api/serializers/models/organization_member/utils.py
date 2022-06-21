@@ -1,8 +1,13 @@
 from collections import defaultdict
-from typing import Any, Dict, List, Mapping, Sequence, Set, Tuple
+from typing import Any, Dict, List, Mapping, Sequence, Set, Tuple, TypeVar
 
 from sentry.api.serializers import serialize
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus, User
+
+TeamData = TypeVar("TeamData")
+DictOfMembers = Dict[Any, List[TeamData]]
+MembersTeams = DictOfMembers[str]
+MembersTeamRoles = DictOfMembers[Dict[str, str]]
 
 
 def get_serialized_users_by_id(users_set: Set[User], user: User) -> Mapping[str, User]:
@@ -12,7 +17,7 @@ def get_serialized_users_by_id(users_set: Set[User], user: User) -> Mapping[str,
 
 def get_teams_by_organization_member_id(
     organization_members: Sequence[OrganizationMember],
-) -> Tuple[Dict[Any, List[str]], Dict[Any, List[Dict[Any, Any]]]]:
+) -> Tuple[MembersTeams, MembersTeamRoles]:
     """@returns a map of member id -> team_slug[]"""
     organization_member_tuples = list(
         OrganizationMemberTeam.objects.filter(
