@@ -29,7 +29,7 @@ export function EventsSearchBar({
   return (
     <Search
       searchSource="widget_builder"
-      organization={organization!}
+      organization={organization}
       projectIds={projectIds}
       query={widgetQuery.conditions}
       fields={[]}

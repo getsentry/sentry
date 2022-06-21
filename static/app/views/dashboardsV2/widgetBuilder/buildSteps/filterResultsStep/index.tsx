@@ -111,13 +111,13 @@ export function FilterResultsStep({
               error={queryErrors?.[queryIndex]?.conditions}
             >
               <SearchConditionsWrapper>
-                {datasetConfig.getSearchBar({
-                  organization,
-                  pageFilters: selection,
-                  onBlur: handleBlur(queryIndex),
-                  onSearch: handleSearch(queryIndex),
-                  widgetQuery: query,
-                })}
+                <datasetConfig.SearchBar
+                  organization={organization}
+                  pageFilters={selection}
+                  onBlur={handleBlur(queryIndex)}
+                  onSearch={handleSearch(queryIndex)}
+                  widgetQuery={query}
+                />
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"

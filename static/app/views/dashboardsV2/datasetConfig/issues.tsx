@@ -45,7 +45,7 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
-  getSearchBar: widgetProps => <IssuesSearchBar {...widgetProps} />,
+  SearchBar: IssuesSearchBar,
   getTableFieldOptions: (_organization: Organization) =>
     generateIssueWidgetFieldOptions(),
   fieldHeaderMap: ISSUE_FIELD_TO_HEADER_MAP,

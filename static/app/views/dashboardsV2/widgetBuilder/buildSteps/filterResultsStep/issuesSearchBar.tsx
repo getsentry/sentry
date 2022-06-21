@@ -34,12 +34,12 @@ function IssuesSearchBarContainer({
 }: Props) {
   const api = useApi();
   function tagValueLoader(key: string, search: string) {
-    const orgId = organization!.slug;
-    const projectIds = pageFilters?.projects.map(id => id.toString());
+    const orgId = organization.slug;
+    const projectIds = pageFilters.projects.map(id => id.toString());
     const endpointParams = {
-      start: getUtcDateString(pageFilters?.datetime.start),
-      end: getUtcDateString(pageFilters?.datetime.end),
-      statsPeriod: pageFilters?.datetime.period,
+      start: getUtcDateString(pageFilters.datetime.start),
+      end: getUtcDateString(pageFilters.datetime.end),
+      statsPeriod: pageFilters.datetime.period,
     };
 
     return fetchTagValues(api, orgId, key, search, projectIds, endpointParams);
