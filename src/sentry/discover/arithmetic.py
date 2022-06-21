@@ -180,6 +180,7 @@ class ArithmeticVisitor(NodeVisitor):
         "eps",
         "epm",
         "count_miserable",
+        "count_web_vitals",
     }
 
     def __init__(self, max_operators: int):
