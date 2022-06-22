@@ -48,7 +48,7 @@ type PromisedImport<C> = Promise<{default: C}>;
 type ComponentType = React.ComponentType<any>;
 
 // NOTE: makeLazyloadComponent is exported for use in the sentry.io (getsentry)
-// pirvate routing tree.
+// private routing tree.
 
 /**
  * Factory function to produce a component that will render the SafeLazyLoad
