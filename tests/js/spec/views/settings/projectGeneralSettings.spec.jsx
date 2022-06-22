@@ -413,7 +413,7 @@ describe('projectGeneralSettings', function () {
     });
 
     it('saves when value is changed and "Save" clicked', async function () {
-      // This test has been flaky and using act() isn't removing the flakyness.
+      // This test has been flaky and using act() isn't removing the flakiness.
       await tick();
       wrapper.update();
 

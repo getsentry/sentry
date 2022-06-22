@@ -7,7 +7,7 @@ def get_frontend_app_asset_url(module, key, cache_bust=False):
     `Cache-Control: max-age=0, must-revalidate` so that clients must validate with the origin
     server before using their locally cached asset.
 
-    XXX(epurkhiser): As a temporary workaround for flakeyness with the CDN,
+    XXX(epurkhiser): As a temporary workaround for flakiness with the CDN,
     we're busting caches when version_bust is True using a query parameter with
     the currently deployed backend SHA. This will have to change in the future
     for frontend only deploys.
