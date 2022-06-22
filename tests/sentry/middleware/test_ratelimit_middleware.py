@@ -400,7 +400,7 @@ class TestConcurrentRateLimiter(APITestCase):
             # dispatch more simultaneous requests to the endpoint than the concurrent limit
             for _ in range(CONCURRENT_RATE_LIMIT + 1):
                 # sleep a little in between each submission
-                # NOTE: This should not be necesary if the lua scripts are atomic
+                # NOTE: This should not be necessary if the lua scripts are atomic
                 # There is a test that does this with just the concurrent rate limiter
                 # (test_redis_concurrent.py) and it doesn't need the sleep in between.
                 # something about the test infra makes it so that if that sleep
