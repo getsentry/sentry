@@ -154,7 +154,7 @@ def get_builder_args_from_context(
         "reference": notification.reference,
         "type": notification.metrics_key,
     }
-    # add in optinal fields
+    # add in optional fields
     from_email = notification.from_email
     if from_email:
         output["from_email"] = from_email
