@@ -30,7 +30,7 @@
 //
 // 3. App initialization does the following...
 //
-//   a. Initialize the ConfigStore with clinet-config data.
+//   a. Initialize the ConfigStore with client-config data.
 //
 //   b. Setup the colorscheme event handlers, for matching the system
 //      colorscheme.
