@@ -2,10 +2,76 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
 from sentry.api.endpoints.project_details import DynamicSamplingSerializer
-from sentry.models import Project
 from sentry.testutils import AcceptanceTestCase
 
 FEATURE_NAME = "organizations:filters-and-sampling"
+
+sampling_rule_all_possible_conditions = {
+    "id": 4,
+    "type": "error",
+    "condition": {
+        "op": "and",
+        "inner": [
+            {"op": "eq", "name": "event.has_bad_browser_extensions", "value": True},
+            {"op": "custom", "name": "event.csp", "value": ["sentry.io", "whatever.com"]},
+            {"op": "glob", "name": "event.contexts.device.family", "value": ["Mac", "pixe*"]},
+            {"op": "glob", "name": "event.contexts.device.name", "value": ["mac", "ipho*"]},
+            {
+                "op": "eq",
+                "name": "event.environment",
+                "value": ["prod", "production"],
+                "options": {"ignoreCase": True},
+            },
+            {
+                "op": "custom",
+                "name": "event.error_messages",
+                "value": ["TypeError*", "SomethingElse"],
+            },
+            {"op": "custom", "name": "event.client_ip", "value": ["10.0.0.0/8", "127.0.0.1"]},
+            {"op": "eq", "name": "event.is_local_ip", "value": True},
+            {
+                "op": "custom",
+                "name": "event.legacy_browser",
+                "value": [
+                    "ie_pre_9",
+                    "ie9",
+                    "ie10",
+                    "ie11",
+                    "safari_pre_6",
+                    "opera_pre_15",
+                    "opera_mini_pre_8",
+                    "android_pre_4",
+                ],
+            },
+            {"op": "glob", "name": "event.contexts.os.name", "value": ["Mac OS X", "Windo*"]},
+            {"op": "glob", "name": "event.contexts.os.version", "value": ["11"]},
+            {"op": "glob", "name": "event.release", "value": ["frontend@22*"]},
+            {
+                "op": "glob",
+                "name": "event.transaction",
+                "value": [
+                    "/organizations/:orgId/alerts/:projectId/wizard/",
+                    "/organizations/:orgId/alerts/rules/",
+                ],
+            },
+            {
+                "op": "eq",
+                "name": "event.user.id",
+                "value": ["4711", "1"],
+                "options": {"ignoreCase": False},
+            },
+            {
+                "op": "eq",
+                "name": "event.user.segment",
+                "value": ["paid", "common"],
+                "options": {"ignoreCase": True},
+            },
+            {"op": "eq", "name": "event.web_crawlers", "value": True},
+            {"op": "glob", "name": "event.tags.DOMException.code", "value": ["20"]},
+        ],
+    },
+    "sampleRate": 0.5,
+}
 
 
 class ProjectSettingsSamplingTest(AcceptanceTestCase):
@@ -18,7 +84,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
         self.project.update_option(
             "sentry:dynamic_sampling",
             {
-                "next_id": 3,
+                "next_id": 4,
                 "rules": [
                     {
                         "sampleRate": 0.7,
@@ -27,7 +93,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                             "op": "and",
                             "inner": [],
                         },
-                        "id": 0,
+                        "id": 1,
                     },
                     {
                         "sampleRate": 0.8,
@@ -43,7 +109,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                                 }
                             ],
                         },
-                        "id": 1,
+                        "id": 2,
                     },
                     {
                         "sampleRate": 0.1,
@@ -58,7 +124,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
                                 }
                             ],
                         },
-                        "id": 2,
+                        "id": 3,
                     },
                 ],
             },
@@ -262,8 +328,9 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.snapshot("sampling settings rule with all possible conditions")
 
             # Validate the payload
-            project = Project.objects.get(pk=self.project.id)
-            saved_sampling_setting = project.get_option("sentry:dynamic_sampling")
+            saved_sampling_setting = self.project.get_option("sentry:dynamic_sampling")
             serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
             assert serializer.is_valid()
+            assert len(serializer.validated_data["rules"]) == 4
             assert saved_sampling_setting == serializer.validated_data
+            assert sampling_rule_all_possible_conditions == serializer.validated_data["rules"][3]
