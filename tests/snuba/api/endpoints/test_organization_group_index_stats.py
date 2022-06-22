@@ -45,8 +45,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.get_response(query="is:unresolved", groups=[group_a.id, group_c.id])
 
-        response_data = list(response.data)
-        response_data = sorted(response_data, key=lambda x: x["firstSeen"], reverse=True)
+        response_data = sorted(response.data, key=lambda x: x["firstSeen"], reverse=True)
 
         assert response.status_code == 200
         assert len(response_data) == 2
