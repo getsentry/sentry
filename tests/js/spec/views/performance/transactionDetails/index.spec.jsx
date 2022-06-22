@@ -41,7 +41,7 @@ describe('EventDetails', () => {
     expect(screen.getByText(alertText)).toBeInTheDocument();
   });
 
-  it('does not reender alert if already received transaction', () => {
+  it('does not render alert if already received transaction', () => {
     const project = TestStubs.Project();
     ProjectsStore.loadInitialData([project]);
     const organization = TestStubs.Organization({
