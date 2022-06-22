@@ -193,7 +193,7 @@ describe('GlobalSDKUpdateAlert', () => {
   });
 
   it('shows prompt for all projects when project matches ALL_ACCESS_PROJECTS', async () => {
-    // We intentionally missmatch ALL_ACCESS_PROJECTS with projectId in sdkUpdates
+    // We intentionally mismatch ALL_ACCESS_PROJECTS with projectId in sdkUpdates
     usePageFilters.mockImplementation(() =>
       makeFilterProps({projects: [ALL_ACCESS_PROJECTS]})
     );

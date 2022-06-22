@@ -200,7 +200,7 @@ class ChunkUploadTest(APITestCase):
 
         assert response.status_code == 400, response.content
 
-    def test_checksum_missmatch(self):
+    def test_checksum_mismatch(self):
         files = []
         content = b"x" * (settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE + 1)
         files.append(SimpleUploadedFile(b"wrong checksum", content))
