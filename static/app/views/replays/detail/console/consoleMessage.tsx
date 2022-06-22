@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import isObject from 'lodash/isObject';
 import {sprintf, vsprintf} from 'sprintf-js';
 
 import DateTime from 'sentry/components/dateTime';
@@ -13,7 +12,6 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
-import {objectIsEmpty} from 'sentry/utils';
 
 interface MessageFormatterProps {
   breadcrumb: BreadcrumbTypeDefault;
@@ -37,8 +35,8 @@ function renderString(arg: string | number | boolean | Object) {
 /**
  * Attempt to emulate the browser console as much as possible
  */
-function MessageFormatter({breadcrumb}: MessageFormatterProps) {
-  let logMessage = breadcrumb.message;
+export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
+  let logMessage = '';
 
   // Browser's console formatter only works on the first arg
   const [message, ...args] = breadcrumb.data?.arguments;
@@ -49,6 +47,7 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
     ? sprintf.parse(message).filter(parsed => Array.isArray(parsed))
     : [];
 
+  // We check if there are placeholders to print the message accordingly with their correct values
   if (placeholders.length) {
     // TODO `%c` is console specific, it applies colors to messages
     // for now we are stripping it as this is potentially risky to implement due to xss
@@ -72,22 +71,23 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
       : renderString(message);
 
     logMessage = [formattedMessage, ...restArgs].join(' ').trim();
-  } else {
-    // Make sure there are no objects to print in order to not get a "[Object object]"
-    const argValues: (string | number | boolean)[] = [];
 
-    for (const arg of breadcrumb.data?.arguments) {
-      if (isObject(arg) && !objectIsEmpty(arg)) {
-        argValues.push(renderString(arg));
-      }
-    }
+    // If there're no placeholders then we should make sure there are no objects that we want to print
+    // as the message prop do not print this objects correctly we need to handle pretty printing them
+  } else if (breadcrumb.message?.includes('[object Object]')) {
+    const argValues = breadcrumb.data?.arguments.map(renderString);
 
-    if (argValues.length) {
-      logMessage = argValues.join(' ').trim();
-    }
+    logMessage = argValues.join(' ').trim();
   }
 
-  return <AnnotatedText meta={getMeta(breadcrumb, 'message')} value={logMessage} />;
+  // TODO(replays): Add better support for AnnotatedText (e.g. we use message
+  // args from breadcrumb.data.arguments and not breadcrumb.message directly)
+  return (
+    <AnnotatedText
+      meta={getMeta(breadcrumb, 'message')}
+      value={logMessage || breadcrumb.message}
+    />
+  );
 }
 
 interface ConsoleMessageProps extends MessageFormatterProps {
