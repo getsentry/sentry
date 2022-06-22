@@ -374,7 +374,7 @@ type AnalyticsLogExperiment = (opts: {
 /**
  * Trigger analytics tracking in the hook store.
  *
- * Prefer using `analytics:track-event` or `analytics:track-adhock-event`.
+ * Prefer using `analytics:track-event` or `analytics:track-adhoc-event`.
  *
  * @deprecated This is the legacy interface.
  */
