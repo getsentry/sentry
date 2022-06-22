@@ -414,6 +414,6 @@ export function escapeFilterValue(value: string) {
   // TODO(txiao): The types here are definitely wrong.
   // Need to dig deeper to see where exactly it's wrong.
   //
-  // astericks (*) is used for wildcard searches
+  // asterisk (*) is used for wildcard searches
   return typeof value === 'string' ? value.replace(/([\*])/g, '\\$1') : value;
 }
