@@ -280,12 +280,28 @@ jobs:
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
+      - name: Determine snapshot version
+        run: |
+          random=$(( ( RANDOM % 10 )  + 1 ));
+          echo "snapshot_ref=$([[ $random -ge 5 ]] && echo "main" || echo "905b7e3a7fdd913189b9a35dcef51b6b927f9598")" >> $GITHUB_ENV;
+
       - name: Diff snapshots
-        id: visual-snapshots-diff
+        id: visual-snapshots-diff-pixelmatch
         uses: getsentry/action-visual-snapshot@main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
-        if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
+        if: env.snapshot_ref == 'main' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+      - name: Diff snapshots
+        id: visual-snapshots-diff-odiff
+        uses: getsentry/action-visual-snapshot@905b7e3a7fdd913189b9a35dcef51b6b927f9598
+        # Run this step only if there are acceptance related code changes
+        # Forks are handled in visual-diff.yml
+        if: env.snapshot_ref == '905b7e3a7fdd913189b9a35dcef51b6b927f9598' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
