@@ -93,7 +93,7 @@ describe('StreamManager', function () {
   });
 
   describe('getAllItems()', function () {
-    it('retrives ordered items from store', function () {
+    it('retrieves ordered items from store', function () {
       const storeGetAllItems = jest
         .spyOn(store, 'getAllItems')
         .mockImplementation(() => [{id: 1}, {id: 2}]);
