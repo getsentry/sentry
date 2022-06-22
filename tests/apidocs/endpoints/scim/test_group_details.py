@@ -46,7 +46,7 @@ class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
         self.validate_schema(request, response)
 
     def test_patch_replace(self):
-        newmember = self.create_member(user=self.create_user(), organization=self.organization)
+        newMember = self.create_member(user=self.create_user(), organization=self.organization)
         patch_data = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "Operations": [
@@ -55,7 +55,7 @@ class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
                     "path": "members",
                     "value": [
                         {
-                            "value": newmember.id,
+                            "value": newMember.id,
                             "display": "test2.user@okta.local",
                         },
                     ],
@@ -68,7 +68,7 @@ class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
         self.validate_schema(request, response)
 
     def test_patch_add_member(self):
-        newmember = self.create_member(user=self.create_user(), organization=self.organization)
+        newMember = self.create_member(user=self.create_user(), organization=self.organization)
         patch_data = {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
             "Operations": [
@@ -77,8 +77,8 @@ class SCIMTeamDetailsDocs(APIDocsTestCase, SCIMTestCase):
                     "path": "members",
                     "value": [
                         {
-                            "value": newmember.id,
-                            "display": newmember.email,
+                            "value": newMember.id,
+                            "display": newMember.email,
                         }
                     ],
                 },
