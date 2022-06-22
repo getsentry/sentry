@@ -141,7 +141,7 @@ def track_enhancers_coverage():
             inputs_for_rule = used_inputs.setdefault(rule.matcher_description, [])
 
             # Tolerate up to four testcases per rule. This number is arbitrary but
-            # the idea is that after matching a system frame for the hundreth time,
+            # the idea is that after matching a system frame for the hundredth time,
             # nothing is really tested anymore.
             if len(inputs_for_rule) < 4:
                 inputs_for_rule.append(current_input)
