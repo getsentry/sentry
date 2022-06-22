@@ -1,5 +1,5 @@
 import {createActions} from 'reflux';
 
-const ComitterActions = createActions(['reset', 'load', 'loadError', 'loadSuccess']);
+const CommitterActions = createActions(['reset', 'load', 'loadError', 'loadSuccess']);
 
-export default ComitterActions;
+export default CommitterActions;
