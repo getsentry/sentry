@@ -112,14 +112,26 @@ jobs:
           files: .artifacts/coverage/*
           type: frontend
 
-  webpack:
+  acceptance:
     if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
-    name: create frontend bundle
+    name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 10
-    outputs:
-      dist-path: ${{ steps.config.outputs.dist-path }}
+    timeout-minutes: 20
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        python-version: [3.8.12]
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3]
+        pg-version: ['9.6']
+    env:
+      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
+      MATRIX_INSTANCE_TOTAL: 4
+      VISUAL_SNAPSHOT_ENABLE: 1
+      TEST_GROUP_STRATEGY: roundrobin
 
     steps:
       - uses: actions/checkout@v2
@@ -132,7 +144,6 @@ jobs:
         run: |
           echo "::set-output name=yarn-path::$(yarn cache dir)"
           echo "::set-output name=webpack-path::.webpack_cache"
-          echo "::set-output name=dist-path::src/sentry/static/sentry/dist"
 
       - name: yarn cache
         uses: actions/cache@v1 # We are explicitly using v1 due to perf reasons
@@ -159,43 +170,6 @@ jobs:
         run: |
           yarn build-acceptance
 
-      # Bundle dist for faster uploading
-      - name: bundle dist
-        run: |
-          tar czf dist.tar.gz ${{ steps.config.outputs.dist-path }}
-
-      - name: Save frontend dist
-        uses: actions/upload-artifact@v2
-        with:
-          retention-days: 3
-          name: frontend-dist
-          path: dist.tar.gz
-
-  acceptance:
-    if: needs.files-changed.outputs.acceptance == 'true'
-    needs: files-changed
-    name: acceptance
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    strategy:
-      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
-      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
-      fail-fast: false
-      matrix:
-        python-version: [3.8.12]
-        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3]
-        pg-version: ['9.6']
-    env:
-      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 4
-      VISUAL_SNAPSHOT_ENABLE: 1
-      TEST_GROUP_STRATEGY: roundrobin
-
-    steps:
-      - name: Checkout sentry
-        uses: actions/checkout@v2
-
       - name: Setup sentry env (python ${{ matrix.python-version }})
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -204,23 +178,6 @@ jobs:
           pip-cache-version: ${{ secrets.PIP_CACHE_VERSION }}
           snuba: true
           pg-version: ${{ matrix.pg-version }}
-
-      - name: Wait for frontend build
-        uses: getsentry/action-wait-for-check@v1.0.0
-        id: wait-for-frontend
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          checkName: create frontend bundle
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-
-      - name: Download frontend dist
-        uses: actions/download-artifact@v2
-        with:
-          name: frontend-dist
-
-      - name: Extract dist
-        run: |
-          tar xf dist.tar.gz
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
@@ -323,12 +280,29 @@ jobs:
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
+      - name: Determine snapshot version
+        id: snapshot_ref
+        run: |
+          random=$(( ( RANDOM % 10 )  + 1 ));
+          echo "::set-output name=ref::$([[ $random -ge 2 ]] && echo "pixelmatch" || echo "odiff")"
+
       - name: Diff snapshots
-        id: visual-snapshots-diff
+        id: visual-snapshots-diff-pixelmatch
         uses: getsentry/action-visual-snapshot@main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
-        if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
+        if: steps.snapshot_ref.outputs.ref == 'pixelmatch' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+
+      - name: Diff snapshots
+        id: visual-snapshots-diff-odiff
+        uses: getsentry/action-visual-snapshot@905b7e3a7fdd913189b9a35dcef51b6b927f9598
+        # Run this step only if there are acceptance related code changes
+        # Forks are handled in visual-diff.yml
+        if: steps.snapshot_ref.outputs.ref == 'odiff' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
