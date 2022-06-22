@@ -1903,7 +1903,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         if environment_id is not None:
-            # convert the PosgreSQL environmentID into the clickhouse string index
+            # convert the PostgreSQL environmentID into the clickhouse string index
             # for the environment name
             env_names = _model_environment_ids_to_environment_names([environment_id])
             env_name = env_names[environment_id]
@@ -1960,7 +1960,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         ]
 
         if environment_ids:
-            # convert the PosgreSQL environmentID into the clickhouse string index
+            # convert the PostgreSQL environmentID into the clickhouse string index
             # for the environment name
             env_names_dict = _model_environment_ids_to_environment_names(environment_ids)
             env_names = [value for value in env_names_dict.values() if value is not None]
