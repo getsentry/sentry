@@ -273,12 +273,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <PageFiltersContainer
-          organization={organization}
-          showDateSelector={false}
-          showEnvironmentSelector={false}
-          hideGlobalHeader
-        >
+        <PageFiltersContainer>
           <AlertHeader
             organization={organization}
             router={router}
