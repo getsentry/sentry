@@ -163,7 +163,7 @@ def test_internal_relays_should_receive_full_configs(
 
 
 @pytest.mark.django_db
-def test_relays_dyamic_sampling(client, call_endpoint, default_project, dyn_sampling_data):
+def test_relays_dynamic_sampling(client, call_endpoint, default_project, dyn_sampling_data):
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
     """
