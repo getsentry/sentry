@@ -342,17 +342,23 @@ class EventsTable extends Component<Props, State> {
                   location={location}
                   setError={error => setError(error?.message)}
                   referrer="api.performance.transaction-summary"
+                  cursor="0:0:0"
                   useEvents
                 >
                   {({tableData: table}) => {
-                    const eventCount = table?.data[0]?.['count()'];
+                    const eventCount = table?.data[0]?.['count()']?.toLocaleString();
+                    const shouldDisplayCaption = eventCount && currentEvent;
                     return (
                       <Pagination
-                        disabled={isLoading || !eventCount}
-                        caption={tct('Showing [current] of [eventCount] events', {
-                          current: currentEvent,
-                          eventCount,
-                        })}
+                        disabled={isLoading}
+                        caption={
+                          shouldDisplayCaption
+                            ? tct('Showing [currentEvent] of [eventCount] events', {
+                                currentEvent,
+                                eventCount,
+                              })
+                            : undefined
+                        }
                         pageLinks={pageLinks}
                       />
                     );
