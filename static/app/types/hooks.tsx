@@ -5,6 +5,7 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import { CombinedMetricIssueAlerts } from 'sentry/views/alerts/types';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -88,6 +89,11 @@ type CodeOwnersCTAProps = {
   addCodeOwner?: () => void;
   handleRequest?: () => void;
 };
+
+type AlertsHeaderProps = {
+  organization: Organization;
+  ruleList: CombinedMetricIssueAlerts[] | null;
+}
 /**
  * Component wrapping hooks
  */
@@ -105,6 +111,7 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:superuser-access-category': React.FC<any>;
+  'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
 };
 
 /**

@@ -33,6 +33,7 @@ import {
   AlertType,
   AlertWizardRuleTemplates,
   DEFAULT_WIZARD_TEMPLATE,
+  AlertWizardAlertNames
 } from 'sentry/views/alerts/wizard/options';
 
 /**
@@ -360,6 +361,7 @@ type Props = {
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
+  alertOption?: keyof typeof AlertWizardAlertNames
 } & WithRouterProps &
   ButtonProps;
 
@@ -372,6 +374,7 @@ const CreateAlertButton = withRouter(
     router,
     hideIcon,
     showPermissionGuide,
+    alertOption,
     ...buttonProps
   }: Props) => {
     const api = useApi();
@@ -387,6 +390,7 @@ const CreateAlertButton = withRouter(
             ? `project=${providedProj}`
             : ''
         }`,
+        alertOption ? `alert_option=${alertOption}` : ''
       ].filter(item => item !== '');
 
       return `${alertsBaseUrl}/wizard/${alertsArgs.length ? '?' : ''}${alertsArgs.join(

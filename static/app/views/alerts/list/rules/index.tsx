@@ -24,6 +24,7 @@ import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
 import RuleListRow from './row';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -34,6 +35,9 @@ type State = {
   ruleList?: CombinedMetricIssueAlerts[];
   teamFilterSearch?: string;
 };
+
+
+const HookHeader = HookOrDefault({ hookName: 'component:alerts-header' });
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -159,6 +163,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
+          <HookHeader organization={organization} ruleList={ruleList} />
           <FilterBar
             location={location}
             onChangeFilter={this.handleChangeFilter}
