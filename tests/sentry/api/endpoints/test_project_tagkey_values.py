@@ -59,7 +59,7 @@ class ProjectTagKeyValuesTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_statperiod_query(self):
+    def test_statsperiod_query(self):
         project = self.create_project()
         self.store_event(
             data={"tags": {"foo": "bar"}, "timestamp": iso_format(before_now(days=15))},
