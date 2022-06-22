@@ -211,6 +211,20 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'releases_widget',
+      requiredTargets: ['releases_widget'],
+      steps: [
+        {
+          title: t('Releases are here!'),
+          target: 'releases_widget',
+          description: t(
+            'Want to know how that latest release is doing? Monitor release health and track crash rates in Dashboards.'
+          ),
+          nextText: t('Sounds Good'),
+        },
+      ],
+    },
   ];
 }
 
