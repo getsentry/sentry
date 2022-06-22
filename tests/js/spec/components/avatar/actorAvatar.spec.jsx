@@ -9,7 +9,7 @@ import TeamStore from 'sentry/stores/teamStore';
 describe('ActorAvatar', function () {
   const USER = {
     id: '1',
-    name: 'JanActore Bloggs',
+    name: 'Jane Bloggs',
     email: 'janebloggs@example.com',
   };
   const TEAM_1 = {
