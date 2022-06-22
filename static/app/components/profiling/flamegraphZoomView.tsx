@@ -8,6 +8,7 @@ import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/useFlamegraphSearch';
 import {
   useDispatchFlamegraphState,
   useFlamegraphState,
@@ -56,6 +57,7 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
+  const [flamegraphSearch] = useFlamegraphSearch();
 
   const [lastInteraction, setLastInteraction] = useState<
     'pan' | 'click' | 'zoom' | 'scroll' | null
@@ -277,7 +279,8 @@ function FlamegraphZoomView({
     const drawText = () => {
       textRenderer.draw(
         flamegraphView.configView,
-        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
+        flamegraphSearch.results
       );
     };
 
@@ -314,6 +317,7 @@ function FlamegraphZoomView({
     flamegraphState.profiles.selectedNode,
     hoveredNode,
     selectedFrameRenderer,
+    flamegraphSearch,
   ]);
 
   useEffect(() => {

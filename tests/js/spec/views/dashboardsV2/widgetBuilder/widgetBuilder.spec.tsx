@@ -2571,6 +2571,40 @@ describe('WidgetBuilder', function () {
         expect(screen.getByRole('textbox', {name: 'Sort by'})).toBeDisabled();
       });
 
+      it('does not allow sort on tags except release', async function () {
+        renderTestComponent({
+          orgFeatures: releaseHealthFeatureFlags,
+        });
+
+        expect(
+          await screen.findByText('Releases (sessions, crash rates)')
+        ).toBeInTheDocument();
+
+        userEvent.click(screen.getByLabelText(/releases/i));
+
+        expect(screen.getByText('High to low')).toBeEnabled();
+        expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
+
+        userEvent.click(screen.getByLabelText('Add a Column'));
+        await selectEvent.select(screen.getByText('(Required)'), 'release');
+
+        userEvent.click(screen.getByLabelText('Add a Column'));
+        await selectEvent.select(screen.getByText('(Required)'), 'environment');
+
+        expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+        // Selector "sortDirection"
+        expect(screen.getByText('High to low')).toBeInTheDocument();
+
+        // Selector "sortBy"
+        userEvent.click(screen.getAllByText('crash_free_rate(session)')[1]);
+
+        // release exists in sort by selector
+        expect(screen.getAllByText('release')).toHaveLength(3);
+        // environment does not exist in sort by selector
+        expect(screen.getAllByText('environment')).toHaveLength(2);
+      });
+
       it('makes the appropriate sessions call', async function () {
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
