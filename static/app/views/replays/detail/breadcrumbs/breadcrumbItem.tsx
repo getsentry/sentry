@@ -82,7 +82,7 @@ const Title = styled('span')`
 const Description = styled('span')`
   ${p => p.theme.overflowEllipsis};
   font-size: 0.7rem;
-  font-family: ${p => p.theme.text.familyMono};
+  font-variant-numeric: tabular-nums;
 `;
 
 type CrumbItemProps = {

@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Sequence
 
+from django.db import transaction
 from django.db.models.signals import post_delete, post_save
 
 from sentry.constants import ObjectStatus
@@ -48,16 +49,21 @@ class ProjectTeam(Model):
 
 
 def process_resource_change(instance, **kwargs):
+    from sentry.models import Organization, Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
-    return (
-        update_code_owners_schema.apply_async(
-            kwargs={
-                "organization": instance.project.organization,
-                "projects": [instance.project],
-            }
-        ),
-    )
+    def _spawn_task():
+        try:
+            update_code_owners_schema.apply_async(
+                kwargs={
+                    "organization": instance.project.organization,
+                    "projects": [instance.project],
+                }
+            )
+        except (Project.DoesNotExist, Organization.DoesNotExist):
+            pass
+
+    transaction.on_commit(_spawn_task)
 
 
 post_save.connect(

@@ -224,7 +224,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
         return {
           ...prevState,
           timeseriesResults: prevState.rawResults?.flatMap((rawResult, index) =>
-            this.config.transformSeries!(rawResult, widget.queries[index])
+            this.config.transformSeries!(rawResult, widget.queries[index], organization)
           ),
         };
       });
@@ -350,21 +350,23 @@ class ReleaseWidgetQueries extends Component<Props, State> {
 
     try {
       responses = await Promise.all(
-        widget.queries.map(query => {
-          const requestGenerator = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
-            widget.displayType
-          )
-            ? this.config.getTableRequest
-            : this.config.getSeriesRequest;
-          return requestGenerator!(
-            api,
-            query,
-            {
+        widget.queries.map((query, index) => {
+          if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
+            return this.config.getTableRequest!(
+              api,
+              query,
               organization,
-              pageFilters: selection,
-            },
-            this.limit,
-            cursor
+              selection,
+              this.limit,
+              cursor
+            );
+          }
+          return this.config.getSeriesRequest!(
+            api,
+            widget,
+            index,
+            organization,
+            selection
           );
         })
       );
@@ -405,7 +407,9 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the table format
           const tableData = this.config.transformTable(
             data,
-            widget.queries[0]
+            widget.queries[0],
+            organization,
+            selection
           ) as TableDataWithTitle; // Cast so we can add the title.
           tableData.title = widget.queries[requestIndex]?.name ?? '';
           tableResults = [...(prevState.tableResults ?? []), tableData];
@@ -413,7 +417,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
           // Transform to fit the chart format
           const transformedResult = this.config.transformSeries!(
             data,
-            widget.queries[requestIndex]
+            widget.queries[requestIndex],
+            organization
           );
 
           // When charting timeseriesData on echarts, color association to a timeseries result

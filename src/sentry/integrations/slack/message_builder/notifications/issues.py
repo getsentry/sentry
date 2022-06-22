@@ -31,3 +31,26 @@ class IssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
             notification=self.notification,
             recipient=self.recipient,
         ).build()
+
+
+class ActiveReleaseIssueNotificationMessageBuilder(SlackNotificationsMessageBuilder):
+    def __init__(
+        self,
+        notification: ProjectNotification,
+        context: Mapping[str, Any],
+        recipient: Team | User,
+    ) -> None:
+        super().__init__(notification, context, recipient)
+        self.notification: ProjectNotification = notification
+
+    def build(self) -> SlackBody:
+        group = getattr(self.notification, "group", None)
+        return SlackIssuesMessageBuilder(
+            group=group,
+            event=getattr(self.notification, "event", None),
+            tags=self.context.get("tags", None),
+            rules=getattr(self.notification, "rules", None),
+            issue_details=True,
+            notification=self.notification,
+            recipient=self.recipient,
+        ).build()
