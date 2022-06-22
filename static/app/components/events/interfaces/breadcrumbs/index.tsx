@@ -255,13 +255,13 @@ function BreadcrumbsContainer({
     });
   }
 
-  function handleFilter(newfilterOptions: FilterOptions) {
-    const newfilteredByFilter = getFilteredCrumbsByFilter(newfilterOptions);
+  function handleFilter(newFilterOptions: FilterOptions) {
+    const newFilteredByFilter = getFilteredCrumbsByFilter(newFilterOptions);
     setState({
       ...state,
-      filterSelections: newfilterOptions,
-      filteredByFilter: newfilteredByFilter,
-      filteredBySearch: filterBySearch(searchTerm, newfilteredByFilter),
+      filterSelections: newFilterOptions,
+      filteredByFilter: newFilteredByFilter,
+      filteredBySearch: filterBySearch(searchTerm, newFilteredByFilter),
     });
   }
 
