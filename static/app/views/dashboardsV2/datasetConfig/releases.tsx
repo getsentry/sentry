@@ -11,6 +11,7 @@ import {
   PageFilters,
   SessionApiResponse,
   SessionField,
+  SessionsMeta,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
@@ -85,6 +86,8 @@ export const ReleasesConfig: DatasetConfig<
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
+  getGroupByFieldOptions: (_organization: Organization) =>
+    generateReleaseWidgetFieldOptions([] as SessionsMeta[], SESSIONS_TAGS),
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,
   supportedDisplayTypes: [
