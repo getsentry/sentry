@@ -114,7 +114,7 @@ exports.withScope = withScope;
  * function.
  *
  * @param method The method to call on the client/client.
- * @param args Arguments to pass to the client/fontend.
+ * @param args Arguments to pass to the client/frontend.
  */
 function _callOnClient(method) {
   const args = [];
