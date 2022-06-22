@@ -141,10 +141,10 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": 'Invalid field: "summ(sessin)"'}
 
     def test_unknown_groupby(self):
-        response = self.do_request({"field": ["sum(session)"], "groupBy": ["envriomnent"]})
+        response = self.do_request({"field": ["sum(session)"], "groupBy": ["environment"]})
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid groupBy: "envriomnent"'}
+        assert response.data == {"detail": 'Invalid groupBy: "environment"'}
 
     def test_illegal_groupby(self):
         response = self.do_request({"field": ["sum(session)"], "groupBy": ["issue.id"]})
