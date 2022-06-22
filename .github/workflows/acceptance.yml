@@ -281,6 +281,7 @@ jobs:
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
       - name: Determine snapshot version
+        id: snapshot_ref
         run: |
           random=$(( ( RANDOM % 10 )  + 1 ));
           echo "::set-output name=ref::$([[ $random -ge 2 ]] && echo "pixelmatch" || echo "odiff")"
