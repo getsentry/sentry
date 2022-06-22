@@ -36,7 +36,7 @@ def resolve_group_resolutions(instance, created, **kwargs):
     if not created:
         return
 
-    clear_expired_resolutions.delay(release_id=instance.id)
+    transaction.on_commit(lambda: clear_expired_resolutions.delay(release_id=instance.id))
 
 
 def remove_resolved_link(link):

@@ -9,7 +9,6 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -19,7 +18,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconEdit} from 'sentry/icons';
+import {IconCopy, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {DateString, Member, Organization, Project} from 'sentry/types';
@@ -89,11 +88,7 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         `/projects/${orgId}/${projectId}/rules/${ruleId}/`,
         {query: {expand: 'lastTriggered'}},
       ],
-      [
-        'memberList',
-        `/organizations/${orgId}/users/`,
-        {query: {project: this.props.project.id}},
-      ],
+      ['memberList', `/organizations/${orgId}/users/`, {query: {projectSlug: projectId}}],
     ];
   }
 
@@ -208,6 +203,16 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
       );
     }
 
+    const duplicateLink = {
+      pathname: `/organizations/${orgId}/alerts/new/issue/`,
+      query: {
+        project: project.slug,
+        duplicateRuleId: rule.id,
+        createFromDuplicate: true,
+        referrer: 'issue_rule_details',
+      },
+    };
+
     return (
       <PageFiltersContainer
         skipInitializeUrlParams
@@ -246,7 +251,9 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <FeatureFeedback featureName="issue-alert-details" />
+              <Button icon={<IconCopy />} to={duplicateLink}>
+                {t('Duplicate')}
+              </Button>
               <Button
                 icon={<IconEdit />}
                 to={`/organizations/${orgId}/alerts/rules/${projectId}/${ruleId}/`}

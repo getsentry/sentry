@@ -13,6 +13,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {getDuration} from 'sentry/utils/formatters';
@@ -333,6 +334,14 @@ class TraceDetailsContent extends Component<Props, State> {
             <ButtonBar gap={1}>
               <DiscoverButton
                 to={traceEventView.getResultsViewUrlTarget(organization.slug)}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent(
+                    'performance_views.trace_view.open_in_discover',
+                    {
+                      organization,
+                    }
+                  );
+                }}
               >
                 {t('Open in Discover')}
               </DiscoverButton>

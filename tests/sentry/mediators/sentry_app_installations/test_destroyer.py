@@ -1,5 +1,6 @@
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.db import connection
 from requests.exceptions import RequestException
@@ -124,7 +125,7 @@ class TestDestroyer(TestCase):
         responses.add(responses.POST, "https://example.com/webhook")
         self.destroyer.call()
 
-        with self.assertRaises(SentryAppInstallation.DoesNotExist):
+        with pytest.raises(SentryAppInstallation.DoesNotExist):
             SentryAppInstallation.objects.get(pk=self.install.id)
 
         # The QuerySet will automatically NOT include deleted installs, so we
