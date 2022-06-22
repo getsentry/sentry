@@ -974,7 +974,7 @@ v8.14.1
 -------
 
 - Fixed issues related to migrations failing to finish for 8.14
-- Fixed an issue where Release version names were erronously too restrictve.
+- Fixed an issue where Release version names were erroneously too restrictve.
 - Fixed an issue where "New Issues" counts would have all been 0 for releases created in 8.14.
 
 v8.14
