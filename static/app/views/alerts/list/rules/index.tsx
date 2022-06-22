@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -34,6 +35,8 @@ type State = {
   ruleList?: CombinedMetricIssueAlerts[];
   teamFilterSearch?: string;
 };
+
+const HookHeader = HookOrDefault({hookName: 'component:alerts-header'});
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
@@ -159,6 +162,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
+          <HookHeader organization={organization} ruleList={ruleList} />
           <FilterBar
             location={location}
             onChangeFilter={this.handleChangeFilter}
@@ -329,7 +333,7 @@ const StyledSortLink = styled(Link)`
 const StyledPanelTable = styled(PanelTable)`
   position: static;
   overflow: auto;
-  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
     overflow: initial;
   }
 

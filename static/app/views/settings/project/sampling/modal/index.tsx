@@ -1,69 +1,214 @@
-import {useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {Fragment, KeyboardEvent, useEffect, useState} from 'react';
+import {components, createFilter} from 'react-select';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 
-import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
-import Field from 'sentry/components/forms/field';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Tooltip from 'sentry/components/tooltip';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Button from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import CompactSelect from 'sentry/components/forms/compactSelect';
+import NumberField from 'sentry/components/forms/numberField';
+import Option from 'sentry/components/forms/selectOption';
+import Link from 'sentry/components/links/link';
+import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import Truncate from 'sentry/components/truncate';
+import {IconAdd} from 'sentry/icons';
+import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Organization, Project, SelectValue} from 'sentry/types';
 import {
   SamplingConditionOperator,
+  SamplingInnerName,
   SamplingRule,
   SamplingRules,
   SamplingRuleType,
 } from 'sentry/types/sampling';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import recreateRoute from 'sentry/utils/recreateRoute';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useParams} from 'sentry/utils/useParams';
+import {useRoutes} from 'sentry/utils/useRoutes';
+import EmptyMessage from 'sentry/views/settings/components/emptyMessage';
+import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {SAMPLING_DOC_LINK} from '../utils';
+import {getInnerNameLabel, isCustomTagName} from '../utils';
 
-import RuleModal from './ruleModal';
+import Conditions from './conditions';
 import {
   distributedTracesConditions,
   generateConditionCategoriesOptions,
+  getErrorMessage,
   getNewCondition,
   individualTransactionsConditions,
+  isLegacyBrowser,
 } from './utils';
 
-type RuleModalProps = React.ComponentProps<typeof RuleModal>;
+const conditionAlreadyAddedTooltip = t('This condition has already been added');
 
-type Props = Omit<
-  RuleModalProps,
-  | 'transactionField'
-  | 'title'
-  | 'conditionCategories'
-  | 'onSubmit'
-  | 'emptyMessage'
-  | 'onChage'
-> & {
-  rules: SamplingRules;
+type ConditionsProps = React.ComponentProps<typeof Conditions>['conditions'];
+
+type State = {
+  conditions: ConditionsProps;
+  errors: {
+    sampleRate?: string;
+  };
+  sampleRate: number | null;
 };
 
-function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
-  const theme = useTheme();
+type Props = ModalRenderProps & {
+  disabled: boolean;
+  onSubmitSuccess: (project: Project, successMessage: React.ReactNode) => void;
+  organization: Organization;
+  project: Project;
+  rules: SamplingRules;
+  type: SamplingRuleType;
+  rule?: SamplingRule;
+};
 
-  const [tracing, setTracing] = useState(
-    ruleToUpdate ? ruleToUpdate.type === SamplingRuleType.TRACE : true
+export function SamplingRuleModal({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  project,
+  onSubmitSuccess,
+  rule,
+  rules,
+  disabled,
+  type,
+  organization,
+}: Props) {
+  const api = useApi();
+  const params = useParams();
+  const location = useLocation();
+  const routes = useRoutes();
+
+  const [data, setData] = useState<State>(getInitialState());
+  const [isSaving, setIsSaving] = useState(false);
+
+  const conditionCategories = generateConditionCategoriesOptions(
+    type === SamplingRuleType.TRACE
+      ? distributedTracesConditions
+      : individualTransactionsConditions
   );
 
-  const [isTracingDisabled, setIsTracingDisabled] = useState(
-    !!ruleToUpdate?.condition.inner.length
-  );
+  useEffect(() => {
+    setData(d => {
+      if (!!d.errors.sampleRate) {
+        return {...d, errors: {...d.errors, sampleRate: undefined}};
+      }
 
-  function handleChange({
-    conditions,
-  }: Parameters<NonNullable<RuleModalProps['onChange']>>[0]) {
-    setIsTracingDisabled(!!conditions.length);
+      return d;
+    });
+  }, [data.sampleRate]);
+
+  function getInitialState(): State {
+    if (rule) {
+      const {condition: conditions, sampleRate} = rule;
+
+      const {inner} = conditions;
+
+      return {
+        conditions: inner.map(innerItem => {
+          const {name, value} = innerItem;
+
+          if (Array.isArray(value)) {
+            if (isLegacyBrowser(value)) {
+              return {
+                category: name,
+                legacyBrowsers: value,
+              };
+            }
+            return {
+              category: name,
+              match: value.join('\n'),
+            };
+          }
+          return {category: name};
+        }),
+        sampleRate: sampleRate * 100,
+        errors: {},
+      };
+    }
+
+    return {
+      conditions: [],
+      sampleRate: null,
+      errors: {},
+    };
   }
 
-  function handleSubmit({
-    sampleRate,
-    conditions,
-    submitRules,
-  }: Parameters<RuleModalProps['onSubmit']>[0]) {
+  function getDescription() {
+    if (type === SamplingRuleType.TRACE) {
+      return {
+        title: rule ? t('Edit Distributed Trace Rule') : t('Add Distributed Trace Rule'),
+        description: tct(
+          'Using a Trace ID, select all Transactions distributed across multiple projects/services which match your conditions. However, if you only want to select Transactions from within this project, we recommend you add a [link] rule instead.',
+          {
+            link: (
+              <Link
+                to={recreateRoute(`${SamplingRuleType.TRANSACTION}/`, {
+                  routes,
+                  location,
+                  params,
+                  stepBack: -1,
+                })}
+              >
+                {t('Individual Transaction')}
+              </Link>
+            ),
+          }
+        ),
+      };
+    }
+
+    return {
+      title: rule
+        ? t('Edit Individual Transaction Rule')
+        : t('Add Individual Transaction Rule'),
+      description: tct(
+        'Select Transactions only within this project which match your conditions. However, If you want to select all Transactions distributed across multiple projects/services, we recommend you add a [link] rule instead.',
+        {
+          link: (
+            <Link
+              to={recreateRoute(`${SamplingRuleType.TRACE}/`, {
+                routes,
+                location,
+                params,
+                stepBack: -1,
+              })}
+            >
+              {t('Distributed Trace')}
+            </Link>
+          ),
+        }
+      ),
+    };
+  }
+
+  const {errors, conditions, sampleRate} = data;
+
+  function convertRequestErrorResponse(error: ReturnType<typeof getErrorMessage>) {
+    if (typeof error === 'string') {
+      addErrorMessage(error);
+      return;
+    }
+
+    switch (error.type) {
+      case 'sampleRate':
+        setData({...data, errors: {...errors, sampleRate: error.message}});
+        break;
+      default:
+        addErrorMessage(error.message);
+    }
+  }
+
+  async function handleSubmit() {
     if (!defined(sampleRate)) {
       return;
     }
@@ -71,7 +216,7 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
     const newRule: SamplingRule = {
       // All new/updated rules must have id equal to 0
       id: 0,
-      type: tracing ? SamplingRuleType.TRACE : SamplingRuleType.TRANSACTION,
+      type,
       condition: {
         op: SamplingConditionOperator.AND,
         inner: !conditions.length ? [] : conditions.map(getNewCondition),
@@ -79,8 +224,8 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
       sampleRate: sampleRate / 100,
     };
 
-    const newTransactionRules = ruleToUpdate
-      ? rules.map(rule => (isEqual(rule, ruleToUpdate) ? newRule : rule))
+    const newTransactionRules = rule
+      ? rules.map(r => (isEqual(r, rule) ? newRule : r))
       : [...rules, newRule];
 
     const [transactionTraceRules, individualTransactionRules] = partition(
@@ -91,73 +236,347 @@ function TransactionRuleModal({rule: ruleToUpdate, rules, ...props}: Props) {
     const newRules = [...transactionTraceRules, ...individualTransactionRules];
 
     const currentRuleIndex = newRules.findIndex(newR => newR === newRule);
-    submitRules(newRules, currentRuleIndex);
+
+    setIsSaving(true);
+
+    try {
+      const newProjectDetails = await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/`,
+        {method: 'PUT', data: {dynamicSampling: {rules: newRules}}}
+      );
+      onSubmitSuccess(
+        newProjectDetails,
+        rule
+          ? t('Successfully edited sampling rule')
+          : t('Successfully added sampling rule')
+      );
+      closeModal();
+    } catch (error) {
+      convertRequestErrorResponse(getErrorMessage(error, currentRuleIndex));
+    }
+
+    setIsSaving(false);
+
+    const analyticsConditions = conditions.map(condition => condition.category);
+    const analyticsConditionsStringified = analyticsConditions.sort().join(', ');
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.save', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: analyticsConditions,
+      conditions_stringified: analyticsConditionsStringified,
+    });
+
+    if (defined(rule)) {
+      trackAdvancedAnalyticsEvent('sampling.settings.rule.update', {
+        organization,
+        project_id: project.id,
+        sampling_rate: sampleRate,
+        conditions: analyticsConditions,
+        conditions_stringified: analyticsConditionsStringified,
+        old_conditions: rule.condition.inner.map(({name}) => name),
+        old_conditions_stringified: rule.condition.inner
+          .map(({name}) => name)
+          .sort()
+          .join(', '),
+        old_sampling_rate: rule.sampleRate * 100,
+      });
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('sampling.settings.rule.create', {
+      organization,
+      project_id: project.id,
+      sampling_rate: sampleRate,
+      conditions: analyticsConditions,
+      conditions_stringified: analyticsConditionsStringified,
+    });
   }
 
+  function handleAddCondition(selectedOptions: SelectValue<SamplingInnerName>[]) {
+    const previousCategories = conditions.map(({category}) => category);
+    const addedCategories = selectedOptions
+      .filter(
+        ({value}) =>
+          value === SamplingInnerName.EVENT_CUSTOM_TAG || // We can have more than 1 custom tag rules
+          !previousCategories.includes(value)
+      )
+      .map(({value}) => value);
+
+    trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+      organization,
+      project_id: project.id,
+      conditions: addedCategories,
+    });
+
+    setData({
+      ...data,
+      conditions: [
+        ...conditions,
+        ...addedCategories.map(addedCategory => ({category: addedCategory, match: ''})),
+      ],
+    });
+  }
+
+  function handleDeleteCondition(index: number) {
+    const newConditions = [...conditions];
+    newConditions.splice(index, 1);
+    setData({...data, conditions: newConditions});
+  }
+
+  function handleChangeCondition<T extends keyof ConditionsProps[0]>(
+    index: number,
+    field: T,
+    value: ConditionsProps[0][T]
+  ) {
+    const newConditions = [...conditions];
+    newConditions[index][field] = value;
+
+    // If custom tag key changes, reset the value
+    if (field === 'category') {
+      newConditions[index].match = '';
+
+      trackAdvancedAnalyticsEvent('sampling.settings.condition.add', {
+        organization,
+        project_id: project.id,
+        conditions: [value as SamplingInnerName],
+      });
+    }
+
+    setData({...data, conditions: newConditions});
+  }
+
+  // Distributed Trace and Individual Transaction Rule can only have one 'sample all' rule at a time
+  const ruleWithoutConditionExists = rules
+    .filter(r => r.type === type && !isEqual(r, rule))
+    .some(r => !r.condition.inner.length);
+
+  const submitDisabled =
+    !defined(sampleRate) ||
+    (ruleWithoutConditionExists && !conditions.length) ||
+    !!conditions?.find(condition => {
+      if (condition.category === SamplingInnerName.EVENT_LEGACY_BROWSER) {
+        return !(condition.legacyBrowsers ?? []).length;
+      }
+
+      if (
+        condition.category === SamplingInnerName.EVENT_LOCALHOST ||
+        condition.category === SamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
+        condition.category === SamplingInnerName.EVENT_WEB_CRAWLERS
+      ) {
+        return false;
+      }
+
+      // They probably did not specify custom tag key
+      if (
+        condition.category === '' ||
+        condition.category === SamplingInnerName.EVENT_CUSTOM_TAG
+      ) {
+        return true;
+      }
+
+      return !condition.match;
+    });
+
+  const customTagConditionsOptions = conditions
+    .filter(
+      condition =>
+        isCustomTagName(condition.category) &&
+        condition.category !== SamplingInnerName.EVENT_CUSTOM_TAG
+    )
+    .map(({category}) => ({
+      value: category,
+      label: (
+        <Truncate value={getInnerNameLabel(category)} expandable={false} maxLength={40} />
+      ),
+      disabled: true,
+      tooltip: conditionAlreadyAddedTooltip,
+    }));
+
+  const predefinedConditionsOptions = conditionCategories.map(([value, label]) => {
+    // Never disable the "Add Custom Tag" option, you can add more of those
+    const optionDisabled =
+      value === SamplingInnerName.EVENT_CUSTOM_TAG
+        ? false
+        : conditions.some(condition => condition.category === value);
+    return {
+      value,
+      label,
+      disabled: optionDisabled,
+      tooltip: disabled ? conditionAlreadyAddedTooltip : undefined,
+    };
+  });
+
+  const {title, description} = getDescription();
+
   return (
-    <RuleModal
-      {...props}
-      title={
-        ruleToUpdate
-          ? t('Edit Transaction Sampling Rule')
-          : t('Add Transaction Sampling Rule')
-      }
-      emptyMessage={t('Apply sampling rate to all transactions')}
-      conditionCategories={generateConditionCategoriesOptions(
-        tracing ? distributedTracesConditions : individualTransactionsConditions
-      )}
-      rule={ruleToUpdate}
-      onSubmit={handleSubmit}
-      onChange={handleChange}
-      extraFields={
-        <Field
-          label={t('Tracing')}
-          inline={false}
-          flexibleControlStateSize
-          stacked
-          showHelpInTooltip
-        >
-          <Tooltip
-            title={t('This field can only be edited if there are no match conditions')}
-            disabled={!isTracingDisabled}
-            overlayStyle={css`
-              @media (min-width: ${theme.breakpoints[0]}) {
-                max-width: 370px;
-              }
-            `}
-          >
-            <TracingWrapper
-              onClick={isTracingDisabled ? undefined : () => setTracing(!tracing)}
-            >
-              <StyledCheckboxFancy isChecked={tracing} isDisabled={isTracingDisabled} />
-              {tct(
-                'Include all related transactions by trace ID. This can span across multiple projects. All related errors will remain. [link:Learn more about tracing].',
-                {
-                  link: (
-                    <ExternalLink
-                      href={SAMPLING_DOC_LINK}
-                      onClick={event => event.stopPropagation()}
-                    />
-                  ),
+    <Fragment>
+      <Header closeButton>
+        <h4>{title}</h4>
+      </Header>
+      <Body>
+        <Fields>
+          <Description>{description}</Description>
+          <StyledPanel>
+            <StyledPanelHeader hasButtons>
+              {t('Conditions')}
+              <StyledCompactSelect
+                placement="bottom right"
+                triggerProps={{
+                  size: 'small',
+                  'aria-label': t('Add Condition'),
+                }}
+                triggerLabel={
+                  <TriggerLabel>
+                    <IconAdd isCircled />
+                    {t('Add Condition')}
+                  </TriggerLabel>
                 }
+                placeholder={t('Filter conditions')}
+                isOptionDisabled={opt => opt.disabled}
+                options={[...customTagConditionsOptions, ...predefinedConditionsOptions]}
+                value={conditions
+                  // We need to filter our custom tag option so that it can be selected multiple times without being unselected every other time
+                  .filter(({category}) => category !== SamplingInnerName.EVENT_CUSTOM_TAG)
+                  .map(({category}) => category)}
+                onChange={handleAddCondition}
+                isSearchable
+                multiple
+                filterOption={(candidate, input) => {
+                  // Always offer the "Add Custom Tag" option in the autocomplete
+                  if (candidate.value === SamplingInnerName.EVENT_CUSTOM_TAG) {
+                    return true;
+                  }
+                  return createFilter(null)(candidate, input);
+                }}
+                components={{
+                  Option: containerProps => {
+                    if (containerProps.value === SamplingInnerName.EVENT_CUSTOM_TAG) {
+                      return (
+                        <components.Option className="select-option" {...containerProps}>
+                          <AddCustomTag isFocused={containerProps.isFocused}>
+                            <IconAdd isCircled /> {t('Add Custom Tag')}
+                          </AddCustomTag>
+                        </components.Option>
+                      );
+                    }
+                    return <Option {...containerProps} />;
+                  },
+                }}
+              />
+            </StyledPanelHeader>
+            <PanelBody>
+              {ruleWithoutConditionExists && (
+                <PanelAlert type="info">
+                  {t(
+                    'A rule with no conditions already exists. You can edit that existing rule or add a condition to this rule'
+                  )}
+                </PanelAlert>
               )}
-            </TracingWrapper>
-          </Tooltip>
-        </Field>
-      }
-    />
+              {!conditions.length ? (
+                <EmptyMessage
+                  icon={<IconSearch size="xl" />}
+                  title={t('No conditions added')}
+                  description={tct(
+                    "if you don't want to add (+) a condition, [lineBreak]simply, add a sample rate below",
+                    {
+                      lineBreak: <br />,
+                    }
+                  )}
+                />
+              ) : (
+                <Conditions
+                  conditions={conditions}
+                  onDelete={handleDeleteCondition}
+                  onChange={handleChangeCondition}
+                  orgSlug={organization.slug}
+                  projectId={project.id}
+                  projectSlug={project.slug}
+                />
+              )}
+            </PanelBody>
+          </StyledPanel>
+          <NumberField
+            label={`${t('Sample Rate')} \u0025`}
+            name="sampleRate"
+            onChange={value => {
+              setData({...data, sampleRate: !!value ? Number(value) : null});
+            }}
+            onKeyDown={(_value: string, e: KeyboardEvent) => {
+              if (e.key === 'Enter') {
+                handleSubmit();
+              }
+            }}
+            placeholder={'\u0025'}
+            value={sampleRate}
+            inline={false}
+            hideControlState={!errors.sampleRate}
+            error={errors.sampleRate}
+            showHelpInTooltip
+            stacked
+            required
+          />
+        </Fields>
+      </Body>
+      <Footer>
+        <ButtonBar gap={1}>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button
+            priority="primary"
+            onClick={handleSubmit}
+            title={
+              disabled
+                ? t('You do not have permission to add sampling rules.')
+                : submitDisabled
+                ? t('Required fields must be filled out')
+                : undefined
+            }
+            disabled={disabled || isSaving || submitDisabled}
+          >
+            {t('Save Rule')}
+          </Button>
+        </ButtonBar>
+      </Footer>
+    </Fragment>
   );
 }
 
-export default TransactionRuleModal;
-
-const TracingWrapper = styled('div')`
+const Fields = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(1)};
-  cursor: ${p => (p.onClick ? 'pointer' : 'not-allowed')};
+  gap: ${space(2)};
 `;
 
-const StyledCheckboxFancy = styled(CheckboxFancy)`
-  margin-top: ${space(0.5)};
+const StyledCompactSelect = styled(CompactSelect)`
+  font-weight: 400;
+  text-transform: none;
+`;
+
+const StyledPanelHeader = styled(PanelHeader)`
+  padding-right: ${space(2)};
+`;
+
+const StyledPanel = styled(Panel)`
+  margin-bottom: 0;
+`;
+
+const AddCustomTag = styled('div')<{isFocused: boolean}>`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(1.5)};
+  gap: ${space(1)};
+  line-height: 1.4;
+  border-radius: ${p => p.theme.borderRadius};
+  ${p => p.isFocused && `background: ${p.theme.hover};`};
+`;
+
+const TriggerLabel = styled('div')`
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const Description = styled(TextBlock)`
+  margin: 0;
 `;

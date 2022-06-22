@@ -7,8 +7,9 @@ import DropdownControl from 'sentry/components/dropdownControl';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {IconFilter} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
@@ -40,6 +41,8 @@ function Filter({
   toggleOperationNameFilter,
   toggleAllOperationNameFilters,
 }: Props) {
+  const organization = useOrganization();
+
   if (operationNameCounts.size === 0) {
     return null;
   }
@@ -104,6 +107,14 @@ function Filter({
               onClick={event => {
                 event.stopPropagation();
                 toggleAllOperationNameFilters();
+
+                trackAdvancedAnalyticsEvent(
+                  'performance_views.event_details.filter_by_op',
+                  {
+                    organization,
+                    operation: 'ALL',
+                  }
+                );
               }}
             />
           </Header>
@@ -124,6 +135,14 @@ function Filter({
                     onClick={event => {
                       event.stopPropagation();
                       toggleOperationNameFilter(operationName);
+
+                      trackAdvancedAnalyticsEvent(
+                        'performance_views.event_details.filter_by_op',
+                        {
+                          organization,
+                          operation: operationName,
+                        }
+                      );
                     }}
                   />
                 </ListItem>
@@ -234,7 +253,7 @@ const OperationDot = styled('div')<{backgroundColor: string}>`
 
 const OperationName = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
-  ${overflowEllipsis};
+  ${p => p.theme.overflowEllipsis};
 `;
 
 const OperationCount = styled('div')`

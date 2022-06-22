@@ -12,7 +12,6 @@ import {PanelItem} from 'sentry/components/panels';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization, ReleaseProject} from 'sentry/types';
 import DiscoverQuery, {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -754,7 +753,7 @@ const StyledPanelTable = styled(PanelTable)<{disableTopBorder: boolean}>`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: ${p => (p.disableTopBorder ? 'none' : `1px solid ${p.theme.border}`)};
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+  @media (max-width: ${p => p.theme.breakpoints.large}) {
     grid-template-columns: min-content 1fr 1fr 1fr;
   }
 `;
@@ -794,7 +793,7 @@ const Cell = styled('div')<{align: 'left' | 'right'}>`
   text-align: ${p => p.align};
   margin-left: ${p => p.align === 'left' && space(2)};
   padding-right: ${p => p.align === 'right' && space(2)};
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const StyledAlert = styled(Alert)`

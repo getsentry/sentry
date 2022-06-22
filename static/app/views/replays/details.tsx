@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import {HeaderContainer} from 'sentry/components/events/interfaces/spans/header';
@@ -15,10 +16,10 @@ import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
+import Breadcrumbs from './detail/breadcrumbs';
 import DetailLayout from './detail/detailLayout';
 import FocusArea from './detail/focusArea';
 import FocusTabs from './detail/focusTabs';
-import UserActionsNavigator from './detail/userActionsNavigator';
 
 function ReplayDetails() {
   const {
@@ -84,19 +85,22 @@ function ReplayDetails() {
           </Layout.Main>
 
           <Layout.Side>
-            <UserActionsNavigator
-              crumbs={replay?.getRawCrumbs()}
-              event={replay?.getEvent()}
-            />
+            <ErrorBoundary mini>
+              <Breadcrumbs crumbs={replay?.getRawCrumbs()} event={replay?.getEvent()} />
+            </ErrorBoundary>
           </Layout.Side>
 
           <StickyMain fullWidth>
-            <ReplayTimeline />
+            <ErrorBoundary mini>
+              <ReplayTimeline />
+            </ErrorBoundary>
             <FocusTabs />
           </StickyMain>
 
           <StyledLayoutMain fullWidth>
-            <FocusArea replay={replay} />
+            <ErrorBoundary mini>
+              <FocusArea replay={replay} />
+            </ErrorBoundary>
           </StyledLayoutMain>
         </Layout.Body>
       </DetailLayout>

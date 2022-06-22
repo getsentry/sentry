@@ -2000,6 +2000,53 @@ describe('WidgetBuilder', function () {
         expect(screen.getAllByText('count()')).toHaveLength(2);
         await selectEvent.select(screen.getAllByText('count()')[1], 'count() * 100');
       });
+
+      it('does not reset the orderby when ordered by an equation in table', async function () {
+        const widget: Widget = {
+          id: '1',
+          title: 'Errors over time',
+          interval: '5m',
+          displayType: DisplayType.TABLE,
+          queries: [
+            {
+              name: '',
+              conditions: '',
+              fields: [
+                'count()',
+                'count_unique(id)',
+                'equation|count() + count_unique(id)',
+              ],
+              aggregates: [
+                'count()',
+                'count_unique(id)',
+                'equation|count() + count_unique(id)',
+              ],
+              columns: [],
+              orderby: '-equation[0]',
+            },
+          ],
+        };
+
+        const dashboard: DashboardDetails = {
+          id: '1',
+          title: 'Dashboard',
+          createdBy: undefined,
+          dateCreated: '2020-01-01T00:00:00.000Z',
+          widgets: [widget],
+        };
+
+        renderTestComponent({
+          dashboard,
+          params: {
+            widgetIndex: '0',
+          },
+        });
+
+        await screen.findByText('Sort by a column');
+
+        // 1 in the column selector, 1 in the sort by field
+        expect(screen.getAllByText('count() + count_unique(id)')).toHaveLength(2);
+      });
     });
 
     describe('Widget creation coming from other verticals', function () {
@@ -2524,6 +2571,40 @@ describe('WidgetBuilder', function () {
         expect(screen.getByRole('textbox', {name: 'Sort by'})).toBeDisabled();
       });
 
+      it('does not allow sort on tags except release', async function () {
+        renderTestComponent({
+          orgFeatures: releaseHealthFeatureFlags,
+        });
+
+        expect(
+          await screen.findByText('Releases (sessions, crash rates)')
+        ).toBeInTheDocument();
+
+        userEvent.click(screen.getByLabelText(/releases/i));
+
+        expect(screen.getByText('High to low')).toBeEnabled();
+        expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
+
+        userEvent.click(screen.getByLabelText('Add a Column'));
+        await selectEvent.select(screen.getByText('(Required)'), 'release');
+
+        userEvent.click(screen.getByLabelText('Add a Column'));
+        await selectEvent.select(screen.getByText('(Required)'), 'environment');
+
+        expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
+
+        // Selector "sortDirection"
+        expect(screen.getByText('High to low')).toBeInTheDocument();
+
+        // Selector "sortBy"
+        userEvent.click(screen.getAllByText('crash_free_rate(session)')[1]);
+
+        // release exists in sort by selector
+        expect(screen.getAllByText('release')).toHaveLength(3);
+        // environment does not exist in sort by selector
+        expect(screen.getAllByText('environment')).toHaveLength(2);
+      });
+
       it('makes the appropriate sessions call', async function () {
         renderTestComponent({
           orgFeatures: releaseHealthFeatureFlags,
@@ -2744,7 +2825,10 @@ describe('WidgetBuilder', function () {
           await screen.findByPlaceholderText('Search for events, users, tags, and more'),
           'session.status:'
         );
-        expect(await screen.findByText('No items found')).toBeInTheDocument();
+
+        await waitFor(() => {
+          expect(screen.getByText('No items found')).toBeInTheDocument();
+        });
 
         userEvent.click(screen.getByText('Releases (sessions, crash rates)'));
         userEvent.click(

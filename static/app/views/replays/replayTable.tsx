@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React, {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
@@ -9,16 +9,12 @@ import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons';
 import space from 'sentry/styles/space';
-import {NewQuery} from 'sentry/types';
-import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
+import useDiscoverQuery from 'sentry/utils/replays/hooks/useDiscoveryQuery';
 import theme from 'sentry/utils/theme';
-import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 import {Replay} from './types';
@@ -39,18 +35,14 @@ type ReplayDurationAndErrors = {
 };
 
 function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
-  const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {selection} = usePageFilters();
-  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints[0]})`);
+  const isScreenLarge = useMedia(`(min-width: ${theme.breakpoints.small})`);
 
-  const getEventView = () => {
-    const query = replayList.map(item => `replayId:${item.id}`).join(' OR ');
-    const eventQueryParams: NewQuery = {
-      id: '',
-      name: '',
-      version: 2,
+  const query = replayList.map(item => `replayId:${item[idKey]}`).join(' OR ');
+
+  const discoverQuery = useMemo(
+    () => ({
       fields: [
         'replayId',
         'max(timestamp)',
@@ -59,113 +51,95 @@ function ReplayTable({replayList, idKey, showProjectColumn}: Props) {
         'count_if(event.type,equals,error)',
       ],
       orderby: '-min_timestamp',
-      environment: selection.environments,
-      projects: selection.projects,
       query: `(title:"sentry-replay-event-*" OR event.type:error) AND (${query})`,
-    };
+    }),
+    [query]
+  );
 
-    if (selection.datetime.period) {
-      eventQueryParams.range = selection.datetime.period;
-    }
-    return EventView.fromNewQueryWithLocation(eventQueryParams, location);
-  };
+  const {data} = useDiscoverQuery<ReplayDurationAndErrors>({discoverQuery});
+
+  const dataEntries = data
+    ? Object.fromEntries(data.map(item => [item.replayId, item]))
+    : {};
 
   return (
-    <DiscoverQuery
-      eventView={getEventView()}
-      location={location}
-      orgSlug={organization.slug}
-    >
-      {data => {
-        const dataEntries = data.tableData
-          ? Object.fromEntries(
-              (data.tableData?.data as ReplayDurationAndErrors[]).map(item => [
-                item.replayId,
-                item,
-              ])
-            )
-          : {};
-        return replayList?.map(replay => {
-          return (
-            <Fragment key={replay.id}>
-              <UserBadge
-                avatarSize={32}
-                displayName={
-                  <Link
-                    to={`/organizations/${organization.slug}/replays/${generateEventSlug({
-                      project: replay.project,
-                      id: replay[idKey],
-                    })}/`}
-                  >
-                    {replay['user.display']}
-                  </Link>
+    <Fragment>
+      {replayList?.map(replay => (
+        <Fragment key={replay.id}>
+          <UserBadge
+            avatarSize={32}
+            displayName={
+              <Link
+                to={`/organizations/${organization.slug}/replays/${generateEventSlug({
+                  project: replay.project,
+                  id: replay[idKey],
+                })}/`}
+              >
+                {replay['user.display']}
+              </Link>
+            }
+            user={{
+              username: replay['user.username'] ?? '',
+              id: replay['user.id'] ?? '',
+              ip_address: replay['user.ip_address'] ?? '',
+              name: replay['user.name'] ?? '',
+              email: replay['user.email'] ?? '',
+            }}
+            // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+            displayEmail={getUrlPathname(replay.url) ?? ''}
+          />
+          {isScreenLarge && showProjectColumn && (
+            <Item>
+              <ProjectBadge
+                project={
+                  projects.find(p => p.slug === replay.project) || {
+                    slug: replay.project,
+                  }
                 }
-                user={{
-                  username: replay['user.username'] ?? '',
-                  id: replay['user.id'] ?? '',
-                  ip_address: replay['user.ip_address'] ?? '',
-                  name: replay['user.name'] ?? '',
-                  email: replay['user.email'] ?? '',
-                }}
-                // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-                displayEmail={getUrlPathname(replay.url) ?? ''}
+                avatarSize={16}
               />
-              {isScreenLarge && showProjectColumn && (
-                <Item>
-                  <ProjectBadge
-                    project={
-                      projects.find(p => p.slug === replay.project) || {
-                        slug: replay.project,
-                      }
-                    }
-                    avatarSize={16}
-                  />
-                </Item>
-              )}
+            </Item>
+          )}
+          <Item>
+            <TimeSinceWrapper>
+              {isScreenLarge && <StyledIconCalendarWrapper color="gray500" size="sm" />}
+              <TimeSince date={replay.timestamp} />
+            </TimeSinceWrapper>
+          </Item>
+          {data ? (
+            <React.Fragment>
               <Item>
-                <TimeSinceWrapper>
-                  {isScreenLarge && (
-                    <StyledIconCalendarWrapper color="gray500" size="sm" />
-                  )}
-                  <TimeSince date={replay.timestamp} />
-                </TimeSinceWrapper>
+                <Duration
+                  seconds={
+                    Math.floor(
+                      dataEntries[replay[idKey]]
+                        ? dataEntries[replay[idKey]]['equation[0]']
+                        : 0
+                    ) || 1
+                  }
+                  exact
+                  abbreviation
+                />
               </Item>
-              {data.tableData ? (
-                <React.Fragment>
-                  <Item>
-                    <Duration
-                      seconds={
-                        Math.floor(
-                          dataEntries[replay.id]
-                            ? dataEntries[replay.id]['equation[0]']
-                            : 0
-                        ) || 1
-                      }
-                      exact
-                      abbreviation
-                    />
-                  </Item>
-                  <Item>
-                    {dataEntries[replay.id]
-                      ? dataEntries[replay.id]?.count_if_event_type_equals_error
-                      : 0}
-                  </Item>
-                </React.Fragment>
-              ) : (
-                <React.Fragment>
-                  <Item>
-                    <Placeholder height="24px" />
-                  </Item>
-                  <Item>
-                    <Placeholder height="24px" />
-                  </Item>
-                </React.Fragment>
-              )}
-            </Fragment>
-          );
-        });
-      }}
-    </DiscoverQuery>
+              <Item>
+                {dataEntries[replay[idKey]]
+                  ? dataEntries[replay[idKey]]?.count_if_event_type_equals_error
+                  : 0}
+              </Item>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <Item>
+                <Placeholder height="24px" />
+              </Item>
+              <Item>
+                <Placeholder height="24px" />
+              </Item>
+            </React.Fragment>
+          )}
+        </Fragment>
+      ))}
+    </Fragment>
   );
 }
 

@@ -1,3 +1,5 @@
+import freezegun
+
 from sentry.constants import DataCategory
 from sentry.models import ProjectKey
 from sentry.testutils import APITestCase
@@ -6,6 +8,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.outcomes import Outcome
 
 
+@freezegun.freeze_time("2022-01-01 03:30:00")
 class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
     def setUp(self):
         super().setUp()
@@ -71,16 +74,16 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
             5,
         )
         response = self.client.get(self.path)
-        assert response.status_code == 200
-
         assert response.status_code == 200, response.content
-        assert type(response.data[-1]["ts"]) == int
-        assert response.data[-1]["total"] == 8, response.data
-        assert response.data[-1]["filtered"] == 1, response.data
-        assert response.data[-1]["dropped"] == 5, response.data
-        assert response.data[-1]["accepted"] == 2, response.data
-        for point in response.data[:-1]:
-            assert point["total"] == 0
+
+        # Find the bucket with data.
+        # The index of this bucket can shift when we run tests at UTC midnight
+        result = [bucket for bucket in response.data if bucket["total"] > 0][0]
+        assert type(result["ts"]) == int
+        assert result["total"] == 8, response.data
+        assert result["filtered"] == 1, response.data
+        assert result["dropped"] == 5, response.data
+        assert result["accepted"] == 2, response.data
 
     def test_ignore_discard(self):
         self.store_outcomes(
@@ -110,11 +113,11 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
             1,
         )
         response = self.client.get(self.path)
-        assert response.status_code == 200
-
         assert response.status_code == 200, response.content
-        assert response.data[-1]["total"] == 2, response.data
-        assert response.data[-1]["filtered"] == 0, response.data
+
+        result = [bucket for bucket in response.data if bucket["total"] > 0][0]
+        assert result["total"] == 2, response.data
+        assert result["filtered"] == 0, response.data
 
     def test_invalid_parameters(self):
         url = self.path + "?resolution=2d"
@@ -155,14 +158,12 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
                 "until": before_now().timestamp(),
             },
         )
-        assert response.status_code == 200
-
         assert response.status_code == 200, response.content
-        assert type(response.data[-1]["ts"]) == int
-        assert response.data[-1]["total"] == 2, response.data
-        assert response.data[-1]["filtered"] == 0, response.data
-        assert response.data[-1]["dropped"] == 0, response.data
-        assert response.data[-1]["accepted"] == 2, response.data
-        for point in response.data[:-1]:
-            assert point["total"] == 0
+
+        result = [bucket for bucket in response.data if bucket["total"] > 0][0]
+        assert type(result["ts"]) == int
+        assert result["total"] == 2, response.data
+        assert result["filtered"] == 0, response.data
+        assert result["dropped"] == 0, response.data
+        assert result["accepted"] == 2, response.data
         assert len(response.data) == 2

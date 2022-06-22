@@ -10,11 +10,13 @@ import type {
   MemorySpanType,
   RecordingEvent,
   ReplayCrumb,
+  ReplayError,
   ReplaySpan,
 } from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
   breadcrumbs: ReplayCrumb[] | undefined;
+  errors: ReplayError[] | undefined;
 
   /**
    * The root Replay event, created at the start of the browser session.
@@ -35,17 +37,18 @@ type RequiredNotNull<T> = {
 };
 
 export default class ReplayReader {
-  static factory({breadcrumbs, event, rrwebEvents, spans}: ReplayReaderParams) {
-    if (!breadcrumbs || !event || !rrwebEvents || !spans) {
+  static factory({breadcrumbs, event, errors, rrwebEvents, spans}: ReplayReaderParams) {
+    if (!breadcrumbs || !event || !rrwebEvents || !spans || !errors) {
       return null;
     }
 
-    return new ReplayReader({breadcrumbs, event, rrwebEvents, spans});
+    return new ReplayReader({breadcrumbs, event, errors, rrwebEvents, spans});
   }
 
   private constructor({
     breadcrumbs,
     event,
+    errors,
     rrwebEvents,
     spans,
   }: RequiredNotNull<ReplayReaderParams>) {
@@ -56,12 +59,17 @@ export default class ReplayReader {
     );
 
     this.spans = spansFactory(spans);
-    this.breadcrumbs = breadcrumbFactory(startTimestampMS, [event], breadcrumbs);
+    this.breadcrumbs = breadcrumbFactory(
+      startTimestampMS,
+      event,
+      errors,
+      breadcrumbs,
+      this.spans
+    );
 
     this.rrwebEvents = rrwebEventListFactory(
       startTimestampMS,
       endTimestampMS,
-      spans,
       rrwebEvents
     );
 

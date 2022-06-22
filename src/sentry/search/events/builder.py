@@ -96,6 +96,7 @@ class QueryBuilder:
         params: ParamsType,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
         auto_fields: bool = False,
@@ -109,6 +110,10 @@ class QueryBuilder:
         turbo: bool = False,
         sample_rate: Optional[float] = None,
         equation_config: Optional[Dict[str, bool]] = None,
+        # This allows queries to be resolved without adding time constraints. Currently this is just
+        # used to allow metric alerts to be built and validated before creation in snuba.
+        skip_time_conditions: bool = False,
+        parser_config_overrides: Optional[Mapping[str, Any]] = None,
     ):
         self.dataset = dataset
 
@@ -140,6 +145,8 @@ class QueryBuilder:
         self.offset = None if offset is None else Offset(offset)
         self.turbo = turbo
         self.sample_rate = sample_rate
+        self.skip_time_conditions = skip_time_conditions
+        self.parser_config_overrides = parser_config_overrides
 
         (
             self.field_alias_converter,
@@ -150,15 +157,20 @@ class QueryBuilder:
         self.limitby = self.resolve_limitby(limitby)
         self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
+        self.start: Optional[datetime] = None
+        self.end: Optional[datetime] = None
         self.resolve_query(
             query=query,
             use_aggregate_conditions=use_aggregate_conditions,
             selected_columns=selected_columns,
+            groupby_columns=groupby_columns,
             equations=equations,
             orderby=orderby,
         )
 
     def resolve_time_conditions(self) -> None:
+        if self.skip_time_conditions:
+            return
         # start/end are required so that we can run a query in a reasonable amount of time
         if "start" not in self.params or "end" not in self.params:
             raise InvalidSearchQuery("Cannot query without a valid date range")
@@ -169,8 +181,8 @@ class QueryBuilder:
         ), "Both start and end params must be datetime objects"
 
         # Strip timezone, which are ignored and assumed UTC to match filtering
-        self.start: datetime = self.params["start"].replace(tzinfo=timezone.utc)
-        self.end: datetime = self.params["end"].replace(tzinfo=timezone.utc)
+        self.start = self.params["start"].replace(tzinfo=timezone.utc)
+        self.end = self.params["end"].replace(tzinfo=timezone.utc)
 
     def resolve_column_name(self, col: str) -> str:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
@@ -182,6 +194,7 @@ class QueryBuilder:
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -200,7 +213,7 @@ class QueryBuilder:
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
             self.orderby = self.resolve_orderby(orderby)
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
-            self.groupby = self.resolve_groupby()
+            self.groupby = self.resolve_groupby(groupby_columns)
 
     def load_config(
         self,
@@ -407,9 +420,11 @@ class QueryBuilder:
         conditions = []
 
         # Update start to be within retention
-        expired, self.start = outside_retention_with_modified_start(
-            self.start, self.end, Organization(self.params.get("organization_id"))
-        )
+        expired = False
+        if self.start and self.end:
+            expired, self.start = outside_retention_with_modified_start(
+                self.start, self.end, Organization(self.params.get("organization_id"))
+            )
 
         project_id: List[int] = self.params.get("project_id", [])  # type: ignore
         assert all(
@@ -420,8 +435,10 @@ class QueryBuilder:
                 "Invalid date range. Please try a more recent date range."
             )
 
-        conditions.append(Condition(self.column("timestamp"), Op.GTE, self.start))
-        conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
+        if self.start:
+            conditions.append(Condition(self.column("timestamp"), Op.GTE, self.start))
+        if self.end:
+            conditions.append(Condition(self.column("timestamp"), Op.LT, self.end))
 
         if "project_id" in self.params:
             conditions.append(
@@ -751,13 +768,24 @@ class QueryBuilder:
         else:
             return self.resolve_field(field, alias=alias)
 
-    def resolve_groupby(self) -> List[SelectType]:
+    def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
         if self.aggregates:
             self.validate_aggregate_arguments()
+            groupby_columns = (
+                [self.resolve_column(column) for column in groupby_columns]
+                if groupby_columns
+                else []
+            )
             return [
-                c
-                for c in self.columns
-                if c not in self.aggregates and not self.is_equation_column(c)
+                column
+                for column in self.columns
+                if column not in self.aggregates and not self.is_equation_column(column)
+            ] + [
+                column
+                for column in groupby_columns
+                if column not in self.aggregates
+                and not self.is_equation_column(column)
+                and column not in self.columns
             ]
         else:
             return []
@@ -895,7 +923,12 @@ class QueryBuilder:
             return []
 
         try:
-            parsed_terms = parse_search_query(query, params=self.params, builder=self)
+            parsed_terms = parse_search_query(
+                query,
+                params=self.params,
+                builder=self,
+                config_overrides=self.parser_config_overrides,
+            )
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -1226,6 +1259,7 @@ class UnresolvedQuery(QueryBuilder):
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -1269,6 +1303,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -1500,13 +1535,13 @@ class HistogramQueryBuilder(QueryBuilder):
         histogram_params: HistogramParams,
         key_column: Optional[str],
         field_names: Optional[List[Union[str, Any, None]]],
-        groupby: Optional[List[str]],
+        groupby_columns: Optional[List[str]],
         *args: Any,
         **kwargs: Any,
     ):
         kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
         super().__init__(*args, **kwargs)
-        self.additional_groupby = groupby
+        self.additional_groupby = groupby_columns
         selected_columns = kwargs["selected_columns"]
 
         resolved_histogram = self.resolve_column(histogram_column)
@@ -1534,15 +1569,14 @@ class HistogramQueryBuilder(QueryBuilder):
             OrderBy(resolved_histogram, Direction.ASC)
         ]
 
-        self.groupby = self.resolve_groupby()
-        self.groupby = self.resolve_additional_groupby()
+        self.groupby = self.resolve_groupby(groupby_columns)
 
-    def resolve_additional_groupby(self) -> List[SelectType]:
-        base_groupby = self.groupby
-        if base_groupby is not None and self.additional_groupby is not None:
-            base_groupby += [self.resolve_column(field) for field in self.additional_groupby]
 
-        return base_groupby
+class SessionsQueryBuilder(QueryBuilder):
+    def resolve_params(self) -> List[WhereType]:
+        conditions = super().resolve_params()
+        conditions.append(Condition(self.column("org_id"), Op.EQ, self.organization_id))
+        return conditions
 
 
 class MetricsQueryBuilder(QueryBuilder):
@@ -1630,6 +1664,8 @@ class MetricsQueryBuilder(QueryBuilder):
             and will fallback to hourly granularity
         - If the duration is over 30d we always use the daily granularities
         """
+        if self.end is None or self.start is None:
+            raise ValueError("skip_time_conditions must be False when calling this method")
         duration = (self.end - self.start).total_seconds()
 
         near_midnight: Callable[[datetime], bool] = lambda time: (
@@ -1806,10 +1842,42 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return Condition(lhs, Op(search_filter.operator), value)
 
-    def get_snql_query(self) -> List[Query]:
-        """Because metrics table queries need to make multiple requests per metric type this function cannot be
-        inmplemented see run_query"""
-        raise NotImplementedError("get_snql_query cannot be implemented for MetricsQueryBuilder")
+    def get_snql_query(self) -> Request:
+        self.validate_having_clause()
+        self.validate_orderby_clause()
+        # Need to split orderby between the 3 possible tables
+        primary, query_framework = self._create_query_framework()
+        primary_framework = query_framework.pop(primary)
+        if len(primary_framework.functions) == 0:
+            raise IncompatibleMetricsQuery("Need at least one function")
+        for query_details in query_framework.values():
+            if len(query_details.functions) > 0:
+                # More than 1 dataset means multiple queries so we can't return them here
+                raise NotImplementedError(
+                    "get_snql_query cannot be implemented for MetricsQueryBuilder"
+                )
+
+        return Request(
+            dataset=self.dataset.value,
+            app_id="default",
+            query=Query(
+                match=primary_framework.entity,
+                select=[
+                    column
+                    for column in self.columns
+                    if column in primary_framework.functions or column not in self.aggregates
+                ],
+                array_join=self.array_join,
+                where=self.where,
+                having=primary_framework.having,
+                groupby=self.groupby,
+                orderby=primary_framework.orderby,
+                limit=self.limit,
+                offset=self.offset,
+                limitby=self.limitby,
+            ),
+            flags=Flags(turbo=self.turbo),
+        )
 
     def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
         query_framework: Dict[str, QueryFramework] = {
@@ -1886,7 +1954,16 @@ class MetricsQueryBuilder(QueryBuilder):
 
         # Pick one arbitrarily, there's no orderby on functions
         if primary is None:
-            primary = "distribution" if having_entity is None else having_entity
+            if having_entity is not None:
+                primary = having_entity
+            elif len(self.distributions) > 0:
+                primary = "distribution"
+            elif len(self.counters) > 0:
+                primary = "counter"
+            elif len(self.sets) > 0:
+                primary = "set"
+            else:
+                raise IncompatibleMetricsQuery("Need at least one function")
 
         query_framework[primary].having = self.having
 
@@ -1931,7 +2008,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 select = [
                     column
                     for column in self.columns
-                    if not isinstance(column, CurriedFunction) or column in query_details.functions
+                    if column in query_details.functions or column not in self.aggregates
                 ]
                 if groupby_values:
                     # We already got the groupby values we want, add them to the conditions to limit our results so we

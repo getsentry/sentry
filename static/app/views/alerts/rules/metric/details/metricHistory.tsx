@@ -114,6 +114,9 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
           value: incident.dateCreated,
           fixed: 'Mar 4, 2022 10:44:13 AM UTC',
         })}
+        year
+        seconds
+        timeZone
       />
     </ErrorBoundary>
   );

@@ -1,10 +1,9 @@
 from django.contrib.auth.models import User
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 
+from fixtures.sudo_testutils import BaseTestCase
 from sudo.signals import grant, revoke
 from sudo.utils import grant_sudo_privileges, has_sudo_privileges
-
-from .base import BaseTestCase
 
 
 class SignalsTestCase(BaseTestCase):

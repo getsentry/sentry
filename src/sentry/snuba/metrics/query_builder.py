@@ -6,10 +6,10 @@ __all__ = (
     "parse_field",
     "parse_query",
     "resolve_tags",
+    "translate_meta_results",
 )
-
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Limit, Offset, Op, Or, Query
 from snuba_sdk.conditions import BooleanCondition
@@ -32,13 +32,18 @@ from sentry.snuba.metrics.fields.base import (
     generate_bottom_up_dependency_tree_for_metrics,
     org_id_from_projects,
 )
-from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mapping import (
+    get_mri,
+    get_operation_with_public_name,
+    parse_expression,
+)
+from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import MetricField, MetricsQuery
 from sentry.snuba.metrics.query import OrderBy as MetricsOrderBy
 from sentry.snuba.metrics.query import Tag
 from sentry.snuba.metrics.utils import (
+    DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
-    FIELD_REGEX,
     OPERATIONS_PERCENTILES,
     TS_COL_GROUP,
     TS_COL_QUERY,
@@ -52,7 +57,7 @@ from sentry.utils.snuba import parse_snuba_datetime
 
 
 def parse_field(field: str) -> MetricField:
-    matches = FIELD_REGEX.match(field)
+    matches = PUBLIC_EXPRESSION_REGEX.match(field)
     try:
         if matches is None:
             raise TypeError
@@ -128,8 +133,17 @@ def resolve_tags(org_id: int, input_: Any) -> Any:
             # converts it into a tags[project]:[<slug>] query, so we want to further process
             # the lhs to get to its translation of `project_id` but we don't go further resolve
             # rhs and we just want to extract the project ids from the slugs
-            rhs = [p.id for p in Project.objects.filter(slug__in=input_.rhs)]
-            return Condition(lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=rhs)
+            rhs_slugs = [input_.rhs] if isinstance(input_.rhs, str) else input_.rhs
+
+            try:
+                op = {Op.EQ: Op.IN, Op.IN: Op.IN, Op.NEQ: Op.NOT_IN, Op.NOT_IN: Op.NOT_IN}[
+                    input_.op
+                ]
+            except KeyError:
+                raise InvalidParams(f"Unable to resolve operation {input_.op} for project filter")
+
+            rhs_ids = [p.id for p in Project.objects.filter(slug__in=rhs_slugs)]
+            return Condition(lhs=resolve_tags(org_id, input_.lhs), op=op, rhs=rhs_ids)
         return Condition(
             lhs=resolve_tags(org_id, input_.lhs), op=input_.op, rhs=resolve_tags(org_id, input_.rhs)
         )
@@ -293,6 +307,63 @@ def get_date_range(params: Mapping) -> Tuple[datetime, datetime, int]:
     # caching is enabled on the snuba queries. Removed here for simplicity,
     # but we might want to reconsider once caching becomes an issue for metrics.
     return start, end, interval
+
+
+def parse_tag(tag_string: str) -> str:
+    tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
+    return reverse_resolve(tag_key)
+
+
+def translate_meta_results(
+    meta: Sequence[Dict[str, str]], query_metric_fields: Set[str]
+) -> Sequence[Dict[str, str]]:
+    """
+    Translate meta results:
+    it makes all metrics are public and resolve tag names
+    E.g.:
+    p50(d:transactions/measurements.lcp@millisecond) -> p50(transaction.measurements.lcp)
+    tags[9223372036854776020] -> transaction
+    """
+    results = []
+    for record in meta:
+        operation, column_name = parse_expression(record["name"])
+
+        # Column name could be either a mri, ["bucketed_time"] or a tag or a dataset col like
+        # "project_id" or "metric_id"
+        is_tag = column_name.startswith("tags[")
+        is_time_col = column_name in [TS_COL_GROUP]
+        is_dataset_col = column_name in DATASET_COLUMNS
+
+        if not (is_tag or is_time_col or is_dataset_col):
+            # This handles two cases where we have an expression with an operation and an mri,
+            # or a derived metric mri that has no associated operation
+            try:
+                record["name"] = get_operation_with_public_name(operation, column_name)
+                if record["name"] not in query_metric_fields:
+                    raise InvalidParams(f"Field {record['name']} was not in the select clause")
+            except InvalidParams:
+                # XXX(ahmed): We get into this branch when we are tying to generate inferred types
+                # for instances of `CompositeEntityDerivedMetric` as type needs to be inferred from
+                # its constituent instances of `SingularEntityDerivedMetric`, and we decide to skip
+                # trying to infer this type for the time being as there is no product requirement
+                # for it. However, if a product requirement arises for this, then we need to
+                # implement type inference logic that potentially infers types from the
+                # arithmetic operations applied on the constituent
+                # For example, If we have two constituents of types "UInt64" and "Float64",
+                # then there inferred type would be "Float64"
+                continue
+        else:
+            if is_tag:
+                record["name"] = parse_tag(record["name"])
+                # since we changed value from int to str we need
+                # also want to change type
+                record["type"] = "string"
+            elif is_time_col or is_dataset_col:
+                record["name"] = column_name
+
+        if record not in results:
+            results.append(record)
+    return sorted(results, key=lambda elem: elem["name"])
 
 
 class SnubaQueryBuilder:
@@ -529,10 +600,6 @@ class SnubaResultConverter:
 
         self._timestamp_index = {timestamp: index for index, timestamp in enumerate(intervals)}
 
-    def _parse_tag(self, tag_string: str) -> str:
-        tag_key = int(tag_string.replace("tags[", "").replace("]", ""))
-        return reverse_resolve(tag_key)
-
     def _extract_data(self, data, groups):
         tags = tuple(
             (key, data[key])
@@ -586,9 +653,9 @@ class SnubaResultConverter:
                         if series[series_index] == default_null_value:
                             series[series_index] = cleaned_value
 
-    def translate_results(self):
+    def translate_result_groups(self):
         groups = {}
-        for entity, subresults in self._results.items():
+        for _, subresults in self._results.items():
             for k in "totals", "series":
                 if k in subresults:
                     for data in subresults[k]["data"]:
@@ -597,7 +664,7 @@ class SnubaResultConverter:
         groups = [
             dict(
                 by=dict(
-                    (self._parse_tag(key), reverse_resolve_weak(value))
+                    (parse_tag(key), reverse_resolve_weak(value))
                     if key not in FIELD_ALIAS_MAPPINGS.values()
                     else (key, value)
                     for key, value in tags
@@ -641,25 +708,14 @@ class SnubaResultConverter:
             series = group.get("series")
 
             for key in set(totals or ()) | set(series or ()):
-                matches = FIELD_REGEX.match(key)
-                if matches:
-                    operation = matches[1]
-                    metric_mri = matches[2]
-                else:
-                    operation = None
-                    metric_mri = key
-
+                operation, metric_mri = parse_expression(key)
                 if (operation, metric_mri) not in self._metrics_query_fields_set:
                     if totals is not None:
                         del totals[key]
                     if series is not None:
                         del series[key]
                 else:
-                    public_metric_key = (
-                        f"{get_public_name_from_mri(metric_mri)}"
-                        if operation is None
-                        else f"{operation}({get_public_name_from_mri(metric_mri)})"
-                    )
+                    public_metric_key = get_operation_with_public_name(operation, metric_mri)
                     if totals is not None:
                         totals[public_metric_key] = totals.pop(key)
                     if series is not None:

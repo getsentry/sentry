@@ -21,7 +21,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.utils import parse_datetime_string, parse_duration, parse_numeric_value
 from sentry.utils import json
 
-fixture_path = "tests/fixtures/search-syntax"
+fixture_path = "fixtures/search-syntax"
 abs_fixtures_path = os.path.join(MODULE_ROOT, os.pardir, os.pardir, fixture_path)
 
 
@@ -174,7 +174,7 @@ class ParseSearchQueryTest(SimpleTestCase):
             expect_error = True
 
         if expect_error:
-            with self.assertRaises(InvalidSearchQuery, msg=failure_help):
+            with pytest.raises(InvalidSearchQuery):
                 parse_search_query(query)
             return
 
@@ -353,7 +353,7 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
         ]
 
         # malformed key
-        with self.assertRaises(InvalidSearchQuery):
+        with pytest.raises(InvalidSearchQuery):
             parse_search_query('has:"hi there"')
 
     def test_not_has_tag(self):
@@ -384,6 +384,26 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
         ]
 
+    def test_blocked_keys(self):
+        config = SearchConfig(blocked_keys=["bad_key"])
+
+        assert parse_search_query("some_key:123 bad_key:123 text") == [
+            SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(key=SearchKey(name="bad_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+        ]
+
+        with pytest.raises(InvalidSearchQuery, match="Invalid key for this search: bad_key"):
+            assert parse_search_query("some_key:123 bad_key:123 text", config=config)
+
+        assert parse_search_query("some_key:123 some_other_key:456 text", config=config) == [
+            SearchFilter(key=SearchKey(name="some_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(
+                key=SearchKey(name="some_other_key"), operator="=", value=SearchValue("456")
+            ),
+            SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+        ]
+
     def test_invalid_aggregate_column_with_duration_filter(self):
         with self.assertRaisesMessage(
             InvalidSearchQuery,
@@ -403,8 +423,8 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             parse_search_query("count_if(measurements.fcp, greater, 5s):3s")
 
     def test_is_query_unsupported(self):
-        with self.assertRaisesRegex(
-            InvalidSearchQuery, ".*queries are not supported in this search.*"
+        with pytest.raises(
+            InvalidSearchQuery, match=".*queries are not supported in this search.*"
         ):
             parse_search_query("is:unassigned")
 

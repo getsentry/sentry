@@ -1,9 +1,8 @@
 import abc
+from typing import Any
 
 from django.db import router
 from django.db.models import QuerySet
-
-from sentry.utils.types import Any
 
 
 class BaseQuerySet(QuerySet, abc.ABC):  # type: ignore

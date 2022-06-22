@@ -7,7 +7,6 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
-import overflowEllipsis from 'sentry/styles/overflowEllipsis';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
@@ -130,7 +129,7 @@ const Version = ({
     }
 
     return css`
-      @media (min-width: ${theme.breakpoints[0]}) {
+      @media (min-width: ${theme.breakpoints.small}) {
         max-width: 500px;
       }
     `;
@@ -151,7 +150,7 @@ const Version = ({
 
 // TODO(matej): try to wrap version with this when truncate prop is true (in separate PR)
 // const VersionWrapper = styled('div')`
-//   ${overflowEllipsis};
+//   ${p => p.theme.overflowEllipsis};
 //   max-width: 100%;
 //   width: auto;
 //   display: inline-block;
@@ -174,7 +173,7 @@ const TooltipContent = styled('span')`
 `;
 
 const TooltipVersionWrapper = styled('span')`
-  ${overflowEllipsis}
+  ${p => p.theme.overflowEllipsis}
 `;
 
 const TooltipClipboardIconWrapper = styled('span')`

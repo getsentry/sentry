@@ -17,7 +17,6 @@ function padZero(num: number, len = 2): string {
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
-const TIME_FORMAT = 'HH:mm:ss';
 
 /**
  * @param timestamp The timestamp that is our reference point. Can be anything that `moment` accepts such as `'2022-05-04T19:47:52.915000Z'` or `1651664872.915`
@@ -25,18 +24,16 @@ const TIME_FORMAT = 'HH:mm:ss';
  * @returns Unix timestamp of the adjusted timestamp, in milliseconds
  */
 export function relativeTimeInMs(timestamp: moment.MomentInput, diffMs: number): number {
-  return moment(timestamp)
-    .diff(diffMs * 1000)
-    .valueOf();
+  return moment(timestamp).diff(moment.unix(diffMs)).valueOf();
 }
 
 export function showPlayerTime(timestamp: string, relativeTime: number): string {
-  return moment(relativeTimeInMs(timestamp, relativeTime)).format(TIME_FORMAT);
+  return formatTime(relativeTimeInMs(timestamp, relativeTime));
 }
 
 // TODO: move into 'sentry/utils/formatters'
 export function formatTime(ms: number): string {
-  if (ms <= 0) {
+  if (ms <= 0 || isNaN(ms)) {
     return '0:00';
   }
   const hour = Math.floor(ms / HOUR);
@@ -45,9 +42,9 @@ export function formatTime(ms: number): string {
   ms = ms % MINUTE;
   const second = Math.floor(ms / SECOND);
   if (hour) {
-    return `${hour}:${padZero(minute)}:${padZero(second)}`;
+    return `${padZero(hour)}:${padZero(minute)}:${padZero(second)}`;
   }
-  return `${minute}:${padZero(second)}`;
+  return `${padZero(minute)}:${padZero(second)}`;
 }
 
 /**

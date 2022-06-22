@@ -2,28 +2,21 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Link from 'sentry/components/links/link';
 import PanelTable, {
   PanelTableHeader,
   PanelTableProps,
 } from 'sentry/components/panels/panelTable';
 import Tooltip from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView, {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {
-  eventDetailsRouteWithEventView,
-  generateEventSlug,
-} from 'sentry/utils/discover/urls';
 import withOrganization from 'sentry/utils/withOrganization';
 import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 type Props = {
   eventView: EventView;
@@ -38,7 +31,8 @@ type Props = {
   fieldHeaderMap?: Record<string, string>;
   getCustomFieldRenderer?: (
     field: string,
-    meta: MetaType
+    meta: MetaType,
+    organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   loader?: PanelTableProps['loader'];
   metadata?: TableData['meta'];
@@ -71,50 +65,15 @@ function SimpleTableChart({
   ) {
     return columns.map((column, columnIndex) => {
       const fieldRenderer =
-        getCustomFieldRenderer?.(column.key, tableMeta) ??
+        getCustomFieldRenderer?.(column.key, tableMeta, organization) ??
         getFieldRenderer(column.key, tableMeta);
-      let rendered = fieldRenderer(row, {organization, location});
-      if (column.key === 'id') {
-        const eventSlug = generateEventSlug(row);
 
-        const target = eventDetailsRouteWithEventView({
-          orgSlug: organization.slug,
-          eventSlug,
-          eventView,
-        });
-
-        rendered = (
-          <Tooltip title={t('View Event')}>
-            <Link data-test-id="view-event" to={target}>
-              {rendered}
-            </Link>
-          </Tooltip>
-        );
-      } else if (column.key === 'trace') {
-        const dateSelection = eventView.normalizeDateSelection(location);
-        if (row.trace) {
-          const target = getTraceDetailsUrl(
-            organization,
-            String(row.trace),
-            dateSelection,
-            {}
-          );
-
-          rendered = (
-            <Tooltip title={t('View Trace')}>
-              <Link data-test-id="view-trace" to={target}>
-                {rendered}
-              </Link>
-            </Tooltip>
-          );
-        }
-      }
       return (
         <TableCell key={`${index}-${columnIndex}:${column.name}`}>
           {topResultsIndicators && columnIndex === 0 && (
             <TopResultsIndicator count={topResultsIndicators} index={index} />
           )}
-          {rendered}
+          {fieldRenderer(row, {organization, location, eventView})}
         </TableCell>
       );
     });

@@ -207,8 +207,29 @@ export const InnerWrap = styled('div', {
   ${p =>
     p.isFocused &&
     `
-      background: ${getFocusBackground(p)};
       z-index: 1;
+
+      ::before, ::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      /* Background to hide the previous item's divider */
+      ::before {
+        background: ${p.theme.background};
+        z-index: -1;
+      }
+
+      /* Hover/focus background */
+      ::after {
+        background: ${getFocusBackground(p)};
+        border-radius: inherit;
+        z-index: -1;
+      }
     `}
 `;
 
@@ -224,7 +245,7 @@ const ContentWrap = styled('div')<{isFocused: boolean; showDivider: boolean}>`
     p.showDivider &&
     !p.isFocused &&
     `
-      &::after {
+      ${MenuItemWrap}:not(:last-child) &::after {
         content: '';
         position: absolute;
         left: 0;
@@ -257,7 +278,6 @@ const Label = styled('p')`
   margin-bottom: 0;
   line-height: 1.4;
   white-space: nowrap;
-  ${overflowEllipsis}
 `;
 
 const Details = styled('p')<{isDisabled: boolean; priority: Priority}>`

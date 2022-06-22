@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import petname
 from django.conf import settings
-from django.db import models
+from django.db import models, transaction
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -19,7 +19,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.tasks.relay import schedule_update_config_cache
+from sentry.tasks.relay import schedule_invalidate_project_config
 
 _uuid4_re = re.compile(r"^[a-f0-9]{32}$")
 
@@ -33,13 +33,29 @@ class ProjectKeyStatus:
 
 class ProjectKeyManager(BaseManager):
     def post_save(self, instance, **kwargs):
-        schedule_update_config_cache(
-            public_key=instance.public_key, generate=True, update_reason="projectkey.post_save"
+        # this hook may be called from model hooks during an
+        # open transaction. In that case, wait until the current transaction has
+        # been committed or rolled back to ensure we don't read stale data in the
+        # task.
+        #
+        # If there is no transaction open, on_commit should run immediately.
+        transaction.on_commit(
+            lambda: schedule_invalidate_project_config(
+                public_key=instance.public_key, trigger="projectkey.post_save"
+            )
         )
 
     def post_delete(self, instance, **kwargs):
-        schedule_update_config_cache(
-            public_key=instance.public_key, generate=True, update_reason="projectkey.post_delete"
+        # this hook may be called from model hooks during an
+        # open transaction. In that case, wait until the current transaction has
+        # been committed or rolled back to ensure we don't read stale data in the
+        # task.
+        #
+        # If there is no transaction open, on_commit should run immediately.
+        transaction.on_commit(
+            lambda: schedule_invalidate_project_config(
+                public_key=instance.public_key, trigger="projectkey.post_delete"
+            )
         )
 
 

@@ -357,6 +357,7 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
+              memoryLimit: 3072,
             },
             devServer: false,
           }),
@@ -451,7 +452,7 @@ const appConfig: Configuration = {
 if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
-    'tests/fixtures/integration-docs/_platforms.json'
+    'fixtures/integration-docs/_platforms.json'
   );
 } else {
   const plugin = new IntegrationDocsFetchPlugin({basePath: __dirname});

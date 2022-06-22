@@ -1,9 +1,6 @@
-import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
-import SettingsBreadcrumbStore from 'sentry/stores/settingsBreadcrumbStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import Crumb from 'sentry/views/settings/components/settingsBreadcrumb/crumb';
@@ -12,6 +9,7 @@ import OrganizationCrumb from 'sentry/views/settings/components/settingsBreadcru
 import ProjectCrumb from 'sentry/views/settings/components/settingsBreadcrumb/projectCrumb';
 import TeamCrumb from 'sentry/views/settings/components/settingsBreadcrumb/teamCrumb';
 
+import {useBreadcrumbsPathmap} from './context';
 import {RouteWithName} from './types';
 
 const MENUS = {
@@ -28,11 +26,7 @@ type Props = {
 };
 
 function SettingsBreadcrumb({className, routes, params}: Props) {
-  const {pathMap} = useLegacyStore(SettingsBreadcrumbStore);
-
-  useEffect(() => {
-    SettingsBreadcrumbStore.trimMappings(routes);
-  }, [routes]);
+  const pathMap = useBreadcrumbsPathmap();
 
   const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
 
@@ -47,7 +41,8 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
         const createMenu = MENUS[route.name];
         const Menu = typeof createMenu === 'function' && createMenu;
         const hasMenu = !!Menu;
-        const CrumbPicker = hasMenu
+
+        const CrumbItem = hasMenu
           ? Menu
           : () => (
               <Crumb>
@@ -59,7 +54,7 @@ function SettingsBreadcrumb({className, routes, params}: Props) {
             );
 
         return (
-          <CrumbPicker
+          <CrumbItem
             key={`${route.name}:${route.path}`}
             routes={routes}
             params={params}

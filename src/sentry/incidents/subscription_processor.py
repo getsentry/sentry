@@ -34,7 +34,6 @@ from sentry.snuba.entity_subscription import BaseMetricsEntitySubscription
 from sentry.snuba.models import QueryDatasets
 from sentry.snuba.tasks import build_snuba_filter, get_entity_subscription_for_dataset
 from sentry.utils import metrics, redis
-from sentry.utils.compat import zip
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import raw_query
 
@@ -263,6 +262,25 @@ class SubscriptionProcessor:
         return aggregation_value
 
     def get_crash_rate_alert_metrics_aggregation_value(self, subscription_update):
+        """Handle both update formats. Once all subscriptions have been updated
+        to v2, we can remove v1 and replace this function with current v2.
+        """
+        rows = subscription_update["values"]["data"]
+        if BaseMetricsEntitySubscription.is_crash_rate_format_v2(rows):
+            version = "v2"
+            result = self._get_crash_rate_alert_metrics_aggregation_value_v2(subscription_update)
+        else:
+            version = "v1"
+            result = self._get_crash_rate_alert_metrics_aggregation_value_v1(subscription_update)
+
+        metrics.incr(
+            "incidents.alert_rules.get_crash_rate_alert_metrics_aggregation_value",
+            tags={"format": version},
+            sample_rate=1.0,
+        )
+        return result
+
+    def _get_crash_rate_alert_metrics_aggregation_value_v1(self, subscription_update):
         """
         Handles validation and extraction of Crash Rate Alerts subscription updates values over
         metrics dataset.
@@ -292,6 +310,42 @@ class SubscriptionProcessor:
             data=subscription_update["values"]["data"],
             org_id=self.subscription.project.organization.id,
         )
+
+        if total_session_count == 0:
+            self.reset_trigger_counts()
+            metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
+            return
+
+        if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
+            min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
+            if total_session_count < min_threshold:
+                self.reset_trigger_counts()
+                metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
+                return
+
+        aggregation_value = round((1 - crash_count / total_session_count) * 100, 3)
+
+        return aggregation_value
+
+    def _get_crash_rate_alert_metrics_aggregation_value_v2(self, subscription_update):
+        """
+        Handles validation and extraction of Crash Rate Alerts subscription updates values over
+        metrics dataset.
+        The subscription update looks like
+        [
+            {'project_id': 8, 'tags[5]': 6, 'count': 2.0, 'crashed': 1.0}
+        ]
+        - `count` represents sessions or users sessions that were started, hence to get the crash
+        free percentage, we would need to divide number of crashed sessions by that number,
+        and subtract that value from 1. This is also used when CRASH_RATE_ALERT_MINIMUM_THRESHOLD is
+        set in the sense that if the minimum threshold is greater than the session count,
+        then the update is dropped. If the minimum threshold is not set then the total sessions
+        count is just ignored
+        - `crashed` represents the total sessions or user counts that crashed.
+        """
+        row = subscription_update["values"]["data"][0]
+        total_session_count = row["count"]
+        crash_count = row["crashed"]
 
         if total_session_count == 0:
             self.reset_trigger_counts()

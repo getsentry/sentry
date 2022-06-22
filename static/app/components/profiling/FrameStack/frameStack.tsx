@@ -1,13 +1,15 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {vec2} from 'gl-matrix';
 
 import Button from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {useFlamegraphProfilesValue} from 'sentry/utils/profiling/flamegraph/useFlamegraphProfiles';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
+import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {useVerticallyResizableDrawer} from 'sentry/utils/profiling/hooks/useResizableDrawer';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
 
@@ -18,95 +20,144 @@ interface FrameStackProps {
   flamegraphRenderer: FlamegraphRenderer;
 }
 
-const MIN_DRAWER_HEIGHT_PX = 30;
-
 function FrameStack(props: FrameStackProps) {
   const theme = useFlamegraphTheme();
   const {selectedNode} = useFlamegraphProfilesValue();
 
   const [tab, setTab] = useState<'bottom up' | 'call order'>('call order');
-  const [drawerHeight, setDrawerHeight] = useState(
-    (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT
-  );
+  const [treeType, setTreeType] = useState<'all' | 'application' | 'system'>('all');
+  const [recursion, setRecursion] = useState<'collapsed' | null>(null);
 
-  const roots = useMemo(() => {
+  const roots: FlamegraphFrame[] | null = useMemo(() => {
     if (!selectedNode) {
       return null;
     }
 
+    const skipFunction: (f: FlamegraphFrame) => boolean =
+      treeType === 'application'
+        ? f => !f.frame.is_application
+        : treeType === 'system'
+        ? f => f.frame.is_application
+        : () => false;
+
+    const maybeFilteredRoots =
+      treeType !== 'all'
+        ? filterFlamegraphTree([selectedNode], skipFunction)
+        : [selectedNode];
+
     if (tab === 'call order') {
-      return [selectedNode];
+      return maybeFilteredRoots;
     }
 
-    return invertCallTree([selectedNode]);
-  }, [selectedNode, tab]);
+    return invertCallTree(maybeFilteredRoots);
+  }, [selectedNode, tab, treeType]);
 
-  const onMouseDown = useCallback((evt: React.MouseEvent<HTMLElement>) => {
-    let startResizeVector = vec2.fromValues(evt.clientX, evt.clientY);
-    let rafId: number | undefined;
+  const handleRecursionChange = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      setRecursion(evt.currentTarget.checked ? 'collapsed' : null);
+    },
+    []
+  );
 
-    function handleMouseMove(mvEvent: MouseEvent) {
-      if (rafId !== undefined) {
-        window.cancelAnimationFrame(rafId);
-        rafId = undefined;
-      }
-
-      window.requestAnimationFrame(() => {
-        const currentPositionVector = vec2.fromValues(mvEvent.clientX, mvEvent.clientY);
-
-        const distance = vec2.subtract(
-          vec2.fromValues(0, 0),
-          startResizeVector,
-          currentPositionVector
-        );
-
-        startResizeVector = currentPositionVector;
-
-        setDrawerHeight(h => Math.max(MIN_DRAWER_HEIGHT_PX, h + distance[1]));
-        rafId = undefined;
-      });
-    }
-
-    function handleMouseUp() {
-      document.removeEventListener('mousemove', handleMouseMove);
-    }
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-
-      if (rafId !== undefined) {
-        window.cancelAnimationFrame(rafId);
-      }
-    };
+  const onBottomUpClick = useCallback(() => {
+    setTab('bottom up');
   }, []);
+
+  const onCallOrderClick = useCallback(() => {
+    setTab('call order');
+  }, []);
+
+  const onAllApplicationsClick = useCallback(() => {
+    setTreeType('all');
+  }, []);
+
+  const onApplicationsClick = useCallback(() => {
+    setTreeType('application');
+  }, []);
+
+  const onSystemsClick = useCallback(() => {
+    setTreeType('system');
+  }, []);
+
+  const {height, onMouseDown} = useVerticallyResizableDrawer({
+    initialHeight: (theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET + 2) * theme.SIZES.BAR_HEIGHT,
+    minHeight: 30,
+  });
 
   return selectedNode ? (
     <FrameDrawer
       style={{
-        height: drawerHeight,
+        height,
       }}
     >
       <FrameTabs>
         <li className={tab === 'bottom up' ? 'active' : undefined}>
-          <Button priority="link" size="zero" onClick={() => setTab('bottom up')}>
+          <Button
+            data-title={t('Bottom Up')}
+            priority="link"
+            size="zero"
+            onClick={onBottomUpClick}
+          >
             {t('Bottom Up')}
           </Button>
         </li>
-        <li
-          onClick={() => setTab('call order')}
-          className={tab === 'call order' ? 'active' : undefined}
-        >
-          <Button priority="link" size="zero">
+        <li className={tab === 'call order' ? 'active' : undefined}>
+          <Button
+            data-title={t('Call Order')}
+            priority="link"
+            size="zero"
+            onClick={onCallOrderClick}
+          >
             {t('Call Order')}
           </Button>
+        </li>
+        <Separator />
+        <li className={treeType === 'all' ? 'active' : undefined}>
+          <Button
+            data-title={t('All Frames')}
+            priority="link"
+            size="zero"
+            onClick={onAllApplicationsClick}
+          >
+            {t('All Frames')}
+          </Button>
+        </li>
+        <li className={treeType === 'application' ? 'active' : undefined}>
+          <Button
+            data-title={t('Application Frames')}
+            priority="link"
+            size="zero"
+            onClick={onApplicationsClick}
+          >
+            {t('Application Frames')}
+          </Button>
+        </li>
+        <li className={treeType === 'system' ? 'active' : undefined}>
+          <Button
+            data-title={t('System Frames')}
+            priority="link"
+            size="zero"
+            onClick={onSystemsClick}
+          >
+            {t('System Frames')}
+          </Button>
+        </li>
+        <Separator />
+        <li>
+          <FrameDrawerLabel>
+            <input
+              type="checkbox"
+              checked={recursion === 'collapsed'}
+              onChange={handleRecursionChange}
+            />
+            {t('Collapse recursion')}
+          </FrameDrawerLabel>
         </li>
         <li style={{flex: '1 1 100%', cursor: 'ns-resize'}} onMouseDown={onMouseDown} />
       </FrameTabs>
       <FrameStackTable
         {...props}
+        recursion={recursion}
         roots={roots ?? []}
         referenceNode={selectedNode}
         canvasPoolManager={props.canvasPoolManager}
@@ -115,10 +166,31 @@ function FrameStack(props: FrameStackProps) {
   ) : null;
 }
 
+const FrameDrawerLabel = styled('label')`
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  margin-bottom: 0;
+  height: 100%;
+  font-weight: normal;
+
+  > input {
+    margin: 0 ${space(0.5)} 0 0;
+  }
+`;
+
 const FrameDrawer = styled('div')`
   display: flex;
   flex-shrink: 0;
   flex-direction: column;
+`;
+
+const Separator = styled('li')`
+  width: 1px;
+  height: 66%;
+  margin: 0 ${space(0.5)};
+  background: ${p => p.theme.border};
+  transform: translateY(29%);
 `;
 
 const FrameTabs = styled('ul')`
@@ -132,7 +204,6 @@ const FrameTabs = styled('ul')`
 
   > li {
     font-size: ${p => p.theme.fontSizeSmall};
-    font-weight: bold;
     margin-right: ${space(1)};
 
     button {
@@ -144,12 +215,24 @@ const FrameTabs = styled('ul')`
       padding: ${space(0.5)} 0;
       color: ${p => p.theme.textColor};
 
+      &::after {
+        display: block;
+        content: attr(data-title);
+        font-weight: bold;
+        height: 1px;
+        color: transparent;
+        overflow: hidden;
+        visibility: hidden;
+        white-space: nowrap;
+      }
+
       &:hover {
         color: ${p => p.theme.textColor};
       }
     }
 
     &.active button {
+      font-weight: bold;
       border-bottom: 2px solid ${prop => prop.theme.active};
     }
   }
@@ -157,6 +240,7 @@ const FrameTabs = styled('ul')`
 
 const FRAME_WEIGHT_CELL_WIDTH_PX = 164;
 export const FrameCallersTableCell = styled('div')<{
+  isSelected?: boolean;
   noPadding?: boolean;
   textAlign?: React.CSSProperties['textAlign'];
 }>`
@@ -166,6 +250,20 @@ export const FrameCallersTableCell = styled('div')<{
   flex-shrink: 0;
   padding: 0 ${p => (p.noPadding ? 0 : space(1))} 0 0;
   text-align: ${p => p.textAlign ?? 'initial'};
+
+  &:first-child,
+  &:nth-child(2) {
+    position: sticky;
+    z-index: 1;
+    background-color: ${p => (p.isSelected ? p.theme.blue300 : p.theme.background)};
+  }
+
+  &:first-child {
+    left: 0;
+  }
+  &:nth-child(2) {
+    left: ${FRAME_WEIGHT_CELL_WIDTH_PX}px;
+  }
 
   &:not(:last-child) {
     border-right: 1px solid ${p => p.theme.border};

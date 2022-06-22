@@ -15,12 +15,15 @@ function ReplayCurrentUrl() {
     return <UrlCopyInput disabled>{''}</UrlCopyInput>;
   }
 
-  return <UrlCopyInput>{getCurrentUrl(replay, currentTime)}</UrlCopyInput>;
+  const event = replay.getEvent();
+  const crumbs = replay.getRawCrumbs();
+
+  return <UrlCopyInput>{getCurrentUrl(event, crumbs, currentTime)}</UrlCopyInput>;
 }
 
 const UrlCopyInput = styled(TextCopyInput)`
   ${StyledInput} {
-    background: ${p => p.theme.white};
+    background: ${p => p.theme.background};
     border: none;
     padding: 0 ${space(0.75)};
     font-size: ${p => p.theme.fontSizeMedium};

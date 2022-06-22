@@ -3,7 +3,6 @@ import logging
 import time
 from collections import defaultdict, deque
 from concurrent.futures import Future
-from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
 from typing import (
@@ -35,6 +34,7 @@ from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -157,6 +157,8 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         self.__next_step = next_step
         self.__batch: Optional[MetricsBatchBuilder] = None
         self.__closed = False
+        self.__batch_start: Optional[float] = None
+        self.__metrics = get_metrics()
 
     def poll(self) -> None:
         assert not self.__closed
@@ -174,6 +176,7 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
 
     def submit(self, message: Message[KafkaPayload]) -> None:
         if self.__batch is None:
+            self.__batch_start = time.time()
             self.__batch = MetricsBatchBuilder(self.__max_batch_size, self.__max_batch_time)
 
         try:
@@ -196,6 +199,10 @@ class BatchMessages(ProcessingStep[KafkaPayload]):  # type: ignore
         last = self.__batch.messages[-1]
 
         new_message = Message(last.partition, last.offset, self.__batch.messages, last.timestamp)
+        if self.__batch_start is not None:
+            elapsed_time = time.time() - self.__batch_start
+            self.__metrics.timing("batch_messages.build_time", elapsed_time)
+            self.__batch_start = None
 
         self.__next_step.submit(new_message)
         self.__batch = None
@@ -240,17 +247,18 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
 
     def __init__(
         self,
+        output_topic: str,
         commit_function: Callable[[Mapping[Partition, Position]], None],
         producer: Optional[AbstractProducer] = None,
     ) -> None:
         if not producer:
-            snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
+            snuba_metrics = settings.KAFKA_TOPICS[output_topic]
             snuba_metrics_producer = KafkaProducer(
                 kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
             )
             producer = snuba_metrics_producer
         self.__producer = producer
-        self.__producer_topic = settings.KAFKA_SNUBA_METRICS
+        self.__producer_topic = output_topic
         self.__commit_function = commit_function
 
         self.__futures: Deque[ProducerResultFuture] = deque()
@@ -358,7 +366,13 @@ def invalid_metric_tags(tags: Mapping[str, str]) -> Sequence[str]:
     return invalid_strs
 
 
+class PartitionIdxOffset(NamedTuple):
+    partition_idx: int
+    offset: int
+
+
 def process_messages(
+    use_case_id: UseCaseKey,
     outer_message: Message[MessageBatch],
 ) -> MessageBatch:
     """
@@ -384,15 +398,16 @@ def process_messages(
 
     org_strings = defaultdict(set)
     strings = set()
-    skipped_offsets = set()
+    skipped_offsets: Set[PartitionIdxOffset] = set()
     with metrics.timer("process_messages.parse_outer_message"):
-        parsed_payloads_by_offset: MutableMapping[int, json.JSONData] = {}
+        parsed_payloads_by_offset: MutableMapping[PartitionIdxOffset, json.JSONData] = {}
         for msg in outer_message.payload:
+            partition_offset = PartitionIdxOffset(msg.partition.index, msg.offset)
             try:
                 parsed_payload = json.loads(msg.payload.value.decode("utf-8"), use_rapid_json=True)
-                parsed_payloads_by_offset[msg.offset] = parsed_payload
+                parsed_payloads_by_offset[partition_offset] = parsed_payload
             except rapidjson.JSONDecodeError:
-                skipped_offsets.add(msg.offset)
+                skipped_offsets.add(partition_offset)
                 logger.error(
                     "process_messages.invalid_json",
                     extra={"payload_value": str(msg.payload.value)},
@@ -400,7 +415,8 @@ def process_messages(
                 )
                 continue
 
-        for offset, message in parsed_payloads_by_offset.items():
+        for partition_offset, message in parsed_payloads_by_offset.items():
+            partition_idx, offset = partition_offset
             metric_name = message["name"]
             metric_type = message["type"]
             org_id = message["org_id"]
@@ -409,9 +425,14 @@ def process_messages(
             if not valid_metric_name(metric_name):
                 logger.error(
                     "process_messages.invalid_metric_name",
-                    extra={"org_id": org_id, "metric_name": metric_name, "offset": offset},
+                    extra={
+                        "org_id": org_id,
+                        "metric_name": metric_name,
+                        "partition": partition_idx,
+                        "offset": offset,
+                    },
                 )
-                skipped_offsets.add(offset)
+                skipped_offsets.add(partition_offset)
                 continue
 
             if metric_type not in ACCEPTED_METRIC_TYPES:
@@ -433,10 +454,11 @@ def process_messages(
                         "org_id": org_id,
                         "metric_name": metric_name,
                         "invalid_tags": invalid_strs,
+                        "partition": partition_idx,
                         "offset": offset,
                     },
                 )
-                skipped_offsets.add(offset)
+                skipped_offsets.add(partition_offset)
                 continue
 
             parsed_strings = {
@@ -454,7 +476,7 @@ def process_messages(
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
-        record_result = indexer.bulk_record(org_strings)
+        record_result = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
 
     mapping = record_result.get_mapped_results()
     bulk_record_meta = record_result.get_fetch_metadata()
@@ -464,24 +486,26 @@ def process_messages(
     with metrics.timer("process_messages.reconstruct_messages"):
         for message in outer_message.payload:
             used_tags: Set[str] = set()
-            output_message_meta: Mapping[str, MutableMapping[int, str]] = defaultdict(dict)
-
-            if message.offset in skipped_offsets:
-                logger.info("process_message.offset_skipped", extra={"offset": message.offset})
+            output_message_meta: Mapping[str, MutableMapping[str, str]] = defaultdict(dict)
+            partition_offset = PartitionIdxOffset(message.partition.index, message.offset)
+            if partition_offset in skipped_offsets:
+                logger.info(
+                    "process_message.offset_skipped",
+                    extra={"offset": message.offset, "partition": message.partition.index},
+                )
                 continue
-            parsed_payload_value = parsed_payloads_by_offset[message.offset]
-            new_payload_value = deepcopy(parsed_payload_value)
+            new_payload_value = parsed_payloads_by_offset.pop(partition_offset)
 
-            metric_name = parsed_payload_value["name"]
-            org_id = parsed_payload_value["org_id"]
-            tags = parsed_payload_value.get("tags", {})
+            metric_name = new_payload_value["name"]
+            org_id = new_payload_value["org_id"]
+            tags = new_payload_value.get("tags", {})
             used_tags.add(metric_name)
 
-            new_tags: MutableMapping[int, int] = {}
+            new_tags: MutableMapping[str, int] = {}
             try:
                 for k, v in tags.items():
                     used_tags.update({k, v})
-                    new_tags[mapping[org_id][k]] = mapping[org_id][v]
+                    new_tags[str(mapping[org_id][k])] = mapping[org_id][v]
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
                 continue
@@ -491,7 +515,7 @@ def process_messages(
                 if tag in bulk_record_meta:
                     int_id, fetch_type = bulk_record_meta.get(tag)
                     fetch_types_encountered.add(fetch_type)
-                    output_message_meta[fetch_type.value][int_id] = tag
+                    output_message_meta[fetch_type.value][str(int_id)] = tag
 
             mapping_header_content = bytes(
                 "".join([t.value for t in fetch_types_encountered]), "utf-8"
@@ -505,7 +529,7 @@ def process_messages(
 
             new_payload = KafkaPayload(
                 key=message.payload.key,
-                value=json.dumps(new_payload_value).encode(),
+                value=rapidjson.dumps(new_payload_value).encode(),
                 headers=[
                     *message.payload.headers,
                     ("mapping_sources", mapping_header_content),
@@ -533,7 +557,9 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         processes: int,
         input_block_size: int,
         output_block_size: int,
+        config: MetricsIngestConfiguration,
     ):
+        self.__config = config
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
 
@@ -546,8 +572,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
-            process_messages,
-            ProduceStep(commit),
+            partial(process_messages, self.__config.use_case_id),
+            ProduceStep(output_topic=self.__config.output_topic, commit_function=commit),
             self.__processes,
             max_batch_size=self.__max_batch_size,
             max_batch_time=self.__max_batch_time,
@@ -572,22 +598,26 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         max_batch_time: float,
         commit_max_batch_size: int,
         commit_max_batch_time: int,
+        config: MetricsIngestConfiguration,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
         self.__commit_max_batch_time = commit_max_batch_time
         self.__commit_max_batch_size = commit_max_batch_size
+        self.__config = config
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
         transform_step = TransformStep(
             next_step=SimpleProduceStep(
-                commit,
+                commit_function=commit,
                 commit_max_batch_size=self.__commit_max_batch_size,
                 # convert to seconds
                 commit_max_batch_time=self.__commit_max_batch_time / 1000,
-            )
+                output_topic=self.__config.output_topic,
+            ),
+            config=self.__config,
         )
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
         return strategy
@@ -599,10 +629,11 @@ class TransformStep(ProcessingStep[MessageBatch]):  # type: ignore
     """
 
     def __init__(
-        self,
-        next_step: ProcessingStep[KafkaPayload],
+        self, next_step: ProcessingStep[KafkaPayload], config: MetricsIngestConfiguration
     ) -> None:
-        self.__process_messages = process_messages
+        self.__process_messages: Callable[[Message[MessageBatch]], MessageBatch] = partial(
+            process_messages, config.use_case_id
+        )
         self.__next_step = next_step
         self.__closed = False
         self.__metrics = get_metrics()
@@ -650,11 +681,12 @@ class PartitionOffset:
 class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
     def __init__(
         self,
+        output_topic: str,
         commit_function: Callable[[Mapping[Partition, Position]], None],
         commit_max_batch_size: int,
         commit_max_batch_time: float,
     ) -> None:
-        snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
+        snuba_metrics = settings.KAFKA_TOPICS[output_topic]
         snuba_metrics_producer = Producer(
             kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
         )
@@ -777,6 +809,7 @@ def get_streaming_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     factory_name: str,
+    indexer_profile: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
     if factory_name == "multiprocess":
@@ -786,6 +819,7 @@ def get_streaming_metrics_consumer(
             processes=processes,
             input_block_size=input_block_size,
             output_block_size=output_block_size,
+            config=indexer_profile,
         )
     else:
         assert factory_name == "default"
@@ -794,13 +828,14 @@ def get_streaming_metrics_consumer(
             max_batch_time=max_batch_time,
             commit_max_batch_size=commit_max_batch_size,
             commit_max_batch_time=commit_max_batch_time,
+            config=indexer_profile,
         )
 
-    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
-    create_topics(cluster_name, [topic])
+    cluster_name: str = settings.KAFKA_TOPICS[indexer_profile.input_topic]["cluster"]
+    create_topics(cluster_name, [indexer_profile.input_topic])
 
     return StreamProcessor(
-        KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
-        Topic(topic),
+        KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
+        Topic(indexer_profile.input_topic),
         processing_factory,
     )

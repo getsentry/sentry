@@ -518,6 +518,10 @@ BROKER_TRANSPORT_OPTIONS = {}
 # though it would cause timeouts/recursions in some cases
 CELERY_ALWAYS_EAGER = False
 
+# Complain about bad use of pickle.  See sentry.celery.SentryTask.apply_async for how
+# this works.
+CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = False
+
 # We use the old task protocol because during benchmarking we noticed that it's faster
 # than the new protocol. If we ever need to bump this it should be fine, there were no
 # compatibility issues, just need to run benchmarks and do some tests to make sure
@@ -595,6 +599,7 @@ CELERY_QUEUES = [
     Queue("assemble", routing_key="assemble"),
     Queue("auth", routing_key="auth"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
+    Queue("buffers.incr", routing_key="buffers.incr"),
     Queue("cleanup", routing_key="cleanup"),
     Queue("code_owners", routing_key="code_owners"),
     Queue("commits", routing_key="commits"),
@@ -927,6 +932,8 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
     "organizations:alert-crash-free-metrics": False,
+    # Workflow 2.0 notifications following a release
+    "organizations:alert-release-notification-workflow": False,
     # Alert wizard redesign version 3
     "organizations:alert-wizard-v3": False,
     "organizations:api-keys": False,
@@ -944,9 +951,9 @@ SENTRY_FEATURES = {
     # Enable the 'discover' interface.
     "organizations:discover": False,
     # Enables events endpoint usage on discover and dashboards frontend
-    "organizations:discover-frontend-use-events-endpoint": False,
+    "organizations:discover-frontend-use-events-endpoint": True,
     # Enables events endpoint usage on performance frontend
-    "organizations:performance-frontend-use-events-endpoint": False,
+    "organizations:performance-frontend-use-events-endpoint": True,
     # Enable duplicating alert rules.
     "organizations:duplicate-alert-rule": False,
     # Enable attaching arbitrary files to events.
@@ -993,6 +1000,8 @@ SENTRY_FEATURES = {
     "organizations:issue-search-use-cdc-secondary": False,
     # Enable metrics feature on the backend
     "organizations:metrics": False,
+    # Use SNQL to create metric alerts, and perform other snuba queries related to metric alerts
+    "organizations:metric-alert-snql": True,
     # Enable metric alert charts in email/slack
     "organizations:metric-alert-chartcuterie": False,
     # Enable the new widget builder experience on Dashboards
@@ -1150,6 +1159,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Automatically opt IN users to receiving Slack notifications.
+    "users:notification-slack-automatic": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -2295,7 +2306,14 @@ GEOIP_PATH_MMDB = None
 JS_SDK_LOADER_CDN_URL = ""
 # Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
 JS_SDK_LOADER_SDK_VERSION = ""
-# This should be the url pointing to the JS SDK
+# This should be the url pointing to the JS SDK. It may contain up to two "%s".
+# The first "%s" will be replaced with the SDK version, the second one is used
+# to inject a bundle modifier in the JS SDK CDN loader. e.g:
+# - 'https://browser.sentry-cdn.com/%s/bundle%s.min.js' will become
+# 'https://browser.sentry-cdn.com/7.0.0/bundle.es5.min.js'
+# - 'https://browser.sentry-cdn.com/%s/bundle.min.js' will become
+# 'https://browser.sentry-cdn.com/7.0.0/bundle.min.js'
+# - 'https://browser.sentry-cdn.com/6.19.7/bundle.min.js' will stay the same.
 JS_SDK_LOADER_DEFAULT_SDK_URL = ""
 
 # block domains which are generally used by spammers -- keep this configurable
@@ -2344,6 +2362,8 @@ KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
+KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
+KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -2376,7 +2396,10 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
     KAFKA_PROFILES: {"cluster": "default"},
+    KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
+    KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
 }
+
 
 # If True, consumers will create the topics if they don't exist
 KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True

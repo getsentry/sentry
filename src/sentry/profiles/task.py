@@ -39,6 +39,8 @@ def process_profile(
         profile = _symbolicate(profile=profile, project=project)
     elif profile["platform"] == "android":
         profile = _deobfuscate(profile=profile, project=project)
+    elif profile["platform"] == "rust":
+        profile = _symbolicate(profile=profile, project=project)
 
     organization = Organization.objects.get_from_cache(id=project.organization_id)
     profile = _normalize(profile=profile, organization=organization)
@@ -73,23 +75,42 @@ def _normalize(
     profile: MutableMapping[str, Any],
     organization: Organization,
 ) -> MutableMapping[str, Any]:
-    classification_options = {
-        "model": profile["device_model"],
-        "os_name": profile["device_os_name"],
-        "is_emulator": profile["device_is_emulator"],
-    }
+    if profile["platform"] in {"cocoa", "android"}:
+        classification_options = dict()
 
-    if profile["platform"] == "android":
+        if profile["platform"] == "android":
+            classification_options.update(
+                {
+                    "cpu_frequencies": profile["device_cpu_frequencies"],
+                    "physical_memory_bytes": profile["device_physical_memory_bytes"],
+                }
+            )
+
         classification_options.update(
             {
-                "cpu_frequencies": profile["device_cpu_frequencies"],
-                "physical_memory_bytes": profile["device_physical_memory_bytes"],
+                "model": profile["device_model"],
+                "os_name": profile["device_os_name"],
+                "is_emulator": profile["device_is_emulator"],
+            }
+        )
+
+        profile.update({"device_classification": str(classify_device(**classification_options))})
+    else:
+        profile.update(
+            {
+                attr: ""
+                for attr in (
+                    "device_classification",
+                    "device_locale",
+                    "device_manufacturer",
+                    "device_model",
+                )
+                if attr not in profile
             }
         )
 
     profile.update(
         {
-            "device_classification": str(classify_device(**classification_options)),
             "profile": json.dumps(profile["profile"]),
             "retention_days": quotas.get_event_retention(organization=organization),
         }
@@ -120,7 +141,11 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
             for original, symbolicated in zip(
                 profile["sampled_profile"]["samples"], response["stacktraces"]
             ):
-                original["original_frames"] = original["frames"]
+                for frame in symbolicated["frames"]:
+                    frame.pop("pre_context", None)
+                    frame.pop("context_line", None)
+                    frame.pop("post_context", None)
+
                 original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:
