@@ -503,18 +503,37 @@ export function formatColorForFrame(
 }
 
 export const ELLIPSIS = '\u2026';
-export function trimTextCenter(text: string, low: number) {
+type TrimTextCenter = {
+  end: number;
+  length: number;
+  start: number;
+  text: string;
+};
+export function trimTextCenter(text: string, low: number): TrimTextCenter {
   if (low >= text.length) {
-    return text;
+    return {
+      text,
+      start: 0,
+      end: 0,
+      length: 0,
+    };
   }
   const prefixLength = Math.floor(low / 2);
   // Use 1 character less than the low value to account for ellipsis
   // and favor displaying the prefix
   const postfixLength = low - prefixLength - 1;
 
-  return `${text.substring(0, prefixLength)}${ELLIPSIS}${text.substring(
-    text.length - postfixLength + ELLIPSIS.length
-  )}`;
+  const start = prefixLength;
+  const end = Math.floor(text.length - postfixLength + ELLIPSIS.length);
+
+  const trimText = `${text.substring(0, start)}${ELLIPSIS}${text.substring(end)}`;
+
+  return {
+    text: trimText,
+    start,
+    end,
+    length: end - start,
+  };
 }
 
 export function computeClampedConfigView(
@@ -534,4 +553,74 @@ export function computeClampedConfigView(
   const clampedY = clamp(newConfigView.y, 0, maxY);
 
   return new Rect(clampedX, clampedY, clampedWidth, clampedHeight);
+}
+
+function isBetween(num: number, low: number, high: number) {
+  return num >= low && num <= high;
+}
+
+export type Bounds = [number, number];
+
+/**
+ * computeHighlightedBounds determines if a supplied boundary should be reduced in size
+ * or shifted based on the results of a trim operation
+ */
+export function computeHighlightedBounds(
+  bounds: Bounds,
+  trim: TrimTextCenter
+): Bounds | null {
+  const [boundStart, boundEnd] = bounds;
+  const {start: trimStart, end: trimEnd, length: trimLength} = trim;
+
+  const isNotTrimmed = trimLength === 0;
+  if (isNotTrimmed) {
+    return bounds;
+  }
+
+  const isStartBetweenTrim = isBetween(boundStart, trimStart, trimEnd);
+  const isEndBetweenTrim = isBetween(boundEnd, trimStart, trimEnd);
+  const isFullyTruncated = isStartBetweenTrim && isEndBetweenTrim;
+
+  // example:
+  // -[UIScrollView _smoothScrollDisplayLink:]
+
+  // "smooth" in "-[UIScrollView _…ScrollDisplayLink:]"
+  //                              ^^
+  if (isFullyTruncated) {
+    return [trimStart, trimStart + 1];
+  }
+
+  if (boundStart < trimStart) {
+    // "ScrollView" in '-[UIScrollView _sm…rollDisplayLink:]'
+    //                      ^--------^
+    if (boundEnd < trimStart) {
+      return bounds;
+    }
+
+    // "smoothScroll" in -[UIScrollView _smooth…DisplayLink:]'
+    //                                   ^-----^
+    if (isEndBetweenTrim) {
+      return [boundStart, trimStart + 1];
+    }
+
+    // "smoothScroll" in -[UIScrollView _sm…llDisplayLink:]'
+    //                                   ^---^
+    if (boundEnd > trimEnd) {
+      return [boundStart, boundEnd - trimLength + 1];
+    }
+  }
+
+  // "smoothScroll" in -[UIScrollView _…scrollDisplayLink:]'
+  //                                   ^-----^
+  if (isStartBetweenTrim && boundEnd > trimEnd) {
+    return [trimStart, boundEnd - trimLength + 1];
+  }
+
+  // "display" in -[UIScrollView _…scrollDisplayLink:]'
+  //                                     ^-----^
+  if (boundStart > trimEnd) {
+    return [boundStart - trimLength + 1, boundEnd - trimLength + 1];
+  }
+
+  return null;
 }
