@@ -6,6 +6,7 @@ import pytest
 from snuba_sdk import Column, Direction, Function, OrderBy
 
 from sentry.sentry_metrics import indexer
+from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
@@ -37,6 +38,10 @@ from sentry.snuba.metrics.fields.snql import (
 from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI, get_public_name_from_mri
 from sentry.testutils import TestCase
 from tests.sentry.snuba.metrics.test_query_builder import PseudoProject
+
+
+def _indexer_record(org_id: int, string: str) -> int:
+    return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
 
 
 def get_entity_of_metric_mocked(_, metric_mri):
@@ -132,9 +137,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
 
         org_id = self.project.organization_id
         for status in ("init", "abnormal", "crashed", "errored"):
-            indexer.record(org_id, status)
-        session_ids = [indexer.record(org_id, SessionMRI.SESSION.value)]
-        session_user_ids = [indexer.record(org_id, SessionMRI.USER.value)]
+            _indexer_record(org_id, status)
+        session_ids = [_indexer_record(org_id, SessionMRI.SESSION.value)]
+        session_user_ids = [_indexer_record(org_id, SessionMRI.USER.value)]
 
         derived_name_snql = {
             SessionMRI.ALL.value: (all_sessions, session_ids),
@@ -157,7 +162,7 @@ class SingleEntityDerivedMetricTestCase(TestCase):
                 ),
             ]
 
-        session_error_metric_ids = [indexer.record(org_id, SessionMRI.ERROR.value)]
+        session_error_metric_ids = [_indexer_record(org_id, SessionMRI.ERROR.value)]
         assert DERIVED_METRICS[SessionMRI.ERRORED_SET.value].generate_select_statements(
             [self.project], metrics_query=metrics_query
         ) == [
@@ -246,9 +251,9 @@ class SingleEntityDerivedMetricTestCase(TestCase):
     @mock.patch("sentry.snuba.metrics.fields.base.org_id_from_projects", lambda _: 0)
     def test_generate_metric_ids(self):
         org_id = self.project.organization_id
-        session_metric_id = indexer.record(org_id, SessionMRI.SESSION.value)
-        session_error_metric_id = indexer.record(org_id, SessionMRI.ERROR.value)
-        session_user_id = indexer.record(org_id, SessionMRI.USER.value)
+        session_metric_id = _indexer_record(org_id, SessionMRI.SESSION.value)
+        session_error_metric_id = _indexer_record(org_id, SessionMRI.ERROR.value)
+        session_user_id = _indexer_record(org_id, SessionMRI.USER.value)
 
         for derived_metric_mri in [
             SessionMRI.ALL.value,
