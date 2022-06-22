@@ -76,7 +76,7 @@ class NotificationSetting(Model):
             (NotificationSettingTypes.QUOTA, "quota"),
             (NotificationSettingTypes.QUOTA_ERRORS, "quotaErrors"),
             (NotificationSettingTypes.QUOTA_TRANSACTIONS, "quotaTransactions"),
-            (NotificationSettingTypes.QUOTA_ATTACHMENTS, "quotaAttacments"),
+            (NotificationSettingTypes.QUOTA_ATTACHMENTS, "quotaAttachments"),
             (NotificationSettingTypes.QUOTA_WARNINGS, "quotaWarnings"),
         ),
         null=False,
