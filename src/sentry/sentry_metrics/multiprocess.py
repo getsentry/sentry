@@ -440,7 +440,7 @@ def process_messages(
                     "process_messages.invalid_metric_type",
                     extra={"org_id": org_id, "metric_type": metric_type, "offset": offset},
                 )
-                skipped_offsets.add(offset)
+                skipped_offsets.add(partition_offset)
                 continue
 
             invalid_strs = invalid_metric_tags(tags)
@@ -533,7 +533,7 @@ def process_messages(
                 headers=[
                     *message.payload.headers,
                     ("mapping_sources", mapping_header_content),
-                    ("metric_type", parsed_payload_value["type"]),
+                    ("metric_type", new_payload_value["type"]),
                 ],
             )
             new_message = Message(
