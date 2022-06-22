@@ -337,11 +337,8 @@ def translate_meta_results(
         if not (is_tag or is_time_col or is_dataset_col):
             # This handles two cases where we have an expression with an operation and an mri,
             # or a derived metric mri that has no associated operation
-            try:
-                record["name"] = get_operation_with_public_name(operation, column_name)
-                if record["name"] not in query_metric_fields:
-                    raise InvalidParams(f"Field {record['name']} was not in the select clause")
-            except InvalidParams:
+            name = get_operation_with_public_name(operation, column_name)
+            if name is None:
                 # XXX(ahmed): We get into this branch when we are tying to generate inferred types
                 # for instances of `CompositeEntityDerivedMetric` as type needs to be inferred from
                 # its constituent instances of `SingularEntityDerivedMetric`, and we decide to skip
@@ -351,6 +348,10 @@ def translate_meta_results(
                 # arithmetic operations applied on the constituent
                 # For example, If we have two constituents of types "UInt64" and "Float64",
                 # then there inferred type would be "Float64"
+                continue
+            record["name"] = name
+            if record["name"] not in query_metric_fields:
+                raise InvalidParams(f"Field {record['name']} was not in the select clause")
                 continue
         else:
             if is_tag:
@@ -716,6 +717,8 @@ class SnubaResultConverter:
                         del series[key]
                 else:
                     public_metric_key = get_operation_with_public_name(operation, metric_mri)
+                    if public_metric_key is None:
+                        continue
                     if totals is not None:
                         totals[public_metric_key] = totals.pop(key)
                     if series is not None:

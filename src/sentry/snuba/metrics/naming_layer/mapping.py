@@ -68,7 +68,7 @@ def get_public_name_from_mri(
     return MRI_TO_NAME.get(internal_name)
 
 
-def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> str:
+def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> Optional[str]:
     if operation is None:
         return get_public_name_from_mri(metric_mri)
     return f"{operation}({get_public_name_from_mri(metric_mri)})"
