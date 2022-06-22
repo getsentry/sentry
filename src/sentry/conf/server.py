@@ -127,7 +127,7 @@ RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
 SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 
-# XXX(epurkhiser): The generated chartucterie config.js file will be stored
+# XXX(epurkhiser): The generated chartcuterie config.js file will be stored
 # here. This directory may not exist until that file is generated.
 CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 

@@ -20,7 +20,7 @@ export enum ChartType {
 }
 
 /**
- * XXX(epurkhiser): These are copied directly over from chartucterie to avoid
+ * XXX(epurkhiser): These are copied directly over from chartcuterie to avoid
  * installing the package, which has some system-level dependencies we would
  * prefer not to install with sentry.
  */
