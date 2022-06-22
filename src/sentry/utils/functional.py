@@ -18,7 +18,7 @@ def extract_lazy_object(lo):
 def apply_values(function, mapping):
     """\
     Applies ``function`` to a sequence containing all of the values in the
-    provided mapping, returing a new mapping with the values replaced with
+    provided mapping, returning a new mapping with the values replaced with
     the results of the provided function.
 
     >>> apply_values(
