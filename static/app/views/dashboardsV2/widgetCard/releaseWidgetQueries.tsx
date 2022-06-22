@@ -350,19 +350,23 @@ class ReleaseWidgetQueries extends Component<Props, State> {
 
     try {
       responses = await Promise.all(
-        widget.queries.map(query => {
-          const requestGenerator = [DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(
-            widget.displayType
-          )
-            ? this.config.getTableRequest
-            : this.config.getSeriesRequest;
-          return requestGenerator!(
+        widget.queries.map((query, index) => {
+          if ([DisplayType.TABLE, DisplayType.BIG_NUMBER].includes(widget.displayType)) {
+            return this.config.getTableRequest!(
+              api,
+              query,
+              organization,
+              selection,
+              this.limit,
+              cursor
+            );
+          }
+          return this.config.getSeriesRequest!(
             api,
-            query,
+            widget,
+            index,
             organization,
-            selection,
-            this.limit,
-            cursor
+            selection
           );
         })
       );
