@@ -345,7 +345,7 @@ def create_dif_from_id(
     return dif, True
 
 
-def _analyze_progard_filename(filename: str) -> Optional[str]:
+def _analyze_proguard_filename(filename: str) -> Optional[str]:
     match = _proguard_file_re.search(filename)
     if match is None:
         return None
@@ -465,7 +465,7 @@ def detect_dif_from_path(
     """
     # proguard files (proguard/UUID.txt) or
     # (proguard/mapping-UUID.txt).
-    proguard_id = _analyze_progard_filename(path)
+    proguard_id = _analyze_proguard_filename(path)
     if proguard_id is not None:
         data = {"features": ["mapping"]}
         return [
