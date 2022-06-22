@@ -155,7 +155,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     const {loading, rawResults} = this.state;
     const {selection, widget, organization, limit, cursor} = this.props;
-    const ignroredWidgetProps = [
+    const ignoredWidgetProps = [
       'queries',
       'title',
       'id',
@@ -186,8 +186,8 @@ class ReleaseWidgetQueries extends Component<Props, State> {
       !isSelectionEqual(selection, prevProps.selection) ||
       // If the widget changed (ignore unimportant fields, + queries as they are handled lower)
       !isEqual(
-        omit(widget, ignroredWidgetProps),
-        omit(prevProps.widget, ignroredWidgetProps)
+        omit(widget, ignoredWidgetProps),
+        omit(prevProps.widget, ignoredWidgetProps)
       ) ||
       // If the queries changed (ignore unimportant name, + fields as they are handled lower)
       !isEqual(
