@@ -30,7 +30,7 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
         queryset = Commit.objects.filter(
             organization_id=project.organization_id,
             releasecommit__release__releaseproject__project_id=project.id,
-        ).distinct("id")
+        )
 
         if query:
             queryset = queryset.filter(key__istartswith=query)
