@@ -167,7 +167,7 @@ export function alertDetailsLink(organization: Organization, incident: Incident)
 }
 
 /**
- * Noramlizes a status string
+ * Normalizes a status string
  */
 export function getQueryStatus(status: string | string[]): string {
   if (Array.isArray(status) || status === '') {
@@ -180,7 +180,7 @@ export function getQueryStatus(status: string | string[]): string {
 const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
 /**
- * Noramlize a team slug from the query
+ * Normalize a team slug from the query
  */
 export function getTeamParams(team?: string | string[]): string[] {
   if (team === undefined) {

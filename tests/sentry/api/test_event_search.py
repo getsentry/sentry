@@ -99,7 +99,7 @@ def result_transformer(result):
             return AggregateKey(name=f"{name}({args})")
 
         if token["type"] == "valueText":
-            # Noramlize values by removing the escaped quotes
+            # Normalize values by removing the escaped quotes
             value = token["value"].replace('\\"', '"')
             return SearchValue(raw_value=value)
 
