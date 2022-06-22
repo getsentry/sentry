@@ -92,7 +92,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
       case 'create':
         return 'createFieldList';
       default:
-        throw new Error('Unexpeced action type');
+        throw new Error('Unexpected action type');
     }
   }
 
@@ -105,7 +105,7 @@ class IssueActions extends PluginComponentBase<Props, State> {
       case 'create':
         return 'createFormData';
       default:
-        throw new Error('Unexpeced action type');
+        throw new Error('Unexpected action type');
     }
   }
 
