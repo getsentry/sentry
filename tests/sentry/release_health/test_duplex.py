@@ -472,7 +472,7 @@ def test_run_sessions_query_schema():
 
 
 def _get_duplex_with_mocks(metrics_start: datetime):
-    """Returns the DuplexReleaseHealthBackend with the Senssions and Metrics backends mocked"""
+    """Returns the DuplexReleaseHealthBackend with the Sessions and Metrics backends mocked"""
     ret_val = DuplexReleaseHealthBackend(metrics_start)
     ret_val.sessions = MagicMock()
     ret_val.metrics = MagicMock()

@@ -1353,7 +1353,7 @@ class CheckNumberOfSessions(TestCase, SnubaTestCase):
         )
         assert [] == actual
 
-    def test_sesions_per_project_multiple_projects(self):
+    def test_sessions_per_project_multiple_projects(self):
         dev = self.dev_env.name
         prod = self.prod_env.name
         test = self.test_env.name
