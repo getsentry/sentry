@@ -293,7 +293,7 @@ class SnubaTagStorage(TagStorage):
         results = set()
 
         for key, data in result.items():
-            # Ignore key (skip interation) if it's in denylist
+            # Ignore key (skip interaction) if it's in denylist
             if denylist is not None and key in denylist:
                 continue
 
