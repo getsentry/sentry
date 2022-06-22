@@ -427,10 +427,18 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
             self.group, self.event, self.link_to_event, self.issue_details, self.notification
         )
         release = (
-            parse_release(self.last_release.version)["description"] if self.last_release else ""
+            parse_release(self.last_release.version)["description"]
+            if self.last_release
+            else "unknown"
         )
-        release_url = absolute_uri(
-            f"/organizations/{self.group.organization.slug}/releases/{quote(self.last_release.version)}/?project={self.group.project_id}"
+        release_url = (
+            absolute_uri(
+                f"/organizations/{self.group.organization.slug}/releases/{quote(self.last_release.version)}/?project={self.group.project_id}"
+            )
+            if self.last_release
+            else absolute_uri(
+                f"/organizations/{self.group.organization.slug}/releases/?project={self.group.project_id}"
+            )
         )
 
         return self._build(
