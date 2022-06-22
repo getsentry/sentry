@@ -219,7 +219,7 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Releases are here!'),
           target: 'releases_widget',
           description: t(
-            'Want to know how that latest release is doing? Monitor release health and track crash rates in Dashboards.'
+            'Want to know how you latest release is doing? Monitor release health and crash rates in Dashboards.'
           ),
           nextText: t('Sounds Good'),
         },
