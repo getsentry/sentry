@@ -800,7 +800,7 @@ v8.19
 
 - Hide project filter when there are no projects to list.
 - Added lookup methods to constants to get a unique `integration_id` for a given
-  event, and to get information (documention url, human readable name) from that id.
+  event, and to get information (documentation url, human readable name) from that id.
 
 Schema Changes
 ~~~~~~~~~~~~~~
