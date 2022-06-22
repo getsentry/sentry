@@ -12,7 +12,7 @@ describe('releases/utils', () => {
       });
     });
 
-    it('higher last session takes precendence over last event', () => {
+    it('higher last session takes precedence over last event', () => {
       expect(
         getReleaseBounds(
           TestStubs.Release({
