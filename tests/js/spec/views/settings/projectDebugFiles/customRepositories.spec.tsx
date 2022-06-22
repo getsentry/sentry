@@ -27,10 +27,10 @@ import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/
 function TestComponent({
   organization,
   customRepositories,
-  credetialsStatus,
+  credentialsStatus,
   ...props
 }: Omit<React.ComponentProps<typeof CustomRepositories>, 'customRepositories'> & {
-  credetialsStatus?: AppStoreConnectCredentialsStatus;
+  credentialsStatus?: AppStoreConnectCredentialsStatus;
   customRepositories?:
     | [CustomRepoHttp, CustomRepoAppStoreConnect]
     | [CustomRepoHttp]
@@ -46,7 +46,7 @@ function TestComponent({
         appStoreConnectRepo
           ? {
               [appStoreConnectRepo.id]: {
-                credentials: credetialsStatus ?? {status: 'valid'},
+                credentials: credentialsStatus ?? {status: 'valid'},
                 lastCheckedBuilds: null,
                 latestBuildNumber: null,
                 latestBuildVersion: null,
@@ -414,7 +414,7 @@ describe('Custom Repositories', function () {
           {...props}
           organization={props.organization}
           customRepositories={[httpRepository, appStoreConnectRepository]}
-          credetialsStatus={{status: 'invalid', code: 'app-connect-authentication-error'}}
+          credentialsStatus={{status: 'invalid', code: 'app-connect-authentication-error'}}
         />,
         {context: props.routerContext}
       );
