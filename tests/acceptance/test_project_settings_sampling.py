@@ -13,7 +13,6 @@ sampling_rule_all_possible_conditions = {
     "condition": {
         "op": "and",
         "inner": [
-            {"op": "eq", "name": "event.has_bad_browser_extensions", "value": True},
             {"op": "custom", "name": "event.csp", "value": ["sentry.io", "whatever.com"]},
             {"op": "glob", "name": "event.contexts.device.family", "value": ["Mac", "pixe*"]},
             {"op": "glob", "name": "event.contexts.device.name", "value": ["mac", "ipho*"]},
@@ -220,8 +219,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             # Open conditions dropdown
             self.browser.element('[aria-label="Add Condition"]').click()
 
-            # Add browser extensions
-            self.browser.element('[data-test-id="event.has_bad_browser_extensions"]').click()
             # Add Content Security Policy
             self.browser.element('[data-test-id="event.csp"]').click()
             # Add Device Family
