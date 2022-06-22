@@ -89,7 +89,7 @@ const FilterToken = ({
 
   // This state tracks if the cursor has left the filter token. We initialize it
   // to !isActive in the case where the filter token is rendered without the
-  // cursor initally being in it.
+  // cursor initially being in it.
   const [hasLeft, setHasLeft] = useState(!isActive);
 
   // Used to trigger the shake animation when the element becomes invalid
