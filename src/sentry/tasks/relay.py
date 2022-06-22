@@ -9,9 +9,6 @@ from sentry.utils.sdk import set_current_event_project
 
 logger = logging.getLogger(__name__)
 
-TASK_SOFT_LIMIT = 25
-TASK_HARD_LIMIT = 30  # Extra 5 seconds to remove the debounce key
-
 
 # Some projects have in the order of 150k ProjectKey entries.  We should compute these in
 # batches, but for now we just have a large timeout and don't compute at all for
@@ -20,8 +17,8 @@ TASK_HARD_LIMIT = 30  # Extra 5 seconds to remove the debounce key
     name="sentry.tasks.relay.build_project_config",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=25 * 60,  # 25mins
-    time_limit=25 * 60 + 5,
+    soft_time_limit=5,
+    time_limit=10,  # Extra 5 seconds to remove the debounce key
 )
 def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
@@ -169,8 +166,8 @@ def compute_projectkey_config(key):
     name="sentry.tasks.relay.invalidate_project_config",
     queue="relay_config",
     acks_late=True,
-    soft_time_limit=TASK_SOFT_LIMIT,
-    time_limit=TASK_HARD_LIMIT,
+    soft_time_limit=25 * 60,  # 25mins
+    time_limit=25 * 60 + 5,
 )
 def invalidate_project_config(
     organization_id=None, project_id=None, public_key=None, trigger="invalidated", **kwargs
