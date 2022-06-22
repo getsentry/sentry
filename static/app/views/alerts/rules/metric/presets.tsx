@@ -50,7 +50,7 @@ type Preset = {
    */
   name: string;
   /**
-   * The dataset that this preset applys to.
+   * The dataset that this preset applies to.
    */
   validDataset: Dataset[];
 };
