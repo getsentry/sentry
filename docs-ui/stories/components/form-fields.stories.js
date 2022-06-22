@@ -441,7 +441,7 @@ export const _RangeSlider = () => (
       step={1}
       value={1}
       formatLabel={value => {
-        return `${value} Toaster Strudle${value > 1 ? 's' : ''}`;
+        return `${value} Toaster Strudel${value > 1 ? 's' : ''}`;
       }}
     />
   </div>
