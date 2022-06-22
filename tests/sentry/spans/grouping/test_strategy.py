@@ -18,7 +18,7 @@ from sentry.spans.grouping.strategy.config import (
 from sentry.spans.grouping.utils import hash_values
 
 
-def test_register_duplicate_confiig() -> None:
+def test_register_duplicate_config() -> None:
     config_id = "test-configuration"
     register_configuration(config_id, [])
     with pytest.raises(ValueError, match=f"Duplicate configuration id: {config_id}"):
