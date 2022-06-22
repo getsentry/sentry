@@ -22,7 +22,7 @@ type State = {
    */
   data: {[key: string]: any};
   /**
-   * Errors from the configured endpoionts
+   * Errors from the configured endpoints
    */
   errors: {[key: string]: RequestError};
   /**
