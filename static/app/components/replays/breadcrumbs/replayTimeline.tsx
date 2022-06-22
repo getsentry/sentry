@@ -86,7 +86,7 @@ function ReplayTimeline({}: Props) {
 
 const UnderTimestamp = styled('div')`
   /* Weird size to put equal space above/below a <small> node that MajorGridlines emits */
-  padding-top: 24px;
+  padding-top: 16px;
 `;
 
 export default ReplayTimeline;
