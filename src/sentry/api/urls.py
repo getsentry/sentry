@@ -270,6 +270,7 @@ from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,
 )
+from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_member import (
     OrganizationInviteRequestDetailsEndpoint,
     OrganizationInviteRequestIndexEndpoint,
@@ -1195,6 +1196,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     OrganizationEventsTraceMetaEndpoint.as_view(),
                     name="sentry-api-0-organization-events-trace-meta",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/measurements-meta/$",
+                    OrganizationMeasurementsMeta.as_view(),
+                    name="sentry-api-0-organization-measurements-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/issues/$",
