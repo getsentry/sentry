@@ -86,7 +86,7 @@ describe('PasswordForm', function () {
     expect(wrapper.find('input[name="password"]').prop('value')).toBe('');
   });
 
-  it('validates mismatched passwords and remvoes validation on match', function () {
+  it('validates mismatched passwords and removes validation on match', function () {
     wrapper.find('input[name="password"]').simulate('change', {target: {value: 'test'}});
     wrapper
       .find('input[name="passwordNew"]')
