@@ -89,7 +89,9 @@ export function flattenMultiSeriesDataWithGrouping(
   return seriesWithOrdering;
 }
 
-function getIsMetricsDataFromSeriesResponse(result: RawResult): boolean | undefined {
+export function getIsMetricsDataFromSeriesResponse(
+  result: RawResult
+): boolean | undefined {
   const multiIsMetricsData = Object.values(result)
     .map(({isMetricsData}) => isMetricsData)
     // One non-metrics series will cause all of them to be marked as such

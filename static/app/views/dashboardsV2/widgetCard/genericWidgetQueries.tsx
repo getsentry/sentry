@@ -13,6 +13,8 @@ import {
 import {getDatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 
+import {getIsMetricsDataFromSeriesResponse} from './widgetQueries';
+
 type ChildrenProps = {
   loading: boolean;
   errorMessage?: string;
@@ -120,43 +122,84 @@ function WidgetQueries({
       });
       setTableResults(transformedTableResults);
     },
+    [api, config, cursor, limit, onDataFetched, organization, selection, widget]
+  );
+
+  const fetchSeriesData = useCallback(
+    async function fetchSeriesData() {
+      const responses = await Promise.all(
+        widget.queries.map((_query, index) => {
+          return config.getSeriesRequest!(
+            api,
+            widget,
+            index,
+            organization,
+            selection,
+            getReferrer(widget.displayType)
+          );
+        })
+      );
+      let isMetricsData: boolean | undefined;
+      const transformedTimeseriesResults: Series[] = [];
+      responses.forEach((rawResults, requestIndex) => {
+        // If one of the queries is sampled, then mark the whole thing as sampled
+        isMetricsData =
+          isMetricsData === false
+            ? false
+            : getIsMetricsDataFromSeriesResponse(rawResults);
+        const transformedResult = config.transformSeries!(
+          rawResults,
+          widget.queries[requestIndex],
+          organization
+        );
+        // When charting timeseriesData on echarts, color association to a timeseries result
+        // is order sensitive, ie series at index i on the timeseries array will use color at
+        // index i on the color array. This means that on multi series results, we need to make
+        // sure that the order of series in our results do not change between fetches to avoid
+        // coloring inconsistencies between renders.
+        transformedResult.forEach((result, resultIndex) => {
+          transformedTimeseriesResults[
+            requestIndex * transformedResult.length + resultIndex
+          ] = result;
+        });
+      });
+      onDataFetched?.({timeseriesResults: transformedTimeseriesResults});
+      setTimeseriesResults(transformedTimeseriesResults);
+    },
     [
       api,
-      config,
-      cursor,
-      limit,
+      config.getSeriesRequest,
+      config.transformSeries,
       onDataFetched,
       organization,
       selection,
-      widget.displayType,
-      widget.queries,
+      widget,
     ]
   );
 
-  const fetchSeriesData = useCallback(function fetchSeriesData() {
-    // TODO
-  }, []);
-
   useEffect(() => {
-    setLoading(true);
-    setTableResults(undefined);
-    setTimeseriesResults(undefined);
+    async function fetchData() {
+      setLoading(true);
+      setTableResults(undefined);
+      setTimeseriesResults(undefined);
 
-    try {
-      if (
-        [DisplayType.TABLE, DisplayType.BIG_NUMBER, DisplayType.WORLD_MAP].includes(
-          widget.displayType
-        )
-      ) {
-        fetchTableData();
-      } else {
-        fetchSeriesData();
+      try {
+        if (
+          [DisplayType.TABLE, DisplayType.BIG_NUMBER, DisplayType.WORLD_MAP].includes(
+            widget.displayType
+          )
+        ) {
+          await fetchTableData();
+        } else {
+          await fetchSeriesData();
+        }
+      } catch (err) {
+        setErrorMessage(err?.responseJSON?.detail || t('An unknown error occurred.'));
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setErrorMessage(err?.responseJSON?.detail || t('An unknown error occurred.'));
-    } finally {
-      setLoading(false);
     }
+    fetchData();
   }, [fetchSeriesData, fetchTableData, widget.displayType]);
 
   return children({loading, tableResults, timeseriesResults, errorMessage});
