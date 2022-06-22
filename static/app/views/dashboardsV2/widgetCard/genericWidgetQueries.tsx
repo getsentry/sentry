@@ -71,13 +71,8 @@ function WidgetQueries({
 
   const fetchTableData = useCallback(
     async function fetchTableData() {
-      setLoading(true);
-      setTableResults(undefined);
-      setTimeseriesResults(undefined);
-
-      let responses: [TableData | EventsTableData, string, ResponseMeta][];
-      try {
-        responses = await Promise.all(
+      const responses: [TableData | EventsTableData, string, ResponseMeta][] =
+        await Promise.all(
           widget.queries.map(query => {
             let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
             let requestCreator = config.getTableRequest;
@@ -97,38 +92,33 @@ function WidgetQueries({
           })
         );
 
-        // transform the data
-        let transformedTableResults: TableDataWithTitle[] = [];
-        let isMetricsData: boolean | undefined;
-        let pageLinks: string | null = null;
-        responses.forEach(([data, _textstatus, resp], i) => {
-          // If one of the queries is sampled, then mark the whole thing as sampled
-          isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
+      // transform the data
+      let transformedTableResults: TableDataWithTitle[] = [];
+      let isMetricsData: boolean | undefined;
+      let pageLinks: string | null = null;
+      responses.forEach(([data, _textstatus, resp], i) => {
+        // If one of the queries is sampled, then mark the whole thing as sampled
+        isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
 
-          // Cast so we can add the title.
-          const transformedData = config.transformTable(
-            // TODO: Types across configs are &'d here. Should be |'d or set to a specific type
-            data,
-            widget.queries[0],
-            organization,
-            selection
-          ) as TableDataWithTitle;
-          transformedData.title = widget.queries[i]?.name ?? '';
+        // Cast so we can add the title.
+        const transformedData = config.transformTable(
+          // TODO: Types across configs are &'d here. Should be |'d or set to a specific type
+          data,
+          widget.queries[0],
+          organization,
+          selection
+        ) as TableDataWithTitle;
+        transformedData.title = widget.queries[i]?.name ?? '';
 
-          // Overwrite the local var to work around state being stale in tests.
-          transformedTableResults = [...transformedTableResults, transformedData];
-          pageLinks = resp?.getResponseHeader('Link');
-        });
-        onDataFetched?.({
-          tableResults: transformedTableResults,
-          pageLinks: pageLinks ?? undefined,
-        });
-        setTableResults(transformedTableResults);
-      } catch (err) {
-        setErrorMessage(err?.responseJSON?.detail || t('An unknown error occurred.'));
-      } finally {
-        setLoading(false);
-      }
+        // Overwrite the local var to work around state being stale in tests.
+        transformedTableResults = [...transformedTableResults, transformedData];
+        pageLinks = resp?.getResponseHeader('Link');
+      });
+      onDataFetched?.({
+        tableResults: transformedTableResults,
+        pageLinks: pageLinks ?? undefined,
+      });
+      setTableResults(transformedTableResults);
     },
     [
       api,
@@ -144,18 +134,28 @@ function WidgetQueries({
   );
 
   const fetchSeriesData = useCallback(function fetchSeriesData() {
-    console.log('coming soon');
+    // TODO
   }, []);
 
   useEffect(() => {
-    if (
-      [DisplayType.TABLE, DisplayType.BIG_NUMBER, DisplayType.WORLD_MAP].includes(
-        widget.displayType
-      )
-    ) {
-      fetchTableData();
-    } else {
-      fetchSeriesData();
+    setLoading(true);
+    setTableResults(undefined);
+    setTimeseriesResults(undefined);
+
+    try {
+      if (
+        [DisplayType.TABLE, DisplayType.BIG_NUMBER, DisplayType.WORLD_MAP].includes(
+          widget.displayType
+        )
+      ) {
+        fetchTableData();
+      } else {
+        fetchSeriesData();
+      }
+    } catch (err) {
+      setErrorMessage(err?.responseJSON?.detail || t('An unknown error occurred.'));
+    } finally {
+      setLoading(false);
     }
   }, [fetchSeriesData, fetchTableData, widget.displayType]);
 
