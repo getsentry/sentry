@@ -96,6 +96,7 @@ class QueryBuilder:
         params: ParamsType,
         query: Optional[str] = None,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
         auto_fields: bool = False,
@@ -162,6 +163,7 @@ class QueryBuilder:
             query=query,
             use_aggregate_conditions=use_aggregate_conditions,
             selected_columns=selected_columns,
+            groupby_columns=groupby_columns,
             equations=equations,
             orderby=orderby,
         )
@@ -192,6 +194,7 @@ class QueryBuilder:
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -210,7 +213,7 @@ class QueryBuilder:
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_orderby"):
             self.orderby = self.resolve_orderby(orderby)
         with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
-            self.groupby = self.resolve_groupby()
+            self.groupby = self.resolve_groupby(groupby_columns)
 
     def load_config(
         self,
@@ -765,13 +768,24 @@ class QueryBuilder:
         else:
             return self.resolve_field(field, alias=alias)
 
-    def resolve_groupby(self) -> List[SelectType]:
+    def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
         if self.aggregates:
             self.validate_aggregate_arguments()
+            groupby_columns = (
+                [self.resolve_column(column) for column in groupby_columns]
+                if groupby_columns
+                else []
+            )
             return [
-                c
-                for c in self.columns
-                if c not in self.aggregates and not self.is_equation_column(c)
+                column
+                for column in self.columns
+                if column not in self.aggregates and not self.is_equation_column(column)
+            ] + [
+                column
+                for column in groupby_columns
+                if column not in self.aggregates
+                and not self.is_equation_column(column)
+                and column not in self.columns
             ]
         else:
             return []
@@ -1245,6 +1259,7 @@ class UnresolvedQuery(QueryBuilder):
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -1288,6 +1303,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         query: Optional[str] = None,
         use_aggregate_conditions: bool = False,
         selected_columns: Optional[List[str]] = None,
+        groupby_columns: Optional[List[str]] = None,
         equations: Optional[List[str]] = None,
         orderby: Optional[List[str]] = None,
     ) -> None:
@@ -1519,13 +1535,13 @@ class HistogramQueryBuilder(QueryBuilder):
         histogram_params: HistogramParams,
         key_column: Optional[str],
         field_names: Optional[List[Union[str, Any, None]]],
-        groupby: Optional[List[str]],
+        groupby_columns: Optional[List[str]],
         *args: Any,
         **kwargs: Any,
     ):
         kwargs["functions_acl"] = kwargs.get("functions_acl", []) + self.base_function_acl
         super().__init__(*args, **kwargs)
-        self.additional_groupby = groupby
+        self.additional_groupby = groupby_columns
         selected_columns = kwargs["selected_columns"]
 
         resolved_histogram = self.resolve_column(histogram_column)
@@ -1553,15 +1569,7 @@ class HistogramQueryBuilder(QueryBuilder):
             OrderBy(resolved_histogram, Direction.ASC)
         ]
 
-        self.groupby = self.resolve_groupby()
-        self.groupby = self.resolve_additional_groupby()
-
-    def resolve_additional_groupby(self) -> List[SelectType]:
-        base_groupby = self.groupby
-        if base_groupby is not None and self.additional_groupby is not None:
-            base_groupby += [self.resolve_column(field) for field in self.additional_groupby]
-
-        return base_groupby
+        self.groupby = self.resolve_groupby(groupby_columns)
 
 
 class SessionsQueryBuilder(QueryBuilder):
@@ -1857,8 +1865,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 select=[
                     column
                     for column in self.columns
-                    if not isinstance(column, CurriedFunction)
-                    or column in primary_framework.functions
+                    if column in primary_framework.functions or column not in self.aggregates
                 ],
                 array_join=self.array_join,
                 where=self.where,
@@ -2001,7 +2008,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 select = [
                     column
                     for column in self.columns
-                    if not isinstance(column, CurriedFunction) or column in query_details.functions
+                    if column in query_details.functions or column not in self.aggregates
                 ]
                 if groupby_values:
                     # We already got the groupby values we want, add them to the conditions to limit our results so we
