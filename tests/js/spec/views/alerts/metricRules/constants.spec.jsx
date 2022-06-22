@@ -53,7 +53,7 @@ describe('createRuleFromEventView()', () => {
     expect(rule.dataset).toBe(Dataset.ERRORS);
     expect(rule.eventTypes).toEqual([EventTypes.ERROR, EventTypes.DEFAULT]);
   });
-  it('allows pXX transaction querys', () => {
+  it('allows pXX transaction queries', () => {
     const eventView = EventView.fromSavedQuery({
       id: undefined,
       query: 'event.type:transaction',
