@@ -186,9 +186,9 @@ function BreadcrumbsContainer({
     }
 
     // Slightly hacky, but it works
-    // the string is being `stringfy`d here in order to match exactly the same `stringfy`d string of the loop
+    // the string is being `stringify`d here in order to match exactly the same `stringify`d string of the loop
     const searchFor = JSON.stringify(newSearchTerm)
-      // it replaces double backslash generate by JSON.stringfy with single backslash
+      // it replaces double backslash generate by JSON.stringify with single backslash
       .replace(/((^")|("$))/g, '')
       .toLocaleLowerCase();
 
