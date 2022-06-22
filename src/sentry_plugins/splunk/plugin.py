@@ -138,7 +138,7 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 props.update({"exception_type": exc.type, "exception_value": exc.value})
             elif key == "logentry":
                 props.update({"message": value.formatted or value.message})
-            elif key in ("csp", "expectct", "expectstable", "hpkp"):
+            elif key in ("csp", "expectct", "expectstaple", "hpkp"):
                 props.update(
                     {
                         "{}_{}".format(key.rsplit(".", 1)[-1].lower(), k): v
