@@ -351,7 +351,6 @@ def translate_meta_results(
                 continue
             record["name"] = name
             if record["name"] not in query_metric_fields:
-                raise InvalidParams(f"Field {record['name']} was not in the select clause")
                 continue
         else:
             if is_tag:
