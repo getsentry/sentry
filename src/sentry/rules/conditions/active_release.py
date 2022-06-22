@@ -14,6 +14,7 @@ from sentry.models import (
 )
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
+from sentry.search.utils import get_latest_release
 
 
 class ActiveReleaseEventCondition(EventCondition):
@@ -30,12 +31,37 @@ class ActiveReleaseEventCondition(EventCondition):
         if not event.group or not event.project:
             return False
 
-        last_release_version: Optional[str] = event.group.get_last_release()
-        if not last_release_version:
+        # last_release_version: Optional[str] = event.group.get_last_release()
+        # if not last_release_version:
+        #     return False
+        #
+        # last_release: Release = Release.get(project=event.project, version=last_release_version)
+
+        # XXX(gilbert):
+        # adapted from LatestReleaseFilter
+        # need to add caching later on
+        environment_id = None if self.rule is None else self.rule.environment_id
+        organization_id = event.group.project.organization_id
+        environments = None
+        if environment_id:
+            environments = [Environment.objects.get(id=environment_id)]
+
+        try:
+            latest_release_versions = get_latest_release(
+                [event.group.project],
+                environments,
+                organization_id,
+            )
+        except Release.DoesNotExist:
             return False
 
-        last_release: Release = Release.get(project=event.project, version=last_release_version)
-        if not last_release:
+        latest_releases = list(
+            Release.objects.filter(
+                version=latest_release_versions[0], organization_id=organization_id
+            )
+        )
+
+        if not latest_releases:
             return False
 
         def release_deploy_time(
@@ -52,7 +78,7 @@ class ActiveReleaseEventCondition(EventCondition):
                     return release.date_released
                 else:
                     if env:
-                        release_env_project = ReleaseProjectEnvironment.objects.filter(
+                        release_project_env = ReleaseProjectEnvironment.objects.filter(
                             release_id=release.id, project=release.project_id, environment_id=env.id
                         ).first()
 
@@ -60,21 +86,22 @@ class ActiveReleaseEventCondition(EventCondition):
                             release_id=release.id, environment_id=env.id
                         ).first()
 
-                        if release_env_project and release_env_project.first_seen:
-                            return release_env_project.first_seen
+                        if release_project_env and release_project_env.first_seen:
+                            return release_project_env.first_seen
 
                         if release_env and release_env.first_seen:
                             return release_env.first_seen
+
             return None
 
-        deploy_time = release_deploy_time(last_release, event.get_environment())
+        deploy_time = release_deploy_time(latest_releases[0], environments)
         if deploy_time:
-            return bool(now_minus_1_hour.timestamp() <= deploy_time <= now)
+            return bool(now_minus_1_hour <= deploy_time <= now)
 
         return False
 
     def passes(self, event: Event, state: EventState) -> bool:
-        if self.rule.environment_id is None:  # type: ignore
+        if self.rule and self.rule.environment_id is None:  # type: ignore
             return (state.is_new or state.is_regression) and self.is_in_active_release(event)
         else:
             return (
