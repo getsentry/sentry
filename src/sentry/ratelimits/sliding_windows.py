@@ -57,8 +57,15 @@ through. It then sets the following keys:
     sliding-window-rate-limit:123:30:90 += 1
     sliding-window-rate-limit:123:3:900 += 1
 
-After one minute, another request for the same org happens at time `902`, and
-the keys change as follows:
+After one minute, another request for the same org happens at time `902`.
+
+* The keys starting with `:123:30:` sum up to 1, so the 30-second limit of 100 is not exceeded.
+* The keys starting with `:123:3:` sum up to 1, so the 3-second limit of 10 is not exceeded.
+
+Because no quota is exceeded, the request is granted. If one quota summed up to
+100 or 10, respectively, the request would be rejected.
+
+When using the quotas, the keys change as follows:
 
     sliding-window-rate-limit:123:3:900 = 1
     sliding-window-rate-limit:123:3:902 = 1
