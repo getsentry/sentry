@@ -86,7 +86,7 @@ export function SortByStep({
     if (limit > maxLimit) {
       onLimitChange(maxLimit);
     }
-  }, [limit, maxLimit]);
+  }, [limit, maxLimit, onLimitChange]);
 
   const columnSet = new Set(queries[0].columns);
   const filterDiscoverOptions = option => {
