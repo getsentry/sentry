@@ -19,7 +19,7 @@ export type MenuListItemProps = {
    */
   details?: React.ReactNode;
   /**
-   * Item label. Should prefereably be a string. If not, make sure that
+   * Item label. Should preferably be a string. If not, make sure that
    * there are appropriate aria-labels.
    */
   label?: React.ReactNode;
