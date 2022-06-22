@@ -1,3 +1,5 @@
+import time
+
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
@@ -21,11 +23,6 @@ sampling_rule_all_possible_conditions = {
                 "name": "event.environment",
                 "value": ["prod", "production"],
                 "options": {"ignoreCase": True},
-            },
-            {
-                "op": "custom",
-                "name": "event.error_messages",
-                "value": ["TypeError*", "SomethingElse"],
             },
             {"op": "custom", "name": "event.client_ip", "value": ["10.0.0.0/8", "127.0.0.1"]},
             {"op": "eq", "name": "event.is_local_ip", "value": True},
@@ -234,8 +231,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="event.contexts.device.name"]').click()
             # Add Environment
             self.browser.element('[data-test-id="event.environment"]').click()
-            # Add Error Message
-            self.browser.element('[data-test-id="event.error_messages"]').click()
             # Add IP Address
             self.browser.element('[data-test-id="event.client_ip"]').click()
             # Add Legacy Browser
