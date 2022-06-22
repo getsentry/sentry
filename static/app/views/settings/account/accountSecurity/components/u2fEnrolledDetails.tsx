@@ -60,7 +60,7 @@ const U2fEnrolledDetails = props => {
 const Device = props => {
   const {device, isLastDevice, onRenameU2fDevice, onRemoveU2fDevice} = props;
   const [deviceName, setDeviceName] = useState(device.name);
-  const [isEditing, setEditting] = useState(false);
+  const [isEditing, setEditing] = useState(false);
 
   if (!isEditing) {
     return (
@@ -70,7 +70,7 @@ const Device = props => {
           <FadedDateTime date={device.timestamp} />
         </DeviceInformation>
         <Actions>
-          <Button size="small" onClick={() => setEditting(true)}>
+          <Button size="small" onClick={() => setEditing(true)}>
             {t('Rename Device')}
           </Button>
         </Actions>
@@ -119,7 +119,7 @@ const Device = props => {
           size="small"
           onClick={() => {
             onRenameU2fDevice(device, deviceName);
-            setEditting(false);
+            setEditing(false);
           }}
         >
           Rename Device
@@ -132,7 +132,7 @@ const Device = props => {
           title="Cancel rename"
           onClick={() => {
             setDeviceName(device.name);
-            setEditting(false);
+            setEditing(false);
           }}
         >
           <IconClose size="xs" />
