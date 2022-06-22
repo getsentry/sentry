@@ -139,7 +139,7 @@ type TestStubFixtures = {
 
   VstsPlugin: SimpleStub;
 
-  // TODO: These need propertly typed still
+  // TODO: These need properly typed still
   // Widget(queries = {...DEFAULT_QUERIES}, options)
   // Dashboard(widgets = DEFAULT_WIDGETS, props = {})
   // AsanaAutocomplete(type = 'project', values = [DEFAULT_AUTOCOMPLETE])
