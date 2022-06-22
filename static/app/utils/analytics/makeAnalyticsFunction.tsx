@@ -14,7 +14,7 @@ type Options = Parameters<Hooks['analytics:track-event-v2']>[1];
  * Each function can only handle the event types specified by the
  * generic for EventParameters and the events in eventKeyToNameMap.
  * Can specifcy default options with the defaultOptions argument as well.
- * Can make orgnization required with the second generic.
+ * Can make organization required with the second generic.
  */
 export default function makeAnalyticsFunction<
   EventParameters extends Record<string, Record<string, any>>,

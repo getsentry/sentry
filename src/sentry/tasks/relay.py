@@ -96,7 +96,7 @@ def validate_args(organization_id=None, project_id=None, public_key=None):
     sure only one is provided.
     """
     if [bool(organization_id), bool(project_id), bool(public_key)].count(True) != 1:
-        raise TypeError("Must provide exactly one of organzation_id, project_id or public_key")
+        raise TypeError("Must provide exactly one of organization_id, project_id or public_key")
 
 
 def compute_configs(organization_id=None, project_id=None, public_key=None):

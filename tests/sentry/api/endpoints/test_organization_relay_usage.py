@@ -94,7 +94,7 @@ class OrganizationRelayHistoryTest(APITestCase):
     @with_feature("organizations:relay")
     def test_only_records_for_known_public_keys_are_returned(self):
         """
-        Only the relay history for relays belonging to the origanization are
+        Only the relay history for relays belonging to the organization are
         returned.
 
         A relay "belongs" to an organization if the relay uses a public key

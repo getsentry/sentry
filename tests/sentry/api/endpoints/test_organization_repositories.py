@@ -85,7 +85,7 @@ class OrganizationRepositoriesListTest(APITestCase):
 
             response = self.client.get(self.url, format="json")
 
-            # Doesn't return anything when the OrganizatioIntegration doesn't
+            # Doesn't return anything when the OrganizationIntegration doesn't
             # exist (the Integration has been disabled)
             assert response.status_code == 200, response.content
             assert len(response.data) == 0
