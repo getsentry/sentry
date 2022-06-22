@@ -463,7 +463,7 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
 def build_key_errors(interval, project):
     start, stop = interval
 
-    # Take the 3 most frequently occuring events
+    # Take the 3 most frequently occurring events
     query = Query(
         match=Entity("events"),
         select=[Column("group_id"), Function("count", [])],
@@ -485,7 +485,7 @@ def build_key_errors(interval, project):
 def build_key_transactions(interval, project):
     start, stop = interval
 
-    # Take the 3 most frequently occuring transactions
+    # Take the 3 most frequently occurring transactions
     query = Query(
         match=Entity("transactions"),
         select=[
