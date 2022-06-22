@@ -222,7 +222,7 @@ export type RequestOptions = RequestCallbacks & {
   method?: APIRequestMethod;
   /**
    * Because of the async nature of API requests, errors will happen outside of
-   * the stack that initated the request. a preservedError can be passed to
+   * the stack that initiated the request. a preservedError can be passed to
    * coalesce the stacks together.
    */
   preservedError?: Error;
