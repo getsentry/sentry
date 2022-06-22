@@ -156,7 +156,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.wait_until_loaded()
 
             # Before
-            rulesBefore = self.browser.elements('[data-test-id="sampling-rule"]')
+            rules_before = self.browser.elements('[data-test-id="sampling-rule"]')
             assert "Environment" in rulesBefore[0].text
             assert "Release" in rulesBefore[1].text
 
