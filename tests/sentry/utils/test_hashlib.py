@@ -13,7 +13,7 @@ HASHLIB_VALUES_TESTS = (
     ("seed", "test", "ce35c0ce0d38976f61a5ca951de74a16"),
     ("seed", (4, 2), "d03b32e798444249d726158594d370f6"),
     ("seed", {"test": 42}, "ca094da15d323155e3954cff7ca373c4"),
-    # XXX: It should be noted these cases EXPLICLTY exclude the fact that
+    # XXX: It should be noted these cases EXPLICITLY exclude the fact that
     # python2 and python3 CANNOT hash to the same values whne using the `str`
     # and not the text_type, since they will map to different cases (py2 will
     # encode with the 0x06 'byte' marker and py3 will encode using the 0x07
