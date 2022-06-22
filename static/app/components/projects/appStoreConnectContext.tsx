@@ -99,14 +99,14 @@ const Provider = ({children, project, organization}: ProviderProps) => {
   }, [projectDetails, organization, appStoreConnectSymbolSources]);
 
   function getUpdateAlertMessage(
-    respository: NonNullable<Parameters<typeof getAppStoreValidationErrorMessage>[1]>,
+    repository: NonNullable<Parameters<typeof getAppStoreValidationErrorMessage>[1]>,
     credentials: AppStoreConnectCredentialsStatus
   ) {
     if (credentials?.status === 'valid') {
       return undefined;
     }
 
-    return getAppStoreValidationErrorMessage(credentials, respository);
+    return getAppStoreValidationErrorMessage(credentials, repository);
   }
 
   return (
