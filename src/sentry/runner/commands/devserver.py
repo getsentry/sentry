@@ -104,7 +104,7 @@ def devserver(
     "Starts a lightweight web server for development."
 
     if ingest:
-        # Ingest requires kakfa+zookeeper to be running.
+        # Ingest requires kafka+zookeeper to be running.
         # They're too heavyweight to startup on-demand with devserver.
         docker = get_docker_client()
         containers = {c.name for c in docker.containers.list(filters={"status": "running"})}

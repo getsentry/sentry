@@ -114,7 +114,7 @@ install-py-dev() {
         # This saves having to install postgresql on the Developer's machine + using flags
         # https://github.com/psycopg/psycopg2/issues/1286
         pip install https://storage.googleapis.com/python-arm64-wheels/psycopg2_binary-2.8.6-cp38-cp38-macosx_11_0_arm64.whl
-        # The CPATH is needed for confluent-kakfa --> https://github.com/confluentinc/confluent-kafka-python/issues/1190
+        # The CPATH is needed for confluent-kafka --> https://github.com/confluentinc/confluent-kafka-python/issues/1190
         export CPATH="$(brew --prefix librdkafka)/include"
         # The LDFLAGS is needed for uWSGI --> https://github.com/unbit/uwsgi/issues/2361
         export LDFLAGS="-L$(brew --prefix gettext)/lib"
