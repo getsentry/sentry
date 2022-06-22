@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -59,6 +59,8 @@ function WidgetQueries({
   selection,
   widget,
 }: Props) {
+  const config = getDatasetConfig(widget.widgetType);
+
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] =
     useState<ChildrenProps['errorMessage']>(undefined);
@@ -67,10 +69,8 @@ function WidgetQueries({
   const [timeseriesResults, setTimeseriesResults] =
     useState<ChildrenProps['timeseriesResults']>(undefined);
 
-  const config = getDatasetConfig(widget.widgetType);
-
-  useEffect(() => {
-    async function fetchData() {
+  const fetchTableData = useCallback(
+    async function fetchTableData() {
       setLoading(true);
       setTableResults(undefined);
       setTimeseriesResults(undefined);
@@ -79,13 +79,18 @@ function WidgetQueries({
       try {
         responses = await Promise.all(
           widget.queries.map(query => {
-            // TODO: Support the other display types
-            return config.getTableRequest!(
+            let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
+            let requestCreator = config.getTableRequest;
+            if (widget.displayType === DisplayType.WORLD_MAP) {
+              requestLimit = undefined;
+              requestCreator = config.getWorldMapRequest;
+            }
+            return requestCreator!(
               api,
               query,
               organization,
               selection,
-              limit ?? DEFAULT_TABLE_LIMIT,
+              requestLimit,
               cursor,
               getReferrer(widget.displayType)
             );
@@ -124,21 +129,35 @@ function WidgetQueries({
       } finally {
         setLoading(false);
       }
-    }
+    },
+    [
+      api,
+      config,
+      cursor,
+      limit,
+      onDataFetched,
+      organization,
+      selection,
+      widget.displayType,
+      widget.queries,
+    ]
+  );
 
-    fetchData();
-  }, [
-    widget.queries,
-    widget.widgetType,
-    widget.displayType,
-    onDataFetched,
-    config,
-    api,
-    organization,
-    selection,
-    limit,
-    cursor,
-  ]);
+  const fetchSeriesData = useCallback(function fetchSeriesData() {
+    console.log('coming soon');
+  }, []);
+
+  useEffect(() => {
+    if (
+      [DisplayType.TABLE, DisplayType.BIG_NUMBER, DisplayType.WORLD_MAP].includes(
+        widget.displayType
+      )
+    ) {
+      fetchTableData();
+    } else {
+      fetchSeriesData();
+    }
+  }, [fetchSeriesData, fetchTableData, widget.displayType]);
 
   return children({loading, tableResults, timeseriesResults, errorMessage});
 }
