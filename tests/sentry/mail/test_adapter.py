@@ -119,6 +119,14 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
             user=user4,
         )
 
+        # add a specific setting for a different provider
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user4,
+        )
+
         assert user4 not in self.adapter.get_sendable_user_objects(project)
 
         NotificationSetting.objects.remove_settings(
