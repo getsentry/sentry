@@ -17,7 +17,7 @@ function isSafeHref(href: string, pattern: RegExp) {
 }
 
 /**
- * Implementation of marked.Renderer which additonally sanitizes URLs.
+ * Implementation of marked.Renderer which additionally sanitizes URLs.
  */
 class SafeRenderer extends marked.Renderer {
   link(href: string, title: string, text: string) {
