@@ -13,7 +13,7 @@ from sentry.models.distribution import Distribution
 from sentry.testutils import APITestCase
 
 
-def test_closes_depnedent_files_is_iterable():
+def test_closes_dependent_files_is_iterable():
     # django (but not django.test) requires a file response to be iterable
     f = ClosesDependentFiles(io.BytesIO(b"hello\nworld\n"))
     assert list(f) == [b"hello\n", b"world\n"]
