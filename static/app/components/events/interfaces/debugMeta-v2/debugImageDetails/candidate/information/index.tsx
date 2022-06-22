@@ -93,9 +93,9 @@ function Information({
         };
       }
 
-      const uplodadedMinutesDiff = moment(eventDateReceived).diff(dateCreated, 'minutes');
+      const uploadedMinutesDiff = moment(eventDateReceived).diff(dateCreated, 'minutes');
 
-      if (uplodadedMinutesDiff >= 60) {
+      if (uploadedMinutesDiff >= 60) {
         return {
           tooltipDesc: dateTime,
           displayIcon: false,

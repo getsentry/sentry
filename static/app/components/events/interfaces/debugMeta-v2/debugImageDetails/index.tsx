@@ -57,7 +57,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
     super.componentDidUpdate(prevProps, prevState);
   }
 
-  getUplodedDebugFiles(candidates: ImageCandidates) {
+  getUploadedDebugFiles(candidates: ImageCandidates) {
     return candidates.find(candidate => candidate.source === INTERNAL_SOURCE);
   }
 
@@ -70,7 +70,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
 
     const {debug_id, candidates = []} = image;
 
-    const uploadedDebugFiles = this.getUplodedDebugFiles(candidates);
+    const uploadedDebugFiles = this.getUploadedDebugFiles(candidates);
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
 
     if (uploadedDebugFiles) {
