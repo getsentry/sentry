@@ -69,7 +69,7 @@ class DifAssembleEndpoint(APITestCase):
             checksums.append(blob.checksum)
 
         # Request to see of file is there
-        # file exists but we have no overship for the chunks
+        # file exists but we have no ownership for the chunks
         response = self.client.post(
             self.url,
             data={checksum: {"name": "dif", "chunks": checksums}},
