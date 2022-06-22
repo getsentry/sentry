@@ -2943,7 +2943,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         data = result["data"]
         assert len(data) == 1
-        # because we're ording by `message`, and offset by 1, the message should be `hello2`
+        # because we're ordering by `message`, and offset by 1, the message should be `hello2`
         assert data[0]["message"] == "hello2"
 
     def test_reflective_types(self):
