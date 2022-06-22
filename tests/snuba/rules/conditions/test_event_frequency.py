@@ -353,7 +353,7 @@ class EventFrequencyPercentConditionTestCase(
 
         # Test data is 2 events in the current period and 1 events in the comparison period.
         # Number of sessions is 20 in each period, so current period is 20% of sessions, prev
-        # is 10%. Overall a 100% increase comparitively.
+        # is 10%. Overall a 100% increase comparatively.
         event = self.store_event(
             data={
                 "fingerprint": ["something_random"],
