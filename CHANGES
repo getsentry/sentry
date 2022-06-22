@@ -1071,7 +1071,7 @@ v8.12
 - Added data migration to backfill legacy release data
 - Added data migration to backfill legacy commit data
 - Added data migration to backfill legacy release file and environment data
-- Allow gziped/deflated JavaScript artifacts to be uploaded through the API.
+- Allow gzipped/deflated JavaScript artifacts to be uploaded through the API.
 - Shared issue view no longer shows SDK.
 - Added ``activeSince`` to search (uses ``active_at``).
 - Added ``firstSeen`` to search (uses ``first_seen``).
