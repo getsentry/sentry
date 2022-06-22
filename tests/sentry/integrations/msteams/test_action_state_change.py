@@ -117,7 +117,7 @@ class BaseEventTest(APITestCase):
 
 
 class StatusActionTest(BaseEventTest):
-    @patch("sentry.integrations.msteams.webhook.verify_signature", return_vaue=True)
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     @patch("sentry.integrations.msteams.link_identity.sign")
     @responses.activate
     def test_ask_linking(self, sign, verify):
