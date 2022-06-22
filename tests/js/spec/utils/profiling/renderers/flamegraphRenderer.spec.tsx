@@ -41,7 +41,7 @@ describe('flamegraphRenderer', () => {
           ...theme,
           COLORS: {
             ...theme.COLORS,
-            // @ts-ignore overridee the colors implementation
+            // @ts-ignore override the colors implementation
             STACK_TO_COLOR: () => {
               const colorMap = new Map<string, number[]>([['f0', [1, 0, 0, 1]]]);
               return {colorBuffer: [1, 0, 0, 1], colorMap};

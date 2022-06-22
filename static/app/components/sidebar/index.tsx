@@ -159,14 +159,14 @@ function Sidebar({location, organization}: Props) {
       organization={organization}
     >
       <SidebarOverride id="performance-override">
-        {(overideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
+        {(overrideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
           <SidebarItem
             {...sidebarItemProps}
             icon={<IconLightning size="md" />}
             label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
             to={`/organizations/${organization.slug}/performance/`}
             id="performance"
-            {...overideProps}
+            {...overrideProps}
           />
         )}
       </SidebarOverride>
