@@ -152,13 +152,16 @@ class GrantedQuota:
     granted: int
 
 
+Timestamp = int
+
+
 class SlidingWindowRateLimiter(Service):
     def __init__(self, **options: Any) -> None:
         pass
 
     def check_within_quotas(
-        self, requests: Sequence[RequestedQuota], timestamp: Optional[int] = None
-    ) -> Tuple[int, Sequence[GrantedQuota]]:
+        self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
+    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
         """
         Given a set of quotas requests and limits, compute how much quota could
         be consumed.
@@ -175,7 +178,10 @@ class SlidingWindowRateLimiter(Service):
         raise NotImplementedError()
 
     def use_quotas(
-        self, requests: Sequence[RequestedQuota], grants: Sequence[GrantedQuota], timestamp: int
+        self,
+        requests: Sequence[RequestedQuota],
+        grants: Sequence[GrantedQuota],
+        timestamp: Timestamp,
     ) -> None:
         """
         Given a set of requests and the corresponding return values from
@@ -240,7 +246,7 @@ class SlidingWindowRateLimiter(Service):
         raise NotImplementedError()
 
     def check_and_use_quotas(
-        self, requests: Sequence[RequestedQuota], timestamp: Optional[int] = None
+        self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
     ) -> Sequence[GrantedQuota]:
         """
         Check the quota requests in Redis and consume the quota in one go. See
@@ -285,8 +291,8 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         )
 
     def check_within_quotas(
-        self, requests: Sequence[RequestedQuota], timestamp: Optional[int] = None
-    ) -> Tuple[int, Sequence[GrantedQuota]]:
+        self, requests: Sequence[RequestedQuota], timestamp: Optional[Timestamp] = None
+    ) -> Tuple[Timestamp, Sequence[GrantedQuota]]:
         if timestamp is None:
             timestamp = int(time())
         else:
@@ -339,7 +345,10 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         return timestamp, results
 
     def use_quotas(
-        self, requests: Sequence[RequestedQuota], grants: Sequence[GrantedQuota], timestamp: int
+        self,
+        requests: Sequence[RequestedQuota],
+        grants: Sequence[GrantedQuota],
+        timestamp: Timestamp,
     ) -> None:
         assert len(requests) == len(grants)
 
