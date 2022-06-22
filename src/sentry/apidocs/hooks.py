@@ -52,7 +52,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
             # if the endpoint is explicitly private, that's okay.
             pass
         else:
-            # any new endpoint that isn't accounted for should recieve this error when building api docs
+            # any new endpoint that isn't accounted for should receive this error when building api docs
             warn(
                 f"{view} {method} is unaccounted for. "
                 "Either document the endpoint and define the `public` attribute on the endpoint "
