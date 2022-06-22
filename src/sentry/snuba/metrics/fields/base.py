@@ -109,8 +109,8 @@ def run_metrics_query(
     projects: Sequence[Project],
     org_id: int,
     referrer: str,
-    start: Optional[datetime],
-    end: Optional[datetime],
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
 ) -> List[SnubaDataType]:
     if end is None:
         end = datetime.now()
