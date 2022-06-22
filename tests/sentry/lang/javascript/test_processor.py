@@ -564,7 +564,7 @@ class FetchFileTest(TestCase):
         with pytest.raises(http.BadSource):
             fetch_file("does-not-exist.js", release=release)
 
-        # Attempt to fetch nonexsting again (to check if cache works)
+        # Attempt to fetch nonexistent again (to check if cache works)
         with pytest.raises(http.BadSource):
             result = fetch_file("does-not-exist.js", release=release)
 

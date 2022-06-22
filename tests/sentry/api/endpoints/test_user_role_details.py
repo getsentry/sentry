@@ -84,7 +84,7 @@ class UserUserRolesDeleteTest(UserUserRolesTest, PermissionTestMixin):
         resp = self.get_response("me", "blah")
         assert resp.status_code == 404
 
-    def test_nonexistant_role(self):
+    def test_nonexistent_role(self):
         UserRole.objects.create(name="support", permissions=["broadcasts.admin"])
         resp = self.get_response("me", "support")
         assert resp.status_code == 404

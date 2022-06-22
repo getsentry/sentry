@@ -1921,7 +1921,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             [],
             "status not 'ok' and not 'already_exists'",
         )
-        run_query("!has:transaction.status", [], "status nonexistant")
+        run_query("!has:transaction.status", [], "status nonexistent")
 
     def test_error_handled_alias(self):
         data = load_data("android-ndk", timestamp=before_now(minutes=10))

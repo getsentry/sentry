@@ -330,12 +330,12 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert member.role == "member"
 
     def test_invalid_user_for_direct_add(self):
-        data = {"email": "notexisting@example.com", "role": "admin", "teams": [self.team.slug]}
+        data = {"email": "nonexistent@example.com", "role": "admin", "teams": [self.team.slug]}
         with self.settings(SENTRY_ENABLE_INVITES=False):
             self.get_success_response(self.organization.slug, method="post", **data)
 
         member = OrganizationMember.objects.get(
-            organization=self.organization, email="notexisting@example.com"
+            organization=self.organization, email="nonexistent@example.com"
         )
         assert len(mail.outbox) == 0
         # todo(maxbittker) this test is a false positive, need to figure out why
