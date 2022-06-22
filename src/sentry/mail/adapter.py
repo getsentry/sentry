@@ -94,7 +94,7 @@ class MailAdapter:
         notifications for the provided project.
         """
         recipients_by_provider = NotificationSetting.objects.get_notification_recipients(project)
-        return recipients_by_provider.get(ExternalProviders.EMAIL)
+        return recipients_by_provider.get(ExternalProviders.EMAIL, [])
 
     def get_sendable_user_ids(self, project):
         users = self.get_sendable_user_objects(project)
