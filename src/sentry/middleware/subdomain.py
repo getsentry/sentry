@@ -25,7 +25,7 @@ class SubdomainMiddleware:
         self.get_response = get_response
 
     def __call__(self, request: Request) -> Response:
-        setattr(request, "subdomain", None)
+        request.subdomain = None
 
         if not self.base_hostname:
             return self.get_response(request)
@@ -40,5 +40,5 @@ class SubdomainMiddleware:
         if len(subdomain) == 0:
             subdomain = None
 
-        setattr(request, "subdomain", subdomain)
+        request.subdomain = subdomain
         return self.get_response(request)
