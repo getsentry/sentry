@@ -270,10 +270,6 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.element('[aria-label="Search or add an environment"]').send_keys(
                 "prod", Keys.ENTER, "production", Keys.ENTER
             )
-            # Fill in Error Message
-            self.browser.element('[placeholder="ex. TypeError* (Multiline)"]').send_keys(
-                "TypeError*\nSomethingElse"
-            )
             # Fill in IP Address
             self.browser.element(
                 '[placeholder="ex. 127.0.0.1 or 10.0.0.0/8 (Multiline)"]'
