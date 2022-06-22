@@ -95,7 +95,7 @@ class JiraPlugin(CorePluginMixin, IssuePlugin2):
             fkwargs["has_autocomplete"] = True
             fkwargs["placeholder"] = "Start typing to search for a user"
         elif schema["type"] in ["timetracking"]:
-            # TODO: Implement timetracking (currently unsupported alltogether)
+            # TODO: Implement timetracking (currently unsupported altogether)
             return None
         elif schema.get("items") in ["worklog", "attachment"]:
             # TODO: Implement worklogs and attachments someday
