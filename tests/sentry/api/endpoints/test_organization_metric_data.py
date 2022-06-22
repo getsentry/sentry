@@ -128,7 +128,7 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
     def test_validate_include_meta_not_enabled_by_default(self):
         self.create_release(version="foo", project=self.project)
         for tag in ("release", "environment"):
-            indexer.record(self.project.organization_id, tag)
+            _indexer_record(self.project.organization_id, tag)
         response = self.get_success_response(
             self.project.organization.slug,
             project=self.project.id,
