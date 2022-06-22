@@ -70,7 +70,7 @@ class GroupEventAttachments extends AsyncComponent<Props, State> {
         }
       );
     } catch (error) {
-      addErrorMessage('An error occurred while deleteting the attachment');
+      addErrorMessage('An error occurred while deleting the attachment');
     }
   };
 
