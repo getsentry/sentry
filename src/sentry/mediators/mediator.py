@@ -88,7 +88,7 @@ class Mediator:
         a logger with a standardized name. The name will be the full module
         path and class of the Mediator.
 
-        When invoked via ``run``, the Mediator will automaticallyt log the
+        When invoked via ``run``, the Mediator will automatically log the
         start and end of its run.
 
         >>> class Creator(Mediator):
