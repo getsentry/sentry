@@ -106,14 +106,14 @@ function AppStoreConnect({
       goNext();
     } catch (error) {
       setIsLoading(false);
-      const appStoreConnnectError = getAppStoreErrorMessage(error);
-      if (typeof appStoreConnnectError === 'string') {
+      const appStoreConnectError = getAppStoreErrorMessage(error);
+      if (typeof appStoreConnectError === 'string') {
         // app-connect-authentication-error
         // app-connect-forbidden-error
-        addErrorMessage(appStoreConnnectError);
+        addErrorMessage(appStoreConnectError);
         return;
       }
-      setStepOneData({...stepOneData, errors: appStoreConnnectError});
+      setStepOneData({...stepOneData, errors: appStoreConnectError});
     }
   }
 
@@ -146,14 +146,14 @@ function AppStoreConnect({
       closeModal();
     } catch (error) {
       setIsLoading(false);
-      const appStoreConnnectError = getAppStoreErrorMessage(error);
+      const appStoreConnectError = getAppStoreErrorMessage(error);
 
-      if (typeof appStoreConnnectError === 'string') {
-        if (appStoreConnnectError === unexpectedErrorMessage) {
+      if (typeof appStoreConnectError === 'string') {
+        if (appStoreConnectError === unexpectedErrorMessage) {
           addErrorMessage(t('An error occurred while updating the custom repository'));
           return;
         }
-        addErrorMessage(appStoreConnnectError);
+        addErrorMessage(appStoreConnectError);
       }
     }
   }
@@ -182,14 +182,14 @@ function AppStoreConnect({
       closeModal();
     } catch (error) {
       setIsLoading(false);
-      const appStoreConnnectError = getAppStoreErrorMessage(error);
+      const appStoreConnectError = getAppStoreErrorMessage(error);
 
-      if (typeof appStoreConnnectError === 'string') {
-        if (appStoreConnnectError === unexpectedErrorMessage) {
+      if (typeof appStoreConnectError === 'string') {
+        if (appStoreConnectError === unexpectedErrorMessage) {
           addErrorMessage(t('An error occurred while adding the custom repository'));
           return;
         }
-        addErrorMessage(appStoreConnnectError);
+        addErrorMessage(appStoreConnectError);
       }
     }
   }
