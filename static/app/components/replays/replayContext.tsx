@@ -44,7 +44,7 @@ type ReplayPlayerContextProps = {
   dimensions: Dimensions;
 
   /**
-   * Duration of the video, in miliseconds
+   * Duration of the video, in milliseconds
    */
   duration: undefined | number;
 

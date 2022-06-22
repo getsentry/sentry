@@ -125,7 +125,7 @@ export const AlertWizardPanelContent: Record<AlertType, PanelContent> = {
     ),
     examples: [
       t('When the 95th percentile FP of a page is longer than 250 milliseconds.'),
-      t('When the average TTFB of a page is longer than 600 millliseconds.'),
+      t('When the average TTFB of a page is longer than 600 milliseconds.'),
     ],
     illustration: diagramCustom,
   },
