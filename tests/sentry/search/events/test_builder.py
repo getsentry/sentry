@@ -605,7 +605,7 @@ class QueryBuilderTest(TestCase):
             ],
         )
         # This query becomes something roughly like:
-        # field:a or (field:b or (event.type:transaciton or transaction: foo))
+        # field:a or (field:b or (event.type:transaction or transaction: foo))
         assert constants.QUERY_TIPS["CHAINED_OR"] in query.tips["query"]
 
         query = QueryBuilder(
