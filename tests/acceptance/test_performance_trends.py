@@ -20,7 +20,7 @@ class PerformanceTrendsTest(AcceptanceTestCase, SnubaTestCase):
     ):
         for index, duration in enumerate(durations):
             time_between = period_mins / len(durations)
-            # distirbute events over the period
+            # distribute events over the period
             minutes = period_mins - ((index + 1) * time_between) + (time_between / 2)
             event = load_data("transaction")
             event.update(
