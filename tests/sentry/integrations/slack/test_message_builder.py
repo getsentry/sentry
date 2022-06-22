@@ -4,7 +4,6 @@ from datetime import datetime
 from typing import Any, Mapping
 
 from django.urls import reverse
-from django.utils import timezone
 
 from sentry.eventstore.models import Event
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
@@ -17,7 +16,6 @@ from sentry.integrations.slack.message_builder.issues import (
 )
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models import Group, Team, User
-from sentry.models.release import Release
 from sentry.testutils import TestCase
 from sentry.utils.dates import to_timestamp
 from sentry.utils.http import absolute_uri
@@ -143,11 +141,7 @@ class BuildGroupAttachmentTest(TestCase):
 
     def test_build_group_release_attachment(self):
         group = self.create_group(project=self.project)
-        release = Release.objects.create(
-            version="1.0.0",
-            organization_id=self.project.organization_id,
-            date_released=timezone.now(),
-        )
+        release = self.create_release(version="1.0.0", project=self.project)
 
         attachments = SlackReleaseIssuesMessageBuilder(group, last_release=release).build()
         release_link = absolute_uri(
