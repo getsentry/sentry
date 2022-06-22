@@ -244,11 +244,11 @@ class TestGetRateLimitValue(TestCase):
         rate_limit_config = get_rate_limit_config(view.view_class)
 
         assert get_rate_limit_value("GET", "ip", rate_limit_config) == RateLimit(100, 5)
-        # get is not overriddent for user, hence we use the default
+        # get is not overridden for user, hence we use the default
         assert get_rate_limit_value(
             "GET", "user", rate_limit_config
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.USER)
-        # get is not overriddent for IP, hence we use the default
+        # get is not overridden for IP, hence we use the default
         assert get_rate_limit_value(
             "POST", "ip", rate_limit_config
         ) == get_default_rate_limits_for_group("default", category=RateLimitCategory.IP)
