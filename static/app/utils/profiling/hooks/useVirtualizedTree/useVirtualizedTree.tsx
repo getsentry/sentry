@@ -493,7 +493,7 @@ export function useVirtualizedTree<T extends TreeLike>(
     };
   }, [props.rowHeight, props.scrollContainer, tree.flattened, cleanupAllHoveredRows]);
 
-  // When mouseleave is triggered on the contianer,
+  // When mouseleave is triggered on the container,
   // we need to hide the ghost row to avoid an orphaned row
   useEffect(() => {
     const container = props.scrollContainer;
