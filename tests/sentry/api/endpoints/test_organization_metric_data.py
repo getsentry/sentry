@@ -2336,19 +2336,18 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.healthy_user"] == [0]
 
     def test_private_transactions_derived_metric(self):
-        for field in ["transaction.all", "transaction.failure_count"]:
-            response = self.get_response(
-                self.organization.slug,
-                project=[self.project.id],
-                field=[field],
-                statsPeriod="1m",
-                interval="1m",
-            )
+        response = self.get_response(
+            self.organization.slug,
+            project=[self.project.id],
+            field=["transaction.all"],
+            statsPeriod="1m",
+            interval="1m",
+        )
 
-            assert response.data["detail"] == (
-                f"Failed to parse '{field}'. Must be something like 'sum(my_metric)', "
-                "or a supported aggregate derived metric like `session.crash_free_rate`"
-            )
+        assert response.data["detail"] == (
+            "Failed to parse 'transaction.all'. Must be something like 'sum(my_metric)', "
+            "or a supported aggregate derived metric like `session.crash_free_rate`"
+        )
 
     def test_failure_rate_transaction(self):
         user_ts = time.time()
