@@ -5,6 +5,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import Button from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
+import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import DropdownMenuControlV2 from 'sentry/components/dropdownMenuControlV2';
 import Tooltip from 'sentry/components/tooltip';
@@ -43,6 +44,14 @@ type Props = {
 
 class ResolveActions extends Component<Props> {
   static defaultProps = defaultProps;
+
+  handleCommitResolution(statusDetails: ResolutionStatusDetails) {
+    const {onUpdate} = this.props;
+    onUpdate({
+      status: ResolutionStatus.RESOLVED,
+      statusDetails,
+    });
+  }
 
   handleAnotherExistingReleaseResolution(statusDetails: ResolutionStatusDetails) {
     const {organization, onUpdate} = this.props;
@@ -163,6 +172,11 @@ class ResolveActions extends Component<Props> {
         label: t('Another existing release\u2026'),
         onAction: () => this.openCustomReleaseModal(),
       },
+      {
+        key: 'a-commit',
+        label: t('A commit\u2026'),
+        onAction: () => this.openCustomCommitModal(),
+      },
     ];
 
     const isDisabled = !projectSlug ? disabled : disableDropdown;
@@ -189,6 +203,21 @@ class ResolveActions extends Component<Props> {
         isDisabled={isDisabled}
       />
     );
+  }
+
+  openCustomCommitModal() {
+    const {orgSlug, projectSlug} = this.props;
+
+    openModal(deps => (
+      <CustomCommitsResolutionModal
+        {...deps}
+        onSelected={(statusDetails: ResolutionStatusDetails) =>
+          this.handleCommitResolution(statusDetails)
+        }
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+      />
+    ));
   }
 
   openCustomReleaseModal() {
