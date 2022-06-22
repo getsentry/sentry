@@ -230,7 +230,7 @@ const StyledSwitch = styled(Switch)`
   margin: auto;
 `;
 
-// padding is based on fom control width
+// padding is based on form control width
 const StyledPanelHeader = styled(PanelHeader)`
   padding-right: 36px;
 `;
