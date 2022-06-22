@@ -15,7 +15,7 @@ type Props = {
    */
   parsedQuery: ParseResult;
   /**
-   * The current location of the cursror within the query. This is used to
+   * The current location of the cursor within the query. This is used to
    * highlight active tokens and trigger error tooltips.
    */
   cursorPosition?: number;
