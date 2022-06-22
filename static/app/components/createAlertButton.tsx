@@ -31,9 +31,9 @@ import {
 import {getQueryDatasource} from 'sentry/views/alerts/utils';
 import {
   AlertType,
+  AlertWizardAlertNames,
   AlertWizardRuleTemplates,
   DEFAULT_WIZARD_TEMPLATE,
-  AlertWizardAlertNames
 } from 'sentry/views/alerts/wizard/options';
 
 /**
@@ -356,12 +356,12 @@ function CreateAlertFromViewButton({
 
 type Props = {
   organization: Organization;
+  alertOption?: keyof typeof AlertWizardAlertNames;
   hideIcon?: boolean;
   iconProps?: SVGIconProps;
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
-  alertOption?: keyof typeof AlertWizardAlertNames
 } & WithRouterProps &
   ButtonProps;
 
@@ -390,7 +390,7 @@ const CreateAlertButton = withRouter(
             ? `project=${providedProj}`
             : ''
         }`,
-        alertOption ? `alert_option=${alertOption}` : ''
+        alertOption ? `alert_option=${alertOption}` : '',
       ].filter(item => item !== '');
 
       return `${alertsBaseUrl}/wizard/${alertsArgs.length ? '?' : ''}${alertsArgs.join(
