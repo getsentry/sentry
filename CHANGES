@@ -220,7 +220,7 @@ By: @edwardgou-sentry (#28699, #28827, #28745, #28637)
 - ref(integrations): Split up large file (#30786) by @mgaeta
 - ref(analytics): Analytics Refactor + Types (#30555) by @mgaeta
 - fix(teamStats): Fix link to alert details from triggered (#31124) by @scttcper
-- ref(sentry apps): Don't raise IgnoreableSentryAppError (#31033) by @ceorourke
+- ref(sentry apps): Don't raise IgnorableSentryAppError (#31033) by @ceorourke
 
 _Plus 2051 more_
 
