@@ -8,7 +8,7 @@ from sentry.auth.authenticators.base import ActivationChallengeResult
 from sentry.testutils import TestCase
 
 
-def verifiy_origin(origin):
+def verify_origin(origin):
     return True
 
 
@@ -17,11 +17,11 @@ class U2FInterfaceTest(TestCase):
         self.u2f = U2fInterface()
         self.login_as(user=self.user)
         rp = PublicKeyCredentialRpEntity("richardmasentry.ngrok.io", "Sentry")
-        self.test_registration_server = Fido2Server(rp, verify_origin=verifiy_origin)
+        self.test_registration_server = Fido2Server(rp, verify_origin=verify_origin)
         self.test_authentication_server = U2FFido2Server(
             app_id="http://richardmasentry.ngrok.io/auth/2fa/u2fappid.json",
             rp={"id": "richardmasentry.ngrok.io", "name": "Sentry"},
-            verify_u2f_origin=verifiy_origin,
+            verify_u2f_origin=verify_origin,
         )
 
     def test_start_enrollment_webauthn(self):
