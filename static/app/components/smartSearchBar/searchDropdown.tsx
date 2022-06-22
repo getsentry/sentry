@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import HighlightQuery from 'sentry/components/searchSyntax/renderer';
 import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
@@ -111,6 +113,24 @@ class SearchDropdown extends PureComponent<Props> {
     </SearchDropdownGroup>
   );
 
+  renderQueryItem = (item: SearchItem) => {
+    if (!item.value) {
+      return null;
+    }
+
+    const parsedQuery = parseSearch(item.value);
+
+    if (!parsedQuery) {
+      return null;
+    }
+
+    return (
+      <QueryItemWrapper>
+        <HighlightQuery parsedQuery={parsedQuery} />
+      </QueryItemWrapper>
+    );
+  };
+
   renderItem = (item: SearchItem) => {
     return (
       <SearchListItem
@@ -122,14 +142,20 @@ class SearchDropdown extends PureComponent<Props> {
         isGrouped={item.isGrouped}
         isChild={item.isChild}
       >
-        <SearchItemTitleWrapper>
-          {this.renderItemTitle(item)}
-          {item.desc && <span>{item.desc}</span>}
-        </SearchItemTitleWrapper>
-        <Documentation>{item.documentation}</Documentation>
-        <TagWrapper>
-          {item.kind && !item.isChild && this.renderKind(item.kind)}
-        </TagWrapper>
+        {item.type === ItemType.RECENT_SEARCH ? (
+          this.renderQueryItem(item)
+        ) : (
+          <Fragment>
+            <SearchItemTitleWrapper>
+              {this.renderItemTitle(item)}
+              {item.desc && <span>{item.desc}</span>}
+            </SearchItemTitleWrapper>
+            <Documentation>{item.documentation}</Documentation>
+            <TagWrapper>
+              {item.kind && !item.isChild && this.renderKind(item.kind)}
+            </TagWrapper>
+          </Fragment>
+        )}
       </SearchListItem>
     );
   };
@@ -435,4 +461,14 @@ const Invalid = styled(`span`)`
 
 const Highlight = styled(`strong`)`
   color: ${p => p.theme.linkColor};
+`;
+
+const QueryItemWrapper = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  width: 100%;
+  gap: ${space(1)};
+  display: flex;
+  white-space: nowrap;
+  word-break: normal;
+  font-family: ${p => p.theme.text.familyMono};
 `;
