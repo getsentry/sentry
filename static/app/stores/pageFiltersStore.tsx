@@ -37,7 +37,7 @@ interface State extends CommonState {
 
 interface InternalDefinition extends CommonState {
   /**
-   * Have we initalized page filters?
+   * Have we initialized page filters?
    */
   hasInitialState: boolean;
 }
