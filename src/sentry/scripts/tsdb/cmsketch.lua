@@ -352,7 +352,7 @@ function Sketch:import(payload)
     if table.is_empty(source_estimators) then
         -- If we're just writing the source index values (and not estimators)
         -- to the destination, we can just directly increment the sketch which
-        -- will take care of destinaton estimator updates and index truncation,
+        -- will take care of destination estimator updates and index truncation,
         -- if necessary.
         local items = {}
         for key, value in pairs(source_index) do
