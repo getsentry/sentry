@@ -947,7 +947,7 @@ class EnableAlertRuleTest(TestCase, BaseIncidentsTest):
                 assert subscription.status == QuerySubscription.Status.ACTIVE.value
 
 
-class DisbaleAlertRuleTest(TestCase, BaseIncidentsTest):
+class DisableAlertRuleTest(TestCase, BaseIncidentsTest):
     @fixture
     def alert_rule(self):
         return self.create_alert_rule()
