@@ -1,6 +1,7 @@
 import trimStart from 'lodash/trimStart';
 
 import {Client} from 'sentry/api';
+import {SearchBarProps} from 'sentry/components/events/searchBar';
 import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
@@ -10,14 +11,27 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, WidgetQuery, WidgetType} from '../types';
+import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
 import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
 
+export type WidgetBuilderSearchBarProps = {
+  onBlur: SearchBarProps['onBlur'];
+  onSearch: SearchBarProps['onSearch'];
+  organization: Organization;
+  pageFilters: PageFilters;
+  widgetQuery: WidgetQuery;
+};
+
 export interface DatasetConfig<SeriesResponse, TableResponse> {
+  /**
+   * Dataset specific search bar for the 'Filter' step in the
+   * widget builder.
+   */
+  SearchBar: (props: WidgetBuilderSearchBarProps) => JSX.Element;
   /**
    * Default query to display when dataset is selected in the
    * Widget Builder.
@@ -70,16 +84,22 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
+   * Field options to display in the Group by selector.
+   */
+  getGroupByFieldOptions?: (
+    organization: Organization,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
+  /**
    * Generate the request promises for fetching
    * series data.
    */
   getSeriesRequest?: (
     api: Client,
-    query: WidgetQuery,
+    widget: Widget,
+    queryIndex: number,
     organization: Organization,
     pageFilters: PageFilters,
-    limit?: number,
-    cursor?: string,
     referrer?: string
   ) => ReturnType<Client['requestPromise']>;
   /**

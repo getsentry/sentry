@@ -75,17 +75,17 @@ def _normalize(
     profile: MutableMapping[str, Any],
     organization: Organization,
 ) -> MutableMapping[str, Any]:
-    classification_options = dict()
+    if profile["platform"] in {"cocoa", "android"}:
+        classification_options = dict()
 
-    if profile["platform"] == "android":
-        classification_options.update(
-            {
-                "cpu_frequencies": profile["device_cpu_frequencies"],
-                "physical_memory_bytes": profile["device_physical_memory_bytes"],
-            }
-        )
+        if profile["platform"] == "android":
+            classification_options.update(
+                {
+                    "cpu_frequencies": profile["device_cpu_frequencies"],
+                    "physical_memory_bytes": profile["device_physical_memory_bytes"],
+                }
+            )
 
-    if profile["platform"] in ["cocoa", "android"]:
         classification_options.update(
             {
                 "model": profile["device_model"],
@@ -93,15 +93,19 @@ def _normalize(
                 "is_emulator": profile["device_is_emulator"],
             }
         )
-        profile.update({"device_classification": str(classify_device(**classification_options))})
 
-    if profile["platform"] == "rust":
+        profile.update({"device_classification": str(classify_device(**classification_options))})
+    else:
         profile.update(
             {
-                "device_classification": "",
-                "device_locale": "",
-                "device_manufacturer": "",
-                "device_model": "",
+                attr: ""
+                for attr in (
+                    "device_classification",
+                    "device_locale",
+                    "device_manufacturer",
+                    "device_model",
+                )
+                if attr not in profile
             }
         )
 
@@ -142,7 +146,6 @@ def _symbolicate(profile: MutableMapping[str, Any], project: Project) -> Mutable
                     frame.pop("context_line", None)
                     frame.pop("post_context", None)
 
-                original["original_frames"] = original["frames"]
                 original["frames"] = symbolicated["frames"]
             break
         except RetrySymbolication as e:

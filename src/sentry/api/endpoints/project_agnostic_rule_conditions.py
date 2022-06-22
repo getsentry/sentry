@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.rules import rules
 
@@ -19,10 +20,19 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
 
             return context
 
+        has_active_release_condition = features.has(
+            "organizations:alert-release-notification-workflow", organization
+        )
+
         return Response(
             [
                 info_extractor(rule_cls)
                 for rule_type, rule_cls in rules
                 if rule_type.startswith("condition/")
+                and (
+                    has_active_release_condition
+                    or rule_cls.id
+                    != "sentry.rules.conditions.active_release.ActiveReleaseEventCondition"
+                )
             ]
         )
