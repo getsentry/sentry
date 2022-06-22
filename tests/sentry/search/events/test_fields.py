@@ -1653,7 +1653,7 @@ def resolve_snql_fieldlist(fields):
         ),
     ],
 )
-def test_range_funtions(field, expected):
+def test_range_functions(field, expected):
     fields = resolve_snql_fieldlist([field])
     assert len(fields) == 1
     assert fields[0] == expected
