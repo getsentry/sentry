@@ -123,7 +123,7 @@ class PluginWithConfigSerializer(PluginSerializer):
         d = super().serialize(obj, attrs, user)
         d["config"] = [
             serialize_field(self.project, obj, c)
-            for c in obj.get_config(project=self.project, user=user, add_additial_fields=True)
+            for c in obj.get_config(project=self.project, user=user, add_additional_fields=True)
         ]
         return d
 

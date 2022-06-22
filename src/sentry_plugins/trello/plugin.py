@@ -87,7 +87,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
 
         config = [key_config, token_config]
         org_value = get_value("organization")
-        include_org = kwargs.get("add_additial_fields", org_value)
+        include_org = kwargs.get("add_additional_fields", org_value)
         if api_key and token_val and include_org:
             trello_client = TrelloApiClient(api_key, token_val)
             try:
