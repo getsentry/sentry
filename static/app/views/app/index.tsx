@@ -124,7 +124,7 @@ function App({children}: Props) {
     initApiClientErrorHandling();
     fetchGuides();
 
-    // When the app is unloaded clear the organizationst list
+    // When the app is unloaded clear the organization store list
     return () => OrganizationsStore.load([]);
   }, [loadOrganizations, checkInternalHealth, config.messages, config.user]);
 
