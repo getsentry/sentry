@@ -68,7 +68,7 @@ export type OnboardingTaskDescriptor = {
   renderCard?: (props: OnboardingCustomComponentProps) => JSX.Element | null;
   /**
    * Joins with this task id for server-side onboarding state.
-   * This allows you to create alias for exising onboarding tasks or create multiple
+   * This allows you to create alias for existing onboarding tasks or create multiple
    * tasks for the same server-side task.
    */
   serverTask?: string;
