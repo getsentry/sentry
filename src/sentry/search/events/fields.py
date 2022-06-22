@@ -365,7 +365,7 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
         ),
-        # the team key transaction field is intentially not added to the discover/fields list yet
+        # the team key transaction field is intentionally not added to the discover/fields list yet
         # because there needs to be some work on the front end to integrate this into discover
         PseudoField(
             TEAM_KEY_TRANSACTION_ALIAS,
