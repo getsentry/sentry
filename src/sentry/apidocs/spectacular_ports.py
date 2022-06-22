@@ -21,7 +21,7 @@ from typing_extensions import _TypedDictMeta
 
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
-# Until we're on 3.9 we have to use the typing extention TypedDict as
+# Until we're on 3.9 we have to use the typing extension TypedDict as
 # we are unable to tell optional fields at run time via the regular 3.8
 # implementation
 
