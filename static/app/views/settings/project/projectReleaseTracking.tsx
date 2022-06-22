@@ -84,7 +84,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
     });
   };
 
-  getReleaseWebhookIntructions() {
+  getReleaseWebhookInstructions() {
     const {webhookUrl} = this.state.data || placeholderData;
     return (
       'curl ' +
@@ -216,7 +216,7 @@ class ProjectReleaseTracking extends AsyncView<Props, State> {
             {getDynamicText({
               value: (
                 <AutoSelectText>
-                  <pre>{this.getReleaseWebhookIntructions()}</pre>
+                  <pre>{this.getReleaseWebhookInstructions()}</pre>
                 </AutoSelectText>
               ),
               fixed: (
