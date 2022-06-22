@@ -66,7 +66,7 @@ type State = {
    * This is a pair of reference points on the graph that we can use to map any
    * other points to their pixel coordinates on the graph.
    *
-   * The x values  here are the index of the cooresponding bucket and the y value
+   * The x values  here are the index of the corresponding bucket and the y value
    * are the respective counts.
    *
    * Invariances:
@@ -75,7 +75,7 @@ type State = {
    */
   refDataRect: Rectangle | null;
   /**
-   * This is the cooresponding pixel coordinate of the references points from refDataRect.
+   * This is the corresponding pixel coordinate of the references points from refDataRect.
    *
    * ECharts' pixel coordinates are relative to the top left whereas the axis coordinates
    * used here are relative to the bottom right. Because of this and the invariances imposed
