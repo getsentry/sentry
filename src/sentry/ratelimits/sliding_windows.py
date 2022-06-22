@@ -14,26 +14,29 @@ quota, as checking quota and spending quota are two separate steps.
 Example
 =======
 
-We want to enforce the number of requests per organization both per-hour
-(100/hour) and per-minute (10/minute). On every request, our API endpoint
-calls:
+We want to enforce the number of requests per organization via two limits:
+
+* 100 per 30-second
+* 10 per 3-seconds
+
+On every request, our API endpoint calls:
 
     check_and_use_quotas(RequestedQuota(
         prefix=f"org-id:{org_id}"
         quotas=[
             Quota(
-                window_seconds=3600,
+                window_seconds=30,
                 limit=100,
 
                 # can be arbitrary depending on how "sliding" the sliding
                 # window should be. This one configures per-second granularity
                 # to make the example simpler
-                granularity=1,
+                granularity=10,
             ),
             Quota(
-                window_seconds=60,
+                window_seconds=3,
                 limit=10,
-                granularity=10,
+                granularity=1,
             )
         ]
     ))
@@ -41,28 +44,25 @@ calls:
 For a request happening at time `900` for `org_id=123`, the redis backend
 checks the following keys::
 
-    sliding-window-rate-limit:123:60:900
-    sliding-window-rate-limit:123:60:899
-    sliding-window-rate-limit:123:60:898
-    ...
-
-    sliding-window-rate-limit:123:3600:90
-    sliding-window-rate-limit:123:3600:89
-    sliding-window-rate-limit:123:3600:88
-    ...
+    sliding-window-rate-limit:123:3:900
+    sliding-window-rate-limit:123:3:899
+    sliding-window-rate-limit:123:3:898
+    sliding-window-rate-limit:123:30:90
+    sliding-window-rate-limit:123:30:89
+    sliding-window-rate-limit:123:30:88
 
 ...none of which exist, so the values are assumed 0 and the request goes
 through. It then sets the following keys:
 
-    sliding-window-rate-limit:123:3600:90 += 1
-    sliding-window-rate-limit:123:60:900 += 1
+    sliding-window-rate-limit:123:30:90 += 1
+    sliding-window-rate-limit:123:3:900 += 1
 
 After one minute, another request for the same org happens at time `902`, and
 the keys change as follows:
 
-    sliding-window-rate-limit:123:60:900 = 1
-    sliding-window-rate-limit:123:60:902 = 1
-    sliding-window-rate-limit:123:3600:90 = 2
+    sliding-window-rate-limit:123:3:900 = 1
+    sliding-window-rate-limit:123:3:902 = 1
+    sliding-window-rate-limit:123:30:90 = 2
 
 """
 
