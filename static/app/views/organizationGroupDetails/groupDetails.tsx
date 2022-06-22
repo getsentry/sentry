@@ -441,7 +441,7 @@ class GroupDetails extends Component<Props, State> {
           //
           // If it is not defined, we add the locked project id to the URL
           // (this is because if someone navigates directly to an issue on
-          // single-project priveleges, then goes back - they were getting
+          // single-project privileges, then goes back - they were getting
           // assigned to the first project).
           //
           // If it is defined, we do not so that our back button will bring us
