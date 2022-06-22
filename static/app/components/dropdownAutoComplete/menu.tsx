@@ -240,7 +240,7 @@ function Menu({
   // emptyHidesInput is set to true.
   const showInput = !hideInput && (hasItems || !emptyHidesInput);
 
-  // Only redefine the autocomplete function if our items list has chagned.
+  // Only redefine the autocomplete function if our items list has changed.
   // This avoids producing a new array on every call.
   const stableItemFilter = useCallback(
     (filterValueOrInput: string) => autoCompleteFilter(items, filterValueOrInput),
