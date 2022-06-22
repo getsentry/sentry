@@ -29,7 +29,7 @@ On every request, our API endpoint calls:
                 limit=100,
 
                 # can be arbitrary depending on how "sliding" the sliding
-                # window should be. This one configures per-second granularity
+                # window should be. This one configures per-10-second granularity
                 # to make the example simpler
                 granularity=10,
             ),
@@ -57,10 +57,12 @@ through. It then sets the following keys:
     sliding-window-rate-limit:123:30:90 += 1
     sliding-window-rate-limit:123:3:900 += 1
 
-After one minute, another request for the same org happens at time `902`.
+Another request for the same org happens at time `902`.
 
 * The keys starting with `:123:30:` sum up to 1, so the 30-second limit of 100 is not exceeded.
 * The keys starting with `:123:3:` sum up to 1, so the 3-second limit of 10 is not exceeded.
+
+This request is granted the minimum allowed from the two requested, in this case that is 9 (3-second limit of 10 - 1 used) 
 
 Because no quota is exceeded, the request is granted. If one quota summed up to
 100 or 10, respectively, the request would be rejected.
