@@ -88,7 +88,7 @@ type Props = WithRouterProps & {
    */
   shouldForceProject?: boolean;
   /**
-   * Link back to the issues strean
+   * Link back to the issues stream
    *
    * @deprecated
    */
