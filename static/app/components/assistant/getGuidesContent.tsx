@@ -214,12 +214,13 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
     {
       guide: 'releases_widget',
       requiredTargets: ['releases_widget'],
+      dateThreshold: new Date('2022-06-22'),
       steps: [
         {
           title: t('Releases are here!'),
           target: 'releases_widget',
           description: t(
-            'Want to know how you latest release is doing? Monitor release health and crash rates in Dashboards.'
+            'Want to know how your latest release is doing? Monitor release health and crash rates in Dashboards.'
           ),
           nextText: t('Sounds Good'),
         },
