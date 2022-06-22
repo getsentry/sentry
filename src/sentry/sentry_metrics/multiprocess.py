@@ -239,7 +239,7 @@ else:
 class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
     """
     Step that produces to the snuba-metrics topic, collecting the futures returned by
-    the producer. Continously checks to see if futures are done, and once that's the case
+    the producer. Continuously checks to see if futures are done, and once that's the case
     can commit up to the last future that is done.
     """
 
