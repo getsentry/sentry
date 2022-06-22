@@ -101,7 +101,7 @@ class ActiveReleaseEventCondition(EventCondition):
         return False
 
     def passes(self, event: Event, state: EventState) -> bool:
-        if self.rule and self.rule.environment_id is None:  # type: ignore
+        if self.rule and self.rule.environment_id is None:
             return (state.is_new or state.is_regression) and self.is_in_active_release(event)
         else:
             return (
