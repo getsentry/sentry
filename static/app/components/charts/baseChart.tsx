@@ -73,7 +73,7 @@ type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
 /**
  * Used for some properties that can be truncated
  */
-type Truncateable = {
+type Truncatable = {
   /**
    * Truncate the label / value some number of characters.
    * If true is passed, it will use truncate based on a default length.
@@ -83,7 +83,7 @@ type Truncateable = {
 
 interface TooltipOption
   extends Omit<TooltipComponentOption, 'valueFormatter'>,
-    Truncateable {
+    Truncatable {
   filter?: (value: number, seriesParam: TooltipComponentOption['formatter']) => boolean;
   formatAxisLabel?: (
     value: number,
@@ -173,7 +173,7 @@ type Props = {
   /**
    * Chart legend
    */
-  legend?: LegendComponentOption & Truncateable;
+  legend?: LegendComponentOption & Truncatable;
   /**
    * optional, threshold in minutes used to add seconds to the xAxis datetime format if `isGroupedByDate == true`
    */
@@ -277,7 +277,7 @@ type Props = {
    *
    * Additionally a `truncate` option
    */
-  xAxis?: (XAXisComponentOption & Truncateable) | null;
+  xAxis?: (XAXisComponentOption & Truncatable) | null;
 
   /**
    * Pass `true` to have 2 y-axes with default properties. Can pass an array of
