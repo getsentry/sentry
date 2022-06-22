@@ -1,17 +1,13 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
-import {initializeOrg} from 'sentry-test/initializeOrg';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Client} from 'sentry/api';
 import Settings from 'sentry/views/settings/projectAlerts/settings';
 
-describe('ProjectAlertSettings', function () {
-  let organization;
-  let project;
-  let routerContext;
+describe('ProjectAlertSettings', () => {
+  const organization = TestStubs.Organization();
+  const project = TestStubs.Project();
 
-  beforeEach(function () {
-    ({organization, project, routerContext} = initializeOrg());
-
+  beforeEach(() => {
     Client.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
@@ -25,20 +21,22 @@ describe('ProjectAlertSettings', function () {
     });
   });
 
-  it('renders', function () {
-    const wrapper = mountWithTheme(
+  it('renders', () => {
+    render(
       <Settings
         canEditRule
         params={{orgId: organization.slug, projectId: project.slug}}
         organization={organization}
         routes={[]}
-      />,
-      routerContext
+      />
     );
 
-    expect(wrapper.find('Input[name="subjectTemplate"]')).toHaveLength(1);
-    expect(wrapper.find('RangeSlider[name="digestsMinDelay"]')).toHaveLength(1);
-    expect(wrapper.find('RangeSlider[name="digestsMaxDelay"]')).toHaveLength(1);
-    expect(wrapper.find('PluginList')).toHaveLength(1);
+    expect(screen.getByPlaceholderText('e.g. $shortID - $title')).toBeInTheDocument();
+    expect(screen.getAllByRole('slider')).toHaveLength(2);
+    expect(
+      screen.getByText(
+        "Oops! Looks like there aren't any available integrations installed."
+      )
+    ).toBeInTheDocument();
   });
 });
