@@ -136,7 +136,6 @@ const PositionedBuffering = styled(BufferingOverlay)`
 // Base styles, to make the Replayer instance work
 const PlayerRoot = styled(BasePlayerRoot)`
   .replayer-wrapper {
-    background: white;
     user-select: none;
   }
   .replayer-wrapper > .replayer-mouse-tail {
@@ -147,6 +146,7 @@ const PlayerRoot = styled(BasePlayerRoot)`
   /* Override default user-agent styles */
   .replayer-wrapper > iframe {
     border: none;
+    background: white;
   }
 `;
 

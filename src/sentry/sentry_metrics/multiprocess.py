@@ -560,7 +560,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
-            partial(process_messages, use_case_id=self.__config.use_case_id),
+            partial(process_messages, self.__config.use_case_id),
             ProduceStep(output_topic=self.__config.output_topic, commit_function=commit),
             self.__processes,
             max_batch_size=self.__max_batch_size,
@@ -619,7 +619,9 @@ class TransformStep(ProcessingStep[MessageBatch]):  # type: ignore
     def __init__(
         self, next_step: ProcessingStep[KafkaPayload], config: MetricsIngestConfiguration
     ) -> None:
-        self.__process_messages = partial(process_messages, use_case_id=config.use_case_id)
+        self.__process_messages: Callable[[Message[MessageBatch]], MessageBatch] = partial(
+            process_messages, config.use_case_id
+        )
         self.__next_step = next_step
         self.__closed = False
         self.__metrics = get_metrics()
