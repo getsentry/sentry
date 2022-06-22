@@ -41,15 +41,15 @@ def get_reprocessing_revision(project, cached=True):
 
 def bump_reprocessing_revision(project, use_buffer=False):
     """Bumps the reprocessing revision."""
-    from sentry import buffer
     from sentry.models import ProjectOption
+    from sentry.tasks.process_buffer import buffer_incr
 
     rev = uuid.uuid4().hex
     if use_buffer:
-        buffer.incr(
+        buffer_incr(
             ProjectOption,
             columns={},
-            filters={"project": project, "key": REPROCESSING_OPTION},
+            filters={"project_id": project.id, "key": REPROCESSING_OPTION},
             signal_only=True,
         )
     else:
