@@ -60,7 +60,7 @@ class Service:
 
 class LazyServiceWrapper(LazyObject):  # type: ignore
     """
-    Lazyily instantiates a standard Sentry service class.
+    Lazily instantiates a standard Sentry service class.
 
     >>> LazyServiceWrapper(BaseClass, 'path.to.import.Backend', {})
 
