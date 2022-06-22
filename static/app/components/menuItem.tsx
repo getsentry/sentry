@@ -38,7 +38,7 @@ type MenuItemProps = {
    */
   icon?: React.ReactNode;
   /**
-   * Is the item actively seleted?
+   * Is the item actively selected?
    */
   isActive?: boolean;
   /**
