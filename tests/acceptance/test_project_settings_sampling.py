@@ -2,13 +2,14 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 
 from sentry.api.endpoints.project_details import DynamicSamplingSerializer
+from sentry.models import ProjectOption
 from sentry.testutils import AcceptanceTestCase
 
 FEATURE_NAME = "organizations:filters-and-sampling"
 
 sampling_rule_all_possible_conditions = {
     "id": 4,
-    "type": "error",
+    "type": "transaction",
     "condition": {
         "op": "and",
         "inner": [
@@ -23,7 +24,6 @@ sampling_rule_all_possible_conditions = {
                 "options": {"ignoreCase": True},
             },
             {"op": "custom", "name": "event.client_ip", "value": ["10.0.0.0/8", "127.0.0.1"]},
-            {"op": "eq", "name": "event.is_local_ip", "value": True},
             {
                 "op": "custom",
                 "name": "event.legacy_browser",
@@ -38,6 +38,7 @@ sampling_rule_all_possible_conditions = {
                     "android_pre_4",
                 ],
             },
+            {"op": "eq", "name": "event.is_local_ip", "value": True},
             {"op": "glob", "name": "event.contexts.os.name", "value": ["Mac OS X", "Windo*"]},
             {"op": "glob", "name": "event.contexts.os.version", "value": ["11"]},
             {"op": "glob", "name": "event.release", "value": ["frontend@22*"]},
@@ -317,7 +318,10 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.snapshot("sampling settings rule with all possible conditions")
 
             # Validate the payload
-            saved_sampling_setting = self.project.get_option("sentry:dynamic_sampling")
+            project_option = ProjectOption.objects.get(
+                key="sentry:dynamic_sampling", project=self.project
+            )
+            saved_sampling_setting = project_option.value
             serializer = DynamicSamplingSerializer(data=saved_sampling_setting)
             assert serializer.is_valid()
             assert len(serializer.validated_data["rules"]) == 4
