@@ -338,7 +338,7 @@ jobs:
         if: needs.files-changed.outputs.backend == 'true'
 
       - name: Diff snapshots
-        id: visual-snapshots-diff
+        id: visual-snapshots-diff-pixelmatch
         uses: getsentry/action-visual-snapshot@main
         with:
           action-name: 'Chartcuterie Visual Snapshot'
