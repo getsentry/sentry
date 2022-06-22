@@ -14,10 +14,8 @@ import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQu
 import {Widget, WidgetType} from '../types';
 
 import WidgetCardChart, {AugmentedEChartDataZoomHandler} from './chart';
+import GenericWidgetQueries from './genericWidgetQueries';
 import {IssueWidgetCard} from './issueWidgetCard';
-import IssueWidgetQueries from './issueWidgetQueries';
-import ReleaseWidgetQueries from './releaseWidgetQueries';
-import WidgetQueries from './widgetQueries';
 
 type Props = WithRouterProps & {
   api: Client;
@@ -68,25 +66,25 @@ export function WidgetCardChartContainer({
   noPadding,
   chartZoomOptions,
 }: Props) {
-  if (widget.widgetType === WidgetType.ISSUE) {
-    return (
-      <IssueWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={tableItemLimit}
-        onDataFetched={onDataFetched}
-      >
-        {({transformedResults, errorMessage, loading}) => {
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
-              <LoadingScreen loading={loading} />
+  return (
+    <GenericWidgetQueries
+      api={api}
+      organization={organization}
+      widget={widget}
+      selection={selection}
+      limit={tableItemLimit ?? widget.limit}
+      onDataFetched={onDataFetched}
+    >
+      {({timeseriesResults, tableResults, errorMessage, loading}) => {
+        return (
+          <Fragment>
+            {typeof renderErrorMessage === 'function'
+              ? renderErrorMessage(errorMessage)
+              : null}
+            <LoadingScreen loading={loading} />
+            {widget.widgetType === WidgetType.ISSUE ? (
               <IssueWidgetCard
-                transformedResults={transformedResults}
+                transformedResults={tableResults?.[0].data ?? []}
                 loading={loading}
                 errorMessage={errorMessage}
                 widget={widget}
@@ -94,29 +92,7 @@ export function WidgetCardChartContainer({
                 location={location}
                 selection={selection}
               />
-            </Fragment>
-          );
-        }}
-      </IssueWidgetQueries>
-    );
-  }
-
-  if (widget.widgetType === WidgetType.RELEASE) {
-    return (
-      <ReleaseWidgetQueries
-        api={api}
-        organization={organization}
-        widget={widget}
-        selection={selection}
-        limit={widget.limit ?? tableItemLimit}
-        onDataFetched={onDataFetched}
-      >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => {
-          return (
-            <Fragment>
-              {typeof renderErrorMessage === 'function'
-                ? renderErrorMessage(errorMessage)
-                : null}
+            ) : (
               <WidgetCardChart
                 timeseriesResults={timeseriesResults}
                 tableResults={tableResults}
@@ -129,58 +105,19 @@ export function WidgetCardChartContainer({
                 organization={organization}
                 isMobile={isMobile}
                 windowWidth={windowWidth}
-                expandNumbers={expandNumbers}
                 onZoom={onZoom}
+                onLegendSelectChanged={onLegendSelectChanged}
+                legendOptions={legendOptions}
+                expandNumbers={expandNumbers}
                 showSlider={showSlider}
                 noPadding={noPadding}
                 chartZoomOptions={chartZoomOptions}
               />
-            </Fragment>
-          );
-        }}
-      </ReleaseWidgetQueries>
-    );
-  }
-
-  return (
-    <WidgetQueries
-      api={api}
-      organization={organization}
-      widget={widget}
-      selection={selection}
-      limit={tableItemLimit}
-      onDataFetched={onDataFetched}
-    >
-      {({tableResults, timeseriesResults, errorMessage, loading}) => {
-        return (
-          <Fragment>
-            {typeof renderErrorMessage === 'function'
-              ? renderErrorMessage(errorMessage)
-              : null}
-            <WidgetCardChart
-              timeseriesResults={timeseriesResults}
-              tableResults={tableResults}
-              errorMessage={errorMessage}
-              loading={loading}
-              location={location}
-              widget={widget}
-              selection={selection}
-              router={router}
-              organization={organization}
-              isMobile={isMobile}
-              windowWidth={windowWidth}
-              onZoom={onZoom}
-              onLegendSelectChanged={onLegendSelectChanged}
-              legendOptions={legendOptions}
-              expandNumbers={expandNumbers}
-              showSlider={showSlider}
-              noPadding={noPadding}
-              chartZoomOptions={chartZoomOptions}
-            />
+            )}
           </Fragment>
         );
       }}
-    </WidgetQueries>
+    </GenericWidgetQueries>
   );
 }
 
