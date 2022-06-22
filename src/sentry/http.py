@@ -68,7 +68,7 @@ def safe_urlopen(
     stream=False,
 ):
     """
-    A slightly safer version of ``urlib2.urlopen`` which prevents redirection
+    A slightly safer version of ``urllib2.urlopen`` which prevents redirection
     and ensures the URL isn't attempting to hit a blacklisted IP range.
     """
     if user_agent is not None:
