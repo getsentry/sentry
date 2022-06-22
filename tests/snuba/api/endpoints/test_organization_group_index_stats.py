@@ -31,7 +31,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group_a = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-a"]},
+            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
         self.store_event(
@@ -39,24 +39,27 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group_c = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-c"]},
+            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-c"]},
             project_id=self.project.id,
         ).group
         self.login_as(user=self.user)
-        response = self.get_response(
-            sort_by="date", limit=10, query="is:unresolved", groups=[group_a.id, group_c.id]
-        )
+        response = self.get_response(query="is:unresolved", groups=[group_a.id, group_c.id])
+
+        response_data = list(response.data)
+        response_data = sorted(response_data, key=lambda x: x["firstSeen"], reverse=True)
+
         assert response.status_code == 200
-        assert len(response.data) == 2
-        assert int(response.data[0]["id"]) == group_a.id
-        assert "title" not in response.data[0]
-        assert "hasSeen" not in response.data[0]
-        assert "stats" in response.data[0]
-        assert "firstSeen" in response.data[0]
-        assert "lastSeen" in response.data[0]
-        assert "count" in response.data[0]
-        assert "lifetime" in response.data[0]
-        assert "filtered" in response.data[0]
+        assert len(response_data) == 2
+        assert int(response_data[0]["id"]) == group_a.id
+        assert int(response_data[1]["id"]) == group_c.id
+        assert "title" not in response_data[0]
+        assert "hasSeen" not in response_data[0]
+        assert "stats" in response_data[0]
+        assert "firstSeen" in response_data[0]
+        assert "lastSeen" in response_data[0]
+        assert "count" in response_data[0]
+        assert "lifetime" in response_data[0]
+        assert "filtered" in response_data[0]
 
     def test_no_matching_groups(self):
         self.login_as(user=self.user)
