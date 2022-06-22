@@ -13,7 +13,7 @@ type Options = Parameters<Hooks['analytics:track-event-v2']>[1];
  * Generates functions used to track an event for analytics.
  * Each function can only handle the event types specified by the
  * generic for EventParameters and the events in eventKeyToNameMap.
- * Can specifcy default options with the defaultOptions argument as well.
+ * Can specificy default options with the defaultOptions argument as well.
  * Can make organization required with the second generic.
  */
 export default function makeAnalyticsFunction<
@@ -24,7 +24,7 @@ export default function makeAnalyticsFunction<
   defaultOptions?: Options
 ) {
   /**
-   * Function used for analytics of specifc types determined from factory function
+   * Function used for analytics of specific types determined from factory function
    * Uses the current session ID or generates a new one if startSession == true.
    * An analytics session corresponds to a single action funnel such as installation.
    * Tracking by session allows us to track individual funnel attempts for a single user.
