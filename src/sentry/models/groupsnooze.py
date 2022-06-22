@@ -24,7 +24,7 @@ class GroupSnooze(Model):
     - If ``count`` is set, the snooze is lifted when total occurrences match.
     - If ``window`` is set (in addition to count), the snooze is lifted when
       the rate of events matches.
-    - If ``user_count`` is set, the snooze is lfited when unique users match.
+    - If ``user_count`` is set, the snooze is lifted when unique users match.
     - If ``user_window`` is set (in addition to count), the snooze is lifted
       when the rate unique users matches.
 
