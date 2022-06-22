@@ -523,7 +523,7 @@ return Router:new({
 
     --[[
     Find the most frequently observed items across all sketches, returning a
-    seqeunce of item, score pairs.
+    sequence of item, score pairs.
     ]]--
     RANKED = Command:new(
         function (sketches, arguments)
