@@ -14,7 +14,7 @@ type LegacyStoreShape = UnsafeStore | SafeStore;
  * This wrapper exists because we have many old-style enzyme tests that trigger
  * updates to stores without being wrapped in act.
  *
- * Wrting tests with React Testing Library typically circumvents the need for
+ * Writing tests with React Testing Library typically circumvents the need for
  * this. See [0].
  *
  * [0]: https://javascript.plainenglish.io/you-probably-dont-need-act-in-your-react-tests-2a0bcd2ad65c
