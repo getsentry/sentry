@@ -300,10 +300,10 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
         <p>
           {tct(
             `Please pick a specific [organization:organization] to link with
-            your integration installation of [integation].`,
+            your integration installation of [integration].`,
             {
               organization: <strong />,
-              integation: <strong>{this.integrationSlug}</strong>,
+              integration: <strong>{this.integrationSlug}</strong>,
             }
           )}
         </p>

@@ -293,7 +293,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest):
         with self.tasks():
             notification.send()
 
-        # org integrationon disabled
+        # org integration disabled
         assert len(responses.calls) == 0
 
     @responses.activate

@@ -28,7 +28,7 @@ export type OnboardingState = {
   // map from platform id to project id. Contains projects ever created by onboarding.
   platformToProjectIdMap: {[key in PlatformKey]?: string};
 
-  // an array of intgration slugs
+  // an array of integration slugs
   selectedIntegrations: string[];
 
   // Contains platforms currently selected. This is different from `platforms` because

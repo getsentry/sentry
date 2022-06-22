@@ -2,7 +2,7 @@ from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
 
 
-class UserOrganizationIntegationTest(APITestCase):
+class UserOrganizationIntegrationTest(APITestCase):
     endpoint = "sentry-api-0-user-organization-integrations"
     method = "get"
 
