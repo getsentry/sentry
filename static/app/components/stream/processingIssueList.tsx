@@ -51,7 +51,7 @@ class ProcessingIssueList extends Component<Props, State> {
     promise.then(
       (data?: ProcessingIssue[]) => {
         const hasIssues = data?.some(
-          p => p.hasIssues || p.resolveableIssues > 0 || p.issuesProcessing > 0
+          p => p.hasIssues || p.resolvableIssues > 0 || p.issuesProcessing > 0
         );
 
         if (data && hasIssues) {

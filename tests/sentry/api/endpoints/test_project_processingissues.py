@@ -29,10 +29,10 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["hasIssues"] is True
-        assert response.data["hasMoreResolveableIssues"] is False
+        assert response.data["hasMoreResolvableIssues"] is False
         assert response.data["numIssues"] == 1
         assert response.data["issuesProcessing"] == 0
-        assert response.data["resolveableIssues"] == 0
+        assert response.data["resolvableIssues"] == 0
 
     def test_issues(self):
         self.login_as(user=self.user)
@@ -68,9 +68,9 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         assert response.data["numIssues"] == 2
         assert response.data["lastSeen"] == issue2.datetime
         assert response.data["hasIssues"] is True
-        assert response.data["hasMoreResolveableIssues"] is False
+        assert response.data["hasMoreResolvableIssues"] is False
         assert response.data["issuesProcessing"] == 0
-        assert response.data["resolveableIssues"] == 0
+        assert response.data["resolvableIssues"] == 0
         assert response.data["issues"][0]["checksum"] == issue.checksum
         assert response.data["issues"][0]["numEvents"] == 1
         assert response.data["issues"][0]["type"] == EventError.NATIVE_MISSING_DSYM
@@ -91,9 +91,9 @@ class ProjectProjectProcessingIssuesTest(APITestCase):
         response = self.client.get(url + "?detailed=1", format="json")
         assert response.status_code == 200, response.content
         assert response.data["numIssues"] == 0
-        assert response.data["resolveableIssues"] == 1
+        assert response.data["resolvableIssues"] == 1
         assert response.data["lastSeen"] is None
         assert response.data["hasIssues"] is False
-        assert response.data["hasMoreResolveableIssues"] is False
+        assert response.data["hasMoreResolvableIssues"] is False
         assert response.data["numIssues"] == 0
         assert response.data["issuesProcessing"] == 0

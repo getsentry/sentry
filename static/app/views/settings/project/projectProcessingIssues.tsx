@@ -234,7 +234,7 @@ class ProjectProcessingIssues extends Component<Props, State> {
       body = <LoadingError onRetry={this.fetchData} />;
     } else if (
       processingIssues?.hasIssues ||
-      processingIssues?.resolveableIssues ||
+      processingIssues?.resolvableIssues ||
       processingIssues?.issuesProcessing
     ) {
       body = this.renderResults();
@@ -321,14 +321,14 @@ class ProjectProcessingIssues extends Component<Props, State> {
     if (issues === null || this.state.reprocessing) {
       return null;
     }
-    if (issues.resolveableIssues <= 0) {
+    if (issues.resolvableIssues <= 0) {
       return null;
     }
 
     const fixButton = tn(
       'Click here to trigger processing for %s pending event',
       'Click here to trigger processing for %s pending events',
-      issues.resolveableIssues
+      issues.resolvableIssues
     );
 
     return (

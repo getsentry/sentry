@@ -17,9 +17,9 @@ def get_processing_issues(user, projects, include_detailed_issues=False):
         - 'hasIssues': Whether the project has any processing issues
         - 'numIssues': How many processing issues the project has
         - 'lastSeen': The date a processing issue was last seen
-        - 'resolveableIssues': How many Raw Events have no remaining issues and
+        - 'resolvableIssues': How many Raw Events have no remaining issues and
         can be resolved automatically
-        - 'hasMoreResolveableIssues': Whether there are any Raw Events that
+        - 'hasMoreResolvableIssues': Whether there are any Raw Events that
         have no remaining issues and can be resolved automatically
         'issuesProcessing': How many ReprocessingReports exist for this Project
         'signedLink': Signed link that takes the user to the reprocessing page
@@ -41,7 +41,7 @@ def get_processing_issues(user, projects, include_detailed_issues=False):
     }
 
     resolved_qs = ProcessingIssue.objects.find_resolved_queryset([p.id for p in projects])
-    project_resolveable = {
+    project_resolvable = {
         result["project"]: result["count"]
         for result in resolved_qs.values("project").annotate(count=Count("id"))
     }
@@ -76,11 +76,11 @@ def get_processing_issues(user, projects, include_detailed_issues=False):
             "hasIssues": num_issues > 0,
             "numIssues": num_issues,
             "lastSeen": last_seen and serialize(last_seen) or None,
-            "resolveableIssues": project_resolveable.get(project.id, 0),
+            "resolvableIssues": project_resolvable.get(project.id, 0),
             # XXX: Due to a bug in `find_resolved`, this was always returning
             # False. It's unused in our frontend, so just defaulting to False
             # so that we don't break any other consumers that expect this value.
-            "hasMoreResolveableIssues": False,
+            "hasMoreResolvableIssues": False,
             "issuesProcessing": project_reprocessing_issues.get(project.id, 0),
             "signedLink": signed_link,
             "project": project.slug,

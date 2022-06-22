@@ -14,10 +14,10 @@ export const Default = ({showProject}) => {
     project: 'sentry-test',
     numIssues: 6,
     issuesProcessing: 4,
-    resolveableIssues: 2,
+    resolvableIssues: 2,
     signedLink: '',
     lastSeen: new Date().toISOString(),
-    hasMoreResolveableIssues: true,
+    hasMoreResolvableIssues: true,
     hasIssues: true,
   };
 

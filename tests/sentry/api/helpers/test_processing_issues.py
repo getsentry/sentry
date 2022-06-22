@@ -23,10 +23,10 @@ class GetProcessingIssuesTest(TestCase):
     def test_no_issues(self):
         result = get_processing_issues(self.user, [self.project])[0]
         assert not result["hasIssues"]
-        assert not result["hasMoreResolveableIssues"]
+        assert not result["hasMoreResolvableIssues"]
         assert result["numIssues"] == 0
         assert result["issuesProcessing"] == 0
-        assert result["resolveableIssues"] == 0
+        assert result["resolvableIssues"] == 0
 
     def test_simple(self):
         raw_event = RawEvent.objects.create(project_id=self.project.id, event_id="abc")
@@ -39,10 +39,10 @@ class GetProcessingIssuesTest(TestCase):
 
         result = get_processing_issues(self.user, [self.project])[0]
         assert result["hasIssues"]
-        assert not result["hasMoreResolveableIssues"]
+        assert not result["hasMoreResolvableIssues"]
         assert result["numIssues"] == 1
         assert result["issuesProcessing"] == 0
-        assert result["resolveableIssues"] == 0
+        assert result["resolvableIssues"] == 0
 
     def test_full(self):
         issue = ProcessingIssue.objects.create(
@@ -64,10 +64,10 @@ class GetProcessingIssuesTest(TestCase):
 
         result = get_processing_issues(self.user, [self.project])[0]
         assert result["hasIssues"]
-        assert not result["hasMoreResolveableIssues"]
+        assert not result["hasMoreResolvableIssues"]
         assert result["numIssues"] == 3
         assert result["issuesProcessing"] == 2
-        assert result["resolveableIssues"] == 1
+        assert result["resolvableIssues"] == 1
 
     def test_multi_project_full(self):
         issue = ProcessingIssue.objects.create(
@@ -97,15 +97,15 @@ class GetProcessingIssuesTest(TestCase):
 
         results = get_processing_issues(self.user, [self.project, other_project])
         assert results[0]["hasIssues"]
-        assert not results[0]["hasMoreResolveableIssues"]
+        assert not results[0]["hasMoreResolvableIssues"]
         assert results[0]["numIssues"] == 3
         assert results[0]["issuesProcessing"] == 2
-        assert results[0]["resolveableIssues"] == 1
+        assert results[0]["resolvableIssues"] == 1
         assert results[0]["project"] == self.project.slug
 
         assert results[1]["hasIssues"]
-        assert not results[1]["hasMoreResolveableIssues"]
+        assert not results[1]["hasMoreResolvableIssues"]
         assert results[1]["numIssues"] == 1
         assert results[1]["issuesProcessing"] == 1
-        assert results[1]["resolveableIssues"] == 2
+        assert results[1]["resolvableIssues"] == 2
         assert results[1]["project"] == other_project.slug

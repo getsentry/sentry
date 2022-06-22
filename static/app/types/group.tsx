@@ -482,12 +482,12 @@ export type ProcessingIssueItem = {
 
 export type ProcessingIssue = {
   hasIssues: boolean;
-  hasMoreResolveableIssues: boolean;
+  hasMoreResolvableIssues: boolean;
   issuesProcessing: number;
   lastSeen: string;
   numIssues: number;
   project: string;
-  resolveableIssues: number;
+  resolvableIssues: number;
   signedLink: string;
   issues?: ProcessingIssueItem[];
 };

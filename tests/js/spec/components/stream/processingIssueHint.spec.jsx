@@ -10,11 +10,11 @@ describe('ProcessingIssueHint', function () {
   beforeEach(() => {
     issue = {
       hasIssues: false,
-      hasMoreResolveableIssues: false,
+      hasMoreResolvableIssues: false,
       issuesProcessing: 0,
       lastSeen: '2019-01-16T15:38:38Z',
       numIssues: 0,
-      resolveableIssues: 0,
+      resolvableIssues: 0,
       signedLink: null,
     };
   });
@@ -82,7 +82,7 @@ describe('ProcessingIssueHint', function () {
 
   describe('resolvableIssues state', function () {
     beforeEach(() => {
-      issue.resolveableIssues = 9;
+      issue.resolvableIssues = 9;
     });
 
     it('displays a button', function () {
