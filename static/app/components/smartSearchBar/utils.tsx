@@ -56,7 +56,7 @@ export function getQueryTerms(query: string, cursor: number) {
 
 function getTitleForType(type: ItemType) {
   if (type === ItemType.TAG_VALUE) {
-    return t('Tag Values');
+    return t('Values');
   }
 
   if (type === ItemType.RECENT_SEARCH) {
@@ -75,7 +75,7 @@ function getTitleForType(type: ItemType) {
     return t('Properties');
   }
 
-  return t('Tags');
+  return t('Keys');
 }
 
 function getIconForTypeAndTag(type: ItemType, tagName: string) {
