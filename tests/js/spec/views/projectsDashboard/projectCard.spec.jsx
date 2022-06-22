@@ -102,7 +102,7 @@ describe('ProjectCard', function () {
     expect(screen.getByTestId('project-errors')).toBeInTheDocument();
     expect(screen.getByText('Errors: 6')).toBeInTheDocument();
 
-    // No transacions as the feature isn't set.
+    // No transactions as the feature isn't set.
     expect(screen.queryByTestId('project-transactions')).not.toBeInTheDocument();
   });
 
