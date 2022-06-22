@@ -54,9 +54,9 @@ function IssueListHeader({
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
   const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
   // Remove cursor and page when switching tabs
-  const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
+  const {cursor: _, page: __, ...queryParams} = router?.location?.query ?? {};
   const sortParam =
-    queryParms.sort === IssueSortOptions.INBOX ? undefined : queryParms.sort;
+    queryParams.sort === IssueSortOptions.INBOX ? undefined : queryParams.sort;
 
   function trackTabClick(tabQuery: string) {
     // Clicking on inbox tab and currently another tab is active
@@ -100,7 +100,7 @@ function IssueListHeader({
           ([tabQuery, {name: queryName, tooltipTitle, tooltipHoverable}]) => {
             const to = {
               query: {
-                ...queryParms,
+                ...queryParams,
                 query: tabQuery,
                 sort: tabQuery === Query.FOR_REVIEW ? IssueSortOptions.INBOX : sortParam,
               },
