@@ -116,7 +116,7 @@ describe('Threads', () => {
         </OrganizationContext.Provider>
       );
 
-      // envent.entries[0].data.values[0].stacktrace is defined
+      // event.entries[0].data.values[0].stacktrace is defined
       expect(wrapper.find('Line').length).toBe(1);
     });
 
