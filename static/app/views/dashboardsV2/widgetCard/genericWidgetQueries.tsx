@@ -13,9 +13,18 @@ import {
 import {getDatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 
+type ChildrenProps = {
+  loading: boolean;
+  errorMessage?: string;
+  pageLinks?: null | string;
+  tableResults?: TableDataWithTitle[];
+  timeseriesResults?: Series[];
+  totalCount?: string;
+};
+
 type Props = {
   api: Client;
-  children: any; // TODO
+  children: (props: ChildrenProps) => JSX.Element;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;
@@ -51,21 +60,21 @@ function WidgetQueries({
   widget,
 }: Props) {
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [tableResults, setTableResults] = useState<TableDataWithTitle[]>([]);
-  const [timeseriesResults, setTimeseriesResults] = useState<Series[]>([]);
+  const [errorMessage, setErrorMessage] =
+    useState<ChildrenProps['errorMessage']>(undefined);
+  const [tableResults, setTableResults] =
+    useState<ChildrenProps['tableResults']>(undefined);
+  const [timeseriesResults, setTimeseriesResults] =
+    useState<ChildrenProps['timeseriesResults']>(undefined);
 
   const config = getDatasetConfig(widget.widgetType);
 
-  // Trigger a re-query when the widget's queries, dataset, or display type changes
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
-      setTableResults([]);
-      setTimeseriesResults([]);
+      setTableResults(undefined);
+      setTimeseriesResults(undefined);
 
-      // generate the request objects
-      // await the requests
       let responses: [TableData | EventsTableData, string, ResponseMeta][];
       try {
         responses = await Promise.all(
@@ -118,7 +127,18 @@ function WidgetQueries({
     }
 
     fetchData();
-  }, [widget.queries, widget.widgetType, widget.displayType]);
+  }, [
+    widget.queries,
+    widget.widgetType,
+    widget.displayType,
+    onDataFetched,
+    config,
+    api,
+    organization,
+    selection,
+    limit,
+    cursor,
+  ]);
 
   return children({loading, tableResults, timeseriesResults, errorMessage});
 }

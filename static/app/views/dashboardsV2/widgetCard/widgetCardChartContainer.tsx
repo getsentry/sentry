@@ -84,7 +84,7 @@ export function WidgetCardChartContainer({
             <LoadingScreen loading={loading} />
             {widget.widgetType === WidgetType.ISSUE ? (
               <IssueWidgetCard
-                transformedResults={tableResults?.[0].data ?? []}
+                transformedResults={tableResults?.[0]?.data ?? []}
                 loading={loading}
                 errorMessage={errorMessage}
                 widget={widget}
