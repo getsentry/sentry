@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Callable, Mapping, Sequence
 
 from django.core.cache import cache
+from sentry_relay import parse_release
 
 from sentry import tagstore
 from sentry.eventstore.models import Event
@@ -424,7 +425,9 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         title_url = get_title_link(
             self.group, self.event, self.link_to_event, self.issue_details, self.notification
         )
-        release = self.last_release.version or ""
+        release = (
+            parse_release(self.last_release.version)["description"] if self.last_release else ""
+        )
         release_url = absolute_uri(
             f"/organizations/{self.group.organization.slug}/releases/{release}/?project={self.group.project_id}"
         )
