@@ -238,11 +238,11 @@ describe('groupDetails', () => {
   });
 
   it('renders alert for sample event', async function () {
-    const sampleGruop = TestStubs.Group();
-    sampleGruop.tags.push({key: 'sample_event'});
+    const sampleGroup = TestStubs.Group();
+    sampleGroup.tags.push({key: 'sample_event'});
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
-      body: {...sampleGruop},
+      body: {...sampleGroup},
     });
 
     createWrapper();
