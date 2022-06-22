@@ -20,8 +20,10 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
                 attrs[item]["teams"] = teams.get(item.id, [])  # Deprecated
                 attrs[item]["teamRoles"] = teams_with_role.get(item.id, [])
             except KeyError:
-                attrs[item] = {"teams": teams}  # Deprecated
-                attrs[item] = {"teamRoles": teams_with_role}
+                attrs[item] = {
+                    "teams": teams,  # Deprecated
+                    "teamRoles": teams_with_role,
+                }
 
         return attrs
 
