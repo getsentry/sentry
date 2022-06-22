@@ -476,7 +476,7 @@ const generateLevelTheme = (colors: BaseColors) => ({
   info: colors.blue300,
   warning: colors.yellow300,
   // Hardcoded legacy color (orange400). We no longer use orange anywhere
-  // else in the app (except for the chart palette). This needs to be harcoded
+  // else in the app (except for the chart palette). This needs to be hardcoded
   // here because existing users may still associate orange with the "error" level.
   error: '#FF7738',
   fatal: colors.red300,
