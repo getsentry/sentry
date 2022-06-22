@@ -19,7 +19,7 @@ from sentry.search.utils import get_latest_release
 
 
 def _get_latest_release(
-    organization_id: int, environment_id: int, project: Project
+    organization_id: int, environment_id: Optional[int], project: Project
 ) -> Optional[Release]:
     environments = (
         None if not environment_id else [Environment.objects.filter(id=environment_id).first()]
