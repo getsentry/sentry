@@ -155,7 +155,7 @@ class DataExportTest(APITestCase):
 
     def test_discover_without_query(self):
         """
-        Ensurse that we handle export requests without a query, and return a 400 status code
+        Ensure that we handle export requests without a query, and return a 400 status code
         """
         payload = self.make_payload("discover", {"field": ["id"]}, overwrite=True)
         with self.feature("organizations:discover-query"):
