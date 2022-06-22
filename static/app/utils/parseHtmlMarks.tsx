@@ -10,7 +10,7 @@ type Options = {
 };
 
 /**
- * Parses the "marked" html strings into a {key, value, indices} (mimincing the
+ * Parses the "marked" html strings into a {key, value, indices} (mimicking the
  * FuseResultMatch type) object, where the indices are a set of zero indexed
  * [start, end] indices for what should be highlighted.
  *
