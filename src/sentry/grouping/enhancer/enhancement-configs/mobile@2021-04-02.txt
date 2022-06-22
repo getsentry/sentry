@@ -317,7 +317,7 @@ category:runtime +sentinel
 # driver versions.
 category:driver | [ category:driver ] category=internals
 
-# Only group by top-level GL operaton, not any helper functions it may have called.
+# Only group by top-level GL operation, not any helper functions it may have called.
 
 [ category:gl ] | category:gl category=internals
 [ category:av ] | category:av  category=internals
