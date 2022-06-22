@@ -362,7 +362,7 @@ describe('findRangeBinarySearch', () => {
 describe('trimTextCenter', () => {
   it('trims nothing if low > length', () => {
     expect(trimTextCenter('abc', 4)).toMatchObject({
-      end: 3,
+      end: 0,
       length: 0,
       start: 0,
       text: 'abc',

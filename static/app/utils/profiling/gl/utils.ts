@@ -514,7 +514,7 @@ export function trimTextCenter(text: string, low: number): TrimTextCenter {
     return {
       text,
       start: 0,
-      end: text.length,
+      end: 0,
       length: 0,
     };
   }

@@ -65,7 +65,6 @@ class TextRenderer {
     }`;
 
     this.context.textBaseline = 'alphabetic';
-    this.context.fillStyle = this.theme.COLORS.LABEL_FONT_COLOR;
 
     const minWidth = this.measureAndCacheText(ELLIPSIS).width;
 
@@ -147,10 +146,11 @@ class TextRenderer {
         const frameId = getFlamegraphFrameSearchId(frame);
         const frameSearchResult = flamegraphSearchResults[frameId];
 
-        if (frameSearchResult) {
+        if (frameSearchResult && frameSearchResult.matchIndices.length > 0) {
           const highlightFillStyle = `rgb(${this.theme.COLORS.HIGHLIGHTED_LABEL_COLOR.join(
             ', '
           )})`;
+          this.context.fillStyle = highlightFillStyle;
 
           for (const matchIndices of frameSearchResult.matchIndices) {
             const highlightedBounds = computeHighlightedBounds(matchIndices, trim);
@@ -163,7 +163,6 @@ class TextRenderer {
             );
             const frontMatter = trimText.slice(0, startIndex);
             const startHighlightX = this.measureAndCacheText(frontMatter).width;
-            this.context.fillStyle = highlightFillStyle;
             this.context.fillRect(
               startHighlightX + x,
               y - highlightTextSize.fontBoundingBoxAscent,
