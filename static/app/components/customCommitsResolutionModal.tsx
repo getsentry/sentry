@@ -24,27 +24,22 @@ function CustomCommitsResolutionModal({
   Body,
   Footer,
 }: Props) {
-  const [state, setState] = useState<{
-    commit: Commit | undefined;
-    commits: Commit[] | undefined;
-  }>({
-    commit: undefined,
+  const [commit, setCommit] = useState<{commit: Commit | undefined}>({commit: undefined});
+  const [commits, setCommits] = useState<{commits: Commit[] | undefined}>({
     commits: undefined,
   });
 
   const onChange = (value: string | number | boolean) => {
-    if (state.commits === undefined) {
+    if (commits === undefined) {
       return;
     }
-    setState({
-      ...state,
-      commit: state.commits.find(result => result.id === value),
+    setCommit({
+      commit: commits.commits?.find(result => result.id === value),
     });
   };
 
   const onAsyncFieldResults = (results: Commit[]) => {
-    setState({
-      ...state,
+    setCommits({
       commits: results,
     });
     return results.map(c => ({
@@ -65,8 +60,8 @@ function CustomCommitsResolutionModal({
     e.preventDefault();
     onSelected({
       inCommit: {
-        commit: state.commit?.id,
-        repository: state.commit?.repository?.name,
+        commit: commit.commit?.id,
+        repository: commit.commit?.repository?.name,
       },
     });
     closeModal();
