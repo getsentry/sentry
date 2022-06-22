@@ -31,7 +31,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group_a = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-a"]},
+            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
         self.store_event(
@@ -39,7 +39,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
         group_c = self.store_event(
-            data={"timestamp": iso_format(before_now(seconds=3)), "fingerprint": ["group-c"]},
+            data={"timestamp": iso_format(before_now(seconds=1)), "fingerprint": ["group-c"]},
             project_id=self.project.id,
         ).group
         self.login_as(user=self.user)
