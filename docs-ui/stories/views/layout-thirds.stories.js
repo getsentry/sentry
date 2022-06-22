@@ -150,7 +150,7 @@ export const SingleColumnMode = () => (
       <Layout.Main fullWidth>
         <h1>Content Region</h1>
         <p>
-          Some text here, that goes on and on. It should strecth the full width of the
+          Some text here, that goes on and on. It should stretch the full width of the
           container, and have no space on the right.
         </p>
       </Layout.Main>
