@@ -768,7 +768,7 @@ def redact_internal_sources_from_module(module):
                 candidate.pop("location", None)
 
             # Collapse nofound statuses, collect info on sources which both have a notfound
-            # as well as other statusses.  This allows us to later filter the notfound ones.
+            # as well as other statuses.  This allows us to later filter the notfound ones.
             try:
                 status = candidate.get("download", {})["status"]
             except KeyError:
