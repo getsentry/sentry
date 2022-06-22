@@ -2346,7 +2346,7 @@ KAFKA_CLUSTERS = {
 
 KAFKA_EVENTS = "events"
 # TODO: KAFKA_TRANSACTIONS is temporarily mapped to "events" since events
-# transactions curently share a Kafka topic. Once we are ready with the code
+# transactions currently share a Kafka topic. Once we are ready with the code
 # changes to support different topic, switch this to "transactions" to start
 # producing to the new topic.
 KAFKA_TRANSACTIONS = "events"
