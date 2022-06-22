@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addMessage} from 'sentry/actionCreators/indicator';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -24,7 +25,6 @@ import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
 import RuleListRow from './row';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -36,8 +36,7 @@ type State = {
   teamFilterSearch?: string;
 };
 
-
-const HookHeader = HookOrDefault({ hookName: 'component:alerts-header' });
+const HookHeader = HookOrDefault({hookName: 'component:alerts-header'});
 
 class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state']> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
