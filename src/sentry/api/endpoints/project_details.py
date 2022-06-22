@@ -442,9 +442,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         if not allow_dynamic_sampling and result.get("dynamicSampling"):
-            # trying to set dynamic sampling with feature disabled
+            # trying to set sampling with feature disabled
             return Response(
-                {"detail": ["You do not have permission to set dynamic sampling."]},
+                {"detail": ["You do not have permission to set sampling."]},
                 status=403,
             )
 
