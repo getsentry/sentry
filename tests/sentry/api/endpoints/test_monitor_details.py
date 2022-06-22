@@ -175,7 +175,7 @@ class UpdateMonitorTest(APITestCase):
         assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
         assert monitor.config["schedule"] == [1, "month"]
 
-    def test_cronjob_interval_invalid_inteval(self):
+    def test_cronjob_interval_invalid_interval(self):
         with self.feature({"organizations:monitors": True}):
             resp = self.client.put(
                 self.path, data={"config": {"schedule_type": "interval", "schedule": [1, "decade"]}}
