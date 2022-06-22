@@ -15,7 +15,7 @@ class ConditionalRetryPolicyTestCase(TestCase):
         assert ConditionalRetryPolicy(always_retry)(callable) is mock.sentinel.OK
         assert callable.call_count == 2
 
-    def test_poilcy_failure(self) -> None:
+    def test_policy_failure(self) -> None:
         callable = mock.MagicMock(side_effect=self.bomb)
 
         never_retry = lambda i, e: False
