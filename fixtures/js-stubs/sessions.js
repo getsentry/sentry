@@ -354,7 +354,7 @@ export function SessionStatusCountByProjectInPeriod() {
   };
 }
 
-export function SesssionTotalCountByReleaseIn24h() {
+export function SessionTotalCountByReleaseIn24h() {
   return {
     query:
       'release:7a82c130be9143361f20bc77252df783cf91e4fc OR release:e102abb2c46e7fe8686441091005c12aed90da99',

@@ -67,7 +67,7 @@ describe('ReleasesRequest', () => {
 
   const requestForAutoTotalCountByReleaseInPeriod = MockApiClient.addMockResponse({
     url: `/organizations/org-slug/sessions/`,
-    body: TestStubs.SesssionTotalCountByReleaseIn24h(),
+    body: TestStubs.SessionTotalCountByReleaseIn24h(),
     match: [
       MockApiClient.matchQuery({
         query:
@@ -83,7 +83,7 @@ describe('ReleasesRequest', () => {
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/sessions/`,
-    body: TestStubs.SesssionTotalCountByReleaseIn24h(),
+    body: TestStubs.SessionTotalCountByReleaseIn24h(),
     match: [
       MockApiClient.matchQuery({
         query:
