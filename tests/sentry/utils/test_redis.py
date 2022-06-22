@@ -62,11 +62,11 @@ class ClusterManagerTestCase(TestCase):
         assert manager.get("foo")._setupfunc() is StrictRedis.return_value
         # failover cluster is single host and specifies client_class to FailoverRedis
         assert manager.get("failover")._setupfunc() is FailoverRedis.return_value
-        # baz works becasue it's explicitly is_redis_cluster
+        # baz works because it's explicitly is_redis_cluster
         assert manager.get("baz")._setupfunc() is RetryingRedisCluster.return_value
 
         # bar is not a valid redis or redis cluster definition
-        # becasue it is two hosts, without explicitly saying is_redis_cluster
+        # because it is two hosts, without explicitly saying is_redis_cluster
         with pytest.raises(KeyError):
             manager.get("bar")
 

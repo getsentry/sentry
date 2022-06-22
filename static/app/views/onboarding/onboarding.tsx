@@ -161,7 +161,7 @@ class Onboarding extends Component<Props, State> {
       cornerVariantControl.start(this.activeStepIndex === 0 ? 'top-right' : 'top-left');
     };
 
-    // XXX(epurkhiser): We're using a react hook here becuase there's no other
+    // XXX(epurkhiser): We're using a react hook here because there's no other
     // way to create framer-motion controls than by using the `useAnimation`
     // hook.
 

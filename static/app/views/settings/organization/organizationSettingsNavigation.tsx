@@ -30,7 +30,7 @@ class OrganizationSettingsNavigation extends Component<Props, State> {
   }
 
   /**
-   * TODO(epurkhiser): Becase the settings organization navigation hooks
+   * TODO(epurkhiser): Because the settings organization navigation hooks
    * do not conform to a normal component style hook, and take a single
    * parameter 'organization', we cannot use the `Hook` component here,
    * and must resort to using listening to the HookStore to retrieve hook data.
