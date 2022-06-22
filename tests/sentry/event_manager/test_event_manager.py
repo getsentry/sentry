@@ -1380,7 +1380,7 @@ class EventManagerTest(TestCase):
                         "effective_directive": "script-src",
                         "blocked_uri": "http://example.com",
                     },
-                    # this normally is noramlized in relay as part of ingest
+                    # this normally is normalized in relay as part of ingest
                     "logentry": {"message": "Blocked 'script' from 'example.com'"},
                 }
             )
