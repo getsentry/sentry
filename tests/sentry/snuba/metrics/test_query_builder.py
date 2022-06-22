@@ -22,7 +22,6 @@ from snuba_sdk import (
     Query,
 )
 
-from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.strings import SHARED_TAG_STRINGS
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_weak
@@ -37,6 +36,7 @@ from sentry.snuba.metrics import (
     get_intervals,
     parse_query,
     resolve_tags,
+    translate_meta_results,
 )
 from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
@@ -193,7 +193,7 @@ def test_parse_query(monkeypatch, query_string, expected):
     local_indexer = MockIndexer()
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
         # will be values 10000, 10001 respectively
-        local_indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=s)
+        local_indexer.record(org_id, s)
     monkeypatch.setattr("sentry.sentry_metrics.indexer.resolve", local_indexer.resolve)
     parsed = resolve_tags(org_id, parse_query(query_string, []))
     assert parsed == expected
@@ -755,7 +755,7 @@ def test_translate_results_derived_metrics(_1, _2, monkeypatch):
 
     assert SnubaResultConverter(
         1, query_definition.to_metrics_query(), fields_in_entities, intervals, results
-    ).translate_results() == [
+    ).translate_result_groups() == [
         {
             "by": {},
             "totals": {
@@ -828,7 +828,7 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
     )
     assert SnubaResultConverter(
         org_id, query_definition.to_metrics_query(), fields_in_entities, intervals, results
-    ).translate_results() == [
+    ).translate_result_groups() == [
         {
             "by": {},
             "totals": {
@@ -845,3 +845,40 @@ def test_translate_results_missing_slots(_1, _2, monkeypatch):
 def test_get_intervals():
     with pytest.raises(AssertionError):
         list(get_intervals(MOCK_NOW - timedelta(days=1), MOCK_NOW, -3600))
+
+
+def test_translate_meta_results():
+    meta = [
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+        {"name": "metric_id", "type": "UInt64"},
+    ]
+    assert translate_meta_results(meta, {"p50(transaction.measurements.lcp)"}) == sorted(
+        [
+            {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
+            {"name": "transaction", "type": "string"},
+            {"name": "project_id", "type": "UInt64"},
+            {"name": "metric_id", "type": "UInt64"},
+        ],
+        key=lambda elem: elem["name"],
+    )
+
+
+def test_translate_meta_results_with_duplicates():
+    meta = [
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "p50(d:transactions/measurements.lcp@millisecond)", "type": "Array(Float64)"},
+        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "tags[9223372036854776020]", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+        {"name": "project_id", "type": "UInt64"},
+    ]
+    assert translate_meta_results(meta, {"p50(transaction.measurements.lcp)"}) == sorted(
+        [
+            {"name": "p50(transaction.measurements.lcp)", "type": "Array(Float64)"},
+            {"name": "transaction", "type": "string"},
+            {"name": "project_id", "type": "UInt64"},
+        ],
+        key=lambda elem: elem["name"],
+    )

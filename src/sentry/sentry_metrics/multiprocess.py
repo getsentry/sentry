@@ -34,7 +34,6 @@ from arroyo.types import Message, Partition, Position, Topic
 from confluent_kafka import Producer
 from django.conf import settings
 
-from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.utils import json, kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
 
@@ -245,18 +244,17 @@ class ProduceStep(ProcessingStep[MessageBatch]):  # type: ignore
 
     def __init__(
         self,
-        output_topic: str,
         commit_function: Callable[[Mapping[Partition, Position]], None],
         producer: Optional[AbstractProducer] = None,
     ) -> None:
         if not producer:
-            snuba_metrics = settings.KAFKA_TOPICS[output_topic]
+            snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
             snuba_metrics_producer = KafkaProducer(
                 kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
             )
             producer = snuba_metrics_producer
         self.__producer = producer
-        self.__producer_topic = output_topic
+        self.__producer_topic = settings.KAFKA_SNUBA_METRICS
         self.__commit_function = commit_function
 
         self.__futures: Deque[ProducerResultFuture] = deque()
@@ -370,7 +368,6 @@ class PartitionIdxOffset(NamedTuple):
 
 
 def process_messages(
-    use_case_id: UseCaseKey,
     outer_message: Message[MessageBatch],
 ) -> MessageBatch:
     """
@@ -465,7 +462,7 @@ def process_messages(
     metrics.incr("process_messages.total_strings_indexer_lookup", amount=len(strings))
 
     with metrics.timer("metrics_consumer.bulk_record"):
-        record_result = indexer.bulk_record(use_case_id=use_case_id, org_strings=org_strings)
+        record_result = indexer.bulk_record(org_strings)
 
     mapping = record_result.get_mapped_results()
     bulk_record_meta = record_result.get_fetch_metadata()
@@ -545,9 +542,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         processes: int,
         input_block_size: int,
         output_block_size: int,
-        config: MetricsIngestConfiguration,
     ):
-        self.__config = config
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
 
@@ -560,8 +555,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
         parallel_strategy = ParallelTransformStep(
-            partial(process_messages, use_case_id=self.__config.use_case_id),
-            ProduceStep(output_topic=self.__config.output_topic, commit_function=commit),
+            process_messages,
+            ProduceStep(commit),
             self.__processes,
             max_batch_size=self.__max_batch_size,
             max_batch_time=self.__max_batch_time,
@@ -586,26 +581,22 @@ class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         max_batch_time: float,
         commit_max_batch_size: int,
         commit_max_batch_time: int,
-        config: MetricsIngestConfiguration,
     ):
         self.__max_batch_time = max_batch_time
         self.__max_batch_size = max_batch_size
         self.__commit_max_batch_time = commit_max_batch_time
         self.__commit_max_batch_size = commit_max_batch_size
-        self.__config = config
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
     ) -> ProcessingStrategy[KafkaPayload]:
         transform_step = TransformStep(
             next_step=SimpleProduceStep(
-                commit_function=commit,
+                commit,
                 commit_max_batch_size=self.__commit_max_batch_size,
                 # convert to seconds
                 commit_max_batch_time=self.__commit_max_batch_time / 1000,
-                output_topic=self.__config.output_topic,
-            ),
-            config=self.__config,
+            )
         )
         strategy = BatchMessages(transform_step, self.__max_batch_time, self.__max_batch_size)
         return strategy
@@ -617,9 +608,10 @@ class TransformStep(ProcessingStep[MessageBatch]):  # type: ignore
     """
 
     def __init__(
-        self, next_step: ProcessingStep[KafkaPayload], config: MetricsIngestConfiguration
+        self,
+        next_step: ProcessingStep[KafkaPayload],
     ) -> None:
-        self.__process_messages = partial(process_messages, use_case_id=config.use_case_id)
+        self.__process_messages = process_messages
         self.__next_step = next_step
         self.__closed = False
         self.__metrics = get_metrics()
@@ -667,12 +659,11 @@ class PartitionOffset:
 class SimpleProduceStep(ProcessingStep[KafkaPayload]):  # type: ignore
     def __init__(
         self,
-        output_topic: str,
         commit_function: Callable[[Mapping[Partition, Position]], None],
         commit_max_batch_size: int,
         commit_max_batch_time: float,
     ) -> None:
-        snuba_metrics = settings.KAFKA_TOPICS[output_topic]
+        snuba_metrics = settings.KAFKA_TOPICS[settings.KAFKA_SNUBA_METRICS]
         snuba_metrics_producer = Producer(
             kafka_config.get_kafka_producer_cluster_options(snuba_metrics["cluster"]),
         )
@@ -795,7 +786,6 @@ def get_streaming_metrics_consumer(
     group_id: str,
     auto_offset_reset: str,
     factory_name: str,
-    indexer_profile: MetricsIngestConfiguration,
     **options: Mapping[str, Union[str, int]],
 ) -> StreamProcessor:
     if factory_name == "multiprocess":
@@ -805,7 +795,6 @@ def get_streaming_metrics_consumer(
             processes=processes,
             input_block_size=input_block_size,
             output_block_size=output_block_size,
-            config=indexer_profile,
         )
     else:
         assert factory_name == "default"
@@ -814,14 +803,13 @@ def get_streaming_metrics_consumer(
             max_batch_time=max_batch_time,
             commit_max_batch_size=commit_max_batch_size,
             commit_max_batch_time=commit_max_batch_time,
-            config=indexer_profile,
         )
 
-    cluster_name: str = settings.KAFKA_TOPICS[indexer_profile.input_topic]["cluster"]
-    create_topics(cluster_name, [indexer_profile.input_topic])
+    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
+    create_topics(cluster_name, [topic])
 
     return StreamProcessor(
-        KafkaConsumer(get_config(indexer_profile.input_topic, group_id, auto_offset_reset)),
-        Topic(indexer_profile.input_topic),
+        KafkaConsumer(get_config(topic, group_id, auto_offset_reset)),
+        Topic(topic),
         processing_factory,
     )

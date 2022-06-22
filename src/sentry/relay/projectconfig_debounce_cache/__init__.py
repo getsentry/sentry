@@ -24,5 +24,4 @@ invalidation = LazyServiceWrapper(
 )
 
 if TYPE_CHECKING:
-    check_is_debounced = backend.check_is_debounced
     mark_task_done = backend.mark_task_done
