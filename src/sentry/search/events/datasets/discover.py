@@ -1392,7 +1392,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         requested releases.
         """
         # TODO: Filter by project here as well. It's done elsewhere, but could critically limit versions
-        # for orgs with thousands of projects, each with their own releases (potentailly drowning out ones we care about)
+        # for orgs with thousands of projects, each with their own releases (potentially drowning out ones we care about)
 
         if "organization_id" not in self.builder.params:
             raise ValueError("organization_id is a required param")
