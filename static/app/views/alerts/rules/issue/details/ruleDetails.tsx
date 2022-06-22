@@ -219,10 +219,6 @@ class AlertRuleDetails extends AsyncComponent<Props, State> {
         skipLoadLastUsed
         shouldForceProject
         forceProject={project}
-        forceEnvironment={rule.environment ?? ''}
-        lockedMessageSubject={t('alert rule')}
-        showDateSelector={false}
-        hideGlobalHeader
       >
         <SentryDocumentTitle title={rule.name} orgSlug={orgId} projectSlug={projectId} />
 
