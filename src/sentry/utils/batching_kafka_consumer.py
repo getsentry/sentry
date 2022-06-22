@@ -181,7 +181,7 @@ class BatchingKafkaConsumer:
     duplicates to occur in crash cases.
 
     NOTE: This does not eliminate the possibility of duplicates if the consumer process
-    crashes between writing to its backend and commiting Kafka offsets. This should eliminate
+    crashes between writing to its backend and committing Kafka offsets. This should eliminate
     the possibility of *losing* data though. An "exactly once" consumer would need to store
     offsets in the external datastore and reconcile them on any partition rebalance.
     """
