@@ -18,7 +18,7 @@ from typing import (
 from sentry.utils.safe import PathSearchable, get_path
 
 
-# mypy hack to work around callable assuing the first arg of callable is 'self'
+# mypy hack to work around callable assuming the first arg of callable is 'self'
 # https://github.com/python/mypy/issues/5485
 class FrameMunger(Protocol):
     def __call__(self, key: str, frame: MutableMapping[str, Any]) -> bool:
