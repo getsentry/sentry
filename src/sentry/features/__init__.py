@@ -59,7 +59,7 @@ default_manager.add("organizations:create")
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, True)
-default_manager.add("organizations:alert-release-notification-workflow", OrganizationFeature)
+default_manager.add("organizations:alert-release-notification-workflow", OrganizationFeature, True)
 default_manager.add("organizations:alert-wizard-v3", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
 default_manager.add("organizations:breadcrumb-linked-event", OrganizationFeature, True)
