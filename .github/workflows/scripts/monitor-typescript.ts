@@ -6,25 +6,64 @@ import fs from 'fs';
 // eslint-disable-next-line import/no-nodejs-modules
 import os from 'os';
 
+import {BaseClient} from '@sentry/core';
 import * as Sentry from '@sentry/node';
-import {Event} from '@sentry/types';
-import {timestampWithMs} from '@sentry/utils';
+import {Envelope, EventEnvelope} from '@sentry/types';
+import {addItemToEnvelope, timestampWithMs, uuid4} from '@sentry/utils';
+
+function isEventEnvelope(envelope: Envelope): envelope is EventEnvelope {
+  return !!(envelope[0] as any).event_id;
+}
+
+const traceFile = '/tmp/trace/trace.json';
+
+/**
+ * Currently, there is no interface to send a profile in the SDK. Here, we
+ * monkey patch the SDK itself to attach the profile as an envelope item
+ * to the transaction event and send it together.
+ */
+
+// @ts-ignore
+const orgSendEnvelope = BaseClient.prototype._sendEnvelope;
+
+// @ts-ignore
+BaseClient.prototype._sendEnvelope = function (envelope) {
+  if (isEventEnvelope(envelope) && fs.existsSync(traceFile)) {
+    const profile = {
+      type: 'profile',
+      platform: 'typescript',
+      profile_id: uuid4(),
+      profile: JSON.parse(fs.readFileSync(traceFile, 'utf8')),
+      device_locale:
+        process.env.LC_ALL ||
+        process.env.LC_MESSAGES ||
+        process.env.LANG ||
+        process.env.LANGUAGE,
+      device_manufacturer: 'GitHub',
+      device_model: 'GitHub Actions',
+      device_os_name: os.platform(),
+      device_os_version: os.release(),
+      device_is_emulator: false,
+      transaction_name: 'typescript.compile',
+      version_code: '1',
+      version_name: '0.1',
+      duration_ns: `${realTime.value * 1e9}`,
+      trace_id: envelope[0].trace.trace_id,
+      transaction_id: envelope[0].event_id,
+    };
+
+    // @ts-ignore
+    envelope = addItemToEnvelope(envelope, [{type: 'profile'}, profile]);
+  }
+  orgSendEnvelope.call(this, envelope);
+};
 
 Sentry.init({
   // typescript-compiler project under sentry-test organization (developer productivity team)
   dsn: 'https://ca215f623d6f456aa1d09ebc1efad79d@o19635.ingest.sentry.io/6326775',
-  // setting a tunnel implicitly sends the event as an envelope instead of json
-  tunnel: 'https://o19635.ingest.sentry.io/api/6326775/envelope/',
   tracesSampleRate: 1.0,
   environment: 'ci',
-  beforeSend: (event: any) => {
-    if (event.type === 'profile') {
-      event.profile_id = event.event_id;
-      // change the platform for the profile to `typescript` instead of `node`
-      event.platform = 'typescript';
-    }
-    return event;
-  },
+  debug: true,
 });
 
 if (!fs.existsSync('/tmp/typescript-monitor.log')) {
@@ -170,35 +209,7 @@ transaction.setTag(
   `https://github.com/getsentry/sentry/actions/runs/${process.env.GITHUB_RUN_ID}`
 );
 
-const transactionId = transaction.finish();
-const traceId = transaction.traceId;
-
-const traceFile = '/tmp/trace/trace.json';
-if (fs.existsSync(traceFile)) {
-  const trace = JSON.parse(fs.readFileSync(traceFile, 'utf8'));
-
-  const env = process.env;
-
-  const event = {
-    type: 'profile',
-    profile: trace,
-    device_locale: env.LC_ALL || env.LC_MESSAGES || env.LANG || env.LANGUAGE,
-    device_manufacturer: 'GitHub',
-    device_model: 'GitHub Actions',
-    device_os_name: os.platform(),
-    device_os_version: os.release(),
-    device_is_emulator: false,
-    transaction_name: 'typescript.compile',
-    version_code: '1',
-    version_name: '0.1',
-    duration_ns: `${realTime.value * 1e9}`,
-    trace_id: traceId,
-    transaction_id: transactionId,
-  };
-
-  // Hack: profiles arent a true event type in the sdk yet
-  Sentry.captureEvent(event as Event);
-}
+transaction.finish();
 
 (async () => {
   await Sentry.flush(5000);
