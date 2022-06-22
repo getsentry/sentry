@@ -110,6 +110,7 @@ def pytest_configure(config):
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
+    settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     settings.DEBUG_VIEWS = True
@@ -141,6 +142,8 @@ def pytest_configure(config):
             "redis.clusters": {"default": {"hosts": {0: {"db": 9}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
+            "system.base-hostname": "testserver",
+            "system.customer-base-hostname": "{slug}.{region}.testserver",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -264,9 +267,19 @@ def pytest_runtest_teardown(item):
     with clusters.get("default").all() as client:
         client.flushdb()
 
-    from celery.task.control import discard_all
+    import celery
 
-    discard_all()
+    if celery.version_info >= (5, 2):
+        from celery.app.control import Control
+
+        from sentry.celery import app
+
+        celery_app_control = Control(app)
+        celery_app_control.discard_all()
+    else:
+        from celery.task.control import discard_all
+
+        discard_all()
 
     from sentry.models import OrganizationOption, ProjectOption, UserOption
 

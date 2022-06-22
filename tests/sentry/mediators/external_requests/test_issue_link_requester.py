@@ -1,3 +1,4 @@
+import pytest
 import responses
 
 from sentry.coreapi import APIError
@@ -90,7 +91,7 @@ class TestIssueLinkRequester(TestCase):
             status=200,
             content_type="application/json",
         )
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             IssueLinkRequester.run(
                 install=self.install,
                 project=self.project,
@@ -110,7 +111,7 @@ class TestIssueLinkRequester(TestCase):
             status=500,
         )
 
-        with self.assertRaises(APIError):
+        with pytest.raises(APIError):
             IssueLinkRequester.run(
                 install=self.install,
                 project=self.project,

@@ -156,24 +156,19 @@ class BaseTestCase(Fixtures, Exam):
     def tasks(self):
         return TaskRunner()
 
-    @classmethod
-    @contextmanager
-    def capture_on_commit_callbacks(cls, using=DEFAULT_DB_ALIAS, execute=False):
+    @pytest.fixture(autouse=True)
+    def polyfill_capture_on_commit_callbacks(self, django_capture_on_commit_callbacks):
         """
-        Context manager to capture transaction.on_commit() callbacks.
-        Backported from Django:
-        https://github.com/django/django/pull/12944
+        https://pytest-django.readthedocs.io/en/latest/helpers.html#django_capture_on_commit_callbacks
+
+        pytest-django comes with its own polyfill of this Django helper for
+        older Django versions, so we're using that.
         """
-        callbacks = []
-        start_count = len(connections[using].run_on_commit)
-        try:
-            yield callbacks
-        finally:
-            run_on_commit = connections[using].run_on_commit[start_count:]
-            callbacks[:] = [func for sids, func in run_on_commit]
-            if execute:
-                for callback in callbacks:
-                    callback()
+        self.capture_on_commit_callbacks = django_capture_on_commit_callbacks
+
+    @pytest.fixture(autouse=True)
+    def expose_stale_database_reads(self, stale_database_reads):
+        self.stale_database_reads = stale_database_reads
 
     def feature(self, names):
         """
@@ -463,8 +458,11 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     must set the string `endpoint`.
     """
 
-    endpoint = None
     method = "get"
+
+    @property
+    def endpoint(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def get_response(self, *args, **params):
         """
@@ -480,9 +478,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             * raw_data: (Optional) Sometimes we want to precompute the JSON body.
         :returns Response object
         """
-        if self.endpoint is None:
-            raise Exception("Implement self.endpoint to use this method.")
-
         url = reverse(self.endpoint, args=args)
         # In some cases we want to pass querystring params to put/post, handle
         # this here.
@@ -635,7 +630,9 @@ class AuthProviderTestCase(TestCase):
 
 
 class RuleTestCase(TestCase):
-    rule_cls = None
+    @property
+    def rule_cls(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def get_event(self):
         return self.event
@@ -753,7 +750,9 @@ class PermissionTestCase(TestCase):
 
 
 class PluginTestCase(TestCase):
-    plugin = None
+    @property
+    def plugin(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self):
         super().setUp()
@@ -792,7 +791,10 @@ class PluginTestCase(TestCase):
 
 class CliTestCase(TestCase):
     runner = fixture(CliRunner)
-    command = None
+
+    @property
+    def command(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     default_args = []
 
@@ -839,7 +841,9 @@ class AcceptanceTestCase(TransactionTestCase):
 
 
 class IntegrationTestCase(TestCase):
-    provider = None
+    @property
+    def provider(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self):
         from sentry.integrations.pipeline import IntegrationPipeline
@@ -1085,8 +1089,6 @@ class SessionMetricsTestCase(SnubaTestCase):
             self._push_metric(
                 session, "counter", SessionMRI.SESSION, {"session.status": "init"}, +1
             )
-            if not user_is_nil:
-                self._push_metric(session, "set", SessionMRI.USER, {"session.status": "init"}, user)
 
         status = session["status"]
 
@@ -1097,6 +1099,8 @@ class SessionMetricsTestCase(SnubaTestCase):
                 self._push_metric(
                     session, "set", SessionMRI.USER, {"session.status": "errored"}, user
                 )
+        elif not user_is_nil:
+            self._push_metric(session, "set", SessionMRI.USER, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
             self._push_metric(
@@ -1105,7 +1109,7 @@ class SessionMetricsTestCase(SnubaTestCase):
             if not user_is_nil:
                 self._push_metric(session, "set", SessionMRI.USER, {"session.status": status}, user)
 
-        if status != "ok":  # terminal
+        if status == "exited":
             if session["duration"] is not None:
                 self._push_metric(
                     session,
@@ -1114,11 +1118,6 @@ class SessionMetricsTestCase(SnubaTestCase):
                     {"session.status": status},
                     session["duration"],
                 )
-
-        # Also extract user for non-init healthy sessions
-        # (see # https://github.com/getsentry/relay/pull/1275)
-        if session["seq"] > 0 and status in ("ok", "exited") and not user_is_nil:
-            self._push_metric(session, "set", SessionMRI.USER, {"session.status": "ok"}, user)
 
     def bulk_store_sessions(self, sessions):
         for session in sessions:
@@ -1327,7 +1326,7 @@ class IntegrationRepositoryTestCase(APITestCase):
         self.login_as(self.user)
 
     def add_create_repository_responses(self, repository_config):
-        raise NotImplementedError
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def create_repository(
         self, repository_config, integration_id, organization_slug=None, add_responses=True
@@ -1371,7 +1370,7 @@ class ReleaseCommitPatchTest(APITestCase):
 
     @fixture
     def url(self):
-        raise NotImplementedError
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def assert_commit(self, commit, repo_id, key, author_id, message):
         assert commit.organization_id == self.org.id
@@ -1544,16 +1543,16 @@ class TestMigrations(TransactionTestCase):
     def app(self):
         return "sentry"
 
-    migrate_from = None
-    migrate_to = None
+    @property
+    def migrate_from(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    @property
+    def migrate_to(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self):
         super().setUp()
-        assert (
-            self.migrate_from and self.migrate_to
-        ), "TestCase '{}' must define migrate_from and migrate_to properties".format(
-            type(self).__name__
-        )
         self.migrate_from = [(self.app, self.migrate_from)]
         self.migrate_to = [(self.app, self.migrate_to)]
 

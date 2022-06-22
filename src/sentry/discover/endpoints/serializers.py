@@ -9,7 +9,7 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.discover.arithmetic import categorize_columns
+from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Team
@@ -229,7 +229,7 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
                     orderby=query.get("orderby"),
                 )
                 builder.get_snql_query().validate()
-            except InvalidSearchQuery as err:
+            except (InvalidSearchQuery, ArithmeticError) as err:
                 raise serializers.ValidationError(f"Cannot save invalid query: {err}")
 
         return {

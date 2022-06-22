@@ -32,14 +32,7 @@ export const _FeatureFeedback = () => {
         routes: [],
       }}
     >
-      <FeatureFeedback
-        featureName="test"
-        feedbackTypes={[
-          "I don't like this feature",
-          'I like this feature',
-          'Other reason',
-        ]}
-      />
+      <FeatureFeedback featureName="test" />
       <GlobalModal />
       <IndicatorContainer />
     </RouteContext.Provider>
