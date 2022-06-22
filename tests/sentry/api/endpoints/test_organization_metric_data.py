@@ -118,7 +118,20 @@ class OrganizationMetricDataTest(MetricsAPIBaseTestCase):
             groupBy="environment",
             query=query,
         )
-        assert response.data.keys() == {"start", "end", "query", "intervals", "groups"}
+        assert response.data.keys() == {"start", "end", "query", "intervals", "groups", "meta"}
+
+    def test_validate_include_meta_not_enabled_by_default(self):
+        self.create_release(version="foo", project=self.project)
+        for tag in ("release", "environment"):
+            indexer.record(self.project.organization_id, tag)
+        response = self.get_success_response(
+            self.project.organization.slug,
+            project=self.project.id,
+            field="sum(sentry.sessions.session)",
+            groupBy="environment",
+            query="",
+        )
+        assert response.data["meta"] == []
 
     def test_orderby_unknown(self):
         response = self.get_response(
@@ -2443,19 +2456,18 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["series"]["session.healthy_user"] == [0]
 
     def test_private_transactions_derived_metric(self):
-        for field in ["transaction.all", "transaction.failure_count"]:
-            response = self.get_response(
-                self.organization.slug,
-                project=[self.project.id],
-                field=[field],
-                statsPeriod="1m",
-                interval="1m",
-            )
+        response = self.get_response(
+            self.organization.slug,
+            project=[self.project.id],
+            field=["transaction.all"],
+            statsPeriod="1m",
+            interval="1m",
+        )
 
-            assert response.data["detail"] == (
-                f"Failed to parse '{field}'. Must be something like 'sum(my_metric)', "
-                "or a supported aggregate derived metric like `session.crash_free_rate`"
-            )
+        assert response.data["detail"] == (
+            "Failed to parse 'transaction.all'. Must be something like 'sum(my_metric)', "
+            "or a supported aggregate derived metric like `session.crash_free_rate`"
+        )
 
     def test_failure_rate_transaction(self):
         user_ts = time.time()

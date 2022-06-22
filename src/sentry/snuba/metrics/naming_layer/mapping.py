@@ -2,10 +2,10 @@ __all__ = ("create_name_mapping_layers", "get_mri", "get_public_name_from_mri")
 
 
 from enum import Enum
-from typing import Dict, Optional, Union, cast
+from typing import Dict, Optional, Tuple, Union, cast
 
 from sentry.api.utils import InvalidParams
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import MRI_EXPRESSION_REGEX, SessionMRI, TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import SessionMetricKey, TransactionMetricKey
 
 
@@ -66,3 +66,17 @@ def get_public_name_from_mri(
     assert isinstance(internal_name, str)
 
     return MRI_TO_NAME.get(internal_name)
+
+
+def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> str:
+    if operation is None:
+        return get_public_name_from_mri(metric_mri)
+    return f"{operation}({get_public_name_from_mri(metric_mri)})"
+
+
+def parse_expression(name: str) -> Tuple[Optional[str], str]:
+    matches = MRI_EXPRESSION_REGEX.match(name)
+    if matches:
+        # operation, metric_mri
+        return matches[1], matches[2]
+    return None, name

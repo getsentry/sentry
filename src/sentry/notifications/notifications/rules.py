@@ -157,3 +157,24 @@ class AlertRuleNotification(ProjectNotification):
             "target_identifier": self.target_identifier,
             **super().get_log_params(recipient),
         }
+
+
+class ActiveReleaseAlertNotification(AlertRuleNotification):
+    message_builder = "ActiveReleaseIssueNotificationMessageBuilder"
+    metrics_key = "release_issue_alert"
+    notification_setting_type = NotificationSettingTypes.ISSUE_ALERTS
+    template_path = "sentry/emails/error"
+
+    def get_notification_title(self, context: Mapping[str, Any] | None = None) -> str:
+        from sentry.integrations.slack.message_builder.issues import build_rule_url
+
+        title_str = "Active Release alert triggered"
+
+        if self.rules:
+            rule_url = build_rule_url(self.rules[0], self.group, self.project)
+            title_str += f" <{rule_url}|{self.rules[0].label}>"
+
+            if len(self.rules) > 1:
+                title_str += f" (+{len(self.rules) - 1} other)"
+
+        return title_str

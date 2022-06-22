@@ -28,7 +28,11 @@ from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_pr
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 from sentry.snuba.metrics.query import Groupable, MetricsQuery
-from sentry.snuba.metrics.query_builder import SnubaQueryBuilder, SnubaResultConverter
+from sentry.snuba.metrics.query_builder import (
+    SnubaQueryBuilder,
+    SnubaResultConverter,
+    translate_meta_results,
+)
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
     CUSTOM_MEASUREMENT_DATASETS,
@@ -601,12 +605,15 @@ def _prune_extra_groups(results: dict, filters: GroupLimitFilters) -> None:
             queries[key]["data"] = filtered
 
 
-def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict:
+def get_series(
+    projects: Sequence[Project], metrics_query: MetricsQuery, include_meta: bool = False
+) -> dict:
     """Get time series for the given query"""
     intervals = list(
         get_intervals(metrics_query.start, metrics_query.end, metrics_query.granularity.granularity)
     )
     results = {}
+    meta = []
     fields_in_entities = {}
 
     if not metrics_query.groupby:
@@ -658,16 +665,18 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
             )
             initial_query_results = raw_snql_query(
                 request, use_cache=False, referrer="api.metrics.totals.initial_query"
-            )["data"]
+            )
+            initial_query_results_data = initial_query_results["data"]
+            meta.extend(initial_query_results["meta"])
 
         except StopIteration:
             # This can occur when requesting a list of derived metrics that are not have no data
             # for the passed projects
-            initial_query_results = []
+            initial_query_results_data = []
 
         # If we do not get any results from the first query, then there is no point in making
         # the second query
-        if initial_query_results:
+        if initial_query_results_data:
             # We no longer want the order by in the 2nd query because we already have the order of
             # the group by tags from the first query so we basically remove the order by columns,
             # and reset the query fields to the original fields because in the second query,
@@ -677,7 +686,9 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
             query_builder = SnubaQueryBuilder(projects, metrics_query)
             snuba_queries, fields_in_entities = query_builder.get_snuba_queries()
 
-            group_limit_filters = _get_group_limit_filters(metrics_query, initial_query_results)
+            group_limit_filters = _get_group_limit_filters(
+                metrics_query, initial_query_results_data
+            )
 
             # This loop has constant time complexity as it will always have a maximum of
             # three queries corresponding to the three available entities:
@@ -693,19 +704,18 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
                     )
                     snuba_result = raw_snql_query(
                         request, use_cache=False, referrer=f"api.metrics.{key}.second_query"
-                    )["data"]
-
+                    )
+                    snuba_result_data = snuba_result["data"]
+                    meta.extend(snuba_result["meta"])
                     # Since we removed the orderBy from all subsequent queries,
                     # we need to sort the results manually. This is required for
                     # the paginator, since it always queries one additional row
                     # and removes it at the end.
                     if group_limit_filters:
-                        snuba_result = _sort_results_by_group_filters(
-                            snuba_result, group_limit_filters
+                        snuba_result_data = _sort_results_by_group_filters(
+                            snuba_result_data, group_limit_filters
                         )
-
-                    results[entity][key] = {"data": snuba_result}
-
+                    results[entity][key] = {"data": snuba_result_data}
     else:
         snuba_queries, fields_in_entities = SnubaQueryBuilder(
             projects, metrics_query
@@ -725,11 +735,17 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
                     request,
                     use_cache=False,
                     referrer=f"api.metrics.{key}",
-                )["data"]
+                )
+                snuba_result_data = snuba_result["data"]
+                meta.extend(snuba_result["meta"])
 
                 snuba_limit = snuba_query.limit.limit if snuba_query.limit else None
-                if not group_limit_filters and snuba_limit and len(snuba_result) == snuba_limit:
-                    group_limit_filters = _get_group_limit_filters(metrics_query, snuba_result)
+                if (
+                    not group_limit_filters
+                    and snuba_limit
+                    and len(snuba_result_data) == snuba_limit
+                ):
+                    group_limit_filters = _get_group_limit_filters(metrics_query, snuba_result_data)
 
                     # We're now applying a filter that past queries may not have
                     # had. To avoid partial results, remove extra groups that
@@ -737,14 +753,15 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
                     if group_limit_filters:
                         _prune_extra_groups(results, group_limit_filters)
 
-                results[entity][key] = {"data": snuba_result}
+                results[entity][key] = {"data": snuba_result_data}
 
     assert projects
     converter = SnubaResultConverter(
         projects[0].organization_id, metrics_query, fields_in_entities, intervals, results
     )
 
-    result_groups = converter.translate_results()
+    # Translate applies only on ["data"]
+    result_groups = converter.translate_result_groups()
     # It can occur, when we make queries that are not ordered, that we end up with a number of
     # groups that doesn't meet the limit of the query for each of the entities, and hence they
     # don't go through the pruning logic resulting in a total number of groups that is greater
@@ -752,9 +769,12 @@ def get_series(projects: Sequence[Project], metrics_query: MetricsQuery) -> dict
     if len(result_groups) > metrics_query.limit.limit:
         result_groups = result_groups[0 : metrics_query.limit.limit]
 
+    metrics_query_fields = {str(metric_field) for metric_field in metrics_query.select}
+
     return {
         "start": metrics_query.start,
         "end": metrics_query.end,
         "intervals": intervals,
         "groups": result_groups,
+        "meta": translate_meta_results(meta, metrics_query_fields) if include_meta else [],
     }
