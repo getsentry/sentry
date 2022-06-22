@@ -33,7 +33,7 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
         ).distinct("id")
 
         if query:
-            queryset = queryset.filter(key__icontains=query)
+            queryset = queryset.filter(key__istartswith=query)
 
         return self.paginate(
             request=request,

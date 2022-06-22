@@ -74,3 +74,15 @@ class ProjectCommitListTest(APITestCase):
         response = self.client.get(url + "?query=random", format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+        response = self.client.get(url + "?query=foob", format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        response = self.client.get(url + "?query=f", format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+
+        response = self.client.get(url + "?query=ooba", format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
