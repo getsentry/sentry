@@ -15,6 +15,7 @@ from sentry.models import (
     GroupStatus,
     Identity,
     Project,
+    Release,
     ReleaseProject,
     Rule,
     Team,
@@ -383,7 +384,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
         recipient: Team | User | None = None,
-        release_version: str | None = None,
+        last_release: Release | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -396,7 +397,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         self.issue_details = issue_details
         self.notification = notification
         self.recipient = recipient
-        self.release_version = release_version
+        self.last_release = last_release
 
     def build(self) -> SlackBody:
         text = build_attachment_text(self.group, self.event) or ""
@@ -423,7 +424,7 @@ class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
         title_url = get_title_link(
             self.group, self.event, self.link_to_event, self.issue_details, self.notification
         )
-        release = self.release_version or ""
+        release = self.last_release.version or ""
         release_url = absolute_uri(
             f"/organizations/{self.group.organization.slug}/releases/{release}/?project={self.group.project_id}"
         )
