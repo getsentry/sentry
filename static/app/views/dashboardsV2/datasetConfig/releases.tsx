@@ -19,8 +19,9 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, WidgetQuery} from '../types';
+import {DisplayType, Widget, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';
+import {ReleaseSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/releaseSearchBar';
 import {
   DERIVED_STATUS_METRICS_PATTERN,
   DerivedStatusFields,
@@ -66,30 +67,23 @@ export const ReleasesConfig: DatasetConfig<
     pageFilters: PageFilters,
     limit?: number,
     cursor?: string
-  ) => getReleasesRequest(0, 1, api, query, organization, pageFilters, limit, cursor),
-  getSeriesRequest: (
-    api: Client,
-    query: WidgetQuery,
-    organization: Organization,
-    pageFilters: PageFilters,
-    limit?: number,
-    cursor?: string
-  ) => {
-    const includeTotals = query.columns.length > 0 ? 1 : 0;
-    return getReleasesRequest(
+  ) =>
+    getReleasesRequest(
+      0,
       1,
-      includeTotals,
       api,
       query,
       organization,
       pageFilters,
+      undefined,
       limit,
       cursor
-    );
-  },
+    ),
+  getSeriesRequest: getReleasesSeriesRequest,
   filterTableOptions: filterPrimaryReleaseTableOptions,
   filterTableAggregateParams: filterAggregateParams,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
+  SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,
@@ -104,6 +98,42 @@ export const ReleasesConfig: DatasetConfig<
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
+
+function getReleasesSeriesRequest(
+  api: Client,
+  widget: Widget,
+  queryIndex: number,
+  organization: Organization,
+  pageFilters: PageFilters
+) {
+  const query = widget.queries[queryIndex];
+  const {displayType, limit} = widget;
+
+  const {datetime} = pageFilters;
+  const {start, end, period} = datetime;
+
+  const isCustomReleaseSorting = requiresCustomReleaseSorting(query);
+
+  const includeTotals = query.columns.length > 0 ? 1 : 0;
+  const interval = getWidgetInterval(
+    displayType,
+    {start, end, period},
+    '5m',
+    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
+    isCustomReleaseSorting ? 'low' : undefined
+  );
+
+  return getReleasesRequest(
+    1,
+    includeTotals,
+    api,
+    query,
+    organization,
+    pageFilters,
+    interval,
+    limit
+  );
+}
 
 function filterPrimaryReleaseTableOptions(option: FieldValueOption) {
   return [
@@ -263,6 +293,7 @@ function getReleasesRequest(
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
+  interval?: string,
   limit?: number,
   cursor?: string
 ) {
@@ -306,14 +337,6 @@ function getReleasesRequest(
   //      imposed on the metrics query the user won't see it on the
   //      table/chart/
   //
-
-  const interval = getWidgetInterval(
-    DisplayType.TABLE,
-    {start, end, period},
-    '5m',
-    // requesting low fidelity for release sort because metrics api can't return 100 rows of high fidelity series data
-    isCustomReleaseSorting ? 'low' : undefined
-  );
 
   const {aggregates, injectedFields} = resolveDerivedStatusFields(
     query.aggregates,
