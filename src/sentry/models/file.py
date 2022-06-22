@@ -366,7 +366,7 @@ class File(Model):
                 prefetch=True, prefetch_to=base, delete=False
             ).detach_tempfile()
 
-            # pre-emptively check if the file already exists.
+            # preemptively check if the file already exists.
             # this can happen as a race condition if two processes/threads
             # are trying to cache the same file and both try to write
             # at the same time, overwriting each other. Normally this is fine,
