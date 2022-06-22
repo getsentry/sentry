@@ -25,7 +25,7 @@ export function convertDayValueObjectToSeries(
 }
 
 /**
- * Takes a sorted array of trend items and groups them by worst/better/no chagne
+ * Takes a sorted array of trend items and groups them by worst/better/no change
  */
 export function groupByTrend<T extends {trend: number}>(data: T[]): T[] {
   const worseItems = data.filter(x => Math.round(x.trend) < 0);
