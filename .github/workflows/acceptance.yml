@@ -290,7 +290,7 @@ jobs:
         uses: getsentry/action-visual-snapshot@main
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
-        if: env.snapshot_ref == 'main' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
+        if: steps.snapshot_ref.outputs.ref == 'pixelmatch' && needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
