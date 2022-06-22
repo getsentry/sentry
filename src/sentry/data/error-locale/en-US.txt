@@ -187,7 +187,7 @@
 5091,invalid function signature
 5092,invalid property signature
 5093,invalid input parameter type
-5094,invalid ouput parameter
+5094,invalid output parameter
 5095,Accessing the 'arguments' property of a function is not allowed in strict mode
 5096,Inspectable Object expected
 5097,Could not convert argument to type 'char'
