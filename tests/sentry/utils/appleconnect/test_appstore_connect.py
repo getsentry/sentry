@@ -110,7 +110,7 @@ class TestListBuilds:
     ) -> Optional[responses_mod.RequestsMock]:
         """Optionally mocks the App Store Connect list builds API.
 
-        This fixture piggybacks on the ``api_credentials`` fixture's parametrisation and if
+        This fixture piggybacks on the ``api_credentials`` fixture's parameterisation and if
         it is the fake credentials it will mock out the responses to the list build URLs
         with our pre-configured data.  Otherwise it does nothing.
         """
