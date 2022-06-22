@@ -319,7 +319,7 @@ def test_transform_step(mock_indexer) -> None:
             KafkaPayload(
                 None,
                 json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                [],
+                [("metric_type", message_payloads[i]["type"])],
             ),
             m.timestamp,
         )
