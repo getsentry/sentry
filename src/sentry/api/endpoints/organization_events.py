@@ -55,7 +55,10 @@ API_TOKEN_REFERRER = "api.auth-token.events"
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     """Deprecated in favour of OrganizationEventsEndpoint"""
 
-    @deprecated(datetime.fromisoformat("2022-07-21T00:00:00+00:00:00"), suggested_api="events")
+    @deprecated(
+        datetime.fromisoformat("2022-07-21T00:00:00+00:00:00"),
+        suggested_api="api/0/organizations/{organization_slug}/events/",
+    )
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
