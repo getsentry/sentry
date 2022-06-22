@@ -94,7 +94,7 @@ function useBreadcrumbsPathmap() {
 
 /**
  * Used to set the breadcrumb title of the passed route while the current
- * component is rendererd.
+ * component is rendered.
  *
  * Is a no-op if used outside of the BreadcrumbContext.
  */

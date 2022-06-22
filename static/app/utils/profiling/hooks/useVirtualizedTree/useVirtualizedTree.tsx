@@ -746,14 +746,14 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   const renderRow = props.renderRow;
   const renderedItems: React.ReactNode[] = useMemo(() => {
-    const renderered: React.ReactNode[] = [];
+    const rendered: React.ReactNode[] = [];
 
     // It is important that we do not create a copy of item
     // because refs will assign the dom node to the item.
     // If we map, we get a new object that our internals will not be able to access.
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      renderered.push(
+      rendered.push(
         renderRow(item, {
           handleRowClick: handleRowClick(item.key),
           handleExpandTreeNode,
@@ -764,7 +764,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       );
     }
 
-    return renderered;
+    return rendered;
   }, [
     items,
     handleRowClick,
