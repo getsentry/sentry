@@ -135,10 +135,10 @@ class OrganizationSessionsEndpointTest(APITestCase, SnubaTestCase):
         assert response.data == {"detail": "You do not have permission to perform this action."}
 
     def test_unknown_field(self):
-        response = self.do_request({"field": ["summ(sessin)"]})
+        response = self.do_request({"field": ["summ(session)"]})
 
         assert response.status_code == 400, response.content
-        assert response.data == {"detail": 'Invalid field: "summ(sessin)"'}
+        assert response.data == {"detail": 'Invalid field: "summ(session)"'}
 
     def test_unknown_groupby(self):
         response = self.do_request({"field": ["sum(session)"], "groupBy": ["environment_"]})
