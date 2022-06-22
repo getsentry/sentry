@@ -7,6 +7,10 @@ type ProfilingViews =
 
 type EventKey = `${ProfilingPrefix}_views.${ProfilingViews}`;
 
+export type ProfilingEventParameters = {
+  [K in EventKey]: {};
+};
+
 export const profilingEventMap: Record<EventKey, string> = {
   'profiling_views.landing': 'Profiling Views: Landing',
   'profiling_views.profile_flamegraph': 'Profiling Views: Flamegraph',

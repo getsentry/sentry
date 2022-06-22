@@ -307,13 +307,14 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
 
     def test_member_can_leave(self):
         self.login_as(self.member_on_team.user)
-        self.get_success_response(
+        response = self.get_success_response(
             self.org.slug, self.member_on_team.id, self.team.slug, status_code=status.HTTP_200_OK
         )
 
         assert not OrganizationMemberTeam.objects.filter(
             team=self.team, organizationmember=self.member_on_team
         ).exists()
+        assert response.data["isMember"] is False
 
     def test_member_can_leave_without_membership(self):
         self.login_as(self.member.user)
