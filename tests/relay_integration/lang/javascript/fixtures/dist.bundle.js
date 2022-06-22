@@ -1686,9 +1686,9 @@
           });
           sources = [{}].concat(sources);
           var request = extend.apply(null, sources);
-          var nonEnumberables = ['ip'];
+          var nonEnumerables = ['ip'];
 
-          nonEnumberables.forEach(function(key) {
+          nonEnumerables.forEach(function(key) {
             sources.forEach(function(source) {
               if (source[key]) request[key] = source[key];
             });
