@@ -739,7 +739,7 @@ def test_codeowners_match_wildcard_directory(
 )
 def test_codeowners_match_question_mark(path_details, expected):
     """
-    "?" should match any character execept slash
+    "?" should match any character except slash
     """
     _assert_matcher(Matcher("codeowners", "test.?y"), path_details, expected)
 
