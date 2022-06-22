@@ -283,7 +283,7 @@ jobs:
       - name: Determine snapshot version
         run: |
           random=$(( ( RANDOM % 10 )  + 1 ));
-          echo "snapshot_ref=$([[ $random -ge 5 ]] && echo "main" || echo "905b7e3a7fdd913189b9a35dcef51b6b927f9598")" >> $GITHUB_ENV;
+          echo "::set-output name=ref::$([[ $random -ge 5 ]] && echo "pixelmatch" || echo "odiff")"
 
       - name: Diff snapshots
         id: visual-snapshots-diff-pixelmatch
