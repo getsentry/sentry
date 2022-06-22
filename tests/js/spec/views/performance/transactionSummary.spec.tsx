@@ -510,7 +510,7 @@ describe('Performance > TransactionSummary', function () {
       expect(getProjectThresholdMock).not.toHaveBeenCalled();
     });
 
-    it('fetches project transaction threshdold', async function () {
+    it('fetches project transaction threshold', async function () {
       const {organization, router, routerContext} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -910,7 +910,7 @@ describe('Performance > TransactionSummary', function () {
       expect(getProjectThresholdMock).not.toHaveBeenCalled();
     });
 
-    it('fetches project transaction threshdold', async function () {
+    it('fetches project transaction threshold', async function () {
       const {organization, router, routerContext} = initializeData({
         features: ['performance-frontend-use-events-endpoint'],
       });
