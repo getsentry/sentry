@@ -39,7 +39,7 @@ class OrganizationSwitchTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.click_when_visible(
                 selector='[data-test-id="page-filter-project-selector"]'
             )
-            # Check if the automplete-list has shown up, if that fails we
+            # Check if the autocomplete-list has shown up, if that fails we
             # want to retry this step.
             self.browser.wait_until('[data-test-id="autocomplete-list"]')
 
