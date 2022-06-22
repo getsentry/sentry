@@ -5,7 +5,14 @@ import Settings from 'sentry/views/settings/projectAlerts/settings';
 
 describe('ProjectAlertSettings', () => {
   const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
+  // 12 minutes
+  const digestsMinDelay = 12 * 60;
+  // 55 minutes
+  const digestsMaxDelay = 55 * 60;
+  const project = TestStubs.Project({
+    digestsMinDelay,
+    digestsMaxDelay,
+  });
 
   beforeEach(() => {
     Client.addMockResponse({
@@ -32,7 +39,8 @@ describe('ProjectAlertSettings', () => {
     );
 
     expect(screen.getByPlaceholderText('e.g. $shortID - $title')).toBeInTheDocument();
-    expect(screen.getAllByRole('slider')).toHaveLength(2);
+    expect(screen.getByRole('slider', {name: '12 minutes'})).toBeInTheDocument();
+    expect(screen.getByRole('slider', {name: '55 minutes'})).toBeInTheDocument();
     expect(
       screen.getByText(
         "Oops! Looks like there aren't any available integrations installed."
