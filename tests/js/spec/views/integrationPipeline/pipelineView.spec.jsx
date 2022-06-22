@@ -20,7 +20,7 @@ describe('PipelineView', () => {
     expect(document.title).toBe('AWS Lambda Select Project');
   });
 
-  it('errros on invalid pipelineName', () => {
+  it('errors on invalid pipelineName', () => {
     jest.spyOn(console, 'error');
 
     // eslint-disable-next-line no-console

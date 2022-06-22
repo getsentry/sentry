@@ -86,7 +86,7 @@ describe('GroupEventEntries', function () {
       expect(errorItem.at(1).props().error).toEqual(errors[1]);
     });
 
-    describe('Proguard erros', function () {
+    describe('Proguard errors', function () {
       const proGuardUuid = 'a59c8fcc-2f27-49f8-af9e-02661fc3e8d7';
 
       it('Missing mapping file', async function () {
