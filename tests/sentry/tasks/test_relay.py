@@ -58,7 +58,7 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
         # Callbacks have been executed, job(s) should've been scheduled now, so
         # let's execute them.
         #
-        # Note: We can't directly assert that the data race has not occured, as
+        # Note: We can't directly assert that the data race has not occurred, as
         # there are no real DB transactions available in this testcase. The
         # entire test runs in one transaction because that's how pytest-django
         # sets up things unless one uses
