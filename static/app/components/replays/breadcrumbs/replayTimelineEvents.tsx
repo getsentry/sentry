@@ -98,7 +98,7 @@ function Event({crumbs}: {crumbs: Crumb[]; className?: string}) {
 
   return (
     <IconPosition>
-      <Tooltip key={mostInteresting.id} title={title}>
+      <Tooltip key={mostInteresting.id} title={title} containerDisplayMode="block">
         <IconNode color={mostInteresting.color}>{icon}</IconNode>
       </Tooltip>
     </IconPosition>
@@ -139,6 +139,7 @@ const IconNode = styled('div')<{color: Color}>`
   background: ${p => p.theme[p.color] ?? p.color};
   border: 1px solid ${p => p.theme.white};
   box-shadow: ${p => p.theme.dropShadowLightest};
+  user-select: none;
 `;
 
 export default ReplayTimelineEvents;
