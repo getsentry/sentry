@@ -160,7 +160,7 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             assert "Environment" in rulesBefore[0].text
             assert "Release" in rulesBefore[1].text
 
-            dragHandleSource = self.browser.elements('[aria-roledescription="sortable"]')[1]
+            drag_handle_source = self.browser.elements('[aria-roledescription="sortable"]')[1]
             dragHandleTarget = self.browser.elements('[aria-roledescription="sortable"]')[0]
 
             action = ActionChains(self.browser.driver)
