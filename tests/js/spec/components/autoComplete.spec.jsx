@@ -139,6 +139,21 @@ describe('AutoComplete', function () {
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
 
+    it('handles component being unmounted and then blurred', function () {
+      input.simulate('focus');
+      input.simulate('blur');
+      expect(wrapper.state('isOpen')).toBe(true);
+      wrapper.unmount();
+
+      // This is a bit contrived but we inputs that fetch data async
+      // and then update state and the autocomplete has been removed
+      // from the DOM as the collapsible section of the page has
+      // been closed.
+      input.simulate('keyDown', {key: 'Escape'});
+      wrapper.update();
+      expect(mocks.onClose).toHaveBeenCalledTimes(1);
+    });
+
     it('can close dropdown menu when Escape is pressed', function () {
       input.simulate('focus');
       expect(wrapper.state('isOpen')).toBe(true);
