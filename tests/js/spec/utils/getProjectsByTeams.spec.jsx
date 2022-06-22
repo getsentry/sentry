@@ -17,7 +17,7 @@ describe('getProjectsByTeams', function () {
     expect(Object.keys(projectsByTeams.projectsByTeam)).toEqual(['team1', 'team2']);
   });
 
-  it('lists teamless projecrts', function () {
+  it('lists teamless projects', function () {
     expect(projectsByTeams.teamlessProjects).toHaveLength(1);
   });
 });
