@@ -130,7 +130,7 @@ function ProjectSelector({
   // Used to determine if we should show the 'apply' changes button
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Used to keep selected proects sorted in the same order when opening /
+  // Used to keep selected projects sorted in the same order when opening /
   // closing the project selector
   const lastSelected = useRef(value);
 
