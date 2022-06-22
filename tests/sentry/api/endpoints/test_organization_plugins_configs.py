@@ -49,7 +49,7 @@ class OrganizationPluginsTest(APITestCase):
         for plugin in expected_plugins:
             assert filter(lambda x: x["slug"] == plugin, response.data)
 
-    def test_only_configuable_plugins(self):
+    def test_only_configurable_plugins(self):
         response = self.client.get(self.url)
         assert [x for x in response.data if not x["hasConfiguration"]] == []
 
