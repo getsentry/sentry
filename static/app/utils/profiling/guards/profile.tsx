@@ -23,14 +23,17 @@ export function isChromeTraceObjectFormat(input: any): input is ChromeTrace.Obje
   return typeof input === 'object' && 'traceEvents' in input;
 }
 
+// We check for the presence of at least one ProfileChunk event in the trace
 export function isChromeTraceArrayFormat(input: any): input is ChromeTrace.ProfileType {
   return (
     Array.isArray(input) && input.some(p => p.ph === 'P' && p.name === 'ProfileChunk')
   );
 }
 
-// Typescript uses only a subset of the event types (only B and E events), so we need to
-// inspect the contents of the trace to determine the type of the profile.
+// Typescript uses only a subset of the event types (only B and E cat),
+// so we need to inspect the contents of the trace to determine the type of the profile.
+// The TS trace can still contain other event types like metadata events, meaning we cannot
+// use array.every() and need to check all the events to make sure no P events are present
 export function isTypescriptChromeTraceArrayFormat(
   input: any
 ): input is ChromeTrace.ArrayFormat {
