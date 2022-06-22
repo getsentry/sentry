@@ -395,7 +395,7 @@ export class Provider extends Component<Props, State> {
 
     const virtualScrollbarRect = rectOfContent(this.virtualScrollbar.current);
 
-    // get intitial x-coordinate of the mouse click on the virtual scrollbar
+    // get initial x-coordinate of the mouse click on the virtual scrollbar
     this.initialMouseClickX = Math.abs(event.clientX - virtualScrollbarRect.x);
 
     // prevent the user from selecting things outside the minimap when dragging
