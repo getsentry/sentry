@@ -58,8 +58,8 @@ def _get_metrics_for_entity(
     entity_key: EntityKey,
     projects: Sequence[Project],
     org_id: int,
-    start: Optional[datetime],
-    end: Optional[datetime],
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
 ) -> Mapping[str, Any]:
     return run_metrics_query(
         entity_key=entity_key,
