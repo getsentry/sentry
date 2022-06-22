@@ -82,6 +82,11 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
+type DefaultAlertRuleActionHook = (
+  callback: (showDefaultAction: boolean) => void,
+  organization: Organization
+) => void;
+
 type CodeOwnersCTAProps = {
   organization: Organization;
   project: Project;
@@ -214,6 +219,7 @@ export type SettingsHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
+  'callback:default-action-alert-rule': DefaultAlertRuleActionHook;
   'callback:on-guide-update': GuideUpdateCallback;
 };
 
