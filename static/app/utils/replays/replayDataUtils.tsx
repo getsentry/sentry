@@ -136,7 +136,7 @@ export function spansFactory(spans: ReplaySpan[]) {
 /**
  * The original `this._event.startTimestamp` and `this._event.endTimestamp`
  * are the same. It's because the root replay event is re-purposing the
- * `transaction` type, but it is not a real span occuring over time.
+ * `transaction` type, but it is not a real span occurring over time.
  * So we need to figure out the real start and end timestamps based on when
  * first and last bits of data were collected. In milliseconds.
  */
