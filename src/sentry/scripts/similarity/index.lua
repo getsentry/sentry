@@ -293,7 +293,7 @@ end
 
 function TimeSeriesSet:swap(old, new)
     --[[
-    Replace the "old" member wtih the "new" member in all sets where it is
+    Replace the "old" member with the "new" member in all sets where it is
     present.
     ]]--
     local current = math.floor(self.timestamp / self.interval)
