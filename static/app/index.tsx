@@ -72,7 +72,7 @@
 
 async function app() {
   // We won't need initializeMainImport until we complete bootstrapping.
-  // Initaite the fetch, just don't await it until we need it.
+  // Initiate the fetch, just don't await it until we need it.
   const initializeMainImport = import('sentry/bootstrap/initializeMain');
   const bootstrapImport = import('sentry/bootstrap');
 
