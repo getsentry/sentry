@@ -21,7 +21,7 @@ const {
 } = process.env;
 
 /**
- * In CI we may need to shard our jest tests so that we can parellize the test runs
+ * In CI we may need to shard our jest tests so that we can parallelize the test runs
  *
  * `JEST_TESTS` is a list of all tests that will run, captured by `jest --listTests`
  * Then we split up the tests based on the total number of CI instances that will
