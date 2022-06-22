@@ -31,12 +31,6 @@ class ActiveReleaseEventCondition(EventCondition):
         if not event.group or not event.project:
             return False
 
-        # last_release_version: Optional[str] = event.group.get_last_release()
-        # if not last_release_version:
-        #     return False
-        #
-        # last_release: Release = Release.get(project=event.project, version=last_release_version)
-
         # XXX(gilbert):
         # adapted from LatestReleaseFilter
         # need to add caching later on
