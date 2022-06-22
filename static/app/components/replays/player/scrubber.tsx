@@ -104,14 +104,8 @@ export const TimelineScubber = styled(Scrubber)`
     opacity: 0.2;
   }
 
-  ${RangeWrapper} {
-    height: 100%;
-  }
-
-  ${Range} {
-    height: 100%;
-  }
-
+  ${RangeWrapper},
+  ${Range},
   ${SliderAndInputWrapper} {
     height: 100%;
   }
