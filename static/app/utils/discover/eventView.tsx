@@ -286,7 +286,7 @@ class EventView {
   interval: string | undefined;
   expired?: boolean;
   createdBy: User | undefined;
-  additionalConditions: MutableSearch; // This allows views to always add additional conditins to the query to get specific data. It should not show up in the UI unless explicitly called.
+  additionalConditions: MutableSearch; // This allows views to always add additional conditions to the query to get specific data. It should not show up in the UI unless explicitly called.
 
   constructor(props: {
     additionalConditions: MutableSearch;
