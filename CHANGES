@@ -724,7 +724,7 @@ Misc
 - Support for Google Cloud Storage as a storage backend.
 - A new Assistant to help onboard users.
 - Add count estimates to search results.
-- Superuser has been locked down significantlly with idle timeouts and secondary sessions.
+- Superuser has been locked down significantly with idle timeouts and secondary sessions.
 - 2FA can now be enforced for an organization.
 - Various performance around event processing to make up for all the added load we're forcing on
   ya'll. =)
