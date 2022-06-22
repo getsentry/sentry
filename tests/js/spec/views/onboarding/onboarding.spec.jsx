@@ -7,13 +7,13 @@ import {act} from 'sentry-test/reactTestingLibrary';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
-const MockStep = ({name, data, active, project, onComplete, onUpadte}) => (
+const MockStep = ({name, data, active, project, onComplete, onUpdate}) => (
   <div>
     {active && <div id="is_active" />}
     <div id="step_name">{name}</div>
     <div id="project_slug">{project && project.slug}</div>
     <a id="complete" href="#" onClick={() => onComplete(data)} />
-    <a id="update" href="#" onClick={() => onUpadte(data)} />
+    <a id="update" href="#" onClick={() => onUpdate(data)} />
   </div>
 );
 
