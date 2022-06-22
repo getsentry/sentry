@@ -516,7 +516,7 @@ def format_query(query):
 def split_query_into_tokens(query):
     """
     Splits query string into tokens for parsing by 'tokenize_query'.
-    Returns list of strigs
+    Returns list of strings
     Rules:
     Split on whitespace
         Unless
