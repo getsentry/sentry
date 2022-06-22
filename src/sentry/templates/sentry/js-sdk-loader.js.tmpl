@@ -118,7 +118,7 @@
           calledSentry = true;
           var call = data[i];
           if (initAlreadyCalled === false && call.f !== 'init') {
-            // First call always has to be init, this is a conveniece for the user so call to init is optional
+            // First call always has to be init, this is a convenience for the user so call to init is optional
             SDK.init();
           }
           initAlreadyCalled = true;
