@@ -105,7 +105,7 @@ function Replays() {
           </div>
         </HeaderTitle>
       </StyledPageHeader>
-      <PageFiltersContainer hideGlobalHeader resetParamsOnChange={['cursor']}>
+      <PageFiltersContainer>
         <StyledPageContent>
           <DiscoverQuery
             eventView={getEventView()}

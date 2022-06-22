@@ -114,7 +114,7 @@ function mergeDatetime(
   return datetime;
 }
 
-type InitializeUrlStateParams = {
+export type InitializeUrlStateParams = {
   memberProjects: Project[];
   organization: Organization;
   queryParams: Location['query'];
@@ -125,11 +125,17 @@ type InitializeUrlStateParams = {
   shouldForceProject?: boolean;
   showAbsolute?: boolean;
   /**
-   * Skip setting the query parameters
+   * When used with shouldForceProject it will not persist the project id
+   * to url query parameters on load. This is useful when global selection header
+   * is used for display purposes rather than selection.
    */
   skipInitializeUrlParams?: boolean;
+
   /**
-   * If true, do not load from local storage
+   * Skip loading from local storage
+   * An example is Issue Details, in the case where it is accessed directly (e.g. from email).
+   * We do not want to load the user's last used env/project in this case, otherwise will
+   * lead to very confusing behavior.
    */
   skipLoadLastUsed?: boolean;
 };

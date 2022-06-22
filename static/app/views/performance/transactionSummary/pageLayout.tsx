@@ -45,8 +45,6 @@ type Props = {
   projects: Project[];
   tab: Tab;
   features?: string[];
-  maxPickableDays?: number;
-  relativeDateOptions?: Record<string, React.ReactNode>;
 };
 
 function PageLayout(props: Props) {
@@ -58,8 +56,6 @@ function PageLayout(props: Props) {
     getDocumentTitle,
     generateEventView,
     childComponent: ChildComponent,
-    relativeDateOptions,
-    maxPickableDays,
     features = [],
   } = props;
 
@@ -101,15 +97,9 @@ function PageLayout(props: Props) {
       >
         <PerformanceEventViewProvider value={{eventView}}>
           <PageFiltersContainer
-            lockedMessageSubject={t('transaction')}
             shouldForceProject={defined(project)}
             forceProject={project}
             specificProjectSlugs={defined(project) ? [project.slug] : []}
-            disableMultipleProjectSelection
-            showProjectSettingsLink
-            relativeDateOptions={relativeDateOptions}
-            maxPickableDays={maxPickableDays}
-            hideGlobalHeader
           >
             <StyledPageContent>
               <NoProjectMessage organization={organization}>

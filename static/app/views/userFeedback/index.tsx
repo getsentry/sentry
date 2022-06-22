@@ -121,7 +121,7 @@ class OrganizationUserFeedback extends AsyncView<Props, State> {
     const allIssuesQuery = {...query, status: ''};
 
     return (
-      <PageFiltersContainer hideGlobalHeader>
+      <PageFiltersContainer>
         <PageContent>
           <NoProjectMessage organization={organization}>
             <div data-test-id="user-feedback">

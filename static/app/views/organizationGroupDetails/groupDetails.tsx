@@ -636,12 +636,7 @@ class GroupDetails extends Component<Props, State> {
           <PageFiltersContainer
             skipLoadLastUsed
             forceProject={project}
-            showDateSelector={false}
             shouldForceProject
-            lockedMessageSubject={t('issue')}
-            showIssueStreamLink
-            showProjectSettingsLink
-            hideGlobalHeader
           >
             {this.renderPageContent()}
           </PageFiltersContainer>
