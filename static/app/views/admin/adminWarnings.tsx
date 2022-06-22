@@ -4,7 +4,7 @@ import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 
 type Data = {
-  groups: [groupName: string, grouppedWarnings: string[]][];
+  groups: [groupName: string, groupedWarnings: string[]][];
   warnings: string[];
 };
 
