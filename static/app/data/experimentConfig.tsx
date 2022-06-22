@@ -26,6 +26,12 @@ export const experimentList = [
     assignments: [0, 1],
   },
   {
+    key: 'DefaultIssueAlertActionExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+  {
     key: 'MetricAlertBannerExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
