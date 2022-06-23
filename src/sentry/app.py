@@ -1,5 +1,7 @@
 from threading import local
 
+from django.conf import settings
+
 from sentry.utils import redis
 from sentry.utils.locking.backends.redis import RedisLockBackend
 from sentry.utils.locking.manager import LockManager
@@ -25,4 +27,4 @@ from .ratelimits import backend as ratelimiter  # NOQA
 
 raven = client = RavenShim()
 
-locks = LockManager(RedisLockBackend(redis.clusters.get("default")))
+locks = LockManager(RedisLockBackend(redis.clusters.get(settings.SENTRY_LOCKS_REDIS_CLUSTER)))

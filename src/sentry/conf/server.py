@@ -2501,6 +2501,10 @@ SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 # observed mainly for producing stable metrics.
 SENTRY_SYNTHETIC_MONITORING_PROJECT_ID = None
 
+
+# Redis cluster to use for default, redis backend of locks manager
+SENTRY_LOCKS_REDIS_CLUSTER = "default"
+
 # Similarity cluster to use
 # Similarity-v1: uses hardcoded set of event properties for diffing
 SENTRY_SIMILARITY_INDEX_REDIS_CLUSTER = "default"
