@@ -2,8 +2,8 @@ name: dispatch getsentry bump-sentry
 
 on:
   push:
-#    branches:
-#      - master
+    branches:
+      - master
 
 jobs:
   dispatch:
@@ -19,7 +19,7 @@ jobs:
           script: |
             await github.rest.actions.createWorkflowDispatch({
               owner: 'getsentry',
-              repo: 'getsentry-test-repo',
+              repo: 'getsentry',
               workflow_id: 'bump-sentry.yml',
               ref: 'master',
               inputs: {
