@@ -23,7 +23,7 @@ declare namespace ChromeTrace {
     samples: ReadonlyArray<any>;
   }
 
-  type ArrayFormat = ReadonlyArray<Event>;
+  type ArrayFormat = Array<Event | ProfileEvent>;
   type DurationEvent = 'B' | 'E';
   // Instant event
   type CompleteEvent = 'X';
@@ -73,8 +73,58 @@ declare namespace ChromeTrace {
     tdur?: number;
     pid: number;
     tid: number;
+    id?: string;
     cname?: string;
     args: Record<string, any | Record<string, any>>;
+  }
+
+  // Thread metadata event
+  interface ThreadMetadataEvent extends Event {
+    cat: '__metadata';
+    name: 'thread_name';
+    ph: 'M';
+    args: {name: string};
+  }
+
+  interface ProfileEvent extends Event {
+    cat: string;
+    id: string;
+    name: 'Profile';
+    ph: 'P';
+    pid: number;
+    tid: number;
+    ts: number;
+    tts: number;
+    args: {data: CpuProfile};
+  }
+
+  interface ProfileChunkEvent extends Event {
+    cat: string;
+    id: string;
+    name: 'ProfileChunk';
+    ph: 'P';
+    pid: number;
+    tid: number;
+    ts: number;
+    tts: number;
+    args: {data: {cpuProfile: CpuProfile}};
+  }
+
+  // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1496
+  interface PositionTickInfo {
+    line: number;
+    ticks: number;
+  }
+
+  // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L2292
+  interface CallFrame {
+    functionName: string;
+    scriptId: string;
+    url: string;
+    lineNumber: number;
+    columnNumber: number;
+    // This seems to be present in some profiles with value "JS"
+    codeType?: string;
   }
 
   // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1399
@@ -89,7 +139,7 @@ declare namespace ChromeTrace {
   }
 
   // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1453
-  interface Profile {
+  interface CpuProfile {
     nodes: ProfileNode[];
     startTime: number;
     endTime: number;

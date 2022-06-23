@@ -52,6 +52,10 @@ export function splitEventsByProcessAndTraceId(
   return collections;
 }
 
+function chronologicalSort(a: ChromeTrace.Event, b: ChromeTrace.Event): number {
+  return a.ts - b.ts;
+}
+
 function reverseChronologicalSort(a: ChromeTrace.Event, b: ChromeTrace.Event): number {
   return b.ts - a.ts;
 }
@@ -277,6 +281,131 @@ export function parseChromeTraceArrayFormat(
       );
     }
   }
+
+  return {
+    name: 'chrometrace',
+    traceID,
+    activeProfileIndex: 0,
+    profiles,
+  };
+}
+
+function isProfileEvent(event: ChromeTrace.Event): event is ChromeTrace.ProfileEvent {
+  return event.ph === 'P' && event.name === 'Profile';
+}
+
+function isProfileChunk(
+  event: ChromeTrace.Event
+): event is ChromeTrace.ProfileChunkEvent {
+  return event.ph === 'P' && event.name === 'ProfileChunk';
+}
+
+function isThreadmetaData(
+  event: ChromeTrace.Event
+): event is ChromeTrace.ThreadMetadataEvent {
+  event.name === 'Thread';
+
+  return event.ph === 'M' && event.name === 'Thread';
+}
+
+type Required<T> = {
+  [P in keyof T]-?: T[P];
+};
+
+// This mostly follows what speedscope does for the Chrome Trace format, but we do minor adjustments (not sure if they are correct atm),
+// but the protocol format seems out of date and is not well documented, so this is a best effort.
+function collectEventsByProfile(input: ChromeTrace.ArrayFormat): {
+  profiles: Map<string, Required<ChromeTrace.CpuProfile>>;
+  threadNames: Map<string, string>;
+} {
+  const sorted = input.sort(chronologicalSort);
+
+  const threadNames = new Map<string, string>();
+  const profileIdToProcessAndThreadIds = new Map<string, [number, number]>();
+  const profiles = new Map<string, Required<ChromeTrace.CpuProfile>>();
+
+  for (let i = 0; i < sorted.length; i++) {
+    const event = sorted[i];
+
+    if (isThreadmetaData(event)) {
+      threadNames.set(`${event.pid}:${event.tid}`, event.args.name);
+      continue;
+    }
+
+    // A profile entry will happen before we see any ProfileChunks, so the order here matters
+    if (isProfileEvent(event)) {
+      profileIdToProcessAndThreadIds.set(event.id, [event.pid, event.tid]);
+
+      if (profiles.has(event.id)) {
+        continue;
+      }
+
+      // Judging by https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1453,
+      // the only optional properties of a profile event are the samples and the timeDelta, however looking at a few sample traces
+      // this does not seem to be the case. For example, in our chrometrace/trace.json there is a profile entry where only startTime is present
+      profiles.set(event.id, {
+        samples: [],
+        timeDeltas: [],
+        // @ts-ignore
+        startTime: 0,
+        // @ts-ignore
+        endTime: 0,
+        // @ts-ignore
+        nodes: [],
+        ...event.args.data,
+      });
+      continue;
+    }
+
+    if (isProfileChunk(event)) {
+      const profile = profiles.get(event.id);
+
+      if (!profile) {
+        throw new Error('No entry for Profile was found before ProfileChunk');
+      }
+
+      // If we have a chunk, then append our values to it. Eventually we end up with a single profile with all of the chunks and samples merged
+      const cpuProfile = event.args.data.cpuProfile;
+      if (cpuProfile.nodes) {
+        profile.nodes = profile.nodes.concat(cpuProfile.nodes ?? []);
+      }
+      if (cpuProfile.samples) {
+        profile.samples = profile.samples.concat(cpuProfile.samples ?? []);
+      }
+      if (cpuProfile.timeDeltas) {
+        profile.timeDeltas = profile.timeDeltas.concat(cpuProfile.timeDeltas ?? []);
+      }
+      if (cpuProfile.startTime !== null) {
+        // Make sure we dont overwrite the startTime if it is already set
+        if (typeof profile.startTime === 'number') {
+          profile.startTime = Math.min(profile.startTime, cpuProfile.startTime);
+        } else {
+          profile.startTime = cpuProfile.startTime;
+        }
+      }
+      // Make sure we dont overwrite the endTime if it is already set
+      if (cpuProfile.endTime !== null) {
+        if (typeof profile.endTime === 'number') {
+          profile.endTime = Math.max(profile.endTime, cpuProfile.endTime);
+        } else {
+          profile.endTime = cpuProfile.endTime;
+        }
+      }
+    }
+    continue;
+  }
+
+  return {profiles, threadNames};
+}
+
+export function parseChromeTraceFormat(
+  input: ChromeTrace.ArrayFormat,
+  traceID: string,
+  _options?: ImportOptions
+): ProfileGroup {
+  const profiles: Profile[] = [];
+
+  collectEventsByProfile(input);
 
   return {
     name: 'chrometrace',
