@@ -178,7 +178,6 @@ describe('OrganizationTeams', function () {
         onRemoveAccessRequest: onUpdateRequestListMock,
       });
       userEvent.click(screen.getAllByLabelText('Approve')[0]);
-      // wrapper.find('button[aria-label="Approve"]').first().simulate('click');
 
       await tick();
 
