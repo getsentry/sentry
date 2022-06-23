@@ -36,7 +36,12 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
-import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {
+  getMeasurements,
+  MeasurementCollection,
+} from 'sentry/utils/measurements/measurements';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
+import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -134,15 +139,21 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
+  filterTableOptions: filterOutCustomMeasurements,
 };
 
-function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
+function getEventsTableFieldOptions(
+  organization: Organization,
+  tags?: TagCollection,
+  customMeasurements?: MeasurementCollection
+) {
   const measurements = getMeasurements();
 
   return generateFieldOptions({
     organization,
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
     measurementKeys: Object.values(measurements).map(({key}) => key),
+    customMeasurementKeys: Object.values(customMeasurements ?? {}).map(({key}) => key),
     spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   });
 }
@@ -397,4 +408,9 @@ function getEventsSeriesRequest(
   }
 
   return doEventsRequest(api, requestData);
+}
+
+// Custom Measurements aren't selectable as columns/yaxis without using an aggregate
+function filterOutCustomMeasurements(option: FieldValueOption) {
+  return option.value.kind !== FieldValueKind.CUSTOM_MEASUREMENT;
 }

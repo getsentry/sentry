@@ -2,6 +2,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
 import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
 import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 
@@ -11,6 +12,7 @@ import {BuildStep} from '../buildStep';
 import {ColumnFields} from './columnFields';
 
 interface Props {
+  customMeasurements: MeasurementCollection;
   dataSet: DataSet;
   displayType: DisplayType;
   explodedFields: QueryFieldValue[];
@@ -32,6 +34,7 @@ export function ColumnsStep({
   queryErrors,
   explodedFields,
   tags,
+  customMeasurements,
 }: Props) {
   const datasetConfig = getDatasetConfig(widgetType);
   return (
@@ -78,7 +81,11 @@ export function ColumnsStep({
         widgetType={widgetType}
         fields={explodedFields}
         errors={queryErrors}
-        fieldOptions={datasetConfig.getTableFieldOptions(organization, tags)}
+        fieldOptions={datasetConfig.getTableFieldOptions(
+          organization,
+          tags,
+          customMeasurements
+        )}
         filterAggregateParameters={datasetConfig.filterTableAggregateParams}
         filterPrimaryOptions={datasetConfig.filterTableOptions}
         onChange={handleColumnFieldChange}
