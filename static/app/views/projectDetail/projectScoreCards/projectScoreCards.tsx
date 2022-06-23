@@ -63,7 +63,7 @@ function ProjectScoreCards({
 }
 
 const CardWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     display: grid;
     grid-column-gap: ${space(2)};
     grid-template-columns: repeat(2, minmax(0, 1fr));

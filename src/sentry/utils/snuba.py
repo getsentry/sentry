@@ -43,10 +43,6 @@ from sentry.utils.dates import outside_retention_with_modified_start, to_timesta
 
 logger = logging.getLogger(__name__)
 
-# TODO remove this when Snuba accepts more than 500 issues
-MAX_ISSUES = 500
-MAX_HASHES = 5000
-
 # We limit the number of fields an user can ask for
 # in a single query to lessen the load on snuba
 MAX_FIELDS = 20
@@ -86,7 +82,16 @@ TRANSACTIONS_SNUBA_MAP = {
     if col.value.transaction_name is not None
 }
 
-SESSIONS_FIELD_LIST = ["release", "sessions", "sessions_crashed", "users", "users_crashed"]
+SESSIONS_FIELD_LIST = [
+    "release",
+    "sessions",
+    "sessions_crashed",
+    "users",
+    "users_crashed",
+    "project_id",
+    "org_id",
+    "environment",
+]
 
 SESSIONS_SNUBA_MAP = {column: column for column in SESSIONS_FIELD_LIST}
 
@@ -335,7 +340,7 @@ _snuba_pool = connection_from_url(
         # automatically retry most requests. Some of our POSTs and all of our DELETEs
         # do cause mutations, but we have other things in place to handle duplicate
         # mutations.
-        method_whitelist={"GET", "POST", "DELETE"},
+        allowed_methods={"GET", "POST", "DELETE"},
     ),
     timeout=settings.SENTRY_SNUBA_TIMEOUT,
     maxsize=10,

@@ -7,7 +7,7 @@ from sentry_relay.auth import generate_key_pair
 
 from sentry.models.relay import Relay
 from sentry.relay.config import ProjectConfig
-from sentry.tasks.relay import update_config_cache
+from sentry.tasks.relay import build_project_config
 from sentry.utils import json
 
 
@@ -72,16 +72,6 @@ def max_sample_rate():
 
 
 @pytest.fixture
-def never_update_cache(monkeypatch):
-    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: False)
-
-
-@pytest.fixture
-def always_update_cache(monkeypatch):
-    monkeypatch.setattr("sentry.tasks.relay.should_update_cache", lambda *args, **kwargs: True)
-
-
-@pytest.fixture
 def projectconfig_cache_get_mock_config(monkeypatch):
     monkeypatch.setattr(
         "sentry.relay.projectconfig_cache.get", lambda *args, **kwargs: {"is_mock_config": True}
@@ -127,15 +117,21 @@ def test_return_full_config_if_in_cache(
 
 @pytest.mark.django_db
 def test_return_partial_config_if_in_cache(
-    call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
+    monkeypatch,
+    call_endpoint,
+    default_projectkey,
+    default_project,
 ):
-    # Partial configs aren't supported, but the endpoint must always return full
-    # configs.
+    # Partial configs are handled as ``v2``, even if the param is ``v3``
+    monkeypatch.setattr(
+        "sentry.relay.config.get_project_config",
+        lambda *args, **kwargs: ProjectConfig(default_project, is_mock_config=True),
+    )
+
     result, status_code = call_endpoint(full_config=False)
     assert status_code < 400
     expected = {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
-        "pending": [],
     }
     assert result == expected
 
@@ -154,7 +150,7 @@ def test_proj_in_cache_and_another_pending(
     }
 
 
-@patch("sentry.tasks.relay.update_config_cache.delay")
+@patch("sentry.tasks.relay.build_project_config.delay")
 @pytest.mark.django_db
 def test_enqueue_task_if_config_not_cached_not_queued(
     schedule_mock,
@@ -167,7 +163,7 @@ def test_enqueue_task_if_config_not_cached_not_queued(
     assert schedule_mock.call_count == 1
 
 
-@patch("sentry.tasks.relay.update_config_cache.delay")
+@patch("sentry.tasks.relay.build_project_config.delay")
 @pytest.mark.django_db
 def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     task_mock,
@@ -183,31 +179,12 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
 
 @patch("sentry.relay.projectconfig_cache.set_many")
 @pytest.mark.django_db
-def test_task_doesnt_run_if_not_debounced(
-    cache_set_many_mock, default_projectkey, never_update_cache
-):
-    update_config_cache(
-        generate=True,
-        organization_id=None,
-        project_id=None,
-        public_key=default_projectkey.public_key,
-        update_reason="test",
-    )
-    assert cache_set_many_mock.call_count == 0
-
-
-@patch("sentry.relay.projectconfig_cache.set_many")
-@pytest.mark.django_db
 def test_task_writes_config_into_cache(
     cache_set_many_mock,
     default_projectkey,
-    always_update_cache,
     project_config_get_mock,
 ):
-    update_config_cache(
-        generate=True,
-        organization_id=None,
-        project_id=None,
+    build_project_config(
         public_key=default_projectkey.public_key,
         update_reason="test",
     )

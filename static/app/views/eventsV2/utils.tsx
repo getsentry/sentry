@@ -10,7 +10,7 @@ import {
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, SelectValue} from 'sentry/types';
+import {NewQuery, Organization, OrganizationSummary, SelectValue} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -437,7 +437,7 @@ function generateExpandedConditions(
 }
 
 type FieldGeneratorOpts = {
-  organization: Organization;
+  organization: OrganizationSummary;
   aggregations?: Record<string, Aggregation>;
   fields?: Record<string, ColumnType>;
   measurementKeys?: string[] | null;

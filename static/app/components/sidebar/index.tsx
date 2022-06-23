@@ -68,7 +68,7 @@ function Sidebar({location, organization}: Props) {
   const activePanel = useLegacyStore(SidebarPanelStore);
 
   const collapsed = !!preferences.collapsed;
-  const horizontal = useMedia(`(max-width: ${theme.breakpoints[1]})`);
+  const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
 
   const toggleCollapse = () => {
     const action = collapsed ? showSidebar : hideSidebar;
@@ -259,6 +259,7 @@ function Sidebar({location, organization}: Props) {
         label={t('Profiling')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
+        isAlpha
       />
     </Feature>
   );
@@ -404,7 +405,7 @@ const responsiveFlex = css`
   display: flex;
   flex-direction: column;
 
-  @media (max-width: ${theme.breakpoints[1]}) {
+  @media (max-width: ${theme.breakpoints.medium}) {
     flex-direction: row;
   }
 `;
@@ -424,7 +425,7 @@ export const SidebarWrapper = styled('nav')<{collapsed: boolean}>`
   border-right: solid 1px ${p => p.theme.sidebarBorder};
   ${responsiveFlex};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     top: 0;
     left: 0;
     right: 0;
@@ -450,7 +451,7 @@ const SidebarSectionGroupPrimary = styled('div')`
   min-width: 0;
   flex: 1;
   /* expand to fill the entire height on mobile */
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     height: 100%;
     align-items: center;
   }
@@ -462,7 +463,7 @@ const PrimaryItems = styled('div')`
   display: flex;
   flex-direction: column;
   -ms-overflow-style: -ms-autohiding-scrollbar;
-  @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-height: 675px) and (min-width: ${p => p.theme.breakpoints.medium}) {
     border-bottom: 1px solid ${p => p.theme.gray400};
     padding-bottom: ${space(1)};
     box-shadow: rgba(0, 0, 0, 0.15) 0px -10px 10px inset;
@@ -475,7 +476,7 @@ const PrimaryItems = styled('div')`
       border-radius: 8px;
     }
   }
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     overflow-y: visible;
     flex-direction: row;
     height: 100%;
@@ -497,7 +498,7 @@ const SidebarSection = styled(SidebarSectionGroup)<{
   ${p => !p.noMargin && `margin: ${space(1)} 0`};
   ${p => !p.noPadding && 'padding: 0 19px'};
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     margin: 0;
     padding: 0;
   }
@@ -525,7 +526,7 @@ const StyledIconChevron = styled(({collapsed, ...props}) => (
 ))``;
 
 const SidebarCollapseItem = styled(SidebarItem)`
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     display: none;
   }
 `;

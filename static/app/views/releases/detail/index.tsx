@@ -351,17 +351,11 @@ class ReleasesDetailContainer extends AsyncComponent<
 
     return (
       <PageFiltersContainer
-        lockedMessageSubject={t('release')}
         shouldForceProject={projects.length === 1}
         forceProject={
           projects.length === 1 ? {...projects[0], id: String(projects[0].id)} : undefined
         }
         specificProjectSlugs={projects.map(p => p.slug)}
-        disableMultipleProjectSelection
-        showProjectSettingsLink
-        projectsFooterMessage={this.renderProjectsFooterMessage()}
-        showDateSelector={false}
-        hideGlobalHeader
       >
         <ReleasesDetail {...this.props} releaseMeta={releaseMeta} />
       </PageFiltersContainer>

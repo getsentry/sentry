@@ -1,11 +1,15 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
+import color from 'color';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
-import {ItemType, SearchGroup, SearchItem} from './types';
+import Button from '../button';
+import HotkeysLabel from '../hotkeysLabel';
+
+import {ItemType, SearchGroup, SearchItem, Shortcut} from './types';
 
 type Props = {
   items: SearchGroup[];
@@ -13,6 +17,9 @@ type Props = {
   onClick: (value: string, item: SearchItem) => void;
   searchSubstring: string;
   className?: string;
+  maxMenuHeight?: number;
+  runShortcut?: (shortcut: Shortcut) => void;
+  visibleShortcuts?: Shortcut[];
 };
 
 class SearchDropdown extends PureComponent<Props> {
@@ -24,6 +31,19 @@ class SearchDropdown extends PureComponent<Props> {
   renderDescription = (item: SearchItem) => {
     const searchSubstring = this.props.searchSubstring;
     if (!searchSubstring) {
+      if (item.type === ItemType.INVALID_TAG) {
+        return (
+          <Invalid>
+            {tct("The field [field] isn't supported here. ", {
+              field: <strong>{item.desc}</strong>,
+            })}
+            {tct('[highlight:See all searchable properties in the docs.]', {
+              highlight: <Highlight />,
+            })}
+          </Invalid>
+        );
+      }
+
       return item.desc;
     }
 
@@ -67,7 +87,7 @@ class SearchDropdown extends PureComponent<Props> {
       ref={element => item.active && element?.scrollIntoView?.({block: 'nearest'})}
     >
       <SearchItemTitleWrapper>
-        {item.title && item.title + (item.desc ? ' · ' : '')}
+        {item.title && `${item.title}${item.desc ? ' · ' : ''}`}
         <Description>{this.renderDescription(item)}</Description>
         <Documentation>{item.documentation}</Documentation>
       </SearchItemTitleWrapper>
@@ -75,7 +95,8 @@ class SearchDropdown extends PureComponent<Props> {
   );
 
   render() {
-    const {className, loading, items} = this.props;
+    const {className, loading, items, runShortcut, visibleShortcuts, maxMenuHeight} =
+      this.props;
     return (
       <StyledSearchDropdown className={className}>
         {loading ? (
@@ -83,23 +104,46 @@ class SearchDropdown extends PureComponent<Props> {
             <LoadingIndicator mini />
           </LoadingWrapper>
         ) : (
-          <SearchItemsList>
+          <SearchItemsList maxMenuHeight={maxMenuHeight}>
             {items.map(item => {
               const isEmpty = item.children && !item.children.length;
-              const invalidTag = item.type === ItemType.INVALID_TAG;
 
               // Hide header if `item.children` is defined, an array, and is empty
               return (
                 <Fragment key={item.title}>
-                  {invalidTag && <Info>{t('Invalid tag')}</Info>}
                   {item.type === 'header' && this.renderHeaderItem(item)}
                   {item.children && item.children.map(this.renderItem)}
-                  {isEmpty && !invalidTag && <Info>{t('No items found')}</Info>}
+                  {isEmpty && <Info>{t('No items found')}</Info>}
                 </Fragment>
               );
             })}
           </SearchItemsList>
         )}
+        <DropdownFooter>
+          <ShortcutsRow>
+            {runShortcut &&
+              visibleShortcuts?.map(shortcut => {
+                return (
+                  <ShortcutButtonContainer
+                    key={shortcut.text}
+                    onClick={() => runShortcut(shortcut)}
+                  >
+                    <HotkeyGlyphWrapper>
+                      <HotkeysLabel value={shortcut.hotkeys?.display ?? []} />
+                    </HotkeyGlyphWrapper>
+                    <IconWrapper>{shortcut.icon}</IconWrapper>
+                    <HotkeyTitle>{shortcut.text}</HotkeyTitle>
+                  </ShortcutButtonContainer>
+                );
+              })}
+          </ShortcutsRow>
+          <Button
+            size="xsmall"
+            href="https://docs.sentry.io/product/sentry-basics/search/"
+          >
+            Read the docs
+          </Button>
+        </DropdownFooter>
       </StyledSearchDropdown>
     );
   }
@@ -164,10 +208,22 @@ const SearchDropdownGroupTitle = styled('header')`
   }
 `;
 
-const SearchItemsList = styled('ul')`
+const SearchItemsList = styled('ul')<{maxMenuHeight?: number}>`
   padding-left: 0;
   list-style: none;
   margin-bottom: 0;
+  ${p => {
+    if (p.maxMenuHeight !== undefined) {
+      return `
+        max-height: ${p.maxMenuHeight}px;
+        overflow-y: scroll;
+      `;
+    }
+
+    return `
+      height: auto;
+    `;
+  }}
 `;
 
 const SearchListItem = styled(ListItem)`
@@ -201,4 +257,80 @@ const Documentation = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
   float: right;
   color: ${p => p.theme.gray300};
+`;
+
+const DropdownFooter = styled(`div`)`
+  width: 100%;
+  min-height: 45px;
+  background-color: ${p => p.theme.backgroundSecondary};
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  flex-direction: row;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${space(1)};
+  flex-wrap: wrap;
+  gap: ${space(1)};
+`;
+
+const ShortcutsRow = styled('div')`
+  flex-direction: row;
+  display: flex;
+  align-items: center;
+`;
+
+const ShortcutButtonContainer = styled('div')`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  height: auto;
+  padding: 0 ${space(1.5)};
+
+  cursor: pointer;
+
+  :hover {
+    border-radius: ${p => p.theme.borderRadius};
+    background-color: ${p => color(p.theme.hover).darken(0.02).string()};
+  }
+`;
+
+const HotkeyGlyphWrapper = styled('span')`
+  color: ${p => p.theme.gray300};
+  margin-right: ${space(0.5)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: none;
+  }
+`;
+
+const IconWrapper = styled('span')`
+  display: none;
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: flex;
+    margin-right: ${space(0.5)};
+    align-items: center;
+    justify-content: center;
+  }
+`;
+
+const HotkeyTitle = styled(`span`)`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Invalid = styled(`span`)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.family};
+  color: ${p => p.theme.gray400};
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+
+  span {
+    white-space: pre;
+  }
+`;
+
+const Highlight = styled(`strong`)`
+  color: ${p => p.theme.linkColor};
 `;

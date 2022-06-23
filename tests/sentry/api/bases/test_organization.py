@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest import mock
 
+import pytest
 from django.db.models import F
 from django.test import RequestFactory
 from django.utils import timezone
@@ -101,14 +102,14 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
         user = self.create_user()
         self.create_member(user=user, organization=self.org, role="member")
 
-        with self.assertRaises(TwoFactorRequired):
+        with pytest.raises(TwoFactorRequired):
             self.has_object_perm("GET", self.org, user=user)
 
     def test_org_requires_2fa_with_superuser_not_active(self):
         self.org_require_2fa()
         user = self.create_user(is_superuser=True)
         self.create_member(user=user, organization=self.org, role="member")
-        with self.assertRaises(SuperuserRequired):
+        with pytest.raises(SuperuserRequired):
             assert self.has_object_perm("GET", self.org, user=user)
 
     @mock.patch("sentry.api.utils.get_cached_organization_member")
@@ -121,10 +122,10 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             flags=OrganizationMember.flags["member-limit:restricted"],
         )
 
-        with self.assertRaises(MemberDisabledOverLimit) as err:
+        with pytest.raises(MemberDisabledOverLimit) as excinfo:
             self.has_object_perm("GET", self.org, user=user)
 
-        assert err.exception.detail == {
+        assert excinfo.value.detail == {
             "detail": {
                 "code": "member-disabled-over-limit",
                 "message": "Organization over member limit",
@@ -255,7 +256,7 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         self.run_test([self.project_1, self.project_2])
 
     def test_ids_no_teams(self):
-        with self.assertRaises(PermissionDenied):
+        with pytest.raises(PermissionDenied):
             self.run_test([], project_ids=[self.project_1.id])
 
         self.run_test(
@@ -272,13 +273,13 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         self.org.flags.allow_joinleave = False
         self.org.save()
-        with self.assertRaises(PermissionDenied):
+        with pytest.raises(PermissionDenied):
             self.run_test([self.project_1], user=self.member, project_ids=[self.project_1.id])
 
     def test_ids_teams(self):
         membership = self.create_team_membership(user=self.user, team=self.team_1)
         self.run_test([self.project_1], project_ids=[self.project_1.id])
-        with self.assertRaises(PermissionDenied):
+        with pytest.raises(PermissionDenied):
             self.run_test([], project_ids=[self.project_2.id])
         membership.delete()
         self.create_team_membership(user=self.user, team=self.team_3)
@@ -407,9 +408,9 @@ class GetEnvironmentsTest(BaseOrganizationEndpointTest):
         self.run_test([self.env_1, self.env_2], [self.env_1.name, self.env_2.name])
 
     def test_invalid_params(self):
-        with self.assertRaises(ResourceDoesNotExist):
+        with pytest.raises(ResourceDoesNotExist):
             self.run_test([], ["fake"])
-        with self.assertRaises(ResourceDoesNotExist):
+        with pytest.raises(ResourceDoesNotExist):
             self.run_test([self.env_1, self.env_2], ["fake", self.env_2.name])
 
 
@@ -464,7 +465,7 @@ class GetFilterParamsTest(BaseOrganizationEndpointTest):
 
     @freeze_time("2018-12-11 03:21:34")
     def test_no_params(self):
-        with self.assertRaises(NoProjects):
+        with pytest.raises(NoProjects):
             self.run_test([])
         self.run_test(
             expected_projects=[self.project_1, self.project_2],

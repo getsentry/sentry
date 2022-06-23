@@ -407,7 +407,7 @@ class ReleasesList extends AsyncView<Props, State> {
                   )}
                 </div>
                 <ExternalLink
-                  href="https://docs.sentry.io/product/releases/health/setup/"
+                  href="https://docs.sentry.io/product/releases/setup/#release-health"
                   onClick={this.trackAddReleaseHealth}
                 >
                   {t('Add Release Health')}
@@ -516,13 +516,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const hasReleasesSetup = releases && releases.length > 0;
 
     return (
-      <PageFiltersContainer
-        showAbsolute={false}
-        timeRangeHint={t(
-          'Changing this date range will recalculate the release metrics.'
-        )}
-        hideGlobalHeader
-      >
+      <PageFiltersContainer showAbsolute={false}>
         <PageContent>
           <NoProjectMessage organization={organization}>
             <PageHeader>
@@ -534,7 +528,10 @@ class ReleasesList extends AsyncView<Props, State> {
             <ReleasesPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter
+                alignDropdown="left"
+                hint={t('Changing this date range will recalculate the release metrics.')}
+              />
             </ReleasesPageFilterBar>
 
             <SortAndFilterWrapper>
@@ -601,7 +598,7 @@ const AlertText = styled('div')`
     flex: 1;
   }
   flex-direction: column;
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
     flex-direction: row;
   }
 `;
@@ -616,16 +613,16 @@ const SortAndFilterWrapper = styled('div')`
   gap: ${space(2)};
   margin-bottom: ${space(2)};
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(3, 1fr);
   }
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);
   }
 `;
 
 const StyledSmartSearchBar = styled(SmartSearchBar)`
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-column: 1 / -1;
   }
 `;

@@ -1,29 +1,21 @@
-import cloneDeep from 'lodash/cloneDeep';
-
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {Organization, TagCollection} from 'sentry/types';
-import {
-  generateFieldAsString,
-  getColumnsAndAggregatesAsStrings,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
-import Measurements from 'sentry/utils/measurements/measurements';
+import {QueryFieldValue} from 'sentry/utils/discover/fields';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 
-import {DataSet, getAmendedFieldOptions} from '../../utils';
+import {DataSet} from '../../utils';
 import {BuildStep} from '../buildStep';
 
 import {ColumnFields} from './columnFields';
-import {ReleaseColumnFields} from './releaseColumnFields';
 
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
   explodedFields: QueryFieldValue[];
+  handleColumnFieldChange: (newFields: QueryFieldValue[]) => void;
   onQueryChange: (queryIndex: number, newQuery: WidgetQuery) => void;
-  onYAxisOrColumnFieldChange: (newFields: QueryFieldValue[]) => void;
   organization: Organization;
   queries: WidgetQuery[];
   tags: TagCollection;
@@ -34,15 +26,14 @@ interface Props {
 export function ColumnsStep({
   dataSet,
   displayType,
-  onQueryChange,
   organization,
-  queries,
   widgetType,
-  onYAxisOrColumnFieldChange,
+  handleColumnFieldChange,
   queryErrors,
   explodedFields,
   tags,
 }: Props) {
+  const datasetConfig = getDatasetConfig(widgetType);
   return (
     <BuildStep
       title={t('Choose your columns')}
@@ -81,49 +72,17 @@ export function ColumnsStep({
             )
       }
     >
-      {dataSet === DataSet.EVENTS ? (
-        <Measurements>
-          {({measurements}) => (
-            <ColumnFields
-              displayType={displayType}
-              organization={organization}
-              widgetType={widgetType}
-              fields={explodedFields}
-              errors={queryErrors}
-              fieldOptions={getAmendedFieldOptions({measurements, organization, tags})}
-              onChange={onYAxisOrColumnFieldChange}
-            />
-          )}
-        </Measurements>
-      ) : dataSet === DataSet.ISSUES ? (
-        <ColumnFields
-          displayType={displayType}
-          organization={organization}
-          widgetType={widgetType}
-          fields={explodedFields}
-          errors={queryErrors?.[0] ? [queryErrors?.[0]] : undefined}
-          fieldOptions={generateIssueWidgetFieldOptions()}
-          onChange={newFields => {
-            const fieldStrings = newFields.map(generateFieldAsString);
-            const splitFields = getColumnsAndAggregatesAsStrings(newFields);
-            const newQuery = cloneDeep(queries[0]);
-            newQuery.fields = fieldStrings;
-            newQuery.aggregates = splitFields.aggregates;
-            newQuery.columns = splitFields.columns;
-            newQuery.fieldAliases = splitFields.fieldAliases;
-            onQueryChange(0, newQuery);
-          }}
-        />
-      ) : (
-        <ReleaseColumnFields
-          displayType={displayType}
-          organization={organization}
-          widgetType={widgetType}
-          explodedFields={explodedFields}
-          queryErrors={queryErrors}
-          onYAxisOrColumnFieldChange={onYAxisOrColumnFieldChange}
-        />
-      )}
+      <ColumnFields
+        displayType={displayType}
+        organization={organization}
+        widgetType={widgetType}
+        fields={explodedFields}
+        errors={queryErrors}
+        fieldOptions={datasetConfig.getTableFieldOptions(organization, tags)}
+        filterAggregateParameters={datasetConfig.filterTableAggregateParams}
+        filterPrimaryOptions={datasetConfig.filterTableOptions}
+        onChange={handleColumnFieldChange}
+      />
     </BuildStep>
   );
 }

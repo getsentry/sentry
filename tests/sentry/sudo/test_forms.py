@@ -1,3 +1,4 @@
+import pytest
 from django.forms import ValidationError
 from django.test import override_settings
 
@@ -29,7 +30,7 @@ class SudoFormTestCase(BaseTestCase):
         self.assertTrue(SudoForm(self.user, {"password": "stub"}).is_valid())
 
     def test_clean_password_invalid_password(self):
-        with self.assertRaises(ValidationError):
+        with pytest.raises(ValidationError):
             SudoForm(self.user, {"password": "lol"}).clean_password()
 
     def test_clean_password_valid_password(self):

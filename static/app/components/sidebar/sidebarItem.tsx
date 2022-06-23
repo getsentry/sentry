@@ -58,6 +58,10 @@ type Props = WithRouterProps & {
   href?: string;
   index?: boolean;
   /**
+   * Additional badge letting users know a tab is in alpha.
+   */
+  isAlpha?: boolean;
+  /**
    * Additional badge letting users know a tab is in beta.
    */
   isBeta?: boolean;
@@ -90,6 +94,7 @@ const SidebarItem = ({
   hasPanel,
   isNew,
   isBeta,
+  isAlpha,
   collapsed,
   className,
   orientation,
@@ -154,11 +159,13 @@ const SidebarItem = ({
                 <TextOverflow>{label}</TextOverflow>
                 {showIsNew && <FeatureBadge type="new" noTooltip />}
                 {isBeta && <FeatureBadge type="beta" noTooltip />}
+                {isAlpha && <FeatureBadge type="alpha" noTooltip />}
               </LabelHook>
             </SidebarItemLabel>
           )}
           {collapsed && showIsNew && <CollapsedFeatureBadge type="new" />}
           {collapsed && isBeta && <CollapsedFeatureBadge type="beta" />}
+          {collapsed && isAlpha && <CollapsedFeatureBadge type="alpha" />}
           {badge !== undefined && badge > 0 && (
             <SidebarItemBadge collapsed={collapsed}>{badge}</SidebarItemBadge>
           )}
@@ -214,7 +221,7 @@ const StyledSidebarItem = styled(Link)`
     transition: 0.15s background-color linear;
   }
 
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+  @media (max-width: ${p => p.theme.breakpoints.medium}) {
     margin: 0 4px;
 
     &:before {

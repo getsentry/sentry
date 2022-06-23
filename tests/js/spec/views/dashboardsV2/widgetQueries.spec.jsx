@@ -259,7 +259,6 @@ describe('Dashboards > WidgetQueries', function () {
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'event.type:error',
-          name: 'SDK',
           field: ['sdk.name'],
           statsPeriod: '14d',
           environment: ['prod'],
@@ -392,7 +391,6 @@ describe('Dashboards > WidgetQueries', function () {
         query: expect.objectContaining({
           referrer: 'api.dashboards.bignumberwidget',
           query: 'event.type:error',
-          name: 'SDK',
           field: ['sdk.name'],
           statsPeriod: '14d',
           environment: ['prod'],
@@ -455,7 +453,6 @@ describe('Dashboards > WidgetQueries', function () {
         query: expect.objectContaining({
           referrer: 'api.dashboards.worldmapwidget',
           query: 'event.type:error',
-          name: 'SDK',
           field: ['count()'],
           statsPeriod: '14d',
           environment: ['prod'],
@@ -636,44 +633,6 @@ describe('Dashboards > WidgetQueries', function () {
           {data: [{name: 1000000, value: 100}], seriesName: 'default : count()'},
         ],
       })
-    );
-  });
-
-  it('calls events-stats with desired 1d interval when interval buckets would exceed 66 and calculated interval is higher fidelity', async function () {
-    const eventsStatsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: [],
-    });
-    const areaWidget = {
-      ...singleQueryWidget,
-      displayType: 'area',
-      interval: '1d',
-    };
-    const wrapper = mountWithTheme(
-      <WidgetQueries
-        api={api}
-        widget={areaWidget}
-        organization={initialData.organization}
-        selection={{
-          ...selection,
-          datetime: {
-            period: '90d',
-          },
-        }}
-      >
-        {() => <div data-test-id="child" />}
-      </WidgetQueries>,
-      initialData.routerContext
-    );
-    await tick();
-    await tick();
-
-    // Child should be rendered and 1 requests should be sent.
-    expect(wrapper.find('[data-test-id="child"]')).toHaveLength(1);
-    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({query: expect.objectContaining({interval: '1d'})})
     );
   });
 
