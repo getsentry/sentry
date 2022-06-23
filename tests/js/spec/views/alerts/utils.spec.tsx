@@ -5,6 +5,7 @@ import {
   Datasource,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {Incident, IncidentStats} from 'sentry/views/alerts/types';
 import {
   alertAxisFormatter,
   alertTooltipValueFormatter,
@@ -17,27 +18,30 @@ import {getIncidentDiscoverUrl} from 'sentry/views/alerts/utils/getIncidentDisco
 describe('Alert utils', function () {
   const {org, projects} = initializeOrg();
 
-  const mockStats = {
+  const mockStats: IncidentStats = {
     eventStats: {
       data: [
-        [0, 10],
-        [120, 10],
+        [0, [{count: 10}]],
+        [120, [{count: 10}]],
       ],
     },
+    totalEvents: 0,
+    uniqueUsers: 0,
   };
 
   describe('getIncidentDiscoverUrl', function () {
     it('creates a discover query url for errors', function () {
-      const incident = {
+      // TODO(ts): Add a TestStub for Incident
+      const incident: Incident = {
         title: 'Test error alert',
         discoverQuery: 'id:test',
         projects,
-        alertRule: {
+        alertRule: TestStubs.MetricRule({
           timeWindow: 1,
           dataset: Dataset.ERRORS,
           aggregate: 'count()',
-        },
-      };
+        }),
+      } as Incident;
 
       const to = getIncidentDiscoverUrl({
         orgSlug: org.slug,
@@ -62,16 +66,17 @@ describe('Alert utils', function () {
     });
 
     it('creates a discover query url for transactions', function () {
+      // TODO(ts): Add a TestStub for Incident
       const incident = {
         title: 'Test transaction alert',
         discoverQuery: 'id:test',
         projects,
-        alertRule: {
+        alertRule: TestStubs.MetricRule({
           timeWindow: 1,
           dataset: Dataset.TRANSACTIONS,
           aggregate: 'p90()',
-        },
-      };
+        }),
+      } as Incident;
 
       const to = getIncidentDiscoverUrl({
         orgSlug: org.slug,

@@ -7,18 +7,17 @@ describe('BadgeBadge', function () {
     render(
       <BaseBadge
         organization={TestStubs.Organization()}
-        displayName={<span data-test-id="test">display name</span>}
+        displayName={<span>display name</span>}
       />
     );
-    expect(screen.getByTestId('test')).toHaveTextContent('display name');
+    expect(screen.getByText('display name')).toBeInTheDocument();
   });
 
   it('can hide avatar', function () {
     render(
       <BaseBadge organization={TestStubs.Organization()} displayName="hello" hideAvatar />
     );
-
-    expect(screen.queryByTestId('badge-styled-avatar')).not.toBeInTheDocument(0);
+    expect(screen.queryByTestId('badge-styled-avatar')).not.toBeInTheDocument();
     expect(screen.getByTestId('badge-display-name')).toHaveTextContent('hello');
   });
 
@@ -27,9 +26,9 @@ describe('BadgeBadge', function () {
       <BaseBadge
         organization={TestStubs.Organization()}
         hideName
-        displayName={<span data-test-id="test">display name</span>}
+        displayName={<span>display name</span>}
       />
     );
-    expect(screen.queryByTestId('test')).not.toBeInTheDocument('display name');
+    expect(screen.queryByText('display name')).not.toBeInTheDocument();
   });
 });

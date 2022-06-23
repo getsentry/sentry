@@ -11,7 +11,7 @@ describe('NumberField', function () {
     });
 
     it('renders with optional attributes', function () {
-      const wrapper = render(<NumberField name="fieldName" min="0" max="100" />);
+      const wrapper = render(<NumberField name="fieldName" min={0} max={100} />);
       expect(wrapper.container).toSnapshot();
     });
 

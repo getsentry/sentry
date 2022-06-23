@@ -7,6 +7,7 @@ describe('TeamBadge', function () {
   beforeEach(() => {
     TeamStore.init();
   });
+
   afterEach(() => {
     TeamStore.teardown();
   });
@@ -34,9 +35,7 @@ describe('TeamBadge', function () {
   it('updates state from props', async function () {
     const team = TestStubs.Team();
     const {rerender} = render(<TeamBadge team={team} />);
-
     rerender(<TeamBadge team={TestStubs.Team({slug: 'new-team-slug'})} />);
-
     expect(await screen.findByText(/#new-team-slug/)).toBeInTheDocument();
   });
 });
