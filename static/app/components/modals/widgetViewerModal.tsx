@@ -59,10 +59,12 @@ import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboardsV2/widgetCard/chart';
+import GenericWidgetQueries, {
+  GenericWidgetQueriesProps,
+} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
-import WidgetQueries from 'sentry/views/dashboardsV2/widgetCard/widgetQueries';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
@@ -438,7 +440,7 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable: WidgetQueries['props']['children'] = ({
+  const renderDiscoverTable: GenericWidgetQueriesProps['children'] = ({
     tableResults,
     loading,
     pageLinks,
@@ -748,7 +750,7 @@ function WidgetViewerModal(props: Props) {
           });
         }
         return (
-          <WidgetQueries
+          <GenericWidgetQueries
             api={api}
             organization={organization}
             widget={tableWidget}
@@ -761,7 +763,7 @@ function WidgetViewerModal(props: Props) {
             cursor={cursor}
           >
             {renderDiscoverTable}
-          </WidgetQueries>
+          </GenericWidgetQueries>
         );
     }
   }

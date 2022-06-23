@@ -230,6 +230,11 @@ describe('Modals -> WidgetViewerModal', function () {
       });
     });
 
+    afterEach(() => {
+      MockApiClient.clearMockResponses();
+      jest.clearAllMocks();
+    });
+
     describe('with eventsv2', function () {
       it('renders Edit and Open buttons', async function () {
         mockEventsv2();
@@ -273,7 +278,7 @@ describe('Modals -> WidgetViewerModal', function () {
       });
 
       it('zooms into the selected time range', async function () {
-        mockEventsv2();
+        const mock = mockEventsv2();
         await renderModal({initialData, widget: mockWidget});
         act(() => {
           // Simulate dataZoom event on chart
@@ -292,6 +297,7 @@ describe('Modals -> WidgetViewerModal', function () {
             query: {viewerEnd: '2022-03-01T07:33:20', viewerStart: '2022-03-01T02:00:00'},
           })
         );
+        await waitFor(() => expect(mock).toHaveBeenCalled());
       });
 
       it('renders multiquery label and selector', async function () {
@@ -407,7 +413,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
       it('zooming on minimap updates location query and updates echart start and end values', async function () {
         initialData.organization.features.push('widget-viewer-modal-minimap');
-        mockEventsv2();
+        const mock = mockEventsv2();
         await renderModal({
           initialData,
           widget: {
@@ -435,6 +441,7 @@ describe('Modals -> WidgetViewerModal', function () {
             query: {viewerEnd: '2022-03-01T05:53:20', viewerStart: '2022-03-01T03:40:00'},
           })
         );
+        await waitFor(() => expect(mock).toHaveBeenCalled());
       });
 
       it('includes group by in widget viewer table', async function () {

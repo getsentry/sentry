@@ -25,7 +25,7 @@ type ChildrenProps = {
   totalCount?: string;
 };
 
-type Props = {
+export type GenericWidgetQueriesProps = {
   api: Client;
   children: (props: ChildrenProps) => JSX.Element;
   organization: Organization;
@@ -61,12 +61,13 @@ function GenericWidgetQueries({
   organization,
   selection,
   widget,
-}: Props) {
+}: GenericWidgetQueriesProps) {
   const config = getDatasetConfig(widget.widgetType);
 
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] =
     useState<ChildrenProps['errorMessage']>(undefined);
+  const [pageLinks, setPageLinks] = useState<ChildrenProps['pageLinks']>(undefined);
   const [tableResults, setTableResults] =
     useState<ChildrenProps['tableResults']>(undefined);
   const [timeseriesResults, setTimeseriesResults] =
@@ -74,7 +75,7 @@ function GenericWidgetQueries({
   const dashboardMEPContext = useContext(DashboardsMEPContext);
 
   const fetchTableData = useCallback(
-    async function fetchTableData() {
+    async function fetchTableData(isMounted: boolean) {
       const responses: [TableData | EventsTableData, string, ResponseMeta][] =
         await Promise.all(
           widget.queries.map(query => {
@@ -99,7 +100,7 @@ function GenericWidgetQueries({
       // transform the data
       let transformedTableResults: TableDataWithTitle[] = [];
       let isMetricsData: boolean | undefined;
-      let pageLinks: string | null = null;
+      let responsePageLinks: string | null = null;
       responses.forEach(([data, _textstatus, resp], i) => {
         // If one of the queries is sampled, then mark the whole thing as sampled
         isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
@@ -118,13 +119,19 @@ function GenericWidgetQueries({
 
         // Overwrite the local var to work around state being stale in tests.
         transformedTableResults = [...transformedTableResults, transformedData];
-        pageLinks = resp?.getResponseHeader('Link');
+        responsePageLinks = resp?.getResponseHeader('Link');
       });
+
+      if (!isMounted) {
+        return;
+      }
+
       onDataFetched?.({
         tableResults: transformedTableResults,
-        pageLinks: pageLinks ?? undefined,
+        pageLinks: responsePageLinks ?? undefined,
       });
       setTableResults(transformedTableResults);
+      setPageLinks(responsePageLinks);
     },
     [
       api,
@@ -140,7 +147,7 @@ function GenericWidgetQueries({
   );
 
   const fetchSeriesData = useCallback(
-    async function fetchSeriesData() {
+    async function fetchSeriesData(isMounted: boolean) {
       const responses = await Promise.all(
         widget.queries.map((_query, index) => {
           return config.getSeriesRequest!(
@@ -179,6 +186,11 @@ function GenericWidgetQueries({
           ] = result;
         });
       });
+
+      if (!isMounted) {
+        return;
+      }
+
       onDataFetched?.({timeseriesResults: transformedTimeseriesResults});
       setTimeseriesResults(transformedTimeseriesResults);
     },
@@ -206,20 +218,29 @@ function GenericWidgetQueries({
             widget.displayType
           )
         ) {
-          await fetchTableData();
+          await fetchTableData(isMounted);
         } else {
-          await fetchSeriesData();
+          await fetchSeriesData(isMounted);
         }
       } catch (err) {
-        setErrorMessage(err?.responseJSON?.detail || t('An unknown error occurred.'));
+        if (isMounted) {
+          setErrorMessage(err?.responseJSON?.detail || t('An unknown error occurred.'));
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
+
+    let isMounted = true;
     fetchData();
+    return () => {
+      isMounted = false;
+    };
   }, [fetchSeriesData, fetchTableData, widget.displayType]);
 
-  return children({loading, tableResults, timeseriesResults, errorMessage});
+  return children({loading, tableResults, timeseriesResults, errorMessage, pageLinks});
 }
 
 export default GenericWidgetQueries;
