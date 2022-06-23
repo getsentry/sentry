@@ -468,6 +468,19 @@ class Results extends Component<Props, State> {
     this.setState({error, errorCode});
   };
 
+  renderMetricsFallbackBanner() {
+    if (this.props.location.query.fromMetric) {
+      return (
+        <Alert type="info" showIcon>
+          {
+            "You've navigated to this page from an unsampled query. The results displayed here only show sampled data, which may differ from the original unsampled query."
+          }
+        </Alert>
+      );
+    }
+    return null;
+  }
+
   render() {
     const {organization, location, router} = this.props;
     const {
@@ -503,6 +516,7 @@ class Results extends Component<Props, State> {
             <Layout.Body>
               {incompatibleAlertNotice && <Top fullWidth>{incompatibleAlertNotice}</Top>}
               <Top fullWidth>
+                {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
                 <StyledPageFilterBar condensed>
                   <ProjectPageFilter />
