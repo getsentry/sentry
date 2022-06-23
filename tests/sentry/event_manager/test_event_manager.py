@@ -1604,7 +1604,7 @@ class EventManagerTest(TestCase):
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    with self.assertRaises(HashDiscarded):
+                    with pytest.raises(HashDiscarded):
                         event = manager.save(1, cache_key=cache_key)
 
         assert mock_track_outcome.call_count == 3

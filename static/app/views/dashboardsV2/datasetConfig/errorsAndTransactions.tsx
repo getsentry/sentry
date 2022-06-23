@@ -1,8 +1,18 @@
+import trimStart from 'lodash/trimStart';
+
+import {doEventsRequest} from 'sentry/actionCreators/events';
+import {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
 import Tooltip from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {EventsStats, MultiSeriesEventsStats, TagCollection} from 'sentry/types';
+import {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+  PageFilters,
+  TagCollection,
+} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {MetaType} from 'sentry/utils/discover/eventView';
@@ -10,8 +20,17 @@ import {
   getFieldRenderer,
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
-import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import {
+  isEquation,
+  isEquationAlias,
+  SPAN_OP_BREAKDOWN_FIELDS,
+} from 'sentry/utils/discover/fields';
+import {
+  DiscoverQueryRequestParams,
+  doDiscoverQuery,
+} from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
+import {TOP_N} from 'sentry/utils/discover/types';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
@@ -21,13 +40,20 @@ import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {DisplayType, WidgetQuery} from '../types';
+import {DisplayType, Widget, WidgetQuery} from '../types';
+import {
+  eventViewFromWidget,
+  getDashboardsMEPQueryParams,
+  getNumEquations,
+  getWidgetInterval,
+} from '../utils';
+import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
 } from '../widgetCard/widgetQueries';
 
-import {ContextualProps, DatasetConfig} from './base';
+import {DatasetConfig, handleOrderByReset} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -47,7 +73,10 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
+  SearchBar: EventsSearchBar,
   getTableFieldOptions: getEventsTableFieldOptions,
+  getGroupByFieldOptions: getEventsTableFieldOptions,
+  handleOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -57,15 +86,58 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
     DisplayType.TOP_N,
     DisplayType.WORLD_MAP,
   ],
+  getTableRequest: (
+    api: Client,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => {
+    const shouldUseEvents = organization.features.includes(
+      'discover-frontend-use-events-endpoint'
+    );
+    const url = shouldUseEvents
+      ? `/organizations/${organization.slug}/events/`
+      : `/organizations/${organization.slug}/eventsv2/`;
+    return getEventsRequest(
+      url,
+      api,
+      query,
+      organization,
+      pageFilters,
+      limit,
+      cursor,
+      referrer
+    );
+  },
+  getSeriesRequest: getEventsSeriesRequest,
+  getWorldMapRequest: (
+    api: Client,
+    query: WidgetQuery,
+    organization: Organization,
+    pageFilters: PageFilters,
+    limit?: number,
+    cursor?: string,
+    referrer?: string
+  ) => {
+    return getEventsRequest(
+      `/organizations/${organization.slug}/events-geo/`,
+      api,
+      query,
+      organization,
+      pageFilters,
+      limit,
+      cursor,
+      referrer
+    );
+  },
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
 };
 
-function getEventsTableFieldOptions(
-  contextualProps?: ContextualProps,
-  tags?: TagCollection
-) {
-  const organization = contextualProps?.organization!;
+function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
   const measurements = getMeasurements();
 
   return generateFieldOptions({
@@ -79,13 +151,12 @@ function getEventsTableFieldOptions(
 function transformEventsResponseToTable(
   data: TableData | EventsTableData,
   _widgetQuery: WidgetQuery,
-  contextualProps?: ContextualProps
+  organization: Organization
 ): TableData {
   let tableData = data;
-  const shouldUseEvents =
-    contextualProps?.organization?.features.includes(
-      'discover-frontend-use-events-endpoint'
-    ) || false;
+  const shouldUseEvents = organization.features.includes(
+    'discover-frontend-use-events-endpoint'
+  );
   // events api uses a different response format so we need to construct tableData differently
   if (shouldUseEvents) {
     const fieldsMeta = (data as EventsTableData).meta?.fields;
@@ -100,15 +171,13 @@ function transformEventsResponseToTable(
 function transformEventsResponseToSeries(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery,
-  contextualProps?: ContextualProps
+  organization: Organization
 ): Series[] {
   let output: Series[] = [];
   const queryAlias = widgetQuery.name;
 
   const widgetBuilderNewDesign =
-    contextualProps?.organization?.features.includes(
-      'new-widget-builder-experience-design'
-    ) || false;
+    organization.features.includes('new-widget-builder-experience-design') || false;
 
   if (isMultiSeriesStats(data)) {
     let seriesWithOrdering: SeriesWithOrdering[] = [];
@@ -190,9 +259,9 @@ function renderTraceAsLinkable(
 export function getCustomEventsFieldRenderer(
   field: string,
   meta: MetaType,
-  contextualProps?: ContextualProps
+  organization?: Organization
 ) {
-  const isAlias = !contextualProps?.organization?.features.includes(
+  const isAlias = !organization?.features.includes(
     'discover-frontend-use-events-endpoint'
   );
 
@@ -205,4 +274,128 @@ export function getCustomEventsFieldRenderer(
   }
 
   return getFieldRenderer(field, meta, isAlias);
+}
+
+function getEventsRequest(
+  url: string,
+  api: Client,
+  query: WidgetQuery,
+  organization: Organization,
+  pageFilters: PageFilters,
+  limit?: number,
+  cursor?: string,
+  referrer?: string
+) {
+  const isMEPEnabled = organization.features.includes('dashboards-mep');
+
+  const eventView = eventViewFromWidget('', query, pageFilters);
+
+  const params: DiscoverQueryRequestParams = {
+    per_page: limit,
+    cursor,
+    referrer,
+    ...getDashboardsMEPQueryParams(isMEPEnabled),
+  };
+
+  if (query.orderby) {
+    params.sort = typeof query.orderby === 'string' ? [query.orderby] : query.orderby;
+  }
+
+  // TODO: eventually need to replace this with just EventsTableData as we deprecate eventsv2
+  return doDiscoverQuery<TableData | EventsTableData>(api, url, {
+    ...eventView.generateQueryStringObject(),
+    ...params,
+  });
+}
+
+function getEventsSeriesRequest(
+  api: Client,
+  widget: Widget,
+  queryIndex: number,
+  organization: Organization,
+  pageFilters: PageFilters,
+  referrer?: string
+) {
+  const widgetQuery = widget.queries[queryIndex];
+  const {displayType, limit} = widget;
+  const {environments, projects} = pageFilters;
+  const {start, end, period: statsPeriod} = pageFilters.datetime;
+  const interval = getWidgetInterval(displayType, {start, end, period: statsPeriod});
+  const isMEPEnabled = organization.features.includes('dashboards-mep');
+  let requestData;
+  if (displayType === DisplayType.TOP_N) {
+    requestData = {
+      organization,
+      interval,
+      start,
+      end,
+      project: projects,
+      environment: environments,
+      period: statsPeriod,
+      query: widgetQuery.conditions,
+      yAxis: widgetQuery.aggregates[widgetQuery.aggregates.length - 1],
+      includePrevious: false,
+      referrer,
+      partial: true,
+      field: [...widgetQuery.columns, ...widgetQuery.aggregates],
+      queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+    };
+    if (widgetQuery.orderby) {
+      requestData.orderby = widgetQuery.orderby;
+    }
+  } else {
+    requestData = {
+      organization,
+      interval,
+      start,
+      end,
+      project: projects,
+      environment: environments,
+      period: statsPeriod,
+      query: widgetQuery.conditions,
+      yAxis: widgetQuery.aggregates,
+      orderby: widgetQuery.orderby,
+      includePrevious: false,
+      referrer,
+      partial: true,
+      queryExtras: getDashboardsMEPQueryParams(isMEPEnabled),
+    };
+    if (widgetQuery.columns?.length !== 0) {
+      requestData.topEvents = limit ?? TOP_N;
+      requestData.field = [...widgetQuery.columns, ...widgetQuery.aggregates];
+
+      // Compare field and orderby as aliases to ensure requestData has
+      // the orderby selected
+      // If the orderby is an equation alias, do not inject it
+      const orderby = trimStart(widgetQuery.orderby, '-');
+      if (
+        widgetQuery.orderby &&
+        !isEquationAlias(orderby) &&
+        !requestData.field.includes(orderby)
+      ) {
+        requestData.field.push(orderby);
+      }
+
+      // The "Other" series is only included when there is one
+      // y-axis and one widgetQuery
+      requestData.excludeOther =
+        widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
+
+      if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
+        const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
+        const isDescending = widgetQuery.orderby.startsWith('-');
+        const prefix = isDescending ? '-' : '';
+
+        // Construct the alias form of the equation and inject it into the request
+        requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
+        requestData.field = [
+          ...widgetQuery.columns,
+          ...widgetQuery.aggregates,
+          trimStart(widgetQuery.orderby, '-'),
+        ];
+      }
+    }
+  }
+
+  return doEventsRequest(api, requestData);
 }

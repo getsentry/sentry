@@ -12,6 +12,10 @@ class IssueDetailsPage(BasePage):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/")
         self.wait_until_loaded()
 
+    def visit_issue_activity(self, org, groupid):
+        self.browser.get(f"/organizations/{org}/issues/{groupid}/activity/")
+        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+
     def visit_issue_in_environment(self, org, groupid, environment):
         self.browser.get(f"/organizations/{org}/issues/{groupid}/?environment={environment}")
         self.browser.wait_until(".group-detail")
@@ -56,6 +60,8 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until('[data-test-id="bookmark"]')
         button = self.browser.element('[data-test-id="bookmark"]')
         button.click()
+        self.browser.click('button[aria-label="More Actions"]')
+        self.browser.wait_until('[data-test-id="unbookmark"]')
 
     def assign_to(self, user):
         assignee = self.browser.find_element_by_css_selector(".assigned-to")

@@ -74,6 +74,7 @@ const Spans = styled('ul')`
 
   height: ${space(3)};
   position: relative;
+  pointer-events: none;
 `;
 // TODO(replay): sync colors like #865189 with chartPalette so there is consistency
 const Span = styled('li')<{startPct: number; widthPct: number}>`
@@ -85,6 +86,7 @@ const Span = styled('li')<{startPct: number; widthPct: number}>`
   width: ${p => p.widthPct * 100}%;
   height: 100%;
   background: #865189; /* plucked from static/app/constants/chartPalette.tsx */
+  pointer-events: auto;
 `;
 
 export default React.memo(ReplayTimelineEvents);

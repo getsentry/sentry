@@ -17,7 +17,7 @@ const PlayerRelativeTime = ({relativeTime, timestamp}: Props) => {
 
   return (
     <Tooltip
-      title={<DateTime date={timestamp} />}
+      title={<DateTime date={timestamp} seconds />}
       disabled={!timestamp}
       skipWrapper
       disableForVisualTest
@@ -31,8 +31,8 @@ const PlayerRelativeTime = ({relativeTime, timestamp}: Props) => {
 
 const Value = styled('p')`
   color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: normal;
+  font-size: 0.9em;
+  font-variant-numeric: tabular-nums;
 `;
 
 export default PlayerRelativeTime;

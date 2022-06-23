@@ -1,8 +1,14 @@
+import pytest
 from snuba_sdk import And, Column, Condition, Function, Op
 
-from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
+from sentry.exceptions import (
+    InvalidQuerySubscription,
+    InvalidSearchQuery,
+    UnsupportedQuerySubscription,
+)
 from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.utils import resolve, resolve_many_weak, resolve_tag_key
+from sentry.sentry_metrics.configuration import UseCaseKey
+from sentry.sentry_metrics.utils import resolve, resolve_tag_key
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -28,11 +34,13 @@ class EntitySubscriptionTestCase(TestCase):
             "init",
             "crashed",
         ]:
-            indexer.record(self.organization.id, tag)
+            indexer.record(
+                use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=self.organization.id, string=tag
+            )
 
     def test_get_entity_subscriptions_for_sessions_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
-        with self.assertRaises(UnsupportedQuerySubscription):
+        with pytest.raises(UnsupportedQuerySubscription):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.SESSIONS,
                 aggregate=aggregate,
@@ -42,10 +50,52 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscriptions_for_sessions_dataset_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
-        with self.assertRaises(InvalidQuerySubscription):
+        with pytest.raises(InvalidQuerySubscription):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.SESSIONS, aggregate=aggregate, time_window=3600
             )
+
+    def test_build_snuba_filter_invalid_fields_raise_error(self) -> None:
+        entities = [
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.SESSIONS,
+                aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            ),
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.METRICS,
+                aggregate="percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            ),
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.EVENTS,
+                aggregate="count_unique(user)",
+                time_window=3600,
+            ),
+        ]
+        for entity in entities:
+            with pytest.raises(InvalidSearchQuery, match="Invalid key for this search: timestamp"):
+                entity.build_snuba_filter("timestamp:-24h", [self.project.id], None)
+
+    def test_build_query_builder_invalid_fields_raise_error(self) -> None:
+        entities = [
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.SESSIONS,
+                aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
+                time_window=3600,
+                extra_fields={"org_id": self.organization.id},
+            ),
+            get_entity_subscription_for_dataset(
+                dataset=QueryDatasets.EVENTS,
+                aggregate="count_unique(user)",
+                time_window=3600,
+            ),
+        ]
+        for entity in entities:
+            with pytest.raises(InvalidSearchQuery, match="Invalid key for this search: timestamp"):
+                entity.build_query_builder("timestamp:-24h", [self.project.id], None)
 
     def test_get_entity_subscriptions_for_sessions_dataset(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
@@ -73,7 +123,9 @@ class EntitySubscriptionTestCase(TestCase):
             ],
             ["identity", "sessions", "_total_count"],
         ]
-        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        snql_query = entity_subscription.build_query_builder(
+            "", [self.project.id], None
+        ).get_snql_query()
         snql_query.query.select.sort(key=lambda q: q.function)
         assert snql_query.query.select == [
             Function(
@@ -99,7 +151,7 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscription_for_metrics_dataset_non_supported_aggregate(self) -> None:
         aggregate = "count(sessions)"
-        with self.assertRaises(UnsupportedQuerySubscription):
+        with pytest.raises(UnsupportedQuerySubscription):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.METRICS,
                 aggregate=aggregate,
@@ -109,7 +161,7 @@ class EntitySubscriptionTestCase(TestCase):
 
     def test_get_entity_subscription_for_metrics_dataset_missing_organization(self) -> None:
         aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
-        with self.assertRaises(InvalidQuerySubscription):
+        with pytest.raises(InvalidQuerySubscription):
             get_entity_subscription_for_dataset(
                 dataset=QueryDatasets.METRICS, aggregate=aggregate, time_window=3600
             )
@@ -126,25 +178,33 @@ class EntitySubscriptionTestCase(TestCase):
         )
         assert isinstance(entity_subscription, MetricsSetsEntitySubscription)
         assert entity_subscription.aggregate == aggregate
-        groupby = [resolve_tag_key(org_id, "session.status")]
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id,
-            "groupby": groupby,
             "granularity": 10,
         }
         assert entity_subscription.entity_key == EntityKey.MetricsSets
         assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsSets]
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(org_id, "session.status")
-        session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
+        session_status_crashed = resolve(org_id, "crashed")
         snuba_filter = entity_subscription.build_snuba_filter("", None, None)
         assert snuba_filter
-        assert snuba_filter.aggregations == [["uniq(value)", None, "value"]]
+        assert snuba_filter.aggregations == [
+            [
+                "uniq(value)",
+                None,
+                "count",
+            ],
+            [
+                f"uniqIf(value, equals({session_status}, {session_status_crashed}))",
+                None,
+                "crashed",
+            ],
+        ]
         assert snuba_filter.conditions == [
             ["metric_id", "=", resolve(org_id, SessionMRI.USER.value)],
-            [session_status, "IN", session_status_tag_values],
         ]
-        assert snuba_filter.groupby == groupby
+        assert snuba_filter.groupby is None
         assert snuba_filter.rollup == entity_subscription.get_granularity()
 
     def test_get_entity_subscription_for_metrics_dataset_for_sessions(self) -> None:
@@ -158,25 +218,35 @@ class EntitySubscriptionTestCase(TestCase):
         )
         assert isinstance(entity_subscription, MetricsCountersEntitySubscription)
         assert entity_subscription.aggregate == aggregate
-        groupby = [resolve_tag_key(org_id, "session.status")]
         assert entity_subscription.get_entity_extra_params() == {
             "organization": self.organization.id,
-            "groupby": groupby,
             "granularity": 10,
         }
         assert entity_subscription.entity_key == EntityKey.MetricsCounters
         assert entity_subscription.time_col == ENTITY_TIME_COLUMNS[EntityKey.MetricsCounters]
         assert entity_subscription.dataset == QueryDatasets.METRICS
         session_status = resolve_tag_key(org_id, "session.status")
-        session_status_tag_values = resolve_many_weak(org_id, ["crashed", "init"])
+        session_status_crashed = resolve(org_id, "crashed")
+        session_status_init = resolve(org_id, "init")
         snuba_filter = entity_subscription.build_snuba_filter("", None, None)
         assert snuba_filter
-        assert snuba_filter.aggregations == [["sum(value)", None, "value"]]
+        assert snuba_filter.aggregations == [
+            [
+                f"sumIf(value, equals({session_status}, {session_status_init}))",
+                None,
+                "count",
+            ],
+            [
+                f"sumIf(value, equals({session_status}, {session_status_crashed}))",
+                None,
+                "crashed",
+            ],
+        ]
         assert snuba_filter.conditions == [
             ["metric_id", "=", resolve(org_id, SessionMRI.SESSION.value)],
-            [session_status, "IN", session_status_tag_values],
+            [session_status, "IN", [session_status_crashed, session_status_init]],
         ]
-        assert snuba_filter.groupby == groupby
+        assert snuba_filter.groupby is None
         assert snuba_filter.rollup == entity_subscription.get_granularity()
 
     def test_get_entity_subscription_for_transactions_dataset(self) -> None:
@@ -195,7 +265,9 @@ class EntitySubscriptionTestCase(TestCase):
         assert snuba_filter.aggregations == [
             ["quantile(0.95)", "duration", "percentile_transaction_duration__95"]
         ]
-        snql_query = entity_subscription.build_snql_query("", [self.project.id], None)
+        snql_query = entity_subscription.build_query_builder(
+            "", [self.project.id], None
+        ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 "quantile(0.95)",
@@ -224,7 +296,9 @@ class EntitySubscriptionTestCase(TestCase):
         ]
         assert snuba_filter.aggregations == [["uniq", "tags[sentry:user]", "count_unique_user"]]
 
-        snql_query = entity_subscription.build_snql_query("release:latest", [self.project.id], None)
+        snql_query = entity_subscription.build_query_builder(
+            "release:latest", [self.project.id], None
+        ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 function="uniq",

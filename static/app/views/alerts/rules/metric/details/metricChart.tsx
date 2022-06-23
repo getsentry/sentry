@@ -105,8 +105,8 @@ function getRuleChangeSeries(
   }
 
   const seriesData = data[0].data;
-  const seriesStart = moment(seriesData[0].name).valueOf();
-  const ruleChanged = moment(dateModified).valueOf();
+  const seriesStart = new Date(seriesData[0].name).getTime();
+  const ruleChanged = new Date(dateModified).getTime();
 
   if (ruleChanged < seriesStart) {
     return [];
@@ -191,20 +191,14 @@ class MetricChart extends PureComponent<Props, State> {
     warningDuration: number
   ) {
     const {rule, orgId, project, timePeriod, query} = this.props;
-    const transactionFields = ['title', 'count()', 'count_unique(user)'];
-    const errorFields = ['issue', 'title', 'count()', 'count_unique(user)'];
 
-    const ctaOpts = {
+    const {buttonText, ...props} = makeDefaultCta({
       orgSlug: orgId,
       projects: [project],
       rule,
-      eventType: query,
-      start: timePeriod.start,
-      end: timePeriod.end,
-      fields: rule.dataset === 'transactions' ? transactionFields : errorFields,
-    };
-
-    const {buttonText, ...props} = makeDefaultCta(ctaOpts);
+      timePeriod,
+      query,
+    });
 
     const resolvedPercent =
       (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /

@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema
@@ -8,6 +9,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import InvalidParams
 from sentry.apidocs import constants as api_constants
@@ -53,6 +55,10 @@ API_TOKEN_REFERRER = "api.auth-token.events"
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     """Deprecated in favour of OrganizationEventsEndpoint"""
 
+    @deprecated(
+        datetime.fromisoformat("2022-07-21T00:00:00+00:00:00"),
+        suggested_api="api/0/organizations/{organization_slug}/events/",
+    )
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -85,9 +91,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         sentry_sdk.set_tag("performance.metrics_enhanced", metrics_enhanced)
         allow_metric_aggregates = request.GET.get("preventMetricAggregates") != "1"
 
-        query_modified_by_user = request.GET.get("user_modified")
-        if query_modified_by_user in ["true", "false"]:
-            sentry_sdk.set_tag("query.user_modified", query_modified_by_user)
         referrer = (
             referrer if referrer in ALLOWED_EVENTS_REFERRERS else "api.organization-events-v2"
         )
@@ -198,6 +201,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         """
         Retrieves discover (also known as events) data for a given organization.
 
+        **Eventsv2 Deprecation Note**: Users who may be using the `eventsv2` endpoint should update their requests to the `events` endpoint outline in this document.
+        The `eventsv2` endpoint is not a public endpoint and has no guaranteed availability. If you are not making any API calls to `eventsv2`, you can safely ignore this.
+        Changes between `eventsv2` and `events` include:
+        - Field keys in the response now match the keys in the requested `field` param exactly.
+        - The `meta` object in the response now shows types in the nested `field` object.
+
+        Aside from the url change, there are no changes to the request payload itself.
+
         **Note**: This endpoint is intended to get a table of results, and is not for doing a full export of data sent to
         Sentry.
 
@@ -240,10 +251,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = API_TOKEN_REFERRER
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = "api.organization-events"
-
-        query_modified_by_user = request.GET.get("user_modified")
-        if query_modified_by_user in ["true", "false"]:
-            sentry_sdk.set_tag("query.user_modified", query_modified_by_user)
 
         def data_fn(offset, limit):
             query_details = {

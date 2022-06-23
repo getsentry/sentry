@@ -314,10 +314,7 @@ class Results extends Component<Props, State> {
 
     router.push({
       pathname: location.pathname,
-      query: {
-        ...searchQueryParams,
-        userModified: true,
-      },
+      query: searchQueryParams,
     });
   };
 
@@ -642,7 +639,6 @@ function ResultsContainer(props: Props) {
       skipLoadLastUsed={
         props.organization.features.includes('global-views') && !!props.savedQuery
       }
-      hideGlobalHeader
     >
       <SavedQueryAPI {...props} />
     </PageFiltersContainer>

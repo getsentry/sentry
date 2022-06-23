@@ -1,3 +1,4 @@
+import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
@@ -17,13 +18,19 @@ describe('SettingsIndex', function () {
 
   it('renders', function () {
     const {container} = render(
-      <SettingsIndex {...props} organization={TestStubs.Organization()} />
+      <BreadcrumbContextProvider>
+        <SettingsIndex {...props} organization={TestStubs.Organization()} />
+      </BreadcrumbContextProvider>
     );
     expect(container).toSnapshot();
   });
 
   it('has loading when there is no organization', function () {
-    render(<SettingsIndex {...props} organization={null} />);
+    render(
+      <BreadcrumbContextProvider>
+        <SettingsIndex {...props} organization={null} />
+      </BreadcrumbContextProvider>
+    );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
@@ -31,7 +38,11 @@ describe('SettingsIndex', function () {
   it('has different links for self-hosted users', function () {
     ConfigStore.set('isSelfHosted', true);
 
-    render(<SettingsIndex {...props} organization={TestStubs.Organization()} />);
+    render(
+      <BreadcrumbContextProvider>
+        <SettingsIndex {...props} organization={TestStubs.Organization()} />
+      </BreadcrumbContextProvider>
+    );
 
     const formLink = screen.getByText('Community Forums');
 
@@ -59,11 +70,17 @@ describe('SettingsIndex', function () {
 
     it('fetches org details for SidebarDropdown', function () {
       const {rerender} = render(
-        <SettingsIndex {...props} params={{}} organization={null} />
+        <BreadcrumbContextProvider>
+          <SettingsIndex {...props} params={{}} organization={null} />
+        </BreadcrumbContextProvider>
       );
 
       // org from index endpoint, no `access` info
-      rerender(<SettingsIndex {...props} organization={organization} />);
+      rerender(
+        <BreadcrumbContextProvider>
+          <SettingsIndex {...props} organization={organization} />
+        </BreadcrumbContextProvider>
+      );
 
       expect(spy).toHaveBeenCalledWith(organization.slug, {
         setActive: true,
@@ -74,11 +91,17 @@ describe('SettingsIndex', function () {
 
     it('does not fetch org details for SidebarDropdown', function () {
       const {rerender} = render(
-        <SettingsIndex {...props} params={{}} organization={null} />
+        <BreadcrumbContextProvider>
+          <SettingsIndex {...props} params={{}} organization={null} />
+        </BreadcrumbContextProvider>
       );
 
       // org already has details
-      rerender(<SettingsIndex {...props} organization={TestStubs.Organization()} />);
+      rerender(
+        <BreadcrumbContextProvider>
+          <SettingsIndex {...props} organization={TestStubs.Organization()} />
+        </BreadcrumbContextProvider>
+      );
 
       expect(spy).not.toHaveBeenCalledWith();
       expect(api).not.toHaveBeenCalled();
