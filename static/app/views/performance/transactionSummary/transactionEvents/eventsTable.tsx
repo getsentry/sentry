@@ -83,6 +83,7 @@ type Props = {
   location: Location;
   organization: Organization;
   setError: (msg: string | undefined) => void;
+  totalEventCount: string;
   transactionName: string;
   columnTitles?: string[];
 };
@@ -284,7 +285,7 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError} = this.props;
+    const {eventView, organization, location, setError, totalEventCount} = this.props;
 
     const totalTransactionsView = eventView.clone();
     totalTransactionsView.sorts = [];
@@ -322,6 +323,14 @@ class EventsTable extends Component<Props, State> {
           {({pageLinks, isLoading, tableData}) => {
             const parsedPageLinks = parseLinkHeader(pageLinks);
             const currentEvent = parsedPageLinks?.next?.cursor.split(':')[1] ?? 0;
+            const paginationCaption =
+              totalEventCount && currentEvent
+                ? tct('Showing [currentEvent] of [totalEventCount] events', {
+                    currentEvent,
+                    totalEventCount,
+                  })
+                : undefined;
+
             return (
               <Fragment>
                 <GridEditable
@@ -336,34 +345,11 @@ class EventsTable extends Component<Props, State> {
                   }}
                   location={location}
                 />
-                <DiscoverQuery
-                  eventView={totalTransactionsView}
-                  orgSlug={organization.slug}
-                  location={location}
-                  setError={error => setError(error?.message)}
-                  referrer="api.performance.transaction-summary"
-                  cursor="0:0:0"
-                  useEvents
-                >
-                  {({tableData: table}) => {
-                    const eventCount = table?.data[0]?.['count()']?.toLocaleString();
-                    const shouldDisplayCaption = eventCount && currentEvent;
-                    return (
-                      <Pagination
-                        disabled={isLoading}
-                        caption={
-                          shouldDisplayCaption
-                            ? tct('Showing [currentEvent] of [eventCount] events', {
-                                currentEvent,
-                                eventCount,
-                              })
-                            : undefined
-                        }
-                        pageLinks={pageLinks}
-                      />
-                    );
-                  }}
-                </DiscoverQuery>
+                <Pagination
+                  disabled={!paginationCaption}
+                  caption={paginationCaption}
+                  pageLinks={pageLinks}
+                />
               </Fragment>
             );
           }}

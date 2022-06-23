@@ -160,6 +160,7 @@ describe('Performance GridEditable Table', function () {
     );
     const wrapper = mountWithTheme(
       <EventsTable
+        totalEventCount="100"
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -209,6 +210,7 @@ describe('Performance GridEditable Table', function () {
     );
     const wrapper = mountWithTheme(
       <EventsTable
+        totalEventCount="100"
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}

@@ -163,6 +163,7 @@ describe('Performance Transaction Events Content', function () {
     const wrapper = mountWithTheme(
       <OrganizationContext.Provider value={organization}>
         <EventsPageContent
+          totalEventCount="100"
           eventView={eventView}
           organization={organization}
           location={initialData.router.location}
@@ -199,6 +200,7 @@ describe('Performance Transaction Events Content', function () {
     const wrapper = mountWithTheme(
       <OrganizationContext.Provider value={organization}>
         <EventsPageContent
+          totalEventCount="100"
           eventView={eventView}
           organization={organization}
           location={initialData.router.location}
