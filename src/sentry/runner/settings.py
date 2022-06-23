@@ -92,6 +92,10 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     # Make sure that our warnings are always displayed.
     warnings.filterwarnings("default", "", Warning, r"^sentry")
 
+    from django.utils.deprecation import RemovedInDjango40Warning
+
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango40Warning)
+
     # Add in additional mimetypes that are useful for our static files
     # which aren't common in default system registries
     import mimetypes

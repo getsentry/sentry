@@ -24,6 +24,10 @@ TEST_ROOT = os.path.normpath(
 def pytest_configure(config):
     import warnings
 
+    from django.utils.deprecation import RemovedInDjango40Warning
+
+    warnings.filterwarnings(action="ignore", category=RemovedInDjango40Warning)
+
     # This is just to filter out an obvious warning before the pytest session starts.
     warnings.filterwarnings(
         action="ignore",
