@@ -132,4 +132,18 @@ describe('AlertRuleDetails', () => {
     expect(await screen.findAllByText('Last Triggered')).toHaveLength(2);
     expect(screen.getByText('2 days ago')).toBeInTheDocument();
   });
+
+  it('renders not found on 404', async () => {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
+      statusCode: 404,
+      body: {},
+      match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
+    });
+    createWrapper();
+
+    expect(
+      await screen.findByText('The alert rule you were looking for was not found.')
+    ).toBeInTheDocument();
+  });
 });
