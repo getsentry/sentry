@@ -73,7 +73,7 @@ const ACTION_OVERFLOW_STEPS = 75;
 const makeQueryState = (query: string) => ({
   query,
   // Anytime the query changes and it is not "" the dropdown should show
-  showDropdown: !!query,
+  showDropdown: true,
   parsedQuery: parseSearch(query),
 });
 
