@@ -22,8 +22,12 @@ function SessionRow({
           <CountryCode>{`${countryCode} (${regionCode})`}</CountryCode>
         )}
       </IpAndLocation>
-      <StyledTimeSince date={firstSeen} />
-      <StyledTimeSince date={lastSeen} />
+      <div>
+        <StyledTimeSince date={firstSeen} />
+      </div>
+      <div>
+        <StyledTimeSince date={lastSeen} />
+      </div>
     </SessionPanelItem>
   );
 }
