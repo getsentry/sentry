@@ -234,7 +234,15 @@ def determine_eligible_recipients(
             return {team}
 
     elif target_type == ActionTargetType.RELEASE_MEMBERS:
-        return get_release_committers(project, event)
+        # XXX(gilbert): RELEASE_MEMBERS doesn't normally use target_identifier
+        # but to get this working asap, we'll piggyback on how TEAM works and notify
+        # the configured team as part of this experiment
+        if features.has("organizations:issue-alert-release-members-target", project.organization):
+            return get_release_committers(project, event)
+        else:
+            team = get_team_from_identifier(project, target_identifier)
+            if team:
+                return {team}
 
     else:
         return get_owners(project, event)

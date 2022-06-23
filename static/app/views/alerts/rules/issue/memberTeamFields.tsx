@@ -7,7 +7,11 @@ import {PanelItem} from 'sentry/components/panels';
 import SelectMembers from 'sentry/components/selectMembers';
 import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
+import {
+  IssueAlertRuleAction,
+  IssueAlertRuleCondition,
+  MailActionTargetType,
+} from 'sentry/types/alerts';
 
 interface OptionRecord {
   label: string;
@@ -68,6 +72,9 @@ class MemberTeamFields extends Component<Props> {
 
     const teamSelected = ruleData.targetType === teamValue;
     const memberSelected = ruleData.targetType === memberValue;
+    // (gilbert): remove this after experiment
+    const releaseMembersSelected =
+      ruleData.targetType === MailActionTargetType.ReleaseMembers;
 
     const selectControlStyles = {
       control: provided => ({
@@ -108,6 +115,17 @@ class MemberTeamFields extends Component<Props> {
             value={`${ruleData.targetIdentifier}`}
             styles={selectControlStyles}
             onChange={this.handleChangeActorId}
+          />
+        ) : releaseMembersSelected ? (
+          <TeamSelector
+            disabled={disabled}
+            key={teamValue}
+            project={project}
+            // The value from the endpoint is of type `number`, `SelectMembers` require value to be of type `string`
+            value={`${ruleData.targetIdentifier}`}
+            styles={selectControlStyles}
+            onChange={this.handleChangeActorId}
+            useId
           />
         ) : null}
       </PanelItemGrid>
