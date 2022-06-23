@@ -63,7 +63,6 @@ export enum SamplingInnerName {
   EVENT_USER_SEGMENT = 'event.user.segment',
   EVENT_LOCALHOST = 'event.is_local_ip',
   EVENT_WEB_CRAWLERS = 'event.web_crawlers',
-  EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
   EVENT_TRANSACTION = 'event.transaction',
   EVENT_OS_NAME = 'event.contexts.os.name',
   EVENT_OS_VERSION = 'event.contexts.os.version',
@@ -119,10 +118,7 @@ type SamplingConditionLogicalInnerEq = {
 };
 
 type SamplingConditionLogicalInnerEqBoolean = {
-  name:
-    | SamplingInnerName.EVENT_BROWSER_EXTENSIONS
-    | SamplingInnerName.EVENT_LOCALHOST
-    | SamplingInnerName.EVENT_WEB_CRAWLERS;
+  name: SamplingInnerName.EVENT_LOCALHOST | SamplingInnerName.EVENT_WEB_CRAWLERS;
   op: SamplingInnerOperator.EQUAL;
   value: boolean;
 };

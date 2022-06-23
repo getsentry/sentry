@@ -78,7 +78,6 @@ function Conditions({
         const isCustomTag = isCustomTagName(category);
 
         const isBooleanField =
-          category === SamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
           category === SamplingInnerName.EVENT_LOCALHOST ||
           category === SamplingInnerName.EVENT_WEB_CRAWLERS;
         displayLegacyBrowsers;

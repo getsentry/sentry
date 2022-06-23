@@ -362,7 +362,6 @@ export function SamplingRuleModal({
 
       if (
         condition.category === SamplingInnerName.EVENT_LOCALHOST ||
-        condition.category === SamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
         condition.category === SamplingInnerName.EVENT_WEB_CRAWLERS
       ) {
         return false;
