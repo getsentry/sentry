@@ -406,12 +406,6 @@ class SmartSearchBar extends Component<Props, State> {
     if (!this.searchInput.current) {
       return;
     }
-
-    if (this.state.showDropdown) {
-      this.setState({...this.state, showDropdown: false});
-      return;
-    }
-
     this.searchInput.current.blur();
   }
 
@@ -774,7 +768,7 @@ class SmartSearchBar extends Component<Props, State> {
     evt.preventDefault();
     const isSelectingDropdownItems = this.state.activeSearchItem > -1;
 
-    if (!isSelectingDropdownItems) {
+    if (!this.state.showDropdown) {
       this.blur();
       return;
     }
