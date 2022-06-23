@@ -89,6 +89,7 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
             <FrameWeightContainer>
               {flamegraphRenderer.flamegraph.formatter(node.node.node.totalWeight)}
               <Weight
+                padded
                 isSelected={isSelected}
                 weight={computeRelativeWeight(
                   referenceNode.node.totalWeight,
@@ -126,17 +127,20 @@ export const FrameStackTableRow = forwardRef<HTMLDivElement, FrameStackTableRowP
   }
 );
 
-const Weight = styled((props: {isSelected: boolean; weight: number}) => {
-  const {weight, isSelected: _, ...rest} = props;
-  return (
-    <div {...rest}>
-      {weight.toFixed(1)}%
-      <BackgroundWeightBar style={{transform: `scaleX(${weight / 100})`}} />
-    </div>
-  );
-})`
+const Weight = styled(
+  (props: {isSelected: boolean; weight: number; padded?: boolean}) => {
+    const {weight, padded: __, isSelected: _, ...rest} = props;
+    return (
+      <div {...rest}>
+        {weight.toFixed(1)}%
+        <BackgroundWeightBar style={{transform: `scaleX(${weight / 100})`}} />
+      </div>
+    );
+  }
+)`
   display: inline-block;
   min-width: 7ch;
+  padding-right: ${p => (p.padded ? space(0.5) : 0)};
   color: ${p => (p.isSelected ? p.theme.white : p.theme.subText)};
   opacity: ${p => (p.isSelected ? 0.8 : 1)};
 `;
