@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useContext, useEffect, useState} from 'react';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -13,6 +13,7 @@ import {
 import {getDatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 
+import {DashboardsMEPContext} from './dashboardsMEPContext';
 import {getIsMetricsDataFromSeriesResponse} from './widgetQueries';
 
 type ChildrenProps = {
@@ -51,7 +52,7 @@ function getReferrer(displayType: DisplayType) {
   return referrer;
 }
 
-function WidgetQueries({
+function GenericWidgetQueries({
   api,
   children,
   cursor,
@@ -70,6 +71,7 @@ function WidgetQueries({
     useState<ChildrenProps['tableResults']>(undefined);
   const [timeseriesResults, setTimeseriesResults] =
     useState<ChildrenProps['timeseriesResults']>(undefined);
+  const dashboardMEPContext = useContext(DashboardsMEPContext);
 
   const fetchTableData = useCallback(
     async function fetchTableData() {
@@ -101,6 +103,7 @@ function WidgetQueries({
       responses.forEach(([data, _textstatus, resp], i) => {
         // If one of the queries is sampled, then mark the whole thing as sampled
         isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
+        dashboardMEPContext?.setIsMetricsData(isMetricsData);
 
         // Cast so we can add the title.
         const transformedData = config.transformTable(
@@ -122,7 +125,17 @@ function WidgetQueries({
       });
       setTableResults(transformedTableResults);
     },
-    [api, config, cursor, limit, onDataFetched, organization, selection, widget]
+    [
+      api,
+      config,
+      cursor,
+      dashboardMEPContext,
+      limit,
+      onDataFetched,
+      organization,
+      selection,
+      widget,
+    ]
   );
 
   const fetchSeriesData = useCallback(
@@ -147,6 +160,7 @@ function WidgetQueries({
           isMetricsData === false
             ? false
             : getIsMetricsDataFromSeriesResponse(rawResults);
+        dashboardMEPContext?.setIsMetricsData(isMetricsData);
         const transformedResult = config.transformSeries!(
           rawResults,
           widget.queries[requestIndex],
@@ -170,6 +184,7 @@ function WidgetQueries({
       api,
       config.getSeriesRequest,
       config.transformSeries,
+      dashboardMEPContext,
       onDataFetched,
       organization,
       selection,
@@ -205,4 +220,4 @@ function WidgetQueries({
   return children({loading, tableResults, timeseriesResults, errorMessage});
 }
 
-export default WidgetQueries;
+export default GenericWidgetQueries;
