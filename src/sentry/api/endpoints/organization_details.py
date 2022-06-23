@@ -123,7 +123,7 @@ DEFERRED = object()
 
 class OrganizationSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64)
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+    slug = serializers.RegexField(r"^[a-zA-Z0-9][a-zA-Z0-9-]*(?<!-)$", max_length=50)
     accountRateLimit = EmptyIntegerField(
         min_value=0, max_value=1000000, required=False, allow_null=True
     )
