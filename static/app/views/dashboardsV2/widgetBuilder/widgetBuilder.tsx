@@ -5,7 +5,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEmpty from 'lodash/isEmpty';
 import omit from 'lodash/omit';
 import set from 'lodash/set';
-import trimStart from 'lodash/trimStart';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -37,10 +36,8 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {
   explodeField,
   generateFieldAsString,
-  getAggregateAlias,
   getColumnsAndAggregates,
   getColumnsAndAggregatesAsStrings,
-  isEquation,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
@@ -65,7 +62,6 @@ import {
 
 import {DEFAULT_STATS_PERIOD} from '../data';
 import {getDatasetConfig} from '../datasetConfig/base';
-import {getNumEquations} from '../utils';
 
 import {ColumnsStep} from './buildSteps/columnsStep';
 import {DataSetStep} from './buildSteps/dataSetStep';
@@ -94,7 +90,7 @@ const WIDGET_TYPE_TO_DATA_SET = {
   [WidgetType.RELEASE]: DataSet.RELEASES,
 };
 
-const DATA_SET_TO_WIDGET_TYPE = {
+export const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
   [DataSet.ISSUES]: WidgetType.ISSUE,
   [DataSet.RELEASES]: WidgetType.RELEASE,
@@ -691,13 +687,11 @@ function WidgetBuilder({
     const newQueries = state.queries.map(query => {
       const newQuery = cloneDeep(query);
       newQuery.columns = fieldStrings;
-      const orderby = trimStart(newQuery.orderby, '-');
-      const aggregateAliasFieldStrings = newQuery.aggregates.map(getAggregateAlias);
 
       if (!fieldStrings.length) {
         // The grouping was cleared, so clear the orderby
         newQuery.orderby = '';
-      } else if (widgetBuilderNewDesign && !newQuery.orderby) {
+      } else if (!newQuery.orderby) {
         const orderOptions = generateOrderOptions({
           widgetType: widgetType ?? WidgetType.DISCOVER,
           widgetBuilderNewDesign,
@@ -712,20 +706,6 @@ function WidgetBuilder({
           orderOption = orderOptions[0].value;
           newQuery.orderby = `-${orderOption}`;
         }
-      } else if (
-        !widgetBuilderNewDesign &&
-        aggregateAliasFieldStrings.length &&
-        !aggregateAliasFieldStrings.includes(orderby) &&
-        !newQuery.columns.includes(orderby) &&
-        !isEquation(orderby)
-      ) {
-        // If the orderby isn't contained in either aggregates or columns, choose the first aggregate
-        const isDescending = newQuery.orderby.startsWith('-');
-        const prefix = orderby && !isDescending ? '' : '-';
-        const firstAggregateAlias = isEquation(aggregateAliasFieldStrings[0])
-          ? `equation[${getNumEquations(aggregateAliasFieldStrings) - 1}]`
-          : aggregateAliasFieldStrings[0];
-        newQuery.orderby = `${prefix}${firstAggregateAlias}`;
       }
       return newQuery;
     });
@@ -1023,7 +1003,6 @@ function WidgetBuilder({
         defaultSelection={{
           datetime: {start: null, end: null, utc: false, period: DEFAULT_STATS_PERIOD},
         }}
-        hideGlobalHeader
       >
         <PageContentWithoutPadding>
           <Header

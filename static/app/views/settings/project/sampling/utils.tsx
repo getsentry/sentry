@@ -54,8 +54,6 @@ export function getInnerNameLabel(name: SamplingInnerName | string) {
     case SamplingInnerName.EVENT_USER_SEGMENT:
     case SamplingInnerName.TRACE_USER_SEGMENT:
       return t('User Segment');
-    case SamplingInnerName.EVENT_BROWSER_EXTENSIONS:
-      return t('Browser Extensions');
     case SamplingInnerName.EVENT_LOCALHOST:
       return t('Localhost');
     case SamplingInnerName.EVENT_WEB_CRAWLERS:

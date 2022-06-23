@@ -11,7 +11,7 @@ import {isEquation} from 'sentry/utils/discover/fields';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue} from 'sentry/views/eventsV2/table/types';
 
-import {DisplayType, WidgetQuery, WidgetType} from '../types';
+import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
 import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
@@ -84,16 +84,22 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
+   * Field options to display in the Group by selector.
+   */
+  getGroupByFieldOptions?: (
+    organization: Organization,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
+  /**
    * Generate the request promises for fetching
    * series data.
    */
   getSeriesRequest?: (
     api: Client,
-    query: WidgetQuery,
+    widget: Widget,
+    queryIndex: number,
     organization: Organization,
     pageFilters: PageFilters,
-    limit?: number,
-    cursor?: string,
     referrer?: string
   ) => ReturnType<Client['requestPromise']>;
   /**

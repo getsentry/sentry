@@ -138,6 +138,6 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
 
 class CURSOR_QUERY_PARAM(serializers.Serializer):  # type: ignore
     cursor = serializers.CharField(
-        help_text="A pointer to the last object fetched and its' sort order; used to retrieve the next or previous results.",
+        help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
         required=False,
     )
