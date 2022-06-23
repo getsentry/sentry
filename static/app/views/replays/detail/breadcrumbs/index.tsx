@@ -1,15 +1,9 @@
 import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  Panel as BasePanel,
-  PanelBody as BasePanelBody,
-  PanelHeader as BasePanelHeader,
-} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import {EventTransaction} from 'sentry/types/event';
@@ -112,57 +106,28 @@ function Breadcrumbs({event, crumbs: allCrumbs}: Props) {
   );
 
   return (
-    <Panel>
-      <PanelHeader>{t('Breadcrumbs')}</PanelHeader>
-
-      <PanelBody ref={crumbListContainerRef}>
-        {!isLoaded && <CrumbPlaceholder number={4} />}
-        {isLoaded &&
-          crumbs.map(crumb => (
-            <BreadcrumbItem
-              key={crumb.id}
-              crumb={crumb}
-              startTimestamp={startTimestamp}
-              isHovered={closestUserAction?.id === crumb.id}
-              isSelected={currentUserAction?.id === crumb.id}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              onClick={handleClick}
-            />
-          ))}
-      </PanelBody>
-    </Panel>
+    <BreadcrumbList ref={crumbListContainerRef}>
+      {!isLoaded && <CrumbPlaceholder number={4} />}
+      {isLoaded &&
+        crumbs.map(crumb => (
+          <BreadcrumbItem
+            key={crumb.id}
+            crumb={crumb}
+            startTimestamp={startTimestamp}
+            isHovered={closestUserAction?.id === crumb.id}
+            isSelected={currentUserAction?.id === crumb.id}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onClick={handleClick}
+          />
+        ))}
+    </BreadcrumbList>
   );
 }
 
-// FYI: Since the Replay Player has dynamic height based
-// on the width of the window,
-// height: 0; will helps us to reset the height
-// min-height: 100%; will helps us to grow at the same height of Player
-const Panel = styled(BasePanel)`
-  width: 100%;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 0;
-  min-height: 100%;
-  @media only screen and (max-width: ${p => p.theme.breakpoints.large}) {
-    height: fit-content;
-    max-height: 400px;
-    margin-top: ${space(2)};
-  }
-`;
-
-const PanelHeader = styled(BasePanelHeader)`
-  background-color: ${p => p.theme.background};
-  border-bottom: none;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-  text-transform: capitalize;
-  padding: ${space(1.5)} ${space(2)} ${space(0.5)};
-`;
-
-const PanelBody = styled(BasePanelBody)`
+const BreadcrumbList = styled('div')`
   overflow-y: auto;
+  max-height: 100%;
 `;
 
 const PlaceholderMargin = styled(Placeholder)`

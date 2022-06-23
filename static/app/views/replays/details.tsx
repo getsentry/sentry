@@ -16,8 +16,8 @@ import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
-import Breadcrumbs from './detail/breadcrumbs';
 import DetailLayout from './detail/detailLayout';
+import DetailSidePanel from './detail/detailSidePanel';
 import FocusArea from './detail/focusArea';
 import FocusTabs from './detail/focusTabs';
 
@@ -86,7 +86,7 @@ function ReplayDetails() {
 
           <Layout.Side>
             <ErrorBoundary mini>
-              <Breadcrumbs crumbs={replay?.getRawCrumbs()} event={replay?.getEvent()} />
+              <DetailSidePanel replay={replay} />
             </ErrorBoundary>
           </Layout.Side>
 
