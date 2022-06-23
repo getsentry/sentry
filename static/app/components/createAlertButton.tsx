@@ -359,6 +359,10 @@ type Props = {
   alertOption?: keyof typeof AlertWizardAlertNames;
   hideIcon?: boolean;
   iconProps?: SVGIconProps;
+  /// Callback when the button is clicked.
+  /// This is different from `onClick` which always overrides the default
+  /// behavior when the button was clicked.
+  onEnter?: () => void;
   projectSlug?: string;
   referrer?: string;
   showPermissionGuide?: boolean;
@@ -375,6 +379,7 @@ const CreateAlertButton = withRouter(
     hideIcon,
     showPermissionGuide,
     alertOption,
+    onEnter,
     ...buttonProps
   }: Props) => {
     const api = useApi();
@@ -400,6 +405,7 @@ const CreateAlertButton = withRouter(
 
     function handleClickWithoutProject(event: React.MouseEvent) {
       event.preventDefault();
+      onEnter?.();
 
       navigateTo(createAlertUrl(':projectId'), router);
     }
@@ -438,7 +444,7 @@ const CreateAlertButton = withRouter(
             maxWidth: '270px',
           },
         }}
-        onClick={projectSlug ? undefined : handleClickWithoutProject}
+        onClick={projectSlug ? onEnter : handleClickWithoutProject}
         {...buttonProps}
       >
         {buttonProps.children ?? t('Create Alert')}
