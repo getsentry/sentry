@@ -86,7 +86,7 @@ const AnnotatedText = ({value, meta, className, ...props}: Props) => {
   };
 
   return (
-    <span className={className} {...props}>
+    <span role="text" className={className} {...props}>
       {renderValue()}
       {meta?.err && renderErrors(meta.err)}
     </span>
