@@ -102,7 +102,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 2 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(defaultMock).toHaveBeenCalledTimes(1);
   });
@@ -136,7 +136,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 2 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
     expect(error).toEqual('Bad request data');
@@ -168,7 +168,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and interval bumped up.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -202,7 +202,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and interval bumped up.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -237,7 +237,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 1 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
       '/organizations/org-slug/eventsv2/',
@@ -314,7 +314,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 2 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
@@ -362,7 +362,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 1 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
       '/organizations/org-slug/eventsv2/',
@@ -421,7 +421,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 1 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(tableMock).toHaveBeenCalledTimes(1);
     expect(tableMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-geo/',
@@ -497,7 +497,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 2 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(firstQuery).toHaveBeenCalledTimes(1);
     expect(secondQuery).toHaveBeenCalledTimes(1);
 
@@ -528,7 +528,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 1 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
   });
 
@@ -590,7 +590,7 @@ describe('Dashboards > WidgetQueries', function () {
       </GenericWidgetQueries>
     );
 
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(defaultMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(child).toHaveBeenLastCalledWith(
@@ -630,7 +630,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 1 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
@@ -882,7 +882,7 @@ describe('Dashboards > WidgetQueries', function () {
     );
 
     // Child should be rendered and 1 requests should be sent.
-    expect(await screen.findByTestId('child')).toBeInTheDocument();
+    await screen.findByTestId('child');
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
