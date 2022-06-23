@@ -21,6 +21,7 @@ jobs:
               owner: 'getsentry',
               repo: 'getsentry-test-repo',
               workflow_id: 'bump-sentry.yml',
-              ref: 'bump-sentry-dispatch-test',
-              inputs: '{ "sentry_sha": "${{ github.sha }}" '
+              inputs: {
+                "sentry_sha": "${{ github.sha }}"
+              }
             })
