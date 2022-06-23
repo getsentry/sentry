@@ -16,9 +16,9 @@ function renderIcon(repo: Repository) {
 
   switch (providerId) {
     case 'github':
-      return <IconGithub size="xs" />;
+      return <IconGithub size="xs" data-test-id="pull-request-github" />;
     case 'gitlab':
-      return <IconGitlab size="xs" />;
+      return <IconGitlab size="xs" data-test-id="pull-request-gitlab" />;
     case 'bitbucket':
       return <IconBitbucket size="xs" />;
     default:
