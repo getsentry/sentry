@@ -598,6 +598,28 @@ class DiscoverSavedQueriesVersion2Test(DiscoverSavedQueryBase):
         assert response.status_code == 201, response.content
         assert DiscoverSavedQuery.objects.filter(name="Equation query").exists()
 
+    def test_save_with_invalid_equation(self):
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Equation query",
+                    "projects": [-1],
+                    "fields": [
+                        "title",
+                        "equation|count_if(measurements.lcp,greater,4000) / 0",
+                        "count()",
+                        "count_if(measurements.lcp,greater,4000)",
+                    ],
+                    "orderby": "equation[0]",
+                    "range": "24h",
+                    "query": "title:1",
+                    "version": 2,
+                },
+            )
+        assert response.status_code == 400, response.content
+        assert not DiscoverSavedQuery.objects.filter(name="Equation query").exists()
+
     def test_save_invalid_query(self):
         with self.feature(self.feature_name):
             response = self.client.post(

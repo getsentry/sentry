@@ -516,13 +516,7 @@ class ReleasesList extends AsyncView<Props, State> {
     const hasReleasesSetup = releases && releases.length > 0;
 
     return (
-      <PageFiltersContainer
-        showAbsolute={false}
-        timeRangeHint={t(
-          'Changing this date range will recalculate the release metrics.'
-        )}
-        hideGlobalHeader
-      >
+      <PageFiltersContainer showAbsolute={false}>
         <PageContent>
           <NoProjectMessage organization={organization}>
             <PageHeader>
@@ -534,7 +528,10 @@ class ReleasesList extends AsyncView<Props, State> {
             <ReleasesPageFilterBar condensed>
               <ProjectPageFilter />
               <EnvironmentPageFilter />
-              <DatePageFilter alignDropdown="left" />
+              <DatePageFilter
+                alignDropdown="left"
+                hint={t('Changing this date range will recalculate the release metrics.')}
+              />
             </ReleasesPageFilterBar>
 
             <SortAndFilterWrapper>

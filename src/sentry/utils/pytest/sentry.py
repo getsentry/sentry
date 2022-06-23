@@ -110,6 +110,7 @@ def pytest_configure(config):
     settings.BROKER_BACKEND = "memory"
     settings.BROKER_URL = "memory://"
     settings.CELERY_ALWAYS_EAGER = False
+    settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
 
     settings.DEBUG_VIEWS = True
@@ -130,9 +131,6 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
-    if os.environ.get("DISABLE_TEST_SDK", False):
-        settings.SENTRY_SDK_CONFIG = {}
-
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
@@ -141,6 +139,8 @@ def pytest_configure(config):
             "redis.clusters": {"default": {"hosts": {0: {"db": 9}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
+            "system.base-hostname": "testserver",
+            "system.customer-base-hostname": "{slug}.{region}.testserver",
             "system.secret-key": "a" * 52,
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
@@ -200,6 +200,7 @@ def pytest_configure(config):
     from sentry.runner.initializer import initialize_app
 
     initialize_app({"settings": settings, "options": None})
+    Hub.main.bind_client(None)
     register_extensions()
 
     from sentry.utils.redis import clusters

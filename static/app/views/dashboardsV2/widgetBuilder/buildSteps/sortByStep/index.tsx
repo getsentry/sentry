@@ -86,7 +86,7 @@ export function SortByStep({
     if (limit > maxLimit) {
       onLimitChange(maxLimit);
     }
-  }, [limit, maxLimit]);
+  }, [limit, maxLimit, onLimitChange]);
 
   const columnSet = new Set(queries[0].columns);
   const filterDiscoverOptions = option => {
@@ -107,7 +107,7 @@ export function SortByStep({
     if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
       return false;
     }
-    if (option.value.kind === FieldValueKind.TAG) {
+    if (option.value.kind === FieldValueKind.FIELD) {
       // Only allow sorting by release tag
       return (
         columnSet.has(option.value.meta.name) && option.value.meta.name === 'release'
