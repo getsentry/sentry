@@ -95,7 +95,7 @@ jobs:
           path: .artifacts/visual-snapshots/jest
 
       - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@split_fe_and_be
+        uses: getsentry/action-html-to-image@main
         with:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
@@ -331,7 +331,7 @@ jobs:
           # This value has to match artifact-name in the visual-diff execution
           artifact-name: chartcuterie-snapshots
           save-only: true
-          snapshot-path: ${{ steps.setup.outputs.acceptance-dir }}
+          snapshot-path: .artifacts/visual-snapshots
 
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
