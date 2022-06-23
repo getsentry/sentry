@@ -1,4 +1,6 @@
-from typing import Any, Callable, Mapping, Tuple, Type, cast
+from __future__ import annotations
+
+from typing import Any, Callable, Iterable, Mapping, Tuple, Type, cast
 
 from django.db import models
 from django.db.models import signals
@@ -134,31 +136,50 @@ signals.class_prepared.connect(__model_class_prepared)
 
 
 class ServerModeDataError(Exception):
-    pass
+    @classmethod
+    def create_override(cls, message: str) -> Callable[..., Any]:
+        def override(*args: Any, **kwargs: Any) -> Any:
+            raise cls(message)
+
+        return override
 
 
-def available_on(mode: ServerComponentMode) -> Callable[[type], type]:
+def _disallow_access(model_class: Type[BaseModel], allow_read: bool) -> None:
+    """Modify a model class to raise an error if reading or writing is attempted."""
+
+    model_class.objects = (
+        model_class.objects.create_read_only_copy()
+        if allow_read
+        else model_class.objects.create_disabled_copy()
+    )
+
+    # On the model (not manager) class itself, monkey-patch any methods that are
+    # tagged with the `alters_data` meta-attribute.
+    for model_attr_name in dir(model_class):
+        model_attr = getattr(model_class, model_attr_name)
+        if callable(model_attr) and getattr(model_attr, "alters_data", False):
+            override = ServerModeDataError.create_override(
+                f"{model_class.__name__}.{model_attr_name} is unavailable in this server mode"
+            )
+            setattr(model_class, model_attr_name, override)
+
+
+def available_on(
+    mode: ServerComponentMode,
+    read_only: ServerComponentMode | Iterable[ServerComponentMode] = (),
+) -> Callable[[type], type]:
     """Decorate a model class that should be active only in one mode."""
-    from . import BaseQuerySet
+
+    read_only = [read_only] if isinstance(read_only, ServerComponentMode) else read_only
 
     def decorator(decorated_class: Type[BaseModel]) -> Type[BaseModel]:
-        def queryset_override(obj: Any) -> BaseQuerySet:
-            raise ServerModeDataError(
-                f"{decorated_class.__name__} is available only in the {mode.value} server mode"
-            )
-
         if not issubclass(decorated_class, BaseModel):
             raise ValueError("`@available_on` must decorate a Model class")
         assert isinstance(decorated_class.objects, BaseManager)
 
         if not mode.is_active():
-            manager_class = type(decorated_class.objects)
-            manager_class_with_override = type(
-                manager_class.__name__,
-                (manager_class,),
-                {"get_queryset": queryset_override},
-            )
-            decorated_class.objects = manager_class_with_override()
+            allow_read = any(m.is_active() for m in read_only)
+            _disallow_access(decorated_class, allow_read)
 
         return decorated_class
 
