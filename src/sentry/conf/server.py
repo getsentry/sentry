@@ -13,6 +13,7 @@ from datetime import timedelta
 from urllib.parse import urlparse
 
 import sentry
+from sentry.servermode import ServerComponentMode
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
 
@@ -2674,3 +2675,7 @@ MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
 SNOWFLAKE_VERSION_ID = 1
 SNOWFLAKE_REGION_ID = 0
+
+SERVER_COMPONENT_MODE = ServerComponentMode.resolve(
+    os.environ.get("SENTRY_SERVER_COMPONENT_MODE", ServerComponentMode.MONOLITH.name)
+)

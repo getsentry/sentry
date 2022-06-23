@@ -9,7 +9,7 @@ from rest_framework import serializers, status
 
 from bitfield.types import BitHandler
 from sentry import audit_log, roles
-from sentry.api.base import ONE_DAY
+from sentry.api.base import ONE_DAY, active_on
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.fields import AvatarField
@@ -35,6 +35,7 @@ from sentry.models import (
     ScheduledDeletion,
     UserEmail,
 )
+from sentry.servermode import ServerComponentMode
 from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -457,6 +458,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
+@active_on(ServerComponentMode.CUSTOMER)
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """
