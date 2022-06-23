@@ -54,9 +54,7 @@ def get_mri(external_name: Union[Enum, str]) -> str:
         )
 
 
-def get_public_name_from_mri(
-    internal_name: Union[TransactionMRI, SessionMRI, str]
-) -> Optional[str]:
+def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> str:
     """Returns the public name from a MRI if its a builtin metric, None otherwise"""
     if not len(MRI_TO_NAME):
         create_name_mapping_layers()
@@ -65,10 +63,13 @@ def get_public_name_from_mri(
         internal_name = internal_name.value
     assert isinstance(internal_name, str)
 
-    return MRI_TO_NAME.get(internal_name)
+    try:
+        return MRI_TO_NAME.get(internal_name)
+    except KeyError:
+        raise InvalidParams(f"Unable to find a mri reverse mapping for '{internal_name}'.")
 
 
-def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> Optional[str]:
+def get_operation_with_public_name(operation: Optional[str], metric_mri: str) -> str:
     if operation is None:
         return get_public_name_from_mri(metric_mri)
     return f"{operation}({get_public_name_from_mri(metric_mri)})"

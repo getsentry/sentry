@@ -26,7 +26,7 @@ from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
-from sentry.snuba.metrics.naming_layer.mri import parse_mri
+from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, parse_mri
 from sentry.snuba.metrics.query import Groupable, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
@@ -138,17 +138,18 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             org_id=projects[0].organization_id,
         ):
             mri = reverse_resolve(row["metric_id"])
-            public_name = get_public_name_from_mri(mri)
-            if public_name is not None:
+            try:
                 metrics_meta.append(
                     MetricMeta(
-                        name=public_name,
+                        name=get_public_name_from_mri(mri),
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                         unit=None,  # snuba does not know the unit
                     )
                 )
-            else:
+            except InvalidParams:
+                # An instance of `InvalidParams` exception is raised here when there is no reverse
+                # mapping from MRI to public name because of the naming change
                 logger.error("datasource.get_metrics.get_public_name_from_mri.error", exc_info=True)
                 continue
             metric_ids_in_entities[metric_type].add(row["metric_id"])
@@ -164,16 +165,14 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
 
     for derived_metric_mri in found_derived_metrics:
         derived_metric_obj = public_derived_metrics[derived_metric_mri]
-        public_name = get_public_name_from_mri(derived_metric_obj.metric_mri)
-        if public_name is not None:
-            metrics_meta.append(
-                MetricMeta(
-                    name=public_name,
-                    type=derived_metric_obj.result_type,
-                    operations=derived_metric_obj.generate_available_operations(),
-                    unit=derived_metric_obj.unit,
-                )
+        metrics_meta.append(
+            MetricMeta(
+                name=get_public_name_from_mri(derived_metric_obj.metric_mri),
+                type=derived_metric_obj.result_type,
+                operations=derived_metric_obj.generate_available_operations(),
+                unit=derived_metric_obj.unit,
             )
+        )
     return sorted(metrics_meta, key=itemgetter("name"))
 
 
@@ -195,9 +194,8 @@ def get_custom_measurements(
             end=end,
         ):
             mri = reverse_resolve(row["metric_id"])
-            public_name = get_public_name_from_mri(mri)
-            # Custom measurements will get None from this function
-            if public_name is None:
+            parsed_mri = parse_mri(mri)
+            if is_custom_measurement(parsed_mri):
                 parsed_mri = parse_mri(mri)
                 metrics_meta.append(
                     MetricMeta(
