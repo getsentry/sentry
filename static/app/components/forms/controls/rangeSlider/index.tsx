@@ -1,4 +1,5 @@
 import {forwardRef as reactFowardRef, useEffect, useState} from 'react';
+import {useId} from '@react-aria/utils';
 
 import Input from 'sentry/components/forms/controls/input';
 import {t} from 'sentry/locale';
@@ -90,12 +91,14 @@ function RangeSlider({
   showLabel = true,
   ...props
 }: SliderProps) {
+  const elementId = useId();
   const [sliderValue, setSliderValue] = useState(
     allowedValues ? allowedValues.indexOf(Number(value || 0)) : value
   );
 
   useEffect(() => {
     updateSliderValue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   function updateSliderValue() {
@@ -171,13 +174,14 @@ function RangeSlider({
   return (
     <div className={className} ref={forwardRef}>
       {!showCustomInput && showLabel && (
-        <SliderLabel htmlFor={name}>
+        <SliderLabel htmlFor={elementId}>
           {formatLabel?.(actualValue) ?? displayValue}
         </SliderLabel>
       )}
       <SliderAndInputWrapper showCustomInput={showCustomInput}>
         <Slider
           type="range"
+          id={elementId}
           name={name}
           min={min}
           max={max}
