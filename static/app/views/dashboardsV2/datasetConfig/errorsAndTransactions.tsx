@@ -11,6 +11,7 @@ import {
   MultiSeriesEventsStats,
   Organization,
   PageFilters,
+  SelectValue,
   TagCollection,
 } from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
@@ -24,6 +25,7 @@ import {
   isEquation,
   isEquationAlias,
   SPAN_OP_BREAKDOWN_FIELDS,
+  stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {
   DiscoverQueryRequestParams,
@@ -37,6 +39,7 @@ import {
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -48,6 +51,7 @@ import {
   getWidgetInterval,
 } from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
+import {CUSTOM_EQUATION_VALUE} from '../widgetBuilder/buildSteps/sortByStep';
 import {
   flattenMultiSeriesDataWithGrouping,
   transformSeries,
@@ -75,6 +79,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: EventsSearchBar,
   getTableFieldOptions: getEventsTableFieldOptions,
+  getTimeseriesSortOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,
@@ -135,6 +140,58 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
 };
+
+function getTimeseriesSortOptions(
+  organization: Organization,
+  widgetQuery: WidgetQuery,
+  tags?: TagCollection
+) {
+  const options: Record<string, SelectValue<FieldValue>> = {};
+  const columnSet = new Set(widgetQuery.columns);
+  options[`field:${CUSTOM_EQUATION_VALUE}`] = {
+    label: 'Custom Equation',
+    value: {
+      kind: FieldValueKind.EQUATION,
+      meta: {name: CUSTOM_EQUATION_VALUE},
+    },
+  };
+
+  let equations = 0;
+  [...widgetQuery.aggregates, ...widgetQuery.columns]
+    .filter(field => !!field)
+    .forEach(field => {
+      let alias;
+      const label = stripEquationPrefix(field);
+      // Equations are referenced via a standard alias following this pattern
+      if (isEquation(field)) {
+        alias = `equation[${equations}]`;
+        equations += 1;
+        options[`equation:${alias}`] = {
+          label,
+          value: {
+            kind: FieldValueKind.EQUATION,
+            meta: {
+              name: alias ?? field,
+            },
+          },
+        };
+      }
+    });
+
+  const fieldOptions = getEventsTableFieldOptions(organization, tags);
+  Object.entries(fieldOptions).forEach(([key, option]) => {
+    if ([FieldValueKind.FUNCTION, FieldValueKind.EQUATION].includes(option.value.kind)) {
+      options[key] = option;
+      return;
+    }
+    if (columnSet.has(option.value.meta.name)) {
+      options[key] = option;
+      return;
+    }
+  });
+
+  return options;
+}
 
 function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
   const measurements = getMeasurements();

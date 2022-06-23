@@ -108,6 +108,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     cursor?: string,
     referrer?: string
   ) => ReturnType<Client['requestPromise']>;
+  getTimeseriesSortOptions?: (
+    organization: Organization,
+    widgetQuery: WidgetQuery,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
   /**
    * Generate the request promises for fetching
    * world map data.

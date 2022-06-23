@@ -9,6 +9,7 @@ import {
   MetricsApiResponse,
   Organization,
   PageFilters,
+  SelectValue,
   SessionApiResponse,
   SessionField,
 } from 'sentry/types';
@@ -17,7 +18,7 @@ import {defined} from 'sentry/utils';
 import {TableData} from 'sentry/utils/discover/discoverQuery';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
+import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {DisplayType, Widget, WidgetQuery} from '../types';
 import {getWidgetInterval} from '../utils';
@@ -80,6 +81,7 @@ export const ReleasesConfig: DatasetConfig<
       cursor
     ),
   getSeriesRequest: getReleasesSeriesRequest,
+  getTimeseriesSortOptions,
   filterTableOptions: filterPrimaryReleaseTableOptions,
   filterTableAggregateParams: filterAggregateParams,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
@@ -98,6 +100,35 @@ export const ReleasesConfig: DatasetConfig<
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
+
+function getTimeseriesSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const columnSet = new Set(widgetQuery.columns);
+  const releaseFieldOptions = generateReleaseWidgetFieldOptions(
+    Object.values(SESSIONS_FIELDS),
+    SESSIONS_TAGS
+  );
+  const options: Record<string, SelectValue<FieldValue>> = {};
+  Object.entries(releaseFieldOptions).forEach(([key, option]) => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return;
+    }
+    if (option.value.kind === FieldValueKind.TAG) {
+      // Only allow sorting by release tag
+      if (option.value.meta.name === 'release' && columnSet.has(option.value.meta.name)) {
+        options[key] = option;
+      }
+      return;
+    }
+    if (
+      [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
+        option.value.kind
+      )
+    ) {
+      options[key] = option;
+    }
+  });
+  return options;
+}
 
 function getReleasesSeriesRequest(
   api: Client,

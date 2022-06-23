@@ -160,6 +160,7 @@ export function SortByStep({
             disabledReason={disabledReason}
             disabledSort={disabledSort}
             disabledSortDirection={disabledSortDirection}
+            widgetQuery={queries[0]}
             sortByOptions={
               dataSet === DataSet.ISSUES
                 ? generateIssueWidgetOrderOptions(

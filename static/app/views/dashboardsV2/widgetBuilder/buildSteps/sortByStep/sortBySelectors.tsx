@@ -16,23 +16,15 @@ import {
   isEquation,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import Measurements from 'sentry/utils/measurements/measurements';
 import useOrganization from 'sentry/utils/useOrganization';
-import {DisplayType, WidgetType} from 'sentry/views/dashboardsV2/types';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
+import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
-  getAmendedFieldOptions,
   SortDirection,
   sortDirections,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/eventsV2/table/arithmeticInput';
 import {QueryField} from 'sentry/views/eventsV2/table/queryField';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
-
-import {
-  generateReleaseWidgetFieldOptions,
-  SESSIONS_FIELDS,
-  SESSIONS_TAGS,
-} from '../../releaseWidget/fields';
 
 import {CUSTOM_EQUATION_VALUE} from '.';
 
@@ -48,6 +40,7 @@ interface Props {
   sortByOptions: SelectValue<string>[];
   tags: TagCollection;
   values: Values;
+  widgetQuery: WidgetQuery;
   widgetType: WidgetType;
   disabledReason?: string;
   disabledSort?: boolean;
@@ -63,11 +56,10 @@ export function SortBySelectors({
   disabledReason,
   disabledSort,
   disabledSortDirection,
-  hasGroupBy,
-  tags,
-  filterPrimaryOptions,
+  widgetQuery,
   displayType,
 }: Props) {
+  const datasetConfig = getDatasetConfig(widgetType);
   const organization = useOrganization();
   const [showCustomEquation, setShowCustomEquation] = useState(false);
   const [customEquation, setCustomEquation] = useState<Values>({
@@ -85,84 +77,8 @@ export function SortBySelectors({
     setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy, values.sortDirection]);
 
-  function generateEquationOptions(options: Props['sortByOptions']) {
-    return options.reduce((acc, option) => {
-      if (option.value.startsWith('equation')) {
-        acc[`equation:${option.value}`] = {
-          label: option.label,
-          value: {
-            kind: FieldValueKind.EQUATION,
-            meta: {
-              name: option.value,
-            },
-          },
-        };
-      }
-      return acc;
-    }, {});
-  }
-
   function getSortByField() {
-    if (
-      widgetType === WidgetType.DISCOVER &&
-      ![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)
-    ) {
-      return (
-        <Measurements>
-          {({measurements}) => (
-            <QueryField
-              fieldValue={
-                showCustomEquation
-                  ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                  : explodeField({field: values.sortBy})
-              }
-              fieldOptions={{
-                ...(hasGroupBy
-                  ? {
-                      [`field:${CUSTOM_EQUATION_VALUE}`]: {
-                        label: 'Custom Equation',
-                        value: {
-                          kind: FieldValueKind.EQUATION,
-                          meta: {name: CUSTOM_EQUATION_VALUE},
-                        },
-                      },
-                    }
-                  : {}),
-                ...generateEquationOptions(sortByOptions),
-                ...getAmendedFieldOptions({measurements, organization, tags}),
-              }}
-              onChange={value => {
-                if (value.alias && isEquationAlias(value.alias)) {
-                  onChange({
-                    sortBy: value.alias,
-                    sortDirection: values.sortDirection,
-                  });
-                  return;
-                }
-
-                const parsedValue = generateFieldAsString(value);
-                const isSortingByCustomEquation = isEquation(parsedValue);
-                setShowCustomEquation(isSortingByCustomEquation);
-                if (isSortingByCustomEquation) {
-                  onChange(customEquation);
-                  return;
-                }
-
-                onChange({
-                  sortBy: parsedValue,
-                  sortDirection: values.sortDirection,
-                });
-              }}
-              filterPrimaryOptions={filterPrimaryOptions}
-            />
-          )}
-        </Measurements>
-      );
-    }
-    if (
-      widgetType === WidgetType.RELEASE &&
-      ![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)
-    ) {
+    if (![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
       return (
         <Tooltip
           title={disabledReason}
@@ -170,19 +86,37 @@ export function SortBySelectors({
         >
           <QueryField
             disabled={disabledSort}
-            fieldValue={explodeField({field: values.sortBy})}
-            fieldOptions={generateReleaseWidgetFieldOptions(
-              Object.values(SESSIONS_FIELDS),
-              SESSIONS_TAGS
+            fieldValue={
+              showCustomEquation
+                ? explodeField({field: CUSTOM_EQUATION_VALUE})
+                : explodeField({field: values.sortBy})
+            }
+            fieldOptions={datasetConfig.getTimeseriesSortOptions!(
+              organization,
+              widgetQuery
             )}
             onChange={value => {
+              if (value.alias && isEquationAlias(value.alias)) {
+                onChange({
+                  sortBy: value.alias,
+                  sortDirection: values.sortDirection,
+                });
+                return;
+              }
+
               const parsedValue = generateFieldAsString(value);
+              const isSortingByCustomEquation = isEquation(parsedValue);
+              setShowCustomEquation(isSortingByCustomEquation);
+              if (isSortingByCustomEquation) {
+                onChange(customEquation);
+                return;
+              }
+
               onChange({
                 sortBy: parsedValue,
                 sortDirection: values.sortDirection,
               });
             }}
-            filterPrimaryOptions={filterPrimaryOptions}
           />
         </Tooltip>
       );
