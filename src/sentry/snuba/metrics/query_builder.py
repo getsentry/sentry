@@ -340,7 +340,7 @@ def translate_meta_results(
             try:
                 record["name"] = get_operation_with_public_name(operation, column_name)
                 if record["name"] not in query_metric_fields:
-                    continue
+                    raise InvalidParams(f"Field {record['name']} was not in the select clause")
             except InvalidParams:
                 # XXX(ahmed): We get into this branch when we are tying to generate inferred types
                 # for instances of `CompositeEntityDerivedMetric` as type needs to be inferred from

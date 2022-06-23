@@ -137,11 +137,10 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             projects=projects,
             org_id=projects[0].organization_id,
         ):
-            mri = reverse_resolve(row["metric_id"])
             try:
                 metrics_meta.append(
                     MetricMeta(
-                        name=get_public_name_from_mri(mri),
+                        name=get_public_name_from_mri(reverse_resolve(row["metric_id"])),
                         type=metric_type,
                         operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
                         unit=None,  # snuba does not know the unit
@@ -196,7 +195,6 @@ def get_custom_measurements(
             mri = reverse_resolve(row["metric_id"])
             parsed_mri = parse_mri(mri)
             if is_custom_measurement(parsed_mri):
-                parsed_mri = parse_mri(mri)
                 metrics_meta.append(
                     MetricMeta(
                         name=parsed_mri.name,

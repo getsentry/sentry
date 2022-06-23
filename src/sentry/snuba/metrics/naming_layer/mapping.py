@@ -64,7 +64,7 @@ def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, st
     assert isinstance(internal_name, str)
 
     try:
-        return MRI_TO_NAME.get(internal_name)
+        return MRI_TO_NAME[internal_name]
     except KeyError:
         raise InvalidParams(f"Unable to find a mri reverse mapping for '{internal_name}'.")
 
