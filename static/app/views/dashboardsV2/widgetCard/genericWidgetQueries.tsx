@@ -108,6 +108,7 @@ function GenericWidgetQueries({
         // Cast so we can add the title.
         const transformedData = config.transformTable(
           // TODO: Types across configs are &'d here. Should be |'d or set to a specific type
+          // @ts-ignore
           data,
           widget.queries[0],
           organization,
@@ -162,6 +163,7 @@ function GenericWidgetQueries({
             : getIsMetricsDataFromSeriesResponse(rawResults);
         dashboardMEPContext?.setIsMetricsData(isMetricsData);
         const transformedResult = config.transformSeries!(
+          // @ts-ignore
           rawResults,
           widget.queries[requestIndex],
           organization
