@@ -63,13 +63,15 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     ];
   }
 
-  onRequestSuccess({resp}) {
-    const issueRuleCount = resp.getResponseHeader('X-Sentry-Issue-Rule-Hits');
-    const alertRuleCount = resp.getResponseHeader('X-Sentry-Alert-Rule-Hits');
-    this.setState({
-      issueRuleCount: parseInt(issueRuleCount, 10),
-      alertRuleCount: parseInt(alertRuleCount, 10),
-    });
+  onRequestSuccess({stateKey, resp}) {
+    if (stateKey === 'ruleList') {
+      const issueRuleCount = resp.getResponseHeader('X-Sentry-Issue-Rule-Hits');
+      const alertRuleCount = resp.getResponseHeader('X-Sentry-Alert-Rule-Hits');
+      this.setState({
+        issueRuleCount: parseInt(issueRuleCount, 10),
+        alertRuleCount: parseInt(alertRuleCount, 10),
+      });
+    }
   }
 
   get projectsFromIncidents() {
