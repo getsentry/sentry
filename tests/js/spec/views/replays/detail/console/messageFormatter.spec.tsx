@@ -62,12 +62,12 @@ const breadcrumbs: BreadcrumbTypeDefault[] = [
     type: BreadcrumbType.DEBUG,
     category: 'console',
     data: {
-      arguments: [['test', 'test']],
+      arguments: ['test', ['foo', 'bar']],
       logger: 'console',
     },
     level: BreadcrumbLevelType.LOG,
-    message: 'test,test',
-    timestamp: '2022-06-23T13:33:15.768Z',
+    message: 'test foo,bar',
+    timestamp: '2022-06-23T17:09:31.158Z',
   },
 ];
 
@@ -99,6 +99,6 @@ describe('MessageFormatter', () => {
   it('Should print arrays correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
 
-    expect(screen.getByRole('text')).toHaveTextContent('["test","test"]');
+    expect(screen.getByRole('text')).toHaveTextContent('test ["foo","bar"]');
   });
 });
