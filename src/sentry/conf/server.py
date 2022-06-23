@@ -643,6 +643,7 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("relay_config", routing_key="relay_config"),
+    Queue("relay_config_check", routing_key="relay_config_check"),
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),

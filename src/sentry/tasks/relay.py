@@ -269,7 +269,7 @@ def schedule_invalidate_project_config(
 
 @instrumented_task(
     name="sentry.tasks.relay.check_build_project_config",
-    queue="relay_config",
+    queue="relay_config_check",
 )
 def check_build_project_config(public_key=None, **kwargs):
     """Temporary task to verify a build task produces a cache entry
@@ -299,7 +299,8 @@ def check_build_project_config(public_key=None, **kwargs):
         with sentry_sdk.configure_scope() as scope:
             scope.set_extra("Project.id", project_id)
             scope.set_extra("Organization.id", org_id)
-        sentry_sdk.capture_message("PublicKey not found in cache", level="warning")
+
+            sentry_sdk.capture_message("PublicKey not found in cache", level="warning")
 
     else:
         metrics.incr("relay.projectconfig_cache.check_task.found")
