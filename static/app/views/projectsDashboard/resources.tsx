@@ -23,19 +23,19 @@ function Resources({organization}: Props) {
       eventName: 'Projects Dashboard: Resources Shown',
       organization_id: organization.id,
     });
-  }, []);
+  });
 
   return (
     <ResourcesWrapper data-test-id="resources">
       <PageHeading withMargins>{t('Resources')}</PageHeading>
       <ResourceCards>
         <ResourceCard
-          link="https://blog.sentry.io/2018/03/06/the-sentry-workflow"
+          link="https://docs.sentry.io/product/releases/"
           imgUrl={releasesImg}
           title={t('The Sentry Workflow')}
         />
         <ResourceCard
-          link="https://sentry.io/vs/logging/"
+          link="https://docs.sentry.io/product/issues/"
           imgUrl={breadcrumbsImg}
           title={t('Sentry vs Logging')}
         />
