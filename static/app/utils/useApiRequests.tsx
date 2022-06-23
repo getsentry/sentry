@@ -403,7 +403,7 @@ type MetricsState = {
 type MetricUpdate = Partial<Pick<MetricsState, 'finished' | 'error'>>;
 
 /**
- * Helper hook that marks a measurement when the compoent mounts.
+ * Helper hook that marks a measurement when the component mounts.
  *
  * Use the `triggerMeasurement` function to trigger a measurement when the
  * useApiRequests hook has finished loading all requests. Will only trigger once
