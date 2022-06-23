@@ -405,7 +405,7 @@ type MetricUpdate = Partial<Pick<MetricsState, 'finished' | 'error'>>;
 /**
  * Helper hook that marks a measurement when the compoent mounts.
  *
- * Use the `triggerMeasurement` function to triggere a measurement when the
+ * Use the `triggerMeasurement` function to trigger a measurement when the
  * useApiRequests hook has finished loading all requests. Will only trigger once
  */
 function useMeasureApiRequests() {
