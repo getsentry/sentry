@@ -1,14 +1,16 @@
-from typing import Any, Callable, Mapping, Tuple, cast
+from typing import Any, Callable, Mapping, Tuple, Type, cast
 
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
 
+from sentry.servermode import ServerComponentMode
+
 from .fields.bounded import BoundedBigAutoField
 from .manager import BaseManager, M
 from .query import update
 
-__all__ = ("BaseModel", "Model", "DefaultFieldsModel", "sane_repr")
+__all__ = ("BaseModel", "Model", "DefaultFieldsModel", "sane_repr", "available_on")
 
 
 def sane_repr(*attrs: str) -> Callable[[models.Model], str]:
@@ -129,3 +131,35 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
 signals.pre_save.connect(__model_pre_save)
 signals.post_save.connect(__model_post_save)
 signals.class_prepared.connect(__model_class_prepared)
+
+
+class ServerModeDataError(Exception):
+    pass
+
+
+def available_on(mode: ServerComponentMode) -> Callable[[type], type]:
+    """Decorate a model class that should be active only in one mode."""
+    from . import BaseQuerySet
+
+    def decorator(decorated_class: Type[BaseModel]) -> Type[BaseModel]:
+        def queryset_override(obj: Any) -> BaseQuerySet:
+            raise ServerModeDataError(
+                f"{decorated_class.__name__} is available only in the {mode.value} server mode"
+            )
+
+        if not issubclass(decorated_class, BaseModel):
+            raise ValueError("`@available_on` must decorate a Model class")
+        assert isinstance(decorated_class.objects, BaseManager)
+
+        if not mode.is_active():
+            manager_class = type(decorated_class.objects)
+            manager_class_with_override = type(
+                manager_class.__name__,
+                (manager_class,),
+                {"get_queryset": queryset_override},
+            )
+            decorated_class.objects = manager_class_with_override()
+
+        return decorated_class
+
+    return decorator
