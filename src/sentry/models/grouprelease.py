@@ -3,8 +3,8 @@ from datetime import timedelta
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
-from sentry import buffer
 from sentry.db.models import BoundedBigIntegerField, BoundedPositiveIntegerField, Model, sane_repr
+from sentry.tasks.process_buffer import buffer_incr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
 
@@ -68,7 +68,7 @@ class GroupRelease(Model):
             created = False
 
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
-            buffer.incr(
+            buffer_incr(
                 model=cls,
                 columns={},
                 filters={"id": instance.id},
