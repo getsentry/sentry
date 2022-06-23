@@ -15,10 +15,11 @@ import {TagValueLoader} from '../issueList/types';
 type Props = {
   onSearch: (q: string) => void;
   query: string;
+  relativeDateOptions: React.ComponentProps<typeof DatePageFilter>['relativeOptions'];
   tagValueLoader: TagValueLoader;
 };
 
-function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
+function ProjectFilters({query, relativeDateOptions, tagValueLoader, onSearch}: Props) {
   const getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
     const values = await tagValueLoader(tag.key, currentQuery);
     return values.map(({value}) => value);
@@ -28,7 +29,7 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
     <FiltersWrapper>
       <PageFilterBar>
         <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter relativeOptions={relativeDateOptions} alignDropdown="left" />
       </PageFilterBar>
       <GuideAnchor target="releases_search" position="bottom">
         <SmartSearchBar
