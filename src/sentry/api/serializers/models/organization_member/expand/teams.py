@@ -12,10 +12,9 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
         self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationMember, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
-
         teams, teams_with_role = get_teams_by_organization_member_id(item_list)
-        for item in item_list:
 
+        for item in item_list:
             try:
                 attrs[item]["teams"] = teams.get(item.id, [])  # Deprecated
                 attrs[item]["teamRoles"] = teams_with_role.get(item.id, [])
