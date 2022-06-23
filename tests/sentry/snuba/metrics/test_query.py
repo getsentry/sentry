@@ -205,6 +205,59 @@ def test_validate_order_by_field_in_select():
     MetricsQuery(**metrics_query_dict)
 
 
+def test_validate_many_order_by_fields_in_select_fails():
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.HEALTHY.value)
+    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([MetricsQueryBuilder.AVG_DURATION_METRIC, metric_field_1])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
+    # that is not present in the select
+    with pytest.raises(InvalidParams, match="'orderBy' must be one of the provided 'fields'"):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_many_order_by_fields_are_in_select():
+    # Validate no exception is raised when all orderBy fields are presented the select
+    metric_field_1 = MetricField(op=None, metric_name=SessionMetricKey.HEALTHY.value)
+    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
+
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+    MetricsQuery(**metrics_query_dict)
+
+    # orderby should be subset of select
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+    MetricsQuery(**metrics_query_dict)
+
+
 def test_validate_where():
     query = "session.status:crashed"
     where = parse_query(query, [])

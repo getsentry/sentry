@@ -130,7 +130,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
             self._validate_field(orderby.field)
 
         orderby_fields = {f.field for f in self.orderby}
-        if set(self.select).issubset(orderby_fields):
+        if set(self.select).issuperset(orderby_fields):
             return
 
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
