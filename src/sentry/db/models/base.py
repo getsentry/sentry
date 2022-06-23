@@ -146,6 +146,37 @@ class ModelAvailableOn(ModeLimited):
             [read_only] if isinstance(read_only, ServerComponentMode) else read_only
         )
 
+    class DataAvailabilityError(Exception):
+        pass
+
+    @staticmethod
+    def _recover_model_name(obj: Any) -> str | None:
+        # obj may be a model, manager, or queryset
+        if isinstance(obj, Model):
+            return type(obj).__name__
+        model_attr = getattr(obj, "model", None)
+        if model_attr and isinstance(model_attr, type) and issubclass(model_attr, Model):
+            return model_attr.__name__
+        return None
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: ServerComponentMode,
+        available_modes: Iterable[ServerComponentMode],
+    ) -> Callable[..., Any]:
+        def handle(obj: Any, *args: Any, **kwargs: Any) -> None:
+            model_name = self._recover_model_name(obj)
+            method_name = (model_name + "." if model_name else "") + original_method.__name__
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Called `{method_name}` on server in {current_mode} mode. "
+                f"{model_name or 'The model'} is available only in: {mode_str}"
+            )
+            raise self.DataAvailabilityError(message)
+
+        return handle
+
     def __call__(self, model_class: Any) -> type:
         if not (isinstance(model_class, type) and issubclass(model_class, BaseModel)):
             raise TypeError("`@available_on` must decorate a Model class")

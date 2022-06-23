@@ -40,23 +40,8 @@ class ServerComponentMode(Enum):
         return cls.resolve(settings.SERVER_COMPONENT_MODE)
 
 
-class ServerComponentAvailabilityError(Exception):
-    """Indicate that a resource was accessed that is unavailable in this mode."""
-
-    def __init__(
-        self,
-        method_name: str,
-        current_mode: ServerComponentMode,
-        available_modes: Iterable[ServerComponentMode],
-    ) -> None:
-        mode_str = ", ".join(sorted(str(m) for m in available_modes))
-        message = f"Invoked `{method_name}` in {current_mode} while available only in {mode_str}"
-        super().__init__(message)
-
-
 class ModeLimited(abc.ABC):
-    """Decorator for classes or methods that are available only in certain
-    modes."""
+    """Decorator for classes or methods that are limited to certain modes."""
 
     def __init__(self, *modes: ServerComponentMode) -> None:
         self.modes = frozenset(modes)
@@ -66,10 +51,24 @@ class ModeLimited(abc.ABC):
         """Modify the decorated object with appropriate overrides."""
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: ServerComponentMode,
+        available_modes: Iterable[ServerComponentMode],
+    ) -> Callable[..., Any]:
+        """Handle an attempt to access an unavailable element.
+
+        Return a callback that accepts the same varargs as the original call to
+        the method. (We jump through this extra hoop so that the handler can
+        access both that and the arguments to this method.)
+        """
+        raise NotImplementedError
+
     def create_override(
         self,
         original_method: Callable[..., Any],
-        fail_callback: Callable[[], Any] | None = None,
         extra_modes: Iterable[ServerComponentMode] = (),
     ) -> Callable[..., Any]:
         """Create a method that conditionally overrides another method.
@@ -98,12 +97,11 @@ class ModeLimited(abc.ABC):
 
             if is_available:
                 return original_method(*args, **kwargs)
-            elif fail_callback:
-                return fail_callback()
             else:
-                raise ServerComponentAvailabilityError(
-                    original_method.__name__, current_mode, available_modes
+                handler = self.handle_when_unavailable(
+                    original_method, current_mode, available_modes
                 )
+                return handler(*args, **kwargs)
 
         override.__name__ = original_method.__name__
         override.__doc__ = original_method.__doc__

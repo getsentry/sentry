@@ -3,7 +3,7 @@ from pytest import raises
 
 from sentry.db.models import ModelAvailableOn
 from sentry.db.models.base import Model
-from sentry.servermode import ServerComponentAvailabilityError, ServerComponentMode
+from sentry.servermode import ServerComponentMode
 from sentry.testutils import TestCase
 
 
@@ -53,13 +53,13 @@ class AvailableOnTest(TestCase):
 
     @override_settings(SERVER_COMPONENT_MODE=ServerComponentMode.CUSTOMER)
     def test_unavailable_on_other_mode(self):
-        with raises(ServerComponentAvailabilityError):
+        with raises(ModelAvailableOn.DataAvailabilityError):
             list(self.ControlModel.objects.all())
-        with raises(ServerComponentAvailabilityError):
+        with raises(ModelAvailableOn.DataAvailabilityError):
             self.ControlModel.objects.get(id=1)
-        with raises(ServerComponentAvailabilityError):
+        with raises(ModelAvailableOn.DataAvailabilityError):
             self.ControlModel.objects.create()
-        with raises(ServerComponentAvailabilityError):
+        with raises(ModelAvailableOn.DataAvailabilityError):
             self.ControlModel.objects.filter(id=1).delete()
 
     @override_settings(SERVER_COMPONENT_MODE=ServerComponentMode.CUSTOMER)
@@ -68,7 +68,7 @@ class AvailableOnTest(TestCase):
         with raises(self.ReadOnlyModel.DoesNotExist):
             self.ReadOnlyModel.objects.get(id=1)
 
-        with raises(ServerComponentAvailabilityError):
+        with raises(ModelAvailableOn.DataAvailabilityError):
             self.ReadOnlyModel.objects.create()
-        with raises(ServerComponentAvailabilityError):
+        with raises(ModelAvailableOn.DataAvailabilityError):
             self.ReadOnlyModel.objects.filter(id=1).delete()

@@ -4,7 +4,7 @@ import functools
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, Optional, Type
+from typing import Any, Callable, Iterable, Mapping, Optional, Type
 
 import sentry_sdk
 from django.conf import settings
@@ -24,7 +24,7 @@ from sentry.apidocs.hooks import HTTP_METHODS_SET
 from sentry.auth import access
 from sentry.models import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.servermode import ModeLimited
+from sentry.servermode import ModeLimited, ServerComponentMode
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
@@ -473,18 +473,35 @@ class ReleaseAnalyticsMixin:
 
 
 class ApiAvailableOn(ModeLimited):
-    @staticmethod
-    def respond_when_unavailable():
-        return HttpResponse(status=status.HTTP_404_NOT_FOUND)
-
     def modify_endpoint_class(self, decorated_class: Type[Endpoint]) -> type:
-        dispatch_override = self.create_override(
-            decorated_class.dispatch, self.respond_when_unavailable
-        )
+        dispatch_override = self.create_override(decorated_class.dispatch)
         return type(decorated_class.__name__, (decorated_class,), {"dispatch": dispatch_override})
 
     def modify_endpoint_method(self, decorated_method: Callable[..., Any]) -> Callable[..., Any]:
-        return self.create_override(decorated_method, self.respond_when_unavailable)
+        return self.create_override(decorated_method)
+
+    class ApiAvailabilityError(Exception):
+        pass
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: ServerComponentMode,
+        available_modes: Iterable[ServerComponentMode],
+    ) -> Callable[..., Any]:
+        def handle(obj: Any, request: Request, *args: Any, **kwargs: Any) -> HttpResponse:
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Received {request.method} request at {request.path!r} to server in "
+                f"{current_mode} mode. This endpoint is available only in: {mode_str}"
+            )
+            if settings.FAIL_ON_UNAVAILABLE_API_CALL:
+                raise self.ApiAvailabilityError(message)
+            else:
+                logger.warning(message)
+                return HttpResponse(status=status.HTTP_404_NOT_FOUND)
+
+        return handle
 
     def __call__(self, decorated_obj: Any) -> Any:
         if isinstance(decorated_obj, type):
