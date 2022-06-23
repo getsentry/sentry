@@ -107,7 +107,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
     :returns: A dict mapping all affected public keys to their config.  The dict could
        contain `None` as value which indicates the config should not exist.
     """
-    from sentry.models import Project, ProjectKey
+    from sentry.models import Project, ProjectKey, ProjectKeyStatus
 
     validate_args(organization_id, project_id, public_key)
     configs = {}
@@ -119,7 +119,10 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         # some point this should be handled better.
         projects = list(Project.objects.filter(organization_id=organization_id))
         for key in ProjectKey.objects.filter(project__in=projects):
-            configs[key.public_key] = None
+            if key.status == ProjectKeyStatus.ACTIVE:
+                configs[key.public_key] = None
+            else:
+                configs[key.public_key] = {"disabled": True}
     elif project_id:
         for key in ProjectKey.objects.filter(project_id=project_id):
             configs[key.public_key] = compute_projectkey_config(key)
@@ -127,18 +130,15 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         try:
             key = ProjectKey.objects.get(public_key=public_key)
         except ProjectKey.DoesNotExist:
-            # There are two main reasons this might happen:
+            # The invalidation task was triggered for a deletion and the
+            # ProjectKey should be deleted from the cache.
             #
-            # - The invalidation task was triggered for a deletion and the ProjectKey should
-            #   be deleted from the cache.
-            # - Django fired the `after_save` event before a transaction creating the
-            #   ProjectKey was committed.
-            #
-            # Thus we want to make sure we delete the project, but we do not care about
-            # disabling it here, because doing so would cause it to be wrongly disabled for
-            # an hour in the second case (which will be fixed at some point).  If the v3
-            # task finds a non-existing ProjectKey it can disable this project.
-            configs[public_key] = None
+            # This used to delete the cache entry instead of disabling it. The
+            # reason for that was to work around a bug in our model signal
+            # handlers that sent off the invalidation tasks before the DB
+            # transaction was committed, causing us to write stale caches. That
+            # bug was fixed in https://github.com/getsentry/sentry/pull/35671
+            configs[public_key] = {"disabled": True}
         else:
             configs[public_key] = compute_projectkey_config(key)
 
