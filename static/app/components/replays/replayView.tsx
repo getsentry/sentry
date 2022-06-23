@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import {Panel, PanelBody, PanelHeader as _PanelHeader} from 'sentry/components/panels';
+import {Panel, PanelBody, PanelHeader as BasePanelHeader} from 'sentry/components/panels';
 import HorizontalMouseTracking from 'sentry/components/replays/player/horizontalMouseTracking';
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import ReplayController from 'sentry/components/replays/replayController';
@@ -81,9 +81,10 @@ const PanelNoMargin = styled(Panel)<{isFullscreen: boolean}>`
       : ''}
 `;
 
-const PanelHeader = styled(_PanelHeader)<{noBorder?: boolean}>`
+const PanelHeader = styled(BasePanelHeader)<{noBorder?: boolean}>`
   display: block;
   padding: 0;
+  font-weight: normal;
   ${p => (p.noBorder ? 'border-bottom: none;' : '')}
 `;
 
