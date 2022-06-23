@@ -13,8 +13,8 @@ jobs:
       - name: Dispatch getsentry tests
         uses: actions/github-script@v6
         with:
-          # This Personal Access Token is from getsentry-bot,
-          # which can write to getsentry and is SAML SSO ready.
+          # This Personal Access Token belongs to getsentry-bot,
+          # who can write to getsentry and is SAML+SSO ready.
           github-token: ${{ secrets.BUMP_SENTRY_TOKEN }}
           script: |
             await github.rest.actions.createWorkflowDispatch({
