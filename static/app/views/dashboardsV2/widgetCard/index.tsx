@@ -29,6 +29,7 @@ import withPageFilters from 'sentry/utils/withPageFilters';
 
 import {DRAG_HANDLE_CLASS} from '../dashboard';
 import {DisplayType, Widget, WidgetType} from '../types';
+import {isCustomMeasurementWidget} from '../utils';
 import {DEFAULT_RESULTS_LIMIT} from '../widgetBuilder/utils';
 
 import {DashboardsMEPConsumer, DashboardsMEPProvider} from './dashboardsMEPContext';
@@ -293,20 +294,40 @@ class WidgetCard extends Component<Props, State> {
           </WidgetCardPanel>
           <Feature organization={organization} features={['dashboards-mep']}>
             <DashboardsMEPConsumer>
-              {({isMetricsData}) =>
-                showStoredAlert &&
-                widget.widgetType === WidgetType.DISCOVER &&
-                isMetricsData === false && (
-                  <StoredDataAlert showIcon>
-                    {tct(
-                      "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
-                      {
-                        storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
-                      }
-                    )}
-                  </StoredDataAlert>
-                )
-              }
+              {({isMetricsData}) => {
+                if (
+                  isMetricsData === false &&
+                  widget.widgetType === WidgetType.DISCOVER
+                ) {
+                  if (isCustomMeasurementWidget(widget)) {
+                    return (
+                      <StoredDataAlert showIcon>
+                        {tct(
+                          'You have settings in your widget that are incompatible with [customMeasurements: custom measurements]. Update your settings or remove any custom measurements from your widget.',
+                          {
+                            customMeasurements: (
+                              <ExternalLink href="https://docs.sentry.io/" />
+                            ), // TODO(dashboards): Update the docs URL
+                          }
+                        )}
+                      </StoredDataAlert>
+                    );
+                  }
+                  return (
+                    showStoredAlert && (
+                      <StoredDataAlert showIcon>
+                        {tct(
+                          "Your selection is only applicable to [storedData: stored event data]. We've automatically adjusted your results.",
+                          {
+                            storedData: <ExternalLink href="https://docs.sentry.io/" />, // TODO(dashboards): Update the docs URL
+                          }
+                        )}
+                      </StoredDataAlert>
+                    )
+                  );
+                }
+                return null;
+              }}
             </DashboardsMEPConsumer>
           </Feature>
           <Feature organization={organization} features={['dashboards-releases']}>
