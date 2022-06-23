@@ -74,10 +74,9 @@ describe('OrganizationTeams', function () {
 
       const mockTeams = [team];
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
-      const wrapper = createWrapper({
-        access: new Set([]),
-      });
-      act(() => void wrapper.find('button[aria-label="Join Team"]').simulate('click'));
+
+      createWrapper({access: new Set([])});
+      act(() => void userEvent.click(screen.getByLabelText('Join Team')));
       await act(() => tick());
 
       expect(getOrgMock).toHaveBeenCalledTimes(1);
