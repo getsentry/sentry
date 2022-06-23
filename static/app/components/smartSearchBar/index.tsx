@@ -72,6 +72,8 @@ const ACTION_OVERFLOW_STEPS = 75;
 
 const makeQueryState = (query: string) => ({
   query,
+  // Anytime the query changes and it is not "" the dropdown should show
+  showDropdown: !!query,
   parsedQuery: parseSearch(query),
 });
 
@@ -273,11 +275,16 @@ type State = {
    */
   query: string;
   searchGroups: SearchGroup[];
+
   /**
    * The current search term (or 'key') that that we will be showing
    * autocompletion for.
    */
   searchTerm: string;
+  /**
+   * Boolean indicating if dropdown should be shown
+   */
+  showDropdown: boolean;
   tags: Record<string, string>;
   /**
    * Indicates that we have a query that we've already determined not to have
@@ -306,6 +313,7 @@ class SmartSearchBar extends Component<Props, State> {
 
   state: State = {
     query: this.initialQuery,
+    showDropdown: false,
     parsedQuery: parseSearch(this.initialQuery),
     searchTerm: '',
     searchGroups: [],
@@ -398,6 +406,12 @@ class SmartSearchBar extends Component<Props, State> {
     if (!this.searchInput.current) {
       return;
     }
+
+    if (this.state.showDropdown) {
+      this.setState({...this.state, showDropdown: false});
+      return;
+    }
+
     this.searchInput.current.blur();
   }
 
@@ -567,14 +581,14 @@ class SmartSearchBar extends Component<Props, State> {
       callIfFunction(this.props.onSearch, this.state.query)
     );
 
-  onQueryFocus = () => this.setState({inputHasFocus: true});
+  onQueryFocus = () => this.setState({inputHasFocus: true, showDropdown: true});
 
   onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     // wait before closing dropdown in case blur was a result of clicking a
     // menu option
     const blurHandler = () => {
       this.blurTimeout = undefined;
-      this.setState({inputHasFocus: false});
+      this.setState({inputHasFocus: false, showDropdown: false});
       callIfFunction(this.props.onBlur, e.target.value);
     };
 
@@ -776,6 +790,7 @@ class SmartSearchBar extends Component<Props, State> {
 
     this.setState({
       activeSearchItem: -1,
+      showDropdown: false,
       searchGroups: [...this.state.searchGroups],
     });
   };
@@ -1450,6 +1465,10 @@ class SmartSearchBar extends Component<Props, State> {
     this.onAutoCompleteFromAst(replaceText, item);
   };
 
+  get showSearchDropdown(): boolean {
+    return this.state.loading || this.state.searchGroups.length > 0;
+  }
+
   render() {
     const {
       api,
@@ -1579,7 +1598,7 @@ class SmartSearchBar extends Component<Props, State> {
           )}
         </ActionsBar>
 
-        {(loading || searchGroups.length > 0) && (
+        {this.state.showDropdown && (
           <SearchDropdown
             css={{display: inputHasFocus ? 'block' : 'none'}}
             className={dropdownClassName}
