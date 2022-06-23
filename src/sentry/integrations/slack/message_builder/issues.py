@@ -1,19 +1,23 @@
 from __future__ import annotations
 
 from typing import Any, Callable, Mapping, Sequence
+from urllib.parse import quote
 
 from django.core.cache import cache
+from sentry_relay import parse_release
 
 from sentry import tagstore
 from sentry.eventstore.models import Event
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.utils.escape import escape_slack_text
 from sentry.models import (
     ActorTuple,
     Group,
     GroupStatus,
     Identity,
     Project,
+    Release,
     ReleaseProject,
     Rule,
     Team,
@@ -363,6 +367,89 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
             title_link=get_title_link(
                 self.group, self.event, self.link_to_event, self.issue_details, self.notification
             ),
+            ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
+        )
+
+
+class SlackReleaseIssuesMessageBuilder(SlackMessageBuilder):
+    """Same as SlackIssuesMessageBuilder but for new issues in a release"""
+
+    def __init__(
+        self,
+        group: Group,
+        event: Event | None = None,
+        tags: set[str] | None = None,
+        identity: Identity | None = None,
+        actions: Sequence[MessageAction] | None = None,
+        rules: list[Rule] | None = None,
+        link_to_event: bool = False,
+        issue_details: bool = False,
+        notification: ProjectNotification | None = None,
+        recipient: Team | User | None = None,
+        last_release: Release | None = None,
+    ) -> None:
+        super().__init__()
+        self.group = group
+        self.event = event
+        self.tags = tags
+        self.identity = identity
+        self.actions = actions
+        self.rules = rules
+        self.link_to_event = link_to_event
+        self.issue_details = issue_details
+        self.notification = notification
+        self.recipient = recipient
+        self.last_release = last_release
+
+    def build(self) -> SlackBody:
+        text = build_attachment_text(self.group, self.event) or ""
+        project = Project.objects.get_from_cache(id=self.group.project_id)
+
+        # If an event is unspecified, use the tags of the latest event (if one exists).
+        event_for_tags = self.event or self.group.get_latest_event()
+        color = get_color(event_for_tags, self.notification)
+        fields = build_tag_fields(event_for_tags, self.tags)
+        footer = (
+            self.notification.build_notification_footer(self.recipient)
+            if self.notification and self.recipient
+            else build_footer(self.group, project, self.rules)
+        )
+        obj = self.event if self.event is not None else self.group
+        if not self.issue_details or (self.recipient and isinstance(self.recipient, Team)):
+            payload_actions, text, color = build_actions(
+                self.group, project, text, color, self.actions, self.identity
+            )
+        else:
+            payload_actions = []
+
+        issue_title = build_attachment_title(obj)
+        title_url = get_title_link(
+            self.group, self.event, self.link_to_event, self.issue_details, self.notification
+        )
+        release = (
+            parse_release(self.last_release.version)["description"]
+            if self.last_release
+            else "unknown"
+        )
+        release_url = (
+            absolute_uri(
+                f"/organizations/{self.group.organization.slug}/releases/{quote(self.last_release.version)}/?project={self.group.project_id}"
+            )
+            if self.last_release
+            else absolute_uri(
+                f"/organizations/{self.group.organization.slug}/releases/?project={self.group.project_id}"
+            )
+        )
+
+        return self._build(
+            actions=payload_actions,
+            callback_id=json.dumps({"issue": self.group.id}),
+            color=color,
+            fallback=f"[{project.slug}] {obj.title}",
+            fields=fields,
+            footer=footer,
+            text=f"<{title_url}|*{escape_slack_text(issue_title)}*> \n{text}",
+            title=f"Release <{release_url}|{release}> has a new issue",
             ts=get_timestamp(self.group, self.event) if not self.issue_details else None,
         )
 
