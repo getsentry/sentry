@@ -216,11 +216,11 @@ def test_invalidation_project_deleted(default_project, emulate_transactions, red
     # Delete the project normally, this will delete it from the cache
     with emulate_transactions(assert_num_callbacks=5):
         default_project.delete()
-    assert redis_cache.get(project_key) is None
+    assert redis_cache.get(project_key)["disabled"]
 
     # Duplicate invoke the invalidation task, this needs to be fine with the missing project.
     invalidate_project_config(project_id=project_id, trigger="testing-double-delete")
-    assert redis_cache.get(project_key) is None
+    assert redis_cache.get(project_key)["disabled"]
 
 
 @pytest.mark.django_db
@@ -238,7 +238,7 @@ def test_projectkeys(default_project, emulate_transactions, redis_cache):
         pk.save()
 
     for key in deleted_pks:
-        assert redis_cache.get(key.public_key) is None
+        assert redis_cache.get(key.public_key)["disabled"]
 
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
@@ -252,7 +252,7 @@ def test_projectkeys(default_project, emulate_transactions, redis_cache):
     with emulate_transactions():
         pk.delete()
 
-    assert redis_cache.get(pk.public_key) is None
+    assert redis_cache.get(pk.public_key)["disabled"]
 
     for key in ProjectKey.objects.filter(project_id=default_project.id):
         assert not redis_cache.get(key.public_key)
