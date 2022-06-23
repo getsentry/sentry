@@ -84,6 +84,13 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization?: Organization
   ) => ReturnType<typeof getFieldRenderer> | null;
   /**
+   * Field options to display in the Group by selector.
+   */
+  getGroupByFieldOptions?: (
+    organization: Organization,
+    tags?: TagCollection
+  ) => Record<string, SelectValue<FieldValue>>;
+  /**
    * Generate the request promises for fetching
    * series data.
    */

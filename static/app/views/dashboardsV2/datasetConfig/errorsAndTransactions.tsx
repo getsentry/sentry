@@ -80,6 +80,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   SearchBar: EventsSearchBar,
   getTableFieldOptions: getEventsTableFieldOptions,
   getTimeseriesSortOptions,
+  getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
     DisplayType.AREA,
