@@ -599,6 +599,7 @@ CELERY_QUEUES = [
     Queue("assemble", routing_key="assemble"),
     Queue("auth", routing_key="auth"),
     Queue("buffers.process_pending", routing_key="buffers.process_pending"),
+    Queue("buffers.incr", routing_key="buffers.incr"),
     Queue("cleanup", routing_key="cleanup"),
     Queue("code_owners", routing_key="code_owners"),
     Queue("commits", routing_key="commits"),
@@ -2361,6 +2362,8 @@ KAFKA_INGEST_TRANSACTIONS = "ingest-transactions"
 KAFKA_INGEST_METRICS = "ingest-metrics"
 KAFKA_SNUBA_METRICS = "snuba-metrics"
 KAFKA_PROFILES = "profiles"
+KAFKA_INGEST_PERFORMANCE_METRICS = "ingest-performance-metrics"
+KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 
 KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
     "events": KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS,
@@ -2393,7 +2396,10 @@ KAFKA_TOPICS = {
     KAFKA_SNUBA_METRICS: {"cluster": "default"},
     # Topic for receiving profiles from Relay
     KAFKA_PROFILES: {"cluster": "default"},
+    KAFKA_INGEST_PERFORMANCE_METRICS: {"cluster": "default"},
+    KAFKA_SNUBA_GENERIC_METRICS: {"cluster": "default"},
 }
+
 
 # If True, consumers will create the topics if they don't exist
 KAFKA_CONSUMER_AUTO_CREATE_TOPICS = True
