@@ -60,9 +60,8 @@ class TextRenderer {
   ): void {
     this.maybeInvalidateCache();
 
-    this.context.font = `${this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio}px ${
-      this.theme.FONTS.FRAME_FONT
-    }`;
+    const fontSize = this.theme.SIZES.BAR_FONT_SIZE * window.devicePixelRatio;
+    this.context.font = `${fontSize}px ${this.theme.FONTS.FRAME_FONT}`;
 
     this.context.textBaseline = 'alphabetic';
 
@@ -158,18 +157,15 @@ class TextRenderer {
               continue;
             }
             const [startIndex, endIndex] = highlightedBounds;
-            const highlightTextSize = this.measureAndCacheText(
-              trimText.substring(startIndex, endIndex)
-            );
+
             const frontMatter = trimText.slice(0, startIndex);
-            const startHighlightX = this.measureAndCacheText(frontMatter).width;
-            this.context.fillRect(
-              startHighlightX + x,
-              y - highlightTextSize.fontBoundingBoxAscent,
-              highlightTextSize.width,
-              highlightTextSize.fontBoundingBoxAscent +
-                highlightTextSize.fontBoundingBoxDescent
-            );
+            const highlightOffsetX = this.measureAndCacheText(frontMatter).width;
+            const rectX = x + highlightOffsetX;
+            const rectY = frameInPhysicalSpace[1] + fontSize / 2;
+            const highlightWidth = this.measureAndCacheText(
+              trimText.substring(startIndex, endIndex)
+            ).width;
+            this.context.fillRect(rectX, rectY, highlightWidth, fontSize);
           }
         }
       }
