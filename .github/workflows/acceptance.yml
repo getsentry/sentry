@@ -95,7 +95,7 @@ jobs:
           path: .artifacts/visual-snapshots/jest
 
       - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@main
+        uses: getsentry/action-html-to-image@split_fe_and_be
         with:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
@@ -131,7 +131,7 @@ jobs:
 
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@main
+        uses: getsentry/action-visual-snapshot@split_fe_and_be
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
@@ -253,7 +253,7 @@ jobs:
 
       - name: Diff snapshots
         id: visual-snapshots-diff
-        uses: getsentry/action-visual-snapshot@main
+        uses: getsentry/action-visual-snapshot@split_fe_and_be
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
@@ -339,7 +339,7 @@ jobs:
 
       - name: Diff snapshots
         id: visual-snapshots-diff-pixelmatch
-        uses: getsentry/action-visual-snapshot@main
+        uses: getsentry/action-visual-snapshot@split_fe_and_be
         with:
           action-name: 'Chartcuterie Visual Snapshot'
           artifact-name: 'chartcuterie-snapshots'
