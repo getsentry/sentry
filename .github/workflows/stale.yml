@@ -43,5 +43,5 @@ jobs:
 
             "A weed is but an unloved flower." ― _Ella Wheeler Wilcox_ 🥀
           skip-stale-pr-message: false
-          close-pr-label:
+          close-pr-label: ""
           close-pr-message: ""

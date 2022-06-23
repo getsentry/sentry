@@ -215,7 +215,6 @@ class TrendsContent extends Component<Props, State> {
         defaultSelection={{
           datetime: defaultTrendsSelectionDate,
         }}
-        hideGlobalHeader
       >
         <Layout.Header>
           <Layout.HeaderContent>

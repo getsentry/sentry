@@ -1,12 +1,10 @@
 import {enforceActOnUseLegacyStoreHook, mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mockRouterPush} from 'sentry-test/mockRouterPush';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import * as globalActions from 'sentry/actionCreators/pageFilters';
 import OrganizationActions from 'sentry/actions/organizationActions';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
-import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -31,6 +29,16 @@ jest.mock('sentry/utils/localStorage', () => ({
   getItem: jest.fn(),
   setItem: jest.fn(),
 }));
+
+const mountWithThemeAndOrg = (component, opts, organization) =>
+  mountWithTheme(component, {
+    ...opts,
+    wrappingComponent: ({children}) => (
+      <OrganizationContext.Provider value={organization}>
+        {children}
+      </OrganizationContext.Provider>
+    ),
+  });
 
 describe('GlobalSelectionHeader', function () {
   enforceActOnUseLegacyStoreHook();
@@ -112,14 +120,15 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('only updates GlobalSelection store when mounted with query params', async function () {
-    wrapper = mountWithTheme(
+    wrapper = mountWithThemeAndOrg(
       <PageFiltersContainer
         organization={organization}
         params={{orgId: organization.slug}}
       />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
-      })
+      }),
+      organization
     );
 
     expect(router.push).not.toHaveBeenCalled();
@@ -138,164 +147,13 @@ describe('GlobalSelectionHeader', function () {
     });
   });
 
-  it('can change environments with a project selected', async function () {
-    wrapper = mountWithTheme(
-      <PageFiltersContainer
-        organization={organization}
-        projects={organization.projects}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    mockRouterPush(wrapper, router);
-
-    // Open dropdown and select one project
-    wrapper.find('ProjectSelector HeaderItem').simulate('click');
-    wrapper.find('ProjectSelector MultiselectCheckbox').at(1).simulate('click');
-    wrapper.find('ProjectSelector HeaderItem').simulate('click');
-
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('ProjectSelector Content').text()).toBe('project-3');
-
-    // Select environment
-    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
-    wrapper.find('EnvironmentSelector MultiselectCheckbox').at(0).simulate('click');
-    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
-    await tick();
-
-    expect(wrapper.find('EnvironmentSelector Content').text()).toBe('prod');
-
-    expect(PageFiltersStore.getState().selection).toEqual({
-      datetime: {
-        period: '14d',
-        utc: null,
-        start: null,
-        end: null,
-      },
-      environments: ['prod'],
-      projects: [3],
-    });
-    const query = wrapper.prop('location').query;
-    expect(query).toEqual({
-      environment: 'prod',
-      project: '3',
-    });
-  });
-
-  it('updates environments when switching projects', async function () {
-    wrapper = mountWithTheme(
-      <PageFiltersContainer
-        organization={organization}
-        projects={organization.projects}
-      />,
-      routerContext
-    );
-
-    await tick();
-    wrapper.update();
-
-    mockRouterPush(wrapper, router);
-
-    // Open dropdown and select both projects
-    wrapper.find('ProjectSelector HeaderItem').simulate('click');
-    wrapper.find('ProjectSelector MultiselectCheckbox').at(0).simulate('click');
-    wrapper.find('ProjectSelector MultiselectCheckbox').at(1).simulate('click');
-    wrapper.find('ProjectSelector HeaderItem').simulate('click');
-
-    await tick();
-    wrapper.update();
-    expect(wrapper.find('ProjectSelector Content').text()).toBe('project-2, project-3');
-
-    // Select environment
-    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
-    wrapper.find('EnvironmentSelector MultiselectCheckbox').at(1).simulate('click');
-    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
-    await tick();
-
-    expect(wrapper.find('EnvironmentSelector Content').text()).toBe('staging');
-
-    expect(PageFiltersStore.getState().selection).toEqual({
-      datetime: {
-        period: '14d',
-        utc: null,
-        start: null,
-        end: null,
-      },
-      environments: ['staging'],
-      projects: [2, 3],
-    });
-    const query = wrapper.prop('location').query;
-    expect(query).toEqual({
-      environment: 'staging',
-      project: ['2', '3'],
-    });
-
-    // Now change projects, first project has no environments
-    wrapper.find('ProjectSelector HeaderItem').simulate('click');
-    wrapper.find('ProjectSelector MultiselectCheckbox').at(1).simulate('click');
-
-    wrapper.find('ProjectSelector HeaderItem').simulate('click');
-
-    await tick();
-    wrapper.update();
-
-    // Store should not have any environments selected
-    expect(PageFiltersStore.getState().selection).toEqual({
-      datetime: {
-        period: '14d',
-        utc: null,
-        start: null,
-        end: null,
-      },
-      environments: [],
-      projects: [2],
-    });
-    expect(wrapper.find('EnvironmentSelector Content').text()).toBe('All Environments');
-  });
-
-  it('shows environments for non-member projects', async function () {
-    const initialData = initializeOrg({
-      organization: {features: ['global-views']},
-      projects: [
-        {id: 1, slug: 'staging-project', environments: ['staging'], isMember: false},
-        {id: 2, slug: 'prod-project', environments: ['prod']},
-      ],
-      router: {
-        location: {pathname: '/test', query: {project: ['1']}},
-        params: {orgId: 'org-slug'},
-      },
-    });
-    ProjectsStore.loadInitialData(initialData.projects);
-
-    wrapper = mountWithTheme(
-      <PageFiltersContainer
-        router={initialData.router}
-        organization={initialData.organization}
-        projects={initialData.projects}
-      />,
-      changeQuery(initialData.routerContext, {project: 1})
-    );
-    await tick();
-    wrapper.update();
-
-    // Open environment picker
-    wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
-    const checkboxes = wrapper.find('EnvironmentSelector AutoCompleteItem');
-
-    expect(checkboxes).toHaveLength(1);
-    expect(checkboxes.text()).toBe('staging');
-  });
-
   it('updates GlobalSelection store with default period', async function () {
-    wrapper = mountWithTheme(
+    wrapper = mountWithThemeAndOrg(
       <PageFiltersContainer organization={organization} />,
       changeQuery(routerContext, {
         environment: 'prod',
-      })
+      }),
+      organization
     );
 
     await tick();
@@ -320,11 +178,12 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('updates GlobalSelection store with empty dates in URL', async function () {
-    wrapper = mountWithTheme(
+    wrapper = mountWithThemeAndOrg(
       <PageFiltersContainer organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: null,
-      })
+      }),
+      organization
     );
 
     await tick();
@@ -347,12 +206,13 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('resets start&end if showAbsolute prop is false', async function () {
-    wrapper = mountWithTheme(
+    wrapper = mountWithThemeAndOrg(
       <PageFiltersContainer organization={organization} showAbsolute={false} />,
       changeQuery(routerContext, {
         start: '2020-05-05T07:26:53.000',
         end: '2020-05-05T09:19:12.000',
-      })
+      }),
+      organization
     );
 
     await tick();
@@ -378,11 +238,12 @@ describe('GlobalSelectionHeader', function () {
    * I don't think this test is really applicable anymore
    */
   it('does not update store if url params have not changed', async function () {
-    wrapper = mountWithTheme(
+    wrapper = mountWithThemeAndOrg(
       <PageFiltersContainer organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
-      })
+      }),
+      organization
     );
 
     [
@@ -440,9 +301,10 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    wrapper = mountWithTheme(
+    wrapper = mountWithThemeAndOrg(
       <PageFiltersContainer organization={initializationObj.organization} />,
-      initializationObj.routerContext
+      initializationObj.routerContext,
+      initializationObj.organization
     );
 
     await tick(); // reflux tick
@@ -477,9 +339,10 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    wrapper = mountWithTheme(
+    wrapper = mountWithThemeAndOrg(
       <PageFiltersContainer organization={initializationObj.organization} />,
-      initializationObj.routerContext
+      initializationObj.routerContext,
+      initializationObj.organization
     );
 
     await tick(); // reflux tick
@@ -503,9 +366,10 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    wrapper = mountWithTheme(
+    wrapper = mountWithThemeAndOrg(
       <PageFiltersContainer organization={initializationObj.organization} />,
-      initializationObj.routerContext
+      initializationObj.routerContext,
+      initializationObj.organization
     );
 
     await tick(); // reflux tick
@@ -744,32 +608,19 @@ describe('GlobalSelectionHeader', function () {
 
       ProjectsStore.loadInitialData(initialData.projects);
 
-      wrapper = mountWithTheme(
+      wrapper = mountWithThemeAndOrg(
         <PageFiltersContainer
           organization={initialData.organization}
           shouldForceProject
           forceProject={initialData.projects[0]}
           showIssueStreamLink
         />,
-        initialData.routerContext
+        initialData.routerContext,
+        initialData.organization
       );
 
       await tick();
       wrapper.update();
-    });
-
-    it('renders a back button to the forced project', function () {
-      const back = wrapper.find('BackButtonWrapper');
-      expect(back).toHaveLength(1);
-    });
-
-    it('renders only environments from the forced project', function () {
-      wrapper.find('EnvironmentSelector HeaderItem').simulate('click');
-      wrapper.update();
-
-      const items = wrapper.find('EnvironmentSelector PageFilterRow');
-      expect(items.length).toEqual(1);
-      expect(items.at(0).text()).toBe('staging');
     });
 
     it('replaces URL with project', function () {
@@ -799,7 +650,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('does not add forced project to URL', async function () {
-      wrapper = mountWithTheme(
+      wrapper = mountWithThemeAndOrg(
         <PageFiltersContainer
           skipInitializeUrlParams
           shouldForceProject
@@ -807,47 +658,13 @@ describe('GlobalSelectionHeader', function () {
           forceProject={initialData.projects[0]}
           showIssueStreamLink
         />,
-        initialData.routerContext
+        initialData.routerContext,
+        initialData.organization
       );
       await tick();
       wrapper.update();
 
       expect(router.replace).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('forceProject + forceEnvironment selection mode', function () {
-    beforeEach(async function () {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: [],
-      });
-      const initialData = initializeOrg({
-        organization: {features: ['global-views']},
-        projects: [
-          {id: 1, slug: 'staging-project', environments: ['staging']},
-          {id: 2, slug: 'prod-project', environments: ['prod']},
-        ],
-      });
-
-      ProjectsStore.loadInitialData(initialData.projects);
-
-      wrapper = mountWithTheme(
-        <PageFiltersContainer
-          organization={initialData.organization}
-          shouldForceProject
-          forceProject={initialData.projects[0]}
-          forceEnvironment="test-env"
-        />,
-        initialData.routerContext
-      );
-
-      await tick();
-      wrapper.update();
-    });
-
-    it('renders the forced environment', function () {
-      expect(wrapper.find('EnvironmentSelector HeaderItem').text()).toBe('test-env');
     });
   });
 
@@ -1022,7 +839,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       const createWrapper = (props, ctx) => {
-        wrapper = mountWithTheme(
+        wrapper = mountWithThemeAndOrg(
           <PageFiltersContainer
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -1031,7 +848,8 @@ describe('GlobalSelectionHeader', function () {
           {
             ...initialData.routerContext,
             ...ctx,
-          }
+          },
+          initialData.organization
         );
         return wrapper;
       };
@@ -1105,256 +923,6 @@ describe('GlobalSelectionHeader', function () {
 
         expect(initialData.router.replace).not.toHaveBeenCalled();
       });
-    });
-  });
-
-  describe('projects list', function () {
-    let memberProject, nonMemberProject, initialData;
-
-    beforeEach(async function () {
-      memberProject = TestStubs.Project({id: '3', isMember: true});
-      nonMemberProject = TestStubs.Project({id: '4', isMember: false});
-      initialData = initializeOrg({
-        projects: [memberProject, nonMemberProject],
-        router: {
-          location: {pathname: '/test', query: {}},
-          params: {
-            orgId: 'org-slug',
-          },
-        },
-      });
-
-      ProjectsStore.loadInitialData(initialData.projects);
-
-      wrapper = mountWithTheme(
-        <PageFiltersContainer organization={initialData.organization} />,
-        initialData.routerContext
-      );
-
-      await tick();
-      wrapper.update();
-    });
-
-    it('gets member projects', function () {
-      expect(wrapper.find('ProjectSelector').prop('memberProjects')).toEqual([
-        memberProject,
-      ]);
-    });
-
-    it('gets all projects if superuser', async function () {
-      ConfigStore.config = {
-        user: {
-          isSuperuser: true,
-        },
-      };
-
-      wrapper = mountWithTheme(
-        <PageFiltersContainer organization={initialData.organization} />,
-        initialData.routerContext
-      );
-
-      await tick();
-      wrapper.update();
-
-      expect(wrapper.find('ProjectSelector').prop('memberProjects')).toEqual([
-        memberProject,
-      ]);
-
-      expect(wrapper.find('ProjectSelector').prop('nonMemberProjects')).toEqual([
-        nonMemberProject,
-      ]);
-    });
-
-    it('shows "My Projects" button', async function () {
-      initialData.organization.features.push('global-views');
-      wrapper = mountWithTheme(
-        <PageFiltersContainer
-          organization={initialData.organization}
-          projects={initialData.projects}
-        />,
-        initialData.routerContext
-      );
-
-      await tick();
-      wrapper.update();
-
-      // open the project menu.
-      wrapper.find('ProjectSelector HeaderItem').simulate('click');
-      const projectSelector = wrapper.find('ProjectSelector');
-
-      // Two projects
-      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
-      // My projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
-        'Select My Projects'
-      );
-    });
-
-    it('shows "All Projects" button based on features', async function () {
-      initialData.organization.features.push('global-views');
-      initialData.organization.features.push('open-membership');
-      wrapper = mountWithTheme(
-        <PageFiltersContainer
-          organization={initialData.organization}
-          projects={initialData.projects}
-        />,
-        initialData.routerContext
-      );
-      await tick();
-      wrapper.update();
-
-      // open the project menu.
-      wrapper.find('ProjectSelector HeaderItem').simulate('click');
-      const projectSelector = wrapper.find('ProjectSelector');
-
-      // Two projects
-      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
-      // All projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
-        'Select All Projects'
-      );
-    });
-
-    it('shows "All Projects" button based on role', async function () {
-      initialData.organization.features.push('global-views');
-      initialData.organization.role = 'owner';
-      wrapper = mountWithTheme(
-        <PageFiltersContainer
-          organization={initialData.organization}
-          projects={initialData.projects}
-        />,
-        initialData.routerContext
-      );
-
-      await tick();
-      wrapper.update();
-      // open the project menu.
-      wrapper.find('ProjectSelector HeaderItem').simulate('click');
-      const projectSelector = wrapper.find('ProjectSelector');
-
-      // Two projects
-      expect(projectSelector.find('AutoCompleteItem')).toHaveLength(2);
-      // All projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
-        'Select All Projects'
-      );
-    });
-
-    it('shows "My Projects" when "all projects" is selected', async function () {
-      initialData.organization.features.push('global-views');
-      initialData.organization.role = 'owner';
-
-      wrapper = mountWithTheme(
-        <PageFiltersContainer
-          organization={initialData.organization}
-          projects={initialData.projects}
-        />,
-        changeQuery(initialData.routerContext, {project: -1})
-      );
-
-      await tick();
-      wrapper.update();
-
-      // open the project menu.
-      wrapper.find('ProjectSelector HeaderItem').simulate('click');
-      const projectSelector = wrapper.find('ProjectSelector');
-
-      // My projects in the footer
-      expect(projectSelector.find('ProjectSelectorFooter Button').last().text()).toEqual(
-        'Select My Projects'
-      );
-    });
-  });
-
-  describe('project icons', function () {
-    const initialData = initializeOrg({
-      organization: {features: ['global-views']},
-      projects: [
-        {id: 0, slug: 'go', platform: 'go'},
-        {id: 1, slug: 'javascript', platform: 'javascript'},
-        {id: 2, slug: 'other', platform: 'other'},
-        {id: 3, slug: 'php', platform: 'php'},
-        {id: 4, slug: 'python', platform: 'python'},
-        {id: 5, slug: 'rust', platform: 'rust'},
-        {id: 6, slug: 'swift', platform: 'swift'},
-      ],
-    });
-
-    beforeEach(function () {
-      ProjectsStore.loadInitialData(initialData.projects);
-    });
-
-    it('shows IconProject when no projects are selected', async function () {
-      wrapper = mountWithTheme(
-        <PageFiltersContainer
-          organization={initialData.organization}
-          projects={initialData.projects}
-        />,
-        changeQuery(initialData.routerContext, {project: -1})
-      );
-
-      await tick();
-      wrapper.update();
-
-      const projectSelector = wrapper.find('ProjectSelector');
-
-      expect(projectSelector.find('IconContainer svg').exists()).toBeTruthy();
-      expect(projectSelector.find('PlatformIcon').exists()).toBeFalsy();
-
-      expect(projectSelector.find('Content').text()).toEqual('All Projects');
-    });
-
-    it('shows PlatformIcon when one project is selected', async function () {
-      wrapper = mountWithTheme(
-        <PageFiltersContainer
-          organization={initialData.organization}
-          projects={initialData.projects}
-        />,
-        changeQuery(initialData.routerContext, {project: 1})
-      );
-
-      await tick();
-      wrapper.update();
-
-      const projectSelector = wrapper.find('ProjectSelector');
-
-      expect(projectSelector.find('StyledPlatformIcon').props().platform).toEqual(
-        'javascript'
-      );
-
-      expect(projectSelector.find('Content').text()).toEqual('javascript');
-    });
-
-    it('shows multiple PlatformIcons when multiple projects are selected, no more than 5', async function () {
-      wrapper = mountWithTheme(
-        <PageFiltersContainer
-          organization={initialData.organization}
-          projects={initialData.projects}
-        />,
-        initialData.routerContext
-      );
-
-      await tick();
-      wrapper.update();
-
-      // select 6 projects
-      const headerItem = wrapper.find('ProjectSelector HeaderItem');
-      headerItem.simulate('click');
-      wrapper
-        .find('ProjectSelector MultiselectCheckbox')
-        .forEach(project => project.simulate('click'));
-      headerItem.simulate('click');
-
-      await tick();
-      wrapper.update();
-
-      // assert title and icons
-      const title = wrapper.find('ProjectSelector Content');
-      const icons = wrapper.find('ProjectSelector StyledPlatformIcon');
-      expect(title.text()).toBe('javascript, other, php, python, rust, swift');
-      expect(icons.length).toBe(5);
-      expect(icons.at(3).props().platform).toBe('rust');
-      expect(icons.at(4).props().platform).toBe('swift');
     });
   });
 });

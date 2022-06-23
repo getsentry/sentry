@@ -158,7 +158,6 @@ function PerformanceContent({selection, location, demoMode}: Props) {
                 period: DEFAULT_STATS_PERIOD,
               },
             }}
-            hideGlobalHeader
           >
             <PerformanceLanding
               eventView={eventView}

@@ -7,7 +7,7 @@ import {SearchBarProps} from 'sentry/components/events/searchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Organization, SavedSearchType, Tag, TagValue} from 'sentry/types';
+import {Organization, PageFilters, SavedSearchType, Tag, TagValue} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 import {WidgetQuery} from 'sentry/views/dashboardsV2/types';
 import {
@@ -22,14 +22,23 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   'g'
 );
 interface Props {
+  onBlur: SearchBarProps['onBlur'];
   onSearch: SearchBarProps['onSearch'];
-  orgSlug: Organization['slug'];
-  projectIds: SearchBarProps['projectIds'];
-  query: WidgetQuery;
-  onBlur?: SearchBarProps['onBlur'];
+  organization: Organization;
+  pageFilters: PageFilters;
+  widgetQuery: WidgetQuery;
 }
 
-export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}: Props) {
+export function ReleaseSearchBar({
+  organization,
+  pageFilters,
+  widgetQuery,
+  onSearch,
+  onBlur,
+}: Props) {
+  const orgSlug = organization.slug;
+  const projectIds = pageFilters.projects;
+
   const api = useApi();
 
   /**
@@ -44,7 +53,15 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
       return Promise.resolve(SESSION_STATUSES);
     }
     const projectIdStrings = projectIds?.map(String);
-    return fetchTagValues(api, orgSlug, tag.key, searchQuery, projectIdStrings).then(
+    return fetchTagValues(
+      api,
+      orgSlug,
+      tag.key,
+      searchQuery,
+      projectIdStrings,
+      undefined,
+      true
+    ).then(
       tagValues => (tagValues as TagValue[]).map(({value}) => value),
       () => {
         throw new Error('Unable to fetch tag values');
@@ -77,7 +94,7 @@ export function ReleaseSearchBar({orgSlug, query, projectIds, onSearch, onBlur}:
           maxQueryLength={MAX_QUERY_LENGTH}
           maxSearchItems={MAX_SEARCH_ITEMS}
           searchSource="widget_builder"
-          query={query.conditions}
+          query={widgetQuery.conditions}
           savedSearchType={SavedSearchType.SESSION}
           hasRecentSearches
         />

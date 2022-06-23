@@ -32,7 +32,7 @@ def _cache_keys_for_org(org):
 @pytest.fixture
 def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
     # This contraption helps in testing the usage of `transaction.on_commit` in
-    # schedule_update_config_cache. Normally tests involving transactions would
+    # schedule_build_project_config. Normally tests involving transactions would
     # require us to use the transactional testcase (or
     # `pytest.mark.django_db(transaction=True)`), but that incurs a 2x slowdown
     # in test speed and we're trying to keep our testcases fast.
@@ -44,7 +44,7 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
 
                 # Assert there are no relay-related jobs in the queue yet, as we should have
                 # some on_commit callbacks instead. If we don't, then the model
-                # hook has scheduled the update_config_cache task prematurely.
+                # hook has scheduled the build_project_config task prematurely.
                 #
                 # Remove any other jobs from the queue that may have been triggered via model hooks
                 assert not any("relay" in task.__name__ for task, _, _ in burst.queue)
@@ -94,10 +94,6 @@ def debounce_cache(monkeypatch):
     monkeypatch.setattr(
         "sentry.relay.projectconfig_debounce_cache.mark_task_done",
         debounce_cache.mark_task_done,
-    )
-    monkeypatch.setattr(
-        "sentry.relay.projectconfig_debounce_cache.check_is_debounced",
-        debounce_cache.check_is_debounced,
     )
     monkeypatch.setattr(
         "sentry.relay.projectconfig_debounce_cache.debounce",
@@ -220,11 +216,11 @@ def test_invalidation_project_deleted(default_project, emulate_transactions, red
     # Delete the project normally, this will delete it from the cache
     with emulate_transactions(assert_num_callbacks=5):
         default_project.delete()
-    assert redis_cache.get(project_key) is None
+    assert redis_cache.get(project_key)["disabled"]
 
     # Duplicate invoke the invalidation task, this needs to be fine with the missing project.
     invalidate_project_config(project_id=project_id, trigger="testing-double-delete")
-    assert redis_cache.get(project_key) is None
+    assert redis_cache.get(project_key)["disabled"]
 
 
 @pytest.mark.django_db
@@ -242,7 +238,7 @@ def test_projectkeys(default_project, emulate_transactions, redis_cache):
         pk.save()
 
     for key in deleted_pks:
-        assert redis_cache.get(key.public_key) is None
+        assert redis_cache.get(key.public_key)["disabled"]
 
     (pk_json,) = redis_cache.get(pk.public_key)["publicKeys"]
     assert pk_json["publicKey"] == pk.public_key
@@ -256,7 +252,7 @@ def test_projectkeys(default_project, emulate_transactions, redis_cache):
     with emulate_transactions():
         pk.delete()
 
-    assert redis_cache.get(pk.public_key) is None
+    assert redis_cache.get(pk.public_key)["disabled"]
 
     for key in ProjectKey.objects.filter(project_id=default_project.id):
         assert not redis_cache.get(key.public_key)
@@ -301,10 +297,6 @@ class TestInvalidationTask:
         monkeypatch.setattr(
             "sentry.relay.projectconfig_debounce_cache.invalidation.mark_task_done",
             debounce_cache.mark_task_done,
-        )
-        monkeypatch.setattr(
-            "sentry.relay.projectconfig_debounce_cache.invalidation.check_is_debounced",
-            debounce_cache.check_is_debounced,
         )
         monkeypatch.setattr(
             "sentry.relay.projectconfig_debounce_cache.invalidation.debounce",

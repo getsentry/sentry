@@ -7,7 +7,7 @@ from sentry_relay.auth import generate_key_pair
 
 from sentry.models.relay import Relay
 from sentry.relay.config import ProjectConfig
-from sentry.tasks.relay import update_config_cache
+from sentry.tasks.relay import build_project_config
 from sentry.utils import json
 
 
@@ -163,7 +163,7 @@ def test_enqueue_task_if_config_not_cached_not_queued(
     assert schedule_mock.call_count == 1
 
 
-@patch("sentry.tasks.relay.update_config_cache.delay")
+@patch("sentry.tasks.relay.build_project_config.delay")
 @pytest.mark.django_db
 def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     task_mock,
@@ -184,10 +184,7 @@ def test_task_writes_config_into_cache(
     default_projectkey,
     project_config_get_mock,
 ):
-    update_config_cache(
-        generate=True,
-        organization_id=None,
-        project_id=None,
+    build_project_config(
         public_key=default_projectkey.public_key,
         update_reason="test",
     )

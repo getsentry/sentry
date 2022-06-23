@@ -80,8 +80,8 @@ class IssueWidgetQueriesForm extends Component<Props, State> {
         >
           <SearchConditionsWrapper>
             <IssuesSearchBar
-              query={query}
-              selection={selection}
+              widgetQuery={query}
+              pageFilters={selection}
               organization={organization}
               onSearch={field => {
                 // IssueListSearchBar will call handlers for both onSearch and onBlur

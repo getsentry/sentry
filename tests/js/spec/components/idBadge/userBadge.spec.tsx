@@ -1,9 +1,10 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import UserBadge from 'sentry/components/idBadge/userBadge';
+import {AvatarUser} from 'sentry/types';
 
 describe('UserBadge', function () {
-  const user = TestStubs.User();
+  const user: AvatarUser = TestStubs.User();
 
   it('renders with no link when user is supplied', function () {
     render(<UserBadge user={user} />);
@@ -62,9 +63,7 @@ describe('UserBadge', function () {
   });
 
   it('can hide email address', function () {
-    const email = 'email@example.com';
-    render(<UserBadge user={user} hideEmail email={email} />);
-
-    expect(screen.queryByText(email)).not.toBeInTheDocument();
+    render(<UserBadge user={user} hideEmail />);
+    expect(screen.queryByText(user.email)).not.toBeInTheDocument();
   });
 });
