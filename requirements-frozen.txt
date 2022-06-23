@@ -6,7 +6,7 @@ beautifulsoup4==4.7.1
 billiard==3.6.4.0
 boto3==1.22.12
 botocore==1.25.12
-brotlipy==0.7.0
+brotli==1.0.9
 cachetools==4.2.4
 celery==4.4.7
 certifi==2022.5.18.1
@@ -108,7 +108,7 @@ typing-inspect==0.7.1
 ua-parser==0.10.0
 unidiff==0.7.1
 uritemplate==4.1.1
-urllib3[brotli]==1.25.11
+urllib3[brotli]==1.26.9
 uwsgi==2.0.19.1
 vine==1.3.0
 xmlsec==1.3.11
