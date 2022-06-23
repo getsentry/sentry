@@ -1,0 +1,162 @@
+{% extends "sentry/emails/base.html" %}
+
+{% load timezone from tz %}
+{% load sentry_avatars %}
+{% load sentry_helpers %}
+{% load sentry_features %}
+{% load sentry_assets %}
+{% load i18n static %}
+
+{% block head %}
+  {{ block.super }}
+  <style type="text/css" inline="false">
+    @media only screen and (max-device-width: 480px) {
+      /* Hide CTA in header on mobile */
+      .header-buttons .integration-link {
+        display: none !important;
+      }
+      .banner {
+        display: none !important;
+      }
+    }
+    @media only screen and (max-device-width: 768px) {
+      .text-desktop-only {
+        display: none !important;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block preheader %}
+  New alert from {{ project_label }}.
+{% endblock %}
+
+{% block header %}
+  <div class="header-with-buttons">
+    {{ block.super }}
+    <div class="header-buttons">
+      <a href="{{ link }}" class="btn view-on-sentry">Open in Sentry</a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="inner">
+    {% if enhanced_privacy %}
+      <div class="event">
+        <div class="event-id">ID: {{ event.event_id }}</div>
+          {% if timezone %}
+            <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
+          {% else %}
+            <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
+          {% endif %}
+      </div>
+
+      <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
+        controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.</div>
+    {% else %}
+      <table class="event-list">
+        <tr>
+          <td class="event-detail">
+            <div class="issue">
+              {% with type=event.get_event_type metadata=event.get_event_metadata transaction=event.transaction %}
+                {% if type == "error" %}
+                  <div class="event-type error">
+                    <h3>
+                      {% if metadata.type %}
+                        <a href="{% absolute_uri link %}">0 {{ metadata.type|truncatechars:40 }}</a>
+                        {% if transaction %}
+                          <span class="event-subtitle">{{ transaction }}</span>
+                        {% endif %}
+                        <br />
+                        {% if metadata.value %}
+                          <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
+                        {% endif %}
+                      {% else %}
+                        <a href="{% absolute_uri link %}">1 {{ metadata.value|truncatechars:40 }}</a><br />
+                        {% if transaction %}
+                          <span class="event-subtitle">{{ transaction }}</span>
+                        {% endif %}
+                      {% endif %}
+                    </h3>
+                  </div>
+                {% elif type == "csp" %}
+                  <div class="event-type csp">
+                    <h3>
+                      <a href="{% absolute_uri link %}">2 {{ metadata.directive|truncatechars:40 }}</a><br />
+                      {% if metadata.uri %}
+                        <span class="event-subtitle">{{ metadata.uri }}</span>
+                      {% endif %}
+                    </h3>
+                  </div>
+                {% else %}
+                  <div class="event-type default">
+                    <h3>
+                      <a href="{% absolute_uri link %}">3 {{ event.title|truncatechars:40 }}</a><br />
+                      {% if transaction %}
+                        <span class="event-subtitle">{{ transaction }}</span>
+                      {% endif %}
+                    </h3>
+                  </div>
+                {% endif %}
+              {% endwith %}
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      {% if commits.length > 0 %}
+      {% with commit = commits[0] %}
+      <div class="committers">
+        <table class="table commit-table">
+          <tr>
+            <td style="padding:0;width:32px;">{% email_avatar commit.author.name commit.author.email 32 %}</td>
+            <td>
+              <h5 class="truncate">You made a commit in release {{ release.version }}</h5>
+              <div><small>{{ commit.subject }}</small></div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      {% endwith %}
+      {% endif %}
+
+      <div class="event">
+        <div class="event-id">ID: {{ event.event_id }}</div>
+        {% if timezone %}
+          <div class="event-date">{{ event.datetime|timezone:timezone|date:"N j, Y, g:i:s a e"}}</div>
+        {% else %}
+          <div class="event-date">{{ event.datetime|date:"N j, Y, g:i:s a e"}}</div>
+        {% endif %}
+      </div>
+
+      {% if interfaces.Stacktrace %}
+        <div class="interface">
+          <h3 class="title">Exception</h3>
+          {{ interfaces.Stacktrace.html }}
+        </div>
+      {% endif %}
+
+
+      {% if tags %}
+        <h3>Tags from Latest Event</h3>
+
+        <ul class="tag-list">
+        {% for tag_key, tag_value in tags %}
+          <li>
+              <strong>{{ tag_key|as_tag_alias }}</strong>
+              <em>=</em>
+              <span>
+              {% with query=tag_key|as_tag_alias|add:":\""|add:tag_value|add:"\""|urlencode %}
+                <a href="{% absolute_uri '/organizations/{}/issues/' group.project.organization.slug %}?project={{ group.project.id }}&query={{ query }}">{{ tag_value|truncatechars:50 }}</a> {% if tag_value|is_url %}<a href="{{ tag_value }}" class="icon-share"></a>{% endif %}
+              {% endwith %}
+              </span>
+          </li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

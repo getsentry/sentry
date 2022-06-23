@@ -330,6 +330,109 @@ def alert(request):
 
 
 @login_required
+def release_alert(request):
+    platform = request.GET.get("platform", "python")
+    org = Organization(id=1, slug="example", name="Example")
+    project = Project(id=1, slug="example", name="Example", organization=org)
+
+    random = get_random(request)
+    group = next(make_group_generator(random, project))
+
+    data = dict(load_data(platform))
+    data["message"] = group.message
+    data["event_id"] = "44f1419e73884cd2b45c79918f4b6dc4"
+    data.pop("logentry", None)
+    data["environment"] = "prod"
+    data["tags"] = [
+        ("logger", "javascript"),
+        ("environment", "prod"),
+        ("level", "error"),
+        ("device", "Other"),
+    ]
+
+    event_manager = EventManager(data)
+    event_manager.normalize()
+    data = event_manager.get_data()
+    event = event_manager.save(project.id)
+    # Prevent CI screenshot from constantly changing
+    event.data["timestamp"] = 1504656000.0  # datetime(2017, 9, 6, 0, 0)
+    event_type = get_event_type(event.data)
+
+    group.message = event.search_message
+    group.data = {"type": event_type.key, "metadata": event_type.get_metadata(data)}
+
+    rule = Rule(id=1, label="An example rule")
+
+    # XXX: this interface_list code needs to be the same as in
+    #      src/sentry/mail/adapter.py
+    interfaces = {}
+    for interface in event.interfaces.values():
+        body = interface.to_email_html(event)
+        if not body:
+            continue
+        text_body = interface.to_string(event)
+        interfaces[interface.get_title()] = {
+            "label": interface.get_title(),
+            "html": mark_safe(body),
+            "body": text_body,
+        }
+
+    return MailPreview(
+        html_template="sentry/emails/release_alert.html",
+        text_template="sentry/emails/release_alert.txt",
+        context={
+            "rule": rule,
+            "rules": get_rules([rule], org, project),
+            "group": group,
+            "event": event,
+            "timezone": pytz.timezone("Europe/Vienna"),
+            # http://testserver/organizations/example/issues/<issue-id>/?referrer=alert_email
+            #       &alert_type=email&alert_timestamp=<ts>&alert_rule_id=1
+            "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
+            "interfaces": interfaces,
+            "tags": event.tags,
+            "project_label": project.slug,
+            "release": {
+                "version": "13.9.1",
+            },
+            "commits": [
+                {
+                    # TODO(dcramer): change to use serializer
+                    "repository": {
+                        "status": "active",
+                        "name": "Example Repo",
+                        "url": "https://github.com/example/example",
+                        "dateCreated": "2018-02-28T23:39:22.402Z",
+                        "provider": {"id": "github", "name": "GitHub"},
+                        "id": "1",
+                    },
+                    "score": 2,
+                    "subject": "feat: Do something to raven/base.py",
+                    "message": "feat: Do something to raven/base.py\naptent vivamus vehicula tempus volutpat hac tortor",
+                    "id": "1b17483ffc4a10609e7921ee21a8567bfe0ed006",
+                    "shortId": "1b17483",
+                    "author": {
+                        "username": "dcramer@gmail.com",
+                        "isManaged": False,
+                        "lastActive": "2018-03-01T18:25:28.149Z",
+                        "id": "1",
+                        "isActive": True,
+                        "has2fa": False,
+                        "name": "dcramer@gmail.com",
+                        "avatarUrl": "https://secure.gravatar.com/avatar/51567a4f786cd8a2c41c513b592de9f9?s=32&d=mm",
+                        "dateJoined": "2018-02-27T22:04:32.847Z",
+                        "emails": [{"is_verified": False, "id": "1", "email": "dcramer@gmail.com"}],
+                        "avatar": {"avatarUuid": None, "avatarType": "letter_avatar"},
+                        "lastLogin": "2018-02-27T22:04:32.847Z",
+                        "email": "dcramer@gmail.com",
+                    },
+                }
+            ],
+        },
+    ).render(request)
+
+
+@login_required
 def digest(request):
     random = get_random(request)
 
