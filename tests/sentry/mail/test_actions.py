@@ -197,7 +197,7 @@ class NotifyEmailTest(RuleTestCase):
             )
 
         assert len(mail.outbox) == 3
-        sent_out_to = [x for out in mail.outbox for x in out.to]
-        assert sent_out_to == [self.user.email, gil_workflow.email, dan_workflow.email]
+        sent_out_to = {x for out in mail.outbox for x in out.to}
+        assert sent_out_to == {self.user.email, gil_workflow.email, dan_workflow.email}
         for x in [out.subject for out in mail.outbox]:
             assert "uh oh" in x
