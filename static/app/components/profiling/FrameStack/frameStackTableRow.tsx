@@ -183,6 +183,7 @@ const FrameCallersRow = styled('div')<{isSelected: boolean}>`
   display: flex;
   width: calc(100% + 400px);
   color: ${p => (p.isSelected ? p.theme.white : 'inherit')};
+  scroll-margin-top: 24px;
 
   &:focus {
     outline: none;
