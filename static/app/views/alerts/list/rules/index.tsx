@@ -181,9 +181,10 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          {issueRuleCount !== undefined && issueRuleCount > 0 && alertRuleCount === 0 && !query.name && (
-            <HookHeader organization={organization} />
-          )}
+          {issueRuleCount !== undefined &&
+            issueRuleCount > 0 &&
+            alertRuleCount === 0 &&
+            !query.name && <HookHeader organization={organization} />}
           <FilterBar
             location={location}
             onChangeFilter={this.handleChangeFilter}
@@ -294,12 +295,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
-        <PageFiltersContainer
-          organization={organization}
-          showDateSelector={false}
-          showEnvironmentSelector={false}
-          hideGlobalHeader
-        >
+        <PageFiltersContainer>
           <AlertHeader
             organization={organization}
             router={router}
