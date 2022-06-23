@@ -181,7 +181,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          {issueRuleCount !== undefined && issueRuleCount > 0 && alertRuleCount === 0 && (
+          {issueRuleCount !== undefined && issueRuleCount > 0 && alertRuleCount === 0 && !query.name && (
             <HookHeader organization={organization} />
           )}
           <FilterBar
