@@ -4,7 +4,7 @@ from django.http import HttpRequest
 from django.test import override_settings
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, active_on
+from sentry.api.base import ApiAvailableOn, Endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.servermode import ServerComponentMode
@@ -155,22 +155,21 @@ class EndpointJSONBodyTest(APITestCase):
 
 class ServerComponentModeTest(APITestCase):
     def _test_active_on(self, endpoint_mode, active_mode, expect_to_be_active):
+        @ApiAvailableOn(endpoint_mode)
+        class DecoratedEndpoint(DummyEndpoint):
+            pass
+
+        class EndpointWithDecoratedMethod(DummyEndpoint):
+            @ApiAvailableOn(endpoint_mode)
+            def get(self, request):
+                return super().get(request)
+
         with override_settings(SERVER_COMPONENT_MODE=active_mode):
-
-            @active_on(endpoint_mode)
-            class DecoratedEndpoint(DummyEndpoint):
-                pass
-
-            class EndpointWithDecoratedMethod(DummyEndpoint):
-                @active_on(endpoint_mode)
-                def get(self, request):
-                    return super().get(request)
-
-        for endpoint_class in (DecoratedEndpoint, EndpointWithDecoratedMethod):
-            view = endpoint_class.as_view()
-            request = self.make_request(method="GET")
-            response = view(request)
-            assert response.status_code == (200 if expect_to_be_active else 404)
+            for endpoint_class in (DecoratedEndpoint, EndpointWithDecoratedMethod):
+                view = endpoint_class.as_view()
+                request = self.make_request(method="GET")
+                response = view(request)
+                assert response.status_code == (200 if expect_to_be_active else 404)
 
     def test_with_active_mode(self):
         self._test_active_on(ServerComponentMode.CUSTOMER, ServerComponentMode.CUSTOMER, True)
