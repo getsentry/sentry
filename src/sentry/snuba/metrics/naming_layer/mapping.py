@@ -55,7 +55,7 @@ def get_mri(external_name: Union[Enum, str]) -> str:
 
 
 def get_public_name_from_mri(internal_name: Union[TransactionMRI, SessionMRI, str]) -> str:
-    """Returns the public name from a MRI if it has a mapping to a public metric name, otherwise raise an exception """
+    """Returns the public name from a MRI if it has a mapping to a public metric name, otherwise raise an exception"""
     if not len(MRI_TO_NAME):
         create_name_mapping_layers()
 
