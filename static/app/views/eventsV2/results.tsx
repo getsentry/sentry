@@ -73,6 +73,7 @@ type State = {
   showTags: boolean;
   totalValues: null | number;
   savedQuery?: SavedQuery;
+  showMetricsAlert?: boolean;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 
@@ -121,6 +122,13 @@ class Results extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, selection, location} = this.props;
+    if (location.query.fromMetric) {
+      this.setState({showMetricsAlert: true});
+      browserHistory.replace({
+        ...location,
+        query: {...location.query, fromMetric: undefined},
+      });
+    }
     loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
@@ -469,7 +477,7 @@ class Results extends Component<Props, State> {
   };
 
   renderMetricsFallbackBanner() {
-    if (this.props.location.query.fromMetric) {
+    if (this.state.showMetricsAlert) {
       return (
         <Alert type="info" showIcon>
           {
