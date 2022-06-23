@@ -10,7 +10,8 @@ from rest_framework.response import Response
 from sentry import audit_log, options, roles
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
-from sentry.models import OrganizationMember
+from sentry.incidents.models import AlertRule
+from sentry.models import Organization, OrganizationMember
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign
@@ -62,6 +63,16 @@ class ProjectTransferEndpoint(ProjectEndpoint):
                 {"detail": "Could not find an organization owner with that email"},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+        old_org = Organization.objects.get(id=project.organization.id)
+        alerts = AlertRule.objects.filter(organization=old_org)
+        for alert in alerts:
+            alert_owner = OrganizationMember.objects.filter(
+                organization=owner.organization, id=alert.owner_id
+            ).first()
+
+            if alert_owner is None:
+                alert.update(owner=None)
 
         transaction_id = uuid4().hex
         url_data = sign(
