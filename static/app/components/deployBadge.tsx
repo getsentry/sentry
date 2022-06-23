@@ -20,7 +20,7 @@ const DeployBadge = ({deploy, orgSlug, projectId, version, className}: Props) =>
     <Tag
       className={className}
       type="highlight"
-      icon={shouldLinkToIssues && <IconOpen />}
+      icon={shouldLinkToIssues && <IconOpen data-test-id="deploy-open-icon" />}
       textMaxWidth={80}
       tooltipText={shouldLinkToIssues ? t('Open In Issues') : undefined}
     >
