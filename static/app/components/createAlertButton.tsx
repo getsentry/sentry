@@ -359,9 +359,11 @@ type Props = {
   alertOption?: keyof typeof AlertWizardAlertNames;
   hideIcon?: boolean;
   iconProps?: SVGIconProps;
-  /// Callback when the button is clicked.
-  /// This is different from `onClick` which always overrides the default
-  /// behavior when the button was clicked.
+  /**
+   * Callback when the button is clicked.
+   * This is different from `onClick` which always overrides the default
+   * behavior when the button was clicked.
+   */
   onEnter?: () => void;
   projectSlug?: string;
   referrer?: string;
