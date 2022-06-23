@@ -342,7 +342,7 @@ export class Rect {
    * This causes the bottom of the rect to be the top of the rect and vice versa.
    */
   invertYTransform(): mat3 {
-    return mat3.fromValues(1, 0, 0, 0, -1, 0, this.x, this.y * 2 + this.height, 1);
+    return mat3.fromValues(1, 0, 0, 0, -1, 0, 0, this.y * 2 + this.height, 1);
   }
 
   withHeight(height: number): Rect {
