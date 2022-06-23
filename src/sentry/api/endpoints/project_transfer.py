@@ -67,11 +67,12 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         old_org = Organization.objects.get(id=project.organization.id)
         alerts = AlertRule.objects.filter(organization=old_org)
         for alert in alerts:
-            alert_owner = OrganizationMember.objects.filter(
+            member = OrganizationMember.objects.filter(
                 organization=owner.organization, id=alert.owner_id
             ).first()
 
-            if alert_owner is None:
+            # Remove the alert owner if the owner is not in the new organization
+            if member is None:
                 alert.update(owner=None)
 
         transaction_id = uuid4().hex
