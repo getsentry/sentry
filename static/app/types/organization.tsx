@@ -124,9 +124,8 @@ export type Member = {
 
   teamRoleList: TeamRole[]; // TODO: Move to global store
   teamRoles: {
-    isActive: boolean;
     role: TeamRole['id'];
-    team: string;
+    teamSlug: string;
   }[];
   teams: string[]; // # Deprecated, use teamRoles
 
