@@ -14,13 +14,10 @@ Details
 
 {{ link }}
 
-{% if commits %}
-{% with commit = commits[0] %}
+{% for commit in commits %}
     You made a commit in release {{ release.version }}
     {{ commit.subject }}
-{% endwith %}
-{% endif %}
-
+{% endfor %}
 
 {% if interfaces.Stacktrace %}
     Exception

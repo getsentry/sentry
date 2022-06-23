@@ -391,13 +391,13 @@ def release_alert(request):
             "link": get_group_settings_link(group, None, get_rules([rule], org, project), 1337),
             "interfaces": interfaces,
             "tags": event.tags,
-            "project_label": project.slug,
+            "project": project,
             "release": {
                 "version": "13.9.1",
             },
+            "environment": "production",
             "commits": [
                 {
-                    # TODO(dcramer): change to use serializer
                     "repository": {
                         "status": "active",
                         "name": "Example Repo",
