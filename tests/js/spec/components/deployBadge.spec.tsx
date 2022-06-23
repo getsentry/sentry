@@ -24,7 +24,6 @@ describe('DeployBadge', () => {
 
   it('renders with icon and link', () => {
     const projectId = 1;
-
     render(
       <DeployBadge
         deploy={deploy}
@@ -37,7 +36,7 @@ describe('DeployBadge', () => {
 
     expect(screen.queryByRole('link')).toHaveAttribute(
       'href',
-      '/organizations/sentry/issues/?environment=production&project=1&query=release%3A1.2.3'
+      `/organizations/sentry/issues/?environment=${deploy.environment}&project=${projectId}&query=release%3A1.2.3`
     );
     expect(screen.getByText('production')).toBeInTheDocument();
     expect(screen.getByTestId('deploy-open-icon')).toBeInTheDocument();

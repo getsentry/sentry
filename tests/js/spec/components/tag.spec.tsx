@@ -56,10 +56,7 @@ describe('Tag', () => {
     );
     expect(screen.getByText('Internal link')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Internal link'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Internal link'})).toHaveAttribute(
-      'href',
-      '/organizations/sentry/issues/'
-    );
+    expect(screen.getByRole('link', {name: 'Internal link'})).toHaveAttribute('href', to);
   });
 
   it('with external link', () => {
@@ -72,7 +69,7 @@ describe('Tag', () => {
     expect(screen.getByText('External link')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: 'External link'});
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute('href', 'https://sentry.io/');
+    expect(link).toHaveAttribute('href', href);
     expect(link).toHaveAttribute('target', '_blank');
   });
 
