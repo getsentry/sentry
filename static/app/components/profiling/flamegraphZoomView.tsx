@@ -573,7 +573,8 @@ function FlamegraphZoomView({
       // rendered on the flamegraph are removed from the flamegraphView
       setConfigSpaceCursor(null);
 
-      if (evt.metaKey) {
+      // pinch to zoom is recognized as `ctrlKey + wheelEvent`
+      if (evt.metaKey || evt.ctrlKey) {
         zoom(evt);
         setLastInteraction('zoom');
       } else {

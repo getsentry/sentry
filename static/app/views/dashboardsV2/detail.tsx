@@ -598,7 +598,6 @@ class DashboardDetail extends Component<Props, State> {
 
     return (
       <PageFiltersContainer
-        hideGlobalHeader
         defaultSelection={{
           datetime: {
             start: null,
@@ -685,7 +684,6 @@ class DashboardDetail extends Component<Props, State> {
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
-          hideGlobalHeader
           defaultSelection={{
             datetime: {
               start: null,
