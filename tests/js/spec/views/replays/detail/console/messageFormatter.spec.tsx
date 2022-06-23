@@ -45,6 +45,16 @@ const breadcrumbs: BreadcrumbTypeDefault[] = [
     type: BreadcrumbType.DEBUG,
     category: 'console',
     data: {
+      arguments: [{}],
+      logger: 'console',
+    },
+    level: BreadcrumbLevelType.ERROR,
+    timestamp: '2022-06-22T20:00:39.958Z',
+  },
+  {
+    type: BreadcrumbType.DEBUG,
+    category: 'console',
+    data: {
       arguments: [
         '%c prev state',
         'color: #9E9E9E; font-weight: bold',
@@ -90,14 +100,20 @@ describe('MessageFormatter', () => {
     expect(screen.getByRole('text')).toHaveTextContent('Error: this is my error message');
   });
 
-  it('Should ignore the "%c" placheholder and print the console message correctly', () => {
+  it('Should print empty object in case there is no message prop', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[3]} />);
+
+    expect(screen.getByRole('text')).toHaveTextContent('{}');
+  });
+
+  it('Should ignore the "%c" placheholder and print the console message correctly', () => {
+    render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
 
     expect(screen.getByRole('text')).toHaveTextContent('prev state {"cart":[]}');
   });
 
   it('Should print arrays correctly', () => {
-    render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
+    render(<MessageFormatter breadcrumb={breadcrumbs[5]} />);
 
     expect(screen.getByRole('text')).toHaveTextContent('test ["foo","bar"]');
   });
