@@ -47,7 +47,8 @@ export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
     ? sprintf.parse(message).filter(parsed => Array.isArray(parsed))
     : [];
 
-  // We check if there are placeholders to print the message accordingly with their correct values
+  // Placeholders can only occur in the first argument and only if it is a string.
+  // We can skip the below code and avoid using `sprintf` if there are no placeholders.
   if (placeholders.length) {
     // TODO `%c` is console specific, it applies colors to messages
     // for now we are stripping it as this is potentially risky to implement due to xss
@@ -71,23 +72,31 @@ export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
       : renderString(message);
 
     logMessage = [formattedMessage, ...restArgs].join(' ').trim();
-
-    // If there're no placeholders then we should make sure there are no objects that we want to print
-    // as the message prop do not print this objects correctly we need to handle pretty printing them
-  } else if (breadcrumb.message?.includes('[object Object]')) {
+  } else if (
+    breadcrumb.message?.includes('[object Object]') ||
+    Array.isArray(message) ||
+    args.length
+  ) {
+    // If the string `[object Object]` is found in message, it means the SDK attempted to stringify an object,
+    // but the actual object should be captured in the arguments.
+    //
+    // Likewise if the first argument is an array e.g. [test,test] which the SDK will serialize it to 'test, test'
+    // or if we have more than one argument, we'll want to use our pretty print in every argument that was passed to the logger instead of using
+    // the SDK's serialization.
     const argValues = breadcrumb.data?.arguments.map(renderString);
 
     logMessage = argValues.join(' ').trim();
+  } else {
+    // There is a special case where `console.error()` is called with an Error object.
+    // The SDK uses the Error's `message` property as the breadcrumb message, but we lose the Error type,
+    // resulting in an empty object in the breadcrumb arguments. In this case, we
+    // only want to use `breadcrumb.message`.
+    logMessage = breadcrumb.message || '';
   }
 
   // TODO(replays): Add better support for AnnotatedText (e.g. we use message
   // args from breadcrumb.data.arguments and not breadcrumb.message directly)
-  return (
-    <AnnotatedText
-      meta={getMeta(breadcrumb, 'message')}
-      value={logMessage || breadcrumb.message}
-    />
-  );
+  return <AnnotatedText meta={getMeta(breadcrumb, 'message')} value={logMessage} />;
 }
 
 interface ConsoleMessageProps extends MessageFormatterProps {

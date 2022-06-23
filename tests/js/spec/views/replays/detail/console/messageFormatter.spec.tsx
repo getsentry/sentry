@@ -58,6 +58,17 @@ const breadcrumbs: BreadcrumbTypeDefault[] = [
     message: '%c prev state color: #9E9E9E; font-weight: bold [object Object]',
     timestamp: '2022-06-09T00:50:25.273Z',
   },
+  {
+    type: BreadcrumbType.DEBUG,
+    category: 'console',
+    data: {
+      arguments: [['test', 'test']],
+      logger: 'console',
+    },
+    level: BreadcrumbLevelType.LOG,
+    message: 'test,test',
+    timestamp: '2022-06-23T13:33:15.768Z',
+  },
 ];
 
 describe('MessageFormatter', () => {
@@ -83,5 +94,11 @@ describe('MessageFormatter', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[3]} />);
 
     expect(screen.getByRole('text')).toHaveTextContent('prev state {"cart":[]}');
+  });
+
+  it('Should print arrays correctly', () => {
+    render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
+
+    expect(screen.getByRole('text')).toHaveTextContent('["test","test"]');
   });
 });
