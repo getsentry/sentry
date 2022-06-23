@@ -5,40 +5,26 @@ from django.db.models import DateTimeField
 from django.utils import timezone
 
 from sentry.eventstore.models import Event
-from sentry.models import (
-    Deploy,
-    Environment,
-    Project,
-    Release,
-    ReleaseEnvironment,
-    ReleaseProjectEnvironment,
-)
+from sentry.models import Deploy, Release, ReleaseEnvironment, ReleaseProjectEnvironment
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
-from sentry.search.utils import get_latest_release
 
 
-def _get_latest_release(
-    organization_id: int, environment_id: Optional[int], project: Project
-) -> Optional[Release]:
-    environments = (
-        None if not environment_id else [Environment.objects.filter(id=environment_id).first()]
-    )
-
-    try:
-        latest_release_versions = get_latest_release(
-            [project],
-            environments,
-            organization_id,
+def _get_release(event: Event) -> Optional[Release]:
+    if event:
+        release_version = (
+            event.release
+            or event.get_tag("release")
+            or event.data.get("sentry:release")
+            or event.data.get("release")
         )
-    except Release.DoesNotExist:
-        return None
+        return Release.objects.filter(
+            organization_id=event.project.organization_id,
+            project_id=event.project_id,
+            version=release_version,
+        ).first()
 
-    latest_releases = list(
-        Release.objects.filter(version=latest_release_versions[0], organization_id=organization_id)
-    )
-
-    return latest_releases[0] if latest_releases else None
+    return None
 
 
 class ActiveReleaseEventCondition(EventCondition):
@@ -55,15 +41,9 @@ class ActiveReleaseEventCondition(EventCondition):
         if not event.group or not event.project:
             return False
 
-        # XXX(gilbert):
-        # adapted from LatestReleaseFilter
-        # need to add caching later on
-        environment_id = None if self.rule is None else self.rule.environment_id
-        organization_id = event.group.project.organization_id
+        event_release = _get_release(event)
 
-        latest_release = _get_latest_release(organization_id, environment_id, event.project)
-
-        if not latest_release:
+        if not event_release:
             return False
 
         def release_deploy_time(release: Release, env_id: Optional[int]) -> Optional[DateTimeField]:
@@ -94,7 +74,8 @@ class ActiveReleaseEventCondition(EventCondition):
 
             return None
 
-        deploy_time = release_deploy_time(latest_release, environment_id)
+        evt_env = event.get_environment()
+        deploy_time = release_deploy_time(event_release, evt_env.id if evt_env else None)
         if deploy_time:
             return bool(now_minus_1_hour <= deploy_time <= now)
 

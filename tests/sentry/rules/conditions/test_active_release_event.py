@@ -25,6 +25,7 @@ class ActiveReleaseEventConditionTest(SnubaTestCase, RuleTestCase):
         event = self.get_event()
         oldRelease = Release.objects.create(
             organization_id=self.organization.id,
+            project_id=self.project.id,
             version="1",
             date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
             date_released=datetime(2020, 9, 1, 3, 8, 24, 880386),
@@ -33,6 +34,7 @@ class ActiveReleaseEventConditionTest(SnubaTestCase, RuleTestCase):
 
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
+            project_id=self.project.id,
             version="2",
             date_added=timezone.now() - timedelta(minutes=30),
             date_released=timezone.now() - timedelta(minutes=30),
