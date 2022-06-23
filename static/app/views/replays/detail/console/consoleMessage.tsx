@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import isObject from 'lodash/isObject';
 import {sprintf, vsprintf} from 'sprintf-js';
 
 import DateTime from 'sentry/components/dateTime';
@@ -12,6 +13,7 @@ import Tooltip from 'sentry/components/tooltip';
 import {IconClose, IconWarning} from 'sentry/icons';
 import space from 'sentry/styles/space';
 import {BreadcrumbTypeDefault} from 'sentry/types/breadcrumbs';
+import {objectIsEmpty} from 'sentry/utils';
 
 interface MessageFormatterProps {
   breadcrumb: BreadcrumbTypeDefault;
@@ -73,25 +75,26 @@ export function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 
     logMessage = [formattedMessage, ...restArgs].join(' ').trim();
   } else if (
-    breadcrumb.message?.includes('[object Object]') ||
-    Array.isArray(message) ||
-    args.length
+    breadcrumb.data?.arguments.length === 1 &&
+    isObject(message) &&
+    objectIsEmpty(message)
   ) {
-    // If the string `[object Object]` is found in message, it means the SDK attempted to stringify an object,
-    // but the actual object should be captured in the arguments.
-    //
-    // Likewise if the first argument is an array e.g. [test,test] which the SDK will serialize it to 'test, test'
-    // or if we have more than one argument, we'll want to use our pretty print in every argument that was passed to the logger instead of using
-    // the SDK's serialization.
-    const argValues = breadcrumb.data?.arguments.map(renderString);
-
-    logMessage = argValues.join(' ').trim();
-  } else {
     // There is a special case where `console.error()` is called with an Error object.
     // The SDK uses the Error's `message` property as the breadcrumb message, but we lose the Error type,
     // resulting in an empty object in the breadcrumb arguments. In this case, we
     // only want to use `breadcrumb.message`.
-    logMessage = breadcrumb.message || '';
+    logMessage = breadcrumb.message || JSON.stringify(message);
+  } else {
+    // If the string `[object Object]` is found in message, it means the SDK attempted to stringify an object,
+    // but the actual object should be captured in the arguments.
+    //
+    // Likewise if arrays are found e.g. [test,test] the SDK will serialize it to 'test, test'.
+    //
+    // In those cases, we'll want to use our pretty print in every argument that was passed to the logger instead of using
+    // the SDK's serialization.
+    const argValues = breadcrumb.data?.arguments.map(renderString);
+
+    logMessage = argValues.join(' ').trim();
   }
 
   // TODO(replays): Add better support for AnnotatedText (e.g. we use message
