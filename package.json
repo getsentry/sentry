@@ -170,7 +170,7 @@
     "babel-jest": "28.1.0",
     "babel-plugin-dynamic-import-node": "^2.2.0",
     "benchmark": "^2.1.4",
-    "eslint": "8.17.0",
+    "eslint": "8.18.0",
     "eslint-config-sentry-app": "^1.94.0",
     "html-webpack-plugin": "^5.5.0",
     "jest": "28.1.1",
