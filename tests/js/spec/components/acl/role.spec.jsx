@@ -8,22 +8,30 @@ import ConfigStore from 'sentry/stores/configStore';
 describe('Role', function () {
   const organization = TestStubs.Organization({
     role: 'admin',
-    availableRoles: [
+    orgRoleList: [
       {
         id: 'member',
         name: 'Member',
+        desc: '...',
+        minimumTeamRole: 'contributor',
       },
       {
         id: 'admin',
         name: 'Admin',
+        desc: '...',
+        minimumTeamRole: 'admin',
       },
       {
         id: 'manager',
         name: 'Manager',
+        desc: '...',
+        minimumTeamRole: 'admin',
       },
       {
         id: 'owner',
         name: 'Owner',
+        desc: '...',
+        minimumTeamRole: 'admin',
       },
     ],
   });
@@ -47,7 +55,7 @@ describe('Role', function () {
       });
     });
 
-    it('has an unsufficient role', function () {
+    it('has an insufficient role', function () {
       render(<Role role="manager">{childrenMock}</Role>, {
         context: routerContext,
       });
@@ -57,7 +65,7 @@ describe('Role', function () {
       });
     });
 
-    it('gives access to a superuser with unsufficient role', function () {
+    it('gives access to a superuser with insufficient role', function () {
       ConfigStore.config.user = {isSuperuser: true};
       Cookies.set = jest.fn();
 
@@ -109,9 +117,9 @@ describe('Role', function () {
       });
     });
 
-    it('handles no availableRoles', function () {
+    it('handles no organization.orgRoleList', function () {
       render(
-        <Role role="member" organization={{...organization, availableRoles: undefined}}>
+        <Role role="member" organization={{...organization, orgRoleList: undefined}}>
           {childrenMock}
         </Role>,
         {context: routerContext}
@@ -135,7 +143,7 @@ describe('Role', function () {
       expect(screen.getByText('The Child')).toBeInTheDocument();
     });
 
-    it('has an unsufficient role', function () {
+    it('has an insufficient role', function () {
       render(
         <Role role="owner">
           <div>The Child</div>
