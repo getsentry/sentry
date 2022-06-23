@@ -32,15 +32,22 @@ def build_project_config(public_key=None, **kwargs):
 
     Do not invoke this task directly, instead use :func:`schedule_build_project_config`.
     """
-    now = time.time()
     try:
         from sentry.models import ProjectKey
 
+        now = time.time()
         sentry_sdk.set_tag("public_key", public_key)
         sentry_sdk.set_context("kwargs", kwargs)
 
+        metrics.incr(
+            "relay.projectconfig_cache.run",
+            tags={"task": "build"},
+            sample_rate=1,
+        )
         schedule_duration = now - kwargs.get("tmp_scheduled", now)
-        metrics.timing("relay.projectconfig_cache.schedule_duration", schedule_duration)
+        metrics.timing(
+            "relay.projectconfig_cache.schedule_duration", schedule_duration, sample_rate=1
+        )
 
         try:
             key = ProjectKey.objects.get(public_key=public_key)
@@ -81,6 +88,7 @@ def schedule_build_project_config(public_key):
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
         tags={"task": "build"},
+        sample_rate=1,
     )
     build_project_config.delay(public_key=public_key, tmp_scheduled=tmp_scheduled)
 
@@ -282,7 +290,11 @@ def check_build_project_config(public_key=None, **kwargs):
     """
     from sentry.models import ProjectKey
 
-    metrics.incr("relay.projectconfig_cache.check_task.run")
+    metrics.incr(
+        "relay.projectconfig_cache.run",
+        tags={"task": "check"},
+        sample_rate=1,
+    )
     if not public_key:
         raise TypeError("public key must be present")
     cfg = projectconfig_cache.get(public_key)
