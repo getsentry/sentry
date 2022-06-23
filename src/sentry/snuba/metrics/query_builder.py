@@ -410,19 +410,20 @@ class SnubaQueryBuilder:
     def _build_orderby(self) -> Optional[List[OrderBy]]:
         if self._metrics_query.orderby is None:
             return None
-        # ToDo: Currently we only support one orderBy field, if this were to change then we would
-        #  need to iterate over the list and generate orderBy instances accordingly
-        assert len(self._metrics_query.orderby) == 1
-        orderby = self._metrics_query.orderby[0]
-        op = orderby.field.op
-        metric_mri = get_mri(orderby.field.metric_name)
-        metric_field_obj = metric_object_factory(op, metric_mri)
 
-        return metric_field_obj.generate_orderby_clause(
-            projects=self._projects,
-            direction=orderby.direction,
-            metrics_query=self._metrics_query,
-        )
+        orderby_fields = []
+        for orderby in self._metrics_query.orderby:
+            op = orderby.field.op
+            metric_mri = get_mri(orderby.field.metric_name)
+            metric_field_obj = metric_object_factory(op, metric_mri)
+            orderby_fields.extend(
+                metric_field_obj.generate_orderby_clause(
+                    projects=self._projects,
+                    direction=orderby.direction,
+                    metrics_query=self._metrics_query,
+                )
+            )
+        return orderby_fields
 
     def __build_totals_and_series_queries(
         self, entity, select, where, groupby, orderby, limit, offset, rollup, intervals_len

@@ -125,15 +125,14 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def validate_orderby(self) -> None:
         if not self.orderby:
             return
-        if len(self.orderby) > 1:
-            raise InvalidParams("Only one 'orderBy' is supported")
 
-        orderby = self.orderby[0]
-        self._validate_field(orderby.field)
+        for orderby in self.orderby:
+            self._validate_field(orderby.field)
 
-        for select_field in self.select:
-            if select_field == orderby.field:
-                return
+        orderby_fields = {f.field for f in self.orderby}
+        if set(self.select).issubset(orderby_fields):
+            return
+
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
     @staticmethod

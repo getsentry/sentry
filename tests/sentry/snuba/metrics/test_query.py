@@ -138,20 +138,6 @@ def test_validate_select():
 
 
 def test_validate_order_by():
-    metric_field_2 = MetricField(op=None, metric_name=SessionMetricKey.ALL.value)
-    metrics_query_dict = (
-        MetricsQueryBuilder()
-        .with_orderby(
-            [
-                OrderBy(field=MetricsQueryBuilder.AVG_DURATION_METRIC, direction=Direction.ASC),
-                OrderBy(field=metric_field_2, direction=Direction.ASC),
-            ]
-        )
-        .to_metrics_query_dict()
-    )
-    with pytest.raises(InvalidParams, match="Only one 'orderBy' is supported"):
-        MetricsQuery(**metrics_query_dict)
-
     with pytest.raises(
         InvalidParams,
         match=(
