@@ -1,22 +1,16 @@
-import {mountWithTheme} from 'sentry-test/enzyme';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {Client} from 'sentry/api';
 import SessionHistory from 'sentry/views/settings/account/accountSecurity/sessionHistory';
 
 const ENDPOINT = '/users/me/ips/';
-const ORG_ENDPOINT = '/organizations/';
 
 describe('AccountSecuritySessionHistory', function () {
-  beforeEach(function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
-      url: ORG_ENDPOINT,
-      body: TestStubs.Organizations(),
-    });
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
   });
 
-  it('renders an ip address', async function () {
-    Client.addMockResponse({
+  it('renders an ip address', function () {
+    MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
         {
@@ -38,10 +32,10 @@ describe('AccountSecuritySessionHistory', function () {
       ],
     });
 
-    const wrapper = mountWithTheme(<SessionHistory />, TestStubs.routerContext());
+    render(<SessionHistory />, {context: TestStubs.routerContext()});
 
-    wrapper.update();
-    await tick();
-    expect(wrapper.find('SessionRow')).toHaveLength(2);
+    expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
+    expect(screen.getByText('192.168.0.1')).toBeInTheDocument();
+    expect(screen.getByText('US (CA)')).toBeInTheDocument();
   });
 });
