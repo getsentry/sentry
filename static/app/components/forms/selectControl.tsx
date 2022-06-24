@@ -70,7 +70,7 @@ const SingleValue = (
     <selectComponents.SingleValue {...props}>
       <SingleValueWrap>
         {leadingItems}
-        {label}
+        <SingleValueLabel>{label}</SingleValueLabel>
       </SingleValueWrap>
     </selectComponents.SingleValue>
   );
@@ -81,6 +81,10 @@ const SingleValueWrap = styled('div')`
   grid-auto-flow: column;
   gap: ${space(1)};
   align-items: center;
+`;
+
+const SingleValueLabel = styled('div')`
+  ${p => p.theme.overflowEllipsis};
 `;
 
 export type ControlProps<OptionType = GeneralSelectValue> = Omit<
