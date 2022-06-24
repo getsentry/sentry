@@ -34,6 +34,7 @@ type Props = {
   organization: Organization;
   setError: SetStateAction<string | undefined>;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  totalEventCount: string;
   transactionName: string;
   percentileValues?: Record<EventsDisplayFilterName, number>;
   webVital?: WebVital;
@@ -57,6 +58,7 @@ function EventsContent(props: Props) {
     spanOperationBreakdownFilter,
     webVital,
     setError,
+    totalEventCount,
   } = props;
 
   const eventView = originalEventView.clone();
@@ -80,6 +82,7 @@ function EventsContent(props: Props) {
     <Layout.Main fullWidth>
       <Search {...props} />
       <EventsTable
+        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         location={location}

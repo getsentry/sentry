@@ -50,11 +50,13 @@ describe('Performance Transaction Events Content', function () {
   let data;
   let transactionName;
   let eventView;
+  let totalEventCount;
   let initialData;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
     transactionName = 'transactionName';
+    totalEventCount = '200';
     fields = [
       'id',
       'user.display',
@@ -163,6 +165,7 @@ describe('Performance Transaction Events Content', function () {
     const wrapper = mountWithTheme(
       <OrganizationContext.Provider value={organization}>
         <EventsPageContent
+          totalEventCount={totalEventCount}
           eventView={eventView}
           organization={organization}
           location={initialData.router.location}
@@ -199,6 +202,7 @@ describe('Performance Transaction Events Content', function () {
     const wrapper = mountWithTheme(
       <OrganizationContext.Provider value={organization}>
         <EventsPageContent
+          totalEventCount={totalEventCount}
           eventView={eventView}
           organization={organization}
           location={initialData.router.location}

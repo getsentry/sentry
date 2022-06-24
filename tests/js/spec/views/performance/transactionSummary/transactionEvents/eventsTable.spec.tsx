@@ -41,6 +41,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
 
 describe('Performance GridEditable Table', function () {
   let transactionsListTitles;
+  let totalEventCount;
   let fields;
   let organization;
   let data;
@@ -49,6 +50,7 @@ describe('Performance GridEditable Table', function () {
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/events/';
   beforeEach(function () {
     transactionName = 'transactionName';
+    totalEventCount = '100';
     transactionsListTitles = [
       t('event id'),
       t('user'),
@@ -160,6 +162,7 @@ describe('Performance GridEditable Table', function () {
     );
     const wrapper = mountWithTheme(
       <EventsTable
+        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -209,6 +212,7 @@ describe('Performance GridEditable Table', function () {
     );
     const wrapper = mountWithTheme(
       <EventsTable
+        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
