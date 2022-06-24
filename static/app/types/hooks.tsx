@@ -5,6 +5,7 @@ import type {Guide} from 'sentry/components/assistant/types';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {CombinedMetricIssueAlerts} from 'sentry/views/alerts/types';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 import type {ExperimentKey} from './experiments';
@@ -82,16 +83,27 @@ type FirstPartyIntegrationAdditionalCTAProps = {
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
+type DefaultAlertRuleActionHook = (
+  callback: (showDefaultAction: boolean) => void,
+  organization: Organization
+) => void;
+
 type CodeOwnersCTAProps = {
   organization: Organization;
   project: Project;
   addCodeOwner?: () => void;
   handleRequest?: () => void;
 };
+
+type AlertsHeaderProps = {
+  organization: Organization;
+  ruleList: CombinedMetricIssueAlerts[] | null;
+};
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:alerts-header': () => React.ComponentType<AlertsHeaderProps>;
   'component:codeowners-cta': () => React.ComponentType<CodeOwnersCTAProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
@@ -214,6 +226,7 @@ export type SettingsHooks = {
  * and perform some sort of callback logic
  */
 type CallbackHooks = {
+  'callback:default-action-alert-rule': DefaultAlertRuleActionHook;
   'callback:on-guide-update': GuideUpdateCallback;
 };
 

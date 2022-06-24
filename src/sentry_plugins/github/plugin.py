@@ -289,7 +289,9 @@ class GitHubRepositoryProvider(GitHubMixin, RepositoryProvider):
         return config
 
     def get_webhook_secret(self, organization):
-        lock = locks.get(f"github:webhook-secret:{organization.id}", duration=60)
+        lock = locks.get(
+            f"github:webhook-secret:{organization.id}", duration=60, name="github_webhook_secret"
+        )
         with lock.acquire():
             # TODO(dcramer): get_or_create would be a useful native solution
             secret = OrganizationOption.objects.get_value(

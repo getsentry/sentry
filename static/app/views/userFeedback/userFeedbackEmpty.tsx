@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -9,22 +9,27 @@ import ButtonBar from 'sentry/components/buttonBar';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'sentry/utils/analytics';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
-  loadingProjects: boolean;
-  organization: Organization;
-  projects: Project[];
   projectIds?: string[];
 };
 
-class UserFeedbackEmpty extends Component<Props> {
-  componentDidMount() {
-    const {organization, projectIds} = this.props;
+export function UserFeedbackEmpty({projectIds}: Props) {
+  const {projects, initiallyLoaded} = useProjects();
+  const loadingProjects = !initiallyLoaded;
+  const organization = useOrganization();
 
+  const selectedProjects =
+    projectIds && projectIds.length
+      ? projects.filter(({id}) => projectIds.includes(id))
+      : projects;
+
+  const hasAnyFeedback = selectedProjects.some(({hasUserReports}) => hasUserReports);
+
+  useEffect(() => {
     window.sentryEmbedCallback = function (embed) {
       // Mock the embed's submit xhr to always be successful
       // NOTE: this will not have errors if the form is empty
@@ -37,7 +42,7 @@ class UserFeedbackEmpty extends Component<Props> {
       };
     };
 
-    if (this.hasAnyFeedback === false) {
+    if (hasAnyFeedback === false) {
       // send to reload only due to higher event volume
       trackAdhocEvent({
         eventKey: 'user_feedback.viewed',
@@ -45,27 +50,12 @@ class UserFeedbackEmpty extends Component<Props> {
         projects: projectIds,
       });
     }
-  }
+    return () => {
+      window.sentryEmbedCallback = null;
+    };
+  }, [hasAnyFeedback, organization.id, projectIds]);
 
-  componentWillUnmount() {
-    window.sentryEmbedCallback = null;
-  }
-
-  get selectedProjects() {
-    const {projects, projectIds} = this.props;
-
-    return projectIds && projectIds.length
-      ? projects.filter(({id}) => projectIds.includes(id))
-      : projects;
-  }
-
-  get hasAnyFeedback() {
-    return this.selectedProjects.some(({hasUserReports}) => hasUserReports);
-  }
-
-  trackAnalytics({eventKey, eventName}: {eventKey: string; eventName: string}) {
-    const {organization, projectIds} = this.props;
-
+  function trackAnalytics({eventKey, eventName}: {eventKey: string; eventName: string}) {
     trackAnalyticsEvent({
       eventKey,
       eventName,
@@ -74,63 +64,58 @@ class UserFeedbackEmpty extends Component<Props> {
     });
   }
 
-  render() {
-    // Show no user reports if waiting for projects to load or if there is no feedback
-    if (this.props.loadingProjects || this.hasAnyFeedback !== false) {
-      return (
-        <EmptyStateWarning>
-          <p>{t('Sorry, no user reports match your filters.')}</p>
-        </EmptyStateWarning>
-      );
-    }
-    // Show landing page after projects have loaded and it is confirmed no projects have feedback
+  // Show no user reports if waiting for projects to load or if there is no feedback
+  if (loadingProjects || hasAnyFeedback !== false) {
     return (
-      <OnboardingPanel image={<img src={emptyStateImg} />}>
-        <h3>{t('What do users think?')}</h3>
-        <p>
-          {t(
-            `You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive.`
-          )}
-        </p>
-        <ButtonList gap={1}>
-          <Button
-            external
-            priority="primary"
-            onClick={() =>
-              this.trackAnalytics({
-                eventKey: 'user_feedback.docs_clicked',
-                eventName: 'User Feedback Docs Clicked',
-              })
-            }
-            href="https://docs.sentry.io/product/user-feedback/"
-          >
-            {t('Read the docs')}
-          </Button>
-          <Button
-            onClick={() => {
-              Sentry.showReportDialog({
-                // should never make it to the Sentry API, but just in case, use throwaway id
-                eventId: '00000000000000000000000000000000',
-              });
-
-              this.trackAnalytics({
-                eventKey: 'user_feedback.dialog_opened',
-                eventName: 'User Feedback Dialog Opened',
-              });
-            }}
-          >
-            {t('See an example')}
-          </Button>
-        </ButtonList>
-      </OnboardingPanel>
+      <EmptyStateWarning>
+        <p>{t('Sorry, no user reports match your filters.')}</p>
+      </EmptyStateWarning>
     );
   }
+
+  // Show landing page after projects have loaded and it is confirmed no projects have feedback
+  return (
+    <OnboardingPanel image={<img src={emptyStateImg} />}>
+      <h3>{t('What do users think?')}</h3>
+      <p>
+        {t(
+          `You can't read minds. At least we hope not. Ask users for feedback on the impact of their crashes or bugs and you shall receive.`
+        )}
+      </p>
+      <ButtonList gap={1}>
+        <Button
+          external
+          priority="primary"
+          onClick={() =>
+            trackAnalytics({
+              eventKey: 'user_feedback.docs_clicked',
+              eventName: 'User Feedback Docs Clicked',
+            })
+          }
+          href="https://docs.sentry.io/product/user-feedback/"
+        >
+          {t('Read the docs')}
+        </Button>
+        <Button
+          onClick={() => {
+            Sentry.showReportDialog({
+              // should never make it to the Sentry API, but just in case, use throwaway id
+              eventId: '00000000000000000000000000000000',
+            });
+
+            trackAnalytics({
+              eventKey: 'user_feedback.dialog_opened',
+              eventName: 'User Feedback Dialog Opened',
+            });
+          }}
+        >
+          {t('See an example')}
+        </Button>
+      </ButtonList>
+    </OnboardingPanel>
+  );
 }
 
 const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
-
-export {UserFeedbackEmpty};
-
-export default withOrganization(withProjects(UserFeedbackEmpty));
