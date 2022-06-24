@@ -4,10 +4,9 @@ import math
 from datetime import datetime
 from urllib.parse import quote, unquote
 
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
 from django.db import connections
 from django.db.models.functions import Lower
-from django.db.models.sql.datastructures import EmptyResultSet
 from django.utils import timezone
 
 from sentry.utils.cursors import Cursor, CursorResult, build_cursor
