@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import Fuse from 'fuse.js';
@@ -132,6 +132,7 @@ function FlamegraphSearch({
   canvasPoolManager,
 }: FlamegraphSearchProps): React.ReactElement | null {
   const [search, dispatchSearch] = useFlamegraphSearch();
+  const [didInitialSearch, setDidInitialSearch] = useState(!search.query);
 
   const allFrames = useMemo(() => {
     if (Array.isArray(flamegraphs)) {
@@ -187,6 +188,14 @@ function FlamegraphSearch({
     },
     [dispatchSearch, allFrames, searchIndex]
   );
+
+  useEffect(() => {
+    if (didInitialSearch || allFrames.length === 0) {
+      return;
+    }
+    handleChange(search.query);
+    setDidInitialSearch(true);
+  }, [didInitialSearch, handleChange, allFrames, search.query]);
 
   const onNextSearchClick = useCallback(() => {
     const frames = memoizedSortFrameResults(search.results);
