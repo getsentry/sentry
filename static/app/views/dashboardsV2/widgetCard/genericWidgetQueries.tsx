@@ -1,14 +1,10 @@
 import {useContext, useEffect, useState} from 'react';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
-import {
-  EventsTableData,
-  TableData,
-  TableDataWithTitle,
-} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {getDatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
@@ -75,33 +71,32 @@ function GenericWidgetQueries({
 
   // TODO: Is specific to DISCOVER
   const context = useContext(DashboardsMEPContext);
-  let setIsMetricsData;
+  let setIsMetricsData: undefined | ((value?: boolean) => void);
   if (context) {
     setIsMetricsData = context.setIsMetricsData;
   }
 
   useEffect(() => {
     async function fetchTableData() {
-      const responses: [TableData | EventsTableData, string, ResponseMeta][] =
-        await Promise.all(
-          widget.queries.map(query => {
-            let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
-            let requestCreator = config.getTableRequest;
-            if (widget.displayType === DisplayType.WORLD_MAP) {
-              requestLimit = undefined;
-              requestCreator = config.getWorldMapRequest;
-            }
-            return requestCreator!(
-              api,
-              query,
-              organization,
-              selection,
-              requestLimit,
-              cursor,
-              getReferrer(widget.displayType)
-            );
-          })
-        );
+      const responses = await Promise.all(
+        widget.queries.map(query => {
+          let requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
+          let requestCreator = config.getTableRequest;
+          if (widget.displayType === DisplayType.WORLD_MAP) {
+            requestLimit = undefined;
+            requestCreator = config.getWorldMapRequest;
+          }
+          return requestCreator!(
+            api,
+            query,
+            organization,
+            selection,
+            requestLimit,
+            cursor,
+            getReferrer(widget.displayType)
+          );
+        })
+      );
 
       // transform the data
       let transformedTableResults: TableDataWithTitle[] = [];
@@ -114,8 +109,6 @@ function GenericWidgetQueries({
 
         // Cast so we can add the title.
         const transformedData = config.transformTable(
-          // TODO: Types across configs are &'d here. Should be |'d or set to a specific type
-          // @ts-ignore
           data,
           widget.queries[0],
           organization,
@@ -163,7 +156,6 @@ function GenericWidgetQueries({
             : getIsMetricsDataFromSeriesResponse(rawResults);
         setIsMetricsData?.(isMetricsData);
         const transformedResult = config.transformSeries!(
-          // @ts-ignore
           rawResults,
           widget.queries[requestIndex],
           organization
