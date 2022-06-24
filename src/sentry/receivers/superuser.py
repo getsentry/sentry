@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 
-from sentry.api.endpoints.auth_index import PREFILLED_SU_MODAL_KEY
 from sentry.utils.settings import is_self_hosted
 
 
@@ -12,7 +11,7 @@ def enable_superuser(request, user, **kwargs):
         settings, "ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV", False
     )
 
-    prefilled_su_modal = request.session.pop(PREFILLED_SU_MODAL_KEY, None)
+    prefilled_su_modal = request.session.pop("prefilled_su_modal", None)
 
     if is_self_hosted() or ENABLE_SU_UPON_LOGIN_FOR_LOCAL_DEV or prefilled_su_modal:
         su = getattr(request, "superuser", None)
