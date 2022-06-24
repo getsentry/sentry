@@ -71,6 +71,7 @@ urlpatterns = [
     url(r"^debug/mail/alert/$", sentry.web.frontend.debug.mail.alert),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
+    url(r"^debug/mail/release_alert/$", sentry.web.frontend.debug.mail.release_alert),
     url(r"^debug/mail/new-user-feedback/$", DebugNewUserFeedbackEmailView.as_view()),
     url(r"^debug/mail/assigned/$", DebugAssignedEmailView.as_view()),
     url(r"^debug/mail/assigned/self/$", DebugSelfAssignedEmailView.as_view()),
