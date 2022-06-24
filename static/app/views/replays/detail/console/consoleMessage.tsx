@@ -116,7 +116,11 @@ function ConsoleMessage({
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
       </Message>
-      <ConsoleTimestamp isLast={isLast} level={breadcrumb.level}>
+      <ConsoleTimestamp
+        isLast={isLast}
+        level={breadcrumb.level}
+        hasOccurred={hasOccurred}
+      >
         <Tooltip title={<DateTime date={breadcrumb.timestamp} seconds />}>
           <div
             onClick={handleOnClick}
@@ -142,7 +146,7 @@ const Common = styled('div')<{
       : 'inherit'};
   color: ${({hasOccurred = true, ...p}) => {
     if (!hasOccurred) {
-      return p.theme.gray200;
+      return p.theme.gray300;
     }
 
     if (['warning', 'error'].includes(p.level)) {
