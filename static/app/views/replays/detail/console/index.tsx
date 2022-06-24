@@ -24,7 +24,7 @@ const getDistinctLogLevels = (breadcrumbs: BreadcrumbTypeDefault[]) =>
   Array.from(new Set<string>(breadcrumbs.map(breadcrumb => breadcrumb.level)));
 
 function Console({breadcrumbs, startTimestamp = 0}: Props) {
-  const {currentHoverTime} = useReplayContext();
+  const {currentHoverTime, currentTime} = useReplayContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [logLevel, setLogLevel] = useState<BreadcrumbLevelType[]>([]);
   const handleSearch = debounce(query => setSearchTerm(query), 150);
@@ -98,6 +98,10 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
                 key={i}
                 isLast={i === breadcrumbs.length - 1}
                 breadcrumb={breadcrumb}
+                isEmitted={
+                  currentTime >=
+                  relativeTimeInMs(breadcrumb?.timestamp || '', startTimestamp)
+                }
               />
             );
           })}
