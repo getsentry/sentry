@@ -16,9 +16,10 @@ Sentry is a developer-first error tracking and performance monitoring platform t
 
 
 <p align="center">
-  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-1.png" width="270">
-  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-2.png" width="270">
-  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/thumb-3.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/projects.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/issue-details.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/transaction-summary.png" width="270">
+  <img src="https://github.com/getsentry/sentry/raw/master/docs/screenshots/releases.png" width="270">
 </p>
 
 ## Official Sentry SDKs
