@@ -1,6 +1,6 @@
 import {ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
-import {css} from '@emotion/css';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -876,6 +876,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
               <StyledPresetSidebar
                 onSelect={async preset => {
                   const context = await preset.makeContext(
+                    this.api,
                     project,
                     this.props.organization
                   );
@@ -887,6 +888,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                     this.form.setValue('comparisonDelta', context.comparisonDelta);
                   context.timeWindow &&
                     this.form.setValue('timeWindow', context.timeWindow);
+                  context.query && this.form.setValue('query', context.query);
 
                   this.setState({
                     comparisonType: context.comparisonType,
