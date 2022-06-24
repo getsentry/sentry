@@ -10,20 +10,6 @@ from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
 
 
-def _get_release(event: Event) -> Optional[Release]:
-    release_version = (
-        event.release
-        or event.get_tag("release")
-        or event.data.get("sentry:release")
-        or event.data.get("release")
-    )
-    return Release.objects.filter(
-        organization_id=event.project.organization_id,
-        projects__id=event.project_id,
-        version=release_version,
-    ).first()
-
-
 class ActiveReleaseEventCondition(EventCondition):
     id = "sentry.rules.conditions.active_release.ActiveReleaseEventCondition"
     label = "A new issue is created within an active release (1 hour of deployment)"
@@ -38,7 +24,11 @@ class ActiveReleaseEventCondition(EventCondition):
         if not event.group or not event.project:
             return False
 
-        event_release = _get_release(event)
+        event_release = Release.objects.filter(
+            organization_id=event.project.organization_id,
+            projects__id=event.project_id,
+            version=event.release,
+        ).first()
 
         if not event_release:
             return False
