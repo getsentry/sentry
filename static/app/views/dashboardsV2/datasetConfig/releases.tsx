@@ -32,6 +32,7 @@ import {
   generateReleaseWidgetFieldOptions,
   SESSIONS_FIELDS,
   SESSIONS_TAGS,
+  TAG_SORT_DENY_LIST,
 } from '../widgetBuilder/releaseWidget/fields';
 import {
   derivedMetricsToField,
@@ -82,6 +83,7 @@ export const ReleasesConfig: DatasetConfig<
       cursor
     ),
   getSeriesRequest: getReleasesSeriesRequest,
+  getTableSortOptions,
   getTimeseriesSortOptions,
   filterTableOptions: filterPrimaryReleaseTableOptions,
   filterTableAggregateParams: filterAggregateParams,
@@ -92,6 +94,7 @@ export const ReleasesConfig: DatasetConfig<
     generateReleaseWidgetFieldOptions([] as SessionsMeta[], SESSIONS_TAGS),
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,
+  filterSeriesSortOptions: filterReleaseOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -104,6 +107,20 @@ export const ReleasesConfig: DatasetConfig<
   transformTable: transformSessionsResponseToTable,
 };
 
+function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const {columns, aggregates} = widgetQuery;
+  const options: SelectValue<string>[] = [];
+  [...aggregates, ...columns]
+    .filter(field => !!field)
+    .filter(field => !DISABLED_SORT.includes(field))
+    .filter(field => !TAG_SORT_DENY_LIST.includes(field))
+    .forEach(field => {
+      options.push({label: field, value: field});
+    });
+
+  return options;
+}
+
 function getTimeseriesSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
   const columnSet = new Set(widgetQuery.columns);
   const releaseFieldOptions = generateReleaseWidgetFieldOptions(
@@ -115,22 +132,29 @@ function getTimeseriesSortOptions(_organization: Organization, widgetQuery: Widg
     if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
       return;
     }
-    if (option.value.kind === FieldValueKind.TAG) {
+    if (option.value.kind === FieldValueKind.FIELD) {
       // Only allow sorting by release tag
       if (option.value.meta.name === 'release' && columnSet.has(option.value.meta.name)) {
         options[key] = option;
       }
       return;
     }
-    if (
-      [FieldValueKind.FUNCTION, FieldValueKind.NUMERIC_METRICS].includes(
-        option.value.kind
-      )
-    ) {
-      options[key] = option;
-    }
+    options[key] = option;
   });
   return options;
+}
+
+function filterReleaseOptions(columns: Set<string>) {
+  return (option: FieldValueOption) => {
+    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
+      return false;
+    }
+    if (option.value.kind === FieldValueKind.FIELD) {
+      // Only allow sorting by release tag
+      return columns.has(option.value.meta.name) && option.value.meta.name === 'release';
+    }
+    return filterPrimaryReleaseTableOptions(option);
+  };
 }
 
 function getReleasesSeriesRequest(

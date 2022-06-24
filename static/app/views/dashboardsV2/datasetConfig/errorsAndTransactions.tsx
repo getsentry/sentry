@@ -80,6 +80,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   SearchBar: EventsSearchBar,
   getTableFieldOptions: getEventsTableFieldOptions,
   getTimeseriesSortOptions,
+  getTableSortOptions,
   getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [
@@ -142,13 +143,33 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   transformTable: transformEventsResponseToTable,
 };
 
+function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+  const {columns, aggregates} = widgetQuery;
+  const options: SelectValue<string>[] = [];
+  let equations = 0;
+  [...aggregates, ...columns]
+    .filter(field => !!field)
+    .forEach(field => {
+      let alias;
+      const label = stripEquationPrefix(field);
+      // Equations are referenced via a standard alias following this pattern
+      if (isEquation(field)) {
+        alias = `equation[${equations}]`;
+        equations += 1;
+      }
+
+      options.push({label, value: alias ?? field});
+    });
+
+  return options;
+}
+
 function getTimeseriesSortOptions(
   organization: Organization,
   widgetQuery: WidgetQuery,
   tags?: TagCollection
 ) {
   const options: Record<string, SelectValue<FieldValue>> = {};
-  const columnSet = new Set(widgetQuery.columns);
   options[`field:${CUSTOM_EQUATION_VALUE}`] = {
     label: 'Custom Equation',
     value: {
@@ -180,18 +201,8 @@ function getTimeseriesSortOptions(
     });
 
   const fieldOptions = getEventsTableFieldOptions(organization, tags);
-  Object.entries(fieldOptions).forEach(([key, option]) => {
-    if ([FieldValueKind.FUNCTION, FieldValueKind.EQUATION].includes(option.value.kind)) {
-      options[key] = option;
-      return;
-    }
-    if (columnSet.has(option.value.meta.name)) {
-      options[key] = option;
-      return;
-    }
-  });
 
-  return options;
+  return {...options, ...fieldOptions};
 }
 
 function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {

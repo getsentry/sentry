@@ -17,7 +17,6 @@ import {
   SortDirection,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
 import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {BuildStep} from '../buildStep';
 
@@ -44,7 +43,6 @@ export function SortByStep({
   onSortByChange,
   queries,
   dataSet,
-  widgetBuilderNewDesign,
   widgetType,
   organization,
   error,
@@ -120,109 +118,70 @@ export function SortByStep({
     });
   };
 
-  if (widgetBuilderNewDesign) {
-    return (
-      <BuildStep
-        title={
-          displayType === DisplayType.TABLE
-            ? t('Sort by a column')
-            : t('Sort by a y-axis')
-        }
-        description={
-          displayType === DisplayType.TABLE
-            ? t("Choose one of the columns you've created to sort by.")
-            : t("Choose one of the y-axis you've created to sort by.")
-        }
-      >
-        <Field inline={false} error={error} flexibleControlStateSize stacked>
-          {[DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(displayType) &&
-            limit && (
-              <ResultsLimitSelector
-                name="resultsLimit"
-                menuPlacement="auto"
-                options={[...Array(maxLimit).keys()].map(resultLimit => {
-                  const value = resultLimit + 1;
-                  return {
-                    label: tn('Limit to %s result', 'Limit to %s results', value),
-                    value,
-                  };
-                })}
-                value={limit}
-                onChange={(option: SelectValue<number>) => {
-                  onLimitChange(option.value);
-                }}
-              />
-            )}
-          <SortBySelectors
-            displayType={displayType}
-            widgetType={widgetType}
-            hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
-            disabledReason={disabledReason}
-            disabledSort={disabledSort}
-            disabledSortDirection={disabledSortDirection}
-            widgetQuery={queries[0]}
-            sortByOptions={
-              dataSet === DataSet.ISSUES
-                ? generateIssueWidgetOrderOptions(
-                    organization.features.includes('issue-list-trend-sort')
-                  )
-                : generateOrderOptions({
-                    widgetType,
-                    widgetBuilderNewDesign: true,
-                    columns: queries[0].columns,
-                    aggregates: queries[0].aggregates,
-                  })
-            }
-            values={{
-              sortDirection:
-                orderBy[0] === '-'
-                  ? SortDirection.HIGH_TO_LOW
-                  : SortDirection.LOW_TO_HIGH,
-              sortBy: strippedOrderBy,
-            }}
-            onChange={({sortDirection, sortBy}) => {
-              const newOrderBy =
-                sortDirection === SortDirection.HIGH_TO_LOW ? `-${sortBy}` : sortBy;
-              onSortByChange(newOrderBy);
-            }}
-            tags={tags}
-            filterPrimaryOptions={
-              dataSet === DataSet.RELEASES ? filterReleaseOptions : filterDiscoverOptions
-            }
-          />
-        </Field>
-      </BuildStep>
-    );
-  }
-
   return (
     <BuildStep
-      title={t('Sort by a column')}
-      description={t("Choose one of the columns you've created to sort by.")}
+      title={
+        displayType === DisplayType.TABLE ? t('Sort by a column') : t('Sort by a y-axis')
+      }
+      description={
+        displayType === DisplayType.TABLE
+          ? t("Choose one of the columns you've created to sort by.")
+          : t("Choose one of the y-axis you've created to sort by.")
+      }
     >
       <Field inline={false} error={error} flexibleControlStateSize stacked>
-        <SelectControl
-          menuPlacement="auto"
-          value={
-            dataSet === DataSet.EVENTS
-              ? queries[0].orderby
-              : queries[0].orderby || IssueSortOptions.DATE
-          }
-          name="orderby"
-          options={
-            dataSet === DataSet.EVENTS
-              ? generateOrderOptions({
+        {[DisplayType.AREA, DisplayType.BAR, DisplayType.LINE].includes(displayType) &&
+          limit && (
+            <ResultsLimitSelector
+              name="resultsLimit"
+              menuPlacement="auto"
+              options={[...Array(maxLimit).keys()].map(resultLimit => {
+                const value = resultLimit + 1;
+                return {
+                  label: tn('Limit to %s result', 'Limit to %s results', value),
+                  value,
+                };
+              })}
+              value={limit}
+              onChange={(option: SelectValue<number>) => {
+                onLimitChange(option.value);
+              }}
+            />
+          )}
+        <SortBySelectors
+          displayType={displayType}
+          widgetType={widgetType}
+          hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
+          disabledReason={disabledReason}
+          disabledSort={disabledSort}
+          disabledSortDirection={disabledSortDirection}
+          widgetQuery={queries[0]}
+          sortByOptions={
+            dataSet === DataSet.ISSUES
+              ? generateIssueWidgetOrderOptions(
+                  organization.features.includes('issue-list-trend-sort')
+                )
+              : generateOrderOptions({
                   widgetType,
+                  widgetBuilderNewDesign: true,
                   columns: queries[0].columns,
                   aggregates: queries[0].aggregates,
                 })
-              : generateIssueWidgetOrderOptions(
-                  organization.features.includes('issue-list-trend-sort')
-                )
           }
-          onChange={(option: SelectValue<string>) => {
-            onSortByChange(option.value);
+          values={{
+            sortDirection:
+              orderBy[0] === '-' ? SortDirection.HIGH_TO_LOW : SortDirection.LOW_TO_HIGH,
+            sortBy: strippedOrderBy,
           }}
+          onChange={({sortDirection, sortBy}) => {
+            const newOrderBy =
+              sortDirection === SortDirection.HIGH_TO_LOW ? `-${sortBy}` : sortBy;
+            onSortByChange(newOrderBy);
+          }}
+          tags={tags}
+          filterPrimaryOptions={
+            dataSet === DataSet.RELEASES ? filterReleaseOptions : filterDiscoverOptions
+          }
         />
       </Field>
     </BuildStep>

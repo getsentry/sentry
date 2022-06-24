@@ -35,9 +35,7 @@ interface Values {
 
 interface Props {
   displayType: DisplayType;
-  filterPrimaryOptions: React.ComponentProps<typeof QueryField>['filterPrimaryOptions'];
   onChange: (values: Values) => void;
-  sortByOptions: SelectValue<string>[];
   tags: TagCollection;
   values: Values;
   widgetQuery: WidgetQuery;
@@ -50,7 +48,6 @@ interface Props {
 
 export function SortBySelectors({
   values,
-  sortByOptions,
   widgetType,
   onChange,
   disabledReason,
@@ -61,6 +58,7 @@ export function SortBySelectors({
 }: Props) {
   const datasetConfig = getDatasetConfig(widgetType);
   const organization = useOrganization();
+  const columnSet = new Set(widgetQuery.columns);
   const [showCustomEquation, setShowCustomEquation] = useState(false);
   const [customEquation, setCustomEquation] = useState<Values>({
     sortBy: `${EQUATION_PREFIX}`,
@@ -76,74 +74,6 @@ export function SortBySelectors({
     }
     setShowCustomEquation(isSortingByEquation);
   }, [values.sortBy, values.sortDirection]);
-
-  function getSortByField() {
-    if (![DisplayType.TABLE, DisplayType.TOP_N].includes(displayType)) {
-      return (
-        <Tooltip
-          title={disabledReason}
-          disabled={!disabledSort || (disabledSortDirection && disabledSort)}
-        >
-          <QueryField
-            disabled={disabledSort}
-            fieldValue={
-              showCustomEquation
-                ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                : explodeField({field: values.sortBy})
-            }
-            fieldOptions={datasetConfig.getTimeseriesSortOptions!(
-              organization,
-              widgetQuery
-            )}
-            onChange={value => {
-              if (value.alias && isEquationAlias(value.alias)) {
-                onChange({
-                  sortBy: value.alias,
-                  sortDirection: values.sortDirection,
-                });
-                return;
-              }
-
-              const parsedValue = generateFieldAsString(value);
-              const isSortingByCustomEquation = isEquation(parsedValue);
-              setShowCustomEquation(isSortingByCustomEquation);
-              if (isSortingByCustomEquation) {
-                onChange(customEquation);
-                return;
-              }
-
-              onChange({
-                sortBy: parsedValue,
-                sortDirection: values.sortDirection,
-              });
-            }}
-          />
-        </Tooltip>
-      );
-    }
-    return (
-      <Tooltip
-        title={disabledReason}
-        disabled={!disabledSort || (disabledSortDirection && disabledSort)}
-      >
-        <SelectControl
-          name="sortBy"
-          aria-label="Sort by"
-          menuPlacement="auto"
-          disabled={disabledSort}
-          placeholder={`${t('Select a column')}\u{2026}`}
-          value={values.sortBy}
-          options={uniqBy(sortByOptions, ({value}) => value)}
-          onChange={(option: SelectValue<string>) => {
-            onChange({
-              sortBy: option.value,
-              sortDirection: values.sortDirection,
-            });
-          }}
-        />
-      </Tooltip>
-    );
-  }
 
   return (
     <Tooltip title={disabledReason} disabled={!(disabledSortDirection && disabledSort)}>
@@ -170,7 +100,72 @@ export function SortBySelectors({
             }}
           />
         </Tooltip>
-        {getSortByField()}
+        <Tooltip
+          title={disabledReason}
+          disabled={!disabledSort || (disabledSortDirection && disabledSort)}
+        >
+          {displayType === DisplayType.TABLE ? (
+            <SelectControl
+              name="sortBy"
+              aria-label="Sort by"
+              menuPlacement="auto"
+              disabled={disabledSort}
+              placeholder={`${t('Select a column')}\u{2026}`}
+              value={values.sortBy}
+              options={uniqBy(
+                datasetConfig.getTableSortOptions!(organization, widgetQuery),
+                ({value}) => value
+              )}
+              onChange={(option: SelectValue<string>) => {
+                onChange({
+                  sortBy: option.value,
+                  sortDirection: values.sortDirection,
+                });
+              }}
+            />
+          ) : (
+            <QueryField
+              disabled={disabledSort}
+              fieldValue={
+                showCustomEquation
+                  ? explodeField({field: CUSTOM_EQUATION_VALUE})
+                  : explodeField({field: values.sortBy})
+              }
+              fieldOptions={datasetConfig.getTimeseriesSortOptions!(
+                organization,
+                widgetQuery
+              )}
+              filterPrimaryOptions={
+                datasetConfig.filterSeriesSortOptions
+                  ? datasetConfig.filterSeriesSortOptions(columnSet)
+                  : undefined
+              }
+              filterAggregateParameters={datasetConfig.filterTableAggregateParams}
+              onChange={value => {
+                if (value.alias && isEquationAlias(value.alias)) {
+                  onChange({
+                    sortBy: value.alias,
+                    sortDirection: values.sortDirection,
+                  });
+                  return;
+                }
+
+                const parsedValue = generateFieldAsString(value);
+                const isSortingByCustomEquation = isEquation(parsedValue);
+                setShowCustomEquation(isSortingByCustomEquation);
+                if (isSortingByCustomEquation) {
+                  onChange(customEquation);
+                  return;
+                }
+
+                onChange({
+                  sortBy: parsedValue,
+                  sortDirection: values.sortDirection,
+                });
+              }}
+            />
+          )}
+        </Tooltip>
         {showCustomEquation && (
           <ArithmeticInputWrapper>
             <ArithmeticInput

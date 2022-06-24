@@ -64,6 +64,9 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * values in tables.
    */
   fieldHeaderMap?: Record<string, string>;
+  filterSeriesSortOptions?: (
+    columns: Set<string>
+  ) => (option: FieldValueOption) => boolean;
   /**
    * Filter the options available to the parameters list
    * of an aggregate function in a table widget column on the
@@ -115,6 +118,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     cursor?: string,
     referrer?: string
   ) => ReturnType<Client['requestPromise']>;
+  getTableSortOptions?: (
+    organization: Organization,
+    widgetQuery: WidgetQuery
+  ) => SelectValue<string>[];
   getTimeseriesSortOptions?: (
     organization: Organization,
     widgetQuery: WidgetQuery,
