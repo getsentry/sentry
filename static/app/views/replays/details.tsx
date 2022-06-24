@@ -52,7 +52,7 @@ function ReplayDetails() {
 
   if (!fetching && replay && replay.getRRWebEvents().length < 2) {
     return (
-      <DetailLayout event={replay.getEvent()} orgId={orgId}>
+      <DetailLayout orgId={orgId}>
         <DetailedError
           onRetry={onRetry}
           hideSupportLinks
