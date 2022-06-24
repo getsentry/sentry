@@ -171,7 +171,7 @@ class UserSerializer(Serializer):  # type: ignore
 
             d["options"] = {
                 "theme": options.get("theme") or "light",
-                "language": options.get("language") or "en",
+                "language": options.get("language") or settings.SENTRY_DEFAULT_LANGUAGE,
                 "stacktraceOrder": stacktrace_order,
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,

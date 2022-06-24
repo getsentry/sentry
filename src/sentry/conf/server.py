@@ -1172,6 +1172,8 @@ SENTRY_FEATURES = {
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 SENTRY_DEFAULT_TIME_ZONE = "UTC"
 
+SENTRY_DEFAULT_LANGUAGE = "en"
+
 # Enable the Sentry Debugger (Beta)
 SENTRY_DEBUGGER = None
 
