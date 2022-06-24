@@ -389,32 +389,53 @@ register("store.save-transactions-ingest-consumer-rate", default=0.0)
 # Drop delete_old_primary_hash messages for a particular project.
 register("reprocessing2.drop-delete-old-primary-hash", default=[])
 
-# Abuse quotas are org options:
-# project-abuse-quota.window
-# project-abuse-quota.error-limit
-# project-abuse-quota.transaction-limit
-# project-abuse-quota.attachment-limit
-# project-abuse-quota.session-limit
-# 0 default value means don't limit.
-# The limits are per second, applied across a window. The actual quota is then `window * limit`.
-# If the limit is negative, then it means completely blocked.
-register("project-abuse-quota.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
-register("project-abuse-quota.error-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
-register("project-abuse-quota.transaction-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
-register("project-abuse-quota.attachment-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
-register("project-abuse-quota.session-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+# BEGIN PROJECT ABUSE QUOTAS
 
-# DEPRECATED. Use the org option "project-abuse-quota.window" instead.
+# Example:
+# >>> org = Organization.objects.get(slug='foo')
+# >>> org.update_option("project-abuse-quota.transaction-limit", 42)
+# >>> for q in SubscriptionQuota()._get_abuse_quotas(org): print(q.to_json())
+# {'id': 'pat', 'scope': 'project', 'categories': ['transaction'], 'limit': 420, 'window': 10, 'reasonCode': 'project_abuse_limit'}
+# You can see that for this organization, 42 transactions per second
+# is effectively enforced as 420/s because the rate limiting window is 10 seconds.
+
+# DEPRECATED (only in use by getsentry).
+# Use "project-abuse-quota.window" instead.
 register("getsentry.rate-limit.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
-# DEPRECATED. Use the org option "project-abuse-quota.error-limit" instead.
+
+# Relay isn't effective at enforcing 1s windows - 10 seconds has worked well.
+# If the limit is negative, then it means completely blocked.
+# I don't see this value needing to be tweaked on a per-org basis,
+# so for now the org option "project-abuse-quota.window" doesn't do anything.
+register("project-abuse-quota.window", type=Int, default=10, flags=FLAG_PRIORITIZE_DISK)
+
+# DEPRECATED. Use "project-abuse-quota.error-limit" instead.
+# This is set to 0: don't limit by default, because it is configured in production.
+# The DEPRECATED org option override is "sentry:project-error-limit".
 register("getsentry.rate-limit.project-errors", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
-# DEPRECATED. Use the org option "project-abuse-quota.transaction-limit" instead.
+# DEPRECATED. Use "project-abuse-quota.transaction-limit" instead.
+# This is set to 0: don't limit by default, because it is configured in production.
+# The DEPRECATED org option override is "sentry:project-transaction-limit".
 register(
     "getsentry.rate-limit.project-transactions",
     type=Int,
     default=0,
     flags=FLAG_PRIORITIZE_DISK,
 )
+
+# These are set to 0: don't limit by default.
+# These have yet to be configured in production.
+# For errors and transactions, the above DEPRECATED options take
+# precedence for now, until we decide on values to set for all these.
+# Set the same key as an org option which will override these values for the org.
+# Similarly, for now, the DEPRECATED org options "sentry:project-error-limit"
+# and "sentry:project-transaction-limit" take precedence.
+register("project-abuse-quota.error-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.transaction-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.attachment-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+register("project-abuse-quota.session-limit", type=Int, default=0, flags=FLAG_PRIORITIZE_DISK)
+
+# END PROJECT ABUSE QUOTAS
 
 # Send event messages for specific project IDs to random partitions in Kafka
 # contents are a list of project IDs to message types to be randomly assigned
