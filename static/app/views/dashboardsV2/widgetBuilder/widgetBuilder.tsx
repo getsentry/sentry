@@ -277,6 +277,8 @@ function WidgetBuilder({
     }
 
     if (objectIsEmpty(customMeasurements)) {
+      // TODO: Need also refetch custom measurements when pageFilters change because list
+      // can change based on project, env, and timeframe.
       loadCustomMeasurements(api, organization.slug, selection);
     }
 
