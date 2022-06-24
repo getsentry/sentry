@@ -285,7 +285,7 @@ def test_process_messages(mock_indexer) -> None:
             KafkaPayload(
                 None,
                 json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                [],
+                [("metric_type", message_payloads[i]["type"])],
             ),
             m.timestamp,
         )
@@ -319,7 +319,7 @@ def test_transform_step(mock_indexer) -> None:
             KafkaPayload(
                 None,
                 json.dumps(__translated_payload(message_payloads[i])).encode("utf-8"),
-                [],
+                [("metric_type", message_payloads[i]["type"])],
             ),
             m.timestamp,
         )
@@ -433,7 +433,7 @@ def test_process_messages_invalid_messages(
             KafkaPayload(
                 None,
                 json.dumps(__translated_payload(counter_payload)).encode("utf-8"),
-                [],
+                [("metric_type", "c")],
             ),
             expected_msg.timestamp,
         )

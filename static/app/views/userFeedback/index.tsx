@@ -24,7 +24,7 @@ import {Organization, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import UserFeedbackEmpty from './userFeedbackEmpty';
+import {UserFeedbackEmpty} from './userFeedbackEmpty';
 import {getQuery} from './utils';
 
 type State = AsyncView['state'] & {

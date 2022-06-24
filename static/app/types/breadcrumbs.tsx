@@ -10,6 +10,7 @@ export enum BreadcrumbLevelType {
   INFO = 'info',
   DEBUG = 'debug',
   UNDEFINED = 'undefined',
+  LOG = 'log',
 }
 
 export enum BreadcrumbType {

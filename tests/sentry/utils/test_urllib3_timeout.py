@@ -28,7 +28,7 @@ def test_retries():
         connection=connection_mock,
         host="www.test.com",
         port=80,
-        retries=RetrySkipTimeout(total=5, method_whitelist={"GET", "POST"}),
+        retries=RetrySkipTimeout(total=5, allowed_methods={"GET", "POST"}),
         timeout=30,
         maxsize=10,
     )

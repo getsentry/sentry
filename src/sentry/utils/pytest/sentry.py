@@ -131,9 +131,6 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
-    if os.environ.get("DISABLE_TEST_SDK", False):
-        settings.SENTRY_SDK_CONFIG = {}
-
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
@@ -203,6 +200,7 @@ def pytest_configure(config):
     from sentry.runner.initializer import initialize_app
 
     initialize_app({"settings": settings, "options": None})
+    Hub.main.bind_client(None)
     register_extensions()
 
     from sentry.utils.redis import clusters
