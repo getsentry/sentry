@@ -910,7 +910,10 @@ def _raw_snql_query(
         referrer = headers.get("referer", "<unknown>")
         if SNUBA_INFO:
             import pprint
-            print(f"{referrer}.body:\n {pprint.pformat(request.to_dict())}")  # NOQA: only prints when an env variable is set
+
+            print(
+                f"{referrer}.body:\n {pprint.pformat(request.to_dict())}"
+            )  # NOQA: only prints when an env variable is set
             request.flags.debug = True
 
         with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
