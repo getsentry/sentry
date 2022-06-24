@@ -567,7 +567,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
             selected_columns=self.get_snql_aggregations(),
             params=params,
             offset=None,
-            limit=None,
             skip_time_conditions=True,
             granularity=self.get_granularity(),
         )
