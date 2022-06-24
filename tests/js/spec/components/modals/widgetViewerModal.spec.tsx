@@ -9,7 +9,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
   DisplayType,
   Widget,
@@ -44,10 +44,12 @@ async function renderModal({
   widget,
   seriesData,
   tableData,
+  issuesData,
   pageLinks,
 }: {
   initialData: any;
   widget: any;
+  issuesData?: TableDataRow[];
   pageLinks?: string;
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
@@ -67,6 +69,7 @@ async function renderModal({
           onEdit={() => undefined}
           seriesData={seriesData}
           tableData={tableData}
+          issuesData={issuesData}
           pageLinks={pageLinks}
         />
       </div>,
@@ -1090,8 +1093,7 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Open in Issues')).toBeInTheDocument();
     });
 
-    // eslint-disable-next-line
-    it.skip('renders events, status, and title table columns', async function () {
+    it('renders events, status, and title table columns', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('title')).toBeInTheDocument();
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
@@ -1125,20 +1127,18 @@ describe('Modals -> WidgetViewerModal', function () {
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: ['freq']};
-      await act(async () => {
-        await rerender(
-          <WidgetViewerModal
-            Header={stubEl}
-            Footer={stubEl as ModalRenderProps['Footer']}
-            Body={stubEl as ModalRenderProps['Body']}
-            CloseButton={stubEl}
-            closeModal={() => undefined}
-            organization={initialData.organization}
-            widget={mockWidget}
-            onEdit={() => undefined}
-          />
-        );
-      });
+      await rerender(
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={initialData.organization}
+          widget={mockWidget}
+          onEdit={() => undefined}
+        />
+      );
       expect(issuesMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
@@ -1162,8 +1162,7 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
 
-    // eslint-disable-next-line
-    it.skip('paginates to the next page', async function () {
+    it('paginates to the next page', async function () {
       const {rerender} = await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
       userEvent.click(screen.getByRole('button', {name: 'Next'}));
@@ -1199,8 +1198,8 @@ describe('Modals -> WidgetViewerModal', function () {
       });
     });
 
-    it('uses provided tableData and does not make an issues requests', async function () {
-      await renderModal({initialData, widget: mockWidget, tableData: []});
+    it('uses provided issuesData and does not make an issues requests', async function () {
+      await renderModal({initialData, widget: mockWidget, issuesData: []});
       expect(issuesMock).not.toHaveBeenCalled();
     });
 
@@ -1208,7 +1207,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({
         initialData,
         widget: mockWidget,
-        tableData: [],
+        issuesData: [],
       });
       expect(issuesMock).not.toHaveBeenCalled();
       userEvent.click(screen.getByText('events'));
@@ -1314,9 +1313,7 @@ describe('Modals -> WidgetViewerModal', function () {
     });
   });
 
-  // TODO(nar): Unskip as I add support
-  // eslint-disable-next-line
-  describe.skip('Release Health Widgets', function () {
+  describe('Release Health Widgets', function () {
     let metricsMock;
     const mockQuery = {
       conditions: '',
