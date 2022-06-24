@@ -485,7 +485,7 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
     // While we are not at the end and next sample is the same as current
     while (j < profile.samples.length && profile.samples[j + 1] === nodeId) {
       // Update the delta and advance j
-      delta += profile.timeDeltas[j + 1];
+      delta = Math.max(delta + profile.timeDeltas[j + 1], delta);
       j++;
     }
 
@@ -504,7 +504,7 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
       // If we have not skipped samples, then we just push the sample and the delta to the list
       samples.push(nodeId);
       sampleTimes.push(elapsed);
-      elapsed += profile.timeDeltas[i + 1];
+      elapsed = Math.max(elapsed + profile.timeDeltas[i + 1], elapsed);
     }
   }
   return {samples, sampleTimes};
