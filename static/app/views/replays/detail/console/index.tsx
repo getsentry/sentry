@@ -98,7 +98,7 @@ function Console({breadcrumbs, startTimestamp = 0}: Props) {
                 key={i}
                 isLast={i === breadcrumbs.length - 1}
                 breadcrumb={breadcrumb}
-                isEmitted={
+                hasOccurred={
                   currentTime >=
                   relativeTimeInMs(breadcrumb?.timestamp || '', startTimestamp)
                 }

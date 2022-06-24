@@ -77,15 +77,15 @@ function MessageFormatter({breadcrumb}: MessageFormatterProps) {
 }
 
 interface ConsoleMessageProps extends MessageFormatterProps {
+  hasOccurred: boolean;
   isActive: boolean;
-  isEmitted: boolean;
   isLast: boolean;
   startTimestamp: number;
 }
 function ConsoleMessage({
   breadcrumb,
   isActive = false,
-  isEmitted,
+  hasOccurred,
   isLast,
   startTimestamp = 0,
 }: ConsoleMessageProps) {
@@ -107,11 +107,11 @@ function ConsoleMessage({
         isLast={isLast}
         level={breadcrumb.level}
         isActive={isActive}
-        isEmitted={isEmitted}
+        hasOccurred={hasOccurred}
       >
         {ICONS[breadcrumb.level]}
       </Icon>
-      <Message isLast={isLast} level={breadcrumb.level} isEmitted={isEmitted}>
+      <Message isLast={isLast} level={breadcrumb.level} hasOccurred={hasOccurred}>
         <ErrorBoundary mini>
           <MessageFormatter breadcrumb={breadcrumb} />
         </ErrorBoundary>
@@ -134,14 +134,14 @@ function ConsoleMessage({
 const Common = styled('div')<{
   isLast: boolean;
   level: string;
-  isEmitted?: boolean;
+  hasOccurred?: boolean;
 }>`
   background-color: ${p =>
     ['warning', 'error'].includes(p.level)
       ? p.theme.alert[p.level].backgroundLight
       : 'inherit'};
-  color: ${({isEmitted = true, ...p}) => {
-    if (!isEmitted) {
+  color: ${({hasOccurred = true, ...p}) => {
+    if (!hasOccurred) {
       return p.theme.gray200;
     }
 
@@ -152,6 +152,7 @@ const Common = styled('div')<{
     return 'inherit';
   }};
   ${p => (!p.isLast ? `border-bottom: 1px solid ${p.theme.innerBorder}` : '')};
+  transition: color 0.5s ease;
 `;
 
 const ConsoleTimestamp = styled(Common)<{isLast: boolean; level: string}>`
