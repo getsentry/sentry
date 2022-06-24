@@ -17,6 +17,8 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {Crumb} from 'sentry/types/breadcrumbs';
+import {Event} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
 import createUrlToShare from 'sentry/utils/replays/createUrlToShare';
 
@@ -88,7 +90,7 @@ const HeaderPlaceholder = styled(function HeaderPlaceholder(
   background-color: ${p => p.theme.background};
 `;
 
-function EventHeader({event}: Pick<Props, 'event'>) {
+function EventHeader({event}: {event: Event | undefined}) {
   if (!event) {
     return <HeaderPlaceholder width="500px" height="48px" />;
   }
@@ -116,7 +118,13 @@ const MetaDataColumn = styled(Layout.HeaderActions)`
   width: 325px;
 `;
 
-function EventMetaData({event, crumbs}: Pick<Props, 'event' | 'crumbs'>) {
+function EventMetaData({
+  event,
+  crumbs,
+}: {
+  crumbs: Crumb[] | undefined;
+  event: Event | undefined;
+}) {
   const {duration} = useReplayContext();
 
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
