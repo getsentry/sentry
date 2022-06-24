@@ -183,6 +183,7 @@ class BaseAvatar extends Component<Props, State> {
         <Image
           round={round}
           src={this.buildUploadUrl()}
+          loading="lazy"
           {...eventProps}
           suggested={suggested}
           grayscale={suggested}
