@@ -9,7 +9,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Group, Organization, Project, UserReport} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
-import UserFeedbackEmpty from 'sentry/views/userFeedback/userFeedbackEmpty';
+import {UserFeedbackEmpty} from 'sentry/views/userFeedback/userFeedbackEmpty';
 
 import {fetchGroupUserReports} from './utils';
 
