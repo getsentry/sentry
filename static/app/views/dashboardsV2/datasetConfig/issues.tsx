@@ -65,9 +65,9 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
 
 function disableSortOptions(_widgetQuery: WidgetQuery) {
   return {
-    disabledSort: false,
-    disabledSortDirection: true,
-    disabledSortReason: t('Issues dataset does not yet support descending order'),
+    disableSort: false,
+    disableSortDirection: true,
+    disableSortReason: t('Issues dataset does not yet support descending order'),
   };
 }
 

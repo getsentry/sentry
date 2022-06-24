@@ -112,14 +112,14 @@ function disableSortOptions(widgetQuery: WidgetQuery) {
   const {columns} = widgetQuery;
   if (columns.includes('session.status')) {
     return {
-      disabledSort: true,
-      disabledSortDirection: true,
-      disabledSortReason: t('Sorting currently not supported with session.status'),
+      disableSort: true,
+      disableSortDirection: true,
+      disableSortReason: t('Sorting currently not supported with session.status'),
     };
   }
   return {
-    disabledSort: false,
-    disabledSortDirection: false,
+    disableSort: false,
+    disableSortDirection: false,
   };
 }
 

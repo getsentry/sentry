@@ -47,12 +47,12 @@ export function SortByStep({
 }: Props) {
   const datasetConfig = getDatasetConfig(widgetType);
 
-  let disabledSort = false;
-  let disabledSortDirection = false;
-  let disabledSortReason: string | undefined = undefined;
+  let disableSort = false;
+  let disableSortDirection = false;
+  let disableSortReason: string | undefined = undefined;
 
   if (datasetConfig.disableSortOptions) {
-    ({disabledSort, disabledSortDirection, disabledSortReason} =
+    ({disableSort, disableSortDirection, disableSortReason} =
       datasetConfig.disableSortOptions(queries[0]));
   }
 
@@ -109,9 +109,9 @@ export function SortByStep({
           displayType={displayType}
           widgetType={widgetType}
           hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
-          disabledSortReason={disabledSortReason}
-          disabledSort={disabledSort}
-          disabledSortDirection={disabledSortDirection}
+          disableSortReason={disableSortReason}
+          disableSort={disableSort}
+          disableSortDirection={disableSortDirection}
           widgetQuery={queries[0]}
           values={{
             sortDirection:

@@ -40,9 +40,9 @@ interface Props {
   values: Values;
   widgetQuery: WidgetQuery;
   widgetType: WidgetType;
-  disabledSort?: boolean;
-  disabledSortDirection?: boolean;
-  disabledSortReason?: string;
+  disableSort?: boolean;
+  disableSortDirection?: boolean;
+  disableSortReason?: string;
   hasGroupBy?: boolean;
 }
 
@@ -50,9 +50,9 @@ export function SortBySelectors({
   values,
   widgetType,
   onChange,
-  disabledSortReason,
-  disabledSort,
-  disabledSortDirection,
+  disableSortReason,
+  disableSort,
+  disableSortDirection,
   widgetQuery,
   displayType,
 }: Props) {
@@ -76,20 +76,17 @@ export function SortBySelectors({
   }, [values.sortBy, values.sortDirection]);
 
   return (
-    <Tooltip
-      title={disabledSortReason}
-      disabled={!(disabledSortDirection && disabledSort)}
-    >
+    <Tooltip title={disableSortReason} disabled={!(disableSortDirection && disableSort)}>
       <Wrapper>
         <Tooltip
-          title={disabledSortReason}
-          disabled={!disabledSortDirection || (disabledSortDirection && disabledSort)}
+          title={disableSortReason}
+          disabled={!disableSortDirection || (disableSortDirection && disableSort)}
         >
           <SelectControl
             name="sortDirection"
             aria-label="Sort direction"
             menuPlacement="auto"
-            disabled={disabledSortDirection}
+            disabled={disableSortDirection}
             options={Object.keys(sortDirections).map(value => ({
               label: sortDirections[value],
               value,
@@ -104,15 +101,15 @@ export function SortBySelectors({
           />
         </Tooltip>
         <Tooltip
-          title={disabledSortReason}
-          disabled={!disabledSort || (disabledSortDirection && disabledSort)}
+          title={disableSortReason}
+          disabled={!disableSort || (disableSortDirection && disableSort)}
         >
           {displayType === DisplayType.TABLE ? (
             <SelectControl
               name="sortBy"
               aria-label="Sort by"
               menuPlacement="auto"
-              disabled={disabledSort}
+              disabled={disableSort}
               placeholder={`${t('Select a column')}\u{2026}`}
               value={values.sortBy}
               options={uniqBy(
@@ -128,7 +125,7 @@ export function SortBySelectors({
             />
           ) : (
             <QueryField
-              disabled={disabledSort}
+              disabled={disableSort}
               fieldValue={
                 showCustomEquation
                   ? explodeField({field: CUSTOM_EQUATION_VALUE})

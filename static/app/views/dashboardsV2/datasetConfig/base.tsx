@@ -64,9 +64,9 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * optional message for why it is disabled.
    */
   disableSortOptions?: (widgetQuery: WidgetQuery) => {
-    disabledSort: boolean;
-    disabledSortDirection: boolean;
-    disabledSortReason?: string;
+    disableSort: boolean;
+    disableSortDirection: boolean;
+    disableSortReason?: string;
   };
   /**
    * Used for mapping column names to more desirable
