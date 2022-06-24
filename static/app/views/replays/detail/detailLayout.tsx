@@ -25,12 +25,14 @@ import createUrlToShare from 'sentry/utils/replays/createUrlToShare';
 type Props = {
   children: React.ReactNode;
   orgId: string;
-  crumbs?: Crumb[];
-  event?: Event;
 };
 
-function DetailLayout({children, event, orgId, crumbs}: Props) {
-  const {currentTime} = useReplayContext();
+function DetailLayout({children, orgId}: Props) {
+  const {currentTime, replay} = useReplayContext();
+
+  const event = replay?.getEvent();
+  const crumbs = replay?.getRawCrumbs();
+
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
   const urlToShare = useMemo(() => {
@@ -88,7 +90,7 @@ const HeaderPlaceholder = styled(function HeaderPlaceholder(
   background-color: ${p => p.theme.background};
 `;
 
-function EventHeader({event}: Pick<Props, 'event'>) {
+function EventHeader({event}: {event: Event | undefined}) {
   if (!event) {
     return <HeaderPlaceholder width="500px" height="48px" />;
   }
@@ -116,7 +118,13 @@ const MetaDataColumn = styled(Layout.HeaderActions)`
   width: 325px;
 `;
 
-function EventMetaData({event, crumbs}: Pick<Props, 'event' | 'crumbs'>) {
+function EventMetaData({
+  event,
+  crumbs,
+}: {
+  crumbs: Crumb[] | undefined;
+  event: Event | undefined;
+}) {
   const {duration} = useReplayContext();
 
   const errors = crumbs?.filter(crumb => crumb.type === 'error').length;
