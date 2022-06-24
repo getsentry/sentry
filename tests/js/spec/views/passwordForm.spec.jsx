@@ -10,16 +10,6 @@ describe('PasswordForm', function () {
   const currentPasswordLabel = 'Current PasswordYour current password';
   const newPasswordLabel = 'New Password';
   const verifyNewPasswordLabel = 'Verify New PasswordVerify your new password';
-  const context = TestStubs.routerContext([
-    {
-      router: {
-        ...TestStubs.router(),
-        params: {
-          authId: 15,
-        },
-      },
-    },
-  ]);
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -30,14 +20,14 @@ describe('PasswordForm', function () {
   });
 
   it('has 3 text inputs', function () {
-    render(<PasswordForm />, {context});
+    render(<PasswordForm />);
     expect(screen.getByLabelText(currentPasswordLabel)).toBeInTheDocument();
     expect(screen.getByLabelText(newPasswordLabel)).toBeInTheDocument();
     expect(screen.getByLabelText(verifyNewPasswordLabel)).toBeInTheDocument();
   });
 
   it('does not submit when any password field is empty', function () {
-    render(<PasswordForm />, {context});
+    render(<PasswordForm />);
     userEvent.type(screen.getByLabelText(currentPasswordLabel), 'test');
     userEvent.click(screen.getByRole('button', {name: 'Change password'}));
     expect(putMock).not.toHaveBeenCalled();
@@ -50,7 +40,7 @@ describe('PasswordForm', function () {
   });
 
   it('does not submit when new passwords do not match', function () {
-    render(<PasswordForm />, {context});
+    render(<PasswordForm />);
     userEvent.type(screen.getByLabelText(currentPasswordLabel), 'test');
     userEvent.type(screen.getByLabelText(newPasswordLabel), 'test');
     userEvent.type(screen.getByLabelText(verifyNewPasswordLabel), 'nottest');
@@ -59,7 +49,7 @@ describe('PasswordForm', function () {
   });
 
   it('calls API when all fields are validated and clears form on success', async function () {
-    render(<PasswordForm />, {context});
+    render(<PasswordForm />);
     userEvent.type(screen.getByLabelText(currentPasswordLabel), 'test');
     userEvent.type(screen.getByLabelText(newPasswordLabel), 'nottest');
     userEvent.type(screen.getByLabelText(verifyNewPasswordLabel), 'nottest');
@@ -82,7 +72,7 @@ describe('PasswordForm', function () {
   });
 
   it('validates mismatched passwords and remvoes validation on match', function () {
-    render(<PasswordForm />, {context});
+    render(<PasswordForm />);
     userEvent.type(screen.getByLabelText(currentPasswordLabel), 'test');
     userEvent.type(screen.getByLabelText(newPasswordLabel), 'nottest');
     userEvent.type(screen.getByLabelText(verifyNewPasswordLabel), 'nottest-mismatch');
