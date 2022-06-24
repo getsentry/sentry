@@ -21,6 +21,7 @@ class SafeConnectionMixin:
     to override `_new_conn` with the ability to create our own socket.
     """
 
+    # urllib3.connection.HTTPConnection.host
     # These `host` properties need rebound otherwise `self._dns_host` doesn't
     # get set correctly.
     @property
@@ -49,7 +50,7 @@ class SafeConnectionMixin:
         """
         self._dns_host = value
 
-    # Mostly yanked from https://github.com/urllib3/urllib3/blob/1.22/urllib3/connection.py#L127
+    # urllib3.connection.HTTPConnection._new_conn
     def _new_conn(self):
         """Establish a socket connection and set nodelay settings on it.
         :return: New socket connection.
@@ -62,9 +63,9 @@ class SafeConnectionMixin:
             extra_kw["socket_options"] = self.socket_options
 
         try:
-            # HACK(mattrobenolt): All of this is to replace this one line
-            # to establish our own connection.
+            # Begin custom code.
             conn = safe_create_connection((self._dns_host, self.port), self.timeout, **extra_kw)
+            # End custom code.
 
         except SocketTimeout:
             raise ConnectTimeoutError(
@@ -73,7 +74,7 @@ class SafeConnectionMixin:
             )
 
         except SocketError as e:
-            raise NewConnectionError(self, "Failed to establish a new connection: %s" % e)
+            raise NewConnectionError(self, f"Failed to establish a new connection: {e}")
 
         return conn
 
@@ -119,9 +120,15 @@ class BlacklistAdapter(HTTPAdapter):
         self._pool_connections = connections
         self._pool_maxsize = maxsize
         self._pool_block = block
+        # Begin custom code.
         self.poolmanager = SafePoolManager(
-            num_pools=connections, maxsize=maxsize, block=block, strict=True, **pool_kwargs
+            num_pools=connections,
+            maxsize=maxsize,
+            block=block,
+            strict=True,
+            **pool_kwargs,
         )
+        # End custom code.
 
 
 class TimeoutAdapter(HTTPAdapter):

@@ -643,7 +643,7 @@ CELERY_QUEUES = [
     Queue("merge", routing_key="merge"),
     Queue("options", routing_key="options"),
     Queue("relay_config", routing_key="relay_config"),
-    Queue("relay_config_check", routing_key="relay_config_check"),
+    Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
@@ -2670,3 +2670,8 @@ ENABLE_ANALYTICS = False
 
 MAX_ISSUE_ALERTS_PER_PROJECT = 100
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
+
+MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
+
+SNOWFLAKE_VERSION_ID = 1
+SNOWFLAKE_REGION_ID = 0
