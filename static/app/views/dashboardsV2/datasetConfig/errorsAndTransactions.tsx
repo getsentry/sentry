@@ -39,6 +39,7 @@ import {
 } from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
+import {FieldValueOption} from 'sentry/views/eventsV2/table/queryField';
 import {FieldValue, FieldValueKind} from 'sentry/views/eventsV2/table/types';
 import {generateFieldOptions} from 'sentry/views/eventsV2/utils';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
@@ -78,6 +79,7 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: EventsSearchBar,
+  filterSeriesSortOptions,
   getTableFieldOptions: getEventsTableFieldOptions,
   getTimeseriesSortOptions,
   getTableSortOptions,
@@ -162,6 +164,22 @@ function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQue
     });
 
   return options;
+}
+
+function filterSeriesSortOptions(columns: Set<string>) {
+  return (option: FieldValueOption) => {
+    if (
+      option.value.kind === FieldValueKind.FUNCTION ||
+      option.value.kind === FieldValueKind.EQUATION
+    ) {
+      return true;
+    }
+
+    return (
+      columns.has(option.value.meta.name) ||
+      option.value.meta.name === CUSTOM_EQUATION_VALUE
+    );
+  };
 }
 
 function getTimeseriesSortOptions(

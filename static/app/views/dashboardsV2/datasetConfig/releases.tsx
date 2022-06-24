@@ -94,7 +94,7 @@ export const ReleasesConfig: DatasetConfig<
     generateReleaseWidgetFieldOptions([] as SessionsMeta[], SESSIONS_TAGS),
   handleColumnFieldChangeOverride,
   handleOrderByReset: handleReleasesTableOrderByReset,
-  filterSeriesSortOptions: filterReleaseOptions,
+  filterSeriesSortOptions,
   supportedDisplayTypes: [
     DisplayType.AREA,
     DisplayType.BAR,
@@ -144,7 +144,7 @@ function getTimeseriesSortOptions(_organization: Organization, widgetQuery: Widg
   return options;
 }
 
-function filterReleaseOptions(columns: Set<string>) {
+function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
       return false;

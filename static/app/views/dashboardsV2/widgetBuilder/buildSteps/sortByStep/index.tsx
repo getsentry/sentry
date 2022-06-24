@@ -2,21 +2,17 @@ import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import trimStart from 'lodash/trimStart';
 
-import {generateOrderOptions} from 'sentry/components/dashboards/widgetQueriesForm';
 import Field from 'sentry/components/forms/field';
 import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue, TagCollection} from 'sentry/types';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {generateIssueWidgetOrderOptions} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/utils';
 import {
   DataSet,
-  filterPrimaryOptions as filterReleaseSortOptions,
   getResultsLimit,
   SortDirection,
 } from 'sentry/views/dashboardsV2/widgetBuilder/utils';
-import {FieldValueKind} from 'sentry/views/eventsV2/table/types';
 
 import {BuildStep} from '../buildStep';
 
@@ -42,9 +38,7 @@ export function SortByStep({
   displayType,
   onSortByChange,
   queries,
-  dataSet,
   widgetType,
-  organization,
   error,
   limit,
   onLimitChange,
@@ -86,38 +80,6 @@ export function SortByStep({
     }
   }, [limit, maxLimit, onLimitChange]);
 
-  const columnSet = new Set(queries[0].columns);
-  const filterDiscoverOptions = option => {
-    if (
-      option.value.kind === FieldValueKind.FUNCTION ||
-      option.value.kind === FieldValueKind.EQUATION
-    ) {
-      return true;
-    }
-
-    return (
-      columnSet.has(option.value.meta.name) ||
-      option.value.meta.name === CUSTOM_EQUATION_VALUE
-    );
-  };
-
-  const filterReleaseOptions = option => {
-    if (['count_healthy', 'count_errored'].includes(option.value.meta.name)) {
-      return false;
-    }
-    if (option.value.kind === FieldValueKind.FIELD) {
-      // Only allow sorting by release tag
-      return (
-        columnSet.has(option.value.meta.name) && option.value.meta.name === 'release'
-      );
-    }
-    return filterReleaseSortOptions({
-      option,
-      widgetType,
-      displayType: DisplayType.TABLE,
-    });
-  };
-
   return (
     <BuildStep
       title={
@@ -156,18 +118,6 @@ export function SortByStep({
           disabledSort={disabledSort}
           disabledSortDirection={disabledSortDirection}
           widgetQuery={queries[0]}
-          sortByOptions={
-            dataSet === DataSet.ISSUES
-              ? generateIssueWidgetOrderOptions(
-                  organization.features.includes('issue-list-trend-sort')
-                )
-              : generateOrderOptions({
-                  widgetType,
-                  widgetBuilderNewDesign: true,
-                  columns: queries[0].columns,
-                  aggregates: queries[0].aggregates,
-                })
-          }
           values={{
             sortDirection:
               orderBy[0] === '-' ? SortDirection.HIGH_TO_LOW : SortDirection.LOW_TO_HIGH,
@@ -179,9 +129,6 @@ export function SortByStep({
             onSortByChange(newOrderBy);
           }}
           tags={tags}
-          filterPrimaryOptions={
-            dataSet === DataSet.RELEASES ? filterReleaseOptions : filterDiscoverOptions
-          }
         />
       </Field>
     </BuildStep>
