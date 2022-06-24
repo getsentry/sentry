@@ -391,7 +391,7 @@ class AbstractIntegrationDetailedView<
 
 const Flex = styled('div')`
   display: flex;
-  align-items: flex-start;
+  align-items: center;
 `;
 
 const FlexContainer = styled('div')`
@@ -458,10 +458,11 @@ const Metadata = styled(Flex)`
   display: grid;
   grid-auto-rows: max-content;
   grid-auto-flow: row;
-  gap: ${space(2)};
+  gap: ${space(1)};
   font-size: 0.9em;
   margin-left: ${space(4)};
   margin-right: 100px;
+  align-self: flex-start;
 `;
 
 const AuthorInfo = styled('div')`
