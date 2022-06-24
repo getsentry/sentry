@@ -6,8 +6,6 @@ import Teams from 'sentry/utils/teams';
 describe('utils.teams', function () {
   const renderer = jest.fn(() => null);
 
-  const createWrapper = props => render(<Teams {...props}>{renderer}</Teams>);
-
   beforeEach(function () {
     TeamStore.loadInitialData([
       TestStubs.Team({id: '1', slug: 'bar'}),
@@ -21,7 +19,8 @@ describe('utils.teams', function () {
   });
 
   it('sends projects to children', function () {
-    createWrapper();
+    render(<Teams>{renderer}</Teams>);
+
     expect(renderer).toHaveBeenCalledWith(
       expect.objectContaining({
         fetching: false,
