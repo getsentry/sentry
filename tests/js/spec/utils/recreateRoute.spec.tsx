@@ -26,6 +26,7 @@ const params = {
 };
 
 const location = {
+  ...TestStubs.location(),
   search: '',
 };
 
@@ -81,6 +82,7 @@ describe('recreateRoute', function () {
 
   it('maintains the query string', function () {
     const withSearch = {
+      ...TestStubs.location(),
       search: '?key1=foo&key2=bar',
     };
 

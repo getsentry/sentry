@@ -1,19 +1,21 @@
+import {initializeOrg} from 'sentry-test/initializeOrg';
+
 import {_debouncedLoadStats} from 'sentry/actionCreators/projects';
 import {Client} from 'sentry/api';
 
 describe('Projects ActionCreators', function () {
   const api = new Client();
-  const organization = TestStubs.Organization();
-  let mock;
+  const {organization, project} = initializeOrg();
 
   it('loadStatsForProject', function () {
     jest.useFakeTimers();
-    mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
     });
     expect(mock).not.toHaveBeenCalled();
 
-    _debouncedLoadStats(api, new Set([...Array(50)].map((_, i) => i)), {
+    _debouncedLoadStats(api, new Set([...Array(50)].map((_, i) => String(i))), {
+      projectId: project.id,
       orgId: organization.slug,
     });
 
@@ -31,12 +33,13 @@ describe('Projects ActionCreators', function () {
 
   it('loadStatsForProject() with additional query', function () {
     jest.useFakeTimers();
-    mock = MockApiClient.addMockResponse({
+    const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
     });
     expect(mock).not.toHaveBeenCalled();
 
-    _debouncedLoadStats(api, new Set([1, 2, 3]), {
+    _debouncedLoadStats(api, new Set(['1', '2', '3']), {
+      projectId: project.id,
       orgId: organization.slug,
       query: {transactionStats: '1'},
     });

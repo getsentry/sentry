@@ -70,7 +70,8 @@ describe('NoProjectMessage', function () {
     ProjectsStore.loadInitialData([
       TestStubs.Project({hasAccess: true, isMember: false}),
     ]);
-    ConfigStore.config.user = {isSuperuser: true};
+
+    ConfigStore.set('user', {...ConfigStore.get('user'), isSuperuser: true});
 
     render(
       <NoProjectMessage organization={org} superuserNeedsToBeProjectMember>
