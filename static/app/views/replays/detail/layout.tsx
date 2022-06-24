@@ -1,4 +1,4 @@
-import ResizePanel from 'react-resize-panel';
+import BaseResizePanel from 'react-resize-panel';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -6,6 +6,7 @@ import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline
 import ReplayView from 'sentry/components/replays/replayView';
 import space from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
+import theme from 'sentry/utils/theme';
 
 import Breadcrumbs from './breadcrumbs';
 import FocusArea from './focusArea';
@@ -14,62 +15,48 @@ import FocusTabs from './focusTabs';
 type Layout =
   /**
    * ### Sidebar
-   * ┌─────────────────────────┐
-   * │ Timeline                │
-   * ├──────────────┬──────────┤
-   * │ Details      > Crumbs   │
-   * │              >          │
-   * │              >          │
-   * │              >          │
-   * │              >          │
-   * └──────────────┴──────────┘
-   * ### Sidebar + video=hide
-   * ┌─────────────────────────┐
-   * │ Timeline                │
-   * ├──────────────┬──────────┤
-   * │ Details      > Video    │
-   * │              >          │
-   * │              >─^^^^^^^^^┤
-   * │              > Crumbs   │
-   * │              >          │
-   * └──────────────┴──────────┘
+   * ┌───────────────────┐
+   * │ Timeline          │
+   * ├──────────┬────────┤
+   * │ Details  > Video  │
+   * │          >        │
+   * │          >^^^^^^^^┤
+   * │          > Crumbs │
+   * │          >        │
+   * └──────────┴────────┘
    */
   | 'sidebar'
   /**
    * ### Topbar
-   *┌──────────────────────────┐
-   *│ Timeline                 │
-   *├────────────┬─────────────┤
-   *│ Video      │ Breadcrumbs │
-   *│            │             │
-   *├^^^^^^^^^^^^^^^^^^^^^^^^^^┤
-   *│ Details                  │
-   *│                          │
-   *└──────────────────────────┘
-   *### Topbar + video=hide
-   *┌──────────────────────────┐
-   *│ Timeline                 │
-   *│                          │
-   *├──────────────────────────┤
-   *│ Breadcrumbs              │
-   *├^^^^^^^^^^^^^^^^^^^^^^^^^^┤
-   *│ Details                  │
-   *│                          │
-   *└──────────────────────────┘
+   *┌────────────────────┐
+   *│ Timeline           │
+   *├───────────┬────────┤
+   *│ Video     │ Crumbs │
+   *│           │        │
+   *├^^^^^^^^^^^^^^^^^^^^┤
+   *│ Details            │
+   *│                    │
+   *└────────────────────┘
    */
   | 'topbar';
 
+const GrabberColor = encodeURIComponent(theme.gray300);
+const GrabberSVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='${GrabberColor}' height='16px' width='16px'%3E%3Ccircle cx='4.73' cy='8' r='1.31'%3E%3C/circle%3E%3Ccircle cx='4.73' cy='1.31' r='1.31'%3E%3C/circle%3E%3Ccircle cx='11.27' cy='8' r='1.31'%3E%3C/circle%3E%3Ccircle cx='11.27' cy='1.31' r='1.31'%3E%3C/circle%3E%3Ccircle cx='4.73' cy='14.69' r='1.31'%3E%3C/circle%3E%3Ccircle cx='11.27' cy='14.69' r='1.31'%3E%3C/circle%3E%3C/svg%3E")`;
+
 const SIDEBAR_MIN_WIDTH = 325;
 const TOPBAR_MIN_HEIGHT = 325;
+
+type ResizePanelProps = {
+  direction: 'n' | 'e' | 's' | 'w';
+  minHeight?: number;
+  minWidth?: number;
+};
 
 type Props = {
   layout: Layout;
   showCrumbs?: boolean;
   showTimeline?: boolean;
   showVideo?: boolean;
-  // eventSlug: string;
-  // orgId: string;
-  // event?: Event;
 };
 
 function ReplayLayout({
@@ -154,10 +141,68 @@ const Container = styled('div')`
   display: flex;
   flex-flow: nowrap column;
   overflow: hidden;
+  padding: ${space(2)};
 
-  padding: ${space(2)} ${space(2)} 0 ${space(2)};
-  margin-bottom: ${space(2)};
-  gap: ${space(2)};
+  .resizeWidthBar {
+    cursor: ew-resize;
+    height: 100%;
+    width: ${space(2)};
+  }
+
+  .resizeHeightBar {
+    cursor: ns-resize;
+    height: ${space(2)};
+    width: 100%;
+  }
+
+  .resizeWidthBar,
+  .resizeHeightBar {
+    background: transparent;
+    display: flex;
+    align-items: center;
+    align-content: center;
+    justify-content: center;
+  }
+  .resizeWidthBar:hover,
+  .resizeHeightBar:hover {
+    background: ${p => p.theme.hover};
+  }
+
+  .resizeWidthHandle {
+    height: ${space(3)};
+    width: ${space(2)};
+  }
+
+  .resizeHeightHandle {
+    height: ${space(2)};
+    width: ${space(3)};
+    transform: rotate(90deg);
+  }
+
+  .resizeWidthHandle > span,
+  .resizeHeightHandle > span {
+    display: block;
+    background: transparent ${GrabberSVG} center center no-repeat;
+    width: 100%;
+    height: 100%;
+  }
+`;
+
+const ResizePanel = styled(({direction, ...props}: ResizePanelProps) => {
+  const movesUpDown = ['n', 's'].includes(direction);
+  const borderClass = movesUpDown ? 'resizeHeightBar' : 'resizeWidthBar';
+  const handleClass = movesUpDown ? 'resizeHeightHandle' : 'resizeWidthHandle';
+
+  return (
+    <BaseResizePanel
+      direction={direction}
+      {...props}
+      borderClass={borderClass}
+      handleClass={handleClass}
+    />
+  );
+})`
+  position: relative;
 `;
 
 const PageColumn = styled('section')`
@@ -165,7 +210,6 @@ const PageColumn = styled('section')`
   flex-grow: 1;
   flex-wrap: nowrap;
   flex-direction: column;
-  gap: ${space(2)};
 `;
 
 const PageRow = styled(PageColumn)`
@@ -174,9 +218,6 @@ const PageRow = styled(PageColumn)`
 
 const TimelineSection = styled(PageColumn)`
   flex-grow: 0;
-
-  /* TODO(replay): Remove the bottom-margin from the <Panel> inside <ReplayTimeline> */
-  margin-bottom: -${space(1)};
 `;
 
 const ContentSection = styled(PageColumn)`
@@ -203,6 +244,7 @@ const TopbarSection = styled(PageRow)`
 
   ${BreadcrumbSection} {
     max-width: 325px;
+    margin-left: ${space(2)};
   }
 `;
 
