@@ -62,6 +62,7 @@ import WidgetCardChart, {
 import GenericWidgetQueries, {
   GenericWidgetQueriesProps,
 } from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
+import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
@@ -158,6 +159,7 @@ function WidgetViewerModal(props: Props) {
     params,
     seriesData,
     tableData,
+    issuesData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
   } = props;
@@ -503,8 +505,8 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderIssuesTable: GenericWidgetQueriesProps['children'] = ({
-    tableResults,
+  const renderIssuesTable: IssueWidgetQueries['props']['children'] = ({
+    transformedResults,
     loading,
     pageLinks,
     totalCount,
@@ -517,7 +519,7 @@ function WidgetViewerModal(props: Props) {
       <Fragment>
         <GridEditable
           isLoading={loading}
-          data={tableResults?.[0]?.data ?? []}
+          data={transformedResults}
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
@@ -689,9 +691,9 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewerTable() {
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+        if (issuesData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderIssuesTable({
-            tableResults: tableData,
+            transformedResults: issuesData,
             loading: false,
             errorMessage: undefined,
             pageLinks: defaultPageLinks,
@@ -699,7 +701,7 @@ function WidgetViewerModal(props: Props) {
           });
         }
         return (
-          <GenericWidgetQueries
+          <IssueWidgetQueries
             api={api}
             organization={organization}
             widget={tableWidget}
@@ -712,7 +714,7 @@ function WidgetViewerModal(props: Props) {
             cursor={cursor}
           >
             {renderIssuesTable}
-          </GenericWidgetQueries>
+          </IssueWidgetQueries>
         );
       case WidgetType.RELEASE:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
@@ -1064,7 +1066,6 @@ const ResultsContainer = styled('div')`
   flex-grow: 1;
   flex-direction: column;
   gap: ${space(1)};
-
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     align-items: center;
     flex-direction: row;

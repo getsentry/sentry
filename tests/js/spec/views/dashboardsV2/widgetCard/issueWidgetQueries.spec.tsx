@@ -1,8 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import GenericWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
+import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 
 describe('IssueWidgetQueries', function () {
   it('does an issue query and passes correct transformedResults to child component', async function () {
@@ -11,7 +11,7 @@ describe('IssueWidgetQueries', function () {
     } as Parameters<typeof initializeOrg>[0]);
     const api = new MockApiClient();
     const mockFunction = jest.fn(() => {
-      return <div data-test-id="child" />;
+      return <div />;
     });
 
     MockApiClient.clearMockResponses();
@@ -58,7 +58,7 @@ describe('IssueWidgetQueries', function () {
     };
 
     render(
-      <GenericWidgetQueries
+      <IssueWidgetQueries
         api={api}
         organization={organization}
         widget={widget}
@@ -74,26 +74,22 @@ describe('IssueWidgetQueries', function () {
         }}
       >
         {mockFunction}
-      </GenericWidgetQueries>
+      </IssueWidgetQueries>
     );
 
-    await screen.findByTestId('child');
+    await tick();
     expect(mockFunction).toHaveBeenCalledWith(
       expect.objectContaining({
-        tableResults: [
+        transformedResults: [
           expect.objectContaining({
-            data: [
-              expect.objectContaining({
-                id: '1',
-                title: 'Error: Failed',
-                status: 'unresolved',
-                lifetimeEvents: 10,
-                lifetimeUsers: 5,
-                events: 6,
-                users: 3,
-                firstSeen: '2022-01-01T13:04:02Z',
-              }),
-            ],
+            id: '1',
+            title: 'Error: Failed',
+            status: 'unresolved',
+            lifetimeEvents: 10,
+            lifetimeUsers: 5,
+            events: 6,
+            users: 3,
+            firstSeen: '2022-01-01T13:04:02Z',
           }),
         ],
       })
