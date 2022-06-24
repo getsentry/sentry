@@ -62,7 +62,6 @@ import WidgetCardChart, {
 import GenericWidgetQueries, {
   GenericWidgetQueriesProps,
 } from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
-import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
 import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
@@ -159,7 +158,6 @@ function WidgetViewerModal(props: Props) {
     params,
     seriesData,
     tableData,
-    issuesData,
     totalIssuesCount,
     pageLinks: defaultPageLinks,
   } = props;
@@ -505,8 +503,8 @@ function WidgetViewerModal(props: Props) {
     );
   };
 
-  const renderIssuesTable: IssueWidgetQueries['props']['children'] = ({
-    transformedResults,
+  const renderIssuesTable: GenericWidgetQueriesProps['children'] = ({
+    tableResults,
     loading,
     pageLinks,
     totalCount,
@@ -519,7 +517,7 @@ function WidgetViewerModal(props: Props) {
       <Fragment>
         <GridEditable
           isLoading={loading}
-          data={transformedResults}
+          data={tableResults?.[0]?.data ?? []}
           columnOrder={columnOrder}
           columnSortBy={columnSortBy}
           grid={{
@@ -691,9 +689,9 @@ function WidgetViewerModal(props: Props) {
   function renderWidgetViewerTable() {
     switch (widget.widgetType) {
       case WidgetType.ISSUE:
-        if (issuesData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
+        if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {
           return renderIssuesTable({
-            transformedResults: issuesData,
+            tableResults: tableData,
             loading: false,
             errorMessage: undefined,
             pageLinks: defaultPageLinks,

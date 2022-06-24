@@ -9,7 +9,7 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import space from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
-import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {
   DisplayType,
   Widget,
@@ -44,12 +44,10 @@ async function renderModal({
   widget,
   seriesData,
   tableData,
-  issuesData,
   pageLinks,
 }: {
   initialData: any;
   widget: any;
-  issuesData?: TableDataRow[];
   pageLinks?: string;
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
@@ -69,7 +67,6 @@ async function renderModal({
           onEdit={() => undefined}
           seriesData={seriesData}
           tableData={tableData}
-          issuesData={issuesData}
           pageLinks={pageLinks}
         />
       </div>,
@@ -1202,8 +1199,8 @@ describe('Modals -> WidgetViewerModal', function () {
       });
     });
 
-    it('uses provided issuesData and does not make an issues requests', async function () {
-      await renderModal({initialData, widget: mockWidget, issuesData: []});
+    it('uses provided tableData and does not make an issues requests', async function () {
+      await renderModal({initialData, widget: mockWidget, tableData: []});
       expect(issuesMock).not.toHaveBeenCalled();
     });
 
@@ -1211,7 +1208,7 @@ describe('Modals -> WidgetViewerModal', function () {
       await renderModal({
         initialData,
         widget: mockWidget,
-        issuesData: [],
+        tableData: [],
       });
       expect(issuesMock).not.toHaveBeenCalled();
       userEvent.click(screen.getByText('events'));
