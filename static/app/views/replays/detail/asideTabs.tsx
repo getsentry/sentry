@@ -15,24 +15,24 @@ type Props = {
 
 const TABS = [t('Breadcrumbs'), t('Tags')];
 
+const renderTabContent = (key: string, loadedReplay: ReplayReader) => {
+  switch (key) {
+    case 'breadcrumbs':
+      return (
+        <Breadcrumbs
+          crumbs={loadedReplay.getRawCrumbs()}
+          event={loadedReplay.getEvent()}
+        />
+      );
+    case 'tags':
+      return <TagPanel replay={loadedReplay} />;
+    default:
+      throw new Error('Sidebar tab not found');
+  }
+};
+
 function TabbedAside({replay}: Props) {
   const [active, setActive] = useState<string>(TABS[0].toLowerCase());
-
-  const renderTab = (key: string, loadedReplay: ReplayReader) => {
-    switch (key) {
-      case 'breadcrumbs':
-        return (
-          <Breadcrumbs
-            crumbs={loadedReplay.getRawCrumbs()}
-            event={loadedReplay.getEvent()}
-          />
-        );
-      case 'tags':
-        return <TagPanel replay={loadedReplay} />;
-      default:
-        throw new Error('Sidebar tab not found');
-    }
-  };
 
   return (
     <Container>
@@ -46,7 +46,7 @@ function TabbedAside({replay}: Props) {
           );
         })}
       </NavTabs>
-      {replay ? renderTab(active, replay) : <Placeholder height="100%" />}
+      {replay ? renderTabContent(active, replay) : <Placeholder height="100%" />}
     </Container>
   );
 }
