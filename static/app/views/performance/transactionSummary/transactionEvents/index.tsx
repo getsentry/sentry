@@ -68,7 +68,11 @@ function EventsContentWrapper(props: ChildProps) {
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
   const webVital = getWebVital(location);
 
+  const totalEventsView = eventView.clone();
   const percentilesView = getPercentilesEventView(eventView);
+
+  totalEventsView.sorts = [];
+  totalEventsView.fields = [{field: 'count()', width: -1}];
 
   const getFilteredEventView = (percentiles: PercentileValues) => {
     const filter = getEventsFilterOptions(spanOperationBreakdownFilter, percentiles)[
@@ -148,39 +152,59 @@ function EventsContentWrapper(props: ChildProps) {
 
   return (
     <DiscoverQuery
-      eventView={percentilesView}
+      eventView={totalEventsView}
       orgSlug={organization.slug}
       location={location}
-      referrer="api.performance.transaction-events"
+      setError={error => setError(error?.message)}
+      referrer="api.performance.transaction-summary"
+      cursor="0:0:0"
       useEvents
     >
-      {({isLoading, tableData}) => {
-        if (isLoading) {
-          return (
-            <Layout.Main fullWidth>
-              <LoadingIndicator />
-            </Layout.Main>
-          );
-        }
-
-        const percentiles: PercentileValues = tableData
-          ?.data?.[0] as any as PercentileValues;
-        const filteredEventView = getFilteredEventView(percentiles);
+      {({isLoading: isTotalEventsLoading, tableData: table}) => {
+        const totalEventCount: string =
+          table?.data[0]?.['count()']?.toLocaleString() || '';
 
         return (
-          <EventsContent
+          <DiscoverQuery
+            eventView={percentilesView}
+            orgSlug={organization.slug}
             location={location}
-            organization={organization}
-            eventView={filteredEventView}
-            transactionName={transactionName}
-            spanOperationBreakdownFilter={spanOperationBreakdownFilter}
-            onChangeSpanOperationBreakdownFilter={onChangeSpanOperationBreakdownFilter}
-            eventsDisplayFilterName={eventsDisplayFilterName}
-            onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
-            percentileValues={percentiles}
-            webVital={webVital}
-            setError={setError}
-          />
+            referrer="api.performance.transaction-events"
+            useEvents
+          >
+            {({isLoading, tableData}) => {
+              if (isTotalEventsLoading || isLoading) {
+                return (
+                  <Layout.Main fullWidth>
+                    <LoadingIndicator />
+                  </Layout.Main>
+                );
+              }
+
+              const percentiles: PercentileValues = tableData
+                ?.data?.[0] as any as PercentileValues;
+              const filteredEventView = getFilteredEventView(percentiles);
+
+              return (
+                <EventsContent
+                  totalEventCount={totalEventCount}
+                  location={location}
+                  organization={organization}
+                  eventView={filteredEventView}
+                  transactionName={transactionName}
+                  spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+                  onChangeSpanOperationBreakdownFilter={
+                    onChangeSpanOperationBreakdownFilter
+                  }
+                  eventsDisplayFilterName={eventsDisplayFilterName}
+                  onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
+                  percentileValues={percentiles}
+                  webVital={webVital}
+                  setError={setError}
+                />
+              );
+            }}
+          </DiscoverQuery>
         );
       }}
     </DiscoverQuery>

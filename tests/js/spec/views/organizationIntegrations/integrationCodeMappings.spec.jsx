@@ -147,7 +147,7 @@ describe('IntegrationCodeMappings', function () {
     const modal = await mountGlobalModal();
 
     selectByValue(modal, projects[1].id, {control: true, name: 'projectId'});
-    selectByValue(modal, repos[1].id, {name: 'repositoryId'});
+    selectByValue(modal, repos[1].id, {control: true, name: 'repositoryId'});
 
     modal
       .find('input[name="stackRoot"]')

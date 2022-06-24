@@ -340,7 +340,7 @@ _snuba_pool = connection_from_url(
         # automatically retry most requests. Some of our POSTs and all of our DELETEs
         # do cause mutations, but we have other things in place to handle duplicate
         # mutations.
-        method_whitelist={"GET", "POST", "DELETE"},
+        allowed_methods={"GET", "POST", "DELETE"},
     ),
     timeout=settings.SENTRY_SNUBA_TIMEOUT,
     maxsize=10,
