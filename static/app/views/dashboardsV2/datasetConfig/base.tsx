@@ -64,15 +64,19 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
    * values in tables.
    */
   fieldHeaderMap?: Record<string, string>;
+  /**
+   * Filter the options available to the parameters list
+   * of an aggregate function in QueryField component on the
+   * Widget Builder.
+   */
+  filterAggregateParams?: (option: FieldValueOption) => boolean;
+  /**
+   * Refine the options available in the sort options for timeseries
+   * displays on the 'Sort by' step of the Widget Builder.
+   */
   filterSeriesSortOptions?: (
     columns: Set<string>
   ) => (option: FieldValueOption) => boolean;
-  /**
-   * Filter the options available to the parameters list
-   * of an aggregate function in a table widget column on the
-   * Widget Builder.
-   */
-  filterTableAggregateParams?: (option: FieldValueOption) => boolean;
   /**
    * Filter the primary options available in a table widget
    * columns on the Widget Builder.
@@ -118,10 +122,18 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     cursor?: string,
     referrer?: string
   ) => ReturnType<Client['requestPromise']>;
+  /**
+   * Generate the list of sort options for table
+   * displays on the 'Sort by' step of the Widget Builder.
+   */
   getTableSortOptions?: (
     organization: Organization,
     widgetQuery: WidgetQuery
   ) => SelectValue<string>[];
+  /**
+   * Generate the list of sort options for timeseries
+   * displays on the 'Sort by' step of the Widget Builder.
+   */
   getTimeseriesSortOptions?: (
     organization: Organization,
     widgetQuery: WidgetQuery,

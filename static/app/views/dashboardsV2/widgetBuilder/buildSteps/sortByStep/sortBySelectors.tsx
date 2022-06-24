@@ -140,7 +140,7 @@ export function SortBySelectors({
                   ? datasetConfig.filterSeriesSortOptions(columnSet)
                   : undefined
               }
-              filterAggregateParameters={datasetConfig.filterTableAggregateParams}
+              filterAggregateParameters={datasetConfig.filterAggregateParams}
               onChange={value => {
                 if (value.alias && isEquationAlias(value.alias)) {
                   onChange({

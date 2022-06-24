@@ -86,7 +86,7 @@ export const ReleasesConfig: DatasetConfig<
   getTableSortOptions,
   getTimeseriesSortOptions,
   filterTableOptions: filterPrimaryReleaseTableOptions,
-  filterTableAggregateParams: filterAggregateParams,
+  filterAggregateParams,
   getCustomFieldRenderer: (field, meta) => getFieldRenderer(field, meta, false),
   SearchBar: ReleaseSearchBar,
   getTableFieldOptions: getReleasesTableFieldOptions,
