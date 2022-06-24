@@ -269,8 +269,21 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
 
     # commit_author_id : Author
     author_users: Mapping[str, Author] = get_users_for_commits(commits)
+
+    # XXX(gilbert): this is inefficient since this evaluates flagr once per user
+    # it should be ok since this method should only be called for projects within sentry
+    # do not copy this unless you know the risk; you've been warned!
     return list(
-        User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
+        filter(
+            lambda u: features.has(
+                "organizations:active-release-notification-opt-in", project.organization, actor=u
+            ),
+            list(
+                User.objects.filter(
+                    id__in={au["id"] for au in author_users.values() if au.get("id")}
+                )
+            ),
+        )
     )
 
 
