@@ -11,20 +11,17 @@ from sentry.rules.conditions.base import EventCondition
 
 
 def _get_release(event: Event) -> Optional[Release]:
-    if event:
-        release_version = (
-            event.release
-            or event.get_tag("release")
-            or event.data.get("sentry:release")
-            or event.data.get("release")
-        )
-        return Release.objects.filter(
-            organization_id=event.project.organization_id,
-            project_id=event.project_id,
-            version=release_version,
-        ).first()
-
-    return None
+    release_version = (
+        event.release
+        or event.get_tag("release")
+        or event.data.get("sentry:release")
+        or event.data.get("release")
+    )
+    return Release.objects.filter(
+        organization_id=event.project.organization_id,
+        projects__id=event.project_id,
+        version=release_version,
+    ).first()
 
 
 class ActiveReleaseEventCondition(EventCondition):
