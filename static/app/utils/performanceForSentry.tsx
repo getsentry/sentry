@@ -309,3 +309,82 @@ export const VisuallyCompleteWithData = ({
     </Profiler>
   );
 };
+
+interface OpAssetMeasurementDefinition {
+  key: string;
+}
+
+const OP_ASSET_MEASUREMENT_MAP: Record<string, OpAssetMeasurementDefinition> = {
+  'resource.script': {
+    key: 'script',
+  },
+  'resource.css': {
+    key: 'css',
+  },
+  'resource.link': {
+    key: 'link',
+  },
+  'resource.img': {
+    key: 'img',
+  },
+};
+const ASSET_MEASUREMENT_ALL = 'allResources';
+
+export const MeasureAssetsOnTransaction = ({children}: {children: ReactNode}) => {
+  useEffect(() => {
+    try {
+      const transaction: any = getCurrentSentryReactTransaction(); // Using any to override types for private api.
+      if (!transaction) {
+        return;
+      }
+
+      transaction.registerBeforeFinishCallback((t: Transaction) => {
+        const spans: any[] = (t as any).spanRecorder?.spans;
+        const measurements = (t as any)._measurements;
+
+        if (!spans) {
+          return;
+        }
+
+        if (measurements[ASSET_MEASUREMENT_ALL]) {
+          return;
+        }
+
+        let allTransfered = 0;
+        let allEncoded = 0;
+        let allCount = 0;
+
+        for (const [op, definition] of Object.entries(OP_ASSET_MEASUREMENT_MAP)) {
+          const filtered = spans.filter(s => s.op === op);
+          const count = filtered.length;
+          const transfered = filtered.reduce(
+            (acc, curr) => acc + curr.data['Transfer Size'] ?? 0,
+            0
+          );
+          const encoded = filtered.reduce(
+            (acc, curr) => acc + curr.data['Encoded Body Size'] ?? 0,
+            0
+          );
+
+          if (op === 'resource.script') {
+            t.setMeasurement(`assets.${definition.key}.encoded`, encoded, '');
+            t.setMeasurement(`assets.${definition.key}.transfer`, transfered, '');
+            t.setMeasurement(`assets.${definition.key}.count`, count, '');
+          }
+
+          allCount += count;
+          allTransfered += transfered;
+          allEncoded += encoded;
+        }
+
+        t.setMeasurement(`${ASSET_MEASUREMENT_ALL}.encoded`, allEncoded, '');
+        t.setMeasurement(`${ASSET_MEASUREMENT_ALL}.transfer`, allTransfered, '');
+        t.setMeasurement(`${ASSET_MEASUREMENT_ALL}.count`, allCount, '');
+      });
+    } catch (_) {
+      // Defensive catch since this code is auxiliary.
+    }
+  }, []);
+
+  return <Fragment>{children}</Fragment>;
+};
