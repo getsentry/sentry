@@ -90,7 +90,7 @@ def upgrade(ctx, verbosity, traceback, noinput, lock, no_repair, with_nodestore)
         from sentry.app import locks
         from sentry.utils.locking import UnableToAcquireLock
 
-        lock = locks.get("upgrade", duration=0)
+        lock = locks.get("upgrade", duration=0, name="command_upgrade")
         try:
             with lock.acquire():
                 _upgrade(not noinput, traceback, verbosity, not no_repair, with_nodestore)

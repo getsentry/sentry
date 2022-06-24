@@ -18,7 +18,7 @@ def reprocess_events(project_id, **kwargs):
 
     lock_key = "events:reprocess_events:%s" % project_id
     have_more = False
-    lock = app.locks.get(lock_key, duration=60)
+    lock = app.locks.get(lock_key, duration=60, name="reprocess_events")
 
     try:
         with lock.acquire():

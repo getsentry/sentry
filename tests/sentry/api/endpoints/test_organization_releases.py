@@ -1455,7 +1455,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         # Simulate a concurrent request by using an existing release
         # that has its commit lock taken out.
         release = self.create_release(project, self.user, version="1.2.1")
-        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10)
+        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10, name="release")
         lock.acquire()
 
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})

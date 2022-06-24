@@ -166,7 +166,7 @@ class Team(Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            lock = locks.get("slug:team", duration=5)
+            lock = locks.get("slug:team", duration=5, name="team_slug")
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_instance(self, self.name, organization=self.organization)
         super().save(*args, **kwargs)

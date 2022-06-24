@@ -113,7 +113,7 @@ def send_beacon():
             # XXX(dcramer): we're missing a unique constraint on upstream_id
             # so we're using a lock to work around that. In the future we'd like
             # to have a data migration to clean up the duplicates and add the constraint
-            lock = locks.get("broadcasts:{}".format(notice["id"]), duration=60)
+            lock = locks.get("broadcasts:{}".format(notice["id"]), duration=60, name="broadcasts")
             with lock.acquire():
                 affected = Broadcast.objects.filter(upstream_id=notice["id"]).update(**defaults)
                 if not affected:

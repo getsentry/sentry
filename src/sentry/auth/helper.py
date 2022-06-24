@@ -731,7 +731,11 @@ class AuthHelper(Pipeline):
         auth_provider = self.provider_model
         user_id = identity["id"]
 
-        lock = locks.get(f"sso:auth:{auth_provider.id}:{md5_text(user_id).hexdigest()}", duration=5)
+        lock = locks.get(
+            f"sso:auth:{auth_provider.id}:{md5_text(user_id).hexdigest()}",
+            duration=5,
+            name="sso_auth",
+        )
         with TimedRetryPolicy(5)(lock.acquire):
             try:
                 auth_identity = AuthIdentity.objects.select_related("user").get(

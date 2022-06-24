@@ -154,7 +154,7 @@ def handle_group_owners(project, group, owners):
     from sentry.models.team import Team
     from sentry.models.user import User
 
-    lock = locks.get(f"groupowner-bulk:{group.id}", duration=10)
+    lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     try:
         with metrics.timer("post_process.handle_group_owners"), sentry_sdk.start_span(
             op="post_process.handle_group_owners"
@@ -366,6 +366,7 @@ def post_process_group(
                 lock = locks.get(
                     f"w-o:{event.group_id}-d-l",
                     duration=10,
+                    name="post_process_w_o",
                 )
                 with lock.acquire():
                     has_commit_key = f"w-o:{event.project.organization_id}-h-c"

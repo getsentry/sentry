@@ -244,7 +244,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om.save()
 
         if result["teams"]:
-            lock = locks.get(f"org:member:{om.id}", duration=5)
+            lock = locks.get(f"org:member:{om.id}", duration=5, name="org_member")
             with TimedRetryPolicy(10)(lock.acquire):
                 save_team_assignments(om, result["teams"])
 
