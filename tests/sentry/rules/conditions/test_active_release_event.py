@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from sentry.eventstore import Filter
 from sentry.eventstore.snuba import SnubaEventStorage
-from sentry.models import Group, Release, Rule
+from sentry.models import Deploy, Group, Release, Rule
 from sentry.rules.conditions.active_release import ActiveReleaseEventCondition
 from sentry.testutils import RuleTestCase, SnubaTestCase
 
@@ -26,25 +26,45 @@ class ActiveReleaseEventConditionTest(SnubaTestCase, RuleTestCase):
         oldRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="1",
-            date_added=datetime(2020, 9, 1, 3, 8, 24, 880386),
-            date_released=datetime(2020, 9, 1, 3, 8, 24, 880386),
+            date_added=timezone.now() - timedelta(hours=2),
+            date_released=timezone.now() - timedelta(hours=2),
         )
-        oldRelease.add_project(self.project)
-
         newRelease = Release.objects.create(
             organization_id=self.organization.id,
             version="2",
             date_added=timezone.now() - timedelta(minutes=30),
             date_released=timezone.now() - timedelta(minutes=30),
         )
+        oldRelease.add_project(self.project)
         newRelease.add_project(self.project)
 
-        event.data["tags"] = (("release", newRelease.version),)
+        event.data["tags"] = (("sentry:release", newRelease.version),)
         rule = self.get_rule()
         self.assertPasses(rule, event)
 
-    def test_deployed(self):
-        pass
+    def test_release_deployed(self):
+        event = self.get_event()
+        newRelease = Release.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            version="2",
+            date_added=timezone.now() - timedelta(days=1),
+            date_released=None,
+        )
+        Deploy.objects.create(
+            organization_id=self.organization.id,
+            environment_id=self.environment.id,
+            name="test_release_deployed",
+            notified=True,
+            release_id=newRelease.id,
+            date_started=timezone.now() - timedelta(minutes=37),
+            date_finished=timezone.now() - timedelta(minutes=20),
+        )
+        newRelease.add_project(self.project)
+
+        event.data["tags"] = (("sentry:release", newRelease.version),)
+        rule = self.get_rule()
+        self.assertPasses(rule, event)
 
     def test_release_project_env(self):
         pass
@@ -72,7 +92,7 @@ class ActiveReleaseEventConditionTest(SnubaTestCase, RuleTestCase):
             data={
                 "event_id": "a" * 32,
                 "message": "\u3053\u3093\u306b\u3061\u306f",
-                "tags": (("release", newRelease.version),),
+                "tags": (("sentry:release", newRelease.version),),
             },
             project_id=self.project.id,
         )
@@ -80,7 +100,7 @@ class ActiveReleaseEventConditionTest(SnubaTestCase, RuleTestCase):
             data={
                 "event_id": "b" * 32,
                 "message": "\u3053\u3093\u306b\u3061\u306f",
-                "tags": (("release", newRelease.version),),
+                "tags": (("sentry:release", newRelease.version),),
             },
             project_id=self.project.id,
         )
