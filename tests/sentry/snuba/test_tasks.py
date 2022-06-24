@@ -1050,7 +1050,7 @@ class BuildSnqlQueryTest(TestCase):
     def test_simple_sessions_for_metrics(self):
         org_id = self.organization.id
         for tag in [SessionMRI.SESSION.value, "session.status", "crashed", "init"]:
-            indexer.record(org_id, tag)
+            _indexer_record(org_id, tag)
         expected_conditions = [
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
             Condition(Column(name="org_id"), Op.EQ, self.organization.id),
@@ -1077,7 +1077,7 @@ class BuildSnqlQueryTest(TestCase):
     def test_simple_users_for_metrics(self):
         org_id = self.organization.id
         for tag in [SessionMRI.USER.value, "session.status", "crashed"]:
-            indexer.record(org_id, tag)
+            _indexer_record(org_id, tag)
 
         expected_conditions = [
             Condition(Column(name="project_id"), Op.IN, (self.project.id,)),
@@ -1110,7 +1110,7 @@ class BuildSnqlQueryTest(TestCase):
             "release",
             "ahmed@12.2",
         ]:
-            indexer.record(org_id, tag)
+            _indexer_record(org_id, tag)
 
         expected_conditions = [
             Condition(
@@ -1159,7 +1159,7 @@ class BuildSnqlQueryTest(TestCase):
             "release",
             "ahmed@12.2",
         ]:
-            indexer.record(org_id, tag)
+            _indexer_record(org_id, tag)
 
         expected_conditions = [
             Condition(
