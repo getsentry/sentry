@@ -1585,8 +1585,6 @@ class MetricsQueryBuilder(QueryBuilder):
         *args: Any,
         allow_metric_aggregates: Optional[bool] = False,
         dry_run: Optional[bool] = False,
-        granularity: Optional[int] = None,
-        max_limit: Optional[int] = METRICS_MAX_LIMIT,
         **kwargs: Any,
     ):
         self.distributions: List[CurriedFunction] = []
@@ -1595,7 +1593,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metric_ids: Set[int] = set()
         self.allow_metric_aggregates = allow_metric_aggregates
         self._indexer_cache: Dict[str, Optional[int]] = {}
-        self.max_limit = max_limit
         # Don't do any of the actions that would impact performance in anyway
         # Skips all indexer checks, and won't interact with clickhouse
         self.dry_run = dry_run
@@ -1609,9 +1606,7 @@ class MetricsQueryBuilder(QueryBuilder):
             self.organization_id = self.params["organization_id"]
         else:
             raise InvalidSearchQuery("Organization id required to create a metrics query")
-        self.granularity = (
-            Granularity(granularity) if granularity is not None else self.resolve_granularity()
-        )
+        self.granularity = self.resolve_granularity()
 
     def resolve_column_name(self, col: str) -> str:
         if col.startswith("tags["):
@@ -1759,7 +1754,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if limit is not None and limit > METRICS_MAX_LIMIT:
             raise IncompatibleMetricsQuery(f"Can't have a limit larger than {METRICS_MAX_LIMIT}")
         elif limit is None:
-            return Limit(self.max_limit) if self.max_limit is not None else None
+            return Limit(METRICS_MAX_LIMIT)
         else:
             return Limit(limit)
 
@@ -2104,6 +2099,23 @@ class MetricsQueryBuilder(QueryBuilder):
             return 0
         else:
             return None
+
+
+class AlertMetricsQueryBuilder(MetricsQueryBuilder):
+    def __init__(
+        self,
+        *args: Any,
+        granularity: int,
+        **kwargs: Any,
+    ):
+        self._granularity = granularity
+        super().__init__(*args, **kwargs)
+
+    def resolve_limit(self, limit: Optional[int]) -> Optional[Limit]:
+        return None
+
+    def resolve_granularity(self) -> Granularity:
+        return Granularity(self._granularity)
 
 
 class HistogramMetricQueryBuilder(MetricsQueryBuilder):

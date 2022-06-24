@@ -556,19 +556,18 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         environment: Optional[Environment],
         params: Optional[MutableMapping[str, Any]] = None,
     ) -> QueryBuilder:
-        from sentry.search.events.builder import MetricsQueryBuilder
+        from sentry.search.events.builder import AlertMetricsQueryBuilder
 
         if params is None:
             params = {}
 
         params["project_id"] = project_ids
-        qb = MetricsQueryBuilder(
+        qb = AlertMetricsQueryBuilder(
             query=query,
             selected_columns=self.get_snql_aggregations(),
             params=params,
             offset=None,
             limit=None,
-            max_limit=None,
             skip_time_conditions=True,
             granularity=self.get_granularity(),
         )
