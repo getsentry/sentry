@@ -1,4 +1,4 @@
-import {useCallback, useContext, useEffect, useState} from 'react';
+import {useContext, useEffect, useState} from 'react';
 
 import {Client, ResponseMeta} from 'sentry/api';
 import {t} from 'sentry/locale';
@@ -80,8 +80,8 @@ function GenericWidgetQueries({
     setIsMetricsData = context.setIsMetricsData;
   }
 
-  const fetchTableData = useCallback(
-    async function fetchTableData(isMounted: boolean) {
+  useEffect(() => {
+    async function fetchTableData() {
       const responses: [TableData | EventsTableData, string, ResponseMeta][] =
         await Promise.all(
           widget.queries.map(query => {
@@ -138,22 +138,9 @@ function GenericWidgetQueries({
       });
       setTableResults(transformedTableResults);
       setPageLinks(responsePageLinks);
-    },
-    [
-      api,
-      config,
-      cursor,
-      setIsMetricsData,
-      limit,
-      onDataFetched,
-      organization,
-      selection,
-      widget,
-    ]
-  );
+    }
 
-  const fetchSeriesData = useCallback(
-    async function fetchSeriesData(isMounted: boolean) {
+    async function fetchSeriesData() {
       const responses = await Promise.all(
         widget.queries.map((_query, index) => {
           return config.getSeriesRequest!(
@@ -199,20 +186,8 @@ function GenericWidgetQueries({
 
       onDataFetched?.({timeseriesResults: transformedTimeseriesResults});
       setTimeseriesResults(transformedTimeseriesResults);
-    },
-    [
-      api,
-      config.getSeriesRequest,
-      config.transformSeries,
-      setIsMetricsData,
-      onDataFetched,
-      organization,
-      selection,
-      widget,
-    ]
-  );
+    }
 
-  useEffect(() => {
     async function fetchData() {
       setLoading(true);
       setTableResults(undefined);
@@ -224,9 +199,9 @@ function GenericWidgetQueries({
             widget.displayType
           )
         ) {
-          await fetchTableData(isMounted);
+          await fetchTableData();
         } else {
-          await fetchSeriesData(isMounted);
+          await fetchSeriesData();
         }
       } catch (err) {
         if (isMounted) {
@@ -244,7 +219,18 @@ function GenericWidgetQueries({
     return () => {
       isMounted = false;
     };
-  }, [fetchSeriesData, fetchTableData, widget.displayType]);
+  }, [
+    api,
+    config,
+    cursor,
+    limit,
+    onDataFetched,
+    organization,
+    selection,
+    setIsMetricsData,
+    widget,
+    widget.displayType,
+  ]);
 
   return children({loading, tableResults, timeseriesResults, errorMessage, pageLinks});
 }

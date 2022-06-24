@@ -1127,18 +1127,20 @@ describe('Modals -> WidgetViewerModal', function () {
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: ['freq']};
-      await rerender(
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={initialData.organization}
-          widget={mockWidget}
-          onEdit={() => undefined}
-        />
-      );
+      await act(async () => {
+        await rerender(
+          <WidgetViewerModal
+            Header={stubEl}
+            Footer={stubEl as ModalRenderProps['Footer']}
+            Body={stubEl as ModalRenderProps['Body']}
+            CloseButton={stubEl}
+            closeModal={() => undefined}
+            organization={initialData.organization}
+            widget={mockWidget}
+            onEdit={() => undefined}
+          />
+        );
+      });
       expect(issuesMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
