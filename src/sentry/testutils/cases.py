@@ -1232,13 +1232,15 @@ class MetricsEnhancedPerformanceTestCase(SessionMetricsTestCase, TestCase):
         self,
         value: List[int] | int,
         metric: str = "transaction.duration",
+        internal_metric: Optional[str] = None,
+        entity: Optional[str] = None,
         tags: Optional[Dict[str, str]] = None,
         timestamp: Optional[datetime] = None,
         project: Optional[id] = None,
         use_case_id: UseCaseKey = UseCaseKey.RELEASE_HEALTH,
     ):
-        internal_metric = METRICS_MAP[metric]
-        entity = self.ENTITY_MAP[metric]
+        internal_metric = METRICS_MAP[metric] if internal_metric is None else internal_metric
+        entity = self.ENTITY_MAP[metric] if entity is None else entity
         org_id = self.organization.id
 
         if tags is None:
