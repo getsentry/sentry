@@ -299,7 +299,7 @@ def check_build_project_config(public_key=None, **kwargs):
         raise TypeError("public key must be present")
     cfg = projectconfig_cache.get(public_key)
     if not cfg:
-        metrics.incr("relay.projectconfig_cache.check_task.missing")
+        metrics.incr("relay.projectconfig_cache.check_task.missing", sample_rate=1)
 
         # Purposefully not catching exceptions for missing items from the DB, the task will
         # fail and sentry will capture them.
@@ -315,4 +315,4 @@ def check_build_project_config(public_key=None, **kwargs):
             sentry_sdk.capture_message("PublicKey not found in cache", level="warning")
 
     else:
-        metrics.incr("relay.projectconfig_cache.check_task.found")
+        metrics.incr("relay.projectconfig_cache.check_task.found", sample_rate=1)
