@@ -269,8 +269,17 @@ def get_release_committers(project: Project, event: Event) -> Sequence[User]:
 
     # commit_author_id : Author
     author_users: Mapping[str, Author] = get_users_for_commits(commits)
-    return list(
+    release_committers = list(
         User.objects.filter(id__in={au["id"] for au in author_users.values() if au.get("id")})
+    )
+
+    return list(
+        filter(
+            lambda u: features.has(
+                "organizations:active-release-notification-opt-in", project.organization, actor=u
+            ),
+            release_committers,
+        )
     )
 
 
