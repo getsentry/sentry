@@ -573,7 +573,7 @@ def metrics_streaming_consumer(**options):
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    with global_tags(tags={"pipeline": ingest_config.internal_metrics_tag}, _all_threads=True):
+    with global_tags(_all_threads=True, pipeline=ingest_config.internal_metrics_tag):
         streamer.run()
 
 

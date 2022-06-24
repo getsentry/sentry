@@ -4,7 +4,7 @@ from sentry.models import OrganizationMember, User
 
 from ..base import OrganizationMemberSerializer
 from ..response import OrganizationMemberWithTeamsResponse
-from ..utils import get_team_slugs_by_organization_member_id
+from ..utils import get_teams_by_organization_member_id
 
 
 class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
@@ -12,14 +12,17 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
         self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationMember, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
+        teams, teams_with_role = get_teams_by_organization_member_id(item_list)
 
-        team_ids_by_organization_member_id = get_team_slugs_by_organization_member_id(item_list)
         for item in item_list:
-            teams = team_ids_by_organization_member_id.get(item.id, [])
             try:
-                attrs[item]["teams"] = teams
+                attrs[item]["teams"] = teams.get(item.id, [])  # Deprecated
+                attrs[item]["teamRoles"] = teams_with_role.get(item.id, [])
             except KeyError:
-                attrs[item] = {"teams": teams}
+                attrs[item] = {
+                    "teams": teams,  # Deprecated
+                    "teamRoles": teams_with_role,
+                }
 
         return attrs
 
@@ -27,5 +30,6 @@ class OrganizationMemberWithTeamsSerializer(OrganizationMemberSerializer):
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> OrganizationMemberWithTeamsResponse:
         d = cast(OrganizationMemberWithTeamsResponse, super().serialize(obj, attrs, user))
-        d["teams"] = attrs.get("teams", [])
+        d["teams"] = attrs.get("teams", [])  # Deprecated
+        d["teamRoles"] = attrs.get("teamRoles", [])
         return d
