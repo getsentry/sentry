@@ -36,6 +36,7 @@ function ProfileDragDropImport({
             onImport(profile);
           })
           .catch(e => {
+            console.log(e);
             setDropState('idle');
             setErrorMessage(e.message);
           });

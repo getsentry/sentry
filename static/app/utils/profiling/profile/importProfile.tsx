@@ -9,9 +9,13 @@ import {
   isJSProfile,
   isSampledProfile,
   isSchema,
+  isTypescriptChromeTraceArrayFormat,
 } from '../guards/profile';
 
-import {parseChromeTraceArrayFormat} from './chromeTraceProfile';
+import {
+  parseChromeTraceArrayFormat,
+  parseTypeScriptChromeTraceArrayFormat,
+} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
@@ -96,11 +100,19 @@ function importChromeTrace(
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
+  console.log('Importing Chrome Trace Profile');
   if (isChromeTraceObjectFormat(input)) {
+    console.log('Object');
     throw new Error('Chrometrace object format is not yet supported');
   }
 
+  if (isTypescriptChromeTraceArrayFormat(input)) {
+    console.log('Typescript');
+    return parseTypeScriptChromeTraceArrayFormat(input, traceID, options);
+  }
+
   if (isChromeTraceArrayFormat(input)) {
+    console.log('Array format');
     return parseChromeTraceArrayFormat(input, traceID, options);
   }
 

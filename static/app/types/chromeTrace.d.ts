@@ -95,7 +95,14 @@ declare namespace ChromeTrace {
     tid: number;
     ts: number;
     tts: number;
-    args: {data: CpuProfile};
+    args: {
+      data: {
+        cpuProfile: CpuProfile;
+        startTime?: number;
+        endTime?: number;
+        timeDeltas?: number[];
+      };
+    };
   }
 
   interface ProfileChunkEvent extends Event {
@@ -107,7 +114,14 @@ declare namespace ChromeTrace {
     tid: number;
     ts: number;
     tts: number;
-    args: {data: {cpuProfile: CpuProfile}};
+    args: {
+      data: {
+        cpuProfile: CpuProfile;
+        startTime?: number;
+        endTime?: number;
+        timeDeltas?: number[];
+      };
+    };
   }
 
   // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1496
@@ -130,7 +144,7 @@ declare namespace ChromeTrace {
   // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1399
   interface ProfileNode {
     id: number;
-    callFrame: CPUProfileCallFrame;
+    callFrame: CallFrame;
     hitCount: number;
     children?: number[];
     parent?: CPUProfileNode;

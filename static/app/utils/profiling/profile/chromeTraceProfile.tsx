@@ -261,7 +261,7 @@ function createFrameInfoFromEvent(event: ChromeTrace.Event) {
   };
 }
 
-export function parseChromeTraceArrayFormat(
+export function parseTypeScriptChromeTraceArrayFormat(
   input: ChromeTrace.ArrayFormat,
   traceID: string,
   options?: ImportOptions
@@ -277,6 +277,7 @@ export function parseChromeTraceArrayFormat(
         {
           op: 'profile.import',
           description: 'chrometrace',
+          type: 'typescript',
         }
       );
     }
@@ -354,6 +355,7 @@ function collectEventsByProfile(input: ChromeTrace.ArrayFormat): {
         nodes: [],
         ...event.args.data,
       });
+
       continue;
     }
 
@@ -365,30 +367,30 @@ function collectEventsByProfile(input: ChromeTrace.ArrayFormat): {
       }
 
       // If we have a chunk, then append our values to it. Eventually we end up with a single profile with all of the chunks and samples merged
-      const cpuProfile = event.args.data.cpuProfile;
-      if (cpuProfile.nodes) {
-        profile.nodes = profile.nodes.concat(cpuProfile.nodes ?? []);
+      const chunk = event.args.data;
+      if (chunk.cpuProfile.nodes) {
+        profile.nodes = profile.nodes.concat(chunk.cpuProfile.nodes ?? []);
       }
-      if (cpuProfile.samples) {
-        profile.samples = profile.samples.concat(cpuProfile.samples ?? []);
+      if (chunk.cpuProfile.samples) {
+        profile.samples = profile.samples.concat(chunk.cpuProfile.samples ?? []);
       }
-      if (cpuProfile.timeDeltas) {
-        profile.timeDeltas = profile.timeDeltas.concat(cpuProfile.timeDeltas ?? []);
+      if (event.args.data.timeDeltas) {
+        profile.timeDeltas = profile.timeDeltas.concat(chunk.timeDeltas ?? []);
       }
-      if (cpuProfile.startTime !== null) {
+      if (chunk.startTime !== null && typeof chunk.startTime === 'number') {
         // Make sure we dont overwrite the startTime if it is already set
         if (typeof profile.startTime === 'number') {
-          profile.startTime = Math.min(profile.startTime, cpuProfile.startTime);
+          profile.startTime = Math.min(profile.startTime, chunk.startTime);
         } else {
-          profile.startTime = cpuProfile.startTime;
+          profile.startTime = chunk.startTime;
         }
       }
       // Make sure we dont overwrite the endTime if it is already set
-      if (cpuProfile.endTime !== null) {
+      if (chunk.endTime !== null && typeof chunk.endTime === 'number') {
         if (typeof profile.endTime === 'number') {
-          profile.endTime = Math.max(profile.endTime, cpuProfile.endTime);
+          profile.endTime = Math.max(profile.endTime, chunk.endTime);
         } else {
-          profile.endTime = cpuProfile.endTime;
+          profile.endTime = chunk.endTime;
         }
       }
     }
@@ -404,7 +406,7 @@ function createFramesIndex(
   const frames: Map<number, ChromeTrace.ProfileNode> = new Map();
 
   for (let i = 0; i < profile.nodes.length; i++) {
-    frames.set(profile.nodes[i].id, {...profile.nodes[i]});
+    frames.set(profile.nodes[i].id, profile.nodes[i]);
   }
 
   for (let i = 0; i < profile.nodes.length; i++) {
@@ -416,6 +418,8 @@ function createFramesIndex(
       if (parent === undefined) {
         throw new Error('Missing frame parent in profile');
       }
+
+      profileNode.parent = parent;
     }
 
     if (!profileNode.children) {
@@ -510,24 +514,151 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
   return {samples, sampleTimes};
 }
 
-export function parseChromeTraceFormat(
+function shouldPlaceOnTopOfPreviousStack(_frame: ChromeTrace.CallFrame): boolean {
+  return false;
+}
+
+function lastOf<T extends any[]>(arr: T): T[number] {
+  return arr[arr.length - 1];
+}
+
+const callFrameToFrameInfo = new Map<ChromeTrace.CallFrame, Frame>();
+function frameInfoForCallFrame(callFrame: ChromeTrace.CallFrame): Frame {
+  const frame = callFrameToFrameInfo.get(callFrame);
+  if (frame) {
+    return frame;
+  }
+
+  const name = callFrame.functionName || '(anonymous)';
+
+  return new Frame({
+    key: `${name}:${callFrame.url}:${callFrame.lineNumber}:${callFrame.columnNumber}`,
+    name,
+    file: callFrame.url,
+    line: callFrame.lineNumber,
+    column: callFrame.columnNumber,
+  });
+}
+
+// The following is taken from speedscope with minor changes to the logic - I'm adding some comments
+// to explain what is happening so it's hopefully useful to others. To build a tree from a list of samples,
+// we iterate over all samples while maintaining a stack. When each new sample is added, we find the common
+// root node of the new sample and our stack. The difference between the new stack and the previous stack is
+// the stack that we need to process. In case we encounter a common root between the two stacks, the stack frames of the new sample are
+// added to the existing stack while the non common stack frames are closed off the stack. There are some
+// special cases (engine events like gc, compile code etc) where frames are automatically added on top of the stack.
+// This is similar to how JS self profiling frame markers work. When gc is on top of the sample, we do not close
+// the samples, but instead append the gc frame to the top of the previous stack.
+function createCallTree({
+  cpuProfile,
+  samples,
+  sampleTimes,
+  frameIndex,
+}: {
+  cpuProfile: ChromeTrace.CpuProfile;
+  frameIndex: Map<number, ChromeTrace.ProfileNode>;
+  sampleTimes: NonNullable<ChromeTrace.CpuProfile['timeDeltas']>;
+  samples: NonNullable<ChromeTrace.CpuProfile['samples']>;
+}): Profile {
+  const profile = new ChromeTraceProfile(
+    cpuProfile.endTime - cpuProfile.startTime,
+    cpuProfile.startTime,
+    cpuProfile.endTime,
+    'thread',
+    'microseconds',
+    0
+  );
+  // Initialize an empty stack
+  const prevStack: ChromeTrace.ProfileNode[] = [];
+
+  for (let i = 0; i < samples.length; i++) {
+    // Samples point at the top of the stack
+    // https://github.com/v8/v8/blob/b8626ca445554b8376b5a01f651b70cb8c01b7dd/src/inspector/js_protocol.json#L1422
+    const nodeId = samples[i];
+    const stackTop = frameIndex.get(nodeId);
+
+    if (!stackTop) {
+      throw new Error(`Could not find frame ${nodeId} in frameIndex`);
+    }
+
+    // Check if we have a common node between the two stacks.
+    // Start at the top of our new stack and descend down to the child of the common node.
+    // until we find a node that is common between the two stacks. If a node is a special case
+    // node, then set the common root to the top of the previous stack.
+    let commonRoot: ChromeTrace.ProfileNode | null = stackTop || null;
+    while (commonRoot && prevStack.indexOf(commonRoot) === -1) {
+      if (shouldPlaceOnTopOfPreviousStack(commonRoot.callFrame)) {
+        commonRoot = lastOf(prevStack);
+        break;
+      }
+      commonRoot = commonRoot.parent || null;
+    }
+
+    // Walk down the stack until we find the common root and close the frames that
+    // were on the previous stack but are not on the new stack.
+    while (prevStack.length > 0 && lastOf(prevStack) !== commonRoot) {
+      const closingNode = prevStack.pop()!;
+      const frame = frameInfoForCallFrame(closingNode.callFrame);
+      profile.leaveFrame(frame, sampleTimes[i]);
+    }
+
+    // Collect frames that are new and need to be opened.
+    // This is the difference between the new stack and the previous stack.
+    const toOpen: ChromeTrace.ProfileNode[] = [];
+
+    // Start at the top and descend down to the common root.
+    let start = stackTop;
+    while (start && start !== commonRoot) {
+      toOpen.push(start);
+      start = shouldPlaceOnTopOfPreviousStack(start.callFrame)
+        ? lastOf(prevStack)
+        : start.parent;
+    }
+
+    // Since we pushed the frames in reverse order, we need to loop in reverse the order
+    for (let j = toOpen.length - 1; j >= 0; j--) {
+      profile.enterFrame(frameInfoForCallFrame(toOpen[j].callFrame), sampleTimes[i]);
+      prevStack.push(toOpen[j]);
+    }
+  }
+
+  // At the end of processing all samples, close any frames that may have been left open
+  for (let i = prevStack.length - 1; i >= 0; i--) {
+    profile.leaveFrame(
+      frameInfoForCallFrame(prevStack[i].callFrame),
+      lastOf(sampleTimes)
+    );
+  }
+
+  return profile.build();
+}
+
+export function parseChromeTraceArrayFormat(
   input: ChromeTrace.ArrayFormat,
   traceID: string,
   _options?: ImportOptions
 ): ProfileGroup {
   const {cpuProfiles, threadNames: _threadNames} = collectEventsByProfile(input);
+  const profiles: Profile[] = [];
 
   for (const [_profileId, profile] of cpuProfiles.entries()) {
-    // @ts-ignore
-    // eslint-disable-next-line
     const index = createFramesIndex(profile);
-    const {samples: _samples, sampleTimes: _sampleTimes} = collapseSamples(profile);
+    const {samples, sampleTimes} = collapseSamples(profile);
+
+    profiles.push(
+      createCallTree({
+        cpuProfile: profile,
+        frameIndex: index,
+        sampleTimes,
+        samples,
+      })
+    );
   }
 
   return {
-    name: 'chrometrace',
     traceID,
+    name: 'chrometrace',
     activeProfileIndex: 0,
-    profiles: [],
+    profiles,
   };
 }
