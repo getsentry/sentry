@@ -1,4 +1,5 @@
 import {Component} from 'react';
+import {SerializedStyles} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -29,7 +30,7 @@ type Props = {
    * The HTTP method to use.
    */
   apiMethod?: APIRequestMethod;
-  bodyClassName?: string;
+  bodyClassName?: SerializedStyles;
   cancelLabel?: string;
   children?: React.ReactNode | RenderFunc;
   className?: string;
@@ -194,7 +195,7 @@ export default class Form extends Component<Props> {
           className={className ?? 'form-stacked'}
           data-test-id={this.props['data-test-id']}
         >
-          <div className={bodyClassName}>
+          <div css={bodyClassName}>
             {isRenderFunc<RenderFunc>(children)
               ? children({model: this.model})
               : children}
