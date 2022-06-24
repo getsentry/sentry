@@ -1,4 +1,5 @@
 import {Client} from 'sentry/api';
+import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
@@ -50,6 +51,7 @@ type EndpointParams = Partial<PageFilters['datetime']> & {
 
 export const IssuesConfig: DatasetConfig<never, Group[]> = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  disableSortOptions,
   getTableRequest,
   getCustomFieldRenderer: getIssueFieldRenderer,
   SearchBar: IssuesSearchBar,
@@ -60,6 +62,14 @@ export const IssuesConfig: DatasetConfig<never, Group[]> = {
   supportedDisplayTypes: [DisplayType.TABLE],
   transformTable: transformIssuesResponseToTable,
 };
+
+function disableSortOptions(_widgetQuery: WidgetQuery) {
+  return {
+    disabledSort: false,
+    disabledSortDirection: true,
+    disabledSortReason: t('Issues dataset does not yet support descending order'),
+  };
+}
 
 function getTableSortOptions(organization: Organization, _widgetQuery: WidgetQuery) {
   const sortOptions = [...ISSUE_WIDGET_SORT_OPTIONS];

@@ -63,6 +63,7 @@ export const ReleasesConfig: DatasetConfig<
   SessionApiResponse | MetricsApiResponse
 > = {
   defaultWidgetQuery: DEFAULT_WIDGET_QUERY,
+  disableSortOptions,
   getTableRequest: (
     api: Client,
     query: WidgetQuery,
@@ -106,6 +107,21 @@ export const ReleasesConfig: DatasetConfig<
   transformSeries: transformSessionsResponseToSeries,
   transformTable: transformSessionsResponseToTable,
 };
+
+function disableSortOptions(widgetQuery: WidgetQuery) {
+  const {columns} = widgetQuery;
+  if (columns.includes('session.status')) {
+    return {
+      disabledSort: true,
+      disabledSortDirection: true,
+      disabledSortReason: t('Sorting currently not supported with session.status'),
+    };
+  }
+  return {
+    disabledSort: false,
+    disabledSortDirection: false,
+  };
+}
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
   const {columns, aggregates} = widgetQuery;

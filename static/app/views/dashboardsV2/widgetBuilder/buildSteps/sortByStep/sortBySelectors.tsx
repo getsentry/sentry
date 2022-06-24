@@ -40,9 +40,9 @@ interface Props {
   values: Values;
   widgetQuery: WidgetQuery;
   widgetType: WidgetType;
-  disabledReason?: string;
   disabledSort?: boolean;
   disabledSortDirection?: boolean;
+  disabledSortReason?: string;
   hasGroupBy?: boolean;
 }
 
@@ -50,7 +50,7 @@ export function SortBySelectors({
   values,
   widgetType,
   onChange,
-  disabledReason,
+  disabledSortReason,
   disabledSort,
   disabledSortDirection,
   widgetQuery,
@@ -76,10 +76,13 @@ export function SortBySelectors({
   }, [values.sortBy, values.sortDirection]);
 
   return (
-    <Tooltip title={disabledReason} disabled={!(disabledSortDirection && disabledSort)}>
+    <Tooltip
+      title={disabledSortReason}
+      disabled={!(disabledSortDirection && disabledSort)}
+    >
       <Wrapper>
         <Tooltip
-          title={disabledReason}
+          title={disabledSortReason}
           disabled={!disabledSortDirection || (disabledSortDirection && disabledSort)}
         >
           <SelectControl
@@ -101,7 +104,7 @@ export function SortBySelectors({
           />
         </Tooltip>
         <Tooltip
-          title={disabledReason}
+          title={disabledSortReason}
           disabled={!disabledSort || (disabledSortDirection && disabledSort)}
         >
           {displayType === DisplayType.TABLE ? (

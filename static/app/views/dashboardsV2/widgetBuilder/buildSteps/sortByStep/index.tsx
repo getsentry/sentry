@@ -7,6 +7,7 @@ import SelectControl from 'sentry/components/forms/selectControl';
 import {t, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {Organization, SelectValue, TagCollection} from 'sentry/types';
+import {getDatasetConfig} from 'sentry/views/dashboardsV2/datasetConfig/base';
 import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboardsV2/types';
 import {
   DataSet,
@@ -44,21 +45,15 @@ export function SortByStep({
   onLimitChange,
   tags,
 }: Props) {
-  const fields = queries[0].columns;
+  const datasetConfig = getDatasetConfig(widgetType);
 
   let disabledSort = false;
   let disabledSortDirection = false;
-  let disabledReason: string | undefined = undefined;
+  let disabledSortReason: string | undefined = undefined;
 
-  if (widgetType === WidgetType.RELEASE && fields.includes('session.status')) {
-    disabledSort = true;
-    disabledSortDirection = true;
-    disabledReason = t('Sorting currently not supported with session.status');
-  }
-
-  if (widgetType === WidgetType.ISSUE) {
-    disabledSortDirection = true;
-    disabledReason = t('Issues dataset does not yet support descending order');
+  if (datasetConfig.disableSortOptions) {
+    ({disabledSort, disabledSortDirection, disabledSortReason} =
+      datasetConfig.disableSortOptions(queries[0]));
   }
 
   const orderBy = queries[0].orderby;
@@ -114,7 +109,7 @@ export function SortByStep({
           displayType={displayType}
           widgetType={widgetType}
           hasGroupBy={isTimeseriesChart && !!queries[0].columns.length}
-          disabledReason={disabledReason}
+          disabledSortReason={disabledSortReason}
           disabledSort={disabledSort}
           disabledSortDirection={disabledSortDirection}
           widgetQuery={queries[0]}

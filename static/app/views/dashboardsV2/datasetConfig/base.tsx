@@ -59,6 +59,11 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters
   ) => TableData;
+  disableSortOptions?: (widgetQuery: WidgetQuery) => {
+    disabledSort: boolean;
+    disabledSortDirection: boolean;
+    disabledSortReason?: string;
+  };
   /**
    * Used for mapping column names to more desirable
    * values in tables.
