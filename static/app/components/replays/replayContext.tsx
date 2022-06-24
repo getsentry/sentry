@@ -292,9 +292,20 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
   );
 
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        replayerRef.current?.pause();
+      }
+    };
+
     if (replayerRef.current && events) {
       initRoot(replayerRef.current.wrapper.parentElement as RootElem);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
     }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [initRoot, events]);
 
   const getCurrentTime = useCallback(
