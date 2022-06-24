@@ -129,12 +129,12 @@ class GetSendToTeamTest(TestCase):
 
 class GetSentToReleaseMembersTest(TestCase):
     def get_send_to_release_members(
-        self, event: Event
+        self, event: Event, target_identifier: int = None
     ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
         return get_send_to(
             self.project,
             target_type=ActionTargetType.RELEASE_MEMBERS,
-            target_identifier=None,
+            target_identifier=target_identifier,
             event=event,
         )
 
@@ -160,8 +160,18 @@ class GetSentToReleaseMembersTest(TestCase):
     def test_default_committer(self):
         event = self.store_event("empty.lol")
         event.group = self.group
+        with self.feature("organizations:issue-alert-release-members-target"):
+            assert self.get_send_to_release_members(event) == {ExternalProviders.EMAIL: {self.user}}
 
-        assert self.get_send_to_release_members(event) == {ExternalProviders.EMAIL: {self.user}}
+    def test_release_member_off(self):
+        event = self.store_event("empty.lol")
+        event.group = self.group
+        team = self.create_team(organization=self.organization, members=[self.user2, self.user3])
+        self.project.add_team(team)
+
+        assert self.get_send_to_release_members(event, target_identifier=team.id) == {
+            ExternalProviders.EMAIL: {self.user2, self.user3}
+        }
 
 
 class GetSendToOwnersTest(TestCase):
