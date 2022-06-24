@@ -43,12 +43,17 @@
 {% block content %}
 <div class="container">
   <div class="inner">
-    <h2 style="margin-bottom: 15px">
-      {{ event.title }}
-      <h5>
-        {{ project.slug }}{% if environment %} in {{ environment }}{% endif %}
-      </h5>
-    </h2>
+    <div>
+      <h1 style="color:red;margin-bottom: 15px;font-weight:bold">
+        ACTIVE RELEASE NOTIFICATION EMAIL EXPERIMENT
+      </h1>
+      <h2 style="margin-bottom: 15px">
+        {{ event.title }}
+        <h5>
+          {{ project.slug }}{% if environment %} in {{ environment }}{% endif %}
+        </h5>
+      </h2>
+    </div>
 
     {% if enhanced_privacy %}
       <div class="event">
