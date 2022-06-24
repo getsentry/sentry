@@ -161,8 +161,8 @@ function PlatformPicker(props: PlatformPickerProps) {
       });
     }
   }, DEFAULT_DEBOUNCE_DURATION);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(logSearch, [filter]);
+
+  useEffect(logSearch, [filter, logSearch]);
 
   return (
     <Fragment>
