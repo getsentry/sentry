@@ -103,6 +103,10 @@
                 "type": "string",
                 "description": "The optional name of the deploy."
               },
+              "projects": {
+                "type": "array",
+                "description": "The optional list of projects to deploy."
+              },
               "dateStarted": {
                 "type": "string",
                 "format": "date-time",

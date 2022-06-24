@@ -53,6 +53,7 @@ function BreadcrumbItem({
       onClick={handleClick}
       isHovered={isHovered}
       isSelected={isSelected}
+      aria-current={isSelected}
     >
       <IconWrapper color={crumb.color}>
         <BreadcrumbIcon type={crumb.type} />
