@@ -17,20 +17,20 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconLink} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
-import {Crumb} from 'sentry/types/breadcrumbs';
-import {Event} from 'sentry/types/event';
 import getUrlPathname from 'sentry/utils/getUrlPathname';
 import createUrlToShare from 'sentry/utils/replays/createUrlToShare';
 
 type Props = {
   children: React.ReactNode;
   orgId: string;
-  crumbs?: Crumb[];
-  event?: Event;
 };
 
-function DetailLayout({children, event, orgId, crumbs}: Props) {
-  const {currentTime} = useReplayContext();
+function DetailLayout({children, orgId}: Props) {
+  const {currentTime, replay} = useReplayContext();
+
+  const event = replay?.getEvent();
+  const crumbs = replay?.getRawCrumbs();
+
   const title = event ? `${event.id} - Replays - ${orgId}` : `Replays - ${orgId}`;
 
   const urlToShare = useMemo(() => {
