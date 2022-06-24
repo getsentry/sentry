@@ -382,4 +382,30 @@ describe('collapseSamples', () => {
     expect(result.samples).toEqual(test.expectedSamples);
     expect(result.sampleTimes).toEqual(test.expectedTimeDeltas);
   });
+
+  it('guards from negative samples', () => {
+    const result = collapseSamples({
+      startTime: 0,
+      endTime: 100,
+      samples: [1, 2, 3],
+      timeDeltas: [1, -1, 1],
+      nodes: [],
+    });
+
+    expect(result.samples).toEqual([1, 2, 3]);
+    expect(result.sampleTimes).toEqual([1, 1, 2]);
+  });
+
+  it('guards from negative samples when they are being collapsed', () => {
+    const result = collapseSamples({
+      startTime: 0,
+      endTime: 100,
+      samples: [1, 1, 1],
+      timeDeltas: [1, -1, 2],
+      nodes: [],
+    });
+
+    expect(result.samples).toEqual([1, 1]);
+    expect(result.sampleTimes).toEqual([1, 3]);
+  });
 });
