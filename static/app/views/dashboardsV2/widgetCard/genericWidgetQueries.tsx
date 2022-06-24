@@ -72,7 +72,13 @@ function GenericWidgetQueries({
     useState<ChildrenProps['tableResults']>(undefined);
   const [timeseriesResults, setTimeseriesResults] =
     useState<ChildrenProps['timeseriesResults']>(undefined);
-  const dashboardMEPContext = useContext(DashboardsMEPContext);
+
+  // TODO: Is specific to DISCOVER
+  const context = useContext(DashboardsMEPContext);
+  let setIsMetricsData;
+  if (context) {
+    setIsMetricsData = context.setIsMetricsData;
+  }
 
   const fetchTableData = useCallback(
     async function fetchTableData(isMounted: boolean) {
@@ -104,7 +110,7 @@ function GenericWidgetQueries({
       responses.forEach(([data, _textstatus, resp], i) => {
         // If one of the queries is sampled, then mark the whole thing as sampled
         isMetricsData = isMetricsData === false ? false : data.meta?.isMetricsData;
-        dashboardMEPContext?.setIsMetricsData(isMetricsData);
+        setIsMetricsData?.(isMetricsData);
 
         // Cast so we can add the title.
         const transformedData = config.transformTable(
@@ -137,7 +143,7 @@ function GenericWidgetQueries({
       api,
       config,
       cursor,
-      dashboardMEPContext,
+      setIsMetricsData,
       limit,
       onDataFetched,
       organization,
@@ -168,7 +174,7 @@ function GenericWidgetQueries({
           isMetricsData === false
             ? false
             : getIsMetricsDataFromSeriesResponse(rawResults);
-        dashboardMEPContext?.setIsMetricsData(isMetricsData);
+        setIsMetricsData?.(isMetricsData);
         const transformedResult = config.transformSeries!(
           // @ts-ignore
           rawResults,
@@ -198,7 +204,7 @@ function GenericWidgetQueries({
       api,
       config.getSeriesRequest,
       config.transformSeries,
-      dashboardMEPContext,
+      setIsMetricsData,
       onDataFetched,
       organization,
       selection,

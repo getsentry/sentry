@@ -1159,8 +1159,7 @@ describe('Modals -> WidgetViewerModal', function () {
       );
     });
 
-    // eslint-disable-next-line
-    it.skip('renders pagination buttons', async function () {
+    it('renders pagination buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
