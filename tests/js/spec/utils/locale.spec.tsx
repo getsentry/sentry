@@ -1,11 +1,12 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {tct} from 'sentry/locale';
 
 describe('locale.gettextComponentTemplate', () => {
   it('should render two component templates inside the same parent', () => {
     render(
-      <div data-test-id="subject">
+      <div>
         {tct('1st: [one]', {
           one: 'one',
         })}
@@ -15,6 +16,8 @@ describe('locale.gettextComponentTemplate', () => {
       </div>
     );
 
-    expect(screen.getByTestId('subject')).toHaveTextContent('1st: one2nd: two');
+    expect(
+      screen.getByText(textWithMarkupMatcher('1st: one2nd: two'))
+    ).toBeInTheDocument();
   });
 });
