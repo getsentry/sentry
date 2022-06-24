@@ -846,7 +846,7 @@ class UpdateReleaseDetailsTest(APITestCase):
 
         # Simulate a concurrent request by using an existing release
         # that has its commit lock taken out.
-        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10)
+        lock = locks.get(Release.get_lock_key(org.id, release.id), duration=10, name="release")
         lock.acquire()
 
         url = reverse(
