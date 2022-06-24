@@ -16,8 +16,8 @@ import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
+import AsideTabs from './detail/asideTabs';
 import DetailLayout from './detail/detailLayout';
-import DetailSidePanel from './detail/detailSidePanel';
 import FocusArea from './detail/focusArea';
 import FocusTabs from './detail/focusTabs';
 
@@ -86,7 +86,7 @@ function ReplayDetails() {
 
           <Layout.Side>
             <ErrorBoundary mini>
-              <DetailSidePanel replay={replay} />
+              <AsideTabs replay={replay} />
             </ErrorBoundary>
           </Layout.Side>
 
