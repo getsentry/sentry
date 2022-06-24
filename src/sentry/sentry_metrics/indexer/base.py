@@ -22,6 +22,7 @@ class FetchType(Enum):
     HARDCODED = "h"
     DB_READ = "d"
     FIRST_SEEN = "f"
+    RATE_LIMITED = "r"
 
 
 KR = TypeVar("KR", bound="KeyResult")
@@ -31,7 +32,7 @@ KR = TypeVar("KR", bound="KeyResult")
 class KeyResult:
     org_id: int
     string: str
-    id: int
+    id: Optional[int]
 
     @classmethod
     def from_string(cls: Type[KR], key: str, id: int) -> KR:
@@ -84,8 +85,8 @@ class KeyCollection:
 
 class KeyResults:
     def __init__(self) -> None:
-        self.results: MutableMapping[int, MutableMapping[str, int]] = defaultdict(dict)
-        self.meta: MutableMapping[str, Tuple[int, FetchType]] = dict()
+        self.results: MutableMapping[int, MutableMapping[str, Optional[int]]] = defaultdict(dict)
+        self.meta: MutableMapping[str, Tuple[Optional[int], FetchType]] = dict()
 
     def add_key_result(self, key_result: KeyResult, fetch_type: Optional[FetchType] = None) -> None:
         self.results[key_result.org_id].update({key_result.string: key_result.id})
@@ -100,7 +101,7 @@ class KeyResults:
             if fetch_type:
                 self.meta[key_result.string] = (key_result.id, fetch_type)
 
-    def get_mapped_results(self) -> Mapping[int, Mapping[str, int]]:
+    def get_mapped_results(self) -> Mapping[int, Mapping[str, Optional[int]]]:
         """
         Only return results that have org_ids with string/int mappings.
         """
@@ -136,11 +137,12 @@ class KeyResults:
         for org_id, result_dict in self.results.items():
             for string, id in result_dict.items():
                 key = f"{org_id}:{string}"
-                cache_key_results[key] = id
+                if id is not None:
+                    cache_key_results[key] = id
 
         return cache_key_results
 
-    def get_fetch_metadata(self) -> Mapping[str, Tuple[int, FetchType]]:
+    def get_fetch_metadata(self) -> Mapping[str, Tuple[Optional[int], FetchType]]:
         return self.meta
 
     def merge(self, other: "KeyResults") -> "KeyResults":
@@ -155,7 +157,7 @@ class KeyResults:
         return new_results
 
     # For brevity, allow callers to address the mapping directly
-    def __getitem__(self, org_id: int) -> Mapping[str, int]:
+    def __getitem__(self, org_id: int) -> Mapping[str, Optional[int]]:
         return self.results[org_id]
 
 
@@ -174,7 +176,7 @@ class StringIndexer(Service):
     ) -> KeyResults:
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> int:
+    def record(self, use_case_id: UseCaseKey, org_id: int, string: str) -> Optional[int]:
         """Store a string and return the integer ID generated for it
 
         With every call to this method, the lifetime of the entry will be

@@ -191,12 +191,21 @@ def process_messages(
             used_tags.add(metric_name)
 
             new_tags: MutableMapping[str, int] = {}
+            dropped_string = False
             try:
                 for k, v in tags.items():
                     used_tags.update({k, v})
-                    new_tags[str(mapping[org_id][k])] = mapping[org_id][v]
+                    new_k = mapping[org_id][k]
+                    new_tags[str(new_k)] = new_v = mapping[org_id][v]
+
+                    if new_k is None or new_v is None:
+                        dropped_string = True
             except KeyError:
                 logger.error("process_messages.key_error", extra={"tags": tags}, exc_info=True)
+                continue
+
+            if dropped_string:
+                logger.error("process_messages.dropped_string")
                 continue
 
             fetch_types_encountered = set()
@@ -210,7 +219,10 @@ def process_messages(
                 "".join([t.value for t in fetch_types_encountered]), "utf-8"
             )
             new_payload_value["tags"] = new_tags
-            new_payload_value["metric_id"] = mapping[org_id][metric_name]
+            new_payload_value["metric_id"] = numeric_metric_id = mapping[org_id][metric_name]
+            if numeric_metric_id is None:
+                logger.error("process_messages.dropped_string")
+                continue
             new_payload_value["retention_days"] = 90
             new_payload_value["mapping_meta"] = output_message_meta
             new_payload_value["use_case_id"] = use_case_id.value

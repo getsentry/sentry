@@ -307,7 +307,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         else:
             timestamp = int(timestamp)
 
-        keys_to_fetch = []
+        keys_to_fetch = set()
         for request in requests:
             # We could potentially run this check inside of __post__init__ of
             # RequestedQuota, but the list is actually mutable after
@@ -316,7 +316,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
 
             for quota in request.quotas:
                 for granule in quota.iter_window(timestamp):
-                    keys_to_fetch.append(
+                    keys_to_fetch.add(
                         self._build_redis_key(request=request, quota=quota, granule=granule)
                     )
 
