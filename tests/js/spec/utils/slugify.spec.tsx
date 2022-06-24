@@ -14,6 +14,6 @@ describe('slugify', function () {
   });
 
   it('returns an empty string if passed undefined', function () {
-    expect(slugify()).toBe('');
+    expect(slugify(undefined)).toBe('');
   });
 });
