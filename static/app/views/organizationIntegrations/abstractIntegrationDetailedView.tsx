@@ -391,7 +391,7 @@ class AbstractIntegrationDetailedView<
 
 const Flex = styled('div')`
   display: flex;
-  align-items: center;
+  align-items: flex-start;
 `;
 
 const FlexContainer = styled('div')`
