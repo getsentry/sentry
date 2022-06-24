@@ -1,4 +1,5 @@
 import logging
+import time
 
 import sentry_sdk
 
@@ -34,8 +35,19 @@ def build_project_config(public_key=None, **kwargs):
     try:
         from sentry.models import ProjectKey
 
+        now = time.time()
         sentry_sdk.set_tag("public_key", public_key)
         sentry_sdk.set_context("kwargs", kwargs)
+
+        metrics.incr(
+            "relay.projectconfig_cache.run",
+            tags={"task": "build"},
+            sample_rate=1,
+        )
+        schedule_duration = now - kwargs.get("tmp_scheduled", now)
+        metrics.timing(
+            "relay.projectconfig_cache.schedule_duration", schedule_duration, sample_rate=1
+        )
 
         try:
             key = ProjectKey.objects.get(public_key=public_key)
@@ -62,6 +74,7 @@ def schedule_build_project_config(public_key):
 
     See documentation of `build_project_config` for documentation of parameters.
     """
+    tmp_scheduled = time.time()
     if projectconfig_debounce_cache.is_debounced(
         public_key=public_key, project_id=None, organization_id=None
     ):
@@ -75,8 +88,9 @@ def schedule_build_project_config(public_key):
     metrics.incr(
         "relay.projectconfig_cache.scheduled",
         tags={"task": "build"},
+        sample_rate=1,
     )
-    build_project_config.delay(public_key=public_key)
+    build_project_config.delay(public_key=public_key, tmp_scheduled=tmp_scheduled)
 
     # Checking if the project is debounced and debouncing it are two separate
     # actions that aren't atomic. If the process marks a project as debounced
@@ -85,6 +99,11 @@ def schedule_build_project_config(public_key):
     # the project as debounced.
     projectconfig_debounce_cache.debounce(
         public_key=public_key, project_id=None, organization_id=None
+    )
+
+    # TODO: Temprorary task
+    check_build_project_config.apply_async(
+        kwargs={"public_key": public_key, "tmp_scheduled": tmp_scheduled}, countdown=7
     )
 
 
@@ -254,3 +273,46 @@ def schedule_invalidate_project_config(
     projectconfig_debounce_cache.invalidation.debounce(
         public_key=public_key, project_id=project_id, organization_id=organization_id
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.relay.check_build_project_config",
+    queue="relay_config_bulk",
+)
+def check_build_project_config(public_key=None, **kwargs):
+    """Temporary task to verify a build task produces a cache entry
+
+    A build task should result in a cache entry being written.  Sometimes it seems this
+    doesn't work.  This task checks for cache entries and logs data if they are missing.  It
+    should be scheduled together with the build task itself.
+
+    This task needs to be scheduled in the future together with the original task.
+    """
+    from sentry.models import ProjectKey
+
+    metrics.incr(
+        "relay.projectconfig_cache.run",
+        tags={"task": "check"},
+        sample_rate=1,
+    )
+    if not public_key:
+        raise TypeError("public key must be present")
+    cfg = projectconfig_cache.get(public_key)
+    if not cfg:
+        metrics.incr("relay.projectconfig_cache.check_task.missing", sample_rate=1)
+
+        # Purposefully not catching exceptions for missing items from the DB, the task will
+        # fail and sentry will capture them.
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_extra("PublicKey", public_key)
+        key = ProjectKey.objects.get(public_key=public_key)
+        project_id = key.project.id
+        org_id = key.project.organization.id
+        with sentry_sdk.configure_scope() as scope:
+            scope.set_extra("Project.id", project_id)
+            scope.set_extra("Organization.id", org_id)
+
+            sentry_sdk.capture_message("PublicKey not found in cache", level="warning")
+
+    else:
+        metrics.incr("relay.projectconfig_cache.check_task.found", sample_rate=1)
