@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import {SectionHeading} from 'sentry/components/charts/styles';
 import {
   Panel as BasePanel,
   PanelBody as BasePanelBody,
@@ -43,7 +44,7 @@ const PanelHeader = styled(BasePanelHeader)`
 const PanelBody = styled(BasePanelBody)`
   padding: ${space(1.5)};
   overflow-y: auto;
-  h4 {
+  ${SectionHeading} {
     display: none;
   }
 `;

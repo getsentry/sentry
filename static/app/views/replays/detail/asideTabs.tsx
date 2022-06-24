@@ -15,7 +15,7 @@ type Props = {
 
 const TABS = [t('Breadcrumbs'), t('Tags')];
 
-const renderTabContent = (key: string, loadedReplay: ReplayReader) => {
+function renderTabContent(key: string, loadedReplay: ReplayReader) {
   switch (key) {
     case 'breadcrumbs':
       return (
@@ -29,7 +29,7 @@ const renderTabContent = (key: string, loadedReplay: ReplayReader) => {
     default:
       throw new Error('Sidebar tab not found');
   }
-};
+}
 
 function TabbedAside({replay}: Props) {
   const [active, setActive] = useState<string>(TABS[0].toLowerCase());
