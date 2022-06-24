@@ -2,7 +2,7 @@
 import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Sequence, Union
+from typing import Literal, Optional, Sequence, Set, Union
 
 from snuba_sdk import Column, Direction, Function, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
@@ -144,7 +144,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
 
     @staticmethod
-    def _validate_snuba_functions_in_one_group(orderby_operations: set):
+    def _validate_snuba_functions_in_one_group(orderby_operations: Set[str]) -> None:
         for snuba_func in OP_TO_SNUBA_FUNCTION.keys():
             valid_operations = set(OP_TO_SNUBA_FUNCTION[snuba_func].keys())
             if orderby_operations.issubset(valid_operations):
