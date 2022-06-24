@@ -9,7 +9,7 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import Serializer, serialize
-from sentry.api.serializers.models.team import TeamWithProjectsSerializer
+from sentry.api.serializers.models.team import TeamSerializer, TeamWithProjectsSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     Organization,
@@ -292,4 +292,6 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
             )
             omt.delete()
 
-        return Response(status=200)
+        return Response(
+            serialize(team, request.user, TeamSerializer(expand=["externalTeams"])), status=200
+        )

@@ -1,7 +1,9 @@
+import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
+import Datetime from 'sentry/components/dateTime';
 import PageFilterDropdownButton from 'sentry/components/organizations/pageFilters/pageFilterDropdownButton';
 import PageFilterPinIndicator from 'sentry/components/organizations/pageFilters/pageFilterPinIndicator';
 import TimeRangeSelector, {
@@ -49,15 +51,17 @@ function DatePageFilter({router, resetParamsOnChange, ...props}: Props) {
       const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
       const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
 
-      const shouldShowTimes =
-        startTimeFormatted !== DEFAULT_DAY_START_TIME ||
-        endTimeFormatted !== DEFAULT_DAY_END_TIME;
-      const format = shouldShowTimes ? 'MMM D, h:mma' : 'MMM D';
+      const showDateOnly =
+        startTimeFormatted === DEFAULT_DAY_START_TIME &&
+        endTimeFormatted === DEFAULT_DAY_END_TIME;
 
-      const startString = getFormattedDate(start, format, {local: true});
-      const endString = getFormattedDate(end, format, {local: true});
-
-      label = `${startString} - ${endString}`;
+      label = (
+        <Fragment>
+          <Datetime date={start} dateOnly={showDateOnly} />
+          {' – '}
+          <Datetime date={end} dateOnly={showDateOnly} />
+        </Fragment>
+      );
     } else {
       label = period?.toUpperCase();
     }

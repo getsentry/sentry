@@ -48,8 +48,6 @@ export function getMatchFieldPlaceholder(category: SamplingInnerName | string) {
   switch (category) {
     case SamplingInnerName.EVENT_LEGACY_BROWSER:
       return t('Match all selected legacy browsers below');
-    case SamplingInnerName.EVENT_BROWSER_EXTENSIONS:
-      return t('Match all browser extensions');
     case SamplingInnerName.EVENT_LOCALHOST:
       return t('Match all localhosts');
     case SamplingInnerName.EVENT_WEB_CRAWLERS:
@@ -70,8 +68,6 @@ export function getMatchFieldPlaceholder(category: SamplingInnerName | string) {
       return t('ex. 127.0.0.1 or 10.0.0.0/8 (Multiline)');
     case SamplingInnerName.EVENT_CSP:
       return t('ex. file://*, example.com (Multiline)');
-    case SamplingInnerName.EVENT_ERROR_MESSAGES:
-      return t('ex. TypeError* (Multiline)');
     case SamplingInnerName.TRACE_TRANSACTION:
     case SamplingInnerName.EVENT_TRANSACTION:
       return t('ex. page-load');
@@ -91,7 +87,6 @@ export function getMatchFieldPlaceholder(category: SamplingInnerName | string) {
 export function getNewCondition(condition: Condition): SamplingConditionLogicalInner {
   // SamplingConditionLogicalInnerEqBoolean
   if (
-    condition.category === SamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
     condition.category === SamplingInnerName.EVENT_WEB_CRAWLERS ||
     condition.category === SamplingInnerName.EVENT_LOCALHOST
   ) {
@@ -118,7 +113,6 @@ export function getNewCondition(condition: Condition): SamplingConditionLogicalI
 
   if (
     condition.category === SamplingInnerName.EVENT_IP_ADDRESSES ||
-    condition.category === SamplingInnerName.EVENT_ERROR_MESSAGES ||
     condition.category === SamplingInnerName.EVENT_CSP
   ) {
     return {
@@ -266,13 +260,11 @@ export const individualTransactionsConditions = [
   SamplingInnerName.EVENT_ENVIRONMENT,
   SamplingInnerName.EVENT_USER_ID,
   SamplingInnerName.EVENT_USER_SEGMENT,
-  SamplingInnerName.EVENT_BROWSER_EXTENSIONS,
   SamplingInnerName.EVENT_LOCALHOST,
   SamplingInnerName.EVENT_LEGACY_BROWSER,
   SamplingInnerName.EVENT_WEB_CRAWLERS,
   SamplingInnerName.EVENT_IP_ADDRESSES,
   SamplingInnerName.EVENT_CSP,
-  SamplingInnerName.EVENT_ERROR_MESSAGES,
   SamplingInnerName.EVENT_TRANSACTION,
   SamplingInnerName.EVENT_OS_NAME,
   SamplingInnerName.EVENT_OS_VERSION,
