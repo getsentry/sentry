@@ -16,6 +16,7 @@ from sentry.snuba.metrics import (
     parse_query,
 )
 from sentry.snuba.metrics.naming_layer import SessionMetricKey
+from sentry.snuba.metrics.naming_layer.public import TransactionMetricKey
 from sentry.utils.dates import parse_stats_period
 
 
@@ -251,6 +252,55 @@ def test_validate_many_order_by_fields_are_in_select():
         .with_orderby(
             [
                 OrderBy(field=metric_field_1, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+    MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_snuba_functions_in_one_group_raise_exc():
+    # Validate exception is raised when orderBy fields have function from different snuba groups
+    # because:
+    # `avg` are in OP_TO_SNUBA_FUNCTION["metrics_distributions"].keys()
+    # but
+    # `count_unique` are in OP_TO_SNUBA_FUNCTION["metrics_sets"].keys()
+    metric_field_1 = MetricField(op="avg", metric_name=TransactionMetricKey.DURATION.value)
+    metric_field_2 = MetricField(op="count_unique", metric_name=TransactionMetricKey.USER.value)
+
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
+            ]
+        )
+        .to_metrics_query_dict()
+    )
+
+    # Test that ensures an instance of `InvalidParams` is raised when requesting an orderBy field
+    # from different snuba function groups
+    with pytest.raises(
+        InvalidParams,
+        match="'orderBy' field functions must be from one group of snuba functions",
+    ):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_snuba_functions_in_one_group():
+    # Validate no exception is raised when all orderBy fields are presented the select
+    metric_field_1 = MetricField(op="avg", metric_name=TransactionMetricKey.DURATION.value)
+    metric_field_2 = MetricField(op="p50", metric_name=TransactionMetricKey.DURATION.value)
+
+    metrics_query_dict = (
+        MetricsQueryBuilder()
+        .with_select([metric_field_1, metric_field_2])
+        .with_orderby(
+            [
+                OrderBy(field=metric_field_1, direction=Direction.ASC),
+                OrderBy(field=metric_field_2, direction=Direction.ASC),
             ]
         )
         .to_metrics_query_dict()

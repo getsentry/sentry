@@ -17,6 +17,7 @@ from ...release_health.base import AllowedResolution
 from .naming_layer.mapping import get_mri
 from .utils import (
     MAX_POINTS,
+    OP_TO_SNUBA_FUNCTION,
     OPERATIONS,
     UNALLOWED_TAGS,
     DerivedMetricParseException,
@@ -129,11 +130,26 @@ class MetricsQuery(MetricsQueryValidationRunner):
         for orderby in self.orderby:
             self._validate_field(orderby.field)
 
-        orderby_fields = {f.field for f in self.orderby}
+        orderby_fields, orderby_operations = set(), set()
+        for f in self.orderby:
+            orderby_fields.add(f.field)
+            if f.field.op:
+                orderby_operations.add(f.field.op)
+        self._validate_snuba_functions_in_one_group(orderby_operations)
+
+        # validate all orderby columns are presented in provided 'fields'
         if set(self.select).issuperset(orderby_fields):
             return
 
         raise InvalidParams("'orderBy' must be one of the provided 'fields'")
+
+    @staticmethod
+    def _validate_snuba_functions_in_one_group(orderby_operations: set):
+        for snuba_func in OP_TO_SNUBA_FUNCTION.keys():
+            valid_operations = set(OP_TO_SNUBA_FUNCTION[snuba_func].keys())
+            if orderby_operations.issubset(valid_operations):
+                return
+        raise InvalidParams("'orderBy' field functions must be from one group of snuba functions")
 
     @staticmethod
     def calculate_intervals_len(
