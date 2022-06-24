@@ -11,6 +11,7 @@ import logging
 from collections import OrderedDict, defaultdict, deque
 from copy import copy
 from dataclasses import dataclass, replace
+from datetime import datetime
 from operator import itemgetter
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple, Union
 
@@ -18,13 +19,14 @@ from snuba_sdk import Column, Condition, Function, Op, Query, Request
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.api.utils import InvalidParams
-from sentry.models import Project
+from sentry.models import Organization, Project
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.utils import resolve_tag_key, reverse_resolve
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import get_derived_metrics, org_id_from_projects
 from sentry.snuba.metrics.naming_layer.mapping import get_mri, get_public_name_from_mri
+from sentry.snuba.metrics.naming_layer.mri import is_custom_measurement, parse_mri
 from sentry.snuba.metrics.query import Groupable, MetricsQuery
 from sentry.snuba.metrics.query_builder import (
     SnubaQueryBuilder,
@@ -33,6 +35,7 @@ from sentry.snuba.metrics.query_builder import (
 )
 from sentry.snuba.metrics.utils import (
     AVAILABLE_OPERATIONS,
+    CUSTOM_MEASUREMENT_DATASETS,
     FIELD_ALIAS_MAPPINGS,
     METRIC_TYPE_TO_ENTITY,
     UNALLOWED_TAGS,
@@ -51,7 +54,13 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 
 
-def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[str, Any]:
+def _get_metrics_for_entity(
+    entity_key: EntityKey,
+    projects: Sequence[Project],
+    org_id: int,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+) -> Mapping[str, Any]:
     return run_metrics_query(
         entity_key=entity_key,
         select=[Column("metric_id")],
@@ -60,6 +69,8 @@ def _get_metrics_for_entity(entity_key: EntityKey, projects, org_id) -> Mapping[
         referrer="snuba.metrics.get_metrics_names_for_entity",
         projects=projects,
         org_id=org_id,
+        start=start,
+        end=end,
     )
 
 
@@ -162,6 +173,38 @@ def get_metrics(projects: Sequence[Project]) -> Sequence[MetricMeta]:
             )
         )
     return sorted(metrics_meta, key=itemgetter("name"))
+
+
+def get_custom_measurements(
+    projects: Sequence[Project],
+    organization: Optional[Organization] = None,
+    start: Optional[datetime] = None,
+    end: Optional[datetime] = None,
+) -> Sequence[MetricMeta]:
+    assert projects
+
+    metrics_meta = []
+    for metric_type in CUSTOM_MEASUREMENT_DATASETS:
+        for row in _get_metrics_for_entity(
+            entity_key=METRIC_TYPE_TO_ENTITY[metric_type],
+            projects=projects,
+            org_id=projects[0].organization_id if organization is None else organization.id,
+            start=start,
+            end=end,
+        ):
+            mri = reverse_resolve(row["metric_id"])
+            parsed_mri = parse_mri(mri)
+            if is_custom_measurement(parsed_mri):
+                metrics_meta.append(
+                    MetricMeta(
+                        name=parsed_mri.name,
+                        type=metric_type,
+                        operations=AVAILABLE_OPERATIONS[METRIC_TYPE_TO_ENTITY[metric_type].value],
+                        unit=parsed_mri.unit,
+                    )
+                )
+
+    return metrics_meta
 
 
 def _get_metrics_filter_ids(projects: Sequence[Project], metric_mris: Sequence[str]) -> Set[int]:
