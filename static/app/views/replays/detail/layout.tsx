@@ -46,12 +46,6 @@ const GrabberSVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 const SIDEBAR_MIN_WIDTH = 325;
 const TOPBAR_MIN_HEIGHT = 325;
 
-type ResizePanelProps = {
-  direction: 'n' | 'e' | 's' | 'w';
-  minHeight?: number;
-  minWidth?: number;
-};
-
 type Props = {
   layout: Layout;
   showCrumbs?: boolean;
@@ -120,7 +114,11 @@ function ReplayLayout({
       return (
         <Container>
           {timeline}
-          <ResizePanel direction="s" minHeight={TOPBAR_MIN_HEIGHT}>
+          <ResizePanel
+            direction="s"
+            minHeight={TOPBAR_MIN_HEIGHT}
+            modifierClass="overlapDown"
+          >
             <TopbarSection>
               {video}
               {crumbs}
@@ -153,6 +151,11 @@ const Container = styled('div')`
     cursor: ns-resize;
     height: ${space(2)};
     width: 100%;
+  }
+  .resizeHeightBar.overlapDown {
+    height: calc(16px + 34px); /* Spacing between components + height of <FocusTabs> */
+    margin-bottom: -34px; /* The height of the <FocusTabs> text + border */
+    z-index: ${p => p.theme.zIndex.initial};
   }
 
   .resizeWidthBar,
@@ -188,20 +191,29 @@ const Container = styled('div')`
   }
 `;
 
-const ResizePanel = styled(({direction, ...props}: ResizePanelProps) => {
-  const movesUpDown = ['n', 's'].includes(direction);
-  const borderClass = movesUpDown ? 'resizeHeightBar' : 'resizeWidthBar';
-  const handleClass = movesUpDown ? 'resizeHeightHandle' : 'resizeWidthHandle';
+type ResizePanelProps = {
+  direction: 'n' | 'e' | 's' | 'w';
+  minHeight?: number;
+  minWidth?: number;
+  modifierClass?: string;
+};
 
-  return (
-    <BaseResizePanel
-      direction={direction}
-      {...props}
-      borderClass={borderClass}
-      handleClass={handleClass}
-    />
-  );
-})`
+const ResizePanel = styled(
+  ({direction, modifierClass = '', ...props}: ResizePanelProps) => {
+    const movesUpDown = ['n', 's'].includes(direction);
+    const borderClass = movesUpDown ? 'resizeHeightBar' : 'resizeWidthBar';
+    const handleClass = movesUpDown ? 'resizeHeightHandle' : 'resizeWidthHandle';
+
+    return (
+      <BaseResizePanel
+        direction={direction}
+        {...props}
+        borderClass={`${borderClass} ${modifierClass}`}
+        handleClass={`${handleClass} ${modifierClass}`}
+      />
+    );
+  }
+)`
   position: relative;
 `;
 

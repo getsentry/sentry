@@ -27,6 +27,7 @@ const UrlCopyInput = styled(TextCopyInput)`
     border: none;
     padding: 0 ${space(0.75)};
     font-size: ${p => p.theme.fontSizeMedium};
+    font-weight: normal;
     border-bottom-left-radius: 0;
     height: ${space(4)};
   }

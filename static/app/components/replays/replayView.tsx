@@ -84,7 +84,6 @@ const PanelNoMargin = styled(Panel)<{isFullscreen: boolean}>`
 const PanelHeader = styled(BasePanelHeader)<{noBorder?: boolean}>`
   display: block;
   padding: 0;
-  font-weight: normal;
   ${p => (p.noBorder ? 'border-bottom: none;' : '')}
 `;
 
