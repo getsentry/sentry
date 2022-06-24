@@ -37,7 +37,10 @@ class ActiveReleaseEventCondition(EventCondition):
             # check deploy -> release first
             # then Release.date_released
             # then EnvironmentRelease.first_seen
-            last_deploy: Deploy = Deploy.objects.filter(id=release.last_deploy_id).first()
+            last_deploy: Deploy = (
+                Deploy.objects.filter(release_id=release.id).order_by("-date_finished").first()
+                or Deploy.objects.filter(id=release.last_deploy_id).first()
+            )
             if last_deploy:
                 return last_deploy.date_finished
             else:
