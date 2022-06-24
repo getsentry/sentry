@@ -701,7 +701,7 @@ function WidgetViewerModal(props: Props) {
           });
         }
         return (
-          <IssueWidgetQueries
+          <GenericWidgetQueries
             api={api}
             organization={organization}
             widget={tableWidget}
@@ -714,7 +714,7 @@ function WidgetViewerModal(props: Props) {
             cursor={cursor}
           >
             {renderIssuesTable}
-          </IssueWidgetQueries>
+          </GenericWidgetQueries>
         );
       case WidgetType.RELEASE:
         if (tableData && chartUnmodified && widget.displayType === DisplayType.TABLE) {

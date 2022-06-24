@@ -54,33 +54,36 @@ async function renderModal({
   seriesData?: Series[];
   tableData?: TableDataWithTitle[];
 }) {
-  const rendered = render(
-    <div style={{padding: space(4)}}>
-      <WidgetViewerModal
-        Header={stubEl}
-        Footer={stubEl as ModalRenderProps['Footer']}
-        Body={stubEl as ModalRenderProps['Body']}
-        CloseButton={stubEl}
-        closeModal={() => undefined}
-        organization={organization}
-        widget={widget}
-        onEdit={() => undefined}
-        seriesData={seriesData}
-        tableData={tableData}
-        issuesData={issuesData}
-        pageLinks={pageLinks}
-      />
-    </div>,
-    {
-      context: routerContext,
-      organization,
+  let rendered;
+  await act(async () => {
+    rendered = render(
+      <div style={{padding: space(4)}}>
+        <WidgetViewerModal
+          Header={stubEl}
+          Footer={stubEl as ModalRenderProps['Footer']}
+          Body={stubEl as ModalRenderProps['Body']}
+          CloseButton={stubEl}
+          closeModal={() => undefined}
+          organization={organization}
+          widget={widget}
+          onEdit={() => undefined}
+          seriesData={seriesData}
+          tableData={tableData}
+          issuesData={issuesData}
+          pageLinks={pageLinks}
+        />
+      </div>,
+      {
+        context: routerContext,
+        organization,
+      }
+    );
+    // Need to wait since WidgetViewerModal will make a request to events-meta
+    // for total events count on mount
+    if (widget.widgetType === WidgetType.DISCOVER) {
+      await waitForMetaToHaveBeenCalled();
     }
-  );
-  // Need to wait since WidgetViewerModal will make a request to events-meta
-  // for total events count on mount
-  if (widget.widgetType === WidgetType.DISCOVER) {
-    await waitForMetaToHaveBeenCalled();
-  }
+  });
   return rendered;
 }
 
@@ -1002,9 +1005,7 @@ describe('Modals -> WidgetViewerModal', function () {
     });
   });
 
-  // TODO(nar): Unskip as I add support
-  // eslint-disable-next-line
-  describe.skip('Issue Table Widget', function () {
+  describe('Issue Table Widget', function () {
     let issuesMock;
     const mockQuery = {
       conditions: 'is:unresolved',
@@ -1092,7 +1093,8 @@ describe('Modals -> WidgetViewerModal', function () {
       expect(screen.getByText('Open in Issues')).toBeInTheDocument();
     });
 
-    it('renders events, status, and title table columns', async function () {
+    // eslint-disable-next-line
+    it.skip('renders events, status, and title table columns', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('title')).toBeInTheDocument();
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
@@ -1103,7 +1105,10 @@ describe('Modals -> WidgetViewerModal', function () {
     });
 
     it('renders Issue table widget viewer', async function () {
-      const {container} = await renderModal({initialData, widget: mockWidget});
+      const {container} = await renderModal({
+        initialData,
+        widget: mockWidget,
+      });
       expect(container).toSnapshot();
     });
 
@@ -1123,18 +1128,20 @@ describe('Modals -> WidgetViewerModal', function () {
       });
       // Need to manually set the new router location and rerender to simulate the sortable column click
       initialData.router.location.query = {sort: ['freq']};
-      rerender(
-        <WidgetViewerModal
-          Header={stubEl}
-          Footer={stubEl as ModalRenderProps['Footer']}
-          Body={stubEl as ModalRenderProps['Body']}
-          CloseButton={stubEl}
-          closeModal={() => undefined}
-          organization={initialData.organization}
-          widget={mockWidget}
-          onEdit={() => undefined}
-        />
-      );
+      await act(async () => {
+        await rerender(
+          <WidgetViewerModal
+            Header={stubEl}
+            Footer={stubEl as ModalRenderProps['Footer']}
+            Body={stubEl as ModalRenderProps['Body']}
+            CloseButton={stubEl}
+            closeModal={() => undefined}
+            organization={initialData.organization}
+            widget={mockWidget}
+            onEdit={() => undefined}
+          />
+        );
+      });
       expect(issuesMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
@@ -1152,13 +1159,15 @@ describe('Modals -> WidgetViewerModal', function () {
       );
     });
 
-    it('renders pagination buttons', async function () {
+    // eslint-disable-next-line
+    it.skip('renders pagination buttons', async function () {
       await renderModal({initialData, widget: mockWidget});
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
 
-    it('paginates to the next page', async function () {
+    // eslint-disable-next-line
+    it.skip('paginates to the next page', async function () {
       const {rerender} = await renderModal({initialData, widget: mockWidget});
       expect(screen.getByText('Error: Failed')).toBeInTheDocument();
       userEvent.click(screen.getByRole('button', {name: 'Next'}));
