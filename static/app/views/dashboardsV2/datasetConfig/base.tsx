@@ -59,6 +59,10 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     organization: Organization,
     pageFilters: PageFilters
   ) => TableData;
+  /**
+   * Configure enabling/disabling sort/direction options with an
+   * optional message for why it is disabled.
+   */
   disableSortOptions?: (widgetQuery: WidgetQuery) => {
     disabledSort: boolean;
     disabledSortDirection: boolean;
