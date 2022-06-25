@@ -1,6 +1,7 @@
 import {RouteComponentProps} from 'react-router';
 import pick from 'lodash/pick';
 
+import * as Layout from 'sentry/components/layouts/thirds';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
@@ -80,32 +81,34 @@ class MetricRulesDuplicate extends AsyncView<Props, State> {
     }
 
     return (
-      <RuleForm
-        onSubmitSuccess={this.handleSubmitSuccess}
-        rule={
-          {
-            ...pick(duplicateTargetRule, DuplicateMetricFields),
-            triggers: duplicateTargetRule.triggers.map(trigger => ({
-              ...pick(trigger, DuplicateTriggerFields),
-              actions: trigger.actions.map(action => ({
-                inputChannelId: null,
-                integrationId: undefined,
-                options: null,
-                sentryAppId: undefined,
-                unsavedId: uniqueId(),
-                unsavedDateCreated: new Date().toISOString(),
-                ...pick(action, DuplicateActionFields),
+      <Layout.Main>
+        <RuleForm
+          onSubmitSuccess={this.handleSubmitSuccess}
+          rule={
+            {
+              ...pick(duplicateTargetRule, DuplicateMetricFields),
+              triggers: duplicateTargetRule.triggers.map(trigger => ({
+                ...pick(trigger, DuplicateTriggerFields),
+                actions: trigger.actions.map(action => ({
+                  inputChannelId: null,
+                  integrationId: undefined,
+                  options: null,
+                  sentryAppId: undefined,
+                  unsavedId: uniqueId(),
+                  unsavedDateCreated: new Date().toISOString(),
+                  ...pick(action, DuplicateActionFields),
+                })),
               })),
-            })),
-            name: duplicateTargetRule.name + ' copy',
-          } as MetricRule
-        }
-        sessionId={sessionId}
-        project={project}
-        userTeamIds={userTeamIds}
-        isDuplicateRule
-        {...otherProps}
-      />
+              name: duplicateTargetRule.name + ' copy',
+            } as MetricRule
+          }
+          sessionId={sessionId}
+          project={project}
+          userTeamIds={userTeamIds}
+          isDuplicateRule
+          {...otherProps}
+        />
+      </Layout.Main>
     );
   }
 }

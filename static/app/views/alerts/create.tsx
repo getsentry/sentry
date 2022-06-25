@@ -165,56 +165,50 @@ class Create extends Component<Props, State> {
           </StyledHeaderContent>
         </Layout.Header>
         <Layout.Body>
-          <StyledLayoutMain fullWidth>
-            <Teams provideUserTeams>
-              {({teams, initiallyLoaded}) =>
-                initiallyLoaded ? (
-                  <Fragment>
-                    {(!hasMetricAlerts || alertType === 'issue') && (
-                      <IssueRuleEditor
+          <Teams provideUserTeams>
+            {({teams, initiallyLoaded}) =>
+              initiallyLoaded ? (
+                <Fragment>
+                  {(!hasMetricAlerts || alertType === AlertRuleType.ISSUE) && (
+                    <IssueRuleEditor
+                      {...this.props}
+                      project={project}
+                      userTeamIds={teams.map(({id}) => id)}
+                    />
+                  )}
+
+                  {hasMetricAlerts &&
+                    alertType === AlertRuleType.METRIC &&
+                    (this.isDuplicateRule ? (
+                      <MetricRulesDuplicate
                         {...this.props}
+                        eventView={eventView}
+                        wizardTemplate={wizardTemplate}
+                        sessionId={this.sessionId}
                         project={project}
                         userTeamIds={teams.map(({id}) => id)}
                       />
-                    )}
-
-                    {hasMetricAlerts &&
-                      alertType === AlertRuleType.METRIC &&
-                      (this.isDuplicateRule ? (
-                        <MetricRulesDuplicate
-                          {...this.props}
-                          eventView={eventView}
-                          wizardTemplate={wizardTemplate}
-                          sessionId={this.sessionId}
-                          project={project}
-                          userTeamIds={teams.map(({id}) => id)}
-                        />
-                      ) : (
-                        <MetricRulesCreate
-                          {...this.props}
-                          eventView={eventView}
-                          wizardTemplate={wizardTemplate}
-                          sessionId={this.sessionId}
-                          project={project}
-                          userTeamIds={teams.map(({id}) => id)}
-                        />
-                      ))}
-                  </Fragment>
-                ) : (
-                  <LoadingIndicator />
-                )
-              }
-            </Teams>
-          </StyledLayoutMain>
+                    ) : (
+                      <MetricRulesCreate
+                        {...this.props}
+                        eventView={eventView}
+                        wizardTemplate={wizardTemplate}
+                        sessionId={this.sessionId}
+                        project={project}
+                        userTeamIds={teams.map(({id}) => id)}
+                      />
+                    ))}
+                </Fragment>
+              ) : (
+                <LoadingIndicator />
+              )
+            }
+          </Teams>
         </Layout.Body>
       </Fragment>
     );
   }
 }
-
-const StyledLayoutMain = styled(Layout.Main)`
-  max-width: 1000px;
-`;
 
 const StyledHeaderContent = styled(Layout.HeaderContent)`
   overflow: visible;
