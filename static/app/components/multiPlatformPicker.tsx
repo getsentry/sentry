@@ -135,7 +135,15 @@ function PlatformPicker(props: PlatformPickerProps) {
     const serverlessCompare = (a: PlatformIntegration, b: PlatformIntegration) => {
       // for the serverless category, sort by service, then language
       // the format of the ids is language-service
-      const compareServices = a.id.split('-')[1].localeCompare(b.id.split('-')[1]);
+      const aProvider = a.id.split('-')[1];
+      const bProvider = b.id.split('-')[1];
+      // if either of the ids are not hyphenated, standard sort
+      if (!aProvider || !bProvider) {
+        return a.id.localeCompare(b.id);
+      }
+      // compare the portions after the hyphen
+      const compareServices = aProvider.localeCompare(bProvider);
+      // if they have the same service provider
       if (!compareServices) {
         return a.id.localeCompare(b.id);
       }
