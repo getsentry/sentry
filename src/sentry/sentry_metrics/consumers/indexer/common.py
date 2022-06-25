@@ -1,17 +1,43 @@
 import functools
 import logging
 import time
-from typing import List, Optional, Set
+from typing import Any, List, MutableMapping, Optional, Set
 
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.types import Message
+from django.conf import settings
+
+from sentry.utils import kafka_config
 
 MessageBatch = List[Message[KafkaPayload]]
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
+DEFAULT_QUEUED_MIN_MESSAGES = 100000
+
+
+def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapping[Any, Any]:
+    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
+    consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
+        cluster_name,
+        override_params={
+            "auto.offset.reset": auto_offset_reset,
+            "enable.auto.commit": False,
+            "enable.auto.offset.store": False,
+            "group.id": group_id,
+            # `default.topic.config` is now deprecated.
+            # More details: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration)
+            "default.topic.config": {"auto.offset.reset": auto_offset_reset},
+            # overridden to reduce memory usage when there's a large backlog
+            "queued.max.messages.kbytes": DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
+            "queued.min.messages": DEFAULT_QUEUED_MIN_MESSAGES,
+        },
+    )
+    return consumer_config
 
 
 @functools.lru_cache(maxsize=10)

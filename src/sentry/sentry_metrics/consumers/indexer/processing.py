@@ -9,7 +9,7 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import Message
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.multiprocess import MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)

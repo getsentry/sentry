@@ -12,12 +12,9 @@ from arroyo.types import Partition, Position, Topic
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
-from sentry.sentry_metrics.consumers.indexer.multiprocess import (
-    BatchMessages,
-    SimpleProduceStep,
-    get_config,
-    process_messages,
-)
+from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, get_config
+from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
+from sentry.sentry_metrics.consumers.indexer.processing import process_messages
 from sentry.utils.batching_kafka_consumer import create_topics
 
 

@@ -16,14 +16,10 @@ from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import MetricsIngestConfiguration
-from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, MessageBatch, get_config
 from sentry.sentry_metrics.consumers.indexer.processing import process_messages
 from sentry.utils import kafka_config
 from sentry.utils.batching_kafka_consumer import create_topics
-
-DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
-DEFAULT_QUEUED_MIN_MESSAGES = 100000
-
 
 logger = logging.getLogger(__name__)
 
@@ -33,26 +29,6 @@ def get_metrics():  # type: ignore
     from sentry.utils import metrics
 
     return metrics
-
-
-def get_config(topic: str, group_id: str, auto_offset_reset: str) -> MutableMapping[Any, Any]:
-    cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
-    consumer_config: MutableMapping[Any, Any] = kafka_config.get_kafka_consumer_cluster_options(
-        cluster_name,
-        override_params={
-            "auto.offset.reset": auto_offset_reset,
-            "enable.auto.commit": False,
-            "enable.auto.offset.store": False,
-            "group.id": group_id,
-            # `default.topic.config` is now deprecated.
-            # More details: https://docs.confluent.io/platform/current/clients/confluent-kafka-python/html/index.html#kafka-client-configuration)
-            "default.topic.config": {"auto.offset.reset": auto_offset_reset},
-            # overridden to reduce memory usage when there's a large backlog
-            "queued.max.messages.kbytes": DEFAULT_QUEUED_MAX_MESSAGE_KBYTES,
-            "queued.min.messages": DEFAULT_QUEUED_MIN_MESSAGES,
-        },
-    )
-    return consumer_config
 
 
 class BatchConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
