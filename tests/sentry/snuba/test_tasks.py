@@ -177,6 +177,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
                     dataset=QueryDatasets.METRICS,
                     aggregate=f"percentage({aggregate}_crashed, {aggregate}) AS "
                     f"_crash_rate_alert_aggregate",
+                    query="",
                     time_window=int(timedelta(minutes=time_window).total_seconds()),
                     status=QuerySubscription.Status.CREATING,
                 )
