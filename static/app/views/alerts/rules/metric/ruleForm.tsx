@@ -1,6 +1,5 @@
 import {Fragment, ReactNode} from 'react';
 import {PlainRoute, RouteComponentProps} from 'react-router';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {
@@ -29,7 +28,6 @@ import {defined} from 'sentry/utils';
 import {metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import theme from 'sentry/utils/theme';
 import withProjects from 'sentry/utils/withProjects';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
 import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeForm';
@@ -797,6 +795,31 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
           return (
             <Fragment>
+              <StyledPresetSidebar
+                onSelect={async preset => {
+                  const context = await preset.makeContext(
+                    this.api,
+                    project,
+                    this.props.organization
+                  );
+                  this.form.setValue('name', context.name);
+                  this.form.setValue('dataset', context.dataset);
+                  this.form.setValue('eventTypes', context.eventTypes as any);
+                  this.form.setValue('aggregate', context.aggregate);
+                  context.comparisonDelta &&
+                    this.form.setValue('comparisonDelta', context.comparisonDelta);
+                  context.timeWindow &&
+                    this.form.setValue('timeWindow', context.timeWindow);
+                  context.query && this.form.setValue('query', context.query);
+
+                  this.setState({
+                    comparisonType: context.comparisonType,
+                    triggers: context.triggers,
+                    thresholdType: context.thresholdType,
+                    triggerErrors: new Map(),
+                  });
+                }}
+              />
               <Layout.Main>
                 <Form
                   model={this.form}
@@ -838,7 +861,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                     ) : null
                   }
                   submitLabel={t('Save Rule')}
-                  bodyClassName={FormClass}
                 >
                   <List symbol="colored-numeric">
                     <RuleConditionsForm
@@ -878,32 +900,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   </List>
                 </Form>
               </Layout.Main>
-
-              <StyledPresetSidebar
-                onSelect={async preset => {
-                  const context = await preset.makeContext(
-                    this.api,
-                    project,
-                    this.props.organization
-                  );
-                  this.form.setValue('name', context.name);
-                  this.form.setValue('dataset', context.dataset);
-                  this.form.setValue('eventTypes', context.eventTypes as any);
-                  this.form.setValue('aggregate', context.aggregate);
-                  context.comparisonDelta &&
-                    this.form.setValue('comparisonDelta', context.comparisonDelta);
-                  context.timeWindow &&
-                    this.form.setValue('timeWindow', context.timeWindow);
-                  context.query && this.form.setValue('query', context.query);
-
-                  this.setState({
-                    comparisonType: context.comparisonType,
-                    triggers: context.triggers,
-                    thresholdType: context.thresholdType,
-                    triggerErrors: new Map(),
-                  });
-                }}
-              />
             </Fragment>
           );
         }}
@@ -913,7 +909,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 }
 
 const StyledPresetSidebar = styled(PresetSidebar)`
-  margin-left: ${space(1)};
+  grid-column-start: 2;
+  grid-row-start: 1;
 `;
 
 const StyledListItem = styled(ListItem)`
@@ -949,15 +946,6 @@ const StyledCircleIndicator = styled(CircleIndicator)`
 
 const Aggregate = styled('span')`
   margin-right: ${space(1)};
-`;
-
-const FormClass = css`
-  display: flex;
-  flex-direction: row;
-
-  @media (max-width: ${theme.breakpoints.small}) {
-    flex-direction: column-reverse;
-  }
 `;
 
 export default withProjects(RuleFormContainer);

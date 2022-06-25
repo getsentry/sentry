@@ -1,13 +1,19 @@
 import styled from '@emotion/styled';
 
 import {IconGraph} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 
 import {Preset, PRESET_AGGREGATES} from './presets';
 
-export default function PresetSidebar(props: {onSelect?(preset: Preset): void}) {
+type Props = {
+  className?: string;
+  onSelect?(preset: Preset): void;
+};
+export default function PresetSidebar(props: Props) {
   return (
-    <StyledPresetSidebarContainer>
+    <div className={props.className}>
+      <Header>{t('Suggested Alerts')}</Header>
       {PRESET_AGGREGATES.map(preset => (
         <PresetSidebarItem
           key={preset.id}
@@ -16,7 +22,7 @@ export default function PresetSidebar(props: {onSelect?(preset: Preset): void}) 
           onClick={() => props.onSelect && props.onSelect(preset)}
         />
       ))}
-    </StyledPresetSidebarContainer>
+    </div>
   );
 }
 
@@ -63,4 +69,6 @@ const StyledPresetSidebarItemContainer = styled('div')`
   user-select: none;
 `;
 
-const StyledPresetSidebarContainer = styled('div')``;
+const Header = styled('h1')`
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
