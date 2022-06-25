@@ -45,7 +45,7 @@ function TeamRoleSelect(props: {
   const {hasWriteAccess, organization, member, updateMemberRole} = props;
   const {orgRoleList, teamRoleList, features} = organization;
   if (!features.includes('team-roles')) {
-    return null;
+    return <div />; // Empty div for grid layout
   }
 
   const {orgRole: orgRoleId} = member;
