@@ -23,15 +23,19 @@ type Props = {
 };
 
 function TeamMembersRow(props: Props) {
-  const {organization, member, user, hasWriteAccess} = props;
-  const isSelf = member.email === user.email;
-  const canRemoveMember = hasWriteAccess || isSelf;
+  const {organization, member} = props;
 
   return (
     <TeamRolesPanelItem key={member.id}>
-      <IdBadge avatarSize={36} member={member} useLink orgId={organization.slug} />
-      <TeamRoleSelect {...props} />
-      {canRemoveMember && <RemoveButton {...props} />}
+      <div>
+        <IdBadge avatarSize={36} member={member} useLink orgId={organization.slug} />
+      </div>
+      <div>
+        <TeamRoleSelect {...props} />
+      </div>
+      <div>
+        <RemoveButton {...props} />
+      </div>
     </TeamRolesPanelItem>
   );
 }
@@ -45,7 +49,7 @@ function TeamRoleSelect(props: {
   const {hasWriteAccess, organization, member, updateMemberRole} = props;
   const {orgRoleList, teamRoleList, features} = organization;
   if (!features.includes('team-roles')) {
-    return <div />; // Empty div for grid layout
+    return null;
   }
 
   const {orgRole: orgRoleId} = member;
@@ -84,19 +88,32 @@ function TeamRoleSelect(props: {
   );
 }
 
-function RemoveButton(props: {member: Member; removeMember: (member: Member) => void}) {
-  const {member, removeMember} = props;
+function RemoveButton(props: {
+  hasWriteAccess: boolean;
+  member: Member;
+  removeMember: (member: Member) => void;
+  user: User;
+}) {
+  const {member, user, hasWriteAccess, removeMember} = props;
+
+  const isSelf = member.email === user.email;
+  const canRemoveMember = hasWriteAccess || isSelf;
+
+  const hoverText = !canRemoveMember
+    ? t('You do not have sufficient permissions to remove this team member')
+    : '';
+
   return (
-    <div>
-      <Button
-        size="xs"
-        icon={<IconSubtract size="xs" isCircled />}
-        onClick={() => removeMember(member)}
-        aria-label={t('Remove')}
-      >
-        {t('Remove')}
-      </Button>
-    </div>
+    <Button
+      size="xs"
+      disabled={!canRemoveMember}
+      icon={<IconSubtract size="xs" isCircled />}
+      onClick={() => removeMember(member)}
+      aria-label={t('Remove')}
+      title={hoverText}
+    >
+      {t('Remove')}
+    </Button>
   );
 }
 
