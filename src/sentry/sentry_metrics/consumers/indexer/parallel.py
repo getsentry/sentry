@@ -39,6 +39,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
         processes: int,
         input_block_size: int,
         output_block_size: int,
+        commit_max_batch_size: int,
+        commit_max_batch_time: float,
         config: MetricsIngestConfiguration,
     ):
         self.__config = config
@@ -49,6 +51,9 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
 
         self.__input_block_size = input_block_size
         self.__output_block_size = output_block_size
+
+        self.__commit_max_batch_size = commit_max_batch_size
+        self.__commit_max_batch_time = commit_max_batch_time
 
     def create(
         self, commit: Callable[[Mapping[Partition, Position]], None]
@@ -78,7 +83,7 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory):  # type: ignore
 def get_streaming_metrics_consumer(
     topic: str,
     commit_max_batch_size: int,
-    commit_max_batch_time: int,
+    commit_max_batch_time: float,
     max_batch_size: int,
     max_batch_time: float,
     processes: int,
@@ -97,6 +102,8 @@ def get_streaming_metrics_consumer(
         processes=processes,
         input_block_size=input_block_size,
         output_block_size=output_block_size,
+        commit_max_batch_size=commit_max_batch_size,
+        commit_max_batch_time=commit_max_batch_time,
         config=indexer_profile,
     )
 

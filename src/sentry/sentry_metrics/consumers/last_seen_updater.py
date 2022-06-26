@@ -14,7 +14,8 @@ from arroyo.processing.strategies.streaming.factory import StreamMessageFilter
 from django.utils import timezone
 
 from sentry import options
-from sentry.sentry_metrics.consumers.indexer.multiprocess import get_config, logger
+from sentry.sentry_metrics.consumers.indexer.common import get_config
+from sentry.sentry_metrics.consumers.indexer.multiprocess import logger
 from sentry.sentry_metrics.indexer.base import FetchType
 from sentry.sentry_metrics.indexer.models import StringIndexer
 from sentry.utils import json
