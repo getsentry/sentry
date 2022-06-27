@@ -89,7 +89,7 @@ class SuperuserAccessFormInvalidJson(SentryAPIException):
 class EmptySuperuserAccessForm(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "empty-superuser-access-form"
-    message = "The request contains an empty superuser acccess form data"
+    message = "The request contains an empty superuser access form data"
 
 
 class Superuser:
