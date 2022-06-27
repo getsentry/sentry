@@ -16,7 +16,9 @@ import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransaction
 import {Widget} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
-import GenericWidgetQueries, {ChildrenProps} from './genericWidgetQueries';
+import GenericWidgetQueries, {
+  GenericWidgetQueriesChildrenProps,
+} from './genericWidgetQueries';
 
 type RawResult = EventsStats | MultiSeriesEventsStats;
 
@@ -89,7 +91,7 @@ export function getIsMetricsDataFromSeriesResponse(
 
 type Props = {
   api: Client;
-  children: (props: ChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
   organization: Organization;
   selection: PageFilters;
   widget: Widget;

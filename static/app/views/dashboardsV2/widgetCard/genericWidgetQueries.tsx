@@ -9,7 +9,7 @@ import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {DatasetConfig} from '../datasetConfig/base';
 import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
 
-export type ChildrenProps = {
+export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
   errorMessage?: string;
   pageLinks?: null | string;
@@ -20,7 +20,7 @@ export type ChildrenProps = {
 
 export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   api: Client;
-  children: (props: ChildrenProps) => JSX.Element;
+  children: (props: GenericWidgetQueriesChildrenProps) => JSX.Element;
   config: DatasetConfig<SeriesResponse, TableResponse>;
   organization: Organization;
   selection: PageFilters;
@@ -63,12 +63,13 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>({
 }: GenericWidgetQueriesProps<SeriesResponse, TableResponse>) {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] =
-    useState<ChildrenProps['errorMessage']>(undefined);
-  const [pageLinks, setPageLinks] = useState<ChildrenProps['pageLinks']>(undefined);
+    useState<GenericWidgetQueriesChildrenProps['errorMessage']>(undefined);
+  const [pageLinks, setPageLinks] =
+    useState<GenericWidgetQueriesChildrenProps['pageLinks']>(undefined);
   const [tableResults, setTableResults] =
-    useState<ChildrenProps['tableResults']>(undefined);
+    useState<GenericWidgetQueriesChildrenProps['tableResults']>(undefined);
   const [timeseriesResults, setTimeseriesResults] =
-    useState<ChildrenProps['timeseriesResults']>(undefined);
+    useState<GenericWidgetQueriesChildrenProps['timeseriesResults']>(undefined);
 
   useEffect(() => {
     async function fetchTableData() {

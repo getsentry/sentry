@@ -60,7 +60,7 @@ import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
   SLIDER_HEIGHT,
 } from 'sentry/views/dashboardsV2/widgetCard/chart';
-import {ChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
+import {GenericWidgetQueriesChildrenProps} from 'sentry/views/dashboardsV2/widgetCard/genericWidgetQueries';
 import IssueWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/issueWidgetQueries';
 import ReleaseWidgetQueries from 'sentry/views/dashboardsV2/widgetCard/releaseWidgetQueries';
 import {WidgetCardChartContainer} from 'sentry/views/dashboardsV2/widgetCard/widgetCardChartContainer';
@@ -440,7 +440,11 @@ function WidgetViewerModal(props: Props) {
     });
   }
 
-  const renderDiscoverTable = ({tableResults, loading, pageLinks}: ChildrenProps) => {
+  const renderDiscoverTable = ({
+    tableResults,
+    loading,
+    pageLinks,
+  }: GenericWidgetQueriesChildrenProps) => {
     const links = parseLinkHeader(pageLinks ?? null);
     const isFirstPage = links.previous?.results === false;
     return (
