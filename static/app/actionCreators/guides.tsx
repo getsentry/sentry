@@ -11,8 +11,10 @@ export async function fetchGuides() {
   try {
     const data = await api.requestPromise('/assistant/');
     GuideStore.fetchSucceeded(data);
-  } catch (error) {
-    Sentry.captureException(error);
+  } catch (err) {
+    if (err.status !== 401 && err.status !== 403) {
+      Sentry.captureException(err);
+    }
   }
 }
 
