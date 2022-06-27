@@ -1,13 +1,15 @@
-import {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import {Client, ResponseMeta} from 'sentry/api';
+import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 import {DatasetConfig} from '../datasetConfig/base';
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
 
 export type GenericWidgetQueriesChildrenProps = {
   loading: boolean;
@@ -221,4 +223,59 @@ function GenericWidgetQueries<SeriesResponse, TableResponse>({
   return children({loading, tableResults, timeseriesResults, errorMessage, pageLinks});
 }
 
-export default GenericWidgetQueries;
+function propsAreEqual(prevProps, nextProps) {
+  const {selection, widget, cursor} = nextProps;
+
+  // We do not fetch data whenever the query name changes.
+  // Also don't count empty fields when checking for field changes
+  const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries
+    .map((query: WidgetQuery) => {
+      query.aggregates = query.aggregates.filter(field => !!field);
+      query.columns = query.columns.filter(field => !!field);
+      return query;
+    })
+    .reduce(
+      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+        names.push(name);
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
+
+  const [widgetQueryNames, widgetQueries] = widget.queries
+    .map((query: WidgetQuery) => {
+      query.aggregates = query.aggregates.filter(
+        field => !!field && field !== 'equation|'
+      );
+      query.columns = query.columns.filter(field => !!field && field !== 'equation|');
+      return query;
+    })
+    .reduce(
+      (
+        [names, queries]: [string[], Omit<WidgetQuery, 'name'>[]],
+        {name, ...rest}: {name: string; rest: Omit<WidgetQuery, 'name'>}
+      ) => {
+        names.push(name);
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
+
+  if (
+    widget.limit !== prevProps.widget.limit ||
+    !isEqual(widget.displayType, prevProps.widget.displayType) ||
+    !isEqual(widget.interval, prevProps.widget.interval) ||
+    !isEqual(widgetQueries, prevWidgetQueries) ||
+    !isEqual(widgetQueryNames, prevWidgetQueryNames) ||
+    !isSelectionEqual(selection, prevProps.selection) ||
+    cursor !== prevProps.cursor
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export default React.memo(GenericWidgetQueries, propsAreEqual);
