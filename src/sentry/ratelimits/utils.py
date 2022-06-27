@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Mapping, Type
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Optional, Type
 
 from django.conf import settings
 from rest_framework.request import Request
@@ -113,13 +113,17 @@ def get_organization_id_from_token(token_id: str) -> int | None:
     return installation.organization_id if installation else None
 
 
-def get_rate_limit_config(endpoint: Type[object]) -> RateLimitConfig | None:
+def get_rate_limit_config(
+    endpoint: Type[object], request: Optional[Request], view_args, view_kwargs
+) -> RateLimitConfig | None:
     """Read the rate limit config from the view function to be used for the rate limit check.
 
     If there is no rate limit defined on the endpoint, use the rate limit defined for the group
     or the default across the board
     """
     rate_limit_config = getattr(endpoint, "rate_limits", DEFAULT_RATE_LIMIT_CONFIG)
+    if callable(rate_limit_config):
+        rate_limit_config = rate_limit_config(request, *view_args, **view_kwargs)
     return RateLimitConfig.from_rate_limit_override_dict(rate_limit_config)
 
 
