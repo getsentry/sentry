@@ -19,7 +19,6 @@ import EventWaiter from 'sentry/utils/eventWaiter';
 import withApi from 'sentry/utils/withApi';
 import {OnboardingState} from 'sentry/views/onboarding/targetedOnboarding/types';
 
-import IntegrationCard from './integrationCard';
 import OnboardingProjectsCard from './onboardingCard';
 
 function hasPlatformWithSourceMaps(projects: Project[] | undefined) {
@@ -133,7 +132,7 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
       location: `/settings/${organization.slug}/integrations/`,
-      display: (onboardingState?.selectedIntegrations.length ?? 0) === 0,
+      display: true,
     },
     {
       task: OnboardingTaskKey.SECOND_PLATFORM,
@@ -267,18 +266,6 @@ export function getOnboardingTasks({
       action: () => {},
       display: true,
       renderCard: OnboardingProjectsCard,
-    },
-    {
-      task: OnboardingTaskKey.INTEGRATIONS,
-      title: t('Integrations to Setup'),
-      description: '',
-      skippable: true,
-      requisites: [],
-      actionType: 'action',
-      action: () => {},
-      display: !!organization.experiments?.TargetedOnboardingIntegrationSelectExperiment,
-      serverTask: OnboardingTaskKey.FIRST_INTEGRATION,
-      renderCard: IntegrationCard,
     },
   ];
 }
