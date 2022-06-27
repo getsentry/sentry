@@ -32,7 +32,7 @@ filterwarnings = [
     # This is just to prevent pytest from exiting if pytest-xdist isn't installed.
     "ignore:Unknown config option.*looponfailroots:pytest.PytestConfigWarning",
 
-    "ignore::django.utils.deprecation.RemovedInDjango30Warning",
+    "ignore::django.utils.deprecation.RemovedInDjango40Warning",
 
     # At writing, the Google Bigtable Emulator relies on deprecated behavior
     # internally, this can be removed once a version containing this fix is
