@@ -57,6 +57,8 @@ class MetricsDatasetConfig(DatasetConfig):
         """While the final functions in clickhouse must have their -Merge combinators in order to function, we don't
         need to add them here since snuba has a FunctionMapper that will add it for us. Basically it turns expressions
         like quantiles(0.9)(value) into quantilesMerge(0.9)(percentiles)
+        Make sure to update METRIC_FUNCTION_LIST_BY_TYPE when adding functions here, can't be a dynamic list since the
+        Metric Layer will actually handle which dataset each function goes to
         """
         resolve_metric_id = {
             "name": "metric_id",
