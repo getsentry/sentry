@@ -17,7 +17,11 @@ import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {TableDataRow, TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {getWidgetDiscoverUrl, getWidgetIssueUrl} from 'sentry/views/dashboardsV2/utils';
+import {
+  getWidgetDiscoverUrl,
+  getWidgetIssueUrl,
+  isCustomMeasurementWidget,
+} from 'sentry/views/dashboardsV2/utils';
 
 import {Widget, WidgetType} from '../types';
 import {WidgetViewerContext} from '../widgetViewer/widgetViewerContext';
@@ -71,7 +75,8 @@ function WidgetCardContextMenu({
   }
 
   const menuOptions: MenuItemProps[] = [];
-  const disabledKeys: string[] = [];
+  const usingCustomMeasurements = isCustomMeasurementWidget(widget);
+  const disabledKeys: string[] = usingCustomMeasurements ? ['open-in-discover'] : [];
 
   const openWidgetViewerPath = (id: string | undefined) => {
     if (!isWidgetViewerPath(location.pathname)) {
@@ -106,7 +111,7 @@ function WidgetCardContextMenu({
                 icon: <IconEllipsis direction="down" size="sm" />,
               }}
               placement="bottom right"
-              disabledKeys={['preview']}
+              disabledKeys={[...disabledKeys, 'preview']}
             />
             {showWidgetViewerButton && (
               <OpenWidgetViewerButton
@@ -143,21 +148,26 @@ function WidgetCardContextMenu({
       menuOptions.push({
         key: 'open-in-discover',
         label: t('Open in Discover'),
-        to: widget.queries.length === 1 ? discoverPath : undefined,
+        to:
+          !usingCustomMeasurements && widget.queries.length === 1
+            ? discoverPath
+            : undefined,
         onAction: () => {
-          if (widget.queries.length === 1) {
-            trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
+          if (!usingCustomMeasurements) {
+            if (widget.queries.length === 1) {
+              trackAdvancedAnalyticsEvent('dashboards_views.open_in_discover.opened', {
+                organization,
+                widget_type: widget.displayType,
+              });
+              return;
+            }
+
+            trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
               organization,
               widget_type: widget.displayType,
             });
-            return;
+            openDashboardWidgetQuerySelectorModal({organization, widget});
           }
-
-          trackAdvancedAnalyticsEvent('dashboards_views.query_selector.opened', {
-            organization,
-            widget_type: widget.displayType,
-          });
-          openDashboardWidgetQuerySelectorModal({organization, widget});
         },
       });
     }

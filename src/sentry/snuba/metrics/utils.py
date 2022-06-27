@@ -31,6 +31,7 @@ __all__ = (
     "combine_dictionary_of_list_values",
     "get_intervals",
     "OP_REGEX",
+    "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
 )
 
@@ -185,6 +186,9 @@ DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[flo
 UNIT_TO_TYPE = {"sessions": "count", "percentage": "percentage", "users": "count"}
 UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
+
+# Custom measurements are always extracted as a distribution
+CUSTOM_MEASUREMENT_DATASETS = {"distribution"}
 
 
 def combine_dictionary_of_list_values(main_dict, other_dict):

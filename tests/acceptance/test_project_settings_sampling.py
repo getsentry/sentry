@@ -1,4 +1,5 @@
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
 from sentry.api.endpoints.project_details import DynamicSamplingSerializer
@@ -185,7 +186,11 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
 
             # There are no transaction rules
             assert (
-                len(self.browser.find_elements_by_css_selector('[data-test-id="sampling-rule"]'))
+                len(
+                    self.browser.find_elements(
+                        by=By.CSS_SELECTOR, value='[data-test-id="sampling-rule"]'
+                    )
+                )
                 == 0
             )
 
@@ -203,7 +208,12 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             assert self.browser.element_exists('[data-test-id="sampling-rule"]')
 
             assert (
-                len(self.browser.find_elements_by_css_selector('[data-test-id="empty-state"]')) == 0
+                len(
+                    self.browser.find_elements(
+                        by=By.CSS_SELECTOR, value='[data-test-id="empty-state"]'
+                    )
+                )
+                == 0
             )
 
     def test_add_individual_transaction_rule_with_all_possible_conditions(self):
@@ -249,6 +259,8 @@ class ProjectSettingsSamplingTest(AcceptanceTestCase):
             self.browser.element('[data-test-id="event.web_crawlers"]').click()
             # Add Custom Tag
             self.browser.element('[aria-autocomplete="list"]').send_keys("Add cus", Keys.ENTER)
+            # Close conditions dropdown
+            self.browser.element('[aria-label="Add Condition"]').click()
 
             # Fill in Content Security Policy
             self.browser.element('[placeholder="ex. file://*, example.com (Multiline)"]').send_keys(

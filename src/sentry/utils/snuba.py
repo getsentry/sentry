@@ -68,6 +68,8 @@ OVERRIDE_OPTIONS = {
 
 # Show the snuba query params and the corresponding sql or errors in the server logs
 SNUBA_INFO = os.environ.get("SENTRY_SNUBA_INFO", "false").lower() in ("true", "1")
+if SNUBA_INFO:
+    import sqlparse
 
 # There are several cases here where we support both a top level column name and
 # a tag with the same name. Existing search patterns expect to refer to the tag,
@@ -831,11 +833,14 @@ def _bulk_snuba_query(
             body = json.loads(response.data)
             if SNUBA_INFO:
                 if "sql" in body:
-                    logger.info(
-                        "{}.sql: {}".format(headers.get("referer", "<unknown>"), body["sql"])
+                    print(  # NOQA: only prints when an env variable is set
+                        "{}.sql:\n {}".format(
+                            headers.get("referer", "<unknown>"),
+                            sqlparse.format(body["sql"], reindent_aligned=True),
+                        )
                     )
                 if "error" in body:
-                    logger.info(
+                    print(  # NOQA: only prints when an env variable is set
                         "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
                     )
         except ValueError:
@@ -904,7 +909,11 @@ def _raw_snql_query(
     with thread_hub, timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
         if SNUBA_INFO:
-            logger.info(f"{referrer}.body: {request}")
+            import pprint
+
+            print(  # NOQA: only prints when an env variable is set
+                f"{referrer}.body:\n {pprint.pformat(request.to_dict())}"
+            )
             request.flags.debug = True
 
         with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
