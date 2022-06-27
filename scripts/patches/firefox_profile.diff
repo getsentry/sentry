@@ -1,7 +1,0 @@
---- .venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py	2021-11-09 16:40:20.000000000 -0500
-+++ .venv/lib/python3.8/site-packages/selenium/webdriver/firefox/firefox_profile.py.bak	2021-11-09 16:40:03.000000000 -0500
-@@ -207,3 +207,3 @@
-     def _set_manual_proxy_preference(self, key, setting):
--        if setting is None or setting is '':
-+        if setting is None or setting == '':
-             return

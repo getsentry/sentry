@@ -118,11 +118,6 @@ install-py-dev() {
     SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
 }
 
-patch-selenium() {
-    # XXX: getsentry repo calls this!
-    :
-}
-
 setup-git-config() {
     git config --local branch.autosetuprebase always
     git config --local core.ignorecase false
