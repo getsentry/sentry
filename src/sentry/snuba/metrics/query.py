@@ -3,7 +3,7 @@ import math
 from collections import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Literal, Optional, Sequence, Union
+from typing import Literal, Optional, Sequence, Set, Union
 
 from snuba_sdk import Column, Direction, Function, Granularity, Limit, Offset
 from snuba_sdk.conditions import Condition, ConditionGroup
@@ -131,7 +131,8 @@ class MetricsQuery(MetricsQueryValidationRunner):
         for orderby in self.orderby:
             self._validate_field(orderby.field)
 
-        orderby_fields, metric_entities = set(), set()
+        orderby_fields: Set[MetricField] = set()
+        metric_entities: Set[MetricField] = set()
         for f in self.orderby:
             orderby_fields.add(f.field)
 
