@@ -1,29 +1,26 @@
 import {Fragment} from 'react';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
-import {useTheme} from '@emotion/react';
+import {withRouter, WithRouterProps} from 'react-router';
 import {Location, Query} from 'history';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {getInterval, getSeriesSelection} from 'sentry/components/charts/utils';
+import {getInterval} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {Organization, OrganizationSummary} from 'sentry/types';
+import {Series} from 'sentry/types/echarts';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
 import {getTermHelp, PERFORMANCE_TERM} from 'sentry/views/performance/data';
 import {getMEPQueryParams} from 'sentry/views/performance/landing/widgets/utils';
+import {DurationChart} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
 
 import {ViewProps} from '../../../types';
-import {SpanOperationBreakdownFilter} from '../../filter';
-
-import Content from './content';
 
 type Props = WithRouterProps &
   ViewProps & {
-    currentFilter: SpanOperationBreakdownFilter;
     location: Location;
     organization: OrganizationSummary;
     queryExtra: Query;
@@ -41,58 +38,19 @@ function UserMiseryChart({
   organization,
   query,
   statsPeriod,
-  router,
-  queryExtra,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  currentFilter,
   withoutZerofill,
   start: propsStart,
   end: propsEnd,
 }: Props) {
   const api = useApi();
-  const theme = useTheme();
   const mepContext = useMEPSettingContext();
-
-  function handleLegendSelectChanged(legendChange: {
-    name: string;
-    selected: Record<string, boolean>;
-    type: string;
-  }) {
-    const {selected} = legendChange;
-    const unselected = Object.keys(selected).filter(key => !selected[key]);
-
-    const to = {
-      ...location,
-      query: {
-        ...location.query,
-        unselectedSeries: unselected,
-      },
-    };
-
-    browserHistory.push(to);
-  }
 
   const start = propsStart ? getUtcToLocalDateObject(propsStart) : null;
   const end = propsEnd ? getUtcToLocalDateObject(propsEnd) : null;
   const utc = normalizeDateTimeParams(location.query).utc === 'true';
   const period = statsPeriod;
 
-  const legend = {right: 10, top: 5, selected: getSeriesSelection(location)};
   const datetimeSelection = {start, end, period};
-
-  const contentCommonProps = {
-    theme,
-    router,
-    start,
-    end,
-    utc,
-    legend,
-    queryExtra,
-    period,
-    projects: project,
-    environments: environment,
-    onLegendSelectChanged: handleLegendSelectChanged,
-  };
 
   const requestCommonProps = {
     api,
@@ -132,16 +90,21 @@ function UserMiseryChart({
         referrer="api.performance.transaction-summary.user-misery-chart"
         queryExtras={getMEPQueryParams(mepContext)}
       >
-        {res => {
-          const {results, errored, loading, reloading, timeframe: timeFrame} = res;
+        {({loading, reloading, timeseriesData}) => {
+          const data: Series[] = timeseriesData?.[0]
+            ? [{...timeseriesData[0], seriesName: yAxis}]
+            : [];
           return (
-            <Content
-              series={results}
-              errored={errored}
-              loading={loading}
-              reloading={reloading}
-              timeFrame={timeFrame}
-              {...contentCommonProps}
+            <DurationChart
+              grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+              data={data}
+              statsPeriod={statsPeriod}
+              loading={loading || reloading}
+              disableMultiAxis
+              definedAxisTicks={4}
+              start={start}
+              end={end}
+              utc={utc}
             />
           );
         }}

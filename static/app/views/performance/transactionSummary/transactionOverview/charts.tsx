@@ -242,7 +242,6 @@ function TransactionSummaryCharts({
             start={eventView.start}
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
-            currentFilter={currentFilter}
             withoutZerofill={withoutZerofill}
           />
         )}
