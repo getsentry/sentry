@@ -54,6 +54,7 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   getWidgetReleasesUrl,
+  isCustomMeasurementWidget,
 } from 'sentry/views/dashboardsV2/utils';
 import WidgetCardChart, {
   AugmentedEChartDataZoomHandler,
@@ -979,6 +980,7 @@ function WidgetViewerModal(props: Props) {
                 to={path}
                 priority="primary"
                 type="button"
+                disabled={isCustomMeasurementWidget(widget)}
                 onClick={() => {
                   trackAdvancedAnalyticsEvent(
                     'dashboards_views.widget_viewer.open_source',
