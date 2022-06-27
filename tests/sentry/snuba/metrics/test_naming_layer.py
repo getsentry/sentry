@@ -2,7 +2,12 @@ import re
 
 import pytest
 
-from sentry.snuba.metrics.naming_layer.mri import MRI_SCHEMA_REGEX, ParsedMRI, parse_mri
+from sentry.snuba.metrics.naming_layer.mri import (
+    MRI_SCHEMA_REGEX,
+    ParsedMRI,
+    is_custom_measurement,
+    parse_mri,
+)
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_NAME_REGEX
 
 
@@ -108,3 +113,28 @@ def test_invalid_mri_schema_regex(name):
 )
 def test_parse_mri(name, expected):
     assert parse_mri(name) == expected
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        (
+            ParsedMRI("d", "transactions", "measurements.stall_longest_time", "millisecond"),
+            False,
+        ),
+        (
+            ParsedMRI("d", "transactions", "breakdowns.span_ops.http", "millisecond"),
+            False,
+        ),
+        (
+            ParsedMRI("c", "transactions", "measurements.db_calls", "none"),
+            True,
+        ),
+        (
+            ParsedMRI("s", "sessions", "error", "none"),
+            False,
+        ),
+    ],
+)
+def test_is_custom_measurement(parsed_mri, expected):
+    assert is_custom_measurement(parsed_mri) == expected
